@@ -189,6 +189,44 @@ cells (`13_000_001`, `10_005_000`, `oldest`, …) are ever added, the
 `< 13_000_001` cells emit a legacy form that real MariaDB 12.x
 accepts and do **not** need the wrap.
 
+## Query introspection (`__isAllowed`) has no public API yet — tests reach internals via a single helper
+
+ts-sql-query carries a parallel `__isAllowed` web threaded through
+every query builder, value source, table/view, CTE, fragment and
+column. It is a non-destructive walker that mirrors `__toSql` and
+can answer "is every `allowWhen` / `disallowWhen` gate in this query
+open?" without rendering SQL. It is the scaffolding for an
+unfinished **query introspection API** — the planned public surface
+(something like `query.isAllowed()` alongside a future
+`query.resultSchema()` for OpenAPI emission) is not yet exposed. No
+`execute*` / `query()` / `_build*` call invokes the walker today.
+
+Because the public surface does not yet exist, the only way to
+exercise the walker from tests — and verify that the scaffolding
+stays correct (in sync with `__toSql` as new value-source /
+table-or-view / query-builder shapes are added) — is to read the
+underscore-prefixed method directly. That **breaks
+[`test/DESIGN.md` §1.3 ("public surface only")](./DESIGN.md#1-principles)**.
+
+**What this means for tests** — the exception is centralised in a
+single seam, [`test/lib/isAllowed.ts`](./lib/isAllowed.ts), which is
+the one and only place in the suite allowed to read `__isAllowed`
+(and the connection's `__sqlBuilder`). All `allowWhen` /
+`disallowWhen` tests must invoke `isQueryAllowed(query, connection)`
+from that helper; **no test body may reach into `__isAllowed`
+directly** and no test may copy the casts the helper performs.
+
+Crucially, the existence of this helper does NOT widen the licence:
+it does not justify reaching into any other underscore-prefixed
+internal from a test (`__sets`, `__columns`, `__where`,
+`__sqlBuilder` outside the helper, etc.). When the public
+introspection surface lands, this helper either becomes a thin
+wrapper around it or is removed — test bodies that use it should
+not need to change. If a future test needs a new introspection
+capability that the public API still does not expose, extend
+`test/lib/isAllowed.ts` (one stable seam, one documented exception);
+do not open a second escape route.
+
 ## Window functions are not supported through the fluent API
 
 This is also documented in [`docs/about/limitations.md` § Does ts-sql-query

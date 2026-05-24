@@ -19,6 +19,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
+import { isQueryAllowed } from '../../../../lib/isAllowed.js'
 import { tIssue, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
@@ -35,20 +36,23 @@ describe(ctx.label, () => {
         // throw fires during `executeSelectOne`, not on construction.
         const connection = ctx.conn
         const tIssueLeftJoin = tIssue.forUseInLeftJoin()
+        const query = connection.selectFrom(tProject)
+            .leftJoin(tIssueLeftJoin).on(tIssueLeftJoin.projectId.equals(tProject.id))
+            .where(tProject.id.equals(1))
+            .select({
+                id:     tProject.id,
+                issues: connection.aggregateAsArray({
+                    id:    tIssueLeftJoin.id,
+                    title: tIssueLeftJoin.title,
+                }).allowWhen(false, 'aggregate-as-array-gate-blocks'),
+            })
+            .groupBy('id')
+
+        expect(isQueryAllowed(query)).toBe(false)
+
         let thrown: unknown
         try {
-            await connection.selectFrom(tProject)
-                .leftJoin(tIssueLeftJoin).on(tIssueLeftJoin.projectId.equals(tProject.id))
-                .where(tProject.id.equals(1))
-                .select({
-                    id:     tProject.id,
-                    issues: connection.aggregateAsArray({
-                        id:    tIssueLeftJoin.id,
-                        title: tIssueLeftJoin.title,
-                    }).allowWhen(false, 'aggregate-as-array-gate-blocks'),
-                })
-                .groupBy('id')
-                .executeSelectOne()
+            await query.executeSelectOne()
         } catch (e) {
             thrown = e
         }
@@ -62,18 +66,21 @@ describe(ctx.label, () => {
         // Same throw shape as the object aggregate.
         const connection = ctx.conn
         const tIssueLeftJoin = tIssue.forUseInLeftJoin()
+        const query = connection.selectFrom(tProject)
+            .leftJoin(tIssueLeftJoin).on(tIssueLeftJoin.projectId.equals(tProject.id))
+            .where(tProject.id.equals(1))
+            .select({
+                id:     tProject.id,
+                titles: connection.aggregateAsArrayOfOneColumn(tIssueLeftJoin.title)
+                    .allowWhen(false, 'aggregate-of-one-column-gate-blocks'),
+            })
+            .groupBy('id')
+
+        expect(isQueryAllowed(query)).toBe(false)
+
         let thrown: unknown
         try {
-            await connection.selectFrom(tProject)
-                .leftJoin(tIssueLeftJoin).on(tIssueLeftJoin.projectId.equals(tProject.id))
-                .where(tProject.id.equals(1))
-                .select({
-                    id:     tProject.id,
-                    titles: connection.aggregateAsArrayOfOneColumn(tIssueLeftJoin.title)
-                        .allowWhen(false, 'aggregate-of-one-column-gate-blocks'),
-                })
-                .groupBy('id')
-                .executeSelectOne()
+            await query.executeSelectOne()
         } catch (e) {
             thrown = e
         }
@@ -90,20 +97,23 @@ describe(ctx.label, () => {
         // the parent `_asNullValue(...)`.
         const connection = ctx.conn
         const tIssueLeftJoin = tIssue.forUseInLeftJoin()
+        const query = connection.selectFrom(tProject)
+            .leftJoin(tIssueLeftJoin).on(tIssueLeftJoin.projectId.equals(tProject.id))
+            .where(tProject.id.equals(1))
+            .select({
+                id:     tProject.id,
+                issues: connection.aggregateAsArray({
+                    id:    tIssueLeftJoin.id,
+                    title: tIssueLeftJoin.title,
+                }).onlyWhenOrNull(false).allowWhen(false, 'null-aggregate-as-array-gate-blocks'),
+            })
+            .groupBy('id')
+
+        expect(isQueryAllowed(query)).toBe(false)
+
         let thrown: unknown
         try {
-            await connection.selectFrom(tProject)
-                .leftJoin(tIssueLeftJoin).on(tIssueLeftJoin.projectId.equals(tProject.id))
-                .where(tProject.id.equals(1))
-                .select({
-                    id:     tProject.id,
-                    issues: connection.aggregateAsArray({
-                        id:    tIssueLeftJoin.id,
-                        title: tIssueLeftJoin.title,
-                    }).onlyWhenOrNull(false).allowWhen(false, 'null-aggregate-as-array-gate-blocks'),
-                })
-                .groupBy('id')
-                .executeSelectOne()
+            await query.executeSelectOne()
         } catch (e) {
             thrown = e
         }
@@ -116,19 +126,22 @@ describe(ctx.label, () => {
         // variant. Lands in `NullAllowWhenAggregateValueAsArrayValueSource`.
         const connection = ctx.conn
         const tIssueLeftJoin = tIssue.forUseInLeftJoin()
+        const query = connection.selectFrom(tProject)
+            .leftJoin(tIssueLeftJoin).on(tIssueLeftJoin.projectId.equals(tProject.id))
+            .where(tProject.id.equals(1))
+            .select({
+                id:     tProject.id,
+                titles: connection.aggregateAsArrayOfOneColumn(tIssueLeftJoin.title)
+                    .onlyWhenOrNull(false)
+                    .allowWhen(false, 'null-aggregate-of-one-column-gate-blocks'),
+            })
+            .groupBy('id')
+
+        expect(isQueryAllowed(query)).toBe(false)
+
         let thrown: unknown
         try {
-            await connection.selectFrom(tProject)
-                .leftJoin(tIssueLeftJoin).on(tIssueLeftJoin.projectId.equals(tProject.id))
-                .where(tProject.id.equals(1))
-                .select({
-                    id:     tProject.id,
-                    titles: connection.aggregateAsArrayOfOneColumn(tIssueLeftJoin.title)
-                        .onlyWhenOrNull(false)
-                        .allowWhen(false, 'null-aggregate-of-one-column-gate-blocks'),
-                })
-                .groupBy('id')
-                .executeSelectOne()
+            await query.executeSelectOne()
         } catch (e) {
             thrown = e
         }
@@ -146,7 +159,7 @@ describe(ctx.label, () => {
         const connection = ctx.conn
         const tIssueLeftJoin = tIssue.forUseInLeftJoin()
 
-        const row = await connection.selectFrom(tProject)
+        const query = connection.selectFrom(tProject)
             .leftJoin(tIssueLeftJoin).on(tIssueLeftJoin.projectId.equals(tProject.id))
             .where(tProject.id.equals(1))
             .select({
@@ -157,7 +170,10 @@ describe(ctx.label, () => {
                 }).allowWhen(true, 'aggregate-as-array-gate-open'),
             })
             .groupBy('id')
-            .executeSelectOne()
+
+        expect(isQueryAllowed(query)).toBe(true)
+
+        const row = await query.executeSelectOne()
 
         assertType<Exact<typeof row, { id: number; issues: Array<{ id: number; title: string }> }>>()
         if (!ctx.realDbEnabled) expect(row).toEqual(expected)
@@ -170,7 +186,7 @@ describe(ctx.label, () => {
         const connection = ctx.conn
         const tIssueLeftJoin = tIssue.forUseInLeftJoin()
 
-        const row = await connection.selectFrom(tProject)
+        const query = connection.selectFrom(tProject)
             .leftJoin(tIssueLeftJoin).on(tIssueLeftJoin.projectId.equals(tProject.id))
             .where(tProject.id.equals(1))
             .select({
@@ -179,7 +195,10 @@ describe(ctx.label, () => {
                     .allowWhen(true, 'aggregate-of-one-column-gate-open'),
             })
             .groupBy('id')
-            .executeSelectOne()
+
+        expect(isQueryAllowed(query)).toBe(true)
+
+        const row = await query.executeSelectOne()
 
         assertType<Exact<typeof row, { id: number; titles: string[] }>>()
         if (!ctx.realDbEnabled) expect(row).toEqual(expected)
@@ -195,7 +214,7 @@ describe(ctx.label, () => {
         const connection = ctx.conn
         const tIssueLeftJoin = tIssue.forUseInLeftJoin()
 
-        const row = await connection.selectFrom(tProject)
+        const query = connection.selectFrom(tProject)
             .leftJoin(tIssueLeftJoin).on(tIssueLeftJoin.projectId.equals(tProject.id))
             .where(tProject.id.equals(1))
             .select({
@@ -206,7 +225,10 @@ describe(ctx.label, () => {
                 }).onlyWhenOrNull(false).allowWhen(true, 'null-aggregate-as-array-gate-open'),
             })
             .groupBy('id')
-            .executeSelectOne()
+
+        expect(isQueryAllowed(query)).toBe(true)
+
+        const row = await query.executeSelectOne()
 
         if (!ctx.realDbEnabled) expect(row).toEqual(expected)
     })
@@ -218,7 +240,7 @@ describe(ctx.label, () => {
         const connection = ctx.conn
         const tIssueLeftJoin = tIssue.forUseInLeftJoin()
 
-        const row = await connection.selectFrom(tProject)
+        const query = connection.selectFrom(tProject)
             .leftJoin(tIssueLeftJoin).on(tIssueLeftJoin.projectId.equals(tProject.id))
             .where(tProject.id.equals(1))
             .select({
@@ -228,7 +250,10 @@ describe(ctx.label, () => {
                     .allowWhen(true, 'null-aggregate-of-one-column-gate-open'),
             })
             .groupBy('id')
-            .executeSelectOne()
+
+        expect(isQueryAllowed(query)).toBe(true)
+
+        const row = await query.executeSelectOne()
 
         if (!ctx.realDbEnabled) expect(row).toEqual(expected)
     })

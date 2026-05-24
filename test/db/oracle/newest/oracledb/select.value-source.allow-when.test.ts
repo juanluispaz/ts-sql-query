@@ -20,6 +20,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
+import { isQueryAllowed } from '../../../../lib/isAllowed.js'
 import { tIssue } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
@@ -31,14 +32,18 @@ describe(ctx.label, () => {
     test('allow-when-true-emits-sql-transparently', async () => {
         // `allowWhen(true, ...)` permits the column to render. SQL is
         // identical to a non-gated `select id`. The wrapper is
-        // transparent on the allowed path.
+        // transparent on the allowed path; the introspection walker
+        // reports the query as allowed.
         const expected = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]
         ctx.mockNext(expected)
 
-        const rows = await ctx.conn.selectFrom(tIssue)
+        const query = ctx.conn.selectFrom(tIssue)
             .select({ id: tIssue.id.allowWhen(true, 'id column disabled') })
             .orderBy('id')
-            .executeSelectMany()
+
+        expect(isQueryAllowed(query)).toBe(true)
+
+        const rows = await query.executeSelectMany()
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
@@ -48,15 +53,18 @@ describe(ctx.label, () => {
     })
 
     test('allow-when-false-throws-when-building', async () => {
-        // `allowWhen(false, ...)` blocks the column. Building the
-        // SELECT throws a `TsSqlProcessingError` with reason
-        // `DISALLOWED`. The throw happens during `.query()` (inside
-        // `executeSelectMany`), so the awaited promise rejects.
+        // `allowWhen(false, ...)` blocks the column. The introspection
+        // walker reports the query as disallowed (non-destructive,
+        // no throw); the throw fires when `.query()` actually runs
+        // inside `executeSelectMany`.
+        const query = ctx.conn.selectFrom(tIssue)
+            .select({ id: tIssue.id.allowWhen(false, 'id column disabled') })
+
+        expect(isQueryAllowed(query)).toBe(false)
+
         let thrown: unknown
         try {
-            await ctx.conn.selectFrom(tIssue)
-                .select({ id: tIssue.id.allowWhen(false, 'id column disabled') })
-                .executeSelectMany()
+            await query.executeSelectMany()
         } catch (e) {
             thrown = e
         }
@@ -66,14 +74,18 @@ describe(ctx.label, () => {
 
     test('disallow-when-false-emits-sql-transparently', async () => {
         // `disallowWhen(false, ...)` — twin of allowWhen(true): the
-        // gate inverts the condition. With `false`, the SQL builds.
+        // gate inverts the condition. With `false`, the SQL builds
+        // and the introspection walker reports the query as allowed.
         const expected = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]
         ctx.mockNext(expected)
 
-        const rows = await ctx.conn.selectFrom(tIssue)
+        const query = ctx.conn.selectFrom(tIssue)
             .select({ id: tIssue.id.disallowWhen(false, 'never blocked') })
             .orderBy('id')
-            .executeSelectMany()
+
+        expect(isQueryAllowed(query)).toBe(true)
+
+        const rows = await query.executeSelectMany()
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
@@ -84,11 +96,14 @@ describe(ctx.label, () => {
 
     test('disallow-when-true-throws-when-building', async () => {
         // `disallowWhen(true, ...)` blocks. Inverse of allowWhen(false).
+        const query = ctx.conn.selectFrom(tIssue)
+            .select({ id: tIssue.id.disallowWhen(true, 'feature flag blocks reads') })
+
+        expect(isQueryAllowed(query)).toBe(false)
+
         let thrown: unknown
         try {
-            await ctx.conn.selectFrom(tIssue)
-                .select({ id: tIssue.id.disallowWhen(true, 'feature flag blocks reads') })
-                .executeSelectMany()
+            await query.executeSelectMany()
         } catch (e) {
             thrown = e
         }
@@ -101,12 +116,15 @@ describe(ctx.label, () => {
         // on the RHS of `equals`; gating wraps the equals result.
         // `false` blocks the where expression from rendering — the
         // build throws when the condition is appended.
+        const query = ctx.conn.selectFrom(tIssue)
+            .where(tIssue.status.equals('open').allowWhen(false, 'where-gate blocks query'))
+            .select({ id: tIssue.id })
+
+        expect(isQueryAllowed(query)).toBe(false)
+
         let thrown: unknown
         try {
-            await ctx.conn.selectFrom(tIssue)
-                .where(tIssue.status.equals('open').allowWhen(false, 'where-gate blocks query'))
-                .select({ id: tIssue.id })
-                .executeSelectMany()
+            await query.executeSelectMany()
         } catch (e) {
             thrown = e
         }
@@ -120,11 +138,14 @@ describe(ctx.label, () => {
         // object — useful for callers that already raise a typed
         // application error elsewhere.
         const customError = new Error('app-level: caller is not authorised')
+        const query = ctx.conn.selectFrom(tIssue)
+            .select({ id: tIssue.id.allowWhen(false, customError) })
+
+        expect(isQueryAllowed(query)).toBe(false)
+
         let thrown: unknown
         try {
-            await ctx.conn.selectFrom(tIssue)
-                .select({ id: tIssue.id.allowWhen(false, customError) })
-                .executeSelectMany()
+            await query.executeSelectMany()
         } catch (e) {
             thrown = e
         }

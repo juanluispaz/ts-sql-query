@@ -24,6 +24,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
+import { isQueryAllowed } from '../../../../lib/isAllowed.js'
 import { tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
@@ -195,14 +196,20 @@ test('fragment-from-joined-table-registers-required-column-in-update-from-old-va
         // `_appendValue` on the interpolated param. Pins that the
         // disallow gate propagates through the fragment template
         // boundary (build throws on `executeSelectMany`, not silently).
+        // The introspection walker also reports disallowed because
+        // `FragmentValueSource.__isAllowed` walks `__sqlParams` and
+        // recurses into the gated leaf.
+        const query = ctx.conn.selectFrom(tProject)
+            .select({
+                label: ctx.conn.fragmentWithType('string', 'required')
+                    .sql`('[' || ${tProject.name.allowWhen(false, 'fragment-gate-blocks-name')} || ']')`,
+            })
+
+        expect(isQueryAllowed(query)).toBe(false)
+
         let thrown: unknown
         try {
-            await ctx.conn.selectFrom(tProject)
-                .select({
-                    label: ctx.conn.fragmentWithType('string', 'required')
-                        .sql`('[' || ${tProject.name.allowWhen(false, 'fragment-gate-blocks-name')} || ']')`,
-                })
-                .executeSelectMany()
+            await query.executeSelectMany()
         } catch (e) {
             thrown = e
         }
@@ -225,13 +232,16 @@ test('fragment-from-joined-table-registers-required-column-in-update-from-old-va
         ]
         ctx.mockNext(expected)
 
-        const rows = await ctx.conn.selectFrom(tProject)
+        const query = ctx.conn.selectFrom(tProject)
             .select({
                 label: ctx.conn.fragmentWithType('string', 'required')
                     .sql`('[' || ${tProject.name.allowWhen(true, 'fragment-gate-open-name')} || ']')`,
             })
             .orderBy('label')
-            .executeSelectMany()
+
+        expect(isQueryAllowed(query)).toBe(true)
+
+        const rows = await query.executeSelectMany()
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select ('[' || name || ']') as label from project order by label"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)

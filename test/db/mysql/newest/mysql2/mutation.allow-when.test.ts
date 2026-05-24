@@ -20,6 +20,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
+import { isQueryAllowed } from '../../../../lib/isAllowed.js'
 import { tIssue, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
@@ -34,13 +35,16 @@ describe(ctx.label, () => {
         ctx.mockNext(1)
         await ctx.withRollback(async () => {
             const connection = ctx.conn
-            const affected = await connection.insertInto(tProject)
+            const query = connection.insertInto(tProject)
                 .values({
                     organizationId: 1,
                     name:           connection.const('Insert Gated v1', 'string').allowWhen(true, 'insert-value gate'),
                     slug:           'insert-gated-v1',
                 })
-                .executeInsert()
+
+            expect(isQueryAllowed(query)).toBe(true)
+
+            const affected = await query.executeInsert()
 
             expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, \`name\`, slug) values (?, ?, ?)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -62,14 +66,17 @@ describe(ctx.label, () => {
         const connection = ctx.conn
         let thrown: unknown
         await ctx.withRollback(async () => {
+            const query = connection.insertInto(tProject)
+                .values({
+                    organizationId: 1,
+                    name:           connection.const('blocked', 'string').allowWhen(false, 'insert-value gate blocks'),
+                    slug:           'blocked',
+                })
+
+            expect(isQueryAllowed(query)).toBe(false)
+
             try {
-                await connection.insertInto(tProject)
-                    .values({
-                        organizationId: 1,
-                        name:           connection.const('blocked', 'string').allowWhen(false, 'insert-value gate blocks'),
-                        slug:           'blocked',
-                    })
-                    .executeInsert()
+                await query.executeInsert()
             } catch (e) {
                 thrown = e
             }
@@ -84,12 +91,15 @@ describe(ctx.label, () => {
         ctx.mockNext(1)
         await ctx.withRollback(async () => {
             const connection = ctx.conn
-            const affected = await connection.update(tProject)
+            const query = connection.update(tProject)
                 .set({
                     name: tProject.name.concat(' / updated').allowWhen(true, 'update-set gate'),
                 })
                 .where(tProject.id.equals(1))
-                .executeUpdate()
+
+            expect(isQueryAllowed(query)).toBe(true)
+
+            const affected = await query.executeUpdate()
 
             expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set \`name\` = concat(\`name\`, ?) where id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -109,13 +119,16 @@ describe(ctx.label, () => {
         const connection = ctx.conn
         let thrown: unknown
         await ctx.withRollback(async () => {
+            const query = connection.update(tProject)
+                .set({
+                    name: tProject.name.concat(' / nope').allowWhen(false, 'update-set gate blocks'),
+                })
+                .where(tProject.id.equals(1))
+
+            expect(isQueryAllowed(query)).toBe(false)
+
             try {
-                await connection.update(tProject)
-                    .set({
-                        name: tProject.name.concat(' / nope').allowWhen(false, 'update-set gate blocks'),
-                    })
-                    .where(tProject.id.equals(1))
-                    .executeUpdate()
+                await query.executeUpdate()
             } catch (e) {
                 thrown = e
             }
@@ -130,11 +143,14 @@ describe(ctx.label, () => {
         const connection = ctx.conn
         let thrown: unknown
         await ctx.withRollback(async () => {
+            const query = connection.update(tProject)
+                .set({ name: 'unused' })
+                .where(tProject.id.equals(1).allowWhen(false, 'update-where gate blocks'))
+
+            expect(isQueryAllowed(query)).toBe(false)
+
             try {
-                await connection.update(tProject)
-                    .set({ name: 'unused' })
-                    .where(tProject.id.equals(1).allowWhen(false, 'update-where gate blocks'))
-                    .executeUpdate()
+                await query.executeUpdate()
             } catch (e) {
                 thrown = e
             }
@@ -148,10 +164,13 @@ describe(ctx.label, () => {
         ctx.mockNext(1)
         await ctx.withRollback(async () => {
             const connection = ctx.conn
-            const affected = await connection.update(tProject)
+            const query = connection.update(tProject)
                 .set({ name: 'updated-name' })
                 .where(tProject.id.equals(1).allowWhen(true, 'update-where gate'))
-                .executeUpdate()
+
+            expect(isQueryAllowed(query)).toBe(true)
+
+            const affected = await query.executeUpdate()
 
             expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set \`name\` = ? where id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -171,10 +190,13 @@ describe(ctx.label, () => {
         const connection = ctx.conn
         let thrown: unknown
         await ctx.withRollback(async () => {
+            const query = connection.deleteFrom(tIssue)
+                .where(tIssue.id.equals(99999).allowWhen(false, 'delete-where gate blocks'))
+
+            expect(isQueryAllowed(query)).toBe(false)
+
             try {
-                await connection.deleteFrom(tIssue)
-                    .where(tIssue.id.equals(99999).allowWhen(false, 'delete-where gate blocks'))
-                    .executeDelete()
+                await query.executeDelete()
             } catch (e) {
                 thrown = e
             }
@@ -189,9 +211,12 @@ describe(ctx.label, () => {
         ctx.mockNext(0)
         await ctx.withRollback(async () => {
             const connection = ctx.conn
-            const affected = await connection.deleteFrom(tIssue)
+            const query = connection.deleteFrom(tIssue)
                 .where(tIssue.id.equals(99999).allowWhen(true, 'delete-where gate'))
-                .executeDelete()
+
+            expect(isQueryAllowed(query)).toBe(true)
+
+            const affected = await query.executeDelete()
 
             expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -213,13 +238,16 @@ describe(ctx.label, () => {
         const connection = ctx.conn
         let thrown: unknown
         await ctx.withRollback(async () => {
+            const query = connection.deleteFrom(tIssue)
+                .where(tIssue.projectId.in(
+                    connection.selectFrom(tProject)
+                        .selectOneColumn(tProject.id.allowWhen(false, 'delete-subquery gate blocks')),
+                ))
+
+            expect(isQueryAllowed(query)).toBe(false)
+
             try {
-                await connection.deleteFrom(tIssue)
-                    .where(tIssue.projectId.in(
-                        connection.selectFrom(tProject)
-                            .selectOneColumn(tProject.id.allowWhen(false, 'delete-subquery gate blocks')),
-                    ))
-                    .executeDelete()
+                await query.executeDelete()
             } catch (e) {
                 thrown = e
             }
@@ -235,16 +263,19 @@ describe(ctx.label, () => {
         const connection = ctx.conn
         let thrown: unknown
         await ctx.withRollback(async () => {
+            const query = connection.update(tIssue)
+                .set({ status: 'archived' })
+                .where(connection.exists(
+                    connection.subSelectUsing(tIssue)
+                        .from(tProject)
+                        .where(tProject.id.equals(tIssue.projectId))
+                        .selectOneColumn(tProject.id.allowWhen(false, 'update-subquery gate blocks')),
+                ))
+
+            expect(isQueryAllowed(query)).toBe(false)
+
             try {
-                await connection.update(tIssue)
-                    .set({ status: 'archived' })
-                    .where(connection.exists(
-                        connection.subSelectUsing(tIssue)
-                            .from(tProject)
-                            .where(tProject.id.equals(tIssue.projectId))
-                            .selectOneColumn(tProject.id.allowWhen(false, 'update-subquery gate blocks')),
-                    ))
-                    .executeUpdate()
+                await query.executeUpdate()
             } catch (e) {
                 thrown = e
             }

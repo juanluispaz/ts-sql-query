@@ -1617,7 +1617,7 @@ export class FragmentValueSource extends ValueSourceImpl {
         const sqlParams = this.__sqlParams
         for (let i = 0, length = sqlParams.length; i < length; i++) {
             const value = __getValueSourcePrivate(sqlParams[i]!)
-            const result = value.__getValuesForInsert(sqlBuilder)
+            const result = value.__isAllowed(sqlBuilder)
             if (!result) {
                 return false
             }
@@ -1765,7 +1765,7 @@ export class NullValueSource extends ValueSourceImpl implements HasOperation {
         return sqlBuilder._asNullValue(params, this.__valueType, this.__valueTypeName, this.__typeAdapter)
     }
     override __isAllowed(_sqlBuilder: HasIsValue): boolean {
-        return false
+        return true
     }
 }
 
@@ -2236,7 +2236,7 @@ export class NullAggregateSelectValueSource implements ValueSource<any, any, any
         return undefined
     }
     __isAllowed(_sqlBuilder: HasIsValue): boolean {
-        return false
+        return true
     }
 
     useEmptyArrayForNoValue(): any {
@@ -2599,7 +2599,7 @@ export class NullAggregateValueAsArrayValueSource implements ValueSource<any, an
         return undefined
     }
     __isAllowed(_sqlBuilder: HasIsValue): boolean {
-        return false
+        return true
     }
     __toSql(sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
         return sqlBuilder._asNullValue(params, this.__valueType, this.__valueTypeName, undefined)

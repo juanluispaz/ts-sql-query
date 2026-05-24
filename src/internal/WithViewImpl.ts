@@ -95,7 +95,13 @@ export class WithViewImpl implements IWithView<any>, WithSelectData, __ITableOrV
     __getValuesForInsert(_sqlBuilder: HasIsValue): AnyTableOrView | undefined {
         return undefined
     }
-    __isAllowed(_sqlBuilder: HasIsValue): boolean {
-        return true
+    __isAllowed(sqlBuilder: HasIsValue): boolean {
+        // Mirror `__toSql` rendering: the WITH clause emits the CTE's
+        // inner select via `_buildSelect(this.__selectData, ...)`, so
+        // a gate inside the CTE body must propagate up. `SelectData`
+        // does not declare `__isAllowed` on the interface, but the
+        // runtime instance is always a PlainSelectQueryBuilder /
+        // CompoundSelectQueryBuilder, which do.
+        return (this.__selectData as unknown as { __isAllowed(sqlBuilder: HasIsValue): boolean }).__isAllowed(sqlBuilder)
     }
 }

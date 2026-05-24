@@ -13,7 +13,8 @@
 //   - **Favorable path** — when the gate is open (`allowWhen(true)` /
 //     `disallowWhen(false)`) the wrapper is transparent: SQL builds, the
 //     query runs, no throw. The emitted SQL is identical to what an
-//     ungated equivalent would emit; the wrapper adds zero overhead.
+//     ungated equivalent would emit; the wrapper adds zero overhead. The
+//     introspection walker reports the query as allowed.
 //   - **Protection-fires path** — when the gate is closed and the gated
 //     value is reached during render, building throws a
 //     `TsSqlProcessingError` with `reason: 'DISALLOWED'` BEFORE any SQL
@@ -23,7 +24,8 @@
 //     to include a column the caller is not allowed to read, the
 //     construction step refuses to produce a valid statement and the
 //     promise rejects with the configured message — before the database
-//     ever sees the column name.
+//     ever sees the column name. The introspection walker reports the
+//     query as disallowed before the throw fires.
 //
 // See [`docs/queries/extreme-dynamic-queries.md` § Restrict access to
 // values](../../../../../docs/queries/extreme-dynamic-queries.md#restrict-access-to-values)
@@ -36,6 +38,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
+import { isQueryAllowed } from '../../../../lib/isAllowed.js'
 import { dynamicPick } from '../../../../../src/dynamicCondition.js'
 import { tIssue, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
@@ -55,14 +58,17 @@ describe(ctx.label, () => {
         ctx.mockNext(expected)
         const connection = ctx.conn
 
-        const rows = await connection.selectFrom(tIssue)
+        const query = connection.selectFrom(tIssue)
             .where(tIssue.projectId.in(
                 connection.selectFrom(tProject)
                     .selectOneColumn(tProject.id.allowWhen(true, 'project-id gated')),
             ))
             .select({ id: tIssue.id })
             .orderBy('id')
-            .executeSelectMany()
+
+        expect(isQueryAllowed(query)).toBe(true)
+
+        const rows = await query.executeSelectMany()
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where project_id in (select id as [result] from project) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
@@ -76,15 +82,18 @@ describe(ctx.label, () => {
         // `_inlineSelectAsValue` and the outer `_buildSelect` before
         // any SQL is dispatched.
         const connection = ctx.conn
+        const query = connection.selectFrom(tIssue)
+            .where(tIssue.projectId.in(
+                connection.selectFrom(tProject)
+                    .selectOneColumn(tProject.id.allowWhen(false, 'subquery-as-value gate blocks')),
+            ))
+            .select({ id: tIssue.id })
+
+        expect(isQueryAllowed(query)).toBe(false)
+
         let thrown: unknown
         try {
-            await connection.selectFrom(tIssue)
-                .where(tIssue.projectId.in(
-                    connection.selectFrom(tProject)
-                        .selectOneColumn(tProject.id.allowWhen(false, 'subquery-as-value gate blocks')),
-                ))
-                .select({ id: tIssue.id })
-                .executeSelectMany()
+            await query.executeSelectMany()
         } catch (e) {
             thrown = e
         }
@@ -98,17 +107,20 @@ describe(ctx.label, () => {
         // correlated body; its `__toSql` is reached during the outer
         // `_buildSelect`'s walk over the WHERE expression.
         const connection = ctx.conn
+        const query = connection.selectFrom(tIssue)
+            .where(connection.exists(
+                connection.subSelectUsing(tIssue)
+                    .from(tProject)
+                    .where(tProject.id.equals(tIssue.projectId))
+                    .selectOneColumn(tProject.id.allowWhen(false, 'correlated subquery gate blocks')),
+            ))
+            .select({ id: tIssue.id })
+
+        expect(isQueryAllowed(query)).toBe(false)
+
         let thrown: unknown
         try {
-            await connection.selectFrom(tIssue)
-                .where(connection.exists(
-                    connection.subSelectUsing(tIssue)
-                        .from(tProject)
-                        .where(tProject.id.equals(tIssue.projectId))
-                        .selectOneColumn(tProject.id.allowWhen(false, 'correlated subquery gate blocks')),
-                ))
-                .select({ id: tIssue.id })
-                .executeSelectMany()
+            await query.executeSelectMany()
         } catch (e) {
             thrown = e
         }
@@ -129,10 +141,13 @@ describe(ctx.label, () => {
             .select({ id: tIssue.id.allowWhen(true, 'cte gate') })
             .forUseInQueryAs('open_issues')
 
-        const rows = await connection.selectFrom(openIssues)
+        const query = connection.selectFrom(openIssues)
             .select({ id: openIssues.id })
             .orderBy('id')
-            .executeSelectMany()
+
+        expect(isQueryAllowed(query)).toBe(true)
+
+        const rows = await query.executeSelectMany()
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"with open_issues as (select id as id from issue) select id as id from open_issues order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
@@ -150,11 +165,14 @@ describe(ctx.label, () => {
             .select({ id: tIssue.id.allowWhen(false, 'cte body gate blocks') })
             .forUseInQueryAs('open_issues')
 
+        const query = connection.selectFrom(openIssues)
+            .select({ id: openIssues.id })
+
+        expect(isQueryAllowed(query)).toBe(false)
+
         let thrown: unknown
         try {
-            await connection.selectFrom(openIssues)
-                .select({ id: openIssues.id })
-                .executeSelectMany()
+            await query.executeSelectMany()
         } catch (e) {
             thrown = e
         }
@@ -170,11 +188,14 @@ describe(ctx.label, () => {
         ctx.mockNext(expected)
         const connection = ctx.conn
 
-        const rows = await connection.selectFrom(tIssue)
+        const query = connection.selectFrom(tIssue)
             .innerJoin(tProject).on(tProject.id.equals(tIssue.projectId).allowWhen(true, 'join gate'))
             .select({ id: tIssue.id })
             .orderBy('id')
-            .executeSelectMany()
+
+        expect(isQueryAllowed(query)).toBe(true)
+
+        const rows = await query.executeSelectMany()
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id from issue inner join project on (project.id = issue.project_id = 1) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
@@ -186,12 +207,15 @@ describe(ctx.label, () => {
         // Closed gate on the join's ON expression. The build throws
         // when the SqlBuilder renders the FROM/JOIN section.
         const connection = ctx.conn
+        const query = connection.selectFrom(tIssue)
+            .innerJoin(tProject).on(tProject.id.equals(tIssue.projectId).allowWhen(false, 'join-on gate blocks'))
+            .select({ id: tIssue.id })
+
+        expect(isQueryAllowed(query)).toBe(false)
+
         let thrown: unknown
         try {
-            await connection.selectFrom(tIssue)
-                .innerJoin(tProject).on(tProject.id.equals(tIssue.projectId).allowWhen(false, 'join-on gate blocks'))
-                .select({ id: tIssue.id })
-                .executeSelectMany()
+            await query.executeSelectMany()
         } catch (e) {
             thrown = e
         }
@@ -205,12 +229,15 @@ describe(ctx.label, () => {
         ctx.mockNext(expected)
         const connection = ctx.conn
 
-        const rows = await connection.selectFrom(tProject)
+        const query = connection.selectFrom(tProject)
             .select({ id: tProject.id })
             .groupBy('id')
             .having(connection.count(tProject.id).greaterThan(0).allowWhen(true, 'having gate'))
             .orderBy('id')
-            .executeSelectMany()
+
+        expect(isQueryAllowed(query)).toBe(true)
+
+        const rows = await query.executeSelectMany()
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project group by id having (count(id) > @0 = 1) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -226,13 +253,16 @@ describe(ctx.label, () => {
         // Closed gate on HAVING; throw fires when the HAVING expression
         // is appended during render.
         const connection = ctx.conn
+        const query = connection.selectFrom(tProject)
+            .select({ id: tProject.id })
+            .groupBy('id')
+            .having(connection.count(tProject.id).greaterThan(0).allowWhen(false, 'having gate blocks'))
+
+        expect(isQueryAllowed(query)).toBe(false)
+
         let thrown: unknown
         try {
-            await connection.selectFrom(tProject)
-                .select({ id: tProject.id })
-                .groupBy('id')
-                .having(connection.count(tProject.id).greaterThan(0).allowWhen(false, 'having gate blocks'))
-                .executeSelectMany()
+            await query.executeSelectMany()
         } catch (e) {
             thrown = e
         }
@@ -244,12 +274,15 @@ describe(ctx.label, () => {
         // GROUP BY entry is itself a value source. A gated column there
         // throws when the GROUP BY clause is rendered.
         const connection = ctx.conn
+        const query = connection.selectFrom(tProject)
+            .groupBy(tProject.organizationId.allowWhen(false, 'group-by gate blocks'))
+            .select({ orgId: tProject.organizationId })
+
+        expect(isQueryAllowed(query)).toBe(false)
+
         let thrown: unknown
         try {
-            await connection.selectFrom(tProject)
-                .groupBy(tProject.organizationId.allowWhen(false, 'group-by gate blocks'))
-                .select({ orgId: tProject.organizationId })
-                .executeSelectMany()
+            await query.executeSelectMany()
         } catch (e) {
             thrown = e
         }
@@ -262,12 +295,15 @@ describe(ctx.label, () => {
         // throws on render. (The string-name overload sidesteps the
         // gate because it never sees the value source.)
         const connection = ctx.conn
+        const query = connection.selectFrom(tProject)
+            .select({ id: tProject.id })
+            .orderBy(tProject.organizationId.allowWhen(false, 'order-by gate blocks'))
+
+        expect(isQueryAllowed(query)).toBe(false)
+
         let thrown: unknown
         try {
-            await connection.selectFrom(tProject)
-                .select({ id: tProject.id })
-                .orderBy(tProject.organizationId.allowWhen(false, 'order-by gate blocks'))
-                .executeSelectMany()
+            await query.executeSelectMany()
         } catch (e) {
             thrown = e
         }
@@ -303,11 +339,14 @@ describe(ctx.label, () => {
         }
         const pickedFields = dynamicPick(availableFields, fieldsToPick, ['id'])
 
+        const query = connection.selectFrom(tProject)
+            .select(pickedFields)
+
+        expect(isQueryAllowed(query)).toBe(false)
+
         let thrown: unknown
         try {
-            await connection.selectFrom(tProject)
-                .select(pickedFields)
-                .executeSelectMany()
+            await query.executeSelectMany()
         } catch (e) {
             thrown = e
         }
@@ -338,10 +377,13 @@ describe(ctx.label, () => {
         const fieldsToPick = { id: true } // caller did not request sensitiveCount
         const pickedFields = dynamicPick(availableFields, fieldsToPick, ['id'])
 
-        const rows = await connection.selectFrom(tProject)
+        const query = connection.selectFrom(tProject)
             .select(pickedFields)
             .orderBy('id')
-            .executeSelectMany()
+
+        expect(isQueryAllowed(query)).toBe(true)
+
+        const rows = await query.executeSelectMany()
         // 4 projects in seed; mock returns whatever is queued.
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project order by id"`)

@@ -1176,6 +1176,20 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
                 }
             }
         }
+        const orderBy = this.__orderBy
+        if (orderBy) {
+            for (let i = 0, length = orderBy.length; i < length; i++) {
+                const entry = orderBy[i]!
+                if (typeof entry.expression !== 'string') {
+                    // expression is AnyValueSource | RawFragment<any>; the
+                    // generic `__isAllowed` helper duck-types both.
+                    result = __isAllowed(entry.expression, sqlBuilder)
+                    if (!result) {
+                        return false
+                    }
+                }
+            }
+        }
         if (this.__columns) {
             result = isAllowedQueryColumns(this.__columns, sqlBuilder)
             if (!result) {
@@ -1345,6 +1359,20 @@ export class CompoundSelectQueryBuilder extends AbstractSelect implements ToSql,
         result = __isAllowed(this.__secondQuery, sqlBuilder)
         if (!result) {
             return false
+        }
+        const orderBy = this.__orderBy
+        if (orderBy) {
+            for (let i = 0, length = orderBy.length; i < length; i++) {
+                const entry = orderBy[i]!
+                if (typeof entry.expression !== 'string') {
+                    // expression is AnyValueSource | RawFragment<any>; the
+                    // generic `__isAllowed` helper duck-types both.
+                    result = __isAllowed(entry.expression, sqlBuilder)
+                    if (!result) {
+                        return false
+                    }
+                }
+            }
         }
         result = __isAllowed(this.__limit, sqlBuilder)
         if (!result) {

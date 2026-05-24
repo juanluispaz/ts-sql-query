@@ -7,12 +7,19 @@ export interface MockQueryRunnerConfig {
     database?: DatabaseType
     promise?: PromiseProvider
     /**
-     * Customize how thrown errors are classified as SQL errors. Returning
-     * `false` makes the connection skip wrapping the error inside a
-     * `TsSqlQueryExecutionError` in transaction handling, so the original
-     * error bubbles up to your `catch` clause unchanged. Useful for
-     * test-only sentinels like rollback signals. Default: every error is
-     * treated as a SQL error (preserves the previous behavior).
+     * Customize how thrown errors that are NOT `TsSqlError` instances
+     * are classified as SQL errors. `TsSqlError` is always recognised
+     * as a SQL error regardless of this hook — only application-level
+     * errors (`new Error(...)`, custom subclasses, driver-shape stubs)
+     * reach the hook for classification. Returning `false` makes the
+     * connection skip wrapping the error inside a
+     * `TsSqlQueryExecutionError` in transaction handling, so the
+     * original error bubbles up to your `catch` clause unchanged —
+     * useful for test-only sentinels like rollback signals. Default:
+     * `false` for everything that is not a `TsSqlError`, mirroring how
+     * real driver runners (`PgLiteQueryRunner.isSqlError`,
+     * `PgQueryRunner.isSqlError`, etc.) only recognise their own
+     * driver error shapes plus `TsSqlError`.
      */
     isSqlError?: (error: unknown) => boolean
 }
@@ -61,7 +68,10 @@ export class MockQueryRunner implements QueryRunner {
         }
         this.database = databaseOrConfig.database || 'noopDB'
         this.promise = databaseOrConfig.promise || Promise
-        this.isSqlErrorFn = databaseOrConfig.isSqlError || (() => true)
+        const userIsSqlError = databaseOrConfig.isSqlError
+        this.isSqlErrorFn = userIsSqlError
+            ? (error) => error instanceof TsSqlError || userIsSqlError(error)
+            : (error) => error instanceof TsSqlError
     }
 
     /**

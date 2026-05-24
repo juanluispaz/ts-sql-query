@@ -367,4 +367,341 @@ describe(ctx.label, () => {
         expect(thrown).toBeInstanceOf(Error)
         expect((thrown as Error).message).toContain('const-null gate blocks')
     })
+
+    test('length-on-gated-column-fires-and-introspects-disallowed', async () => {
+        // `tCol.allowWhen(false, ...).length()` builds a
+        // `SqlOperation0ValueSource('_length', ...)` wrapping the
+        // AllowWhen. The walker delegates from the 0-arg op into the
+        // wrapped value source.
+        const connection = ctx.conn
+        const query = connection.selectFrom(tIssue)
+            .select({
+                titleLen: tIssue.title.allowWhen(false, 'length gate blocks').length(),
+            })
+
+        expect(isQueryAllowed(query)).toBe(false)
+
+        let thrown: unknown
+        try {
+            await query.executeSelectMany()
+        } catch (e) {
+            thrown = e
+        }
+        expect(thrown).toBeInstanceOf(Error)
+        expect((thrown as Error).message).toContain('length gate blocks')
+    })
+
+    test('length-on-allowed-column-passes', async () => {
+        const expected = [{ titleLen: 16 }, { titleLen: 15 }, { titleLen: 16 }, { titleLen: 22 }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        const query = connection.selectFrom(tIssue)
+            .select({
+                titleLen: tIssue.title.allowWhen(true, 'length gate').length(),
+            })
+
+        expect(isQueryAllowed(query)).toBe(true)
+
+        const rows = await query.executeSelectMany()
+
+        if (!ctx.realDbEnabled) expect(rows).toEqual(expected)
+    })
+
+    test('equals-other-column-with-gated-lhs-fires-and-introspects-disallowed', async () => {
+        // `colA.allowWhen(false, ...).equals(colB)` where colB is
+        // another required column. Builds `SqlOperation1NotOptionalValueSource`
+        // (the not-optional 1-arg variant). The walker delegates into
+        // the wrapped LHS (gated) and the RHS (plain column).
+        const connection = ctx.conn
+        const query = connection.selectFrom(tIssue)
+            .where(tIssue.projectId.allowWhen(false, 'equals-col gate blocks').equals(tIssue.id))
+            .select({ id: tIssue.id })
+
+        expect(isQueryAllowed(query)).toBe(false)
+
+        let thrown: unknown
+        try {
+            await query.executeSelectMany()
+        } catch (e) {
+            thrown = e
+        }
+        expect(thrown).toBeInstanceOf(Error)
+        expect((thrown as Error).message).toContain('equals-col gate blocks')
+    })
+
+    test('equals-other-column-with-allowed-lhs-passes', async () => {
+        const expected: Array<{ id: number }> = []
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        const query = connection.selectFrom(tIssue)
+            .where(tIssue.projectId.allowWhen(true, 'equals-col gate').equals(tIssue.id))
+            .select({ id: tIssue.id })
+
+        expect(isQueryAllowed(query)).toBe(true)
+
+        const rows = await query.executeSelectMany()
+
+        if (!ctx.realDbEnabled) expect(rows).toEqual(expected)
+    })
+
+    test('concat-on-gated-string-fires-and-introspects-disallowed', async () => {
+        // `tStr.allowWhen(false, ...).concat(suffix)` builds
+        // `SqlOperation1ValueSourceIfValueOrIgnore('_concat', ...)` —
+        // the "IgnoreIfNull" 1-arg variant, distinct from the
+        // "NoopIfNull" one. The walker delegates into the wrapped LHS.
+        const connection = ctx.conn
+        const query = connection.selectFrom(tIssue)
+            .select({
+                label: tIssue.title.allowWhen(false, 'concat gate blocks').concat(' [issue]'),
+            })
+
+        expect(isQueryAllowed(query)).toBe(false)
+
+        let thrown: unknown
+        try {
+            await query.executeSelectMany()
+        } catch (e) {
+            thrown = e
+        }
+        expect(thrown).toBeInstanceOf(Error)
+        expect((thrown as Error).message).toContain('concat gate blocks')
+    })
+
+    test('concat-on-allowed-string-passes', async () => {
+        const expected = [{ label: 't [issue]' }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        const query = connection.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                label: tIssue.title.allowWhen(true, 'concat gate').concat(' [issue]'),
+            })
+
+        expect(isQueryAllowed(query)).toBe(true)
+
+        const rows = await query.executeSelectMany()
+
+        if (!ctx.realDbEnabled) expect(rows).toEqual(expected)
+    })
+
+    test('replace-all-on-gated-string-fires-and-introspects-disallowed', async () => {
+        // `tStr.allowWhen(false, ...).replaceAll(find, replace)` builds
+        // `SqlOperation2ValueSourceIfValueOrIgnore('_replaceAll', ...)` —
+        // the "IgnoreIfNull" 2-arg variant. Walker delegates into LHS.
+        const connection = ctx.conn
+        const query = connection.selectFrom(tIssue)
+            .select({
+                title: tIssue.title.allowWhen(false, 'replace-all gate blocks').replaceAll('a', 'A'),
+            })
+
+        expect(isQueryAllowed(query)).toBe(false)
+
+        let thrown: unknown
+        try {
+            await query.executeSelectMany()
+        } catch (e) {
+            thrown = e
+        }
+        expect(thrown).toBeInstanceOf(Error)
+        expect((thrown as Error).message).toContain('replace-all gate blocks')
+    })
+
+    test('string-concat-aggregate-on-gated-column-fires-and-introspects-disallowed', async () => {
+        // `connection.stringConcat(separator, tCol.allowWhen(false, ...))`
+        // builds `AggregateFunctions1or2ValueSource('_stringConcat', ...)`
+        // — the 2-arg aggregate variant (separator + value). Walker
+        // delegates into the wrapped value column.
+        const connection = ctx.conn
+        const query = connection.selectFrom(tIssue)
+            .selectOneColumn(connection.stringConcat(
+                tIssue.title.allowWhen(false, 'string-concat gate blocks'),
+                ', ',
+            ))
+
+        expect(isQueryAllowed(query)).toBe(false)
+
+        let thrown: unknown
+        try {
+            await query.executeSelectOne()
+        } catch (e) {
+            thrown = e
+        }
+        expect(thrown).toBeInstanceOf(Error)
+        expect((thrown as Error).message).toContain('string-concat gate blocks')
+    })
+
+    test('string-concat-aggregate-on-allowed-column-passes', async () => {
+        ctx.mockNext('t1, t2, t3, t4')
+        const connection = ctx.conn
+
+        const query = connection.selectFrom(tIssue)
+            .selectOneColumn(connection.stringConcat(
+                tIssue.title.allowWhen(true, 'string-concat gate'),
+                ', ',
+            ))
+
+        expect(isQueryAllowed(query)).toBe(true)
+
+        const result = await query.executeSelectOne()
+
+        if (!ctx.realDbEnabled) expect(result).toBe('t1, t2, t3, t4')
+    })
+
+    test('only-when-or-null-false-yields-null-value-source-and-walker-allows-it', async () => {
+        // `.onlyWhenOrNull(false)` discards the prior chain and returns
+        // a fresh `NullValueSource`. There is no `allowWhen` to wrap
+        // here because the chain is replaced; the test just confirms
+        // the walker visits `NullValueSource.__isAllowed` (which now
+        // correctly returns `true` — the literal NULL has nothing
+        // gated to render).
+        const expected = [{ tag: null }, { tag: null }, { tag: null }, { tag: null }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        const query = connection.selectFrom(tIssue)
+            .select({
+                tag: tIssue.title.onlyWhenOrNull(false),
+            })
+
+        expect(isQueryAllowed(query)).toBe(true)
+
+        const rows = await query.executeSelectMany()
+
+        if (!ctx.realDbEnabled) {
+            expect(rows).toHaveLength(4)
+            for (const r of rows) expect(r.tag).toBeUndefined()
+        }
+    })
+
+    test('equals-if-value-defined-then-true-when-no-value-allow-when-true-passes', async () => {
+        // `col.allowWhen(true, ...).equalsIfValue(definedValue).trueWhenNoValue()`
+        // — with a defined value the IfValue is NOT dropped, the LHS
+        // (gated) is preserved, and the `BooleanValueWhenNoValueValueSource`
+        // wrapper carries the fallback only as a safety net. The walker
+        // visits the outer wrapper and delegates into the chain.
+        const expected = [{ id: 1 }, { id: 3 }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        const query = connection.selectFrom(tIssue)
+            .where(tIssue.status.allowWhen(true, 'true-when-no-value gate').equalsIfValue('open').trueWhenNoValue())
+            .select({ id: tIssue.id })
+
+        expect(isQueryAllowed(query)).toBe(true)
+
+        const rows = await query.executeSelectMany()
+
+        if (!ctx.realDbEnabled) expect(rows).toEqual(expected)
+    })
+
+    test('equals-if-value-defined-then-true-when-no-value-allow-when-false-introspects-disallowed', async () => {
+        // Same chain, closed gate on the LHS column. Walker visits the
+        // outer `BooleanValueWhenNoValueValueSource.__isAllowed` →
+        // delegates into IfValue (preserved because value is defined) →
+        // AllowWhen (returns false). Build also throws when executed.
+        const connection = ctx.conn
+        const query = connection.selectFrom(tIssue)
+            .where(tIssue.status.allowWhen(false, 'true-when-no-value gate blocks').equalsIfValue('open').trueWhenNoValue())
+            .select({ id: tIssue.id })
+
+        expect(isQueryAllowed(query)).toBe(false)
+
+        let thrown: unknown
+        try {
+            await query.executeSelectMany()
+        } catch (e) {
+            thrown = e
+        }
+        expect(thrown).toBeInstanceOf(Error)
+        expect((thrown as Error).message).toContain('true-when-no-value gate blocks')
+    })
+
+    test('value-when-no-value-allow-when-true-passes', async () => {
+        // `col.allowWhen(true, ...).equalsIfValue(defined).valueWhenNoValue(otherBoolValueSource)`
+        // builds `ValueWhenNoValueValueSource`. Walker visits it and
+        // delegates into BOTH the wrapped value source AND the fallback
+        // (so a closed gate in either side would propagate).
+        const expected = [{ id: 1 }, { id: 3 }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        const query = connection.selectFrom(tIssue)
+            .where(tIssue.status
+                .allowWhen(true, 'value-when-no-value gate')
+                .equalsIfValue('open')
+                .valueWhenNoValue(connection.true()))
+            .select({ id: tIssue.id })
+
+        expect(isQueryAllowed(query)).toBe(true)
+
+        const rows = await query.executeSelectMany()
+
+        if (!ctx.realDbEnabled) expect(rows).toEqual(expected)
+    })
+
+    test('value-when-no-value-with-gated-fallback-introspects-disallowed', async () => {
+        // Twin of the previous test, but the gate is on the FALLBACK
+        // side: `valueWhenNoValue(connection.true().allowWhen(false, ...))`.
+        // ValueWhenNoValueValueSource.__isAllowed checks both sides,
+        // so a closed gate on the fallback alone is enough to report
+        // disallowed.
+        const connection = ctx.conn
+        const query = connection.selectFrom(tIssue)
+            .where(tIssue.status
+                .equalsIfValue('open')
+                .valueWhenNoValue(connection.true().allowWhen(false, 'value-when-no-value fallback gate blocks')))
+            .select({ id: tIssue.id })
+
+        expect(isQueryAllowed(query)).toBe(false)
+    })
+
+    test('raw-fragment-in-order-by-with-gated-column-fires-and-introspects-disallowed', async () => {
+        // `connection.rawFragment\`${gatedCol}\`` returns a
+        // `RawFragment` whose `__isAllowed` walks its own template
+        // params. `orderBy(rawFragment)` is one of the typed entry
+        // points that accepts `IRawFragment`. The
+        // `SelectQueryBuilder.__isAllowed` walker iterates the
+        // `__orderBy` entries and calls `__isAllowed` on each
+        // expression — the helper duck-types both ValueSource and
+        // RawFragment.
+        const connection = ctx.conn
+        const expr = connection.rawFragment`${tIssue.title.allowWhen(false, 'raw-fragment gate blocks')}`
+        const query = connection.selectFrom(tIssue)
+            .select({ id: tIssue.id })
+            .orderBy(expr)
+
+        expect(isQueryAllowed(query)).toBe(false)
+
+        let thrown: unknown
+        try {
+            await query.executeSelectMany()
+        } catch (e) {
+            thrown = e
+        }
+        expect(thrown).toBeInstanceOf(Error)
+        expect((thrown as Error).message).toContain('raw-fragment gate blocks')
+    })
+
+    test('raw-fragment-in-order-by-with-allowed-column-passes', async () => {
+        // Favorable twin — open gate on the column nested in the
+        // rawFragment. Walker visits RawFragmentImpl.__isAllowed and
+        // reports allowed; query runs.
+        const expected = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        const expr = connection.rawFragment`${tIssue.title.allowWhen(true, 'raw-fragment gate')}`
+        const query = connection.selectFrom(tIssue)
+            .select({ id: tIssue.id })
+            .orderBy(expr)
+
+        expect(isQueryAllowed(query)).toBe(true)
+
+        const rows = await query.executeSelectMany()
+
+        if (!ctx.realDbEnabled) expect(rows).toEqual(expected)
+    })
 })

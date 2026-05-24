@@ -172,7 +172,7 @@ describe(ctx.label, () => {
 
             const affected = await query.executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = @0 where (id = @1 = 1)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = @0 where id = @1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "updated-name",
@@ -218,7 +218,7 @@ describe(ctx.label, () => {
 
             const affected = await query.executeDelete()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where (id = @0 = 1)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where id = @0"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 99999,

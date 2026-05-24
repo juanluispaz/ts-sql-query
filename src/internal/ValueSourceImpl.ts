@@ -1684,6 +1684,14 @@ export class AllowWhenValueSource extends ValueSourceImpl {
         this.__valueSource = valueSource
         this.__error = error
         this.__allowed = allowed
+        // Mirror the wrapped source's "boolean-as-condition" flag so that
+        // dialects without a native boolean (Oracle, SQL Server) emit the
+        // condition directly under WHERE/HAVING/ON instead of wrapping it
+        // with `= 1` (the path inside `_appendConditionSql` for boolean
+        // value sources whose surface form is a number).
+        if (valueSource.__isBooleanForCondition) {
+            this.__isBooleanForCondition = valueSource.__isBooleanForCondition
+        }
     }
     // `allowWhen` / `disallowWhen` runtime enforcement. This `__toSql`
     // is the active throw point today: the error fires during SQL
@@ -1719,6 +1727,12 @@ export class AllowWhenValueSource extends ValueSourceImpl {
             throw this.__error
         }
         return this.__valueSource.__toSql(sqlBuilder, params, forceTypeCast)
+    }
+    override __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[], forceTypeCast: boolean): string {
+        if (!this.__allowed) {
+            throw this.__error
+        }
+        return this.__valueSource.__toSqlForCondition(sqlBuilder, params, forceTypeCast)
     }
     override __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
         this.__valueSource.__addWiths(sqlBuilder, withs)

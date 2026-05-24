@@ -238,7 +238,7 @@ test('fragment-from-joined-table-registers-required-column-in-update-from-old-va
         const query = ctx.conn.selectFrom(tProject)
             .select({
                 label: ctx.conn.fragmentWithType('string', 'required')
-                    .sql`('[' || ${tProject.name.allowWhen(true, 'fragment-gate-open-name')} || ']')`,
+                    .sql`concat('[', ${tProject.name.allowWhen(true, 'fragment-gate-open-name')}, ']')`,
             })
             .orderBy('label')
 
@@ -246,7 +246,7 @@ test('fragment-from-joined-table-registers-required-column-in-update-from-old-va
 
         const rows = await query.executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ('[' || \`name\` || ']') as label from project order by label"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select concat('[', \`name\`, ']') as label from project order by label"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ label: string }>>>()
         expect(rows).toEqual(expected)

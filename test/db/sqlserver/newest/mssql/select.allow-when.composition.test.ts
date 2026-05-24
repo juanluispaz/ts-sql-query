@@ -197,7 +197,7 @@ describe(ctx.label, () => {
 
         const rows = await query.executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id from issue inner join project on (project.id = issue.project_id = 1) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id from issue inner join project on project.id = issue.project_id order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
         expect(rows).toEqual(expected)
@@ -239,7 +239,7 @@ describe(ctx.label, () => {
 
         const rows = await query.executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project group by id having (count(id) > @0 = 1) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project group by id having count(id) > @0 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,

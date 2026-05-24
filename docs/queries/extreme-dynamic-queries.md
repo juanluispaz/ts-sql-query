@@ -642,6 +642,31 @@ The parameters are: `[ 12 ]`
 
 Sometimes you want to allow access to a value only under some circumstances, such as when you want a column in a dynamic select to be available only if the user has permissions. For this, you can call the function `allowWhen`, indicating as the first argument if it is allowed to use this value, and as the second argument, an error or text's error that will be thrown if the value is used in the generated query. Additionally, there is the `disallowWhen` that is analogous to `allowWhen`, but the boolean received as an argument indicates when the value is disallowed.
 
+!!! info "Defense-in-depth for dynamic field selection"
+
+    The canonical use case is when the set of fields to project comes from outside your code — for example an HTTP endpoint that accepts `?fields=...` parameters from the client, and feeds that list into `dynamicPick(...)`. When the caller behaves correctly and asks only for fields they are entitled to see, `allowWhen` is silently transparent and the query runs. When the caller asks for a gated field (whether due to a missing permission check upstream, a misconfigured client, or a deliberate attempt to enumerate restricted data), `allowWhen` makes the SQL fail to **build**: the synchronous `query()` call inside `executeSelect*` / `executeUpdate*` / `executeInsert` / `executeDelete*` raises a [`TsSqlProcessingError`](../api/error-management/library-raised-errors.md) with `reason: 'DISALLOWED'` and the message you configured, **before any SQL is dispatched to the database**. The mistake never reaches the wire.
+
+    Because the throw fires from inside the SQL construction, it propagates through every composite shape automatically: a gated column inside a subquery used as a value (`tFoo.id.in(connection.subSelectUsing(...).selectOneColumn(gatedCol))`), inside a [common table expression](recursive-select.md), inside a [typed fragment](sql-fragments.md), inside an [aggregate](aggregate-as-object-array.md), or inside a `WHERE` / `HAVING` / `JOIN ... ON` / `GROUP BY` / `ORDER BY` clause — all behave the same way: the building of the outer statement throws as soon as the gated value is reached during render.
+
+    A typical HTTP-handler shape:
+
+    ```ts
+    import { TsSqlError } from "ts-sql-query"
+
+    try {
+        const rows = await connection.selectFrom(tCustomer)
+            .select(dynamicPick(availableFields, req.body.fields, ['id']))
+            .executeSelectMany()
+        res.json(rows)
+    } catch (e) {
+        if (e instanceof TsSqlError && e.errorReason.reason === 'DISALLOWED') {
+            res.status(403).json({ error: e.message })
+            return
+        }
+        throw e
+    }
+    ```
+
 ```ts
 import { dynamicPick, dynamicPickPaths } from "ts-sql-query" // or "ts-sql-query/dynamicCondition"
 

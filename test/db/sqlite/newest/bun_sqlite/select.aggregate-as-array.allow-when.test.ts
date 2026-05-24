@@ -18,6 +18,7 @@
 // reached by chaining `.onlyWhenOrNull(false)` BEFORE `.allowWhen(...)`.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
+import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { tIssue, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
@@ -133,5 +134,102 @@ describe(ctx.label, () => {
         }
         expect(thrown).toBeInstanceOf(Error)
         expect((thrown as Error).message).toContain('null-aggregate-of-one-column-gate-blocks')
+    })
+
+    test('aggregate-as-array-allow-when-true-emits-transparently', async () => {
+        // Favorable counterpart: open gate ⇒ the wrapper is transparent
+        // and the aggregate renders identically to the ungated case.
+        // The expected aggregated JSON shape pins that the surrounding
+        // `_inlineSelectAsValue` path runs unchanged.
+        const expected = { id: 1, issues: [{ id: 1, title: 't' }] }
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+        const tIssueLeftJoin = tIssue.forUseInLeftJoin()
+
+        const row = await connection.selectFrom(tProject)
+            .leftJoin(tIssueLeftJoin).on(tIssueLeftJoin.projectId.equals(tProject.id))
+            .where(tProject.id.equals(1))
+            .select({
+                id:     tProject.id,
+                issues: connection.aggregateAsArray({
+                    id:    tIssueLeftJoin.id,
+                    title: tIssueLeftJoin.title,
+                }).allowWhen(true, 'aggregate-as-array-gate-open'),
+            })
+            .groupBy('id')
+            .executeSelectOne()
+
+        assertType<Exact<typeof row, { id: number; issues: Array<{ id: number; title: string }> }>>()
+        if (!ctx.realDbEnabled) expect(row).toEqual(expected)
+    })
+
+    test('aggregate-as-array-of-one-column-allow-when-true-emits-transparently', async () => {
+        // Favorable counterpart for the one-column aggregate variant.
+        const expected = { id: 1, titles: ['t1', 't2'] }
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+        const tIssueLeftJoin = tIssue.forUseInLeftJoin()
+
+        const row = await connection.selectFrom(tProject)
+            .leftJoin(tIssueLeftJoin).on(tIssueLeftJoin.projectId.equals(tProject.id))
+            .where(tProject.id.equals(1))
+            .select({
+                id:     tProject.id,
+                titles: connection.aggregateAsArrayOfOneColumn(tIssueLeftJoin.title)
+                    .allowWhen(true, 'aggregate-of-one-column-gate-open'),
+            })
+            .groupBy('id')
+            .executeSelectOne()
+
+        assertType<Exact<typeof row, { id: number; titles: string[] }>>()
+        if (!ctx.realDbEnabled) expect(row).toEqual(expected)
+    })
+
+    test('null-aggregate-as-array-via-only-when-or-null-false-then-allow-when-true-emits-transparently', async () => {
+        // `.onlyWhenOrNull(false).allowWhen(true, ...)` — the null
+        // wrapper is in play, the gate is open. Builds successfully;
+        // `onlyWhenOrNull(false)` drops the column from the projection
+        // entirely (it never reaches the SELECT list).
+        const expected = { id: 1 }
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+        const tIssueLeftJoin = tIssue.forUseInLeftJoin()
+
+        const row = await connection.selectFrom(tProject)
+            .leftJoin(tIssueLeftJoin).on(tIssueLeftJoin.projectId.equals(tProject.id))
+            .where(tProject.id.equals(1))
+            .select({
+                id:     tProject.id,
+                issues: connection.aggregateAsArray({
+                    id:    tIssueLeftJoin.id,
+                    title: tIssueLeftJoin.title,
+                }).onlyWhenOrNull(false).allowWhen(true, 'null-aggregate-as-array-gate-open'),
+            })
+            .groupBy('id')
+            .executeSelectOne()
+
+        if (!ctx.realDbEnabled) expect(row).toEqual(expected)
+    })
+
+    test('null-aggregate-as-array-of-one-column-via-only-when-or-null-false-then-allow-when-true-emits-transparently', async () => {
+        // Twin of the previous test for the one-column variant.
+        const expected = { id: 1 }
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+        const tIssueLeftJoin = tIssue.forUseInLeftJoin()
+
+        const row = await connection.selectFrom(tProject)
+            .leftJoin(tIssueLeftJoin).on(tIssueLeftJoin.projectId.equals(tProject.id))
+            .where(tProject.id.equals(1))
+            .select({
+                id:     tProject.id,
+                titles: connection.aggregateAsArrayOfOneColumn(tIssueLeftJoin.title)
+                    .onlyWhenOrNull(false)
+                    .allowWhen(true, 'null-aggregate-of-one-column-gate-open'),
+            })
+            .groupBy('id')
+            .executeSelectOne()
+
+        if (!ctx.realDbEnabled) expect(row).toEqual(expected)
     })
 })

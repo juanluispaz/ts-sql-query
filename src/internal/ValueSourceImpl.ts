@@ -1685,6 +1685,35 @@ export class AllowWhenValueSource extends ValueSourceImpl {
         this.__error = error
         this.__allowed = allowed
     }
+    // `allowWhen` / `disallowWhen` runtime enforcement. This `__toSql`
+    // is the active throw point today: the error fires during SQL
+    // construction (`query()` / `executeXxx()`) and propagates through
+    // every composite path because each composite (subquery-as-value
+    // via `_inlineSelectAsValue`, fragment via `FragmentValueSource`,
+    // aggregate via `AggregateSelectValueSource`, CTE via
+    // `WithViewImpl` + `_buildSelect`, plain joins / where / having /
+    // groupBy / orderBy) renders via its own `__toSql` that recurses
+    // into ours. See `test/db/<dialect>/<v>/<connector>/select.allow-when.composition.test.ts`
+    // for the path-by-path coverage and
+    // `docs/queries/extreme-dynamic-queries.md` § Restrict access to
+    // values for the public contract.
+    //
+    // The parallel `__isAllowed` web threaded through the query
+    // builders, `ValueSourceImpl`, `Table`, `View`, `Values`,
+    // `DBColumnImpl`, `RawFragmentImpl`, `WithViewImpl` and the
+    // `ITableOrView` dispatcher (~48 methods, grep `__isAllowed` in
+    // `src/`) is the scaffolding for a planned **query introspection
+    // API** — non-destructive walkers paralleling `__toSql` that let a
+    // consumer (e.g. an HTTP layer auto-generating OpenAPI) ask the
+    // built query "is every gate open?" without triggering the throw.
+    // The intended public surface (something like `query.isAllowed()`
+    // alongside a future `query.resultSchema()` for OpenAPI-style
+    // emission) is not yet exposed; no `execute*` / `query()` /
+    // `_build*` calls `__isAllowed` today. The recursion is
+    // structurally complete and **must be kept in sync with `__toSql`
+    // when new value-source / table-or-view / query-builder shapes
+    // are added** so that the feature lands working when the public
+    // surface is wired up.
     __toSql(sqlBuilder: SqlBuilder, params: any[], forceTypeCast: boolean): string {
         if (!this.__allowed) {
             throw this.__error

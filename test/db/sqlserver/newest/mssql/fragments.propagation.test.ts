@@ -206,4 +206,33 @@ test('fragment-with-values-for-insert-column-bubbles-up-in-on-conflict-do-update
         expect(thrown).toBeInstanceOf(Error)
         expect((thrown as Error).message).toContain('fragment-gate-blocks-name')
     })
+
+    test('fragment-with-allowed-interpolated-column-emits-transparently', async () => {
+        // Favorable counterpart of the disallow test: when the gate
+        // wrapping the interpolated column is OPEN, the fragment renders
+        // exactly as if there were no gate. Pins that the wrapper is
+        // transparent on the allowed path through the fragment template
+        // boundary (the SQL is byte-identical to a fragment built
+        // without `.allowWhen(...)`).
+        const expected = [
+            { label: '[Internal tools]' },
+            { label: '[Legacy app]' },
+            { label: '[Marketing site]' },
+            { label: '[Public API]' },
+        ]
+        ctx.mockNext(expected)
+
+        const rows = await ctx.conn.selectFrom(tProject)
+            .select({
+                label: ctx.conn.fragmentWithType('string', 'required')
+                    .sql`('[' || ${tProject.name.allowWhen(true, 'fragment-gate-open-name')} || ']')`,
+            })
+            .orderBy('label')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ('[' || name || ']') as [label] from project order by [label]"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ label: string }>>>()
+        expect(rows).toEqual(expected)
+    })
 })

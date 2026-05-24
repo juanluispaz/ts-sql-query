@@ -54,32 +54,28 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('values-aliased-via-as-keeps-original-with-name', async () => {
-        // TODO[BUG]: see test/BUGS.md — `Values.as(alias)` clones the
-        // view by invoking the user's constructor (which initialises
-        // fresh columns with empty names) and then calls
-        // `result.__setColumnsName(this, '')`, passing the SOURCE
-        // instead of the result. The alias's own columns stay unnamed,
-        // so the SQL emits `pp.""` qualifiers. We pin the current
-        // broken output and skip the real-DB branch — every engine
-        // rejects `""` as a column reference.
-        ctx.mockNext([])
+        // `.as(alias)` clones the values view under a new alias.
+        // Cloned columns carry the source's names, so SELECTs against
+        // the alias emit qualified references like `pp.id` / `pp.name`
+        // (not an empty qualifier). The original WITH name is still
+        // emitted once.
+        const expected = [
+            { id: 1, name: 'one' },
+            { id: 2, name: 'two' },
+        ]
+        ctx.mockNext(expected)
         const patch = Values.create(VProjectPatch, 'projectPatch', [
             { id: 1, name: 'one' },
             { id: 2, name: 'two' },
         ])
         const pp = patch.as('pp')
 
-        let rows: Array<{ id: number; name: string }> = []
-        try {
-            rows = await ctx.conn.selectFrom(pp)
-                .select({ id: pp.id, name: pp.name })
-                .orderBy('id')
-                .executeSelectMany()
-        } catch (e) {
-            if (!ctx.realDbEnabled) throw e
-        }
+        const rows = await ctx.conn.selectFrom(pp)
+            .select({ id: pp.id, name: pp.name })
+            .orderBy('id')
+            .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectPatch(id, name) as (values (:0, :1), (:2, :3)) select pp."" as "id", pp."" as "name" from projectPatch pp order by "id""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectPatch(id, name) as (values (:0, :1), (:2, :3)) select pp.id as "id", pp.name as "name" from projectPatch pp order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -89,14 +85,14 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number; name: string }>>>()
-        if (!ctx.realDbEnabled) expect(rows).toEqual([])
+        expect(rows).toEqual(expected)
     })
 
     test('values-for-use-in-left-join-as-emits-left-join', async () => {
-        // TODO[BUG]: see test/BUGS.md — `forUseInLeftJoinAs(alias)`
-        // shares the same bug as `.as(alias)`: cloned columns are
-        // unnamed, so the JOIN emits `pp.""` qualifiers. Pin current
-        // broken output; the real-DB branch is wrapped in try/catch.
+        // `.forUseInLeftJoinAs(alias)` marks the cloned values view as
+        // left-joinable; cloned columns inherit the source's names, so
+        // the JOIN emits `pp.id` / `pp.name` qualifiers. Projects with
+        // no matching patch row surface `newName` as undefined.
         ctx.mockNext([
             { pid: 1, newName: 'one' },
             { pid: 2, newName: undefined },
@@ -106,22 +102,17 @@ describe(ctx.label, () => {
         ])
         const pp = patch.forUseInLeftJoinAs('pp')
 
-        let rows: Array<{ pid: number; newName?: string }> = []
-        try {
-            rows = await ctx.conn.selectFrom(tProject)
-                .leftJoin(pp).on(pp.id.equals(tProject.id))
-                .where(tProject.id.lessOrEqual(2))
-                .select({
-                    pid:     tProject.id,
-                    newName: pp.name,
-                })
-                .orderBy('pid')
-                .executeSelectMany()
-        } catch (e) {
-            if (!ctx.realDbEnabled) throw e
-        }
+        const rows = await ctx.conn.selectFrom(tProject)
+            .leftJoin(pp).on(pp.id.equals(tProject.id))
+            .where(tProject.id.lessOrEqual(2))
+            .select({
+                pid:     tProject.id,
+                newName: pp.name,
+            })
+            .orderBy('pid')
+            .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectPatch(id, name) as (values (:0, :1)) select project.id as "pid", pp."" as "newName" from project left join projectPatch pp on pp."" = project.id where project.id <= :2 order by "pid""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectPatch(id, name) as (values (:0, :1)) select project.id as "pid", pp.name as "newName" from project left join projectPatch pp on pp.id = project.id where project.id <= :2 order by "pid""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

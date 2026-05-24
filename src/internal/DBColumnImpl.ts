@@ -216,7 +216,7 @@ export function createColumnsFromInnerObject(sqlBuilder: HasIsValue, columns: Qu
 export function getInnerObjetRuleToApply(sqlBuilder: HasIsValue, columns: QueryColumns): 1 | 2 | 3 | 4 {
     let containsRequired = false
     let contaisOriginallyRequired = false
-    let innerObjectsAreRequired = true
+    let innerObjectsAreRequired = false
 
     for (const property in columns) {
         const column = columns[property]!

@@ -29,12 +29,15 @@
 //     re-projects those into a new nested object, and L178-182
 //     downgrades them to `optional`.
 //
-// Rule 4 (L193-198) is unreachable from public API: `getInnerObjetRuleToApply`
-// initialises `innerObjectsAreRequired = true` and only ever writes
-// `true` back, so the final guard `containsRequired || innerObjectsAreRequired`
-// at L293 is always truthy and the function never returns 4. The
-// matching dead-code finding is in `test/BUGS.md`; the test below
-// pins the current (Rule 3) behaviour.
+//   - Rule 4 ("the general rule"): a nested object whose columns
+//     are all `optional` and which contains no required inner
+//     objects. `getInnerObjetRuleToApply` returns 4 and the matching
+//     case at L193-198 rewrites every leaf to `optional` (no-op since
+//     they were already optional). The resulting view-column shape is
+//     observably identical to Rule 3 today — both rule cases produce
+//     the same leaf rewrites — but the rule number cascades up
+//     correctly when an outer recursive call inspects this group via
+//     `=== 3`.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -203,15 +206,15 @@ describe(ctx.label, () => {
         }
     })
 
-    test('cte-with-nested-object-of-only-optional-columns-falls-through-to-rule-3', async () => {
-        // TODO[BUG]: see test/BUGS.md — `getInnerObjetRuleToApply` Rule 4 is
-        // unreachable. The current code path keeps `innerObjectsAreRequired`
-        // permanently `true` (initialised at L219, never reset to `false`),
-        // so even a nested object made of two `optional` columns lands on
-        // Rule 3 (`return 3` at L294) instead of Rule 4 (`return 4` at L297).
-        // We pin the current Rule-3 behaviour so the suite stays green; the
-        // matching `case 4` branch at L193-198 of `createColumnsFromInnerObject`
-        // is dead until the helper is fixed.
+    test('cte-with-nested-object-of-only-optional-columns-applies-rule-4', async () => {
+        // A nested object made of two `optional` columns reaches Rule 4
+        // (`return 4` at L297). Inside `getInnerObjetRuleToApply` the
+        // for-each switch (L223-237) hits `default` for each (no flag
+        // updated), the `contaisOriginallyRequired` branch is skipped
+        // (no originallyRequired column), and the final guard at L293
+        // is `false || false` → falls through to `return 4`. The
+        // matching `case 4` at L193-198 rewrites every non-required
+        // leaf to `optional` (no-op since they were already optional).
         ctx.mockNext([
             { iid: 1, opt: { body: 'A body', assigneeId: 42 } },
             { iid: 2, opt: { body: undefined, assigneeId: undefined } },
@@ -246,4 +249,5 @@ describe(ctx.label, () => {
             ])
         }
     })
+
 })

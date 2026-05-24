@@ -48,7 +48,7 @@ class ValuesOf</*in|out*/ SOURCE extends NValues<any, any>> implements IValues<S
         const result = new ((this as any).constructor)(this.__name, this.__values) as ValuesOf<any>
         result.__as = as
         result.__source = this.__source || this
-        result.__setColumnsName(this as any, '')
+        result.__setColumnsName(result as any, '')
         return result as any
     }
     forUseInLeftJoin(): AsForUseInLeftJoin<this> {
@@ -59,7 +59,7 @@ class ValuesOf</*in|out*/ SOURCE extends NValues<any, any>> implements IValues<S
         result.__as = as
         result.__forUseInLeftJoin = true
         result.__source = this.__source || this
-        result.__setColumnsName(this as any, '')
+        result.__setColumnsName(result as any, '')
         __setColumnsForLeftJoin(result as any)
         return result as any
     }

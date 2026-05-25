@@ -8,11 +8,12 @@ test databases, or comparing wall times across runners and scopes.
 - [Cross-invocation reuse](#cross-invocation-reuse)
 - [What "reuse" actually does at process exit](#what-reuse-actually-does-at-process-exit)
 - [Narrowing the docker scope (`--docker-scope newest`)](#narrowing-the-docker-scope---docker-scope-newest)
+- [Path scope vs docker scope (`--scope newest`)](#path-scope-vs-docker-scope---scope-newest)
 - [Data-mutation safety (cooperative contract)](#data-mutation-safety-cooperative-contract)
 - [Schema / seed changes are revalidated automatically](#schema--seed-changes-are-revalidated-automatically)
 - [Per-worker test databases (parallelism)](#per-worker-test-databases-parallelism)
 - [Parallel timings](#parallel-timings)
-- [Bun vs vitest (daily loop)](#bun-vs-vitest-daily-loop)
+- [Bun vs vitest](#bun-vs-vitest)
 - [Stopping the reused containers](#stopping-the-reused-containers)
 
 ## Container reuse (speeding up docker-backed runs)
@@ -116,6 +117,54 @@ something on `<db>/oldest/<connector>` without the real container
 spinning up (focus the cell, drop the real-DB cost by passing
 `--docker-scope newest`, and the assertions still execute against the
 mock).
+
+### Path scope vs docker scope (`--scope newest`)
+
+`--docker-scope newest` flips the real/mock gate but keeps every test
+running. `--scope newest` is one step further — it filters the **file
+set** the runner walks, so older-version cells are not even
+enumerated:
+
+| Flag | Older-version cells |
+|---|---|
+| `--docker-scope newest` | run against the mock |
+| `--scope newest` | not run at all |
+
+Practical use: coverage runs. Older-version coverage is almost always a
+subset of the newest cell's coverage (same SQL builder, same
+expressions), so feeding the runner an extra ~570 file invocations only
+pads the report. `--scope newest` skips them — `bun run tests` drops
+from 14k tests / 8 s to 11k tests / 5 s on a typical box. Implies
+`--docker-scope=newest` automatically (running real containers for
+versions you don't even visit is wasted setup); pass `--docker-scope`
+explicitly to override.
+
+`tests:focus` accepts `--scope newest` too, and combines it with the
+new multi-coord / glob / brace-expansion support to address arbitrary
+slices of the matrix:
+
+- Single-segment coord (`tests:focus postgres --scope newest`): the
+  run expands to `<db>/newest/` + `<db>/types.negative/`.
+- Glob coord (`tests:focus 'postgres/*/pg' --scope newest`): the
+  script expands the glob, then drops paths matching `*/oldest/*`
+  from the expansion. So `postgres/*/pg` resolves to just
+  `postgres/newest/pg`.
+- Brace expansion (`tests:focus 'postgres/*/{pg,postgres}' --scope newest`):
+  works whether you quote the coord or not — quoted, the script
+  brace-expands internally via a vetted eval; unquoted, bash
+  brace-expands at the shell level into two positional coords
+  (`postgres/*/pg`, `postgres/*/postgres`). Same result either way.
+- Multi-coord (`tests:focus 'postgres/*/pg' sqlite/newest --scope newest`):
+  combine literals, globs, and brace-expanded sets in a single
+  invocation; the runner is invoked once on the union of all matches.
+- Deeper coord (already specifying a version, e.g.
+  `tests:focus postgres/newest/pg/select.basic.test.ts --scope newest`):
+  honoured verbatim — the user already narrowed the scope.
+- A coord pointing at `*/oldest/*` combined with `--scope newest` is
+  rejected outright as an explicit contradiction.
+
+`tests:wasm --scope newest` drops the `oldest` WASM entries from
+`WASM_PATHS`.
 
 ### Data-mutation safety (cooperative contract)
 
@@ -256,86 +305,149 @@ after the main pass succeeds.
 
 ## Parallel timings
 
-Per-engine and per-script timings under **bun** on a warm container
-after the one-process-one-db memoisation, with `--parallel` defaulting
-to CPU count (12 on the reference machine):
+Wall-time of the headline invocations under **bun**, reference machine
+(12 logical cores), warm reused containers when docker is involved,
+matrix at ~14k tests / ~2.5k files:
 
-| Engine / scenario | Serial reuse | Parallel reuse | Notes |
+| Invocation | Wall | User+sys CPU | CPU% |
 |---|---|---|---|
-| mariadb (24 files) | ~0.9 s | ~0.9 s | already fast either way |
-| mysql (24 files) | ~1.3 s | ~1.0 s | small parallel win |
-| oracle (24 files) | ~4.1 s | ~2.2 s | parallel ~1.8× |
-| sqlserver (24 files) | ~11 s | ~7 s | parallel ~1.5× |
-| postgres docker-backed (132 files) | ~3.6 s | ~6 s | parallel slightly worse (workers too cheap to amortise startup) |
-| postgres including pglite (178 files) | ~19 s | ~30 s | parallel much worse — pglite WASM contention |
-| **`tests --docker --wasm` (full)** | **~20 s** | **~21 s** | **parallel ~= serial.** Phase 1 runs the matrix WASM-mocked in parallel; phase 2 runs WASM cells sequentially in ~1.5 s. |
-| **`tests --docker` (WASM mocked)** | **~20 s** | **~17 s** | **parallel ~1.2× — the recommended daily path** |
-| **`tests` (no docker, no WASM)** | **~3 s** | **~3 s** | **default; mock-only, blazing fast. See "Bun vs vitest" below for the cross-runner comparison.** |
-| `tests:wasm` (66 WASM files only) | ~1.5 s | — | always serial; parallel adds CPU contention |
+| **`bun run tests`** (mocked, no WASM) | **8.3 s** | ~95 s | 1142% |
+| **`bun run tests --scope newest`** | **5.0 s** | ~55 s | 1094% |
+| **`bun run tests --wasm`** (real pglite/sqlite-wasm) | **12.8 s** | ~103 s | 801% |
+| **`bun run tests --wasm --scope newest`** | **7.7 s** | ~60 s | 785% |
+| **`bun run tests --docker`** (warm containers) | **4:39** | ~1940 s | 694% |
+| `bun run tests --docker` (cold start) | 4:20 | ~1845 s | 709% |
+| **`bun run tests --docker --scope newest`** (warm) | **4:35** | ~1160 s | 420% |
+| **`bun run tests --docker --wasm`** (warm) | **4:36** | ~1940 s | 701% |
 
-Reading the table:
+A few things stand out:
 
-- The heavy docker engines (sqlserver, oracle) earn the parallel
-  speedup on their own. Per-test cost is high enough that splitting
-  across worker processes pays back the worker startup overhead.
-- The fast docker engines (mariadb, mysql, the docker-backed postgres
-  connectors) are too small to benefit on their own — the worker
-  startup cost of `bun test --parallel` (forking N processes,
-  re-importing the dependency tree) exceeds the savings on a few
-  seconds of test work.
-- **The full matrix is the headline number.** Without the two-phase
-  WASM split, parallel would be *worse* than serial because pglite's
-  per-worker WebAssembly bootstrap serialises 12 workers behind CPU
-  contention. The split runs WASM as a single sequential pass at the
-  end, leaving the parallel main pass unencumbered.
+- **The mocked loop is sub-10 s.** Even at ~14k tests, the parallel
+  fan-out (12 worker processes) keeps the wall time inside a tight
+  feedback window. `--scope newest` brings it down further (~5 s) by
+  skipping `<db>/oldest/*` cells outright.
+- **Real WASM costs ~5 extra seconds** on top of mocked. Cheap.
+  Compared to vitest the gap here is dramatic — see the matrix below.
+- **Real docker is a step change.** Even with reused containers and
+  the schema/seed memoised once per process, the docker matrix takes
+  ~4:30. The bottleneck is not our code (see "Why is docker so much
+  slower?" below); it's the per-container DDL throughput when 12
+  workers reseed their own per-worker databases concurrently.
+- **`--scope newest` barely moves the docker wall time** under bun.
+  The newest path is what already dominates wall time (the slowest
+  container — usually sqlserver/oracle — pins the run); dropping
+  oldest cells releases CPU but not wall time. The savings are real
+  but small (~4 s out of 4:39).
+- **`--docker --wasm` ≈ `--docker`.** The two-phase split tucks the
+  real-WASM pass behind the docker matrix; bun's per-worker WASM
+  bootstrap is cheap, so the WASM phase adds essentially nothing on
+  top of the docker baseline. Vitest behaves very differently here —
+  see the matrix below.
 
-The practical workflow:
+### Why is docker so much slower?
 
-- **Daily iteration**: `bun run tests --docker` covers every test in
-  the matrix in ~17 s. WASM connectors run their assertions against
-  the mock; the real WASM path is verified separately.
-- **Targeted WASM check**: `bun run tests:wasm` runs the 66 WASM files
-  in ~1.5 s. Use after touching anything that affects pglite /
-  sqlite-wasm-OO1 specifically.
-- **Pre-merge / CI**: `bun run tests --docker --wasm` covers
-  everything in ~21 s (parallel main pass + sequential WASM pass).
-  CI splits naturally: `tests --docker --docker-mode no-reuse` and
-  `tests:wasm` as two jobs if you prefer.
+The expensive cooperation primitives (`withReseed`, `withCommit` —
+re-apply schema + seed; see § Data-mutation safety above) only fire
+for tests that need post-commit visibility (transaction tests,
+sequence tests, error attachments). In `postgres/newest/pg` that's
+**26 out of 281** mutator wrappers (~9 %); the rest are
+`withRollback`, which is just `BEGIN / ROLLBACK` and costs nothing.
 
-If you are iterating on a single light engine (mariadb / mysql /
-postgres without pglite), `bun run tests:focus <coord> --docker
---mode sequential` is the fastest path. For broader scopes, plain
-`bun run tests --docker` (WASM mocked) is the better default.
+But each of those 26 reseeds runs the full schema (~50 statements)
+inside the container. With 12 worker processes hitting their own
+worker DB concurrently, the **container engine** (a single process per
+container) becomes the bottleneck — every worker queues for the
+container's CPU during DDL. Wall time of the bun run tracks the
+slowest container's serialised DDL throughput, not the JS-side test
+work.
 
-## Bun vs vitest (daily loop)
+That's also a reason **the runtime layer stops being the main cost
+once `--docker` is on** (see the cross-runner matrix below): vitest
+defaults to roughly half the workers, so it puts ~half the concurrent
+DDL pressure on each container, but the raw cross-runtime comparison
+under `--docker` is too contaminated by workload asymmetry and run-to-
+run variance to land a confident "winner". The mocked and WASM gaps,
+on the other hand, are real runtime-level wins for bun.
 
-Same matrix (`tests`, no docker, no WASM, ~1281 tests across all
-mocked cells) under both runners, on the reference machine:
+### Practical workflow
 
-| Runtime | Wall time | User CPU | System CPU | Speedup |
-|---|---|---|---|---|
-| `bun run tests` | **~3.2 s** | ~24 s | ~2.7 s | 1.0× (baseline) |
-| `npm run tests` (vitest) | **~21.2 s** | ~145 s | ~44 s | ~7× slower |
+- **Daily iteration (mocked)**: `bun run tests` (~8 s) or
+  `bun run tests --scope newest` (~5 s) if you only care about
+  newest-version behaviour. `tests:focus <coord>` for a single cell.
+- **Pre-merge confidence**: `bun run tests --docker` (~4:30) — every
+  test runs against its real engine. Add `--wasm` (~no extra cost
+  under bun) for the full matrix.
+- **WASM-touching changes**: `bun run tests:wasm` to verify only the
+  pglite / sqlite-wasm-OO1 cells against the real module.
 
-Both saturate CPU around the same level (~850-890 % busy), so the gap
-is **not** a parallelism difference. The breakdown:
+## Bun vs vitest
 
-- **User CPU**: vitest spends ~6× more wall-time inside JS. The cost is
-  the per-worker startup tax — node has to spin up, vitest has to
-  import its config + framework, and vite has to transpile the TS
-  dependency tree once per worker. Bun runs in-process with native TS,
-  so all three of those costs are zero.
-- **System CPU**: vitest spends ~16× more time in syscalls than bun.
-  That's the IPC channel between the vitest main process and each
-  worker — every test result is serialised and shipped back over the
-  pipe. Bun has no inter-process coordination because there's no
-  inter-process anything.
+Same invocations under both runtimes. Reference machine. Raw single-
+run wall times below; the cross-runtime comparison is **only robust
+for the mocked and real-WASM regimes** — the docker rows are noisy
+enough and asymmetric enough (see caveats) that the "winner" column
+is not a real claim.
 
-For a 1.2 s test surface, vitest is paying ~20 s of overhead the user
-never sees translate into work. Bun pays ~2 s. That's the headline
-reason bun is the default runner for daily development. **Reach for
-vitest only when you need its richer report / coverage stack** (see
-[COVERAGE.md](./COVERAGE.md)) — the runtime cost is real and visible.
+| Invocation | bun wall | vitest wall | Reading |
+|---|---|---|---|
+| `tests` (mocked) | **8.3 s** | 60.4 s | **bun ~7×** — robust |
+| `tests --scope newest` | **5.0 s** | 40.8 s | **bun ~8×** — robust |
+| `tests --wasm` | **12.8 s** | 5:02 | **bun ~24×** — robust |
+| `tests --wasm --scope newest` | **7.7 s** | 2:51 | **bun ~22×** — robust |
+| `tests --docker` (warm) | 4:39 | 2:20 / 3:01 | **inconclusive** (see below) |
+| `tests --docker` (cold) | 4:20 | 3:11 | **inconclusive** |
+| `tests --docker --scope newest` (warm) | 4:35 | 4:24 | **inconclusive** |
+| `tests --docker --wasm` (warm) | 4:36 | 6:17 | **inconclusive** |
+| `tests --docker --wasm --scope newest` | 4:54 | 4:50 | **inconclusive** |
+
+**Why the docker rows are inconclusive:**
+
+1. **bun and vitest do not run identical test sets.** Some connectors
+   are bun-only (`BunSqlPostgresQueryRunner`, `BunSqlMySqlQueryRunner`,
+   `BunSqlSqliteQueryRunner`, `BunSqliteQueryRunner`); some are
+   node-only (e.g. `NodeSqliteQueryRunner`). Concretely vitest visits
+   ~10.5k tests vs bun's ~14k. So vitest is doing ~75% of bun's
+   workload by raw test count, and the docker-heavy tests skew higher
+   on bun's side. A naive workload-normalisation
+   (`vitest_wall × 14 / 10.5`) brings the vitest `--docker` row from
+   2:20 to ~3:07 — close to the bun number.
+2. **Multi-minute runs have ~30 % variance** invocation-to-invocation
+   on this matrix. The vitest `--docker` row was measured at **2:20**
+   and **3:01** in two back-to-back runs on the same machine state.
+   Anything inside that envelope is noise, not signal.
+3. **The matrix is not fully populated yet** — more compatibility
+   versions and connectors are pending. Today's numbers are a
+   point-in-time snapshot; the relative shape will shift as cells are
+   added.
+
+Combine all three and the apparent "vitest wins docker by ~2×"
+collapses to "the two runtimes are roughly comparable under
+`--docker`, within noise and workload asymmetry". The mocked and WASM
+gaps, by contrast, are far too large to be explained by either
+variance (~30 %) or test-count asymmetry (~33 %) — they're real
+runtime-level wins for bun.
+
+**The robust takeaways:**
+
+- **Mocked daily loop** — bun is **~7-10× faster** than vitest. Vitest
+  pays per-worker node spin-up + vite's TS transpile of the dependency
+  tree per worker per run; bun has none of that. The canonical "bun
+  is fast" regime.
+- **Real WASM (no docker)** — bun is **~20-30× faster** than vitest.
+  Vitest's per-worker re-import of the pglite / sqlite-wasm
+  WebAssembly modules dominates wall time; bun imports them once and
+  amortises.
+- **Real docker** — both runtimes land in the same minutes-long
+  ballpark. The container engine itself is the bottleneck (a single
+  process per container serialising every worker's DDL during
+  reseeds); the runtime layer is no longer the dominant cost, so the
+  raw bun-vs-vitest distinction matters much less.
+
+**Default still stands: bun for daily development** — faster mocked
+loop, dramatically faster WASM phase, comparable under docker. Reach
+for vitest when you need its richer report / coverage stack (see
+[COVERAGE.md](./COVERAGE.md)); the runtime cost trade-off is no
+longer a reason to switch on its own.
 
 ## Stopping the reused containers
 

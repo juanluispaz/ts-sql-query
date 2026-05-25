@@ -10,6 +10,8 @@ print_help() {
 Usage:
   tests [--mode <parallel|sequential>]
         [--docker] [--docker-mode <reuse|no-reuse>]
+        [--docker-scope <all|newest>]
+        [--scope <all|newest>]
         [--wasm]
         [--use-vitest] [--ui]
         [--report    [--report-format <name>]…]
@@ -66,7 +68,10 @@ Defaults
   --mode             parallel
   --docker           off (docker cells fall through to mock)
   --docker-mode      reuse  (containers stay alive between invocations)
-  --docker-scope     all  (every docker cell hits its real DB)
+  --docker-scope     all  (every docker cell hits its real DB);
+                     follows --scope when --docker-scope was not given
+                     explicitly (so `--scope newest` implies it too)
+  --scope            all  (every cell under test/db/<db>/* runs)
   --wasm             off (WASM cells fall through to mock — modules are
                      never imported, so their bootstrap cost is paid
                      by nothing)
@@ -105,6 +110,21 @@ Runner flags
                 still catches most regressions. No-op without --docker.
                 Analogous in shape to --wasm (a scope narrower than the
                 full matrix); motivation is speed, not correctness.
+                When --scope=newest and --docker-scope wasn't given
+                explicitly, this defaults to `newest` too — running the
+                real container for a version you don't even visit is
+                wasted work.
+  --scope <all|newest>
+        all:    every cell under `test/db/<db>/*` runs (default).
+        newest: filter the file set the runner visits to
+                `<db>/newest/*` + `<db>/types.negative/*` (dialect-only
+                typecheck cells stay in scope). Older versions are not
+                executed at all — different from --docker-scope, which
+                keeps the test running but flips the real/mock gate.
+                Implies --docker-scope=newest unless the user passed
+                --docker-scope explicitly. Useful for shortening
+                coverage runs when older-version coverage is redundant
+                with the matching newest cell.
   --wasm
         After the main pass, run the WASM cells (sequential) against
         the real pglite / sqlite-wasm-OO1 module.
@@ -201,6 +221,8 @@ Examples
   bun run tests                                            # fast loop
   bun run tests --docker                                   # + docker
   bun run tests --docker --wasm                            # full matrix
+  bun run tests --scope newest                             # skip oldest cells
+  bun run tests --coverage --scope newest --open           # shorter coverage
   bun run tests --report                                   # bun → junit.xml
   bun run tests --coverage --coverage-format=html --open   # bun coverage html
   bun run tests --use-vitest --report --open               # vitest html SPA
@@ -221,7 +243,11 @@ EOF
 MODE=parallel
 DOCKER=off
 DOCKER_MODE=reuse
-DOCKER_SCOPE=all
+# Empty sentinel: distinguishes "user didn't pass --docker-scope" from
+# "user explicitly chose `all`". When --scope=newest fires, we promote
+# this to `newest` ONLY if it's still empty (no explicit override).
+DOCKER_SCOPE=
+SCOPE=all
 WASM=off
 USE_VITEST=off
 UI=off
@@ -241,6 +267,8 @@ while [ $# -gt 0 ]; do
         --docker-mode=*)        DOCKER_MODE="${1#--docker-mode=}"; shift ;;
         --docker-scope)         DOCKER_SCOPE="$2"; shift 2 ;;
         --docker-scope=*)       DOCKER_SCOPE="${1#--docker-scope=}"; shift ;;
+        --scope)                SCOPE="$2"; shift 2 ;;
+        --scope=*)              SCOPE="${1#--scope=}"; shift ;;
         --wasm)                 WASM=on; shift ;;
         --use-vitest)           USE_VITEST=on; shift ;;
         --ui)                   UI=on; USE_VITEST=on; shift ;;
@@ -263,9 +291,36 @@ esac
 case "$DOCKER_MODE" in reuse|no-reuse) ;; *)
     echo "Invalid --docker-mode: $DOCKER_MODE (expected reuse|no-reuse)" >&2; exit 2 ;;
 esac
+case "$SCOPE" in all|newest) ;; *)
+    echo "Invalid --scope: $SCOPE (expected all|newest)" >&2; exit 2 ;;
+esac
+# Resolve the docker-scope default. Empty means "user didn't pass it":
+# follow --scope (newest filters paths AND would skip the real-DB gate
+# for any version we don't even visit).
+if [ -z "$DOCKER_SCOPE" ]; then
+    if [ "$SCOPE" = "newest" ]; then DOCKER_SCOPE=newest; else DOCKER_SCOPE=all; fi
+fi
 case "$DOCKER_SCOPE" in all|newest) ;; *)
     echo "Invalid --docker-scope: $DOCKER_SCOPE (expected all|newest)" >&2; exit 2 ;;
 esac
+
+# Build the path set for the main pass and (if --wasm) the WASM phase.
+# With --scope all this is the literal `test/` root the runner walks;
+# with --scope newest we hand the runner an explicit set of
+# `<db>/newest/` + `<db>/types.negative/` paths instead — older-version
+# cells are not enumerated at all.
+MAIN_PATHS=(test/)
+WASM_LIST=("${WASM_PATHS[@]}")
+if [ "$SCOPE" = "newest" ]; then
+    MAIN_PATHS=()
+    while IFS= read -r p; do MAIN_PATHS+=("$p"); done < <(expand_newest_paths)
+    if [ "${#MAIN_PATHS[@]}" -eq 0 ]; then
+        echo "Error: --scope newest matched no paths under test/db/. Add a <db>/newest/ folder or drop --scope newest." >&2
+        exit 2
+    fi
+    WASM_LIST=()
+    while IFS= read -r p; do WASM_LIST+=("$p"); done < <(filter_newest_wasm_paths)
+fi
 
 runtime="$(detect_runtime)"
 if [ "$USE_VITEST" = "on" ]; then runtime="npm"; fi
@@ -402,15 +457,15 @@ if [ "$COVERAGE" = "on" ]; then
     fi
     if [ "$runtime" = "npm" ] && [ "$UI" = "on" ]; then COV_FLAGS+=(--ui); fi
 
-    run_phase "$runtime" "$MODE" test/ --coverage "${COV_FLAGS[@]}" "${EXTRA_ARGS[@]}"
+    run_phase "$runtime" "$MODE" "${MAIN_PATHS[@]}" --coverage "${COV_FLAGS[@]}" "${EXTRA_ARGS[@]}"
     ec=$?
     if [ "$ec" -eq 0 ]; then
         finalize_report "$runtime" "$OPEN_AFTER" "${COVERAGE_FORMAT[@]}" || true
     fi
     if [ "$WASM" = "on" ]; then
-        emit_phase_legend "Coverage run" "$MODE" mixed "$DOCKER" "$DOCKER_SCOPE" "$runtime" test/
+        emit_phase_legend "Coverage run" "$MODE" mixed "$DOCKER" "$DOCKER_SCOPE" "$SCOPE" "$runtime" "${MAIN_PATHS[@]}"
     else
-        emit_phase_legend "Coverage run" "$MODE" off "$DOCKER" "$DOCKER_SCOPE" "$runtime" test/
+        emit_phase_legend "Coverage run" "$MODE" off "$DOCKER" "$DOCKER_SCOPE" "$SCOPE" "$runtime" "${MAIN_PATHS[@]}"
     fi
     exit "$ec"
 fi
@@ -465,6 +520,10 @@ __cleanup_test_logs() {
 trap __cleanup_test_logs EXIT
 
 if [ "$WASM" = "on" ]; then
+    if [ "${#WASM_LIST[@]}" -eq 0 ]; then
+        echo "Error: --scope newest filtered every WASM cell. Drop --wasm or --scope newest." >&2
+        exit 2
+    fi
     WASM_LOG="$(mktemp)"
     export TS_SQL_QUERY_WASM=on
     export TSSQLQUERY_PARALLEL_DBS=false
@@ -472,12 +531,12 @@ if [ "$WASM" = "on" ]; then
         export FORCE_COLOR=1
         export CLICOLOR_FORCE=1
     fi
-    run_phase "$runtime" sequential "${WASM_PATHS[@]}" "${RUNNER_TAIL[@]}" "${EXTRA_ARGS[@]}" 2>&1 | tee "$WASM_LOG"
+    run_phase "$runtime" sequential "${WASM_LIST[@]}" "${RUNNER_TAIL[@]}" "${EXTRA_ARGS[@]}" 2>&1 | tee "$WASM_LOG"
     ec=${PIPESTATUS[0]}
     if [ "$runtime" = "bun" ]; then
         emit_bun_github_summary "WASM phase" "$WASM_LOG"
     fi
-    emit_phase_legend "WASM phase" sequential on n/a n/a "$runtime" "${WASM_PATHS[@]}"
+    emit_phase_legend "WASM phase" sequential on n/a n/a "$SCOPE" "$runtime" "${WASM_LIST[@]}"
     if [ "$ec" -ne 0 ]; then exit "$ec"; fi
 fi
 
@@ -490,14 +549,14 @@ else
 fi
 if [ "$runtime" = "bun" ] && [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
     MAIN_LOG="$(mktemp)"
-    run_phase "$runtime" "$MODE" test/ "${RUNNER_TAIL[@]}" "${EXTRA_ARGS[@]}" 2>&1 | tee "$MAIN_LOG"
+    run_phase "$runtime" "$MODE" "${MAIN_PATHS[@]}" "${RUNNER_TAIL[@]}" "${EXTRA_ARGS[@]}" 2>&1 | tee "$MAIN_LOG"
     ec=${PIPESTATUS[0]}
     emit_bun_github_summary "Main phase" "$MAIN_LOG"
 else
-    run_phase "$runtime" "$MODE" test/ "${RUNNER_TAIL[@]}" "${EXTRA_ARGS[@]}"
+    run_phase "$runtime" "$MODE" "${MAIN_PATHS[@]}" "${RUNNER_TAIL[@]}" "${EXTRA_ARGS[@]}"
     ec=$?
 fi
-emit_phase_legend "Main phase" "$MODE" off "$DOCKER" "$DOCKER_SCOPE" "$runtime" test/
+emit_phase_legend "Main phase" "$MODE" off "$DOCKER" "$DOCKER_SCOPE" "$SCOPE" "$runtime" "${MAIN_PATHS[@]}"
 
 # Re-emit the saved WASM summary so the user sees both phases'
 # headline numbers without having to scroll up. Last 4 lines covers

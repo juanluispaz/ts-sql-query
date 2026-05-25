@@ -72,7 +72,7 @@ There are exactly **three CLIs**:
 | CLI | What it runs |
 |---|---|
 | `tests` | The full matrix under `test/`. Defaults: parallel, no docker, no real WASM. Add flags to widen scope. `--help` for all options. |
-| `tests:focus <coord>` | One coordinate — `<db>/<version>/<connector>/<file>` at any depth. Same flags as `tests`. |
+| `tests:focus <coord>…` | One or more coordinates — `<db>/<version>/<connector>/<file>` at any depth. Globs (`'postgres/*/pg'`) and shell brace expansion (`postgres/*/{pg,postgres}`) are supported; see § Focused runs for the patterns. Same flags as `tests`. |
 | `tests:wasm` | Just the in-process WASM cells (pglite, sqlite-wasm-OO1), serially, with real WASM. No flags. |
 | `tests:audit` | Symmetry audit — verifies every cell of a database declares the same test files and test names. Pre-merge check. |
 | `tests:stop-containers` | Stops the warm docker containers `--docker --docker-mode reuse` left running. |
@@ -87,7 +87,8 @@ Orthogonal flags scope what the runner sees:
 | Flag | What it does | Default |
 |---|---|---|
 | `--docker` | Docker-backed connectors hit their real DB. Without it they fall through to the mock. | off (mock) |
-| `--docker-scope <all\|newest>` | When `newest`, only cells under `<db>/newest/*` keep the real-DB branch; older versions fall back to the mock. No-op without `--docker`. Same shape as `--wasm` (narrower scope), motivation is speed. | `all` |
+| `--docker-scope <all\|newest>` | When `newest`, only cells under `<db>/newest/*` keep the real-DB branch; older versions fall back to the mock. No-op without `--docker`. Same shape as `--wasm` (narrower scope), motivation is speed. Defaults to `newest` when `--scope newest` is set (and `--docker-scope` was not given explicitly). | `all` |
+| `--scope <all\|newest>` | When `newest`, the runner only visits `<db>/newest/*` and `<db>/types.negative/*` cells — older versions are **not executed at all** (different from `--docker-scope`, which keeps them running against the mock). Implies `--docker-scope=newest` unless overridden. Main use: shorter coverage runs when older-version coverage is redundant with the matching newest cell. | `all` |
 | `--wasm` | After the main pass, runs a second sequential pass over the WASM cells against real pglite / sqlite-wasm-OO1. Without it, **the WASM modules are not even imported**. | off (mock) |
 
 The split keeps the parallel main pass fast — WASM is CPU-bound and
@@ -117,10 +118,15 @@ sqlite3) ignore both flags and keep running their real DB. No code
 duplication.
 
 ```bash
-# Daily loop: no docker, no real WASM. ~3 s for 1281 tests under bun.
+# Full matrix, mocked, no real WASM. ~8 s for ~14k tests under bun
+# (~60 s under vitest). Use as a pre-push sweep, NOT the inner loop —
+# see the tip block below.
 bun run tests
 
-# + real docker backends. ~17 s.
+# + real docker backends. ~4:30 with warm containers (the docker
+# engine is the bottleneck once you're past the runtime layer).
+# Vitest lands in a similar minutes-long ballpark for this regime —
+# see CONTAINERS.md § Bun vs vitest for the full matrix + caveats.
 bun run tests --docker
 
 # Smoke against real DBs but only on the newest version of each engine.
@@ -128,7 +134,13 @@ bun run tests --docker
 # just don't pay the docker cost.
 bun run tests --docker --docker-scope newest
 
-# Full matrix (docker + real WASM second phase). ~21 s.
+# Skip older-version cells entirely (paths AND docker gate). Useful for
+# coverage runs where the older version doesn't add reachable code.
+bun run tests --scope newest
+
+# Full matrix (docker + real WASM second phase). ~4:36 under bun;
+# the WASM phase tucks behind the docker matrix at essentially no
+# extra cost.
 bun run tests --docker --wasm
 
 # Hermetic — fresh containers every run. CI baseline.
@@ -144,15 +156,57 @@ TS_SQL_QUERY_DBS=mariadb bun run tests --docker
 TS_SQL_QUERY_DBS=none bun run tests
 ```
 
-> **Bun is ~7× faster than vitest for the daily loop.** On the
-> reference machine the same `tests` matrix (no docker, no WASM)
-> finishes in ~3 s under `bun run` versus ~21 s under `npm run`
-> (vitest). The gap is not parallelism — both saturate the same CPU
-> percentage — but per-worker IPC + node spin-up + TS transpilation
-> overhead that vitest pays and bun doesn't. Default to bun for
-> day-to-day work; opt into vitest (`--use-vitest`) only when you
-> need the rich report / coverage stack. Full breakdown in
-> [`CONTAINERS.md` § Bun vs vitest](./CONTAINERS.md#bun-vs-vitest-daily-loop).
+!!! warning "Start narrow — full-matrix runs add up even without docker"
+
+    The suite has grown past **~14k tests across ~2.5k files**. Mocked-only
+    under bun it's ~8 s; under vitest it's ~60 s; with `--docker` or
+    `--wasm` you add real-DB / WASM-bootstrap cost on top. Running the
+    full matrix on every inner iteration burns minutes per hour.
+
+    The cells are heavily symmetric — for most changes, the
+    `<db>/oldest/*` cells emit the **same** SQL + params snapshots as the
+    matching `<db>/newest/*` cell (same SqlBuilder code path, same
+    expression tree). Re-running them is wasted feedback.
+
+    **Recommended order while iterating:**
+    1. `bun run tests:focus <coord>` — single cell or file. Tightest loop;
+       use this while editing.
+    2. `bun run tests --scope newest` — change spans several databases.
+       Skips `<db>/oldest/*` (~5 s instead of ~8 s, ~3 k fewer assertions).
+    3. `bun run tests` — full mocked matrix. **Pre-push** sanity sweep.
+    4. `bun run tests --docker` / `--wasm` — only when the change touches
+       a docker-backed connector / the WASM path, or as a final
+       confidence check.
+
+    Widen the scope explicitly when you have a reason: touching a
+    compatibility-version branch in a `SqlBuilder`, investigating a
+    regression that might be version-specific, or pushing a
+    release-blocking change. Otherwise, narrow stays the default.
+
+> **Bun is the default — clearly faster for mocked and WASM,
+> comparable to vitest under docker.** Reference-machine wall times:
+>
+> - `tests` (mocked, no WASM): bun ~8 s vs vitest ~60 s → **bun ~7×**.
+> - `tests --wasm` (real WASM, no docker): bun ~13 s vs vitest ~5 min
+>   → **bun ~24×**.
+> - `tests --docker` (warm containers, no WASM): bun ~4:30 vs vitest
+>   ~2:20–3:00 (~30 % variance run-to-run) → **inconclusive**.
+> - `tests --docker --wasm` (full matrix): bun ~4:36 vs vitest ~6:17
+>   → **inconclusive**.
+>
+> The mocked / WASM gaps are real runtime wins for bun (vitest pays
+> per-worker node spin-up + TS transpile of the dependency tree, and
+> re-imports the WebAssembly modules per worker). The `--docker`
+> comparison is **not a clean signal**: vitest covers ~10.5k tests
+> vs bun's ~14k (some connectors are bun-only, some node-only),
+> single multi-minute runs have ~30 % variance, and the docker
+> container engine itself is the bottleneck once you're past the
+> runtime layer. Workload-normalised, the two runtimes land in the
+> same ballpark.
+>
+> **Default to bun.** Opt into vitest (`--use-vitest`) only when you
+> need its richer report / coverage stack. Full matrix and caveats
+> in [`CONTAINERS.md` § Bun vs vitest](./CONTAINERS.md#bun-vs-vitest).
 
 For the per-engine parallel timings, the container-reuse model, the
 mutation-safety contract and per-worker DB isolation, see
@@ -161,9 +215,12 @@ mutation-safety contract and per-worker DB isolation, see
 ### Focused runs
 
 When you are iterating on a single change and do not want to wait for
-the full matrix, run a single coordinate via `tests:focus`. The first
+the full matrix, run a coordinate via `tests:focus`. Each positional
 argument is a path under `test/db/`; it can resolve to any of the four
-levels — database, version, connector, or a single test file.
+levels — database, version, connector, or a single test file —
+**and `tests:focus` accepts multiple coords, globs, and brace
+expansion** so you can address any cross-section of the matrix in one
+invocation.
 
 !!! tip "Container reuse is the default"
 
@@ -210,6 +267,51 @@ npm  run tests:focus postgres/newest/pg --docker -- -- -u    # vitest
 # Real WASM on a wasm cell — single pass (no two-phase split here).
 bun run tests:focus postgres/oldest/pglite --wasm --mode sequential
 ```
+
+#### Coord patterns: literals, globs, braces, multi-coord
+
+A coord can be a literal path, a glob, a brace-expanded set, or any
+combination — all in any number of positional arguments. **The
+script handles globs AND braces whether you quote the coord or
+not**, so use whichever form you find readable; both yield the same
+result:
+
+```bash
+# Single connector across every existing version (newest + oldest).
+# Quoting is OPTIONAL — both forms behave identically.
+bun run tests:focus 'postgres/*/pg' --docker
+bun run tests:focus postgres/*/pg --docker
+
+# Same, with --scope newest: the script drops `*/oldest/*` paths
+# from the expansion before invoking the runner — only
+# postgres/newest/pg actually runs.
+bun run tests:focus 'postgres/*/pg' --docker --scope newest
+
+# Two connectors of one database, every version. Quote or not —
+# both work. (Quoted: the script brace-expands. Unquoted: bash
+# brace-expands before the script even sees the args.)
+bun run tests:focus 'postgres/*/{pg,postgres}' --docker
+bun run tests:focus postgres/*/{pg,postgres} --docker
+
+# Multiple unrelated coords combined in one run. Mix literals,
+# globs, and brace-expanded sets freely.
+bun run tests:focus 'postgres/*/pg' sqlite/newest/bun_sqlite \
+                    '{mariadb,mysql}/newest' --docker
+
+# Glob across every database, one file pattern.
+bun run tests:focus '*/newest/*/select.basic.test.ts'
+```
+
+Internals: when a coord contains any of `*`, `?`, `[`, or `{`, the
+script vets the string against a strict whitelist (alphanumerics,
+`. _ / -`, and the pattern chars themselves) and then asks bash to
+expand braces + globs in one shot. Anything outside that vocabulary
+is rejected before any expansion runs.
+
+An unmatched glob/brace expansion is an error (nullglob), not a
+silent zero-test run. A coord that literally names `oldest` together
+with `--scope newest` is rejected outright — that's an explicit
+contradiction.
 
 #### Narrowing inside a coordinate
 

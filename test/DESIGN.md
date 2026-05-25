@@ -104,9 +104,11 @@ see [§1.3](#1-principles) for the precise rule.
 
 5. **One test runner execution covers the whole suite.** The agent
    and CI run `bun run tests --docker --wasm` (Bun) or
-   `npm run tests --docker --wasm` (Node + vitest) and get genuine
-   coverage of every (database × version × connector) cell. Focused
-   runs work via `bun run tests:focus <coord>` or direct invocation
+   `npm run tests -- --docker --wasm` (Node + vitest — npm consumes
+   bare `--flag` tokens as its own config, so the `--` separator is
+   required to forward them to the script) and get genuine coverage
+   of every (database × version × connector) cell. Focused runs
+   work via `bun run tests:focus <coord>` or direct invocation
    (`bun test test/db/postgres/newest/pg/select.basic.test.ts`).
 
 6. **Three dimensions, all encoded in the folder layout.**
@@ -206,6 +208,15 @@ see [§1.3](#1-principles) for the precise rule.
       narrower scope than the full matrix — motivated by speed
       (`--docker-scope newest` smoke-tests the recent engine of each
       DB without paying for the older containers).
+    - The CLI flag `--scope <all|newest>` is one level higher and lives
+      in the shell scripts (no matching env var). It filters which
+      paths the runner is invoked with — `--scope newest` hands the
+      runner `test/db/<db>/newest/` + `test/db/<db>/types.negative/`
+      instead of `test/`. Older versions are not enumerated, so their
+      tests do not run at all (whereas `--docker-scope newest` keeps
+      them running through the mock). Implies `--docker-scope=newest`
+      unless `--docker-scope` was passed explicitly. Primary use:
+      shorter coverage runs when older-version coverage is redundant.
     When Docker is off, docker-backed connectors transparently fall
     back to the mock for the real-DB block — the same test body
     describes both modes via `ctx.conn` (see §1.1). In-process

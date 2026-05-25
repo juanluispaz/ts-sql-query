@@ -9,7 +9,8 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 print_help() {
     cat <<'EOF'
 Usage:
-  tests:wasm [--use-vitest] [--ui]
+  tests:wasm [--scope <all|newest>]
+             [--use-vitest] [--ui]
              [--report    [--report-format <name>]…]
              [--coverage  [--coverage-format <name>]…]
              [--open]
@@ -26,6 +27,12 @@ flags — those are implicit. Use `tests --wasm` if you want this as a
 second phase after the full matrix.
 
 Flags:
+  --scope <all|newest>                  default all. `newest` drops the
+                                        `<db>/oldest/*` WASM cells
+                                        from the run (today: only
+                                        `postgres/oldest/pglite/`).
+                                        Useful for shorter coverage
+                                        runs.
   --use-vitest                          Force vitest runtime.
   --ui                                  @vitest/ui (implies --use-vitest).
   --report                              Emit test-execution report at
@@ -67,6 +74,7 @@ Pass-through args after --:
 EOF
 }
 
+SCOPE=all
 USE_VITEST=off
 UI=off
 REPORT=off
@@ -77,6 +85,8 @@ OPEN_AFTER=off
 EXTRA_ARGS=()
 while [ $# -gt 0 ]; do
     case "$1" in
+        --scope)                SCOPE="$2"; shift 2 ;;
+        --scope=*)              SCOPE="${1#--scope=}"; shift ;;
         --use-vitest)           USE_VITEST=on; shift ;;
         --ui)                   UI=on; USE_VITEST=on; shift ;;
         --report)               REPORT=on; shift ;;
@@ -91,6 +101,23 @@ while [ $# -gt 0 ]; do
         *)                      echo "Unknown argument: $1 (use --help)" >&2; exit 2 ;;
     esac
 done
+
+case "$SCOPE" in all|newest) ;; *)
+    echo "Invalid --scope: $SCOPE (expected all|newest)" >&2; exit 2 ;;
+esac
+
+# Pick the WASM cells the runner will visit. With --scope newest we
+# drop entries that don't pass through a `newest/` segment (today
+# that's just `postgres/oldest/pglite/`).
+WASM_LIST=("${WASM_PATHS[@]}")
+if [ "$SCOPE" = "newest" ]; then
+    WASM_LIST=()
+    while IFS= read -r p; do WASM_LIST+=("$p"); done < <(filter_newest_wasm_paths)
+    if [ "${#WASM_LIST[@]}" -eq 0 ]; then
+        echo "Error: --scope newest filtered every WASM cell. Drop --scope newest." >&2
+        exit 2
+    fi
+fi
 
 runtime="$(detect_runtime)"
 if [ "$USE_VITEST" = "on" ]; then runtime="npm"; fi
@@ -185,14 +212,14 @@ if [ "$runtime" = "bun" ] && [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
 fi
 
 if [ -n "$RUN_LOG" ]; then
-    run_phase "$runtime" sequential "${WASM_PATHS[@]}" "${RUNNER_FLAGS[@]}" "${EXTRA_ARGS[@]}" 2>&1 | tee "$RUN_LOG"
+    run_phase "$runtime" sequential "${WASM_LIST[@]}" "${RUNNER_FLAGS[@]}" "${EXTRA_ARGS[@]}" 2>&1 | tee "$RUN_LOG"
     ec=${PIPESTATUS[0]}
     emit_bun_github_summary "WASM cells" "$RUN_LOG"
 else
-    run_phase "$runtime" sequential "${WASM_PATHS[@]}" "${RUNNER_FLAGS[@]}" "${EXTRA_ARGS[@]}"
+    run_phase "$runtime" sequential "${WASM_LIST[@]}" "${RUNNER_FLAGS[@]}" "${EXTRA_ARGS[@]}"
     ec=$?
 fi
-emit_phase_legend "WASM cells" sequential on n/a n/a "$runtime" "${WASM_PATHS[@]}"
+emit_phase_legend "WASM cells" sequential on n/a n/a "$SCOPE" "$runtime" "${WASM_LIST[@]}"
 
 if [ "$ec" -eq 0 ]; then
     if [ "$COVERAGE" = "on" ]; then

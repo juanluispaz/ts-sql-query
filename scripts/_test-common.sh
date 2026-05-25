@@ -78,6 +78,41 @@ WASM_PATHS=(
     test/db/sqlite/newest/sqlite-wasm-OO1/
 )
 
+# Emit newline-separated paths for the `--scope newest` filter — one
+# `<db>/newest/` plus the dialect-agnostic `<db>/types.negative/` per
+# database under `test/db/`. Different from `--docker-scope newest`
+# (which only flips the real/mock gate on docker-backed cells): this
+# narrows which TEST FILES the runner visits at all. Used by `tests`
+# and `tests:focus` to keep coverage runs short by skipping the
+# older-version cells whose coverage is already produced by the
+# matching newest cell.
+expand_newest_paths() {
+    local db_dir db
+    for db_dir in test/db/*/; do
+        [ -d "$db_dir" ] || continue
+        db=${db_dir%/}
+        db=${db##*/}
+        if [ -d "${db_dir}newest" ]; then
+            printf '%s\n' "${db_dir}newest/"
+        fi
+        if [ -d "${db_dir}types.negative" ]; then
+            printf '%s\n' "${db_dir}types.negative/"
+        fi
+    done
+}
+
+# Keep only WASM_PATHS entries that pass through a `newest/` segment.
+# Used by the `--scope newest` filter so the WASM phase / tests:wasm
+# skips e.g. `postgres/oldest/pglite/`.
+filter_newest_wasm_paths() {
+    local p
+    for p in "${WASM_PATHS[@]}"; do
+        case "$p" in
+            */newest/*) printf '%s\n' "$p" ;;
+        esac
+    done
+}
+
 # Map the user-facing coverage format(s) to runner-specific flags.
 # Echoes flags one per line so callers can `while IFS= read` them
 # into an array. Errors go to stderr; return non-zero on unsupported
@@ -256,7 +291,7 @@ clean_report_dir() {
 # that look identical otherwise. Driven by the flags/paths the caller
 # passes in — does not hard-code phase order.
 #
-# Args: <phase-label> <mode> <wasm-real> <docker> <docker-scope> <runtime> [<path>…]
+# Args: <phase-label> <mode> <wasm-real> <docker> <docker-scope> <path-scope> <runtime> [<path>…]
 #   <phase-label>  free-form, e.g. "WASM phase", "Main phase", "Coverage run"
 #   <mode>         "parallel" | "sequential"
 #   <wasm-real>    "on"  → real WASM modules loaded, non-WASM cells excluded
@@ -272,6 +307,15 @@ clean_report_dir() {
 #                              older versions fall back to the mock
 #                  Free-form values are echoed verbatim. Ignored unless
 #                  <docker> is "on".
+#   <path-scope>   "all"     → every cell under `test/db/<db>/*` runs
+#                  "newest"  → only `<db>/newest/*` (+ `<db>/types.negative/*`)
+#                              cells run; the rest are excluded from the
+#                              invocation (different from <docker-scope>:
+#                              <path-scope> narrows file selection, not
+#                              just the real/mock gate)
+#                  "n/a"     → phase runs a fixed path set (WASM-only phase
+#                              or a focused coord that already specifies
+#                              the version)
 #   <runtime>      "bun" | "npm" (for the runner line)
 #   <path>…        paths the runner was invoked with; verbatim in the
 #                  rendered "Cells" list so the legend reflects the
@@ -279,10 +323,10 @@ clean_report_dir() {
 #
 # Silently no-ops when $GITHUB_STEP_SUMMARY is unset (local runs).
 emit_phase_legend() {
-    local label="$1" mode="$2" wasm_real="$3" docker="$4" docker_scope_val="$5" runtime="$6"; shift 6
+    local label="$1" mode="$2" wasm_real="$3" docker="$4" docker_scope_val="$5" path_scope_val="$6" runtime="$7"; shift 7
     if [ -z "${GITHUB_STEP_SUMMARY:-}" ]; then return 0; fi
 
-    local wasm_scope docker_scope runner
+    local wasm_scope docker_scope path_scope runner
     case "$wasm_real" in
         on)    wasm_scope='real WASM modules loaded; non-WASM cells excluded from this round' ;;
         off)   wasm_scope='WASM connectors fall through to mocks' ;;
@@ -300,6 +344,12 @@ emit_phase_legend() {
         n/a) docker_scope='not applicable (phase does not exercise docker-backed cells)' ;;
         *)   docker_scope="$docker" ;;
     esac
+    case "$path_scope_val" in
+        all)    path_scope='every cell under `test/db/<db>/*` runs' ;;
+        newest) path_scope='only `<db>/newest/*` and `<db>/types.negative/*` cells run; older versions are excluded from the invocation' ;;
+        n/a)    path_scope='not applicable (phase runs a fixed path set)' ;;
+        *)      path_scope="$path_scope_val" ;;
+    esac
     case "$runtime" in
         bun) runner='bun test' ;;
         npm) runner='vitest' ;;
@@ -313,6 +363,7 @@ emit_phase_legend() {
         printf -- '- **Mode:** %s\n' "$mode"
         printf -- '- **WASM connectors:** %s\n' "$wasm_scope"
         printf -- '- **Docker backends:** %s\n' "$docker_scope"
+        printf -- '- **Path scope:** %s\n' "$path_scope"
         if [ "$#" -gt 0 ]; then
             printf -- '- **Cells:**\n'
             for p in "$@"; do

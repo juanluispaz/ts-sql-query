@@ -22,15 +22,26 @@ The project supports both Node and Bun. **Day-to-day development prefers Bun** (
 - **Publish**: `npm run dist` / `dist-alpha` / `dist-beta` (Node only — pipeline expectation).
 - **Docs preview**: `npm run docs` (requires `mkdocs` from the `.venv`).
 - **The new `test/` matrix** (separate from the legacy `src/examples/` suite above): use the `tests:*` CLI family. Each has `--help`. Full guide split for reading-on-demand under [test/](test/): orientation + daily loop in [test/README.md](test/README.md); docker reuse + mutation safety + parallel timings + the bun-vs-vitest cost breakdown in [test/CONTAINERS.md](test/CONTAINERS.md); coverage + report flags + monocart in [test/COVERAGE.md](test/COVERAGE.md); typecheck + symmetry audit + adding tests/databases in [test/MAINTAINING.md](test/MAINTAINING.md).
-    - `bun run tests` — full matrix, parallel, mocked (no docker, no real WASM). ~3 s for 1281 tests under bun (~21 s under vitest — see test/CONTAINERS.md for the breakdown); the default fast loop.
-    - `bun run tests --docker` — same matrix, docker-backed connectors hit their real DB (container reuse on by default). ~17 s.
+    - `bun run tests` — full matrix, parallel, mocked (no docker, no real WASM). ~8 s for ~14k tests under bun (~60 s under vitest — see test/CONTAINERS.md for the breakdown). Cheap enough as a pre-push sweep; **not** the inner-iteration loop (see "Test-loop discipline" below — prefer `tests:focus` or `--scope newest`).
+    - `bun run tests --docker` — same matrix, docker-backed connectors hit their real DB (container reuse on by default). ~4:30 with warm containers (the docker engine is the bottleneck; runtime layer barely matters at this scale — see test/CONTAINERS.md § Bun vs vitest).
     - `bun run tests --docker --docker-scope newest` — smoke against real DBs but only on `<db>/newest/*` cells; older versions fall back to the mock. Same shape as `--wasm` (narrower scope), motivation is speed.
-    - `bun run tests --docker --wasm` — full real coverage (parallel main pass + sequential real-WASM second pass). ~21 s.
+    - `bun run tests --scope newest` — skip older-version cells entirely (paths + docker gate). The runner is invoked on `<db>/newest/*` + `<db>/types.negative/*` only — different from `--docker-scope newest`, which keeps the older-version tests running through the mock. Implies `--docker-scope=newest` unless overridden. Main use: shorter coverage runs when older-version coverage is redundant with the matching newest cell. Available on `tests`, `tests:focus` (with validation) and `tests:wasm`.
+    - `bun run tests --docker --wasm` — full real coverage (parallel main pass + sequential real-WASM second pass). ~4:36 under bun (the WASM phase tucks behind the docker matrix at near-zero extra cost).
     - `bun run tests:focus <coord>` — one coordinate (e.g. `postgres/newest/pg`, optionally `…/file.test.ts`). Same flags as `tests`.
     - `bun run tests:wasm` — just the WASM cells (pglite, sqlite-wasm-OO1), serially.
     - `bun run tests:audit` — symmetry audit across every `(db × version × connector)` cell. Pre-merge check.
     - `bun run tests:stop-containers` — stop the warm docker containers `--docker --docker-mode reuse` left running.
     - `bun run tests:reopen` — re-open the previously generated `--report` / `--coverage` HTML without re-running tests.
+
+**Test-loop discipline — start narrow, widen only when needed.** The full `test/` matrix has grown to ~14k tests across ~2.5k files; even mocked-only under bun it takes ~8 s, and ~60 s under vitest. Running it on every inner iteration adds up fast. The cells are heavily symmetric — for most changes the older-version cells emit the **same** snapshots as the matching newest cell (same SqlBuilder, same expressions), so re-running them is wasted feedback. Default order of preference:
+1. **`bun run tests:focus <coord>`** — when iterating on a single cell or file (the typical case while editing). Tightest loop.
+2. **`bun run tests --scope newest`** — when a change spans multiple databases. Skips `<db>/oldest/*` entirely; takes ~5 s instead of ~8 s and avoids ~3 k redundant assertions.
+3. **`bun run tests`** — full matrix, mocked. Use as the **pre-push** sanity sweep, not during iteration.
+4. **`bun run tests --docker` / `--wasm`** — only when the change touches a docker-backed connector or the WASM path, or as the final confidence check before pushing. Real-DB cells are the slow lane.
+
+Widen the scope explicitly when you have a specific reason: touching a compatibility-version branch in a `SqlBuilder`, investigating a regression that might be version-specific, or pushing a release-blocking change. Otherwise, narrow stays the default.
+
+**npm flag-forwarding gotcha** — under `npm run`, bare `--flag` tokens are consumed by npm itself as config (you'll see `npm warn Unknown cli config "--flag". This will stop working …`) and never reach the script. Use the `--` separator: `npm run tests -- --docker --scope newest`, not `npm run tests --docker --scope newest`. Bun does not have this problem — `bun run tests --docker` works as expected. When mixing script flags with runner pass-through under npm, the pattern is `npm run tests -- <script-flags> -- <runner-args>` (e.g. `npm run tests -- --docker -- -t inner-join`).
 
 **Reserved names** — `test` and any `test:*` in `package.json` are **user-only aliases**. The agent must use the canonical `tests` / `tests:focus` / `tests:wasm` / `tests:audit` / `tests:stop-containers` instead. If you see `test` / `test:foo` in `package.json`, assume the user added it as a personal shortcut and **do not run it** unless explicitly instructed; treat it as opaque.
 
@@ -77,7 +88,7 @@ The library is layered. Read top-down when tracing a query through the system:
 4. Run the verifications before pushing. The minimum set:
     - `bun run validate:tsgo` (src) and `bun run validate:tests` (tests, tsgo by default) for the inner edit-typecheck loop. Run `bun run validate` (tsc src, authoritative) and `bun run validate:tests:tsc` (tsc tests sub-experience, covers the files excluded from the tsgo tests config) once before pushing — CI runs both compilers for both scopes.
     - `bun run no-docker-examples` covers the legacy `src/examples/` suite without docker. CI runs it on Node 22/24/26 and Bun.
-    - `bun run tests` runs the new `test/` matrix (mock-only, ~3 s). For the docker-backed real-DB pass add `--docker`; for cross-cell WASM coverage add `--docker --wasm`.
+    - `bun run tests` runs the new `test/` matrix (mock-only, ~8 s for ~14k tests under bun). For the docker-backed real-DB pass add `--docker`; for cross-cell WASM coverage add `--docker --wasm`. For an inner iteration loop use `tests:focus <coord>` or `tests --scope newest` — see "Test-loop discipline" above.
 5. **Adding a public symbol or file**:
     - The public surface is **enumerated** in the `exports` map in [package.json](package.json) — wildcards are only used for the `unsupported/*` escape hatch. A new file is *not* publicly importable until you add an explicit entry there.
     - If the new symbol is **cross-database**, also re-export it from [src/index.ts](src/index.ts) (the aggregated root entry consumers reach via `import 'ts-sql-query'`). Use `export type` / `export` correctly because of `verbatimModuleSyntax`.

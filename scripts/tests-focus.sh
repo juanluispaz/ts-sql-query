@@ -8,16 +8,17 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 print_help() {
     cat <<'EOF'
 Usage:
-  tests:focus <coord> [--mode <parallel|sequential>]
-                      [--docker] [--docker-mode <reuse|no-reuse>]
-                      [--docker-scope <all|newest>]
-                      [--wasm]
-                      [--use-vitest] [--ui]
-                      [--report    [--report-format <name>]…]
-                      [--coverage  [--coverage-format <name>]…]
-                      [--open]
-                      [--help]
-                      [-- <args passed to runner>]
+  tests:focus <coord> [<coord>…] [--mode <parallel|sequential>]
+                                 [--docker] [--docker-mode <reuse|no-reuse>]
+                                 [--docker-scope <all|newest>]
+                                 [--scope <all|newest>]
+                                 [--wasm]
+                                 [--use-vitest] [--ui]
+                                 [--report    [--report-format <name>]…]
+                                 [--coverage  [--coverage-format <name>]…]
+                                 [--open]
+                                 [--help]
+                                 [-- <args passed to runner>]
 
 Runs tests for one coordinate under test/db/. Same flags as `tests`;
 --wasm in focused mode is a single-pass override (real WASM for the
@@ -26,16 +27,48 @@ path; `--report` works under bun (junit) and under vitest (html SPA).
 See `tests --help` for the full runner trade-off.
 
 <coord> = <db>[/<version>[/<connector>[/<file>]]]
-  postgres
-  postgres/newest
-  postgres/newest/pg
-  postgres/newest/pg/select.basic.test.ts
+
+  Literal coords:
+    postgres
+    postgres/newest
+    postgres/newest/pg
+    postgres/newest/pg/select.basic.test.ts
+
+  Glob characters (`*`, `?`, `[`) and brace expansion (`{a,b,…}`)
+  are supported. The script handles BOTH whether you quote the coord
+  or not — quote when convenient (e.g. to avoid shell glob errors in
+  your prompt), leave unquoted when convenient. Same result either
+  way:
+    'postgres/*/pg'                       # newest + oldest of pg
+    postgres/*/pg                          # same (unmatched glob → literal pass-through)
+    'postgres/*/{pg,postgres}'             # both drivers × every version
+    postgres/*/{pg,postgres}              # same (shell expands braces → script glob-expands each)
+    '{mariadb,mysql}/newest'              # two dbs, newest only
+    '*/newest/*/select.basic.test.ts'     # one file pattern across every db
+
+  Internally, when a coord contains any of `*`, `?`, `[`, or `{`, the
+  script vets it against a strict whitelist (alphanumerics, `. _ / -`,
+  and the pattern chars themselves) and then asks bash to expand the
+  braces + globs in one shot. Anything outside that vocabulary is
+  rejected.
+
+  Multiple positional coords are supported and combined into one
+  invocation — mix literals, globs, and brace-expanded sets freely:
+    tests:focus 'postgres/*/pg' sqlite/newest/bun_sqlite
+    tests:focus '{mariadb,mysql}/newest' postgres/newest/pg
+
+  Under --scope newest, paths matching `*/oldest/*` are filtered out
+  of the expansion before the runner is invoked (so
+  `'postgres/*/pg' --scope newest` runs only postgres/newest/pg).
+  A coord that literally names oldest under --scope newest is
+  rejected outright as a contradiction.
 
 Defaults
   --mode             parallel
   --docker           off
   --docker-mode      reuse
-  --docker-scope     all
+  --docker-scope     all (follows --scope when not given explicitly)
+  --scope            all
   --wasm             off
   --use-vitest       off
   --ui               off (implies --use-vitest)
@@ -53,7 +86,22 @@ Flags
                                         the real-DB gate to cells
                                         under `<db>/newest/*`; older
                                         versions fall back to the mock.
-                                        No-op without --docker.
+                                        No-op without --docker. Follows
+                                        --scope when not given.
+  --scope <all|newest>                  default all. `newest` filters
+                                        the file set: when the coord is
+                                        just a <db>, the runner is
+                                        invoked on `<db>/newest/` +
+                                        `<db>/types.negative/` instead
+                                        of the full `<db>/`. Coords
+                                        that already specify a version
+                                        (or deeper) are honoured
+                                        verbatim — a coord pointing at
+                                        `*/oldest/*` with --scope newest
+                                        is rejected as inconsistent.
+                                        Implies --docker-scope=newest
+                                        unless --docker-scope was given
+                                        explicitly.
   --wasm                                real WASM for this run
   --use-vitest                          force vitest runtime
   --ui                                  @vitest/ui (implies --use-vitest)
@@ -107,15 +155,20 @@ Examples
   bun run tests:focus postgres/newest/pg/select.basic.test.ts -- -t inner-join
   bun run tests:focus postgres --use-vitest --coverage --open
   bun run tests:focus postgres --report --coverage --open
+  bun run tests:focus postgres --scope newest --coverage  # skip oldest cells
   bun run tests:focus postgres --ui --coverage           # interactive UI
 EOF
 }
 
-COORD=""
+COORDS=()
 MODE=parallel
 DOCKER=off
 DOCKER_MODE=reuse
-DOCKER_SCOPE=all
+# Empty sentinel: see tests.sh for the rationale (distinguishes
+# explicit `all` from the unset default so `--scope newest` can
+# promote it without overriding the user's choice).
+DOCKER_SCOPE=
+SCOPE=all
 WASM=off
 USE_VITEST=off
 UI=off
@@ -135,6 +188,8 @@ while [ $# -gt 0 ]; do
         --docker-mode=*)        DOCKER_MODE="${1#--docker-mode=}"; shift ;;
         --docker-scope)         DOCKER_SCOPE="$2"; shift 2 ;;
         --docker-scope=*)       DOCKER_SCOPE="${1#--docker-scope=}"; shift ;;
+        --scope)                SCOPE="$2"; shift 2 ;;
+        --scope=*)              SCOPE="${1#--scope=}"; shift ;;
         --wasm)                 WASM=on; shift ;;
         --use-vitest)           USE_VITEST=on; shift ;;
         --ui)                   UI=on; USE_VITEST=on; shift ;;
@@ -149,18 +204,17 @@ while [ $# -gt 0 ]; do
         --)                     shift; EXTRA_ARGS=("$@"); break ;;
         --*)                    echo "Unknown argument: $1 (use --help)" >&2; exit 2 ;;
         *)
-            if [ -z "$COORD" ]; then
-                COORD="$1"
-            else
-                echo "Unexpected positional argument: $1 (already have <coord>=$COORD)" >&2
-                exit 2
-            fi
+            # Accept N positional coords; each goes through the same
+            # shape detection + glob expansion below. Brace expansion
+            # (`postgres/*/{pg,postgres}`) is handled by the user's
+            # shell and lands here as multiple args.
+            COORDS+=("$1")
             shift
             ;;
     esac
 done
 
-if [ -z "$COORD" ]; then
+if [ "${#COORDS[@]}" -eq 0 ]; then
     echo "Missing <coord>. Run \`tests:focus --help\` for usage." >&2
     exit 2
 fi
@@ -170,18 +224,146 @@ esac
 case "$DOCKER_MODE" in reuse|no-reuse) ;; *)
     echo "Invalid --docker-mode: $DOCKER_MODE (expected reuse|no-reuse)" >&2; exit 2 ;;
 esac
+case "$SCOPE" in all|newest) ;; *)
+    echo "Invalid --scope: $SCOPE (expected all|newest)" >&2; exit 2 ;;
+esac
+# Resolve the docker-scope default. Empty means "user didn't pass it":
+# follow --scope.
+if [ -z "$DOCKER_SCOPE" ]; then
+    if [ "$SCOPE" = "newest" ]; then DOCKER_SCOPE=newest; else DOCKER_SCOPE=all; fi
+fi
 case "$DOCKER_SCOPE" in all|newest) ;; *)
     echo "Invalid --docker-scope: $DOCKER_SCOPE (expected all|newest)" >&2; exit 2 ;;
 esac
 
-target="test/db/$COORD"
-if [ ! -e "$target" ]; then
-    echo "Coordinate not found: $COORD (looked for $target)" >&2
-    exit 1
+# Classify each coord. Three shapes drive expansion:
+#   bare-db : a single segment, e.g. `postgres`. Resolves to the db
+#             root; under --scope newest expands to newest/ +
+#             types.negative/.
+#   glob    : contains a glob char (`*`, `?`, `[`). Expanded relative
+#             to test/db/ with nullglob; the runner is invoked on
+#             every match. Quote the coord in the shell
+#             (`'postgres/*/pg'`) so the user shell doesn't try to
+#             expand it before we get our hands on it.
+#   deep    : a slash-separated literal coord, e.g.
+#             `postgres/newest/pg/select.basic.test.ts`. Used verbatim.
+#
+# Brace expansion (`postgres/*/{pg,postgres}`) is bash's own and
+# happens BEFORE this script sees the args — leaving it as multiple
+# positional coords that each go through the loop below independently.
+# Mix freely: `tests:focus 'postgres/*/pg' sqlite/newest --scope newest`.
+TARGETS=()
+for coord in "${COORDS[@]}"; do
+    # Detect glob (`*`, `?`, `[`) AND brace (`{`) chars: both go
+    # through the same eval-based expansion path below. Quoted braces
+    # (`'postgres/*/{pg,postgres}'`) reach us as a literal `{…}` in
+    # the variable; unquoted braces are expanded by the user shell
+    # into multiple positional args before the script runs, and each
+    # of those lands here as a deep coord.
+    case "$coord" in
+        *[*?[{]*)       shape=expand ;;
+        */*)            shape=deep ;;
+        *)              shape=bare-db ;;
+    esac
+    # Reject explicit oldest under --scope newest at coord-classification
+    # time so the user sees the contradiction immediately, not after
+    # expansion produces an empty set.
+    if [ "$SCOPE" = "newest" ]; then
+        case "$coord" in
+            */oldest|*/oldest/*)
+                echo "Error: --scope newest is incompatible with a coord pointing at oldest: $coord" >&2
+                exit 2 ;;
+        esac
+    fi
+    case "$shape" in
+        expand)
+            # Brace expansion (`{a,b,…}`) only fires on tokens written
+            # literally in the source — running it on the contents of
+            # a variable requires re-tokenisation, which bash exposes
+            # only via `eval`. Glob expansion (`*`, `?`, `[`) would
+            # work without eval, but routing both through the same
+            # eval keeps the cartesian-product semantics consistent
+            # (`{a,b}/*/c` expands to a×glob, b×glob).
+            #
+            # Strict whitelist guards the eval — only the characters
+            # used by coord vocabulary are allowed through. Anything
+            # outside (`;`, `$`, backtick, space, etc.) is rejected
+            # before the eval ever runs, so a hostile coord cannot
+            # smuggle a shell command past us.
+            if [[ "$coord" == *[!a-zA-Z0-9._/,*?{}\[\]-]* ]]; then
+                echo "Error: coord '$coord' contains a disallowed character. Allowed: alphanumerics, '. _ / -', and the pattern chars '{,} * ? [ ]'." >&2
+                exit 2
+            fi
+            shopt -s nullglob
+            # shellcheck disable=SC2294  # eval is intentional; input vetted above
+            eval "matches=(test/db/$coord)"
+            shopt -u nullglob
+            if [ "${#matches[@]}" -eq 0 ]; then
+                echo "Coordinate $coord matched no paths under test/db/" >&2
+                exit 1
+            fi
+            TARGETS+=("${matches[@]}")
+            ;;
+        bare-db)
+            if [ "$SCOPE" = "newest" ]; then
+                # Mirror what `tests --scope newest` does for one DB:
+                # only newest/ + types.negative/ (older versions are
+                # not enumerated). The runner never sees them.
+                added=0
+                for sub in newest types.negative; do
+                    if [ -d "test/db/$coord/$sub" ]; then
+                        TARGETS+=("test/db/$coord/$sub/")
+                        added=1
+                    fi
+                done
+                if [ "$added" -eq 0 ]; then
+                    echo "Error: --scope newest matched no subfolders under test/db/$coord/ (looked for newest/ + types.negative/)." >&2
+                    exit 2
+                fi
+            else
+                t="test/db/$coord"
+                if [ ! -e "$t" ]; then
+                    echo "Coordinate not found: $coord (looked for $t)" >&2
+                    exit 1
+                fi
+                TARGETS+=("$t")
+            fi
+            ;;
+        deep)
+            t="test/db/$coord"
+            if [ ! -e "$t" ]; then
+                echo "Coordinate not found: $coord (looked for $t)" >&2
+                exit 1
+            fi
+            TARGETS+=("$t")
+            ;;
+    esac
+done
+
+# Apply --scope newest filter to glob/deep expansions: drop any path
+# passing through an `oldest` segment. (bare-db coords were already
+# scope-expanded above; glob expansion may have pulled in oldest
+# paths that we need to filter out here.)
+if [ "$SCOPE" = "newest" ]; then
+    FILTERED=()
+    for t in "${TARGETS[@]}"; do
+        case "$t" in
+            */oldest|*/oldest/*) ;;
+            *) FILTERED+=("$t") ;;
+        esac
+    done
+    TARGETS=("${FILTERED[@]}")
+    if [ "${#TARGETS[@]}" -eq 0 ]; then
+        echo "Error: --scope newest left no paths to run for ${COORDS[*]}." >&2
+        exit 2
+    fi
 fi
-# Append `/` for directories so the runner treats it as a path filter,
-# not a project-name filter.
-if [ -d "$target" ]; then target="$target/"; fi
+
+# Append `/` for directory targets so the runner treats them as path
+# filters, not project-name filters.
+for i in "${!TARGETS[@]}"; do
+    if [ -d "${TARGETS[$i]}" ]; then TARGETS[$i]="${TARGETS[$i]}/"; fi
+done
 
 runtime="$(detect_runtime)"
 if [ "$USE_VITEST" = "on" ]; then runtime="npm"; fi
@@ -294,13 +476,13 @@ if [ "$runtime" = "bun" ] && [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
     trap 'rm -f "$RUN_LOG"' EXIT
 fi
 
-PHASE_LABEL="Focused run: $COORD"
+PHASE_LABEL="Focused run: ${COORDS[*]}"
 if [ -n "$RUN_LOG" ]; then
-    run_phase "$runtime" "$MODE" "$target" "${RUNNER_FLAGS[@]}" "${EXTRA_ARGS[@]}" 2>&1 | tee "$RUN_LOG"
+    run_phase "$runtime" "$MODE" "${TARGETS[@]}" "${RUNNER_FLAGS[@]}" "${EXTRA_ARGS[@]}" 2>&1 | tee "$RUN_LOG"
     ec=${PIPESTATUS[0]}
     emit_bun_github_summary "$PHASE_LABEL" "$RUN_LOG"
 else
-    run_phase "$runtime" "$MODE" "$target" "${RUNNER_FLAGS[@]}" "${EXTRA_ARGS[@]}"
+    run_phase "$runtime" "$MODE" "${TARGETS[@]}" "${RUNNER_FLAGS[@]}" "${EXTRA_ARGS[@]}"
     ec=$?
 fi
 # In focused mode --wasm is a single-pass override (real WASM for the
@@ -309,7 +491,7 @@ fi
 # mocked one — same coord, different scope.
 WASM_SCOPE=off
 if [ "$WASM" = "on" ]; then WASM_SCOPE=on; fi
-emit_phase_legend "$PHASE_LABEL" "$MODE" "$WASM_SCOPE" "$DOCKER" "$DOCKER_SCOPE" "$runtime" "$target"
+emit_phase_legend "$PHASE_LABEL" "$MODE" "$WASM_SCOPE" "$DOCKER" "$DOCKER_SCOPE" "$SCOPE" "$runtime" "${TARGETS[@]}"
 
 if [ "$ec" -eq 0 ]; then
     if [ "$COVERAGE" = "on" ]; then

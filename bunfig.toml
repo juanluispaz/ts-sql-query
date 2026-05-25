@@ -9,4 +9,4 @@
 #   * test/**          — test infrastructure and the test files
 #                        themselves.
 [test]
-coveragePathIgnorePatterns = ["src/examples/**", "test/**"]
+coveragePathIgnorePatterns = ["src/examples/**", "test/**", "src/queryRunners/*", "src/queryRunners/connectorErrorMappers/*", "src/queryRunners/databaseErrorMappers/*"]

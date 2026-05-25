@@ -37,7 +37,7 @@ export default defineConfig({
             // the same set of files. Drops the legacy examples and
             // the test infrastructure itself, keeping the report
             // focused on the library's public surface.
-            exclude: ['src/examples/**', 'test/**'],
+            exclude: ['src/examples/**', 'test/**', 'src/queryRunners/*', 'src/queryRunners/connectorErrorMappers/*', 'src/queryRunners/databaseErrorMappers/*'],
             reportsDirectory: '.test-report/coverage',
         },
     },

@@ -325,15 +325,27 @@ Canonical (project-level):
 |---|---|
 | `tests:reopen` | Opens the previously generated report without re-running tests. Errors out clearly if neither `.test-report/index.html` nor `.test-report/coverage/index.html` exists. |
 
-User-level shortcuts (personal — feel free to adjust). They wrap
-`--report --coverage --open` under vitest:
+User-level shortcuts (personal — feel free to adjust). The
+display ones wrap `--report --coverage --open` under vitest; the
+discovery one (`coverage:for-discover-tests`) emits
+machine-readable coverage artifacts only (no HTML, no auto-open)
+under `.test-report/coverage/` for the AI to read when asked to
+suggest additional tests from the gaps:
 
 | Alias | Equivalent |
 |---|---|
 | `coverage:fast` | `tests --report --coverage --open` |
 | `coverage:no-docker` | `tests --report --wasm --coverage --mode sequential --open` |
 | `coverage:complete` | `tests --report --docker --wasm --coverage --mode sequential --open` |
+| `coverage:for-discover-tests` | `tests --use-vitest --coverage --coverage-format json --coverage-format json-summary --coverage-format text-summary --scope newest` |
 | `coverage:reopen` | Same script as `tests:reopen`. |
+
+`coverage:for-discover-tests` uses `--scope newest` on purpose:
+older-version cells exercise the same `SqlBuilder` code paths as
+the matching `<db>/newest/*` cell, so they would not reveal extra
+uncovered lines or branches. The tests generates from those
+gaps still land in the full matrix (the `.test.ts` skeletons are
+shared across versions); only the discovery pass is narrowed.
 
 ## Forbidden combo
 

@@ -127,7 +127,7 @@ Short version. The full procedure is [`DESIGN.md` §9](./DESIGN.md#9-adding-a-ne
 3. Write the SQL + params assertions with empty
    `toMatchInlineSnapshot()` and let
    `bun test … --update-snapshots` bake the actual values in
-   (`bun run tests:focus <db>/<version>/<connector> --docker -- --update-snapshots`
+   (`bun run tests <db>/<version>/<connector> --docker -- --update-snapshots`
    is the focused variant).
 4. Mutating tests wrap the body in
    `ctx.withRollback(async () => { … })` so the seed survives. See

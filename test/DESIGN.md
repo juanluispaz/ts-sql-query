@@ -108,7 +108,8 @@ see [§1.3](#1-principles) for the precise rule.
    bare `--flag` tokens as its own config, so the `--` separator is
    required to forward them to the script) and get genuine coverage
    of every (database × version × connector) cell. Focused runs
-   work via `bun run tests:focus <coord>` or direct invocation
+   work via `bun run tests <coord>…` (positional args; supports
+   globs and brace expansion) or direct invocation
    (`bun test test/db/postgres/newest/pg/select.basic.test.ts`).
 
 6. **Three dimensions, all encoded in the folder layout.**
@@ -230,16 +231,23 @@ see [§1.3](#1-principles) for the precise rule.
 
 14. **Two test runners, both first-class: `bun:test` and `vitest`.**
     Files import from `test/lib/testRunner.ts`, a shim that resolves
-    to the right module per runtime. The three test CLIs
-    (`tests`, `tests:focus`, `tests:wasm`, `tests:audit`,
-    `tests:stop-containers`) each have a **single
-    package.json entry**: the shell script behind it detects whether
-    `bun run` or `npm run` invoked it (via `npm_config_user_agent`)
-    and dispatches to `bun test` or `vitest run` accordingly.
-    `bun run tests` and `npm run tests` therefore call the same entry —
-    only the runner underneath switches. Both runners produce
-    compatible inline snapshot format, so updating snapshots with
-    either leaves the suite green under the other.
+    to the right module per runtime. The test CLIs
+    (`tests`, `tests:wasm`, `tests:audit`, `tests:stop-containers`,
+    `tests:reopen`) each have a **single package.json entry**: the
+    shell script behind it detects whether `bun run` or `npm run`
+    invoked it (via `npm_config_user_agent`) and dispatches to
+    `bun test` or `vitest run` accordingly. `bun run tests` and
+    `npm run tests` therefore call the same entry — only the
+    runner underneath switches. Both runners produce compatible
+    inline snapshot format, so updating snapshots with either
+    leaves the suite green under the other.
+
+    The `tests` script does double duty: with zero positional args
+    it runs the full matrix; with one or more `<coord>` args it
+    switches to focused mode (same flag semantics, narrower path
+    set, with `--wasm` becoming a single-pass override instead of
+    the two-phase split). One script, one `--help`, one source of
+    truth for flag behaviour.
 
 15. **Prisma is a special case with minimum viable coverage.** Prisma
     support in ts-sql-query is experimental; treating it like any other
@@ -685,7 +693,7 @@ test('postgres-negative-types', () => {
    `expect(ctx.lastParams).toMatchInlineSnapshot()` (empty arguments —
    the runner will fill them).
 3. Run `bun test test/path/to/file --update-snapshots` (or, preferred,
-   `bun run tests:focus <database>/<version>/<connector> --docker -- --update-snapshots`
+   `bun run tests <database>/<version>/<connector> --docker -- --update-snapshots`
    — the `-reuse` variant reuses the docker container across
    invocations, see
    [`CONTAINERS.md` § Container reuse](./CONTAINERS.md#container-reuse-speeding-up-docker-backed-runs))

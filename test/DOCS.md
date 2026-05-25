@@ -278,14 +278,14 @@ add a `docs.<slug>.test.ts` (or `docs.<folder>.<slug>.test.ts`) file.
    assert value with `expect(result).toEqual(expected)`.
 4. **Bake snapshots** in the sqlite cell:
    ```bash
-   bun run tests:focus sqlite/newest/bun_sqlite/docs.<slug>.test.ts -- --update-snapshots
+   bun run tests sqlite/newest/bun_sqlite/docs.<slug>.test.ts -- --update-snapshots
    ```
 5. **Mirror to every other cell.** For each `(db, version, connector)`
    under `test/db/`, copy the file and re-bake snapshots:
    ```bash
    cp test/db/sqlite/newest/bun_sqlite/docs.<slug>.test.ts \
       test/db/<db>/<version>/<connector>/docs.<slug>.test.ts
-   bun run tests:focus <db>/<version>/<connector>/docs.<slug>.test.ts \
+   bun run tests <db>/<version>/<connector>/docs.<slug>.test.ts \
        --docker -- --update-snapshots
    ```
 6. **Comment out (do not delete)** any test that does not apply to a

@@ -5,7 +5,7 @@
 // commented out for symmetry.
 //
 // Each mutation runs inside `ctx.withRollback(...)`. Snapshots can be
-// refreshed with `bun run tests:focus <cell> --use-vitest -u`.
+// refreshed with `bun run tests <cell> --use-vitest -u`.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'

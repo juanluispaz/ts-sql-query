@@ -67,15 +67,15 @@ cells simply do not exist.
 
 ## Running
 
-There are exactly **three CLIs**:
+A handful of CLIs cover every workflow:
 
 | CLI | What it runs |
 |---|---|
-| `tests` | The full matrix under `test/`. Defaults: parallel, no docker, no real WASM. Add flags to widen scope. `--help` for all options. |
-| `tests:focus <coord>…` | One or more coordinates — `<db>/<version>/<connector>/<file>` at any depth. Globs (`'postgres/*/pg'`) and shell brace expansion (`postgres/*/{pg,postgres}`) are supported; see § Focused runs for the patterns. Same flags as `tests`. |
+| `tests [<coord>…]` | No args: the full matrix under `test/` (parallel, no docker, no real WASM by default; widen with flags). One or more positional coords: focused run on those paths only — globs (`'postgres/*/pg'`) and brace expansion (`postgres/*/{pg,postgres}`) supported, quoted or not (see § Focused runs). Same flag set either way; only what paths the runner visits differs. `--help` for all options. |
 | `tests:wasm` | Just the in-process WASM cells (pglite, sqlite-wasm-OO1), serially, with real WASM. No flags. |
 | `tests:audit` | Symmetry audit — verifies every cell of a database declares the same test files and test names. Pre-merge check. |
 | `tests:stop-containers` | Stops the warm docker containers `--docker --docker-mode reuse` left running. |
+| `tests:reopen` | Re-open the previously generated `--report` / `--coverage` HTML without re-running tests. |
 
 Each CLI has `--help`. Each is a single shell script that detects
 runtime via `npm_config_user_agent` — `bun run X` dispatches to
@@ -169,7 +169,7 @@ TS_SQL_QUERY_DBS=none bun run tests
     expression tree). Re-running them is wasted feedback.
 
     **Recommended order while iterating:**
-    1. `bun run tests:focus <coord>` — single cell or file. Tightest loop;
+    1. `bun run tests <coord>` — single cell or file. Tightest loop;
        use this while editing.
     2. `bun run tests --scope newest` — change spans several databases.
        Skips `<db>/oldest/*` (~5 s instead of ~8 s, ~3 k fewer assertions).
@@ -215,16 +215,21 @@ mutation-safety contract and per-worker DB isolation, see
 ### Focused runs
 
 When you are iterating on a single change and do not want to wait for
-the full matrix, run a coordinate via `tests:focus`. Each positional
-argument is a path under `test/db/`; it can resolve to any of the four
-levels — database, version, connector, or a single test file —
-**and `tests:focus` accepts multiple coords, globs, and brace
-expansion** so you can address any cross-section of the matrix in one
-invocation.
+the full matrix, pass one or more positional `<coord>` arguments to
+the same `tests` script. Zero positional args runs the full matrix;
+one or more runs only those paths. Same flags either way — the only
+behavioural delta is that `--wasm` becomes a single-pass override in
+focused mode (the two-phase split fires only on the full matrix).
+
+Each positional argument is a path under `test/db/`; it can resolve to
+any of the four levels — database, version, connector, or a single
+test file — **and the script accepts multiple coords, globs, and
+brace expansion** so you can address any cross-section of the matrix
+in one invocation.
 
 !!! tip "Container reuse is the default"
 
-    Both `tests` and `tests:focus` default to `--docker-mode reuse`,
+    `tests` defaults to `--docker-mode reuse`,
     which keeps docker containers alive between invocations
     (`TESTCONTAINERS_REUSE_ENABLE=true`) and collapses the feedback
     loop from ~6 s per focused run to ~1.4 s on the mysql cell. Same
@@ -239,33 +244,45 @@ invocation.
     Override with `--docker-mode no-reuse` when you need a hermetic
     container.
 
+A coord has up to four levels — supply any prefix, the rest is walked
+by the runner:
+
+    <coord> = <db>[/<version>[/<connector>[/<file>]]]
+
+| Level | What it is | Examples |
+|---|---|---|
+| `<db>` | Folder under `test/db/`. | `mariadb`, `mysql`, `oracle`, `postgres`, `sqlite`, `sqlserver` |
+| `<version>` | Compatibility-version folder under `<db>/`. `newest` (= `Number.POSITIVE_INFINITY`), `oldest` (the `< lowest-breakpoint` zone), or the literal numeric breakpoint when one exists. `<db>/types.negative/` is a sibling for compile-time negatives — not a version folder — and is included only under `--connections=all`. | `newest`, `oldest`, `13_000_001`, `10_005_000` |
+| `<connector>` | Per-driver folder under `<db>/<version>/`. One of the entries in [`docs/configuration/query-runners/recommended/`](../docs/configuration/query-runners/recommended/) for that DB. | postgres: `pg`, `postgres`, `bun_sql_postgres`, `pglite`; sqlite: `better-sqlite3`, `bun_sqlite`, `node_sqlite`, `sqlite3`, `sqlite-wasm-OO1` |
+| `<file>` | A single `*.test.ts` file inside `<connector>/` — narrowest focus. | `select.basic.test.ts`, `insert.returning.test.ts` |
+
 Examples use `bun run` (preferred); swap in `npm run` for the vitest
 path — the script entry is the same, the underlying runner switches.
 When forwarding extra args under `npm run`, prefix them with `--`
 (npm strips its own arg parser without it).
 
 ```bash
-# Default: parallel, no docker, no real WASM, reuse (if --docker is added).
-bun run tests:focus postgres/newest/pg
+# Level 4: single test file (the narrowest focus).
+bun run tests postgres/newest/pg/select.basic.test.ts
 
-# + real docker. Container is reused across runs by default.
-bun run tests:focus postgres/newest/pg --docker
+# Level 3: one (version × connector) cell.
+bun run tests postgres/newest/pg
 
-# Whole version (every connector)
-bun run tests:focus postgres/oldest --docker
+# Same cell + real docker (container reused across runs by default).
+bun run tests postgres/newest/pg --docker
 
-# Whole database
-bun run tests:focus postgres --docker
+# Level 2: whole version, every connector.
+bun run tests postgres/oldest --docker
 
-# Single test file
-bun run tests:focus postgres/newest/pg/select.basic.test.ts
+# Level 1: whole database, every (version × connector).
+bun run tests postgres --docker
 
 # Pass extra args through to the runner (snapshot update, etc.).
-bun run tests:focus postgres/newest/pg --docker -- --update-snapshots
-npm  run tests:focus postgres/newest/pg --docker -- -- -u    # vitest
+bun run tests postgres/newest/pg --docker -- --update-snapshots
+npm  run tests postgres/newest/pg --docker -- -- -u    # vitest
 
 # Real WASM on a wasm cell — single pass (no two-phase split here).
-bun run tests:focus postgres/oldest/pglite --wasm --mode sequential
+bun run tests postgres/oldest/pglite --wasm --mode sequential
 ```
 
 #### Coord patterns: literals, globs, braces, multi-coord
@@ -279,27 +296,27 @@ result:
 ```bash
 # Single connector across every existing version (newest + oldest).
 # Quoting is OPTIONAL — both forms behave identically.
-bun run tests:focus 'postgres/*/pg' --docker
-bun run tests:focus postgres/*/pg --docker
+bun run tests 'postgres/*/pg' --docker
+bun run tests postgres/*/pg --docker
 
 # Same, with --scope newest: the script drops `*/oldest/*` paths
 # from the expansion before invoking the runner — only
 # postgres/newest/pg actually runs.
-bun run tests:focus 'postgres/*/pg' --docker --scope newest
+bun run tests 'postgres/*/pg' --docker --scope newest
 
 # Two connectors of one database, every version. Quote or not —
 # both work. (Quoted: the script brace-expands. Unquoted: bash
 # brace-expands before the script even sees the args.)
-bun run tests:focus 'postgres/*/{pg,postgres}' --docker
-bun run tests:focus postgres/*/{pg,postgres} --docker
+bun run tests 'postgres/*/{pg,postgres}' --docker
+bun run tests postgres/*/{pg,postgres} --docker
 
 # Multiple unrelated coords combined in one run. Mix literals,
 # globs, and brace-expanded sets freely.
-bun run tests:focus 'postgres/*/pg' sqlite/newest/bun_sqlite \
+bun run tests 'postgres/*/pg' sqlite/newest/bun_sqlite \
                     '{mariadb,mysql}/newest' --docker
 
 # Glob across every database, one file pattern.
-bun run tests:focus '*/newest/*/select.basic.test.ts'
+bun run tests '*/newest/*/select.basic.test.ts'
 ```
 
 Internals: when a coord contains any of `*`, `?`, `[`, or `{`, the
@@ -321,17 +338,17 @@ the path filter. Pass it after `--`:
 
 ```bash
 # Run only the test(s) whose name matches the regex in this cell
-bun run tests:focus postgres/newest/pg --docker -- -t inner-join
+bun run tests postgres/newest/pg --docker -- -t inner-join
 
 # File + test-name regex
-bun run tests:focus postgres/newest/pg/select.basic.test.ts --docker -- -t inner-join
+bun run tests postgres/newest/pg/select.basic.test.ts --docker -- -t inner-join
 
 # File + test-name regex + snapshot refresh — the canonical
 # "update one test's snapshot" recipe
-bun run tests:focus postgres/newest/pg/select.basic.test.ts --docker -- -t inner-join --update-snapshots
+bun run tests postgres/newest/pg/select.basic.test.ts --docker -- -t inner-join --update-snapshots
 
 # Same recipe under vitest (use `-u`, prefix extras with `-- --`):
-npm run tests:focus postgres/newest/pg/select.basic.test.ts --docker -- -- -t inner-join -u
+npm run tests postgres/newest/pg/select.basic.test.ts --docker -- -- -t inner-join -u
 ```
 
 `--update-snapshots` (or `-u`) only refreshes the snapshots of the
@@ -340,7 +357,7 @@ is a safe way to fix one test's inline snapshot without churning
 every other snapshot in the file or in the cell.
 
 The focused run is the primary tool for an agent iterating on a
-single cell. Standard recipe: `tests:focus <coord> --docker` (or
+single cell. Standard recipe: `tests <coord> --docker` (or
 narrower with `<coord>/<file>.test.ts` + `-t <regex>`), optionally
 with `--update-snapshots` to refresh just what changed, followed by
 `tests --docker --wasm` at the end to catch cross-cell regressions.
@@ -353,13 +370,13 @@ update flag after `--`:
 
 ```bash
 # Whole version
-bun run tests:focus postgres/newest --docker -- --update-snapshots
+bun run tests postgres/newest --docker -- --update-snapshots
 
 # One file
-bun run tests:focus postgres/newest/pg/select.basic.test.ts --docker -- --update-snapshots
+bun run tests postgres/newest/pg/select.basic.test.ts --docker -- --update-snapshots
 
 # One test inside one file
-bun run tests:focus postgres/newest/pg/select.basic.test.ts --docker -- -t inner-join --update-snapshots
+bun run tests postgres/newest/pg/select.basic.test.ts --docker -- -t inner-join --update-snapshots
 ```
 
 Either runner produces compatible inline snapshot format, so updating

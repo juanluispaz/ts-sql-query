@@ -83,7 +83,7 @@ WASM_PATHS=(
 # database under `test/db/`. Different from `--docker-scope newest`
 # (which only flips the real/mock gate on docker-backed cells): this
 # narrows which TEST FILES the runner visits at all. Used by `tests`
-# and `tests:focus` to keep coverage runs short by skipping the
+# and `tests <coord>` to keep coverage runs short by skipping the
 # older-version cells whose coverage is already produced by the
 # matching newest cell.
 expand_newest_paths() {
@@ -262,7 +262,7 @@ report_runner_flags() {
 # so a CLI override would only ever apply to one of the two runners
 # and that asymmetry isn't worth the complexity). To narrow scope ad
 # hoc, agents edit bunfig.toml / vitest.config.ts directly, or use
-# `tests:focus <coord>` which already restricts to a single cell.
+# `tests <coord>` which already restricts to a single cell.
 
 # Wipe ./.test-report/ so previous artifacts don't contaminate the
 # next run, then recreate it empty. All test-report output lives
@@ -504,7 +504,243 @@ open_report_in_browser() {
     return 1
 }
 
-# One entry point used by tests.sh / tests-focus.sh / tests-wasm.sh
+# Resolve the path set the runner will visit, plus the WASM subset for
+# the two-phase split. Splits cleanly between the full-matrix flow
+# (`COORDS` empty) and the focused flow (one or more coords).
+#
+# Reads (globals):
+#   COORDS[]         — positional coord args from the caller (may be empty).
+#   SCOPE            — "all" | "newest".
+#   FOCUSED          — "on" | "off". Set by the caller from `${#COORDS[@]}`.
+#   WASM_PATHS[]     — the canonical WASM path list (defined above).
+#
+# Writes (globals):
+#   MAIN_PATHS[]     — paths the main pass will run on. In full-matrix
+#                      mode this is `(test/)` or the newest-only expansion;
+#                      in focused mode it's the union of expanded coords.
+#   WASM_LIST[]      — paths the optional WASM phase will run on
+#                      (full-matrix mode only; ignored in focused mode
+#                      where --wasm is a single-pass override).
+#
+# Exit codes:
+#   0 on success. Non-zero (with an error to stderr) on:
+#     * --scope newest matches no paths (full matrix or bare-db coord),
+#     * a coord with `oldest` under --scope newest (explicit conflict),
+#     * a glob/brace coord that matches nothing,
+#     * a deep coord that doesn't exist on disk,
+#     * a coord with characters outside the strict whitelist
+#       (alphanumerics, `. _ / -`, and `{,} * ? [ ]`).
+#
+# Why the eval in the focused/expand branch: brace expansion only
+# fires on tokens written literally in the source — running it on a
+# variable's contents requires re-tokenisation. Glob expansion would
+# work without eval, but routing both through a single eval keeps
+# the cartesian-product semantics consistent for `{a,b}/*/c`. The
+# whitelist guards the eval so a hostile coord (`; rm -rf /`) is
+# rejected before any expansion runs.
+resolve_main_paths() {
+    WASM_LIST=("${WASM_PATHS[@]}")
+    if [ "$FOCUSED" = "off" ]; then
+        MAIN_PATHS=(test/)
+        if [ "$SCOPE" = "newest" ]; then
+            MAIN_PATHS=()
+            while IFS= read -r p; do MAIN_PATHS+=("$p"); done < <(expand_newest_paths)
+            if [ "${#MAIN_PATHS[@]}" -eq 0 ]; then
+                echo "Error: --scope newest matched no paths under test/db/. Add a <db>/newest/ folder or drop --scope newest." >&2
+                return 2
+            fi
+            WASM_LIST=()
+            while IFS= read -r p; do WASM_LIST+=("$p"); done < <(filter_newest_wasm_paths)
+        fi
+        return 0
+    fi
+
+    # Focused mode: classify, expand, filter each coord.
+    #   bare-db : single segment (`postgres`).
+    #   expand  : contains `*`, `?`, `[`, or `{` — glob and/or brace
+    #             expansion. Both quoted (`'postgres/*/pg'`) and
+    #             unquoted (`postgres/*/pg`) forms work; quoted braces
+    #             (`'postgres/*/{pg,postgres}'`) are re-tokenised via
+    #             the vetted eval so the same cartesian product runs
+    #             either way.
+    #   deep    : slash-separated literal (`postgres/newest/pg/file.test.ts`).
+    MAIN_PATHS=()
+    local coord shape matches added t i
+    for coord in "${COORDS[@]}"; do
+        case "$coord" in
+            *[*?[{]*)       shape=expand ;;
+            */*)            shape=deep ;;
+            *)              shape=bare-db ;;
+        esac
+        if [ "$SCOPE" = "newest" ]; then
+            case "$coord" in
+                */oldest|*/oldest/*)
+                    echo "Error: --scope newest is incompatible with a coord pointing at oldest: $coord" >&2
+                    return 2 ;;
+            esac
+        fi
+        case "$shape" in
+            expand)
+                if [[ "$coord" == *[!a-zA-Z0-9._/,*?{}\[\]-]* ]]; then
+                    echo "Error: coord '$coord' contains a disallowed character. Allowed: alphanumerics, '. _ / -', and the pattern chars '{,} * ? [ ]'." >&2
+                    return 2
+                fi
+                shopt -s nullglob
+                # shellcheck disable=SC2294  # eval is intentional; input vetted above
+                eval "matches=(test/db/$coord)"
+                shopt -u nullglob
+                if [ "${#matches[@]}" -eq 0 ]; then
+                    echo "Coordinate $coord matched no paths under test/db/" >&2
+                    return 1
+                fi
+                MAIN_PATHS+=("${matches[@]}")
+                ;;
+            bare-db)
+                if [ "$SCOPE" = "newest" ]; then
+                    added=0
+                    for sub in newest types.negative; do
+                        if [ -d "test/db/$coord/$sub" ]; then
+                            MAIN_PATHS+=("test/db/$coord/$sub/")
+                            added=1
+                        fi
+                    done
+                    if [ "$added" -eq 0 ]; then
+                        echo "Error: --scope newest matched no subfolders under test/db/$coord/ (looked for newest/ + types.negative/)." >&2
+                        return 2
+                    fi
+                else
+                    t="test/db/$coord"
+                    if [ ! -e "$t" ]; then
+                        echo "Coordinate not found: $coord (looked for $t)" >&2
+                        return 1
+                    fi
+                    MAIN_PATHS+=("$t")
+                fi
+                ;;
+            deep)
+                t="test/db/$coord"
+                if [ ! -e "$t" ]; then
+                    echo "Coordinate not found: $coord (looked for $t)" >&2
+                    return 1
+                fi
+                MAIN_PATHS+=("$t")
+                ;;
+        esac
+    done
+
+    # Final --scope newest pass: drop `*/oldest/*` matches that a glob
+    # may have pulled in (bare-db was already scope-expanded above).
+    if [ "$SCOPE" = "newest" ]; then
+        local filtered=()
+        for t in "${MAIN_PATHS[@]}"; do
+            case "$t" in
+                */oldest|*/oldest/*) ;;
+                *) filtered+=("$t") ;;
+            esac
+        done
+        MAIN_PATHS=("${filtered[@]}")
+        if [ "${#MAIN_PATHS[@]}" -eq 0 ]; then
+            echo "Error: --scope newest left no paths to run for ${COORDS[*]}." >&2
+            return 2
+        fi
+    fi
+
+    # Append `/` for directory targets so the runner treats them as
+    # path filters, not project-name filters.
+    for i in "${!MAIN_PATHS[@]}"; do
+        if [ -d "${MAIN_PATHS[$i]}" ]; then MAIN_PATHS[$i]="${MAIN_PATHS[$i]}/"; fi
+    done
+}
+
+# Fill in runtime-aware defaults for the report/coverage format arrays
+# when the user enabled the flag but didn't pin a format. Also injects
+# `default` alongside `html` under vitest so the user isn't left
+# staring at a frozen prompt during the SPA boot (vitest's html
+# reporter prints only a single line on completion).
+#
+# Reads (globals): REPORT, COVERAGE, runtime
+# Reads/Writes (globals): REPORT_FORMAT[], COVERAGE_FORMAT[]
+#
+# The choice of default depends on runtime because bun and vitest
+# don't share a usable format:
+#   * Vitest's html reporter is the SPA viewer (the recommended
+#     path's default).
+#   * Bun can't emit html for test-execution — junit is the only
+#     file artifact it produces, so that's bun's default.
+# The user can always override with --report-format / --coverage-format;
+# the helpers `report_runner_flags` and `coverage_runner_flags`
+# validate per runtime and error if an unsupported format is asked
+# for.
+resolve_runner_format_defaults() {
+    if [ "$REPORT" = "on" ] && [ "${#REPORT_FORMAT[@]}" -eq 0 ]; then
+        if [ "$runtime" = "bun" ]; then
+            REPORT_FORMAT=("junit")
+        else
+            REPORT_FORMAT=("html")
+        fi
+    fi
+    if [ "$COVERAGE" = "on" ] && [ "${#COVERAGE_FORMAT[@]}" -eq 0 ]; then
+        COVERAGE_FORMAT=("html")
+    fi
+    # Inject `default` when vitest's only reporter is `html` (which is
+    # silent during the SPA boot). Bun reporters all print to the
+    # terminal natively, so the injection is vitest-only.
+    if [ "$REPORT" = "on" ] && [ "$runtime" = "npm" ]; then
+        local fmt has_terminal_reporter=off
+        for fmt in "${REPORT_FORMAT[@]}"; do
+            case "$fmt" in
+                html) ;;
+                *) has_terminal_reporter=on; break ;;
+            esac
+        done
+        if [ "$has_terminal_reporter" = "off" ]; then
+            REPORT_FORMAT=("default" "${REPORT_FORMAT[@]}")
+        fi
+    fi
+}
+
+# Validate --open against the resolved REPORT/COVERAGE state. --open
+# needs html among the requested formats AND at least one of --report
+# / --coverage actually on, otherwise there's nothing to open. The
+# `monocart` value also satisfies --open because it writes its own
+# index.html (MCR html-spa under bun, MCR v8 SPA under vitest).
+#
+# Reads (globals): OPEN_AFTER, REPORT, COVERAGE, REPORT_FORMAT[],
+#                  COVERAGE_FORMAT[], runtime
+# No writes.
+# Exit codes: 0 on valid combo or --open=off; 2 on misconfiguration
+# (with a runtime-aware error message to stderr).
+validate_open_request() {
+    if [ "$OPEN_AFTER" != "on" ]; then return 0; fi
+    if [ "$REPORT" = "off" ] && [ "$COVERAGE" = "off" ]; then
+        echo "Error: --open requires --report or --coverage." >&2
+        return 2
+    fi
+    local fmt has_html=off
+    if [ "$REPORT" = "on" ]; then
+        for fmt in "${REPORT_FORMAT[@]}"; do
+            if [ "$fmt" = "html" ]; then has_html=on; break; fi
+        done
+    fi
+    if [ "$has_html" = "off" ] && [ "$COVERAGE" = "on" ]; then
+        for fmt in "${COVERAGE_FORMAT[@]}"; do
+            case "$fmt" in
+                html|monocart) has_html=on; break ;;
+            esac
+        done
+    fi
+    if [ "$has_html" = "off" ]; then
+        if [ "$runtime" = "bun" ]; then
+            echo "Error: --open requires html among the requested formats. Under bun, html is only available for coverage — pass --coverage-format=html (or =monocart), or add --use-vitest for the html test-execution SPA." >&2
+        else
+            echo "Error: --open requires html among the requested formats — pass --report-format=html, --coverage-format=html, or --coverage-format=monocart." >&2
+        fi
+        return 2
+    fi
+    return 0
+}
+
+# One entry point used by tests.sh / tests-wasm.sh
 # after a successful run. Two things happen here:
 #
 #   1. Bun coverage post-render: when bun emitted lcov and html was

@@ -26,7 +26,7 @@ shot — without `-v` they remain dangling and need a manual
 `docker volume prune`. Named volumes (those a user explicitly
 created) are not touched by `-v`.
 
-When `tests --docker --docker-mode reuse` (or `tests:focus … --docker`
+When `tests --docker --docker-mode reuse` (or `tests <coord> --docker`
 with the default reuse) is used, the containers survive process exit
 so the next invocation can attach to a warm container. Run this
 script when you want to start fresh — for example after editing one

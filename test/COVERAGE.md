@@ -28,7 +28,7 @@ bun run tests --coverage
 bun run tests --coverage --docker --wasm --mode sequential
 
 # One cell.
-bun run tests:focus postgres/newest/pg --coverage
+bun run tests postgres/newest/pg --coverage
 
 # Just the WASM cells.
 bun run tests:wasm --coverage
@@ -113,7 +113,7 @@ bun run tests --coverage --coverage-format=monocart --open
 bun run tests --use-vitest --coverage --coverage-format=monocart --open
 
 # Focused report+coverage on one cell:
-bun run tests:focus postgres/newest/pg --use-vitest --report --coverage --open
+bun run tests postgres/newest/pg --use-vitest --report --coverage --open
 ```
 
 ## Bun reports (best-effort)
@@ -309,7 +309,7 @@ All three exclude `src/examples/**` (legacy examples) and `test/**`
 public surface.
 
 There's no CLI flag to override the scope at run time. To narrow the
-report for a specific cell, use `tests:focus <coord>` — coverage
+report for a specific cell, use `tests <coord>` — coverage
 then only sees files imported by that cell's tests. To change the
 project-wide scope, edit the three config files.
 

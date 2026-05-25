@@ -8,24 +8,79 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 print_help() {
     cat <<'EOF'
 Usage:
-  tests [--mode <parallel|sequential>]
-        [--docker] [--docker-mode <reuse|no-reuse>]
-        [--docker-scope <all|newest>]
-        [--scope <all|newest>]
-        [--wasm]
-        [--use-vitest] [--ui]
-        [--report    [--report-format <name>]…]
-        [--coverage  [--coverage-format <name>]…]
-        [--open]
-        [--help]
-        [-- <args passed to runner>]
+  tests [<coord>…] [--mode <parallel|sequential>]
+                   [--docker] [--docker-mode <reuse|no-reuse>]
+                   [--docker-scope <all|newest>]
+                   [--scope <all|newest>]
+                   [--wasm]
+                   [--use-vitest] [--ui]
+                   [--report    [--report-format <name>]…]
+                   [--coverage  [--coverage-format <name>]…]
+                   [--open]
+                   [--help]
+                   [-- <args passed to runner>]
 
-Runs every test under test/. Dispatches to `bun test` when invoked via
-`bun run`, and to `vitest run` when invoked via `npm run`. Direct
-invocation (`sh scripts/tests.sh`) defaults to bun. `--use-vitest`
-and `--ui` force the vitest path regardless of how the script was
-invoked; `--report` works under both runtimes (formats differ —
-see below).
+Runs the test/ matrix. With no positional args, walks every test under
+test/. With one or more <coord> args, only those paths are visited
+(focused run — same script, same flags, narrower path set).
+Dispatches to `bun test` when invoked via `bun run`, and to
+`vitest run` when invoked via `npm run`. Direct invocation
+(`sh scripts/tests.sh`) defaults to bun. `--use-vitest` and `--ui`
+force the vitest path regardless of how the script was invoked;
+`--report` works under both runtimes (formats differ — see below).
+
+Coords
+  Each positional arg is a path under test/db/. The structure has four
+  navigable levels — supply any prefix; the rest are walked by the
+  runner:
+
+    <coord> = <db>[/<version>[/<connector>[/<file>]]]
+
+    <db>         folder under test/db/. One of mariadb, mysql, oracle,
+                 postgres, sqlite, sqlserver.
+    <version>    compatibility-version folder under <db>/. Either
+                 `newest` (the library default — pinned to
+                 Number.POSITIVE_INFINITY), `oldest` (the
+                 `< lowest-breakpoint` zone), or the literal numeric
+                 breakpoint when one exists (e.g. `13_000_001`,
+                 `10_005_000`). `<db>/types.negative/` is a sibling
+                 used for compile-time negatives — not a version
+                 folder — and is included only under --connections=all.
+    <connector>  per-driver folder under <db>/<version>/, one of the
+                 entries in docs/configuration/query-runners/recommended/
+                 for that DB (e.g. postgres: pg, postgres,
+                 bun_sql_postgres, pglite).
+    <file>       a single `*.test.ts` file inside <connector>/, for
+                 the narrowest possible focus.
+
+  Literal-coord examples (one per level):
+    tests postgres                                       # whole DB, every version × connector
+    tests postgres/newest                                # one version, every connector
+    tests postgres/newest/pg                             # one (version × connector) cell
+    tests postgres/newest/pg/select.basic.test.ts        # one file
+
+  Multiple coords combined in one invocation (mix any of the four
+  levels freely):
+    tests postgres/newest/pg sqlite/newest/bun_sqlite
+    tests postgres mariadb/newest
+
+  Globs (`*`, `?`, `[`) and brace expansion (`{a,b,…}`) are supported,
+  quoted or not — both forms behave identically (the script
+  re-tokenises quoted patterns via a vetted eval; unquoted ones are
+  expanded by the shell first):
+    tests 'postgres/*/pg'                                # both versions, one connector
+    tests 'postgres/*/{pg,postgres}'                     # both drivers × every version
+    tests '{mariadb,mysql}/newest' postgres/newest/pg    # mix glob/brace/literal
+    tests '*/newest/*/select.basic.test.ts'              # one file across every DB
+
+  Globs and brace expansion are vetted against a strict whitelist
+  (alphanumerics, `. _ / -`, and the pattern chars themselves) before
+  expansion runs — anything outside that vocabulary is rejected. An
+  unmatched glob is an error, not a silent zero-test run.
+
+  Under --scope newest a coord that literally names oldest
+  (`postgres/oldest`, `*/oldest/*`) is rejected as a contradiction;
+  globs are expanded and any `*/oldest/*` matches are filtered out.
 
 Runner trade-off
   Bun is fast and is the default for the daily test loop. Vitest is
@@ -84,13 +139,19 @@ Defaults
   --open             off
 
 WASM semantics
-  The main pass ALWAYS runs WASM connectors (pglite, sqlite-wasm-OO1)
-  as mocks. When --wasm is set, a sequential pass runs the WASM cells
-  against the real module FIRST, then the parallel main pass runs;
-  the WASM summary is re-emitted at the end so both phase summaries
-  stay visible after the main pass scrolls. WASM failures short-
-  circuit the main pass. This split keeps the parallel main pass fast
-  — WASM is CPU-bound and tanks parallel throughput.
+  Full-matrix mode (no positional coords): the main pass ALWAYS runs
+  WASM connectors (pglite, sqlite-wasm-OO1) as mocks. When --wasm is
+  set, a sequential pass runs the WASM cells against the real module
+  FIRST, then the parallel main pass runs; the WASM summary is
+  re-emitted at the end so both phase summaries stay visible after
+  the main pass scrolls. WASM failures short-circuit the main pass.
+  This split keeps the parallel main pass fast — WASM is CPU-bound
+  and tanks parallel throughput.
+
+  Focused mode (one or more coords): --wasm is a single-pass
+  override. The two-phase split is bypassed because focused runs are
+  smaller and the user already chose what to run; we honour that
+  verbatim and just set TS_SQL_QUERY_WASM=on for the one pass.
 
 Runner flags
   --mode <parallel|sequential>
@@ -186,7 +247,7 @@ Coverage flags
         Scope (which source files end up in the report) is set in
         bunfig.toml and vitest.config.ts — both exclude
         `src/examples/**` and `test/**` by default. To narrow scope
-        for a specific cell, prefer `tests:focus <coord>`; to alter
+        for a specific cell, prefer `tests <coord>`; to alter
         the project defaults, edit those config files.
 
 Browser flag
@@ -223,6 +284,10 @@ Examples
   bun run tests --docker --wasm                            # full matrix
   bun run tests --scope newest                             # skip oldest cells
   bun run tests --coverage --scope newest --open           # shorter coverage
+  bun run tests postgres/newest/pg                         # focused: one cell
+  bun run tests 'postgres/*/pg' --docker                   # focused: glob
+  bun run tests 'postgres/*/{pg,postgres}' --docker --scope newest
+                                                           # focused: glob + brace + scope
   bun run tests --report                                   # bun → junit.xml
   bun run tests --coverage --coverage-format=html --open   # bun coverage html
   bun run tests --use-vitest --report --open               # vitest html SPA
@@ -240,6 +305,7 @@ Examples
 EOF
 }
 
+COORDS=()
 MODE=parallel
 DOCKER=off
 DOCKER_MODE=reuse
@@ -281,9 +347,24 @@ while [ $# -gt 0 ]; do
         --open)                 OPEN_AFTER=on; shift ;;
         -h|--help)              print_help; exit 0 ;;
         --)                     shift; EXTRA_ARGS=("$@"); break ;;
-        *)                      echo "Unknown argument: $1 (use --help)" >&2; exit 2 ;;
+        --*)                    echo "Unknown argument: $1 (use --help)" >&2; exit 2 ;;
+        *)
+            # Any non-flag positional is a coord (focused run). N coords
+            # accepted; each goes through the shape detection + expansion
+            # below. With zero coords the script runs the full matrix
+            # (the legacy `tests` behaviour).
+            COORDS+=("$1")
+            shift
+            ;;
     esac
 done
+
+# Tracks whether the user gave us positional coords. The two flow
+# decisions hang off this: which paths the runner sees (MAIN_PATHS
+# vs coord-expanded TARGETS) and whether `--wasm` triggers the
+# two-phase split (full-matrix only) or a single-pass override
+# (focused mode).
+if [ "${#COORDS[@]}" -gt 0 ]; then FOCUSED=on; else FOCUSED=off; fi
 
 case "$MODE" in parallel|sequential) ;; *)
     echo "Invalid --mode: $MODE (expected parallel|sequential)" >&2; exit 2 ;;
@@ -304,23 +385,10 @@ case "$DOCKER_SCOPE" in all|newest) ;; *)
     echo "Invalid --docker-scope: $DOCKER_SCOPE (expected all|newest)" >&2; exit 2 ;;
 esac
 
-# Build the path set for the main pass and (if --wasm) the WASM phase.
-# With --scope all this is the literal `test/` root the runner walks;
-# with --scope newest we hand the runner an explicit set of
-# `<db>/newest/` + `<db>/types.negative/` paths instead — older-version
-# cells are not enumerated at all.
-MAIN_PATHS=(test/)
-WASM_LIST=("${WASM_PATHS[@]}")
-if [ "$SCOPE" = "newest" ]; then
-    MAIN_PATHS=()
-    while IFS= read -r p; do MAIN_PATHS+=("$p"); done < <(expand_newest_paths)
-    if [ "${#MAIN_PATHS[@]}" -eq 0 ]; then
-        echo "Error: --scope newest matched no paths under test/db/. Add a <db>/newest/ folder or drop --scope newest." >&2
-        exit 2
-    fi
-    WASM_LIST=()
-    while IFS= read -r p; do WASM_LIST+=("$p"); done < <(filter_newest_wasm_paths)
-fi
+# Resolve MAIN_PATHS (and WASM_LIST in full-matrix mode) from
+# COORDS / SCOPE / FOCUSED. Full implementation + edge cases live
+# in `resolve_main_paths` in _test-common.sh.
+resolve_main_paths || exit $?
 
 runtime="$(detect_runtime)"
 if [ "$USE_VITEST" = "on" ]; then runtime="npm"; fi
@@ -332,82 +400,13 @@ if [ "$DOCKER_MODE" = "reuse" ]; then export TESTCONTAINERS_REUSE_ENABLE=true; f
 # in the legend that this is doing something.
 if [ "$DOCKER" = "on" ]; then export TS_SQL_QUERY_DOCKER_SCOPE="$DOCKER_SCOPE"; fi
 
-# Defaults for the format arrays. The choice depends on the runtime
-# because bun and vitest don't share a usable format: vitest's html
-# is the SPA viewer (default for the recommended path), while bun
-# can't emit html for test-execution — junit is the only file it
-# produces, so that's what we default to under bun. The user can
-# always override with --report-format / --coverage-format; the
-# helpers in _test-common.sh validate per runtime and error if
-# something asked for isn't supportable.
-if [ "$REPORT" = "on" ] && [ "${#REPORT_FORMAT[@]}" -eq 0 ]; then
-    if [ "$runtime" = "bun" ]; then
-        REPORT_FORMAT=("junit")
-    else
-        REPORT_FORMAT=("html")
-    fi
-fi
-if [ "$COVERAGE" = "on" ] && [ "${#COVERAGE_FORMAT[@]}" -eq 0 ]; then
-    COVERAGE_FORMAT=("html")
-fi
-
-# Vitest's html reporter writes the SPA to disk and prints only
-# `HTML Report is generated …` to the terminal — no progress bar, no
-# pass/fail summary, no exit signal beyond that single line. When it's
-# the ONLY reporter the user is left staring at a frozen prompt while
-# `bunx vite preview` boots (5–10 s), which reads as "the script
-# exited without doing anything". Inject `default` so a terminal
-# reporter is always present alongside html. Bun-side reporters
-# (junit, dots) all print something to the terminal natively, so
-# this injection only applies to the vitest path.
-if [ "$REPORT" = "on" ] && [ "$runtime" = "npm" ]; then
-    HAS_TERMINAL_REPORTER=off
-    for fmt in "${REPORT_FORMAT[@]}"; do
-        case "$fmt" in
-            html) ;;
-            *) HAS_TERMINAL_REPORTER=on; break ;;
-        esac
-    done
-    if [ "$HAS_TERMINAL_REPORTER" = "off" ]; then
-        REPORT_FORMAT=("default" "${REPORT_FORMAT[@]}")
-    fi
-fi
-
-# --open needs html among the requested formats (either report or
-# coverage), and at least one of --report / --coverage on. Under bun
-# this is the only path to html — bun's --report-format never
-# resolves to html, so users typically pair --open with
-# --coverage-format=html and let our lcovToHtml.ts render it. For
-# the test-exec SPA they need --use-vitest.
-if [ "$OPEN_AFTER" = "on" ]; then
-    if [ "$REPORT" = "off" ] && [ "$COVERAGE" = "off" ]; then
-        echo "Error: --open requires --report or --coverage." >&2; exit 2
-    fi
-    HAS_HTML=off
-    if [ "$REPORT" = "on" ]; then
-        for fmt in "${REPORT_FORMAT[@]}"; do
-            if [ "$fmt" = "html" ]; then HAS_HTML=on; break; fi
-        done
-    fi
-    if [ "$HAS_HTML" = "off" ] && [ "$COVERAGE" = "on" ]; then
-        # `monocart` also writes an index.html (MCR's html-spa under
-        # bun, MCR's `v8` SPA under vitest), so it satisfies --open
-        # the same way `html` does.
-        for fmt in "${COVERAGE_FORMAT[@]}"; do
-            case "$fmt" in
-                html|monocart) HAS_HTML=on; break ;;
-            esac
-        done
-    fi
-    if [ "$HAS_HTML" = "off" ]; then
-        if [ "$runtime" = "bun" ]; then
-            echo "Error: --open requires html among the requested formats. Under bun, html is only available for coverage — pass --coverage-format=html (or =monocart), or add --use-vitest for the html test-execution SPA." >&2
-        else
-            echo "Error: --open requires html among the requested formats — pass --report-format=html, --coverage-format=html, or --coverage-format=monocart." >&2
-        fi
-        exit 2
-    fi
-fi
+# Fill in runtime-aware defaults for REPORT_FORMAT / COVERAGE_FORMAT
+# (and inject `default` alongside html under vitest so the user
+# isn't left staring at a silent prompt during the SPA boot).
+# Validate --open is paired with a renderable html target. Both
+# routines live in _test-common.sh.
+resolve_runner_format_defaults
+validate_open_request || exit $?
 
 # Forbidden combo: parallel + wasm + coverage. Coverage merging across
 # the two-phase WASM split is fragile, and parallel workers further
@@ -462,10 +461,15 @@ if [ "$COVERAGE" = "on" ]; then
     if [ "$ec" -eq 0 ]; then
         finalize_report "$runtime" "$OPEN_AFTER" "${COVERAGE_FORMAT[@]}" || true
     fi
-    if [ "$WASM" = "on" ]; then
-        emit_phase_legend "Coverage run" "$MODE" mixed "$DOCKER" "$DOCKER_SCOPE" "$SCOPE" "$runtime" "${MAIN_PATHS[@]}"
+    if [ "$FOCUSED" = "on" ]; then
+        cov_label="Coverage run (focused: ${COORDS[*]})"
     else
-        emit_phase_legend "Coverage run" "$MODE" off "$DOCKER" "$DOCKER_SCOPE" "$SCOPE" "$runtime" "${MAIN_PATHS[@]}"
+        cov_label="Coverage run"
+    fi
+    if [ "$WASM" = "on" ]; then
+        emit_phase_legend "$cov_label" "$MODE" mixed "$DOCKER" "$DOCKER_SCOPE" "$SCOPE" "$runtime" "${MAIN_PATHS[@]}"
+    else
+        emit_phase_legend "$cov_label" "$MODE" off "$DOCKER" "$DOCKER_SCOPE" "$SCOPE" "$runtime" "${MAIN_PATHS[@]}"
     fi
     exit "$ec"
 fi
@@ -519,7 +523,11 @@ __cleanup_test_logs() {
 }
 trap __cleanup_test_logs EXIT
 
-if [ "$WASM" = "on" ]; then
+# Two-phase WASM split fires only in full-matrix mode. With positional
+# coords (FOCUSED=on) the user told us exactly what to run, so --wasm
+# is treated as a single-pass override (TS_SQL_QUERY_WASM=on for the
+# one upcoming main pass). See "WASM semantics" in --help.
+if [ "$FOCUSED" = "off" ] && [ "$WASM" = "on" ]; then
     if [ "${#WASM_LIST[@]}" -eq 0 ]; then
         echo "Error: --scope newest filtered every WASM cell. Drop --wasm or --scope newest." >&2
         exit 2
@@ -540,23 +548,37 @@ if [ "$WASM" = "on" ]; then
     if [ "$ec" -ne 0 ]; then exit "$ec"; fi
 fi
 
-# Main pass: full matrix, WASM as mock (modules never imported).
-export TS_SQL_QUERY_WASM=off
+# Main pass. In full-matrix mode WASM ran already (mocked by default,
+# real in a prior phase if --wasm fired the split above). In focused
+# mode --wasm — if set — fires here as a single-pass override.
+if [ "$FOCUSED" = "on" ] && [ "$WASM" = "on" ]; then
+    export TS_SQL_QUERY_WASM=on
+else
+    export TS_SQL_QUERY_WASM=off
+fi
 if [ "$MODE" = "sequential" ]; then
     export TSSQLQUERY_PARALLEL_DBS=false
 else
     unset TSSQLQUERY_PARALLEL_DBS
 fi
+if [ "$FOCUSED" = "on" ]; then
+    main_label="Focused run: ${COORDS[*]}"
+    main_wasm_scope="off"
+    [ "$WASM" = "on" ] && main_wasm_scope="on"
+else
+    main_label="Main phase"
+    main_wasm_scope="off"
+fi
 if [ "$runtime" = "bun" ] && [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
     MAIN_LOG="$(mktemp)"
     run_phase "$runtime" "$MODE" "${MAIN_PATHS[@]}" "${RUNNER_TAIL[@]}" "${EXTRA_ARGS[@]}" 2>&1 | tee "$MAIN_LOG"
     ec=${PIPESTATUS[0]}
-    emit_bun_github_summary "Main phase" "$MAIN_LOG"
+    emit_bun_github_summary "$main_label" "$MAIN_LOG"
 else
     run_phase "$runtime" "$MODE" "${MAIN_PATHS[@]}" "${RUNNER_TAIL[@]}" "${EXTRA_ARGS[@]}"
     ec=$?
 fi
-emit_phase_legend "Main phase" "$MODE" off "$DOCKER" "$DOCKER_SCOPE" "$SCOPE" "$runtime" "${MAIN_PATHS[@]}"
+emit_phase_legend "$main_label" "$MODE" "$main_wasm_scope" "$DOCKER" "$DOCKER_SCOPE" "$SCOPE" "$runtime" "${MAIN_PATHS[@]}"
 
 # Re-emit the saved WASM summary so the user sees both phases'
 # headline numbers without having to scroll up. Last 4 lines covers

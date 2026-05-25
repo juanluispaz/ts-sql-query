@@ -252,7 +252,6 @@
         "validate:tests": "tsgo -p test/tsconfig.json --noEmit",
         "validate:tests:tsc": "tsc -p test/tsconfig.tsc.json --noEmit",
         "tests": "bash scripts/tests.sh",
-        "tests:focus": "bash scripts/tests-focus.sh",
         "tests:wasm": "bash scripts/tests-wasm.sh",
         "tests:audit": "bash scripts/tests-audit.sh",
         "tests:stop-containers": "bash scripts/tests-stop-containers.sh",

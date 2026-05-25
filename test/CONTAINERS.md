@@ -31,7 +31,7 @@ via testcontainers' standard `TESTCONTAINERS_REUSE_ENABLE` flag. The
 opt-in lives in explicit `*-reuse` siblings of every docker-backed
 script:
 
-`--docker-mode reuse` (the default for `tests` and `tests:focus`) sets
+`--docker-mode reuse` (the default for `tests`) sets
 `TESTCONTAINERS_REUSE_ENABLE=true`. `--docker-mode no-reuse` clears it,
 giving the hermetic behaviour CI wants. CI itself just adds the flag
 explicitly:
@@ -39,7 +39,7 @@ explicitly:
 ```bash
 # Local iterative loop (default — reuse).
 bun run tests --docker
-bun run tests:focus postgres/newest/pg --docker
+bun run tests postgres/newest/pg --docker
 
 # Hermetic — fresh containers every run.
 bun run tests --docker --docker-mode no-reuse
@@ -112,11 +112,11 @@ When mixing flags:
 | `--docker-scope newest` (no `--docker`) | all docker cells fall back to mocks (scope is no-op) |
 | `--docker --docker-scope newest --wasm` | newest docker cells real, WASM phase real, older docker cells mock |
 
-`tests:focus` accepts the same flag — handy when you want to debug
+Focused runs accept the same flag — handy when you want to debug
 something on `<db>/oldest/<connector>` without the real container
-spinning up (focus the cell, drop the real-DB cost by passing
-`--docker-scope newest`, and the assertions still execute against the
-mock).
+spinning up (focus the cell with `tests <coord>`, drop the real-DB
+cost by passing `--docker-scope newest`, and the assertions still
+execute against the mock).
 
 ### Path scope vs docker scope (`--scope newest`)
 
@@ -139,26 +139,26 @@ from 14k tests / 8 s to 11k tests / 5 s on a typical box. Implies
 versions you don't even visit is wasted setup); pass `--docker-scope`
 explicitly to override.
 
-`tests:focus` accepts `--scope newest` too, and combines it with the
-new multi-coord / glob / brace-expansion support to address arbitrary
-slices of the matrix:
+Focused runs (`tests <coord>`) accept `--scope newest` too, and
+combine it with the multi-coord / glob / brace-expansion support to
+address arbitrary slices of the matrix:
 
-- Single-segment coord (`tests:focus postgres --scope newest`): the
-  run expands to `<db>/newest/` + `<db>/types.negative/`.
-- Glob coord (`tests:focus 'postgres/*/pg' --scope newest`): the
-  script expands the glob, then drops paths matching `*/oldest/*`
-  from the expansion. So `postgres/*/pg` resolves to just
+- Single-segment coord (`tests postgres --scope newest`): the run
+  expands to `<db>/newest/` + `<db>/types.negative/`.
+- Glob coord (`tests 'postgres/*/pg' --scope newest`): the script
+  expands the glob, then drops paths matching `*/oldest/*` from the
+  expansion. So `postgres/*/pg` resolves to just
   `postgres/newest/pg`.
-- Brace expansion (`tests:focus 'postgres/*/{pg,postgres}' --scope newest`):
+- Brace expansion (`tests 'postgres/*/{pg,postgres}' --scope newest`):
   works whether you quote the coord or not — quoted, the script
   brace-expands internally via a vetted eval; unquoted, bash
   brace-expands at the shell level into two positional coords
   (`postgres/*/pg`, `postgres/*/postgres`). Same result either way.
-- Multi-coord (`tests:focus 'postgres/*/pg' sqlite/newest --scope newest`):
+- Multi-coord (`tests 'postgres/*/pg' sqlite/newest --scope newest`):
   combine literals, globs, and brace-expanded sets in a single
   invocation; the runner is invoked once on the union of all matches.
 - Deeper coord (already specifying a version, e.g.
-  `tests:focus postgres/newest/pg/select.basic.test.ts --scope newest`):
+  `tests postgres/newest/pg/select.basic.test.ts --scope newest`):
   honoured verbatim — the user already narrowed the scope.
 - A coord pointing at `*/oldest/*` combined with `--scope newest` is
   rejected outright as an explicit contradiction.
@@ -290,7 +290,7 @@ so the cooperation contract above (`withRollback` / `withCommit` /
 default.
 
 The model is **parallel by default**; the opt-out is `--mode sequential`
-on `tests` / `tests:focus` (the script sets `TSSQLQUERY_PARALLEL_DBS=false`,
+on `tests` (the script sets `TSSQLQUERY_PARALLEL_DBS=false`,
 the runner adapter then forces a serial pool and the per-worker DB infra
 collapses to a single shared `tssqlquery` / `tsapp`). The CLI handles the
 runner-specific flag — `--parallel` for `bun test` (serial out of the
@@ -373,7 +373,7 @@ on the other hand, are real runtime-level wins for bun.
 
 - **Daily iteration (mocked)**: `bun run tests` (~8 s) or
   `bun run tests --scope newest` (~5 s) if you only care about
-  newest-version behaviour. `tests:focus <coord>` for a single cell.
+  newest-version behaviour. `tests <coord>` for a single cell.
 - **Pre-merge confidence**: `bun run tests --docker` (~4:30) — every
   test runs against its real engine. Add `--wasm` (~no extra cost
   under bun) for the full matrix.
@@ -454,7 +454,7 @@ longer a reason to switch on its own.
 There is **no obligation** to stop the reused containers between runs
 — that is the whole point. They consume some RAM in the background
 while you iterate, and the next `bun run tests --docker` (or
-`tests:focus --docker`) invocation attaches to them in ~1 s instead of
+`tests <coord> --docker`) invocation attaches to them in ~1 s instead of
 paying the full container start-up. Agents in particular should not
 bother calling
 `tests:stop-containers` as a clean-up step; the manual cleanup is

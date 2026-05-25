@@ -72,7 +72,6 @@ A handful of CLIs cover every workflow:
 | CLI | What it runs |
 |---|---|
 | `tests [<coord>…]` | No args: the full matrix under `test/` (parallel, no docker, no real WASM by default; widen with flags). One or more positional coords: focused run on those paths only — globs (`'postgres/*/pg'`) and brace expansion (`postgres/*/{pg,postgres}`) supported, quoted or not (see § Focused runs). Same flag set either way; only what paths the runner visits differs. `--help` for all options. |
-| `tests:wasm` | Just the in-process WASM cells (pglite, sqlite-wasm-OO1), serially, with real WASM. No flags. |
 | `tests:audit` | Symmetry audit — verifies every cell of a database declares the same test files and test names. Pre-merge check. |
 | `tests:stop-containers` | Stops the warm docker containers `--docker --docker-mode reuse` left running. |
 | `tests:reopen` | Re-open the previously generated `--report` / `--coverage` HTML without re-running tests. |
@@ -89,7 +88,8 @@ Orthogonal flags scope what the runner sees:
 | `--docker` | Docker-backed connectors hit their real DB. Without it they fall through to the mock. | off (mock) |
 | `--docker-scope <all\|newest>` | When `newest`, only cells under `<db>/newest/*` keep the real-DB branch; older versions fall back to the mock. No-op without `--docker`. Same shape as `--wasm` (narrower scope), motivation is speed. Defaults to `newest` when `--scope newest` is set (and `--docker-scope` was not given explicitly). | `all` |
 | `--scope <all\|newest>` | When `newest`, the runner only visits `<db>/newest/*` and `<db>/types.negative/*` cells — older versions are **not executed at all** (different from `--docker-scope`, which keeps them running against the mock). Implies `--docker-scope=newest` unless overridden. Main use: shorter coverage runs when older-version coverage is redundant with the matching newest cell. | `all` |
-| `--wasm` | After the main pass, runs a second sequential pass over the WASM cells against real pglite / sqlite-wasm-OO1. Without it, **the WASM modules are not even imported**. | off (mock) |
+| `--connections <all\|docker\|wasm\|native>` | Filter the file set by connector type. `wasm` = pglite + sqlite-wasm-OO1; `native` = embedded SQLite drivers that need no extra infrastructure (better-sqlite3, bun_sqlite, node_sqlite, sqlite3); `docker` = the complement (containerised engines). Pure path filter — does **not** auto-imply `--docker` / `--wasm`. The canonical "real WASM only" run is `tests --connections wasm --wasm`. Vocabulary mirrors `RealDbBackend` in [`backends.ts`](./lib/backends.ts). | `all` |
+| `--wasm` | When `--connections=all`, runs a second sequential pass over the WASM cells against real pglite / sqlite-wasm-OO1 after the main pass (two-phase split). In other `--connections` modes — or in focused mode — it's a single-pass override that just sets `TS_SQL_QUERY_WASM=on` for the upcoming run. Without it, **the WASM modules are not even imported**. | off (mock) |
 
 The split keeps the parallel main pass fast — WASM is CPU-bound and
 tanks parallel throughput. When you do need real WASM, the two-phase
@@ -142,6 +142,15 @@ bun run tests --scope newest
 # the WASM phase tucks behind the docker matrix at essentially no
 # extra cost.
 bun run tests --docker --wasm
+
+# Only WASM cells, real WASM module (the old `tests:wasm` recipe).
+bun run tests --connections wasm --wasm
+
+# Only docker-backed connectors, against real containers.
+bun run tests --connections docker --docker
+
+# Only the embedded SQLite drivers (zero-infra, always real).
+bun run tests --connections native
 
 # Hermetic — fresh containers every run. CI baseline.
 bun run tests --docker --docker-mode no-reuse

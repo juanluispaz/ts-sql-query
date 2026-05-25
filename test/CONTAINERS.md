@@ -163,8 +163,8 @@ address arbitrary slices of the matrix:
 - A coord pointing at `*/oldest/*` combined with `--scope newest` is
   rejected outright as an explicit contradiction.
 
-`tests:wasm --scope newest` drops the `oldest` WASM entries from
-`WASM_PATHS`.
+`tests --connections wasm --scope newest` drops the `oldest` WASM
+entries from `WASM_PATHS` too.
 
 ### Data-mutation safety (cooperative contract)
 
@@ -295,8 +295,12 @@ the runner adapter then forces a serial pool and the per-worker DB infra
 collapses to a single shared `tssqlquery` / `tsapp`). The CLI handles the
 runner-specific flag — `--parallel` for `bun test` (serial out of the
 box), `--no-file-parallelism` for vitest (parallel out of the box).
-`tests:wasm` is always sequential; WASM is CPU-bound and parallel buys
-nothing.
+The dedicated WASM phase (full-matrix `--wasm` two-phase split) is
+always sequential; WASM is CPU-bound and parallel buys nothing. A
+focused / connection-typed WASM run (`tests --connections wasm
+--wasm`) defaults to parallel because the cell set is tiny — pass
+`--mode sequential` if you want the same shape as the old
+`tests:wasm`.
 
 `--wasm` controls the WASM second phase: off (default) leaves the
 WASM modules unimported and the cells run against the mock; on adds a
@@ -377,8 +381,10 @@ on the other hand, are real runtime-level wins for bun.
 - **Pre-merge confidence**: `bun run tests --docker` (~4:30) — every
   test runs against its real engine. Add `--wasm` (~no extra cost
   under bun) for the full matrix.
-- **WASM-touching changes**: `bun run tests:wasm` to verify only the
-  pglite / sqlite-wasm-OO1 cells against the real module.
+- **WASM-touching changes**: `bun run tests --connections wasm --wasm`
+  to verify only the pglite / sqlite-wasm-OO1 cells against the real
+  module (parallel by default; add `--mode sequential` for the old
+  serial recipe).
 
 ## Bun vs vitest
 

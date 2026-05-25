@@ -12,6 +12,7 @@ Usage:
                    [--docker] [--docker-mode <reuse|no-reuse>]
                    [--docker-scope <all|newest>]
                    [--scope <all|newest>]
+                   [--connections <all|docker|wasm|native>]
                    [--wasm]
                    [--use-vitest] [--ui]
                    [--report    [--report-format <name>]…]
@@ -127,6 +128,7 @@ Defaults
                      follows --scope when --docker-scope was not given
                      explicitly (so `--scope newest` implies it too)
   --scope            all  (every cell under test/db/<db>/* runs)
+  --connections      all  (every connector type runs)
   --wasm             off (WASM cells fall through to mock — modules are
                      never imported, so their bootstrap cost is paid
                      by nothing)
@@ -186,6 +188,25 @@ Runner flags
                 --docker-scope explicitly. Useful for shortening
                 coverage runs when older-version coverage is redundant
                 with the matching newest cell.
+  --connections <all|docker|wasm|native>
+        all:    every connector type runs (default).
+        docker: only docker-backed connectors (pg, postgres,
+                bun_sql_postgres, mariadb, mysql2, oracledb, mssql).
+        wasm:   only WASM connectors (pglite, sqlite-wasm-OO1).
+        native: only embedded-native connectors that need no extra
+                infrastructure to go real — today the SQLite drivers
+                (better-sqlite3, bun_sqlite, node_sqlite, sqlite3).
+                Mirrors the `RealDbBackend = 'docker'|'wasm'|'native'`
+                type in test/lib/backends.ts.
+        Pure path filter, like --scope: the runner is invoked only on
+        cells whose connector folder matches the chosen type. Does
+        NOT auto-imply --docker or --wasm — `--connections docker`
+        without --docker runs docker cells mocked; `--connections
+        wasm` without --wasm runs WASM cells mocked. `types.negative/`
+        folders are dialect-level (no connector) and are excluded
+        from any non-all filter. The two-phase WASM split fires only
+        in `--connections=all` mode (in other modes either no WASM
+        is in scope or everything is WASM — single pass either way).
   --wasm
         After the main pass, run the WASM cells (sequential) against
         the real pglite / sqlite-wasm-OO1 module.
@@ -284,6 +305,9 @@ Examples
   bun run tests --docker --wasm                            # full matrix
   bun run tests --scope newest                             # skip oldest cells
   bun run tests --coverage --scope newest --open           # shorter coverage
+  bun run tests --connections wasm --wasm                  # only WASM cells (real)
+  bun run tests --connections docker --docker              # only docker-backed cells
+  bun run tests --connections native                       # only embedded SQLite
   bun run tests postgres/newest/pg                         # focused: one cell
   bun run tests 'postgres/*/pg' --docker                   # focused: glob
   bun run tests 'postgres/*/{pg,postgres}' --docker --scope newest
@@ -314,6 +338,7 @@ DOCKER_MODE=reuse
 # this to `newest` ONLY if it's still empty (no explicit override).
 DOCKER_SCOPE=
 SCOPE=all
+CONNECTIONS=all
 WASM=off
 USE_VITEST=off
 UI=off
@@ -335,6 +360,8 @@ while [ $# -gt 0 ]; do
         --docker-scope=*)       DOCKER_SCOPE="${1#--docker-scope=}"; shift ;;
         --scope)                SCOPE="$2"; shift 2 ;;
         --scope=*)              SCOPE="${1#--scope=}"; shift ;;
+        --connections)          CONNECTIONS="$2"; shift 2 ;;
+        --connections=*)        CONNECTIONS="${1#--connections=}"; shift ;;
         --wasm)                 WASM=on; shift ;;
         --use-vitest)           USE_VITEST=on; shift ;;
         --ui)                   UI=on; USE_VITEST=on; shift ;;
@@ -375,6 +402,9 @@ esac
 case "$SCOPE" in all|newest) ;; *)
     echo "Invalid --scope: $SCOPE (expected all|newest)" >&2; exit 2 ;;
 esac
+case "$CONNECTIONS" in all|docker|wasm|native) ;; *)
+    echo "Invalid --connections: $CONNECTIONS (expected all|docker|wasm|native)" >&2; exit 2 ;;
+esac
 # Resolve the docker-scope default. Empty means "user didn't pass it":
 # follow --scope (newest filters paths AND would skip the real-DB gate
 # for any version we don't even visit).
@@ -389,6 +419,15 @@ esac
 # COORDS / SCOPE / FOCUSED. Full implementation + edge cases live
 # in `resolve_main_paths` in _test-common.sh.
 resolve_main_paths || exit $?
+
+# Narrow MAIN_PATHS to the requested connector type. Broad paths
+# (test/, test/db/<db>/, …) get expanded to their typed connector
+# children. `types.negative/` is dropped under any non-all filter.
+# Helper exits non-zero when the filter empties the set.
+if ! apply_connection_type_filter "$CONNECTIONS"; then
+    echo "Error: --connections $CONNECTIONS left no paths to run." >&2
+    exit 2
+fi
 
 runtime="$(detect_runtime)"
 if [ "$USE_VITEST" = "on" ]; then runtime="npm"; fi
@@ -523,11 +562,14 @@ __cleanup_test_logs() {
 }
 trap __cleanup_test_logs EXIT
 
-# Two-phase WASM split fires only in full-matrix mode. With positional
-# coords (FOCUSED=on) the user told us exactly what to run, so --wasm
-# is treated as a single-pass override (TS_SQL_QUERY_WASM=on for the
-# one upcoming main pass). See "WASM semantics" in --help.
-if [ "$FOCUSED" = "off" ] && [ "$WASM" = "on" ]; then
+# Two-phase WASM split fires only when:
+#   - the matrix is full (FOCUSED=off), AND
+#   - --connections=all (otherwise either no WASM cells are in scope,
+#     or every cell is WASM — a "main phase" would be empty or
+#     redundant). Single pass handles both.
+# In every other case --wasm is a single-pass override that just sets
+# TS_SQL_QUERY_WASM=on for the upcoming main pass below.
+if [ "$FOCUSED" = "off" ] && [ "$CONNECTIONS" = "all" ] && [ "$WASM" = "on" ]; then
     if [ "${#WASM_LIST[@]}" -eq 0 ]; then
         echo "Error: --scope newest filtered every WASM cell. Drop --wasm or --scope newest." >&2
         exit 2
@@ -548,10 +590,13 @@ if [ "$FOCUSED" = "off" ] && [ "$WASM" = "on" ]; then
     if [ "$ec" -ne 0 ]; then exit "$ec"; fi
 fi
 
-# Main pass. In full-matrix mode WASM ran already (mocked by default,
-# real in a prior phase if --wasm fired the split above). In focused
-# mode --wasm — if set — fires here as a single-pass override.
-if [ "$FOCUSED" = "on" ] && [ "$WASM" = "on" ]; then
+# Main pass. TS_SQL_QUERY_WASM gating:
+#   * --wasm off → always mock (`off`).
+#   * --wasm on  → real (`on`) UNLESS we just ran the two-phase split
+#                  (full matrix + --connections=all + --wasm), in which
+#                  case the split already covered real WASM and the
+#                  main pass mocks the WASM cells to keep it fast.
+if [ "$WASM" = "on" ] && { [ "$FOCUSED" = "on" ] || [ "$CONNECTIONS" != "all" ]; }; then
     export TS_SQL_QUERY_WASM=on
 else
     export TS_SQL_QUERY_WASM=off

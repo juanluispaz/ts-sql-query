@@ -31,7 +31,7 @@ bun run tests --coverage --docker --wasm --mode sequential
 bun run tests postgres/newest/pg --coverage
 
 # Just the WASM cells.
-bun run tests:wasm --coverage
+bun run tests --connections wasm --wasm --coverage
 
 # Under npm/vitest, prefix flags with `--`:
 npm run tests -- --coverage

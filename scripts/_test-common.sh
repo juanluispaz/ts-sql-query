@@ -71,12 +71,135 @@ run_phase() {
 }
 
 # Paths that hit the in-process WASM connectors. The two-phase test
-# script and the standalone wasm-test script both run against these.
+# script runs these as its dedicated sequential phase when --wasm is
+# set in full-matrix mode.
 WASM_PATHS=(
     test/db/postgres/newest/pglite/
     test/db/postgres/oldest/pglite/
     test/db/sqlite/newest/sqlite-wasm-OO1/
 )
+
+# Connector folder names by connection type. Used by the
+# `--connections` flag to filter the cell set the runner visits.
+# Mirrors the `RealDbBackend` type in `test/lib/backends.ts`:
+#
+#   wasm   : WebAssembly-based engines that bootstrap a real module
+#            inside the JS process. Same gating profile as `--wasm`.
+#   native : connectors that go real with no extra infrastructure
+#            (no docker, no WASM bootstrap). Today the embedded SQLite
+#            drivers — same `false` boolean overload that backends.ts
+#            normalises to `'native'`.
+#   docker : everything else — connectors that need a real container.
+#            Computed as the complement of WASM + NATIVE at filter
+#            time, so adding a new docker connector folder does not
+#            require updating this file.
+#
+# Keep these two lists in sync with the connector folders under
+# `test/db/<db>/<version>/`. Adding a WASM or NATIVE connector means
+# adding its folder name here too.
+WASM_CONNECTOR_NAMES=(pglite sqlite-wasm-OO1)
+NATIVE_CONNECTOR_NAMES=(better-sqlite3 bun_sqlite node_sqlite sqlite3)
+
+# Internal: connector folder name matches the given type.
+# Returns 0 on match, 1 on miss. `docker` is the complement of WASM ∪
+# NATIVE — see comment above.
+_connector_matches_kind() {
+    local cn="$1" kind="$2" item
+    case "$kind" in
+        wasm)
+            for item in "${WASM_CONNECTOR_NAMES[@]}"; do
+                [ "$item" = "$cn" ] && return 0
+            done
+            return 1 ;;
+        native)
+            for item in "${NATIVE_CONNECTOR_NAMES[@]}"; do
+                [ "$item" = "$cn" ] && return 0
+            done
+            return 1 ;;
+        docker)
+            for item in "${WASM_CONNECTOR_NAMES[@]}"; do
+                [ "$item" = "$cn" ] && return 1
+            done
+            for item in "${NATIVE_CONNECTOR_NAMES[@]}"; do
+                [ "$item" = "$cn" ] && return 1
+            done
+            return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+# Emit every `test/db/<db>/<version>/<connector>/` folder in the
+# project (one per line, trailing slash). Used by
+# `apply_connection_type_filter` when it has to expand a broad path
+# (test/, test/db/<db>/, …) to its connector children. Skips the
+# `domain/` and `types.negative/` siblings of <version> — neither
+# holds connector folders.
+list_all_connector_paths() {
+    local db version vname connector
+    for db in test/db/*/; do
+        [ -d "$db" ] || continue
+        for version in "$db"*/; do
+            [ -d "$version" ] || continue
+            vname="${version%/}"; vname="${vname##*/}"
+            case "$vname" in domain|types.negative) continue ;; esac
+            for connector in "$version"*/; do
+                [ -d "$connector" ] && printf '%s\n' "$connector"
+            done
+        done
+    done
+}
+
+# Filter MAIN_PATHS in-place against a connection-type. Each path is
+# classified by its connector segment (4th component under test/db/):
+#
+#   * Paths at or below the connector level (test/db/<db>/<version>/<connector>/…)
+#     are kept iff the connector matches the requested type.
+#   * Paths above the connector level (test/, test/db/<db>/,
+#     test/db/<db>/<version>/) are *expanded* to their connector
+#     children, then filtered.
+#   * `<db>/types.negative/` paths are dropped under any non-all
+#     filter — they're dialect-level compile-time checks, not tied to
+#     a connector.
+#
+# Reads (globals): MAIN_PATHS[], WASM_CONNECTOR_NAMES[],
+#                  NATIVE_CONNECTOR_NAMES[].
+# Writes (globals): MAIN_PATHS[] (replaced with the filtered set).
+# Returns 0 if the filtered set is non-empty, 2 otherwise (caller
+# typically prints a context-specific error then exits).
+#
+# No-op when kind == "all".
+apply_connection_type_filter() {
+    local kind="$1"
+    [ "$kind" = "all" ] && return 0
+    local filtered=() p rel parts cn cp cn_cp
+    for p in "${MAIN_PATHS[@]}"; do
+        rel="${p#test/db/}"
+        rel="${rel%/}"
+        IFS='/' read -ra parts <<< "$rel"
+        if [ "${parts[1]:-}" = "types.negative" ]; then
+            continue
+        fi
+        # Below the connector level (< 3 segments) → broad path: walk
+        # every connector and keep the ones whose path starts with
+        # this prefix AND match the type.
+        if [ "${#parts[@]}" -lt 3 ]; then
+            while IFS= read -r cp; do
+                cn_cp="${cp%/}"; cn_cp="${cn_cp##*/}"
+                if _connector_matches_kind "$cn_cp" "$kind"; then
+                    case "$cp" in
+                        "$p"*) filtered+=("$cp") ;;
+                    esac
+                fi
+            done < <(list_all_connector_paths)
+            continue
+        fi
+        cn="${parts[2]}"
+        _connector_matches_kind "$cn" "$kind" && filtered+=("$p")
+    done
+    MAIN_PATHS=("${filtered[@]}")
+    [ "${#MAIN_PATHS[@]}" -eq 0 ] && return 2
+    return 0
+}
 
 # Emit newline-separated paths for the `--scope newest` filter — one
 # `<db>/newest/` plus the dialect-agnostic `<db>/types.negative/` per
@@ -102,7 +225,7 @@ expand_newest_paths() {
 }
 
 # Keep only WASM_PATHS entries that pass through a `newest/` segment.
-# Used by the `--scope newest` filter so the WASM phase / tests:wasm
+# Used by the `--scope newest` filter so the WASM phase
 # skips e.g. `postgres/oldest/pglite/`.
 filter_newest_wasm_paths() {
     local p
@@ -301,7 +424,7 @@ clean_report_dir() {
 #   <docker>       "on"  → docker-backed cells hit real DB containers
 #                  "off" → docker-backed cells fall through to mocks
 #                  "n/a" → phase doesn't exercise docker-backed cells
-#                          (e.g. the WASM-only phase / tests-wasm.sh)
+#                          (e.g. the WASM-only phase)
 #   <docker-scope> "all"     → every docker cell hits its real DB
 #                  "newest"  → only `<db>/newest/*` cells hit a real DB;
 #                              older versions fall back to the mock
@@ -740,7 +863,7 @@ validate_open_request() {
     return 0
 }
 
-# One entry point used by tests.sh / tests-wasm.sh
+# One entry point used by tests.sh
 # after a successful run. Two things happen here:
 #
 #   1. Bun coverage post-render: when bun emitted lcov and html was

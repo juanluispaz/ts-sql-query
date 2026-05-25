@@ -232,7 +232,7 @@ see [§1.3](#1-principles) for the precise rule.
 14. **Two test runners, both first-class: `bun:test` and `vitest`.**
     Files import from `test/lib/testRunner.ts`, a shim that resolves
     to the right module per runtime. The test CLIs
-    (`tests`, `tests:wasm`, `tests:audit`, `tests:stop-containers`,
+    (`tests`, `tests:audit`, `tests:stop-containers`,
     `tests:reopen`) each have a **single package.json entry**: the
     shell script behind it detects whether `bun run` or `npm run`
     invoked it (via `npm_config_user_agent`) and dispatches to

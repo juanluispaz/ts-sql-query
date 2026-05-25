@@ -47,8 +47,25 @@ export type DockerMode = 'on' | 'off'
 export type WasmMode = 'on' | 'off'
 export type DockerScope = 'all' | 'newest'
 
-/** Tag of which heavyweight backend a connector needs for its real-DB branch. */
-export type RealDbBackend = 'docker' | 'wasm' | 'inprocess'
+/**
+ * Tag of which heavyweight backend a connector needs for its real-DB
+ * branch. The category groups connectors by **gating profile** (what
+ * has to be enabled to take the real path), not by implementation:
+ *
+ *   - `docker`: needs a real DB container (mariadb, mysql2, oracledb,
+ *     mssql, pg, postgres, bun_sql_postgres). Gated by `--docker`.
+ *   - `wasm`: needs a WebAssembly module bootstrap (pglite,
+ *     sqlite-wasm-OO1). Gated by `--wasm`. Pulled out as its own
+ *     category because the bootstrap is CPU-bound and dominates wall
+ *     time under parallel workers — see the two-phase split in
+ *     `scripts/tests.sh`.
+ *   - `native`: needs nothing extra. Always real. Today these are the
+ *     embedded SQLite drivers (better-sqlite3, bun_sqlite,
+ *     node_sqlite, sqlite3). Note that pglite / sqlite-wasm-OO1 are
+ *     also in-process, but they belong to `wasm` because their
+ *     gating profile differs.
+ */
+export type RealDbBackend = 'docker' | 'wasm' | 'native'
 
 /** True iff this database folder is in scope for the current run. */
 export function isBackendEnabled(database: string): boolean {
@@ -77,17 +94,17 @@ export function dockerScope(): DockerScope {
  *
  * The legacy boolean overload (`isRealDbEnabled(db, needsDocker)`) is
  * kept for callers that pre-date the WASM toggle: `true` is read as
- * `'docker'`, `false` as `'inprocess'`.
+ * `'docker'`, `false` as `'native'`.
  *
  * The optional `version` is the cell's `<version>` folder (e.g. `newest`,
  * `oldest`). It is only inspected when `requires === 'docker'` and the
  * scope is narrowed to `newest`: callers that omit it bypass the scope
- * check (the existing WASM / inprocess paths). Docker-backed
+ * check (the existing WASM / native paths). Docker-backed
  * `create*TestContext` factories derive it from `spec.label`.
  */
 export function isRealDbEnabled(database: string, requires: RealDbBackend | boolean, version?: string): boolean {
     const kind: RealDbBackend = typeof requires === 'boolean'
-        ? (requires ? 'docker' : 'inprocess')
+        ? (requires ? 'docker' : 'native')
         : requires
     if (!isBackendEnabled(database)) return false
     if (kind === 'docker' && !isDockerEnabled()) return false

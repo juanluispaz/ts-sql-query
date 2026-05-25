@@ -98,7 +98,7 @@ The complete enumerated list of public subpaths lives in the [`exports` field of
 
 !!! warning "Escape hatch"
 
-    Anything not listed in the public API can still be imported through the `ts-sql-query/unsupported/<original/path>` prefix as an explicit, opt-in escape hatch (for custom dialects, plugins or debugging). Paths under `unsupported/` carry **no stability guarantees** and may change, break or disappear in any release, including patch releases.
+    Anything not listed in the public API can still be imported through the `ts-sql-query/__UNSUPPORTED__/<original/path>` prefix as an explicit, opt-in escape hatch (for custom dialects, plugins or debugging). Paths under `__UNSUPPORTED__/` carry **no stability guarantees** and may change, break or disappear in any release, including patch releases.
 
 ## Related projects
 

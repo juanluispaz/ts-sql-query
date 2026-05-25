@@ -61,9 +61,9 @@ see [§1.3](#1-principles) for the precise rule.
 
 3. **Public surface only — what `package.json` `exports` enumerates,
    nothing else.** Test imports must resolve to a path enumerated in the
-   `exports` map of the root `package.json`. The `./unsupported/*`
+   `exports` map of the root `package.json`. The `./__UNSUPPORTED__/*`
    wildcard escape hatch is **not** part of the public surface for the
-   tests: if a test needs something only reachable through `unsupported/`,
+   tests: if a test needs something only reachable through `__UNSUPPORTED__/`,
    the right answer is to open up the API, not to import via that
    escape. Concretely, the imports the suite uses (`src/Table.ts`,
    `src/connections/PostgreSqlConnection.ts`, `src/queryRunners/*.ts`,

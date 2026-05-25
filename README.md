@@ -86,19 +86,19 @@ TypeScript consumers must use `moduleResolution: "node16"`, `"nodenext"` or `"bu
 
 ### Escape hatch for advanced use cases
 
-If you need to reach into anything that isn't on the public list — abstract base classes (`AbstractSqlBuilder`, `AbstractQueryRunner`, `ManagedTransactionQueryRunner`, …), the per-database error mappers under `queryRunners/databaseErrorMappers/`, the expression/builder internals, etc. — every file in the package remains importable under the `ts-sql-query/unsupported/<original/path>` prefix:
+If you need to reach into anything that isn't on the public list — abstract base classes (`AbstractSqlBuilder`, `AbstractQueryRunner`, `ManagedTransactionQueryRunner`, …), the per-database error mappers under `queryRunners/databaseErrorMappers/`, the expression/builder internals, etc. — every file in the package remains importable under the `ts-sql-query/__UNSUPPORTED__/<original/path>` prefix:
 
 ```ts
 // Public, stable
 import { Table } from 'ts-sql-query' // or 'ts-sql-query/Table'
 
 // Unsupported, no stability guarantees
-import { AbstractSqlBuilder } from 'ts-sql-query/unsupported/sqlBuilders/AbstractSqlBuilder'
-import { ManagedTransactionQueryRunner } from 'ts-sql-query/unsupported/queryRunners/ManagedTransactionQueryRunner'
-import { PostgresErrorMapper } from 'ts-sql-query/unsupported/queryRunners/databaseErrorMappers/PostgresErrorMapper'
+import { AbstractSqlBuilder } from 'ts-sql-query/__UNSUPPORTED__/sqlBuilders/AbstractSqlBuilder'
+import { ManagedTransactionQueryRunner } from 'ts-sql-query/__UNSUPPORTED__/queryRunners/ManagedTransactionQueryRunner'
+import { PostgresErrorMapper } from 'ts-sql-query/__UNSUPPORTED__/queryRunners/databaseErrorMappers/PostgresErrorMapper'
 ```
 
-Anything imported through `unsupported/` may change, break or disappear in any release, including patch releases. The `unsupported/` prefix is mandatory — the natural paths (e.g. `ts-sql-query/sqlBuilders/...`) remain blocked.
+Anything imported through `__UNSUPPORTED__/` may change, break or disappear in any release, including patch releases. The `__UNSUPPORTED__/` prefix is mandatory — the natural paths (e.g. `ts-sql-query/sqlBuilders/...`) remain blocked.
 
 ## Documentation
 

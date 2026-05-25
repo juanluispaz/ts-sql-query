@@ -446,4 +446,4 @@ framing.
 - Snippets that depend on features outside the public `exports` map of
   `package.json`. If the snippet needs an internal symbol, the docs
   page is documenting non-public surface — flag it instead of
-  reaching for `unsupported/*`.
+  reaching for `__UNSUPPORTED__/*`.

@@ -205,7 +205,7 @@
             "types": "./extras/utils.d.ts",
             "default": "./extras/utils.js"
         },
-        "./unsupported/*": {
+        "./__UNSUPPORTED__/*": {
             "types": "./*.d.ts",
             "default": "./*.js"
         },

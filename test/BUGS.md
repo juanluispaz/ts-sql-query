@@ -29,6 +29,12 @@ That's the contract. Do **not** spend time diagnosing the root cause,
 choosing a category, or proposing a fix — the fixing agent owns all
 of that. Two minutes of triage and one paragraph is the bar.
 
+---
+
+_No open entries._
+
+---
+
 ## Common bug shapes (for the fixing agent)
 
 Reference for the agent picking up entries above. The test author

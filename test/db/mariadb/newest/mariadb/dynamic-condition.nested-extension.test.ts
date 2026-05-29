@@ -200,4 +200,35 @@ describe(ctx.label, () => {
         expect(thrown.processedValue).toBe('whatever')
         expect(thrown.key).toBe('stringified')
     })
+
+    test('column-level-object-valued-extension-rule-dispatches-nested', async () => {
+        // A column whose extension entry is an OBJECT of rules (not a single
+        // function) routes through `processAdditionalColumnFilter`
+        // ([DynamicConditionBuilder.ts:137-144,193-235](../../../../../src/queryBuilders/DynamicConditionBuilder.ts#L137-L144)).
+        // The inner leaf rule (`above`) dispatches and is and-joined into the
+        // column's predicate — `id > $1`. (This path forwards the inner
+        // `value`, not the whole column filter, so the nested rule resolves
+        // at any depth.)
+        ctx.mockNext([])
+        const connection = ctx.conn
+        const selectFields = { id: tIssue.id }
+        const extension = {
+            idRules: {
+                above: (v: number) => tIssue.id.greaterThan(v),
+            },
+        }
+        const filter = { id: { idRules: { above: 10 } } } as any
+        await connection.selectFrom(tIssue)
+            .where(connection.dynamicConditionFor(selectFields, extension).withValues(filter))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where id > ? order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            10,
+          ]
+        `)
+    })
 })

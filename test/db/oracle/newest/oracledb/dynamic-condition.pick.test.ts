@@ -59,19 +59,10 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    // TODO[BUG] dynamicPickPaths drops branches whose only picked leaf is
-    // found via recursion ≥2 levels deep: internalDynamicPickPaths
-    // (src/dynamicCondition.ts:142) has a bare `hasContent` expression where
-    // it means `hasContent = true`, so the intermediate level returns
-    // `undefined` and the whole `group` branch is discarded. The path
-    // `'group.sub.priority'` is therefore NOT selected — only the mandatory
-    // `id` survives. The assertions below pin that (buggy) current behavior;
-    // the *type* still describes the intended shape (the type-level pick is
-    // correct, only the runtime drops the branch). See test/BUGS.md.
-    // `internalDynamicPick` (the dynamicPick sibling, L82) sets the flag
-    // correctly, which is why `pick/nested-dynamic-pick-...` above works.
     test('pick/nested-dynamic-pick-paths-depth-3', async () => {
-        const expected = [{ id: 1 }] // BUG: should be [{ id: 1, group: { sub: { priority: 2 } } }]
+        // A 3-level path forces `internalDynamicPickPaths` to recurse into
+        // itself (group -> sub -> priority) and keep the deep leaf.
+        const expected = [{ id: 1, group: { sub: { priority: 2 } } }]
         ctx.mockNext(expected)
         const availableFields = {
             id: tIssue.id,
@@ -82,16 +73,13 @@ describe(ctx.label, () => {
                 },
             },
         }
-        // A 3-level path should force `internalDynamicPickPaths` to recurse
-        // into itself (group -> sub -> priority) and keep the leaf.
         const picked = dynamicPickPaths(availableFields, ['group.sub.priority'], ['id'])
         const rows = await ctx.conn.selectFrom(tIssue)
             .where(tIssue.id.equals(1))
             .select(picked)
             .executeSelectMany()
 
-        // BUG: the `group.sub.priority` column is missing — only `id` is selected.
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue where id = :0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", priority as "group.sub.priority" from issue where id = :0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

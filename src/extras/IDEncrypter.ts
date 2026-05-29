@@ -240,12 +240,16 @@
      if (encrypted.length < (16 + prefix.length)) {
          return false
      }
- 
+     if (!encrypted.startsWith(prefix)) {
+         return false
+     }
+     encrypted = encrypted.substring(prefix.length)
+
      const csString = encrypted.substring(encrypted.length - 2)
      encrypted = encrypted.substring(0, encrypted.length - 2)
      if (checksumString(encrypted, prefix) !== csString) {
          return false
      }
- 
+
      return true
  }

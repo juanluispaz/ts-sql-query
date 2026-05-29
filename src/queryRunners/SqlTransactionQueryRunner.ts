@@ -97,24 +97,20 @@ export abstract class SqlTransactionQueryRunner extends ManagedTransactionQueryR
         }
         const accessMode = this.getTransactionAccessMode(opts)
         if (accessMode) {
-            if (sql) {
-                sql += ', '
-            }
+            sql += level ? ', ' : ' '
             sql += accessMode
         }
         return sql
     }
     createBeginTransactionOptions(opts: BeginTransactionOpts): string | undefined {
-        let sql
-        let level = this.getTransactionLevel(opts)
-        if (level) {
-            sql = 'isolation level ' + level
-        }
+        const level = this.getTransactionLevel(opts)
         const accessMode = this.getTransactionAccessMode(opts)
+        if (!level && !accessMode) {
+            return undefined
+        }
+        let sql = level ? 'isolation level ' + level : ''
         if (accessMode) {
-            if (sql) {
-                sql += ', '
-            }
+            if (sql) sql += ', '
             sql += accessMode
         }
         return sql

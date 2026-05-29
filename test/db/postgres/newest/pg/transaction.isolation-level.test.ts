@@ -58,16 +58,11 @@ describe(ctx.label, () => {
     })
 
     test('isolation-access-mode-only-builds-access-mode-opts', async () => {
-        // The single-arg access-mode overload (PostgreSqlConnection.ts:86).
-        // TODO[BUG]: see test/BUGS.md — on pg/mysql/mariadb this branch
-        // returns `[undefined, accessMode]` reading the (undefined)
-        // second parameter, so the access mode is dropped and the opts
-        // come back `[undefined, undefined]` instead of
-        // `[undefined, 'read only']`. Pinned as-is to document current
-        // behaviour; Oracle's cell pins the correct value.
+        // The single-arg access-mode overload (PostgreSqlConnection.ts:86)
+        // — opts `[undefined, 'read only']`, matching Oracle's body.
         ctx.mockNext(1)
         const result = await runReadOnlyTransaction(ctx.conn.isolationLevel('read only'))
-        expect(ctx.lastTransactionOpts).toEqual([undefined, undefined])
+        expect(ctx.lastTransactionOpts).toEqual([undefined, 'read only'])
         expect(result).toBe(1)
     })
 })

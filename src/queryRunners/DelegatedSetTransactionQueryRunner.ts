@@ -89,9 +89,7 @@ export abstract class DelegatedSetTransactionQueryRunner extends ManagedTransact
             sql += ' isolation level ' + level
         }
         if (accessMode) {
-            if (sql) {
-                sql += ', '
-            }
+            sql += level ? ', ' : ' '
             sql += accessMode
         }
         return sql

@@ -83,7 +83,7 @@ export abstract class PostgreSqlConnection<NAME extends string> extends Abstract
     isolationLevel(accessMode: 'read write' | 'read only'): TransactionIsolationLevel
     isolationLevel(level: 'read uncommitted' | 'read committed' | 'repeatable read' | 'serializable' | 'read write' | 'read only', accessMode?: 'read write' | 'read only'): TransactionIsolationLevel {
         if (level === 'read write' || level === 'read only') {
-            return [undefined, accessMode] as any
+            return [undefined, level] as any
         }
         if (accessMode) {
             return [level, accessMode] as any

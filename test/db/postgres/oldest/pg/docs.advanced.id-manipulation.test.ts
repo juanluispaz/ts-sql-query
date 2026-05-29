@@ -104,20 +104,11 @@ describe(ctx.label, () => {
     test('docs-extra:id-manipulation/is-valid-encrypted-id-true-for-output-of-encrypt', () => {
         // IDEncrypter.ts:238 — the cheap client-side checksum check
         // that a UI can run before sending the string back to the
-        // server. Accepts the unprefixed output of `encrypt(...)`.
+        // server. Accepts everything `encrypt(...)` produces, with or
+        // without a prefix.
         const enc = new IDEncrypter('3zTvzr3p67VC61jm', '60iP0h6vJoEaJo8c')
         expect(isValidEncryptedID(enc.encrypt(1n))).toBe(true)
-    })
-
-    test('docs-extra:id-manipulation/is-valid-encrypted-id-prefix-bug-returns-false', () => {
-        // TODO[BUG]: see test/BUGS.md — `isValidEncryptedID(s, prefix)`
-        // does not strip the prefix before recomputing the public
-        // checksum (unlike `IDEncrypter.decrypt`, which does), so every
-        // prefixed string `encrypt(id, prefix)` returns comes back as
-        // INVALID. The unprefixed twin above proves the happy path.
-        // This test pins the buggy `false` so a future fix turns it red.
-        const enc = new IDEncrypter('3zTvzr3p67VC61jm', '60iP0h6vJoEaJo8c')
-        expect(isValidEncryptedID(enc.encrypt(1n, 'co'), 'co')).toBe(false)
+        expect(isValidEncryptedID(enc.encrypt(1n, 'co'), 'co')).toBe(true)
     })
 
     test('docs-extra:id-manipulation/is-valid-encrypted-id-false-for-too-short', () => {
@@ -125,6 +116,16 @@ describe(ctx.label, () => {
         // length cannot be valid; return false (vs. `decrypt` throwing).
         expect(isValidEncryptedID('short')).toBe(false)
         expect(isValidEncryptedID('co123', 'co')).toBe(false)
+    })
+
+    test('docs-extra:id-manipulation/is-valid-encrypted-id-false-for-wrong-prefix', () => {
+        // IDEncrypter.ts:243 — when an expected prefix is required and
+        // the candidate string does not start with it, `isValidEncryptedID`
+        // returns false without recomputing the checksum (mirrors
+        // `decrypt`'s `Invalid prefix` throw).
+        const enc = new IDEncrypter('3zTvzr3p67VC61jm', '60iP0h6vJoEaJo8c')
+        const encryptedWithCo = enc.encrypt(1n, 'co')
+        expect(isValidEncryptedID(encryptedWithCo, 'cu')).toBe(false)
     })
 
     test('docs-extra:id-manipulation/is-valid-encrypted-id-false-for-tampered-checksum', () => {

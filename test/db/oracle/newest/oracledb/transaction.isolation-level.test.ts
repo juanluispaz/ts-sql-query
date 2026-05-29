@@ -61,23 +61,11 @@ describe(ctx.label, () => {
     */
 
     test('isolation-access-mode-only-builds-access-mode-opts', async () => {
-        // The single-arg access-mode overload (OracleConnection.ts:54).
-        // Oracle's body returns `[undefined, level]` correctly, so the
-        // access mode is preserved — `[undefined, 'read only']` — unlike
-        // the pg/mysql/mariadb cells where the same form drops it (see
-        // test/BUGS.md).
-        //
-        // TODO[BUG]: real-DB execution is skipped here — see test/BUGS.md.
-        // `DelegatedSetTransactionQueryRunner.createSetTransactionQuery`
-        // emits `set transaction, read only` with a spurious comma when
-        // only the access mode is set, which Oracle rejects with
-        // `ORA-00900: invalid SQL statement`. The opts assertion above
-        // runs in both modes (pure client-side), so the
-        // OracleConnection.isolationLevel branch is still covered.
-        if (ctx.realDbEnabled) {
-            expect(ctx.conn.isolationLevel('read only')).toEqual([undefined, 'read only'])
-            return
-        }
+        // The single-arg access-mode overload (OracleConnection.ts:54)
+        // — opts `[undefined, 'read only']`. Runs on real Oracle now
+        // that `DelegatedSetTransactionQueryRunner.createSetTransactionQuery`
+        // emits `set transaction read only` without the previous
+        // spurious comma.
         ctx.mockNext(1)
         const result = await runReadOnlyTransaction(ctx.conn.isolationLevel('read only'))
         expect(ctx.lastTransactionOpts).toEqual([undefined, 'read only'])

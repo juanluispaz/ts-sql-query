@@ -116,7 +116,7 @@ export abstract class PostgreSqlConnection<NAME extends string> extends Abstract
             case 'localDate':
                 return placeholder + '::date'
             case 'localTime':
-                return placeholder + '::timestamp::time'
+                return placeholder + '::time'
             case 'localDateTime':
                 return placeholder + '::timestamp'
         }

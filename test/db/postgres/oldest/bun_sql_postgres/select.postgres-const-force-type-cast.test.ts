@@ -8,7 +8,7 @@
 // `insert.multi-row.test.ts` (custom-boolean remap goes through the
 // same path with `forceTypeCast = true`); this file adds the other
 // typed casts: `::int4`, `::int8`, `::float8`, `::text`, `::uuid`,
-// `::date`, `::timestamp::time`, `::timestamp`.
+// `::date`, `::time`, `::timestamp`.
 //
 // PostgreSQL-specific: every other dialect's `transformPlaceholder`
 // either no-ops (no `::cast` syntax) or uses a wholly different
@@ -118,32 +118,20 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[BUG] PostgreSqlConnection.ts:119 emits `placeholder + '::timestamp::time'`
-    // for the `'localTime'` branch when `forceTypeCast = true`, but
-    // `transformValueToDB('localTime', Date)` ships a bare `'HH:MM:SS'`
-    // string. PostgreSQL rejects the intermediate `'12:34:56'::timestamp`
-    // cast with `invalid input syntax for type timestamp`. Verified
-    // empirically against PG 18 — see `test/BUGS.md` for the open entry.
-    // Body kept verbatim from the canonical pg cell so the fix is a
-    // one-character src patch (drop `::timestamp`) + uncommenting + a
-    // snapshot refresh.
-    /*
-    test('const-localtime-forces-timestamp-time-cast', async () => {
-        // PostgreSqlConnection.ts:118-119 — `localTime` actually emits
-        // `::timestamp::time`, a two-stage cast.
+    test('const-localtime-forces-time-cast', async () => {
+        // PostgreSqlConnection.ts:118-119.
         const t = new Date('1970-01-01T12:34:56Z')
         ctx.mockNext(t)
         await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.const(t, 'localTime'))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::timestamp::time as result"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::time as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "12:34:56",
           ]
         `)
     })
-    */
 
     // Not applicable on bun_sql_postgres: Bun.SQL's PostgreSQL adapter
     // currently serialises `Date` parameters via `Date#toString()` (e.g.

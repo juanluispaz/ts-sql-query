@@ -50,7 +50,7 @@ describe(ctx.label, () => {
             organizationName: string
             organizationPlan: string
         }>>>()
-        if (!ctx.realDbEnabled) expect(rows).toEqual(expected)
+        expect(rows).toEqual(expected)
     })
 
     test('select-view-virtual-column-name-upper', async () => {
@@ -75,7 +75,7 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof row, { id: number; name: string; nameUpper: string }>>()
-        if (!ctx.realDbEnabled) expect(row).toEqual(expected)
+        expect(row).toEqual(expected)
     })
 
     test('select-view-optional-archived-column', async () => {
@@ -120,7 +120,7 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number; name: string }>>>()
-        if (!ctx.realDbEnabled) expect(rows).toEqual(expected)
+        expect(rows).toEqual(expected)
     })
 
     test('view-for-use-in-left-join-matches', async () => {
@@ -151,7 +151,7 @@ describe(ctx.label, () => {
             projectName?: string
             projectNameUpper?: string
         }>>>()
-        if (!ctx.realDbEnabled) expect(rows).toEqual(expected)
+        expect(rows).toEqual(expected)
     })
 
     test('view-for-use-in-left-join-as-no-match-yields-null', async () => {
@@ -180,6 +180,6 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{ orgName: string; projectName?: string }>>>()
-        if (!ctx.realDbEnabled) expect(rows).toEqual(expected)
+        expect(rows).toEqual(expected)
     })
 })

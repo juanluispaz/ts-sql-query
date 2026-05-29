@@ -34,7 +34,7 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number; name: string }>>>()
-        if (!ctx.realDbEnabled) expect(rows).toEqual(expectedMock)
+        expect(rows).toEqual(expectedMock)
     })
 
     test('no-value-boolean-as-sole-where-emits-no-where-clause', async () => {
@@ -52,6 +52,6 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", name as "name" from "organization" order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number; name: string }>>>()
-        if (!ctx.realDbEnabled) expect(rows).toEqual(expectedMock)
+        expect(rows).toEqual(expectedMock)
     })
 })

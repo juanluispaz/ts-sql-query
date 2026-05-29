@@ -50,7 +50,7 @@ describe(ctx.label, () => {
               ]
             `)
             assertType<Exact<typeof inserted, number>>()
-            if (!ctx.realDbEnabled) expect(inserted).toBe(1)
+            expect(inserted).toBe(1)
         })
     })
 
@@ -84,7 +84,7 @@ describe(ctx.label, () => {
               ]
             `)
             assertType<Exact<typeof inserted, number>>()
-            if (!ctx.realDbEnabled) expect(inserted).toBe(1)
+            expect(inserted).toBe(1)
         })
     })
 })

@@ -88,6 +88,6 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", name as "name" from project where exists(select distinct status as "result" from issue where project_id = project.id) order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number; name: string }>>>()
-        if (!ctx.realDbEnabled) expect(rows).toEqual(expected)
+        expect(rows).toEqual(expected)
     })
 })

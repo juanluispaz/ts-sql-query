@@ -32,7 +32,7 @@ describe(ctx.label, () => {
             expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
             assertType<Exact<typeof affected, number>>()
-            if (!ctx.realDbEnabled) expect(affected).toBe(4)
+            expect(affected).toBe(4)
         })
     })
 
@@ -52,7 +52,7 @@ describe(ctx.label, () => {
               ]
             `)
             assertType<Exact<typeof affected, number>>()
-            if (!ctx.realDbEnabled) expect(affected).toBe(4)
+            expect(affected).toBe(4)
         })
     })
 })

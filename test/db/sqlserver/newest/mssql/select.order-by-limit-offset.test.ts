@@ -100,6 +100,60 @@ describe(ctx.label, () => {
             expect(result).toEqual([{ id: 2 }, { id: 3 }])
         }
     })
+    test('limit-offset-without-order-by-pk-not-first-emits-synthetic-pk-position', async () => {
+        // SqlServer requires ORDER BY for OFFSET/FETCH. When the user
+        // omits `.orderBy(...)`, `SqlServerSqlBuilder._buildSelectOrderBy`
+        // synthesises one: it scans the select columns left-to-right and
+        // returns the 1-based position of the first PK column it finds.
+        // Here `id` (the PK) is at projection index 2, so `order by 2`.
+        // Synthetic ORDER BY id ascending → offset 1 → issue id=2
+        // (`status='in_progress'`); deterministic from the seed.
+        // src: SqlServerSqlBuilder.ts:256-269.
+        const expected = [{ status: 'in_progress', id: 2 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .select({
+                status: tIssue.status,
+                id:     tIssue.id,
+            })
+            .limit(1).offset(1)
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status, id as id from issue order by 2 offset @0 rows fetch next @1 rows only"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ status: string; id: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('limit-offset-without-order-by-no-pk-emits-synthetic-position-one', async () => {
+        // Same path but the projection has NO PK column. The for-loop at
+        // L262-270 finds no PK and falls through to `return ' order by 1'`
+        // at L271. With four seeded statuses (`open`, `in_progress`,
+        // `open`, `closed`) sorted ascending the offset-1 row is
+        // `in_progress` (`closed` < `in_progress`); deterministic.
+        const expected = [{ status: 'in_progress' }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .select({
+                status: tIssue.status,
+            })
+            .limit(1).offset(1)
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status from issue order by 1 offset @0 rows fetch next @1 rows only"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ status: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
     test('offset-without-limit', async () => {
         // `.offset(n)` without a preceding `.limit(n)` exercises the
         // dialect-specific workaround in the SQL builder:

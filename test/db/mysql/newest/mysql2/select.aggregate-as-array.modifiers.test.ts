@@ -249,4 +249,84 @@ describe(ctx.label, () => {
             expect(rows).toEqual([{ pid: 1, titles: [] }])
         }
     })
+    test('aggregate-as-array-as-required-in-optional-object', async () => {
+        // `asRequiredInOptionalObject()` on an aggregate (ValueSourceImpl.ts:2515
+        // — AggregateValueAsArrayValueSource.asRequiredInOptionalObject) makes
+        // it the gate of an optional inner object: when the aggregate yields
+        // no value (empty group → json_agg returns NULL), the whole inner
+        // object is dropped. Project 3 (org 2) has one issue, project 4
+        // has none; only project 3's `meta` survives.
+        ctx.mockNext([
+            { pid: 3, 'meta.titles': ['Document /v2/users'] },
+            { pid: 4, 'meta.titles': null },
+        ])
+        const tIssueLeft = tIssue.forUseInLeftJoin()
+        const rows = await ctx.conn.selectFrom(tProject)
+            .leftJoin(tIssueLeft).on(tIssueLeft.projectId.equals(tProject.id))
+            .where(tProject.organizationId.equals(2))
+            .select({
+                pid: tProject.id,
+                meta: {
+                    titles: ctx.conn.aggregateAsArrayOfOneColumn(tIssueLeft.title).asRequiredInOptionalObject(),
+                },
+            })
+            .groupBy('pid')
+            .orderBy('pid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, json_arrayagg(issue.title) as \`meta.titles\` from project left join issue on issue.project_id = project.id where project.organization_id = ? group by project.id order by pid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            pid:   number
+            meta?: { titles: string[] }
+        }>>>()
+        expect(rows).toEqual([
+            { pid: 3, meta: { titles: ['Document /v2/users'] } },
+            { pid: 4 },
+        ])
+    })
+
+    test('null-aggregate-as-array-as-required-in-optional-object', async () => {
+        // The Null variant — `onlyWhenOrNull(false)` chained with
+        // `asRequiredInOptionalObject()` exercises ValueSourceImpl.ts:2631
+        // (NullAggregateValueAsArrayValueSource.asRequiredInOptionalObject).
+        // The column emits literal `null` regardless of the join, so the
+        // gate is always null and `meta` is always absent.
+        ctx.mockNext([
+            { pid: 3, 'meta.titles': null },
+            { pid: 4, 'meta.titles': null },
+        ])
+        const tIssueLeft = tIssue.forUseInLeftJoin()
+        const rows = await ctx.conn.selectFrom(tProject)
+            .leftJoin(tIssueLeft).on(tIssueLeft.projectId.equals(tProject.id))
+            .where(tProject.organizationId.equals(2))
+            .select({
+                pid: tProject.id,
+                meta: {
+                    titles: ctx.conn.aggregateAsArrayOfOneColumn(tIssueLeft.title)
+                        .onlyWhenOrNull(false)
+                        .asRequiredInOptionalObject(),
+                },
+            })
+            .groupBy('pid')
+            .orderBy('pid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, null as \`meta.titles\` from project left join issue on issue.project_id = project.id where project.organization_id = ? group by project.id order by pid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            pid:   number
+            meta?: { titles: string[] }
+        }>>>()
+        expect(rows).toEqual([{ pid: 3 }, { pid: 4 }])
+    })
+
 })

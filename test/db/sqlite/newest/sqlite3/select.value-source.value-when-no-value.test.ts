@@ -179,6 +179,70 @@ describe(ctx.label, () => {
         else expect(rows).toEqual(expected)
     })
 
+    test('value-when-no-value-false-as-selected-column-elided-emits-false-literal', async () => {
+        // Boolean IfValue with `valueWhenNoValue(false)` selected as a
+        // projected column (not used in WHERE). ValueSourceImpl.ts:404
+        // → `falseWhenNoValue()` → `BooleanValueWhenNoValueValueSource`,
+        // and the SELECT path hits the class's `__toSql` (L745-752),
+        // distinct from the `__toSqlForCondition` path the WHERE tests
+        // above cover. With the IfValue elided, the column emits the
+        // dialect's FALSE literal.
+        const expected = [{ id: 1, statusMatches: false }]
+        ctx.mockNext(expected)
+
+        const filter: string | undefined = undefined
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id:            tIssue.id,
+                statusMatches: tIssue.status.equalsIfValue(filter).valueWhenNoValue(false),
+            })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, 0 as statusMatches from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            id:            number
+            statusMatches: boolean
+        }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('value-when-no-value-false-as-selected-column-fires-uses-primary-sql', async () => {
+        // Twin: when the IfValue does fire, the wrapper's `__toSql`
+        // returns the primary SQL via L747-749 (`if (sql) return sql`)
+        // and the FALSE fallback at L752 is unused. Issue 1's status is
+        // `'open'`, matching the probe.
+        const expected = [{ id: 1, statusMatches: true }]
+        ctx.mockNext(expected)
+
+        const filter: string | undefined = 'open'
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id:            tIssue.id,
+                statusMatches: tIssue.status.equalsIfValue(filter).valueWhenNoValue(false),
+            })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, status = ? as statusMatches from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "open",
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            id:            number
+            statusMatches: boolean
+        }>>>()
+        expect(rows).toEqual(expected)
+    })
+
     test('value-when-no-value-and-chained-with-other-predicate', async () => {
         // The wrapper is AND-joined with another fired predicate. The
         // outer AND folds the elided-but-defaulted wrapper into a

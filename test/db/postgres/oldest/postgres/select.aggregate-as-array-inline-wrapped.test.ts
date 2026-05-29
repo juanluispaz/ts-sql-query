@@ -133,4 +133,471 @@ describe(ctx.label, () => {
           ]
         `)
     })
+
+    test('inline-aggregate-as-required-in-optional-object', async () => {
+        // `asRequiredInOptionalObject()` on the inline-aggregate value
+        // source (ValueSourceImpl.ts:2145 —
+        // AggregateSelectValueSource.asRequiredInOptionalObject) makes the
+        // subquery the gate of an optional inner object. If the subquery
+        // aggregates no rows, json_agg returns NULL and the inner
+        // `meta` object is dropped from the row.
+        ctx.mockNext([
+            { pid: 3, 'meta.issues': [{ id: 4, title: 'Document /v2/users' }] },
+            { pid: 4, 'meta.issues': null },
+        ])
+        const projectIssues = ctx.conn.subSelectUsing(tProject).from(tIssue)
+            .where(tIssue.projectId.equals(tProject.id))
+            .select({ id: tIssue.id, title: tIssue.title })
+            .orderBy('id')
+            .forUseAsInlineAggregatedArrayValue()
+            .asRequiredInOptionalObject()
+
+        const rows = await ctx.conn.selectFrom(tProject)
+            .where(tProject.organizationId.equals(2))
+            .select({
+                pid: tProject.id,
+                meta: { issues: projectIssues },
+            })
+            .orderBy('pid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, (select json_agg(json_build_object('id', a_1_.id, 'title', a_1_.title)) from (select id as id, title as title from issue where project_id = project.id order by id) as a_1_) as "meta.issues" from project where organization_id = $1 order by pid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            pid:   number
+            meta?: { issues: Array<{ id: number; title: string }> }
+        }>>>()
+        expect(rows).toEqual([
+            { pid: 3, meta: { issues: [{ id: 4, title: 'Document /v2/users' }] } },
+            { pid: 4 },
+        ])
+    })
+
+    test('inline-aggregate-use-empty-array-for-no-value-explicit', async () => {
+        // `forUseAsInlineAggregatedArrayValue()` already defaults to a
+        // required array; `useEmptyArrayForNoValue()` on the inline value
+        // source (ValueSourceImpl.ts:2140) is the explicit form. SQL is
+        // unchanged — the modifier only pins the result shape.
+        ctx.mockNext({
+            id: 1, name: 'Acme Corp',
+            projects: JSON.stringify([
+                { id: 1, name: 'Marketing site' },
+                { id: 2, name: 'Internal tools' },
+            ]),
+        })
+        const orgProjects = ctx.conn.subSelectUsing(tOrganization).from(tProject)
+            .where(tProject.organizationId.equals(tOrganization.id))
+            .select({ id: tProject.id, name: tProject.name })
+            .orderBy('id')
+            .forUseAsInlineAggregatedArrayValue()
+            .useEmptyArrayForNoValue()
+
+        const row = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.id.equals(1))
+            .select({
+                id:       tOrganization.id,
+                name:     tOrganization.name,
+                projects: orgProjects,
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, (select json_agg(json_build_object('id', a_1_.id, 'name', a_1_.name)) from (select id as id, name as name from project where organization_id = organization.id order by id) as a_1_) as projects from organization where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            id:       number
+            name:     string
+            projects: Array<{ id: number; name: string }>
+        }>>()
+        expect(row).toEqual({
+            id: 1, name: 'Acme Corp',
+            projects: [
+                { id: 1, name: 'Marketing site' },
+                { id: 2, name: 'Internal tools' },
+            ],
+        })
+    })
+
+    test('inline-aggregate-as-optional-non-empty-array', async () => {
+        // `asOptionalNonEmptyArray()` on the inline value source
+        // (ValueSourceImpl.ts:2143) → `projects?: ...` — when the
+        // subquery aggregates no rows, `projects` is absent.
+        ctx.mockNext({
+            id: 1, name: 'Acme Corp',
+            projects: JSON.stringify([
+                { id: 1, name: 'Marketing site' },
+                { id: 2, name: 'Internal tools' },
+            ]),
+        })
+        const orgProjects = ctx.conn.subSelectUsing(tOrganization).from(tProject)
+            .where(tProject.organizationId.equals(tOrganization.id))
+            .select({ id: tProject.id, name: tProject.name })
+            .orderBy('id')
+            .forUseAsInlineAggregatedArrayValue()
+            .asOptionalNonEmptyArray()
+
+        const row = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.id.equals(1))
+            .select({
+                id:       tOrganization.id,
+                name:     tOrganization.name,
+                projects: orgProjects,
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, (select json_agg(json_build_object('id', a_1_.id, 'name', a_1_.name)) from (select id as id, name as name from project where organization_id = organization.id order by id) as a_1_) as projects from organization where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            id:        number
+            name:      string
+            projects?: Array<{ id: number; name: string }>
+        }>>()
+        expect(row).toEqual({
+            id: 1, name: 'Acme Corp',
+            projects: [
+                { id: 1, name: 'Marketing site' },
+                { id: 2, name: 'Internal tools' },
+            ],
+        })
+    })
+
+    test('inline-aggregate-only-when-or-null-true-is-passthrough', async () => {
+        // `onlyWhenOrNull(true)` returns `this` (ValueSourceImpl.ts:2150);
+        // the type signature still widens to optional so the call is a
+        // type-only pass-through. SQL is unchanged.
+        ctx.mockNext({
+            id: 1, name: 'Acme Corp',
+            projects: JSON.stringify([
+                { id: 1, name: 'Marketing site' },
+                { id: 2, name: 'Internal tools' },
+            ]),
+        })
+        const orgProjects = ctx.conn.subSelectUsing(tOrganization).from(tProject)
+            .where(tProject.organizationId.equals(tOrganization.id))
+            .select({ id: tProject.id, name: tProject.name })
+            .orderBy('id')
+            .forUseAsInlineAggregatedArrayValue()
+            .onlyWhenOrNull(true)
+
+        const row = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.id.equals(1))
+            .select({
+                id:       tOrganization.id,
+                name:     tOrganization.name,
+                projects: orgProjects,
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, (select json_agg(json_build_object('id', a_1_.id, 'name', a_1_.name)) from (select id as id, name as name from project where organization_id = organization.id order by id) as a_1_) as projects from organization where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            id:        number
+            name:      string
+            projects?: Array<{ id: number; name: string }>
+        }>>()
+        expect(row).toEqual({
+            id: 1, name: 'Acme Corp',
+            projects: [
+                { id: 1, name: 'Marketing site' },
+                { id: 2, name: 'Internal tools' },
+            ],
+        })
+    })
+
+    test('inline-aggregate-ignore-when-as-null-false-is-passthrough', async () => {
+        // `ignoreWhenAsNull(false)` returns `this`
+        // (ValueSourceImpl.ts:2159). Type widens to optional; SQL is
+        // unchanged.
+        ctx.mockNext({
+            id: 1, name: 'Acme Corp',
+            projects: JSON.stringify([
+                { id: 1, name: 'Marketing site' },
+                { id: 2, name: 'Internal tools' },
+            ]),
+        })
+        const orgProjects = ctx.conn.subSelectUsing(tOrganization).from(tProject)
+            .where(tProject.organizationId.equals(tOrganization.id))
+            .select({ id: tProject.id, name: tProject.name })
+            .orderBy('id')
+            .forUseAsInlineAggregatedArrayValue()
+            .ignoreWhenAsNull(false)
+
+        const row = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.id.equals(1))
+            .select({
+                id:       tOrganization.id,
+                name:     tOrganization.name,
+                projects: orgProjects,
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, (select json_agg(json_build_object('id', a_1_.id, 'name', a_1_.name)) from (select id as id, name as name from project where organization_id = organization.id order by id) as a_1_) as projects from organization where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            id:        number
+            name:      string
+            projects?: Array<{ id: number; name: string }>
+        }>>()
+        expect(row).toEqual({
+            id: 1, name: 'Acme Corp',
+            projects: [
+                { id: 1, name: 'Marketing site' },
+                { id: 2, name: 'Internal tools' },
+            ],
+        })
+    })
+
+    test('null-inline-aggregate-then-use-empty-array-for-no-value', async () => {
+        // `onlyWhenOrNull(false)` swaps in NullAggregateSelectValueSource;
+        // chaining `useEmptyArrayForNoValue()` exercises that modifier on
+        // the Null class (ValueSourceImpl.ts:2257). The subquery collapses
+        // to literal `null`; the result is the empty array.
+        ctx.mockNext({ id: 1, name: 'Acme Corp', projects: null })
+        const orgProjects = ctx.conn.subSelectUsing(tOrganization).from(tProject)
+            .where(tProject.organizationId.equals(tOrganization.id))
+            .select({ id: tProject.id, name: tProject.name })
+            .orderBy('id')
+            .forUseAsInlineAggregatedArrayValue()
+            .onlyWhenOrNull(false)
+            .useEmptyArrayForNoValue()
+
+        const row = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.id.equals(1))
+            .select({
+                id:       tOrganization.id,
+                name:     tOrganization.name,
+                projects: orgProjects,
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, null as projects from organization where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            id:       number
+            name:     string
+            projects: Array<{ id: number; name: string }>
+        }>>()
+        expect(row).toEqual({ id: 1, name: 'Acme Corp', projects: [] })
+    })
+
+    test('null-inline-aggregate-then-as-optional-non-empty-array', async () => {
+        // The Null variant + `asOptionalNonEmptyArray()`
+        // (ValueSourceImpl.ts:2260). The subquery collapses to literal
+        // `null`; `projects` is absent in the result.
+        ctx.mockNext({ id: 1, name: 'Acme Corp', projects: null })
+        const orgProjects = ctx.conn.subSelectUsing(tOrganization).from(tProject)
+            .where(tProject.organizationId.equals(tOrganization.id))
+            .select({ id: tProject.id, name: tProject.name })
+            .orderBy('id')
+            .forUseAsInlineAggregatedArrayValue()
+            .onlyWhenOrNull(false)
+            .asOptionalNonEmptyArray()
+
+        const row = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.id.equals(1))
+            .select({
+                id:       tOrganization.id,
+                name:     tOrganization.name,
+                projects: orgProjects,
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, null as projects from organization where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            id:        number
+            name:      string
+            projects?: Array<{ id: number; name: string }>
+        }>>()
+        expect(row).toEqual({ id: 1, name: 'Acme Corp' })
+    })
+
+    test('null-inline-aggregate-as-required-in-optional-object', async () => {
+        // The Null variant — chaining `onlyWhenOrNull(false)` swaps in
+        // `NullAggregateSelectValueSource`; chaining
+        // `asRequiredInOptionalObject()` exercises
+        // ValueSourceImpl.ts:2262
+        // (NullAggregateSelectValueSource.asRequiredInOptionalObject).
+        // The whole expression collapses to literal `null`, so `meta` is
+        // always absent.
+        ctx.mockNext([
+            { pid: 3, 'meta.issues': null },
+            { pid: 4, 'meta.issues': null },
+        ])
+        const projectIssues = ctx.conn.subSelectUsing(tProject).from(tIssue)
+            .where(tIssue.projectId.equals(tProject.id))
+            .select({ id: tIssue.id, title: tIssue.title })
+            .orderBy('id')
+            .forUseAsInlineAggregatedArrayValue()
+            .onlyWhenOrNull(false)
+            .asRequiredInOptionalObject()
+
+        const rows = await ctx.conn.selectFrom(tProject)
+            .where(tProject.organizationId.equals(2))
+            .select({
+                pid: tProject.id,
+                meta: { issues: projectIssues },
+            })
+            .orderBy('pid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, null as "meta.issues" from project where organization_id = $1 order by pid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            pid:   number
+            meta?: { issues: Array<{ id: number; title: string }> }
+        }>>>()
+        expect(rows).toEqual([{ pid: 3 }, { pid: 4 }])
+    })
+    // Not applicable: only MariaDB supports ORDER BY inside `json_arrayagg(...)`
+    // for inline aggregated arrays (`_supportOrderByWhenAggregateArray = true`
+    // in MariaDBSqlBuilder; every other dialect wraps the subquery, so the
+    // order-by lives there instead). Bodies copied verbatim from the
+    // canonical mariadb cell for cross-cell diff parity.
+    /*
+    test('inline-aggregate-mariadb-order-by-asc-nulls-last-emits-is-null-then-asc', async () => {
+        ctx.mockNext({
+            id: 1, name: 'Acme Corp',
+            projectNames: JSON.stringify(['Internal tools', 'Marketing site']),
+        })
+        const orgNames = ctx.conn.subSelectUsing(tOrganization).from(tProject)
+            .where(tProject.organizationId.equals(tOrganization.id))
+            .selectOneColumn(tProject.name)
+            .orderBy('result', 'asc nulls last')
+            .forUseAsInlineAggregatedArrayValue()
+
+        const row = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.id.equals(1))
+            .select({
+                id:           tOrganization.id,
+                projectNames: orgNames,
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(ctx.lastParams).toMatchInlineSnapshot()
+        assertType<Exact<typeof row, {
+            id:           number
+            projectNames: string[]
+        }>>()
+        expect(row).toEqual({ id: 1, projectNames: ['Internal tools', 'Marketing site'] })
+    })
+
+    test('inline-aggregate-mariadb-order-by-desc-nulls-first-emits-is-not-null-then-desc', async () => {
+        ctx.mockNext({
+            id: 1, name: 'Acme Corp',
+            projectNames: JSON.stringify(['Marketing site', 'Internal tools']),
+        })
+        const orgNames = ctx.conn.subSelectUsing(tOrganization).from(tProject)
+            .where(tProject.organizationId.equals(tOrganization.id))
+            .selectOneColumn(tProject.name)
+            .orderBy('result', 'desc nulls first')
+            .forUseAsInlineAggregatedArrayValue()
+
+        const row = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.id.equals(1))
+            .select({
+                id:           tOrganization.id,
+                projectNames: orgNames,
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(ctx.lastParams).toMatchInlineSnapshot()
+        assertType<Exact<typeof row, {
+            id:           number
+            projectNames: string[]
+        }>>()
+        expect(row).toEqual({ id: 1, projectNames: ['Marketing site', 'Internal tools'] })
+    })
+
+    test('inline-aggregate-mariadb-order-by-asc-insensitive-falls-through-without-collation', async () => {
+        ctx.mockNext({
+            id: 1, name: 'Acme Corp',
+            projectNames: JSON.stringify(['Internal tools', 'Marketing site']),
+        })
+        const orgNames = ctx.conn.subSelectUsing(tOrganization).from(tProject)
+            .where(tProject.organizationId.equals(tOrganization.id))
+            .selectOneColumn(tProject.name)
+            .orderBy('result', 'asc insensitive')
+            .forUseAsInlineAggregatedArrayValue()
+
+        const row = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.id.equals(1))
+            .select({
+                id:           tOrganization.id,
+                projectNames: orgNames,
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(ctx.lastParams).toMatchInlineSnapshot()
+        assertType<Exact<typeof row, {
+            id:           number
+            projectNames: string[]
+        }>>()
+        expect(row).toEqual({ id: 1, projectNames: ['Internal tools', 'Marketing site'] })
+    })
+
+    test('inline-aggregate-mariadb-order-by-asc-nulls-last-insensitive-combines-is-null-and-insensitive-expression', async () => {
+        ctx.mockNext({
+            id: 1, name: 'Acme Corp',
+            projectNames: JSON.stringify(['Internal tools', 'Marketing site']),
+        })
+        const orgNames = ctx.conn.subSelectUsing(tOrganization).from(tProject)
+            .where(tProject.organizationId.equals(tOrganization.id))
+            .selectOneColumn(tProject.name)
+            .orderBy('result', 'asc nulls last insensitive')
+            .forUseAsInlineAggregatedArrayValue()
+
+        const row = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.id.equals(1))
+            .select({
+                id:           tOrganization.id,
+                projectNames: orgNames,
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(ctx.lastParams).toMatchInlineSnapshot()
+        assertType<Exact<typeof row, {
+            id:           number
+            projectNames: string[]
+        }>>()
+        expect(row).toEqual({ id: 1, projectNames: ['Internal tools', 'Marketing site'] })
+    })
+    */
+
+
 })

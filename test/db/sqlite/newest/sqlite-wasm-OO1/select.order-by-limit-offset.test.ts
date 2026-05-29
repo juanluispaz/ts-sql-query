@@ -100,6 +100,44 @@ describe(ctx.label, () => {
             expect(result).toEqual([{ id: 2 }, { id: 3 }])
         }
     })
+    // Not applicable: the synthetic ORDER BY when `limit/offset` is used
+    // without `.orderBy(...)` is SqlServer-only (SqlServerSqlBuilder.ts:256-271).
+    // Every other dialect accepts limit/offset on an unordered query and
+    // emits the clause directly; no fake ORDER BY is needed. Body copied
+    // verbatim from the canonical mssql cell for cross-cell diff parity.
+    /*
+    test('limit-offset-without-order-by-pk-not-first-emits-synthetic-pk-position', async () => {
+        const expected = [{ status: 'in_progress', id: 2 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .select({
+                status: tIssue.status,
+                id:     tIssue.id,
+            })
+            .limit(1).offset(1)
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(ctx.lastParams).toMatchInlineSnapshot()
+        assertType<Exact<typeof result, Array<{ status: string; id: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('limit-offset-without-order-by-no-pk-emits-synthetic-position-one', async () => {
+        const expected = [{ status: 'in_progress' }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .select({
+                status: tIssue.status,
+            })
+            .limit(1).offset(1)
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(ctx.lastParams).toMatchInlineSnapshot()
+        assertType<Exact<typeof result, Array<{ status: string }>>>()
+        expect(result).toEqual(expected)
+    })
+    */
+
     test('offset-without-limit', async () => {
         // `.offset(n)` without a preceding `.limit(n)` exercises the
         // dialect-specific workaround in the SQL builder:

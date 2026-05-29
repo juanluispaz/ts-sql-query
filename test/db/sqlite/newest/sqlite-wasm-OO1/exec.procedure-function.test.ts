@@ -34,5 +34,7 @@ describe(ctx.label, () => {
     test('execute-function-returning-int', async () => {})
     test('execute-function-returning-string', async () => {})
     test('execute-function-optional-accepts-null-result', async () => {})
+    test('execute-function-required-throws-mandatory-when-driver-returns-null', async () => {})
+    test('execute-function-throws-no-result-when-driver-returns-undefined', async () => {})
     */
 })

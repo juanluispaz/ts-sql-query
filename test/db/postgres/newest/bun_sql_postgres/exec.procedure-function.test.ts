@@ -117,4 +117,50 @@ describe(ctx.label, () => {
         `)
         if (!ctx.realDbEnabled) expect(name).toBeNull()
     })
+
+    test('execute-function-required-throws-mandatory-when-driver-returns-null', async () => {
+        // Required-typed function call where the driver hands back
+        // `null` — the lib throws `MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE`
+        // (`AbstractConnection.ts:685-687`). The 'optional' overload
+        // above accepts null silently; this is the gating branch for
+        // the 'required' flavour.
+        //
+        // §18 mock-only: justified — `count_open_issues` is declared
+        // to return a non-null integer, so a real-DB call never returns
+        // null. The branch only fires when a driver / function pair
+        // misbehaves, which we simulate via the mock.
+        if (ctx.realDbEnabled) return
+        ctx.mockNext(null)
+        let thrown: unknown
+        try {
+            await ctx.conn.callCountOpenIssues(1)
+        } catch (e) {
+            thrown = e
+        }
+        expect(thrown).toBeInstanceOf(Error)
+        expect((thrown as Error).message).toMatch(/count_open_issues/)
+        expect((thrown as Error).message).toMatch(/null or undefined/)
+    })
+
+    test('execute-function-throws-no-result-when-driver-returns-undefined', async () => {
+        // The `NO_RESULT` branch fires when the underlying driver hands
+        // back raw `undefined` for a function call
+        // (`AbstractConnection.ts:682-684`). A well-behaved driver
+        // returns either a row's value or `null`, never `undefined`;
+        // the guard exists for misbehaving drivers.
+        //
+        // §18 mock-only: justified — no real driver returns raw
+        // `undefined` here. Asserting against a real-DB cell would
+        // require breaking the driver intentionally.
+        if (ctx.realDbEnabled) return
+        ctx.mockNext(undefined)
+        let thrown: unknown
+        try {
+            await ctx.conn.callCountOpenIssues(1)
+        } catch (e) {
+            thrown = e
+        }
+        expect(thrown).toBeInstanceOf(Error)
+        expect((thrown as Error).message).toMatch(/No result returned/)
+    })
 })

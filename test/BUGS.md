@@ -31,7 +31,27 @@ of that. Two minutes of triage and one paragraph is the bar.
 
 ---
 
-_No open entries._
+## PostgreSQL `localTime` const + `forceTypeCast` emits broken `::timestamp::time` chain
+
+**Where**: [`src/connections/PostgreSqlConnection.ts:118-119`](../src/connections/PostgreSqlConnection.ts#L118-L119) returns `placeholder + '::timestamp::time'` for the `'localTime'` branch when `forceTypeCast` is `true`. The companion [`transformValueToDB('localTime', Date)` in `AbstractConnection.ts`](../src/connections/AbstractConnection.ts) hands the driver a bare `'HH:MM:SS'` string (e.g. `'12:34:56'`). PostgreSQL rejects the intermediate cast `'12:34:56'::timestamp` because the value carries no date portion, so the two-stage chain never resolves.
+
+**Reproduction**: `test/db/postgres/*/*/select.postgres-const-force-type-cast.test.ts` — the test `const-localtime-forces-timestamp-time-cast` calls
+
+```ts
+ctx.conn.selectFromNoTable()
+    .selectOneColumn(ctx.conn.const(new Date('1970-01-01T12:34:56Z'), 'localTime'))
+    .executeSelectOne()
+```
+
+against a real engine. The lib emits `select $1::timestamp::time as result` with param `"12:34:56"`. PG (node-postgres) raises `invalid input syntax for type timestamp: "12:34:56"`; Porsager `postgres` raises `RangeError: Invalid Date` at its serializer dispatch. `pglite` happens to be lenient and accepts the chain, but the emitted SQL is invalid regardless of which engine tolerates it. Verified empirically against PG 18:
+
+```sql
+select '12:34:56'::time;             -- OK  -> 12:34:56
+select '12:34:56'::timestamp;        -- ERROR: invalid input syntax for type timestamp
+select '12:34:56'::timestamp::time;  -- ERROR (first cast fails)
+```
+
+**Current workaround in the suite**: `const-localtime-forces-timestamp-time-cast` is block-commented in every postgres cell (`pg`, `postgres`, `pglite`, `bun_sql_postgres` × `newest`/`oldest`) with a `// TODO[BUG]` header pointing here. Body kept verbatim from the canonical pg cell so the fix is a one-character src patch (drop `::timestamp`) plus uncommenting plus snapshot refresh.
 
 ---
 

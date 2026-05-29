@@ -1,0 +1,98 @@
+// Coverage of SQLite date-extraction functions
+// (`.getFullYear / .getMonth / .getDate / .getDay / .getHours /
+// .getMinutes / .getSeconds / .getMilliseconds / .getTime`) under the
+// `Unix time seconds as integer` and `Unix time milliseconds as integer`
+// formats. Each function emits a different SQL shape per
+// `dateTimeFormat` (SqliteSqlBuilder.ts:301-377); the default-text
+// branch is already covered by `select.date-ops.test.ts`, the Unix
+// branches were not. The Julian-day format reuses the same emissions as
+// the text branch for these functions, so it is already covered.
+//
+// The input is a `const(...)` localDateTime literal rather than a real
+// column: under a non-text format the seed (stored as text) would
+// produce NULL extractions that the int return type rejects via
+// MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE. The const literal is
+// marshalled through `transformValueToDB` for the active format
+// (a unix-seconds or unix-millis integer, captured in `lastParams`) so
+// the strftime / unixepoch SQL receives a representation it can parse —
+// real sqlite returns correct values, mock receives no rows to process.
+// This also pins the per-format toDB marshalling of `localDateTime`.
+
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
+import { ctx } from './setup.js'
+
+// 2024-01-15T10:30:45.123Z — TZ=UTC is forced by the suite (see
+// test/lib/setupTimezone.ts), so the marshalling and the SQL extraction
+// are deterministic.
+const REF = new Date(Date.UTC(2024, 0, 15, 10, 30, 45, 123))
+
+describe(ctx.label, () => {
+    beforeAll(() => ctx.up(), ctx.timeoutMs)
+    afterAll(() => ctx.down(), ctx.timeoutMs)
+    beforeEach(() => { ctx.reset() })
+
+    test('format Unix time seconds: extract all components', async () => {
+        const conn = ctx.withDateTimeFormat('Unix time seconds as integer')
+        const d = conn.const(REF, 'localDateTime')
+        ctx.mockNext([])
+        await conn.selectFromNoTable()
+            .select({
+                y:   d.getFullYear(),
+                mo:  d.getMonth(),
+                d:   d.getDate(),
+                dow: d.getDay(),
+                h:   d.getHours(),
+                mi:  d.getMinutes(),
+                s:   d.getSeconds(),
+                ms:  d.getMilliseconds(),
+                t:   d.getTime(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%Y', ?, 'unixepoch') as integer) as "y", cast(strftime('%m', ?, 'unixepoch') as integer) - 1 as mo, cast(strftime('%d', ?, 'unixepoch') as integer) as "d", cast(strftime('%w',?, 'unixepoch') as integer) as dow, cast(strftime('%H', ?, 'unixepoch') as integer) as "h", cast(strftime('%M', ?, 'unixepoch') as integer) as mi, cast(strftime('%S', ?, 'unixepoch') as integer) as "s", 0 as ms, (? * 1000) as "t""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1705314645,
+            1705314645,
+            1705314645,
+            1705314645,
+            1705314645,
+            1705314645,
+            1705314645,
+            1705314645,
+          ]
+        `)
+    })
+
+    test('format Unix time milliseconds: extract all components', async () => {
+        const conn = ctx.withDateTimeFormat('Unix time milliseconds as integer')
+        const d = conn.const(REF, 'localDateTime')
+        ctx.mockNext([])
+        await conn.selectFromNoTable()
+            .select({
+                y:   d.getFullYear(),
+                mo:  d.getMonth(),
+                d:   d.getDate(),
+                dow: d.getDay(),
+                h:   d.getHours(),
+                mi:  d.getMinutes(),
+                s:   d.getSeconds(),
+                ms:  d.getMilliseconds(),
+                t:   d.getTime(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%Y', ? / 1000, 'unixepoch') as integer) as "y", cast(strftime('%m', ? / 1000, 'unixepoch') as integer) - 1 as mo, cast(strftime('%d', ? / 1000, 'unixepoch') as integer) as "d", cast(strftime('%w',? / 1000, 'unixepoch') as integer) as dow, cast(strftime('%H', ? / 1000, 'unixepoch') as integer) as "h", cast(strftime('%M', ? / 1000, 'unixepoch') as integer) as mi, cast(strftime('%S', ? / 1000, 'unixepoch') as integer) as "s", ? % 1000 as ms, ? as "t""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1705314645123,
+            1705314645123,
+            1705314645123,
+            1705314645123,
+            1705314645123,
+            1705314645123,
+            1705314645123,
+            1705314645123,
+            1705314645123,
+          ]
+        `)
+    })
+})

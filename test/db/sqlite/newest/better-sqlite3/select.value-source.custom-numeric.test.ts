@@ -213,6 +213,56 @@ describe(ctx.label, () => {
         `)
     })
 
+    test('custom-numeric/customdouble-operation1-math', async () => {
+        // The 5 `SqlOperation1` customDouble arms — `power`, `logn`,
+        // `roundn`, `divide`, `atan2` — at ValueSourceImpl.ts:614 / 635
+        // / 642 / 649 / 678. `customdouble-math` covers the
+        // `SqlOperation0` arms (sqrt/cbrt/exp/ln/log10); these take an
+        // additional operand and route through a different dispatch
+        // arm. SQLite has no `logn` / `atan2` / `roundn`, so execution
+        // throws after the SQL is captured; value is mock-only as in
+        // the `customdouble-math` / `customdouble-trig` siblings.
+        const v = ctx.conn.const(8, 'customDouble', 'Score')
+        const o = ctx.conn.const(2, 'customDouble', 'Score')
+        const expected = [{ id: 1, p: 64, ln: 3, rn: 8, di: 4, at2: Math.atan2(8, 2) }]
+        ctx.mockNext(expected)
+        try {
+            const result = await ctx.conn.selectFrom(tIssue)
+                .where(tIssue.id.equals(1))
+                .select({
+                    id:  tIssue.id,
+                    p:   v.power(2),
+                    ln:  v.logn(o),
+                    rn:  v.roundn(2),
+                    di:  v.divide(o),
+                    at2: v.atan2(o),
+                })
+                .executeSelectMany()
+            assertType<Exact<typeof result, Array<{
+                id: number; p: number; ln: number; rn: number; di: number; at2: number
+            }>>>()
+            if (!ctx.realDbEnabled) expect(result).toEqual(expected)
+        } catch (e) {
+            if (!ctx.realDbEnabled) throw e
+        }
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, power(?, ?) as "p", log(?, ?) as ln, round(?, ?) as rn, cast(? as real) / cast(? as real) as di, atan2(?, ?) as at2 from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            8,
+            2,
+            2,
+            8,
+            8,
+            2,
+            8,
+            2,
+            8,
+            2,
+            1,
+          ]
+        `)
+    })
+
     test('custom-numeric/cast-double-as-int-and-bigint', async () => {
         // asInt()/asBigint() over a `double` take the unsafe-round arm
         // (a non-typesafe cast): the operand is wrapped in `round(...)`

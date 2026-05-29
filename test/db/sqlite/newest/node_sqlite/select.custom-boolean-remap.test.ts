@@ -96,4 +96,76 @@ describe(ctx.label, () => {
         `)
         expect(rows).toEqual(expected)
     })
+
+    test('update set: custom boolean column from a boolean expression', async () => {
+        // The SET path (`_appendValueForColumn` →
+        // `_appendCustomBooleanRemapForColumnIfRequired`, the
+        // `isValueSource` branch at AbstractSqlBuilder.ts:1381) — the
+        // existing tests only reach the remap from a WHERE comparison.
+        // `project.published` stores t/f; setting it from a boolean
+        // expression (`id > 0`) must wrap the expression in a case that
+        // produces the adapter-stored literal.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.update(tProject)
+                .set({ published: tProject.id.greaterThan(0) })
+                .where(tProject.id.equals(1))
+                .executeUpdate()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set published = case when id > ? then 't' else 'f' end where id = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                0,
+                1,
+              ]
+            `)
+            if (!ctx.realDbEnabled) expect(affected).toBe(1)
+        })
+    })
+
+    test('update from: custom boolean column from a different-adapter column', async () => {
+        // The column-to-column SET remap (isColumn branch at
+        // AbstractSqlBuilder.ts:1356-1371): `update ... from` makes
+        // another table's column available in `set(...)`. Setting
+        // `project.published` (t/f) from `organization.verified` (Y/N)
+        // forces the case-based remap on the assigned value.
+        ctx.mockNext(2)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.update(tProject)
+                .from(tOrganization)
+                .set({ published: tOrganization.verified })
+                .where(tProject.organizationId.equals(tOrganization.id))
+                .executeUpdate()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set published = case when organization.verified = 'Y' then 't' else 'f' end from organization where project.organization_id = organization.id"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+            if (!ctx.realDbEnabled) expect(affected).toBe(2)
+        })
+    })
+
+    test('insert set: custom boolean column from a boolean expression', async () => {
+        // Same `_appendValueForColumn` remap, reached through the INSERT
+        // builder rather than UPDATE. A new project sets `published`
+        // (t/f) from a boolean expression.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const inserted = await ctx.conn.insertInto(tProject)
+                .set({
+                    organizationId: 1,
+                    name:           'Remap insert',
+                    slug:           'remap-insert',
+                    published:      ctx.conn.const(1, 'int').greaterThan(0),
+                })
+                .executeInsert()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, published) values (?, ?, ?, case when ? > ? then 't' else 'f' end)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "Remap insert",
+                "remap-insert",
+                1,
+                0,
+              ]
+            `)
+            if (!ctx.realDbEnabled) expect(inserted).toBe(1)
+        })
+    })
 })

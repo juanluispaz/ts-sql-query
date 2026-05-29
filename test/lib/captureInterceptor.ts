@@ -16,7 +16,7 @@
 // no-ops here — they are the parts this interceptor does not care about.
 
 import { InterceptorQueryRunner } from '../../src/queryRunners/InterceptorQueryRunner.js'
-import type { QueryRunner, QueryType } from '../../src/queryRunners/QueryRunner.js'
+import type { BeginTransactionOpts, QueryRunner, QueryType } from '../../src/queryRunners/QueryRunner.js'
 
 type CapturedType = QueryType | 'isTransactionActive' | ''
 
@@ -47,6 +47,28 @@ export class CaptureInterceptor extends InterceptorQueryRunner<undefined, QueryR
     public lastNoTransactionParams: unknown[] = []
     public lastNoTransactionType: CapturedType = ''
     public history: Array<{ type: CapturedType; sql: string; params: unknown[] }> = []
+    /**
+     * The most recent `BeginTransactionOpts` array passed through
+     * `connection.transaction(fn, opts)` or `connection.beginTransaction(opts)`.
+     * Captured at the interceptor layer — BEFORE any per-runner handling
+     * — so the assertion is mode-agnostic and works even for connectors
+     * whose real-DB runner manages transactions internally (Porsager's
+     * `postgres` and Bun's `sql` use `sql.begin(fn)`, `oracledb` flips
+     * autocommit) and therefore never call `outermostQueryRunner.
+     * executeBeginTransaction` — those skip the `onQuery('beginTransaction', …)`
+     * path that `history` relies on.
+     */
+    public lastTransactionOpts: BeginTransactionOpts | undefined = undefined
+
+    override executeBeginTransaction(opts: BeginTransactionOpts = []): Promise<void> {
+        this.lastTransactionOpts = opts
+        return super.executeBeginTransaction(opts)
+    }
+
+    override executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner, opts: BeginTransactionOpts = []): Promise<T> {
+        this.lastTransactionOpts = opts
+        return super.executeInTransaction(fn, outermostQueryRunner, opts)
+    }
 
     override onQuery(queryType: QueryType, query: string, params: unknown[]): undefined {
         // Transaction-control calls (begin / commit / rollback) and a
@@ -92,5 +114,6 @@ export class CaptureInterceptor extends InterceptorQueryRunner<undefined, QueryR
         this.lastNoTransactionParams = []
         this.lastNoTransactionType = ''
         this.history.length = 0
+        this.lastTransactionOpts = undefined
     }
 }

@@ -283,4 +283,82 @@ describe(ctx.label, () => {
         expect(thrown).toBeInstanceOf(Error)
         expect((thrown as Error).message).toContain('update-subquery gate blocks')
     })
+
+    test('update-returning-with-gated-column-reports-disallowed', async () => {
+        // The UpdateQueryBuilder `__isAllowed` walks the RETURNING
+        // projection (`__columns` → `isAllowedQueryColumns`,
+        // UpdateQueryBuilder.ts:1032-1037) — a gated column in
+        // `.returning({...})` must surface through that branch. Cast to
+        // `any` for cells where `.returning(...)` is typed `never` on
+        // UPDATE (MySQL): the introspection walker traverses the
+        // configured `__columns` regardless of dialect typing.
+        const connection = ctx.conn
+        const query = (connection.update(tIssue).set({ status: 'archived' }).where(tIssue.id.equals(1)) as any)
+            .returning({ id: tIssue.id.allowWhen(false, 'update-returning gate blocks') })
+        expect(isQueryAllowed(query)).toBe(false)
+    })
+
+    test('delete-returning-with-gated-column-reports-disallowed', async () => {
+        // Same walker branch on the DeleteQueryBuilder
+        // (DeleteQueryBuilder.ts:444-448): RETURNING projection gated.
+        // `as any` covers cells where DELETE RETURNING is narrowed to
+        // `never` (MySQL today).
+        const connection = ctx.conn
+        const query = (connection.deleteFrom(tIssue).where(tIssue.id.equals(1)) as any)
+            .returning({ id: tIssue.id.allowWhen(false, 'delete-returning gate blocks') })
+        expect(isQueryAllowed(query)).toBe(false)
+    })
+
+    test('update-customize-query-with-gated-fragment-throws', async () => {
+        // `__isAllowed` walks the `__customization` raw fragments
+        // (UpdateQueryBuilder.ts:1038-1051: beforeQuery,
+        // afterUpdateKeyword, afterQuery). A gated value source embedded
+        // in any of them must trip the walker AND fire the protection
+        // throw at render time.
+        const connection = ctx.conn
+        let thrown: unknown
+        await ctx.withRollback(async () => {
+            const query = connection.update(tIssue)
+                .set({ status: 'archived' })
+                .where(tIssue.id.equals(1))
+                .customizeQuery({
+                    afterQuery: connection.rawFragment` /* gated ${tIssue.id.allowWhen(false, 'update-customize gate blocks')} */`,
+                })
+
+            expect(isQueryAllowed(query)).toBe(false)
+
+            try {
+                await query.executeUpdate()
+            } catch (e) {
+                thrown = e
+            }
+        })
+        expect(thrown).toBeInstanceOf(Error)
+        expect((thrown as Error).message).toContain('update-customize gate blocks')
+    })
+
+    test('delete-customize-query-with-gated-fragment-throws', async () => {
+        // Same `__customization` walk on the DeleteQueryBuilder
+        // (DeleteQueryBuilder.ts:450-462). The protection throws when
+        // the raw fragment renders the gated value source.
+        const connection = ctx.conn
+        let thrown: unknown
+        await ctx.withRollback(async () => {
+            const query = connection.deleteFrom(tIssue)
+                .where(tIssue.id.equals(1))
+                .customizeQuery({
+                    afterQuery: connection.rawFragment` /* gated ${tIssue.id.allowWhen(false, 'delete-customize gate blocks')} */`,
+                })
+
+            expect(isQueryAllowed(query)).toBe(false)
+
+            try {
+                await query.executeDelete()
+            } catch (e) {
+                thrown = e
+            }
+        })
+        expect(thrown).toBeInstanceOf(Error)
+        expect((thrown as Error).message).toContain('delete-customize gate blocks')
+    })
 })

@@ -73,4 +73,23 @@ describe(ctx.label, () => {
         }
         expect(reasonOf(caught)).toBe('ORDER_BY_COLUMN_NOT_IN_SELECT')
     })
+
+    test('groupBy by alias not in select throws GROUP_BY_COLUMN_NOT_IN_SELECT', async () => {
+        // The string-name `groupBy(...)` overload validates the name
+        // against the select clause; an unselected name reaches the
+        // runtime guard at SelectQueryBuilder.ts:974. Cast to `any` to
+        // bypass the `RequiredColumnNames` static check, like the
+        // order-by twin above.
+        ctx.mockNext([])
+        let caught: unknown
+        try {
+            await (ctx.conn.selectFrom(tProject)
+                .select({ id: tProject.id }) as any)
+                .groupBy('notSelected')
+                .executeSelectMany()
+        } catch (e) {
+            caught = e
+        }
+        expect(reasonOf(caught)).toBe('GROUP_BY_COLUMN_NOT_IN_SELECT')
+    })
 })

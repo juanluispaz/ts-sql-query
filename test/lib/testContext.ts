@@ -42,6 +42,18 @@ export interface TestContext<CONN> {
     readonly lastNoTransactionParams: unknown[]
     readonly lastNoTransactionType: string
     readonly history: ReadonlyArray<{ type: string; sql: string; params: unknown[] }>
+    /**
+     * Most recent `BeginTransactionOpts` array passed through
+     * `connection.transaction(fn, opts)` or `connection.beginTransaction(opts)`.
+     * Captured at the interceptor layer before any per-runner handling,
+     * so the assertion works in BOTH mock and real-DB mode for every
+     * connector — including those whose real runner manages the
+     * transaction internally and therefore never fires the
+     * `beginTransaction` query type the `history` entry depends on
+     * (Porsager's `postgres`, Bun's `sql`, `oracledb`'s autocommit
+     * flip). `undefined` when no transaction has been started yet.
+     */
+    readonly lastTransactionOpts: readonly unknown[] | undefined
 
     /** Queue a value the mock will return for the NEXT data query. */
     mockNext(value: unknown): void
@@ -239,6 +251,9 @@ export function createTestContext<CONN>(opts: TestContextOptions<CONN>): TestCon
         },
         get history() {
             return capture?.history ?? []
+        },
+        get lastTransactionOpts(): readonly unknown[] | undefined {
+            return capture?.lastTransactionOpts
         },
 
         mockNext(value) {

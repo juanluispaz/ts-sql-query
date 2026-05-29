@@ -162,4 +162,65 @@ describe(ctx.label, () => {
         })
     })
     */
+
+    test('execute-update-with-no-sets-resolves-zero', async () => {
+        // `dynamicSet()` with no columns set leaves `__sets` empty, so
+        // every executor short-circuits before touching the database
+        // (UpdateQueryBuilder.ts:55). `executeUpdate()` resolves 0 and
+        // emits no query — no SQL snapshot, identical on every dialect.
+        const affected = await ctx.conn.update(tIssue)
+            .dynamicSet()
+            .where(tIssue.id.equals(1))
+            .executeUpdate()
+        assertType<Exact<typeof affected, number>>()
+        expect(affected).toBe(0)
+    })
+
+    test('execute-update-none-or-one-with-no-sets-resolves-null', async () => {
+        // Same empty-`__sets` short-circuit on the none-or-one path
+        // (UpdateQueryBuilder.ts:85): resolves null, no query emitted.
+        // `executeUpdateNoneOrOne` is not on the bare `dynamicSet()`
+        // type (only `executeUpdate` is), so cast to reach the runtime
+        // short-circuit — same pattern errors.processing.test.ts uses.
+        const builder = ctx.conn.update(tIssue)
+            .dynamicSet()
+            .where(tIssue.id.equals(1)) as any
+        const result = await builder.executeUpdateNoneOrOne()
+        expect(result).toBeNull()
+    })
+
+    test('execute-update-one-with-no-sets-throws-no-column-sets', async () => {
+        // The one-row path cannot resolve "no row" as success, so the
+        // empty-`__sets` short-circuit throws NO_COLUMN_SETS instead
+        // (UpdateQueryBuilder.ts:126-130).
+        let caught: unknown
+        try {
+            // Cast as above: `executeUpdateOne` is not on the dynamicSet
+            // type; the runtime guard is what we are exercising.
+            const builder = ctx.conn.update(tIssue)
+                .dynamicSet()
+                .where(tIssue.id.equals(1)) as any
+            await builder.executeUpdateOne()
+        } catch (e) {
+            caught = e
+        }
+        expect(String(caught)).toMatch(/NO_COLUMN_SETS|No values to update/)
+    })
+
+
+    // TODO[LIMITATION]: see LIMITATIONS.md — MySQL has no UPDATE …
+    // RETURNING, so `.returning(...)` narrows to `never` and the body
+    // would not type-check. The short-circuit it exercises is
+    // dialect-independent and covered by the other cells.
+    /*
+    test('execute-update-many-with-no-sets-resolves-empty-array', async () => {
+        // See sqlite / postgres cells for the active body.
+        const rows = await ctx.conn.update(tIssue)
+            .dynamicSet()
+            .where(tIssue.id.equals(1))
+            .returning({ id: tIssue.id, status: tIssue.status })
+            .executeUpdateMany()
+        expect(rows).toEqual([])
+    })
+    */
 })

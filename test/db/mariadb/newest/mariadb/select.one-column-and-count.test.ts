@@ -139,4 +139,52 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<number>>>()
         expect(result.slice().sort()).toEqual([11, 12, 12, 13])
     })
+
+    test('select-one-column-execute-one-empty-result-throws-no-result', async () => {
+        // `executeSelectOne()` on a one-column query that matches no row
+        // throws NO_RESULT (SelectQueryBuilder.ts:126). Filtering on a
+        // non-existing id makes the real DB return no row too, so this
+        // runs in both modes; the query is still emitted (captured
+        // before the throw fires in the `.then`).
+        ctx.mockNext(undefined)
+        let caught: unknown
+        try {
+            await ctx.conn.selectFrom(tIssue)
+                .where(tIssue.id.equals(9999))
+                .selectOneColumn(tIssue.status)
+                .executeSelectOne()
+        } catch (e) {
+            caught = e
+        }
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as result from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            9999,
+          ]
+        `)
+        expect(String(caught)).toMatch(/NO_RESULT|No result returned/)
+    })
+
+    test('select-multi-column-execute-one-empty-result-throws-no-result', async () => {
+        // Same NO_RESULT guard on the multi-column row path
+        // (SelectQueryBuilder.ts:137): `executeSelectOneRow` returns no
+        // row, so the row-shape branch throws instead of coercing.
+        ctx.mockNext(undefined)
+        let caught: unknown
+        try {
+            await ctx.conn.selectFrom(tIssue)
+                .where(tIssue.id.equals(9999))
+                .select({ id: tIssue.id, status: tIssue.status })
+                .executeSelectOne()
+        } catch (e) {
+            caught = e
+        }
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, status as status from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            9999,
+          ]
+        `)
+        expect(String(caught)).toMatch(/NO_RESULT|No result returned/)
+    })
 })

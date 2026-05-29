@@ -94,6 +94,8 @@ describe(ctx.label, () => {
             'assigneeId',
             'body',
             'createdAt',
+            'estimatedHours',
+            'externalRef',
             'id',
             'number',
             'parentId',
@@ -102,6 +104,7 @@ describe(ctx.label, () => {
             'status',
             'title',
             'updatedAt',
+            'viewCount',
         ])
     })
 

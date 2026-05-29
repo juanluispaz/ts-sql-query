@@ -149,6 +149,11 @@ export const tIssue = new class TIssue extends Table<DBConnection, 'TIssue'> {
     parentId   = this.optionalColumn('parent_id', 'int')
     createdAt  = this.columnWithDefaultValue('created_at', 'localDateTime')
     updatedAt  = this.columnWithDefaultValue('updated_at', 'localDateTime')
+    // New-type columns added to exercise AbstractConnection value
+    // marshalling (transformValueFromDB/ToDB) for bigint / double / uuid.
+    viewCount      = this.columnWithDefaultValue('view_count', 'bigint')
+    estimatedHours = this.optionalColumn('estimated_hours', 'double')
+    externalRef    = this.optionalColumn('external_ref', 'uuid')
     constructor() { super('issue') }
 }()
 

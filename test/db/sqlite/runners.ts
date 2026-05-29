@@ -24,7 +24,31 @@ import { MockBunSqliteQueryRunner } from '../../lib/mockRunners/MockBunSqliteQue
 import { MockNodeSqliteQueryRunner } from '../../lib/mockRunners/MockNodeSqliteQueryRunner.js'
 import { MockSqlite3QueryRunner } from '../../lib/mockRunners/MockSqlite3QueryRunner.js'
 import { MockSqlite3WasmOO1QueryRunner } from '../../lib/mockRunners/MockSqlite3WasmOO1QueryRunner.js'
+import { parse as uuidParse, stringify as uuidStringify, v7 as uuidv7 } from 'uuid'
 import { DBConnection } from './domain/connection.js'
+
+// SQLite's default `uuid-extension` strategy emits uuid_blob / uuid_str /
+// uuid (see docs/configuration/supported-databases/sqlite.md#uuid-strategies).
+// bun:sqlite ships them built-in; better-sqlite3 and node:sqlite need them
+// registered as user functions exactly like the connector docs and
+// src/examples/{BetterSqlite3,NodeSqlite}*Example.ts show. (The `sqlite3`
+// driver has no user-function API, so the one uuid test is commented out in
+// that cell — see test/FUTURE_CONNECTORS.md.)
+function registerBetterSqlite3UuidFunctions(db: import('better-sqlite3').Database): void {
+    db.function('uuid', uuidv7 as (_: unknown) => unknown)
+    db.function('uuid_str', ((blob: Uint8Array) => uuidStringify(blob)) as (_: unknown) => unknown)
+    db.function('uuid_blob', ((uuid: string) => Buffer.from(uuidParse(uuid))) as (_: unknown) => unknown)
+}
+function registerNodeSqliteUuidFunctions(db: import('node:sqlite').DatabaseSync): void {
+    // `DatabaseSync.function` only exists from Node 24; on Node 22 the
+    // real branch still runs but uuid columns are simply not exercised
+    // there (no test depends on them under that runtime).
+    const fnCapable = db as unknown as { function?: (name: string, fn: (...args: any[]) => unknown) => void }
+    if (typeof fnCapable.function !== 'function') return
+    fnCapable.function('uuid', () => uuidv7())
+    fnCapable.function('uuid_str', (blob: Uint8Array) => uuidStringify(blob))
+    fnCapable.function('uuid_blob', (uuid: string) => Buffer.from(uuidParse(uuid)))
+}
 
 /**
  * `TestContext<DBConnection>` extended with sqlite-specific connection
@@ -203,6 +227,7 @@ async function getOrCreateBetterSqlite3Db(): Promise<import('better-sqlite3').Da
     if (sharedBetterSqlite3Db === null) {
         const Database = (await import('better-sqlite3')).default
         sharedBetterSqlite3Db = new Database(':memory:')
+        registerBetterSqlite3UuidFunctions(sharedBetterSqlite3Db)
     }
     return sharedBetterSqlite3Db
 }
@@ -300,6 +325,7 @@ async function getOrCreateNodeSqliteDb(): Promise<import('node:sqlite').Database
     if (sharedNodeSqliteDb === null) {
         const { DatabaseSync } = await import('node:sqlite')
         sharedNodeSqliteDb = new DatabaseSync(':memory:')
+        registerNodeSqliteUuidFunctions(sharedNodeSqliteDb)
     }
     return sharedNodeSqliteDb
 }

@@ -23,6 +23,26 @@ grep -rE "^    // Not applicable on" test/db/*/*/*/docs.*.test.ts
 
 ## Dialect-specific notes (already wired in today's matrix)
 
+### sqlite3 — no BigInt parameter binding
+
+The `sqlite3` npm driver cannot bind a JS `BigInt` as a parameter: it
+sends `NULL` instead, so any insert/update of a `bigint`-typed column
+trips a NOT NULL (or stores the wrong value). The other three native
+sqlite drivers (`bun:sqlite`, `better-sqlite3`, `node:sqlite`) bind
+BigInt correctly. Surfaced by the `viewCount` (`bigint`) column added
+to the shared `issue` domain.
+
+- `select.value-marshalling.test.ts`:
+  - `marshalling/bigint-insert-select-roundtrip` — commented out in
+    `test/db/sqlite/newest/sqlite3/` only; live in the other four
+    sqlite cells and every other dialect. The companion
+    `marshalling/double-and-uuid-insert-select-roundtrip` stays live
+    everywhere (it omits the bigint column).
+
+When the matrix is next extended, revisit whether the `sqlite3`
+connector can bind BigInt (driver upgrade) or whether the lib should
+coerce `bigint → number`/`string` for that runner.
+
 ### MySQL — no INSERT/UPDATE/DELETE RETURNING
 
 MySQL's driver/server combo doesn't surface RETURNING values. The

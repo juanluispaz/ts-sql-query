@@ -54,6 +54,11 @@ CREATE TABLE issue (
     parent_id INTEGER REFERENCES issue(id),
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    -- New-type columns exercising AbstractConnection value marshalling:
+    -- bigint (view_count), double (estimated_hours), uuid (external_ref).
+    view_count INTEGER NOT NULL DEFAULT 0,
+    estimated_hours REAL,
+    external_ref TEXT,
     UNIQUE (project_id, number)
 );
 

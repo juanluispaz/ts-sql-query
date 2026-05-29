@@ -2,6 +2,7 @@
 -- Idempotent: tests run setup against a fresh database each variant, but
 -- having DROP IF EXISTS lets you re-apply by hand for debugging.
 
+DROP VIEW IF EXISTS project_overview;
 DROP TABLE IF EXISTS issue CASCADE;
 DROP TABLE IF EXISTS project CASCADE;
 DROP TABLE IF EXISTS app_user CASCADE;
@@ -99,3 +100,16 @@ $$;
 DROP SEQUENCE IF EXISTS audit_tag_seq;
 
 CREATE SEQUENCE audit_tag_seq START 1;
+
+-- A class-based SQL view exercised by `view.basic.test.ts`. A plain
+-- join of project + organization (no aggregation, no casts) so the
+-- same shape is portable across every dialect.
+CREATE VIEW project_overview AS
+SELECT p.id AS id,
+       p.organization_id AS organization_id,
+       p.name AS name,
+       p.archived_at AS archived_at,
+       o.name AS organization_name,
+       o.plan AS organization_plan
+FROM project p
+INNER JOIN organization o ON o.id = p.organization_id;

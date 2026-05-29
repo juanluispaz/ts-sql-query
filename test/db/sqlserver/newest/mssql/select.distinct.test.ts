@@ -53,4 +53,41 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ orgId: number }>>>()
         if (!ctx.realDbEnabled) expect(rows).toEqual(expectedMock)
     })
+
+    test('subselect-distinct-using-in-correlated-exists', async () => {
+        // `subSelectDistinctUsing(...)` builds a correlated `select
+        // distinct` subquery; used inside `exists(...)` it selects the
+        // projects that have at least one issue. The DISTINCT is what
+        // this test exercises (the connection's `subSelectDistinctUsing`
+        // entry point); it is redundant under EXISTS but valid on every
+        // engine. Projects 1/2/3 have issues; project 4 has none. This
+        // shape stays type-simple — the aggregated-array form tripped a
+        // tsgo/tsc inference divergence on the MariaDB connection types.
+        const expected = [
+            { id: 1, name: 'Marketing site' },
+            { id: 2, name: 'Internal tools' },
+            { id: 3, name: 'Public API' },
+        ]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        const rows = await connection.selectFrom(tProject)
+            .where(connection.exists(
+                connection.subSelectDistinctUsing(tProject)
+                    .from(tIssue)
+                    .where(tIssue.projectId.equals(tProject.id))
+                    .selectOneColumn(tIssue.status),
+            ))
+            .select({
+                id:   tProject.id,
+                name: tProject.name,
+            })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from project where exists(select distinct status as [result] from issue where project_id = project.id) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ id: number; name: string }>>>()
+        if (!ctx.realDbEnabled) expect(rows).toEqual(expected)
+    })
 })

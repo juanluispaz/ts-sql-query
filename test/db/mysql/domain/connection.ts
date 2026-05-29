@@ -6,6 +6,7 @@
 import { MySqlConnection } from '../../../../src/connections/MySqlConnection.js'
 import type { QueryRunner } from '../../../../src/queryRunners/QueryRunner.js'
 import { Table } from '../../../../src/Table.js'
+import { View } from '../../../../src/View.js'
 import { CustomBooleanTypeAdapter } from '../../../../src/TypeAdapter.js'
 
 const verifiedAdapter  = new CustomBooleanTypeAdapter('Y', 'N')
@@ -132,4 +133,20 @@ export const tIssue = new class TIssue extends Table<DBConnection, 'TIssue'> {
     createdAt  = this.columnWithDefaultValue('created_at', 'localDateTime')
     updatedAt  = this.columnWithDefaultValue('updated_at', 'localDateTime')
     constructor() { super('issue') }
+}()
+
+// Class-based SQL view (maps the `project_overview` DDL view defined in
+// schema.sql) — exercised by view.basic.test.ts. Mixes a required
+// `column`, an `optionalColumn` (`archivedAt`) and a
+// `virtualColumnFromFragment` (`nameUpper`) so the View mapping surface
+// is covered end to end.
+export const vProjectOverview = new class VProjectOverview extends View<DBConnection, 'VProjectOverview'> {
+    id               = this.column('id', 'int')
+    organizationId   = this.column('organization_id', 'int')
+    name             = this.column('name', 'string')
+    archivedAt       = this.optionalColumn('archived_at', 'localDateTime')
+    organizationName = this.column('organization_name', 'string')
+    organizationPlan = this.column('organization_plan', 'string')
+    nameUpper        = this.virtualColumnFromFragment('string', (fragment) => fragment.sql`upper(${this.name})`)
+    constructor() { super('project_overview') }
 }()

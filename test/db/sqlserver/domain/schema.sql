@@ -2,6 +2,7 @@
 -- Idempotent: tests run setup against a fresh database each variant, but
 -- having DROP IF EXISTS lets you re-apply by hand for debugging.
 
+IF OBJECT_ID('project_overview', 'V') IS NOT NULL DROP VIEW project_overview;
 IF OBJECT_ID('issue', 'U') IS NOT NULL DROP TABLE issue;
 IF OBJECT_ID('project', 'U') IS NOT NULL DROP TABLE project;
 IF OBJECT_ID('app_user', 'U') IS NOT NULL DROP TABLE app_user;
@@ -115,4 +116,20 @@ GO
 CREATE SEQUENCE issue_id_seq  AS INT    START WITH 1;
 GO
 CREATE SEQUENCE audit_tag_seq AS BIGINT START WITH 1;
+GO
+
+-- A class-based SQL view exercised by `view.basic.test.ts`. A plain
+-- join of project + organization. `plan` is a T-SQL reserved keyword
+-- so it stays bracket-quoted in the SELECT; the view's own output
+-- columns are plain identifiers matching the View mapping. CREATE VIEW
+-- must lead its own batch, so it is wrapped in `GO` separators.
+CREATE VIEW project_overview AS
+SELECT p.id AS id,
+       p.organization_id AS organization_id,
+       p.name AS name,
+       p.archived_at AS archived_at,
+       o.name AS organization_name,
+       o.[plan] AS organization_plan
+FROM project p
+INNER JOIN organization o ON o.id = p.organization_id;
 GO

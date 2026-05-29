@@ -6,6 +6,7 @@
 -- identifiers). The DDL must create them with the matching quoted
 -- form or the lookup fails with ORA-00942 / ORA-00904.
 
+BEGIN EXECUTE IMMEDIATE 'DROP VIEW project_overview'; EXCEPTION WHEN OTHERS THEN NULL; END;
 BEGIN EXECUTE IMMEDIATE 'DROP TABLE issue CASCADE CONSTRAINTS'; EXCEPTION WHEN OTHERS THEN NULL; END;
 BEGIN EXECUTE IMMEDIATE 'DROP TABLE project CASCADE CONSTRAINTS'; EXCEPTION WHEN OTHERS THEN NULL; END;
 BEGIN EXECUTE IMMEDIATE 'DROP TABLE app_user CASCADE CONSTRAINTS'; EXCEPTION WHEN OTHERS THEN NULL; END;
@@ -90,3 +91,18 @@ BEGIN EXECUTE IMMEDIATE 'DROP SEQUENCE audit_tag_seq'; EXCEPTION WHEN OTHERS THE
 CREATE SEQUENCE issue_id_seq START WITH 1;
 
 CREATE SEQUENCE audit_tag_seq START WITH 1;
+
+-- A class-based SQL view exercised by `view.basic.test.ts`. A plain
+-- join of project + organization (no aggregation, no casts). The
+-- `organization` table and its `plan` column are Oracle reserved words
+-- so they stay double-quoted; the view's own output columns are plain
+-- (unquoted) identifiers matching the View mapping in connection.ts.
+CREATE OR REPLACE VIEW project_overview AS
+SELECT p.id AS id,
+       p.organization_id AS organization_id,
+       p.name AS name,
+       p.archived_at AS archived_at,
+       o.name AS organization_name,
+       o."plan" AS organization_plan
+FROM project p
+INNER JOIN "organization" o ON o.id = p.organization_id;

@@ -84,4 +84,54 @@ describe(ctx.label, () => {
         })
     })
     */
+
+    // TODO[LIMITATION]: see LIMITATIONS.md — `oldValues()` emits `OLD_VALUE(col)`, only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Snapshot pre-baked for when mariadb:latest catches up to 13.0.1+; uncomment the body then.
+    /*
+    test('returning-old-values-with-primary-key-in-set-uses-for-update-of', async () => {
+        // Including a PRIMARY KEY column in `.set()` flips the builder's
+        // `updatePrimaryKey` flag, so the synthesised `_old_` subquery
+        // locks with `for update of _old_` instead of the default
+        // `for no key update of _old_` (PG < 18; PG >= 18 uses native
+        // `OLD.col` with no lock clause). The PK (a SERIAL column) is set
+        // to its current value, so the update is a no-op that violates no
+        // foreign key referencing project(id). Commented out on sqlserver
+        // (cannot update an IDENTITY column), mariadb (TODO[LIMITATION]:
+        // OLD_VALUE needs 13.0.1+) and mysql/oracle/sqlite (oldValues
+        // typed `never`).
+        const expected = { id: 1, oldName: 'Marketing site', newName: 'Marketing site!' }
+        ctx.mockNext(expected)
+
+        await ctx.withRollback(async () => {
+            const oldProject = tProject.oldValues()
+            const row = await ctx.conn.update(tProject)
+                .set({
+                    id:   1,
+                    name: tProject.name.concat('!'),
+                })
+                .where(tProject.id.equals(1))
+                .returning({
+                    id:      tProject.id,
+                    oldName: oldProject.name,
+                    newName: tProject.name,
+                })
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof row, {
+                id:      number
+                oldName: string
+                newName: string
+            }>>()
+            if (!ctx.realDbEnabled) {
+                expect(row).toEqual(expected)
+            } else {
+                expect(row.id).toBe(1)
+                expect(row.oldName).toBe('Marketing site')
+                expect(row.newName).toBe('Marketing site!')
+            }
+        })
+    })
+    */
+
 })

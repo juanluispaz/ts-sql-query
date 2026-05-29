@@ -167,4 +167,50 @@ describe(ctx.label, () => {
         }
     })
     */
+
+    // Not applicable on MySQL: `.startWith` / `.connectBy` / `.connectByNoCycle` are typed `never` (Oracle-only `START WITH … CONNECT BY` syntax); equivalent shape on MySQL is a recursive CTE — see `cte.recursive-union-variants.test.ts`.
+    /*
+    test('connect-by-ordering-siblings-only-emits-order-siblings-by', async () => {
+        // `.orderingSiblingsOnly()` swaps the trailing `order by` for
+        // Oracle's hierarchical `order siblings by`, which orders rows
+        // WITHIN each parent's children rather than the whole result
+        // set — pins SelectQueryBuilder.orderingSiblingsOnly + the
+        // keyword swap in the order-by emitter. Tree shape as test 1.
+        ctx.mockNext([
+            { id: 3, parentId: null },
+            { id: 2, parentId: 3 },
+            { id: 1, parentId: 2 },
+            { id: 4, parentId: null },
+        ])
+
+        const runQuery = () => ctx.conn.selectFrom(tIssue)
+            .startWith(tIssue.parentId.isNull())
+            .connectBy(prior => prior(tIssue.id).equals(tIssue.parentId))
+            .select({
+                id:       tIssue.id,
+                parentId: tIssue.parentId,
+            })
+            .orderBy('id')
+            .orderingSiblingsOnly()
+            .executeSelectMany()
+
+        let rows!: Array<{ id: number; parentId?: number }>
+        if (ctx.realDbEnabled) {
+            await ctx.withRollback(async () => {
+                await ctx.conn.update(tIssue).set({ parentId: 2 }).where(tIssue.id.equals(1)).executeUpdate()
+                await ctx.conn.update(tIssue).set({ parentId: 3 }).where(tIssue.id.equals(2)).executeUpdate()
+                rows = await runQuery()
+            })
+        } else {
+            rows = await runQuery()
+        }
+
+        expect(ctx.lastNoTransactionSql).toMatchInlineSnapshot(`"select id as \"id\", parent_id as \"parentId\" from issue start with parent_id is null connect by prior id = parent_id order siblings by \"id\""`)
+        expect(ctx.lastNoTransactionParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ id: number; parentId?: number }>>>()
+        expect(rows.length).toBe(4)
+        const ids = rows.map(r => r.id).sort()
+        expect(ids).toEqual([1, 2, 3, 4])
+    })
+    */
 })

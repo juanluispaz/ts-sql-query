@@ -65,6 +65,21 @@ describe(ctx.label, () => {
         expect(value.getConstValue()).toBe(null)
     })
 
+    test('optional-const-custom-type-with-value-is-const', () => {
+        // The string-`typeName` overload of `optionalConst` (custom typed
+        // value source). Purely client-side: the type name does not change
+        // emitted SQL, and the literal reads back unchanged.
+        const value = ctx.conn.optionalConst(7, 'customInt', 'Score')
+        expect(value.isConstValue()).toBe(true)
+        expect(value.getConstValue()).toBe(7)
+    })
+
+    test('optional-const-custom-type-null-is-const-null', () => {
+        const value = ctx.conn.optionalConst(null, 'custom', 'MyType')
+        expect(value.isConstValue()).toBe(true)
+        expect(value.getConstValue()).toBe(null)
+    })
+
     test('column-is-not-a-const-value', () => {
         expect(tIssue.id.isConstValue()).toBe(false)
     })

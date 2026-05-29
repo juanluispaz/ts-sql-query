@@ -402,4 +402,64 @@ describe(ctx.label, () => {
         `)
     })
 
+    test('substr-two-arg', async () => {
+        // `.substr(start, count)` — the JS-style two-argument form
+        // (start + count), distinct from `.substring(start, end)`. It is
+        // not exercised anywhere else in the suite, so it is the only
+        // caller of the base `_substr` two-argument branch on the
+        // dialects that inherit it (MySQL/MariaDB/SQLite/Oracle/Postgres
+        // emit `substr(...)`; SqlServer overrides to `substring(...)`).
+        const expected = [{ id: 1, sub: 'Upd' }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id:  tIssue.id,
+                sub: tIssue.title.substr(0, 3),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, substring(title, @0, @1) as sub from issue where id = @2"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            3,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; sub: string }>>>()
+        if (!ctx.realDbEnabled) expect(result).toEqual(expected)
+    })
+
+    test('substring-numeric-start-value-source-end', async () => {
+        // `.substring(numericStart, valueSourceEnd)` — start is a literal,
+        // end is a column ref. Reaches the base `_substring` arm where
+        // `value` is numeric but `value2` is not (the count becomes
+        // `value2 - value`), a branch the existing substring tests skip.
+        // Runtime value depends on column data, so it is mock-only and the
+        // execution is wrapped to still capture the SQL on real-DB failure.
+        const expected = [{ id: 1, sub: 'Up' }]
+        ctx.mockNext(expected)
+        try {
+            const result = await ctx.conn.selectFrom(tIssue)
+                .where(tIssue.id.equals(1))
+                .select({
+                    id:  tIssue.id,
+                    sub: tIssue.title.substring(0, tIssue.priority),
+                })
+                .executeSelectMany()
+            assertType<Exact<typeof result, Array<{ id: number; sub: string }>>>()
+            if (!ctx.realDbEnabled) expect(result).toEqual(expected)
+        } catch (e) {
+            if (!ctx.realDbEnabled) throw e
+        }
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, substring(title, @0, priority - @1) as sub from issue where id = @2"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            0,
+            1,
+          ]
+        `)
+    })
+
 })

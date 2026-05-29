@@ -128,6 +128,72 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
+    test('pick/nested-mandatory-path-keeps-deep-leaf', async () => {
+        // A mandatory path that points INTO a nested object
+        // (`'meta.priority'`) is kept even though the pick only selects
+        // `meta.status` — exercises internalDynamicPick's
+        // `(prefix + '.' + prop) in required` branch (the nested-mandatory
+        // arm, distinct from the top-level mandatory used elsewhere).
+        const expected = [{ id: 1, meta: { priority: 2, status: 'open' } }]
+        ctx.mockNext(expected)
+        const availableFields = {
+            id: tIssue.id,
+            meta: {
+                priority: tIssue.priority,
+                status:   tIssue.status,
+            },
+        }
+        const picked = dynamicPick(availableFields, { meta: { status: true } }, ['id', 'meta.priority'])
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select(picked)
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", priority as "meta.priority", status as "meta.status" from issue where id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            id:   number
+            meta: { priority: number; status: string }
+        }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('pick/nested-pick-selecting-nothing-drops-branch', async () => {
+        // When a nested pick object selects none of its leaves,
+        // internalDynamicPick finds no content and returns `undefined`, so
+        // the parent drops the whole `meta` branch — only `id` survives.
+        const expected = [{ id: 1 }]
+        ctx.mockNext(expected)
+        const availableFields = {
+            id: tIssue.id,
+            meta: {
+                priority: tIssue.priority,
+                status:   tIssue.status,
+            },
+        }
+        const picked = dynamicPick(availableFields, { meta: { priority: false, status: false } }, ['id'])
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select(picked)
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue where id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            id:    number
+            meta?: { priority?: number; status?: string }
+        }>>>()
+        expect(rows).toEqual(expected)
+    })
+
     test('pick/expand-type-projected-as-nullable-passthrough', async () => {
         // Runtime passthrough: the helper returns its `result` argument
         // unchanged; the value it adds is the nullable-projected TYPE. The

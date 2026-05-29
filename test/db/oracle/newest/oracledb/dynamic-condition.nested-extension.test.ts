@@ -231,4 +231,61 @@ describe(ctx.label, () => {
           ]
         `)
     })
+
+    test('column-level-object-extension-rule-recurses-to-any-depth', async () => {
+        // Two object levels of column-scoped extension before the leaf rule
+        // — `processAdditionalColumnFilter` recurses into itself
+        // ([DynamicConditionBuilder.ts:226-233](../../../../../src/queryBuilders/DynamicConditionBuilder.ts#L226-L233))
+        // until it reaches the leaf function, which dispatches.
+        ctx.mockNext([])
+        const connection = ctx.conn
+        const selectFields = { id: tIssue.id }
+        const extension = {
+            idRules: {
+                grp: {
+                    above: (v: number) => tIssue.id.greaterThan(v),
+                },
+            },
+        }
+        const filter = { id: { idRules: { grp: { above: 10 } } } } as any
+        await connection.selectFrom(tIssue)
+            .where(connection.dynamicConditionFor(selectFields, extension).withValues(filter) as any)
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue where id > :0 order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            10,
+          ]
+        `)
+    })
+
+    test('column-level-object-extension-non-boolean-return-throws', async () => {
+        // The error path inside `processAdditionalColumnFilter`: a leaf rule
+        // that returns a non-boolean value source throws with the returned
+        // type name, mirroring the function-extension guards in the other
+        // dispatch paths.
+        const connection = ctx.conn
+        const selectFields = { id: tIssue.id }
+        const extension = {
+            idRules: {
+                stringify: ((_v: number) => tIssue.title) as any,
+            },
+        }
+        const filter = { id: { idRules: { stringify: 5 } } } as any
+
+        let thrown: any
+        try {
+            await connection.selectFrom(tIssue)
+                .where(connection.dynamicConditionFor(selectFields, extension).withValues(filter) as any)
+                .select({ id: tIssue.id })
+                .executeSelectMany()
+        } catch (e) { thrown = e }
+
+        expect(thrown).toBeInstanceOf(Error)
+        expect(String(thrown.message)).toContain('found a value source with type')
+        expect(String(thrown.message)).toContain('string')
+    })
 })

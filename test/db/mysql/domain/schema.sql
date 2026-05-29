@@ -59,7 +59,10 @@ CREATE TABLE issue (
     -- bigint (view_count), double (estimated_hours), uuid (external_ref).
     view_count BIGINT NOT NULL DEFAULT 0,
     estimated_hours DOUBLE,
-    external_ref CHAR(36),
+    -- BINARY(16), not CHAR: the default MySQL uuid strategy ('binary')
+    -- stores uuids as BINARY(16) and converts with UUID_TO_BIN / BIN_TO_UUID,
+    -- so the column must accept the binary form uuid_to_bin(?) produces.
+    external_ref BINARY(16),
     FOREIGN KEY (project_id) REFERENCES project(id),
     FOREIGN KEY (assignee_id) REFERENCES app_user(id),
     FOREIGN KEY (parent_id) REFERENCES issue(id),

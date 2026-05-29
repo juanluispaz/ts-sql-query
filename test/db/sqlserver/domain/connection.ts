@@ -20,6 +20,18 @@ export class DBConnection extends SqlServerConnection<'DBConnection'> {
         }
     }
 
+    // SQL Server stores uuids in `uniqueidentifier` columns, which hand the
+    // value back uppercased. Lowercase it on read so a uuid round-trips to
+    // the exact string it was inserted with — the pattern documented in
+    // docs/configuration/supported-databases/sqlserver.md.
+    protected override transformValueFromDB(value: unknown, type: string): unknown {
+        const result = super.transformValueFromDB(value, type)
+        if (result && type === 'uuid') {
+            return (result as string).toLowerCase()
+        }
+        return result
+    }
+
     // Public wrappers around the `protected` `executeProcedure` /
     // `executeFunction` entry points on `AbstractConnection`. The
     // documented pattern is to expose one domain method per callable

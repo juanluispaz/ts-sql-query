@@ -61,7 +61,10 @@ CREATE TABLE issue (
     -- bigint (view_count), double (estimated_hours), uuid (external_ref).
     view_count BIGINT NOT NULL DEFAULT 0,
     estimated_hours FLOAT,
-    external_ref VARCHAR(36),
+    -- uniqueidentifier, not VARCHAR: SQL Server stores uuids in
+    -- `uniqueidentifier` columns. The value comes back uppercased — the
+    -- DBConnection lowercases it in transformValueFromDB (see connection.ts).
+    external_ref uniqueidentifier,
     FOREIGN KEY (project_id) REFERENCES project(id),
     FOREIGN KEY (assignee_id) REFERENCES app_user(id),
     FOREIGN KEY (parent_id) REFERENCES issue(id),

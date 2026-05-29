@@ -47,6 +47,14 @@ limitations surface, isolated into one test per value type in
   - `marshalling/uuid-insert-select-roundtrip` — commented out in
     `test/db/sqlite/newest/sqlite3/` and
     `test/db/sqlite/newest/sqlite-wasm-OO1/`.
+  - `dynamic-condition.equivalence.test.ts` →
+    `equivalence/uuid-as-string-operator-path` — same root cause
+    (`.asString()` on a uuid emits `uuid_str(external_ref)`); commented
+    out in the same two cells (`sqlite3`, `sqlite-wasm-OO1`). The
+    registered `uuid_str` / `uuid_blob` in `runners.ts` are NULL-safe
+    (return NULL on NULL input, mirroring the real extension and
+    `bun:sqlite`) because that query applies `uuid_str` across seeded
+    rows whose `external_ref` is NULL.
 - `marshalling/double-insert-select-roundtrip` stays live in every cell.
 
 When the matrix is next extended, revisit whether `sqlite3` can bind

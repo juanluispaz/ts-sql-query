@@ -9,4 +9,6 @@
 #   * test/**          — test infrastructure and the test files
 #                        themselves.
 [test]
+# Force UTC before any test module loads (see test/lib/setupTimezone.ts).
+preload = ["./test/lib/setupTimezone.ts"]
 coveragePathIgnorePatterns = ["src/examples/**", "test/**", "src/queryRunners/*", "src/queryRunners/connectorErrorMappers/*", "src/queryRunners/databaseErrorMappers/*"]

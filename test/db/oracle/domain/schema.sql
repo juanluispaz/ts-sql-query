@@ -67,7 +67,10 @@ CREATE TABLE issue (
     -- bigint (view_count), double (estimated_hours), uuid (external_ref).
     view_count NUMBER(19) DEFAULT 0 NOT NULL,
     estimated_hours BINARY_DOUBLE,
-    external_ref VARCHAR2(36),
+    -- RAW(16), not VARCHAR2: the default Oracle uuid strategy ('built-in')
+    -- stores uuids as RAW(16) and converts with UUID_TO_RAW / RAW_TO_UUID,
+    -- so the column must accept RAW for raw_to_uuid(external_ref) to work.
+    external_ref RAW(16),
     CONSTRAINT fk_issue_project FOREIGN KEY (project_id) REFERENCES project(id),
     CONSTRAINT fk_issue_assignee FOREIGN KEY (assignee_id) REFERENCES app_user(id),
     CONSTRAINT fk_issue_parent FOREIGN KEY (parent_id) REFERENCES issue(id),

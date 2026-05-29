@@ -3,6 +3,10 @@ import { defineConfig } from 'vitest/config'
 export default defineConfig({
     test: {
         include: ['test/**/*.test.ts'],
+        // Force UTC before any test module loads (see
+        // test/lib/setupTimezone.ts). Mirrored as a bun `preload` in
+        // bunfig.toml so both runners marshal localDateTime identically.
+        setupFiles: ['./test/lib/setupTimezone.ts'],
         // Per-test timeout. The default 5s is too tight for the
         // docker-backed cells under heavy parallel load (an Oracle
         // `withReseed` drops + recreates the schema and can spike

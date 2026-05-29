@@ -34,10 +34,16 @@ import { DBConnection } from './domain/connection.js'
 // src/examples/{BetterSqlite3,NodeSqlite}*Example.ts show. (The `sqlite3`
 // driver has no user-function API, so the one uuid test is commented out in
 // that cell — see test/FUTURE_CONNECTORS.md.)
+// uuid_str / uuid_blob are NULL-safe (return NULL on NULL input), mirroring
+// the real uuid extension and bun:sqlite's built-ins. A query that applies
+// `uuid_str(col)` over a table where the optional uuid column is NULL must
+// not throw — only the marshalling round-trip tests pass a real blob; the
+// dynamic-condition equivalence test runs `uuid_str(external_ref)` across
+// seeded rows whose external_ref is NULL.
 function registerBetterSqlite3UuidFunctions(db: import('better-sqlite3').Database): void {
     db.function('uuid', uuidv7 as (_: unknown) => unknown)
-    db.function('uuid_str', ((blob: Uint8Array) => uuidStringify(blob)) as (_: unknown) => unknown)
-    db.function('uuid_blob', ((uuid: string) => Buffer.from(uuidParse(uuid))) as (_: unknown) => unknown)
+    db.function('uuid_str', ((blob: Uint8Array | null) => blob == null ? null : uuidStringify(blob)) as (_: unknown) => unknown)
+    db.function('uuid_blob', ((uuid: string | null) => uuid == null ? null : Buffer.from(uuidParse(uuid))) as (_: unknown) => unknown)
 }
 function registerNodeSqliteUuidFunctions(db: import('node:sqlite').DatabaseSync): void {
     // `DatabaseSync.function` only exists from Node 24; on Node 22 the
@@ -46,8 +52,8 @@ function registerNodeSqliteUuidFunctions(db: import('node:sqlite').DatabaseSync)
     const fnCapable = db as unknown as { function?: (name: string, fn: (...args: any[]) => unknown) => void }
     if (typeof fnCapable.function !== 'function') return
     fnCapable.function('uuid', () => uuidv7())
-    fnCapable.function('uuid_str', (blob: Uint8Array) => uuidStringify(blob))
-    fnCapable.function('uuid_blob', (uuid: string) => Buffer.from(uuidParse(uuid)))
+    fnCapable.function('uuid_str', (blob: Uint8Array | null) => blob == null ? null : uuidStringify(blob))
+    fnCapable.function('uuid_blob', (uuid: string | null) => uuid == null ? null : Buffer.from(uuidParse(uuid)))
 }
 
 /**

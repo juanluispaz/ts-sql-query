@@ -31,7 +31,47 @@ of that. Two minutes of triage and one paragraph is the bar.
 
 ---
 
-_No open entries._
+## `dynamicPickPaths` drops branches whose picked leaf is found via deep recursion
+
+**Where**: `src/dynamicCondition.ts:142`, inside `internalDynamicPickPaths`.
+The line is a bare `hasContent` expression statement where it must be
+`hasContent = true`. When a level's only content comes from a *recursive*
+call (a path nested ≥2 levels, e.g. `'group.sub.priority'`), `hasContent`
+stays `false`, the level returns `undefined`, and the parent discards the
+whole branch. The direct-leaf case (`(prefix + '.' + prop) in required`,
+L136-138) sets the flag correctly, so 1- and 2-level paths work — only
+deeper recursion is affected. `internalDynamicPick` (the `dynamicPick`
+sibling, L82) sets `hasContent = true` correctly, so nested `dynamicPick`
+is NOT affected.
+**Reproduction**: `test/db/*/*/*/dynamic-condition.pick.test.ts` →
+`pick/nested-dynamic-pick-paths-depth-3`. `dynamicPickPaths(availableFields,
+['group.sub.priority'], ['id'])` over a 3-level `availableFields` emits
+`select id as id from issue where id = $1` — the `group.sub.priority`
+column is silently absent; only the mandatory `id` survives.
+**Current workaround in the suite**: that test is marked `// TODO[BUG]`
+and its SQL/params/value snapshots pin the buggy output (the type assertion
+still describes the intended shape). Remove the marker and re-bake once
+L142 is fixed.
+
+## `dynamicConditionFor` silently ignores a column-level object-valued extension rule
+
+**Where**: `src/queryBuilders/DynamicConditionBuilder.ts:137-144` /
+`processAdditionalColumnFilter` (L193-235). When a column (value source) is
+filtered with a key whose extension entry is an *object* (not a function),
+`processColumnFilter` forwards to `processAdditionalColumnFilter` passing
+the column's whole `filter` again (not the inner `value`), so the inner
+rule keys never line up and nothing is dispatched — the rule is dropped
+with no error and no predicate.
+**Reproduction** (probe, not committed): `selectFields = { id: tIssue.id }`,
+`extension = { meta: { byRange: (v) => tIssue.id.greaterThan(v) } }`,
+`filter = { id: { meta: { byRange: 5 } } }` → emitted SQL is
+`select id as id from issue` (no WHERE). The whole
+`processAdditionalColumnFilter` body is unreachable in any meaningful way
+through the public API.
+**Current workaround in the suite**: none — no committed test exercises
+this path (it cannot assert a meaningful outcome). Documented here so the
+fixing agent can decide whether the rule should dispatch (pass `value`
+instead of `filter`) or the path should be removed.
 
 ---
 

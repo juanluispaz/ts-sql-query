@@ -23,25 +23,37 @@ grep -rE "^    // Not applicable on" test/db/*/*/*/docs.*.test.ts
 
 ## Dialect-specific notes (already wired in today's matrix)
 
-### sqlite3 — no BigInt parameter binding
+### sqlite value-marshalling: BigInt binding and uuid extension functions
 
-The `sqlite3` npm driver cannot bind a JS `BigInt` as a parameter: it
-sends `NULL` instead, so any insert/update of a `bigint`-typed column
-trips a NOT NULL (or stores the wrong value). The other three native
-sqlite drivers (`bun:sqlite`, `better-sqlite3`, `node:sqlite`) bind
-BigInt correctly. Surfaced by the `viewCount` (`bigint`) column added
-to the shared `issue` domain.
+The `viewCount` (`bigint`), `estimatedHours` (`double`) and
+`externalRef` (`uuid`) columns added to the shared `issue` domain
+exercise `AbstractConnection` value marshalling. Two connector
+limitations surface, isolated into one test per value type in
+`select.value-marshalling.test.ts`:
 
-- `select.value-marshalling.test.ts`:
+- **BigInt parameter binding** — the `sqlite3` npm driver cannot bind a
+  JS `BigInt` (it sends `NULL`, tripping the NOT NULL on `view_count`).
+  `bun:sqlite`, `better-sqlite3`, `node:sqlite` and `sqlite-wasm-OO1`
+  all bind BigInt correctly.
   - `marshalling/bigint-insert-select-roundtrip` — commented out in
-    `test/db/sqlite/newest/sqlite3/` only; live in the other four
-    sqlite cells and every other dialect. The companion
-    `marshalling/double-and-uuid-insert-select-roundtrip` stays live
-    everywhere (it omits the bigint column).
+    `test/db/sqlite/newest/sqlite3/` only.
+- **uuid extension functions** — the default `uuid-extension` strategy
+  emits `uuid_blob` / `uuid_str`. `bun:sqlite` ships them built-in;
+  `better-sqlite3` and `node:sqlite` get them registered in
+  `runners.ts` (per the connector docs/examples); `sqlite3` has no
+  user-function API and `sqlite-wasm-OO1` does not register them (its
+  `src/examples/Sqlite3WasmOO1Example.ts` uses the `'string'` uuid
+  strategy instead).
+  - `marshalling/uuid-insert-select-roundtrip` — commented out in
+    `test/db/sqlite/newest/sqlite3/` and
+    `test/db/sqlite/newest/sqlite-wasm-OO1/`.
+- `marshalling/double-insert-select-roundtrip` stays live in every cell.
 
-When the matrix is next extended, revisit whether the `sqlite3`
-connector can bind BigInt (driver upgrade) or whether the lib should
-coerce `bigint → number`/`string` for that runner.
+When the matrix is next extended, revisit whether `sqlite3` can bind
+BigInt (driver upgrade), and whether the sqlite domain should adopt the
+`'string'` uuid strategy uniformly (the `withUuidStrategy` helper already
+lets a test pin `'uuid-extension'` where it is supported) so the uuid
+round-trip runs on every sqlite connector.
 
 ### MySQL — no INSERT/UPDATE/DELETE RETURNING
 

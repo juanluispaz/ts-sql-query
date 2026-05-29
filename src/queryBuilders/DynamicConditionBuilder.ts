@@ -139,7 +139,7 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
                     continue
                 }
 
-                let condition = this.processAdditionalColumnFilter(filter, extension[key], column + '.' + key)
+                let condition = this.processAdditionalColumnFilter(value, extension[key], column + '.' + key)
                 result = result.and(condition)
                 continue
             }
@@ -228,7 +228,7 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
                     continue
                 }
 
-                let condition = this.processAdditionalColumnFilter(filter, extension[key], path + '.' + key)
+                let condition = this.processAdditionalColumnFilter(value, extension[key], path + '.' + key)
                 result = result.and(condition)
                 continue
             }

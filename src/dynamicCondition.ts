@@ -51,7 +51,7 @@ export function dynamicPick<TYPE extends Pickable, MANDATORY extends PickablePat
             } else if (typeof isRequired === 'object') {
                 const content = internalDynamicPick(o[prop], isRequired, required, prop)
                 if (content !== undefined) {
-                    result[prop] = internalDynamicPick(o[prop], isRequired, required, prop)
+                    result[prop] = content
                 }
             }
         }
@@ -139,7 +139,7 @@ function internalDynamicPickPaths(o: any, required: any, prefix: string): any {
         } else if (!isValueSource(o[prop])) {
             const content = internalDynamicPickPaths(o[prop], required, prefix + '.' + prop)
             if (content !== undefined)  {
-                hasContent
+                hasContent = true
                 result[prop] = content
             }
         }

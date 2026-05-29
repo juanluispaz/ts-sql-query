@@ -51,6 +51,26 @@ see [§1.3](#1-principles) for the precise rule.
    **must potentially have passed through the real database** — the exact
    same code path runs in both modes.
 
+   **The value assertion is identical in both modes — never guard it.**
+   `expect(result).toEqual(expected)` runs unconditionally; do **not**
+   wrap it in `if (!ctx.realDbEnabled)`. Because `expected` is both what
+   `ctx.mockNext(...)` queues AND what the seed contains, the single line
+   verifies the mock round-trip and the real-DB result at once. Guarding
+   the value behind `!ctx.realDbEnabled` silently drops all value
+   verification on the real-DB cells — the very coverage that justifies
+   running against a real database. The same applies to type and SQL
+   assertions: they are mode-agnostic by construction. A `ctx.realDbEnabled`
+   branch (in either direction) is reserved for **genuine extreme cases**
+   only — when the real engine cannot return the same `expected` the mock
+   does (non-deterministic ordering with no `ORDER BY`, engine-specific
+   affected-row counts, values that vary per run). In those cases keep the
+   mock assertion exact and either relax the real-DB side (e.g.
+   `else expect(rows.length).toBeGreaterThanOrEqual(1)`) or drop it, always
+   with a comment naming the constraint that forced the split. The default
+   — and what a reviewer should expect to see — is no guard at all. The
+   inverse anti-pattern (skipping the whole test in real mode with
+   `if (ctx.realDbEnabled) return`) is governed by principle 18 below.
+
 2. **SQL and params are inline snapshots.** Every test puts the emitted SQL
    string and the emitted params behind `toMatchInlineSnapshot(...)`. Both
    `bun:test` and `vitest` know how to update inline snapshots in place
@@ -273,7 +293,11 @@ see [§1.3](#1-principles) for the precise rule.
     exercises something that does not make semantic sense — a
     "tiebreaker" on a unique column, an `ORDER BY` on a one-row scalar
     aggregate, an aggregate predicate in `WHERE`, and so on. The guard
-    is the escape hatch, not the default. Before adding it:
+    is the escape hatch, not the default. (The related anti-pattern —
+    guarding only the *value* assertion with `if (!ctx.realDbEnabled)`,
+    which keeps the test running in real mode but stops verifying its
+    result there — is covered by principle 1: the value assertion is
+    identical in both modes.) Before adding it:
     - **Check the SQL semantics.** Read the snapshot the assertion
       would pin. Would a developer write that SQL in production code?
       If not, the test is hiding a design problem — fix the design,

@@ -34,7 +34,7 @@ describe(ctx.label, () => {
         // Distinct list of organizations that have an open issue. Joins
         // are present so the distinct keyword has to be emitted with a
         // FROM that carries a JOIN clause.
-        const expectedMock = [{ orgId: 1 }, { orgId: 2 }]
+        const expectedMock = [{ orgId: 1 }]
         ctx.mockNext(expectedMock)
 
         const rows = await ctx.conn.selectDistinctFrom(tProject)

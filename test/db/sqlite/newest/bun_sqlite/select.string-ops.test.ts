@@ -268,7 +268,7 @@ describe(ctx.label, () => {
 
     test('reverse', async () => {
         // Mock the result; not every dialect natively supports REVERSE.
-        const expected = [{ id: 1, t: 'esnopser' }]
+        const expected = [{ id: 1, t: 'tset.emca@ada' }]
         ctx.mockNext(expected)
         try {
             const result = await ctx.conn.selectFrom(tAppUser)
@@ -294,7 +294,7 @@ describe(ctx.label, () => {
     })
 
     test('substring', async () => {
-        const expected = [{ id: 1, sub: 'Ada' }]
+        const expected = [{ id: 1, sub: 'Upd' }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssue)
             .where(tIssue.id.equals(1))
@@ -323,7 +323,7 @@ describe(ctx.label, () => {
         // SQL — SQLite/Oracle drop the length argument from `substr`,
         // PostgreSQL uses `substring(x from start+1)`, SqlServer uses
         // `substring(x, start+1, len(x))`.
-        const expected = [{ id: 1, sub: 'auth bug' }]
+        const expected = [{ id: 1, sub: 'ate hero copy' }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssue)
             .where(tIssue.id.equals(1))
@@ -348,7 +348,7 @@ describe(ctx.label, () => {
         // substringToEnd(start). The emitted SQL is identical on
         // most dialects (both fall back to `substr(x, start+1)` on
         // SQLite/Oracle); the test still pins the param shape per cell.
-        const expected = [{ id: 1, sub: 'auth bug' }]
+        const expected = [{ id: 1, sub: 'ate hero copy' }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssue)
             .where(tIssue.id.equals(1))

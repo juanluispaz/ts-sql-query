@@ -62,7 +62,7 @@ describe(ctx.label, () => {
     test('execute-function-returning-int', async () => {
         // Function call returning an int. The default path emits
         // `select <name>(...)`; Oracle wraps with `from dual`.
-        ctx.mockNext(7)
+        ctx.mockNext(1)
         let count: number | null = null
         try {
             count = await ctx.conn.callCountOpenIssues(1)
@@ -75,7 +75,7 @@ describe(ctx.label, () => {
             1,
           ]
         `)
-        if (!ctx.realDbEnabled) expect(count).toBe(7)
+        if (!ctx.realDbEnabled) expect(count).toBe(1)
     })
 
     test('execute-function-returning-string', async () => {

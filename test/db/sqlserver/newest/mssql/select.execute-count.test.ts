@@ -28,7 +28,7 @@ describe(ctx.label, () => {
         // there's no GROUP BY. The inner CTE keeps the SELECT columns
         // (no LIMIT / OFFSET) and the outer query is `select count(*) from result_for_count`.
         ctx.mockNext([{ status: 'open' }, { status: 'closed' }])
-        ctx.mockNext(2)
+        ctx.mockNext(3)
 
         const page = await ctx.conn.selectDistinctFrom(tIssue)
             .select({ status: tIssue.status })
@@ -51,7 +51,7 @@ describe(ctx.label, () => {
             data:  Array<{ status: string }>
             count: number
         }>>()
-        if (!ctx.realDbEnabled) expect(page.count).toBe(2)
+        if (!ctx.realDbEnabled) expect(page.count).toBe(3)
     })
 
     test('count-after-group-by-wraps-query-in-result-for-count-cte', async () => {
@@ -63,7 +63,7 @@ describe(ctx.label, () => {
             { status: 'open',   total: 3 },
             { status: 'closed', total: 4 },
         ])
-        ctx.mockNext(2)
+        ctx.mockNext(3)
 
         const page = await ctx.conn.selectFrom(tIssue)
             .select({
@@ -90,7 +90,7 @@ describe(ctx.label, () => {
             data:  Array<{ status: string; total: number }>
             count: number
         }>>()
-        if (!ctx.realDbEnabled) expect(page.count).toBe(2)
+        if (!ctx.realDbEnabled) expect(page.count).toBe(3)
     })
 
     test('count-after-distinct-and-group-by-still-wraps-in-cte', async () => {
@@ -101,7 +101,7 @@ describe(ctx.label, () => {
             { status: 'open',   priority: 1 },
             { status: 'closed', priority: 2 },
         ])
-        ctx.mockNext(2)
+        ctx.mockNext(4)
 
         const page = await ctx.conn.selectDistinctFrom(tIssue)
             .select({
@@ -128,6 +128,6 @@ describe(ctx.label, () => {
             data:  Array<{ status: string; priority: number }>
             count: number
         }>>()
-        if (!ctx.realDbEnabled) expect(page.count).toBe(2)
+        if (!ctx.realDbEnabled) expect(page.count).toBe(4)
     })
 })

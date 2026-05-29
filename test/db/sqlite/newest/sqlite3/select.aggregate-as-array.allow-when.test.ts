@@ -154,7 +154,7 @@ describe(ctx.label, () => {
         // and the aggregate renders identically to the ungated case.
         // The expected aggregated JSON shape pins that the surrounding
         // `_inlineSelectAsValue` path runs unchanged.
-        const expected = { id: 1, issues: [{ id: 1, title: 't' }] }
+        const expected = { id: 1, issues: [{ id: 1, title: 'Update hero copy' }, { id: 2, title: 'Redesign navbar' }] }
         ctx.mockNext(expected)
         const connection = ctx.conn
         const tIssueLeftJoin = tIssue.forUseInLeftJoin()
@@ -181,7 +181,7 @@ describe(ctx.label, () => {
 
     test('aggregate-as-array-of-one-column-allow-when-true-emits-transparently', async () => {
         // Favorable counterpart for the one-column aggregate variant.
-        const expected = { id: 1, titles: ['t1', 't2'] }
+        const expected = { id: 1, titles: ['Update hero copy', 'Redesign navbar'] }
         ctx.mockNext(expected)
         const connection = ctx.conn
         const tIssueLeftJoin = tIssue.forUseInLeftJoin()

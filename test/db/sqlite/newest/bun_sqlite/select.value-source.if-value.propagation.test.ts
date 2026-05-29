@@ -90,7 +90,7 @@ describe(ctx.label, () => {
         // its own `__getOldValues` / `__getValuesForInsert` calls.
         // Three placeholders land in the WHERE for the array
         // contents.
-        ctx.mockNext(3)
+        ctx.mockNext(2)
         const connection = ctx.conn
 
         await ctx.withRollback(async () => {
@@ -112,7 +112,7 @@ describe(ctx.label, () => {
               ]
             `)
             assertType<Exact<typeof affected, number>>()
-            if (!ctx.realDbEnabled) expect(affected).toBe(3)
+            if (!ctx.realDbEnabled) expect(affected).toBe(2)
         })
     })
 

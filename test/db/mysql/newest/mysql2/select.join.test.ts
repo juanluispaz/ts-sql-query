@@ -97,7 +97,7 @@ describe(ctx.label, () => {
 
     test('join-with-alias', async () => {
         const expected = [
-            { id: 1, child: 'Update hero copy' },
+            { id: 1, child: 'Redesign navbar' },
         ]
         ctx.mockNext(expected)
         const parent = tIssue.as('parent')

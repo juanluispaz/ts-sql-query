@@ -54,7 +54,8 @@ describe(ctx.label, () => {
 
     test('union-all-with-allowed-arms-passes', async () => {
         // Open gates on both arms; the compound walker returns true.
-        const expected = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]
+        // UNION ALL keeps duplicates, so each of the 4 ids appears twice.
+        const expected = [{ id: 1 }, { id: 1 }, { id: 2 }, { id: 2 }, { id: 3 }, { id: 3 }, { id: 4 }, { id: 4 }]
         ctx.mockNext(expected)
         const connection = ctx.conn
 
@@ -98,8 +99,8 @@ describe(ctx.label, () => {
 
     test('is-null-on-allowed-column-passes-and-introspects-allowed', async () => {
         // Favorable twin — open gate, the SqlOperationIsNullValueSource
-        // walker delegates and returns true.
-        const expected = [{ id: 3 }]
+        // walker delegates and returns true. Issues 1 and 3 have NULL body.
+        const expected = [{ id: 1 }, { id: 3 }]
         ctx.mockNext(expected)
         const connection = ctx.conn
 
@@ -182,9 +183,9 @@ describe(ctx.label, () => {
         // Open gate — both sides of `valueWhenNull` walked and allowed.
         const expected = [
             { bodyOrPlaceholder: '(no body)' },
-            { bodyOrPlaceholder: 'Use new tokens' },
             { bodyOrPlaceholder: '(no body)' },
             { bodyOrPlaceholder: 'See ADR-014' },
+            { bodyOrPlaceholder: 'Use new tokens' },
         ]
         ctx.mockNext(expected)
         const connection = ctx.conn
@@ -266,7 +267,7 @@ describe(ctx.label, () => {
     })
 
     test('in-if-value-with-non-empty-array-on-allowed-column-passes', async () => {
-        const expected = [{ id: 1 }, { id: 2 }, { id: 4 }]
+        const expected = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]
         ctx.mockNext(expected)
         const connection = ctx.conn
 
@@ -392,7 +393,7 @@ describe(ctx.label, () => {
     })
 
     test('length-on-allowed-column-passes', async () => {
-        const expected = [{ titleLen: 16 }, { titleLen: 15 }, { titleLen: 16 }, { titleLen: 22 }]
+        const expected = [{ titleLen: 16 }, { titleLen: 15 }, { titleLen: 14 }, { titleLen: 18 }]
         ctx.mockNext(expected)
         const connection = ctx.conn
 
@@ -431,7 +432,7 @@ describe(ctx.label, () => {
     })
 
     test('equals-other-column-with-allowed-lhs-passes', async () => {
-        const expected: Array<{ id: number }> = []
+        const expected = [{ id: 1 }]
         ctx.mockNext(expected)
         const connection = ctx.conn
 
@@ -470,7 +471,7 @@ describe(ctx.label, () => {
     })
 
     test('concat-on-allowed-string-passes', async () => {
-        const expected = [{ label: 't [issue]' }]
+        const expected = [{ label: 'Update hero copy [issue]' }]
         ctx.mockNext(expected)
         const connection = ctx.conn
 
@@ -534,7 +535,7 @@ describe(ctx.label, () => {
     })
 
     test('string-concat-aggregate-on-allowed-column-passes', async () => {
-        ctx.mockNext('t1, t2, t3, t4')
+        ctx.mockNext('Update hero copy, Redesign navbar, Migrate to ESM, Document /v2/users')
         const connection = ctx.conn
 
         const query = connection.selectFrom(tIssue)
@@ -547,7 +548,7 @@ describe(ctx.label, () => {
 
         const result = await query.executeSelectOne()
 
-        if (!ctx.realDbEnabled) expect(result).toBe('t1, t2, t3, t4')
+        if (!ctx.realDbEnabled) expect(result).toBe('Update hero copy, Redesign navbar, Migrate to ESM, Document /v2/users')
     })
 
     test('only-when-or-null-false-yields-null-value-source-and-walker-allows-it', async () => {
@@ -688,8 +689,10 @@ describe(ctx.label, () => {
     test('raw-fragment-in-order-by-with-allowed-column-passes', async () => {
         // Favorable twin — open gate on the column nested in the
         // rawFragment. Walker visits RawFragmentImpl.__isAllowed and
-        // reports allowed; query runs.
-        const expected = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]
+        // reports allowed; query runs. Ordered by title ascending:
+        // 'Document /v2/users'(4), 'Migrate to ESM'(3), 'Redesign navbar'(2),
+        // 'Update hero copy'(1).
+        const expected = [{ id: 4 }, { id: 3 }, { id: 2 }, { id: 1 }]
         ctx.mockNext(expected)
         const connection = ctx.conn
 

@@ -27,7 +27,7 @@ describe(ctx.label, () => {
     test('execute-update-with-min-max-passes-when-count-in-range', async () => {
         // `executeUpdate(2, 5)` accepts any row-count in [2, 5]. The
         // WHERE matches 4 seeded issues (all priorities ≥ 1).
-        ctx.mockNext(3)
+        ctx.mockNext(4)
         await ctx.withRollback(async () => {
             const affected = await ctx.conn.update(tIssue)
                 .set({ status: 'reviewed' })
@@ -42,7 +42,7 @@ describe(ctx.label, () => {
               ]
             `)
             assertType<Exact<typeof affected, number>>()
-            if (!ctx.realDbEnabled) expect(affected).toBe(3)
+            if (!ctx.realDbEnabled) expect(affected).toBe(4)
         })
     })
 

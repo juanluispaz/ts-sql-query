@@ -377,6 +377,40 @@ report_runner_flags() {
     esac
 }
 
+# Map the two runner-narrowing knobs (snapshot refresh + test-name
+# filter) to runner-specific spelling, mirroring report_runner_flags /
+# coverage_runner_flags. Echoes flags one per line; the test-name
+# pattern's VALUE goes on its own line so it survives embedded spaces
+# when the caller reads back with `IFS= read -r`.
+#
+# Args: <runtime> <update:on|off> <pattern>
+#
+# bun and vitest share the short forms (`-u`, `-t`) but diverge on the
+# long ones — that divergence (plus npm's `-- --` pass-through dance) is
+# exactly what these first-class flags hide:
+#   snapshot refresh : bun `--update-snapshots`  | vitest `--update`
+#   test-name filter : bun `--test-name-pattern` | vitest `--testNamePattern`
+narrowing_runner_flags() {
+    local runtime="$1" update="$2" pattern="$3"
+    case "$runtime" in
+        bun)
+            [ "$update" = "on" ] && printf -- '--update-snapshots\n'
+            if [ -n "$pattern" ]; then
+                printf -- '--test-name-pattern\n'
+                printf -- '%s\n' "$pattern"
+            fi ;;
+        npm)
+            [ "$update" = "on" ] && printf -- '--update\n'
+            if [ -n "$pattern" ]; then
+                printf -- '--testNamePattern\n'
+                printf -- '%s\n' "$pattern"
+            fi ;;
+        *)
+            echo "narrowing_runner_flags: unsupported runtime=$runtime" >&2
+            return 1 ;;
+    esac
+}
+
 # Coverage scope defaults live in bunfig.toml (`coveragePathIgnorePatterns`)
 # for bun and in vitest.config.ts (`test.coverage.exclude`) for vitest.
 # Both runners read their own config file natively; we don't need to

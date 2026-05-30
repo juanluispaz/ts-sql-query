@@ -78,7 +78,7 @@ database has to satisfy see [`PER_DATABASE_LAYOUT.md`](./PER_DATABASE_LAYOUT.md)
    names. The sqlite canonical (`test/db/sqlite/newest/bun_sqlite/`) is the
    cheapest source.
 
-7. **Bake snapshots**: `bun run tests test/db/<database> -- --update-snapshots`.
+7. **Bake snapshots**: `bun run tests test/db/<database> --update-snapshots`.
 
 8. **Triage compile errors** against the catalogue in
    [`EXTERNAL_CAVEATS.md`](./EXTERNAL_CAVEATS.md) — most dialect
@@ -162,7 +162,7 @@ A new `<compatibilityVersion>` folder under an existing database:
 
 5. **Bake snapshots** — the SqlBuilder branches on `compatibilityVersion`,
    so each cell emits its own SQL. The snapshot recipe is the same:
-   `bun run tests test/db/<db>/<new-version> -- --update-snapshots`.
+   `bun run tests test/db/<db>/<new-version> --update-snapshots`.
 
 6. **Triage compile errors** as for a new connector.
 

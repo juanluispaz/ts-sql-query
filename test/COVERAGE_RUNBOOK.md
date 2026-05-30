@@ -359,7 +359,7 @@ in the proposal / report — not a re-paraphrase.
 Iterate locally:
 
 ```bash
-bun run tests <canonical-path> -- --update-snapshots
+bun run tests <canonical-path> --update-snapshots
 ```
 
 Read the diff of every test you added before moving on. The user will
@@ -446,7 +446,7 @@ Once the canonical is GREEN/YELLOW, propagate via a small `cp` script (or
 
 3. **Bake snapshots per cell**:
    ```bash
-   bun run tests '<db>/<version>/<connector>/<file>.test.ts' -- --update-snapshots
+   bun run tests '<db>/<version>/<connector>/<file>.test.ts' --update-snapshots
    ```
 
 4. **Apply the EXTERNAL_CAVEATS re-wrap list from §4.5 / §7.** Block-comment

@@ -18,6 +18,8 @@ Usage:
                    [--report    [--report-format <name>]…]
                    [--coverage  [--coverage-format <name>]…]
                    [--open]
+                   [--update-snapshots]
+                   [--test-name-pattern <regex>]
                    [--help]
                    [-- <args passed to runner>]
 
@@ -271,6 +273,27 @@ Coverage flags
         for a specific cell, prefer `tests <coord>`; to alter
         the project defaults, edit those config files.
 
+Narrowing flags (runtime-agnostic — translated for you)
+  --update-snapshots
+        Refresh snapshots for the tests this run actually executes.
+        Translated to bun's `--update-snapshots` or vitest's `--update`
+        for you — same spelling under both runtimes, and no SECOND `--`
+        to forward it through (under npm it just needs the usual single
+        `--` separator every script flag does). Combine with a coord
+        and/or --test-name-pattern to refresh just the tests you mean —
+        unscoped over the full matrix it rewrites every snapshot (the
+        script warns in that case but still proceeds).
+  --test-name-pattern <regex>
+        Run only the tests whose name matches <regex>, composed with
+        the path filter. Translated to bun's `--test-name-pattern` or
+        vitest's `--testNamePattern`. Canonical "fix one test's
+        snapshot" recipe (same flags under bun and npm — npm just adds
+        its single `--` before the script flags):
+          bun run tests postgres/newest/pg/select.basic.test.ts \
+                        --test-name-pattern inner-join --update-snapshots
+          npm run tests -- postgres/newest/pg/select.basic.test.ts \
+                           --test-name-pattern inner-join --update-snapshots
+
 Browser flag
   --open
         Open the generated HTML report in the default browser when
@@ -290,11 +313,14 @@ Browser flag
         Show this help and exit.
 
 Pass-through args
-  Anything after `--` is forwarded to the test runner.
+  Anything after `--` is forwarded verbatim to the test runner. Prefer
+  the first-class --test-name-pattern / --update-snapshots flags above
+  for the common cases — they are runtime-agnostic and avoid the `--`
+  dance. Use pass-through only for runner-specific flags the script
+  doesn't wrap.
 
-  bun run tests -- -t inner-join                  # match test name
-  bun run tests --docker -- --update-snapshots    # bun: refresh snapshots
-  npm  run tests --docker -- -- -u                # vitest: refresh snapshots
+  bun run tests -- --rerun-each 3                  # bun-only runner flag
+  npm  run tests -- -- --bail 1                     # vitest-only runner flag
 
   (npm strips a leading `--`, hence the double `--` when forwarding
   flags through npm run.)
@@ -309,6 +335,11 @@ Examples
   bun run tests --connections docker --docker              # only docker-backed cells
   bun run tests --connections native                       # only embedded SQLite
   bun run tests postgres/newest/pg                         # focused: one cell
+  bun run tests postgres/newest/pg --test-name-pattern inner-join
+                                                           # focused: one cell + test-name regex
+  bun run tests postgres/newest/pg/select.basic.test.ts \
+                --test-name-pattern inner-join --update-snapshots
+                                                           # refresh one test's snapshot
   bun run tests 'postgres/*/pg' --docker                   # focused: glob
   bun run tests 'postgres/*/{pg,postgres}' --docker --scope newest
                                                            # focused: glob + brace + scope
@@ -347,6 +378,8 @@ REPORT_FORMAT=()
 COVERAGE=off
 COVERAGE_FORMAT=()
 OPEN_AFTER=off
+UPDATE_SNAPSHOTS=off
+TEST_NAME_PATTERN=
 EXTRA_ARGS=()
 
 while [ $# -gt 0 ]; do
@@ -372,6 +405,9 @@ while [ $# -gt 0 ]; do
         --coverage-format)      COVERAGE_FORMAT+=("$2"); shift 2 ;;
         --coverage-format=*)    COVERAGE_FORMAT+=("${1#--coverage-format=}"); shift ;;
         --open)                 OPEN_AFTER=on; shift ;;
+        --update-snapshots)     UPDATE_SNAPSHOTS=on; shift ;;
+        --test-name-pattern)    TEST_NAME_PATTERN="$2"; shift 2 ;;
+        --test-name-pattern=*)  TEST_NAME_PATTERN="${1#--test-name-pattern=}"; shift ;;
         -h|--help)              print_help; exit 0 ;;
         --)                     shift; EXTRA_ARGS=("$@"); break ;;
         --*)                    echo "Unknown argument: $1 (use --help)" >&2; exit 2 ;;
@@ -431,6 +467,35 @@ fi
 
 runtime="$(detect_runtime)"
 if [ "$USE_VITEST" = "on" ]; then runtime="npm"; fi
+
+# Translate the two narrowing knobs (--update-snapshots /
+# --test-name-pattern) into the active runner's spelling. These are
+# first-class script flags precisely so the docs describe ONE path:
+# the user never has to know bun says `--update-snapshots`/`-t` while
+# vitest says `--update`/`--testNamePattern`, nor wrestle with npm's
+# `-- --` pass-through dance. Built once here (after the runtime is
+# settled) and appended to every runner invocation below — the coverage
+# branch's COV_FLAGS and the non-coverage RUNNER_TAIL (which covers both
+# the WASM and main phases).
+NARROWING_FLAGS=()
+if [ "$UPDATE_SNAPSHOTS" = "on" ] || [ -n "$TEST_NAME_PATTERN" ]; then
+    NARROW_OUT="$(narrowing_runner_flags "$runtime" "$UPDATE_SNAPSHOTS" "$TEST_NAME_PATTERN")" || exit 2
+    while IFS= read -r flag; do
+        if [ -n "$flag" ]; then NARROWING_FLAGS+=("$flag"); fi
+    done <<<"$NARROW_OUT"
+fi
+
+# Soft guard: refreshing snapshots across the WHOLE matrix (no coord,
+# no name filter) rewrites every snapshot in ~2.5k files at once — almost
+# never what's intended. Warn but proceed, so deliberate mass-regeneration
+# still works. A coord OR --test-name-pattern scopes the refresh and
+# silences this.
+if [ "$UPDATE_SNAPSHOTS" = "on" ] && [ "$FOCUSED" = "off" ] && [ -z "$TEST_NAME_PATTERN" ]; then
+    echo "Warning: --update-snapshots over the full matrix will rewrite every snapshot." >&2
+    echo "  Scope it with a coord (e.g. 'tests postgres/newest/pg …') or" >&2
+    echo "  --test-name-pattern <regex> to refresh only the tests you mean." >&2
+fi
+
 export TS_SQL_QUERY_DOCKER="$DOCKER"
 if [ "$DOCKER_MODE" = "reuse" ]; then export TESTCONTAINERS_REUSE_ENABLE=true; fi
 # Only propagate scope when docker is on. With docker off the env var
@@ -494,6 +559,7 @@ if [ "$COVERAGE" = "on" ]; then
         done <<<"$REP_RUNNER_OUT"
     fi
     if [ "$runtime" = "npm" ] && [ "$UI" = "on" ]; then COV_FLAGS+=(--ui); fi
+    COV_FLAGS+=("${NARROWING_FLAGS[@]}")
 
     run_phase "$runtime" "$MODE" "${MAIN_PATHS[@]}" --coverage "${COV_FLAGS[@]}" "${EXTRA_ARGS[@]}"
     ec=$?
@@ -534,6 +600,9 @@ if [ "$REPORT" = "on" ]; then
     done <<<"$REP_RUNNER_OUT"
 fi
 if [ "$runtime" = "npm" ] && [ "$UI" = "on" ]; then RUNNER_TAIL+=(--ui); fi
+# Snapshot refresh / test-name filter ride along on every phase (WASM +
+# main) so a focused refresh hits whichever phase actually runs the cell.
+RUNNER_TAIL+=("${NARROWING_FLAGS[@]}")
 
 # Optional real-WASM phase (when --wasm is set). Runs FIRST so its
 # output stays close to the top of the scrollback; the parallel main

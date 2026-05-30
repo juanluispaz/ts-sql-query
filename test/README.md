@@ -153,7 +153,7 @@ bun run tests postgres/newest/pg --docker
 bun run tests postgres/oldest/pglite --wasm
 
 # Update snapshots.
-bun run tests postgres/newest/pg -- --update-snapshots
+bun run tests postgres/newest/pg --update-snapshots
 
 # Pre-push sanity sweep.
 bun run tests:audit && bun run validate:tests && bun run tests

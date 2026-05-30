@@ -86,6 +86,8 @@ Orthogonal — combine freely (except for the [Forbidden combinations](#forbidde
 | `--coverage` | Emit coverage report under `.test-report/coverage/`. | off |
 | `--coverage-format <name>` | Repeatable. See [Coverage report formats](#coverage-report-formats). | `html` |
 | `--open` | After a green run, open the richest available HTML report. | off |
+| `--update-snapshots` | Refresh the snapshots of the tests this run executes. Translated to bun's `--update-snapshots` / vitest's `--update` for you. | off |
+| `--test-name-pattern <regex>` | Run only the tests whose name matches `<regex>`, composed with the path filter. Translated to bun's `--test-name-pattern` / vitest's `--testNamePattern` for you. | (none) |
 
 `TS_SQL_QUERY_DBS` is a third env-level knob, comma-list of database
 folder names (or `all` / `none`); narrows the SCOPE of the run.
@@ -181,9 +183,13 @@ bun run tests postgres/oldest --docker
 # Level 1: whole database, every (version × connector).
 bun run tests postgres --docker
 
-# Pass extra args through to the runner (snapshot update, etc.).
-bun run tests postgres/newest/pg --docker -- --update-snapshots
-npm  run tests postgres/newest/pg --docker -- -- -u    # vitest
+# Refresh this cell's snapshots — first-class flag, same spelling under
+# both runtimes (npm needs its usual single `--` separator for script flags).
+bun run tests postgres/newest/pg --docker --update-snapshots
+npm  run tests -- postgres/newest/pg --docker --update-snapshots
+
+# Pass runner-specific flags the script doesn't wrap through after `--`.
+bun run tests postgres/newest/pg --docker -- --rerun-each 3
 
 # Real WASM on a wasm cell — single pass (no two-phase split here).
 bun run tests postgres/oldest/pglite --wasm --mode sequential
@@ -228,29 +234,42 @@ zero-test run. A coord that literally names `oldest` together with
 
 ## Narrowing inside a coordinate
 
-Both runners accept a test-name regex (`-t` / `--test-name-pattern` on
-`bun:test`, `-t` / `--testNamePattern` on vitest) which composes with the
-path filter. Pass it after `--`:
+`--test-name-pattern <regex>` runs only the tests whose name matches the
+regex, composed with the path filter. It's a first-class script flag — the
+script translates it to bun's `--test-name-pattern` or vitest's
+`--testNamePattern` for you, so the spelling is the same under bun and npm.
 
 ```bash
 # Run only the test(s) whose name matches the regex in this cell
-bun run tests postgres/newest/pg --docker -- -t inner-join
+bun run tests postgres/newest/pg --docker --test-name-pattern inner-join
 
 # File + test-name regex
-bun run tests postgres/newest/pg/select.basic.test.ts --docker -- -t inner-join
+bun run tests postgres/newest/pg/select.basic.test.ts --docker --test-name-pattern inner-join
 
 # File + test-name regex + snapshot refresh — canonical
 # "update one test's snapshot" recipe
-bun run tests postgres/newest/pg/select.basic.test.ts --docker -- -t inner-join --update-snapshots
+bun run tests postgres/newest/pg/select.basic.test.ts --docker \
+              --test-name-pattern inner-join --update-snapshots
 
-# Same recipe under vitest (use `-u`, prefix extras with `-- --`):
-npm run tests postgres/newest/pg/select.basic.test.ts --docker -- -- -t inner-join -u
+# Under npm: same first-class flags, same spelling. The only npm-ism is
+# the single `--` separator npm requires for ANY script flag (the same
+# one `--docker` already needs) — there is no SECOND `--` and no
+# runtime-specific runner spelling:
+npm run tests -- postgres/newest/pg/select.basic.test.ts --docker \
+                 --test-name-pattern inner-join --update-snapshots
 ```
 
-`--update-snapshots` (or `-u`) only refreshes the snapshots of the tests
-the runner actually executed, so combining it with `-t <regex>` is a safe
-way to fix one test's inline snapshot without churning every other snapshot
-in the file or cell.
+`--update-snapshots` only refreshes the snapshots of the tests the runner
+actually executed, so combining it with `--test-name-pattern <regex>` (or a
+narrow coord) is a safe way to fix one test's inline snapshot without
+churning every other snapshot in the file or cell. Run unscoped over the
+full matrix it rewrites **every** snapshot — the script prints a warning in
+that case but still proceeds, so deliberate mass-regeneration stays
+possible.
+
+Pass-through after `--` remains the right tool for runner-specific flags the
+script doesn't wrap — but for snapshot refresh and test-name filtering,
+reach for the first-class flags.
 
 ## Coverage
 

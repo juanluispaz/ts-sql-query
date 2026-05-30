@@ -238,7 +238,7 @@ When any of these are added to the main matrix:
    `DESIGN.md §8`.
 2. Copy every `docs.*.test.ts` from a sibling cell (sqlite canonical
    is the cheapest source).
-3. Run `bun test test/db/<db>/<version>/<connector>/ -- --update-snapshots`
+3. Run `bun run tests <db>/<version>/<connector> --update-snapshots`
    to bake per-cell SQL.
 4. Triage compile errors → comment out the offending tests with the
    one-line reason. Cross-reference the dialect notes above so you

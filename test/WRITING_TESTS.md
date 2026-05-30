@@ -84,18 +84,23 @@ Whenever the library's emitted SQL or params change, refresh snapshots:
 
 ```bash
 # Whole version
-bun run tests postgres/newest --docker -- --update-snapshots
+bun run tests postgres/newest --docker --update-snapshots
 
 # One file
-bun run tests postgres/newest/pg/select.basic.test.ts --docker -- --update-snapshots
+bun run tests postgres/newest/pg/select.basic.test.ts --docker --update-snapshots
 
-# One test inside one file (composes with -t regex)
-bun run tests postgres/newest/pg/select.basic.test.ts --docker -- -t inner-join --update-snapshots
+# One test inside one file (composes with --test-name-pattern)
+bun run tests postgres/newest/pg/select.basic.test.ts --docker \
+              --test-name-pattern inner-join --update-snapshots
 ```
 
-Either runner produces compatible inline snapshot format. Direct invocation
-also works: `bun test test/db/postgres/newest/ --update-snapshots` or
-`npx vitest run test/db/postgres/newest/ -u`.
+`--update-snapshots` and `--test-name-pattern <regex>` are first-class
+script flags — same spelling under `bun run` and `npm run`; the script
+translates to the active runner's wording (bun's `--update-snapshots` /
+`--test-name-pattern` vs vitest's `--update` / `--testNamePattern`). Either
+runner produces compatible inline snapshot format. Direct invocation also
+works for the runner-side equivalents: `bun test test/db/postgres/newest/ --update-snapshots`
+or `npx vitest run test/db/postgres/newest/ -u`.
 
 Review the diff before committing — a snapshot change is real signal that
 the emitted SQL has changed.
@@ -175,7 +180,7 @@ the user) knows what's still mock-validated only.
 5. **Bake snapshots** for the canonical:
 
    ```bash
-   bun run tests sqlite/newest/bun_sqlite/<slug>.test.ts -- --update-snapshots
+   bun run tests sqlite/newest/bun_sqlite/<slug>.test.ts --update-snapshots
    ```
 
 6. **Real-validate the canonical** — see
@@ -599,7 +604,7 @@ behaviour was documented on.
    value with `expect(result).toEqual(expected)`.
 4. **Bake snapshots** in the sqlite cell:
    ```bash
-   bun run tests sqlite/newest/bun_sqlite/docs.<slug>.test.ts -- --update-snapshots
+   bun run tests sqlite/newest/bun_sqlite/docs.<slug>.test.ts --update-snapshots
    ```
 5. **Mirror to every other cell.** For each `(db, version, connector)`
    under `test/db/`, copy the file and re-bake snapshots.

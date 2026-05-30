@@ -39,22 +39,23 @@ run_phase() {
     local runtime="$1" mode="$2"
     shift 2
     local ec
+    # Per-test timeout. bun's default of 5s (and vitest's) is too tight
+    # for the docker-backed cells under heavy parallel load (an Oracle
+    # `withReseed` drops + recreates the schema and can spike past 5s
+    # during contention). 60s covers the worst legitimate cases without
+    # masking hangs for long, and is mirrored in `vitest.config.ts`
+    # (`testTimeout: 60_000`). `--timeout <N>` overrides it via the
+    # TEST_TIMEOUT_MS global; left unset we keep the 60000 default.
+    local tmo="${TEST_TIMEOUT_MS:-60000}"
     if [ "$runtime" = "bun" ]; then
         local parallel_flag=
         if [ "$mode" = "parallel" ]; then parallel_flag="--parallel"; fi
-        # Per-test timeout — bun's default of 5s is too tight for the
-        # docker-backed cells under heavy parallel load (an Oracle
-        # `withReseed` drops + recreates the schema and can spike past
-        # 5s during contention). 60s matches what vitest already uses
-        # and covers the worst legitimate cases without masking hangs
-        # for long. Mirrored in `vitest.config.ts` (`testTimeout: 60_000`).
-        local timeout_flag="--timeout 60000"
         # An empty "$@" turns into a literal "" token that `bun test`
         # interprets as a filter matching every project file AND exits 99.
         if [ "$#" -gt 0 ]; then
-            bun test $parallel_flag $timeout_flag "$@"
+            bun test $parallel_flag --timeout "$tmo" "$@"
         else
-            bun test $parallel_flag $timeout_flag
+            bun test $parallel_flag --timeout "$tmo"
         fi
         ec=$?
         if [ "$ec" -eq 99 ] || [ "$ec" -eq 100 ]; then ec=0; fi
@@ -63,8 +64,10 @@ run_phase() {
         if [ "$mode" = "sequential" ]; then serial_flag="--no-file-parallelism"; fi
         # `passWithNoTests` and other shared knobs live in
         # vitest.config.ts so they apply to direct `npx vitest run`
-        # invocations too — not just to runs that go through us.
-        vitest run $serial_flag "$@"
+        # invocations too — not just to runs that go through us. The CLI
+        # `--testTimeout` wins over the config value, so passing it here
+        # makes --timeout authoritative (and is a no-op at the default).
+        vitest run $serial_flag --testTimeout="$tmo" "$@"
         ec=$?
     fi
     return $ec
@@ -147,6 +150,74 @@ list_all_connector_paths() {
             done
         done
     done
+}
+
+# Print the connector-level cells (test/db/<db>/<version>/<connector>,
+# no trailing slash) selected by the current MAIN_PATHS, one per line,
+# sorted and de-duplicated. Powers --list-cells.
+#
+# Reads (globals): MAIN_PATHS[]
+#
+# MAIN_PATHS entries may sit at any level (test/, a <db>/, a <version>/,
+# a connector/, or a single *.test.ts file) and may be glob-expanded.
+# We intersect each against the full connector-cell inventory from
+# list_all_connector_paths (which already drops domain/ + types.negative/):
+# a cell is emitted when it equals the path, lives under it, or — for a
+# file/connector path — contains it. Returns 1 (with a stderr note) when
+# the selection resolves to no connector cell, e.g. a coord that names
+# only a types.negative folder.
+list_cells_from_main_paths() {
+    local p cc cell
+    local all=() out=()
+    while IFS= read -r cell; do all+=("$cell"); done < <(list_all_connector_paths)
+    for p in "${MAIN_PATHS[@]}"; do
+        p="${p%/}"
+        # A file target collapses to its connector directory.
+        if [ -f "$p" ]; then p="${p%/*}"; fi
+        for cell in "${all[@]}"; do
+            cc="${cell%/}"
+            # `"$cc/"` matches `"$p"/*` both when cc == p (the glob's `*`
+            # accepts the empty tail) and when cc sits under p — so one
+            # case covers exact-connector and broader-prefix paths alike.
+            case "$cc/" in
+                "$p"/*) out+=("$cc") ;;
+            esac
+        done
+    done
+    if [ "${#out[@]}" -eq 0 ]; then
+        echo "--list-cells: the selection resolved to no connector cells (only domain/ or types.negative/?)." >&2
+        return 1
+    fi
+    printf '%s\n' "${out[@]}" | sort -u
+}
+
+# Print the `*.test.ts` files selected by the current MAIN_PATHS, one per
+# line, sorted and de-duplicated. Powers --list-files.
+#
+# Reads (globals): MAIN_PATHS[]
+#
+# Like list_cells_from_main_paths this is a pure filesystem walk (no
+# runner), but it lists at file granularity. The `*.test.ts` glob mirrors
+# the runner's own include (`test/**/*.test.ts` in vitest.config.ts; bun's
+# default test-file pattern), so the output is exactly the file set a real
+# run would visit — including any `types.negative/` files when they're in
+# scope, since MAIN_PATHS is already scope/connection-filtered. Returns 1
+# (with a stderr note) when nothing matches.
+list_files_from_main_paths() {
+    local p f out=()
+    for p in "${MAIN_PATHS[@]}"; do
+        p="${p%/}"
+        if [ -f "$p" ]; then
+            case "$p" in *.test.ts) out+=("$p") ;; esac
+        elif [ -d "$p" ]; then
+            while IFS= read -r f; do out+=("$f"); done < <(find "$p" -type f -name '*.test.ts')
+        fi
+    done
+    if [ "${#out[@]}" -eq 0 ]; then
+        echo "--list-files: the selection matched no *.test.ts files." >&2
+        return 1
+    fi
+    printf '%s\n' "${out[@]}" | sort -u
 }
 
 # Filter MAIN_PATHS in-place against a connection-type. Each path is
@@ -347,6 +418,12 @@ coverage_runner_flags() {
 #   dots   → terminal-only progress dots; produces no file.
 # Any other value (notably `html`) is vitest-only and errors.
 #
+# The compact progress reporter is the one place the runners disagree
+# on a format NAME (not just a flag spelling): bun calls it `dots`,
+# vitest calls it `dot`. We accept either as a synonym and normalise to
+# the active runner's real name, so the documented canonical `dot`
+# works under bun and a `dots` carried over from bun works under vitest.
+#
 # Vitest accepts any number of `--reporter=<name>` flags and
 # validates the names itself.
 report_runner_flags() {
@@ -361,15 +438,24 @@ report_runner_flags() {
                 junit)
                     printf -- '--reporter=junit\n'
                     printf -- '--reporter-outfile=./.test-report/junit.xml\n' ;;
-                dots)
+                dot|dots)
+                    # bun's reporter is `dots`; accept vitest's `dot`
+                    # spelling as a synonym and normalise to bun's name.
                     printf -- '--reporter=dots\n' ;;
                 *)
-                    echo "report_runner_flags: bun does not support --report-format=$1 — supported under bun: junit|dots (use --use-vitest for html and the rest)" >&2
+                    echo "report_runner_flags: bun does not support --report-format=$1 — supported under bun: junit|dot|dots (use --use-vitest for html and the rest)" >&2
                     return 1 ;;
             esac ;;
         npm)
             for fmt in "$@"; do
-                printf -- '--reporter=%s\n' "$fmt"
+                case "$fmt" in
+                    dots)
+                        # vitest's reporter is `dot`; normalise bun's
+                        # `dots` spelling so either name works here too.
+                        printf -- '--reporter=dot\n' ;;
+                    *)
+                        printf -- '--reporter=%s\n' "$fmt" ;;
+                esac
             done ;;
         *)
             echo "report_runner_flags: unsupported runtime=$runtime" >&2

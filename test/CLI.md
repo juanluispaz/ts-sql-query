@@ -14,6 +14,7 @@ the `--docker` / `--wasm` flags drive see
 - [Focused runs](#focused-runs)
 - [Coord patterns: literals, globs, braces, multi-coord](#coord-patterns)
 - [Narrowing inside a coordinate](#narrowing-inside-a-coordinate)
+- [Listing cells or tests without running](#listing-cells)
 - [Coverage](#coverage)
 - [Coverage report formats](#coverage-report-formats)
 - [Test-execution report formats](#test-execution-report-formats)
@@ -88,6 +89,12 @@ Orthogonal — combine freely (except for the [Forbidden combinations](#forbidde
 | `--open` | After a green run, open the richest available HTML report. | off |
 | `--update-snapshots` | Refresh the snapshots of the tests this run executes. Translated to bun's `--update-snapshots` / vitest's `--update` for you. | off |
 | `--test-name-pattern <regex>` | Run only the tests whose name matches `<regex>`, composed with the path filter. Translated to bun's `--test-name-pattern` / vitest's `--testNamePattern` for you. | (none) |
+| `--bail [<N>]` | Stop the run after `N` test failures (`N` defaults to 1). Emitted as `--bail=N`, accepted verbatim by both runtimes. `--bail 0` is rejected; omit the flag to disable bailing. | off |
+| `--timeout <ms>` | Override the per-test timeout (positive integer ms). Translated to bun's `--timeout` / vitest's `--testTimeout`. `--timeout 0` is rejected. | `60000` |
+| `--no-color` | Strip ANSI colors from the output (sets `NO_COLOR=1`, honoured by both runtimes). Also suppresses the WASM-phase color re-injection on a TTY. | off |
+| `--list-cells` | Print the connector-level cells the current coords/`--scope`/`--connections` select, one per line, then exit without running. See [Listing cells or tests without running](#listing-cells). | off |
+| `--list-files` | Print the `*.test.ts` files the current selection would run (filesystem walk, runtime-agnostic), then exit without running. See [Listing cells or tests without running](#listing-cells). | off |
+| `--list-tests` | Print the test *names* the current selection would run (vitest-backed), then exit without running. See [Listing cells or tests without running](#listing-cells). | off |
 
 `TS_SQL_QUERY_DBS` is a third env-level knob, comma-list of database
 folder names (or `all` / `none`); narrows the SCOPE of the run.
@@ -271,6 +278,124 @@ Pass-through after `--` remains the right tool for runner-specific flags the
 script doesn't wrap — but for snapshot refresh and test-name filtering,
 reach for the first-class flags.
 
+Two more runner behaviours are first-class so you don't have to forward
+them after `--`:
+
+- **`--bail [<N>]`** stops the run after `N` failures (default 1). In the
+  iterate-on-one-cell loop (`tests <cell> --docker`), a broken canonical
+  aborts immediately instead of waiting for the rest of the cell. Emitted as
+  `--bail=N` — bun and vitest both accept it. `--bail 0` is rejected; omit
+  the flag to keep running through failures.
+- **`--timeout <ms>`** overrides the per-test timeout (default `60000`, the
+  value baked into the runner config). Emitted as bun's `--timeout` /
+  vitest's `--testTimeout`. Raise it to debug a slow docker-backed cell;
+  lower it to fail-fast on a suspected hang instead of waiting the full 60s.
+  `--timeout 0` is rejected.
+- **`--no-color`** sets `NO_COLOR=1` (both runtimes honour it), keeping
+  transcripts and `grep` / `tail` pipelines free of ANSI escapes. It also
+  suppresses the color re-injection the WASM-phase replay does on a TTY.
+
+```bash
+bun run tests postgres/newest/pg --docker --bail          # stop at first failure
+bun run tests postgres/newest/pg --docker --bail 3        # stop after 3 failures
+bun run tests postgres/newest/pg --docker --timeout 180000 # roomier timeout for a slow cell
+bun run tests postgres/newest/pg --no-color 2>&1 | tail   # clean, parseable output
+```
+
+## Listing cells or tests without running
+
+Three terminal flags enumerate the selection and exit without running it,
+at increasing granularity — cells, then files, then test names. They are
+mutually exclusive (pass only one).
+
+### `--list-cells`
+
+`--list-cells` prints the connector-level cells
+(`test/db/<db>/<version>/<connector>`) that the current
+coords / `--scope` / `--connections` select — one per line, sorted — then
+exits **without running any test**. It's runner-free and deterministic: a
+drop-in replacement for the hand-rolled `for db in test/db/*/…` inventory
+loop, and it honours every path filter for free because it lists exactly
+the cells a real run would visit.
+
+```bash
+# Every active cell (matches the cell count tests:audit reports).
+bun run tests --list-cells
+
+# The exact set a propagation would touch — verify before copy-baking.
+bun run tests 'postgres/*/{pg,postgres}' --scope newest --list-cells
+
+# Only one connector type.
+bun run tests --connections native --list-cells
+
+# A single file collapses to its owning cell.
+bun run tests sqlite/newest/better-sqlite3/config.uuid-strategy.test.ts --list-cells
+#   → test/db/sqlite/newest/better-sqlite3
+```
+
+A selection that resolves to no connector cell (e.g. a coord naming only a
+`types.negative/` folder) prints a note to stderr and exits non-zero.
+
+### `--list-files`
+
+`--list-files` prints the `*.test.ts` files the current selection would run
+— one per line, sorted — then exits without running them. It's the
+file-granularity sibling of `--list-cells`: the level you actually copy-bake
+during propagation, and a clean input for a per-file loop.
+
+Like `--list-cells` it's a **runner-free filesystem walk** — runtime-agnostic
+and deterministic, no vitest needed. The `*.test.ts` glob mirrors the
+runner's own include (`test/**/*.test.ts`), so the output is exactly the
+file set a real run would visit, including in-scope `types.negative/` files.
+The per-cell count matches the "N test files per cell" line in
+`tests:audit`.
+
+```bash
+# Every test file in one cell (matches tests:audit's per-cell file count).
+bun run tests postgres/newest/pg --list-files
+
+# Only the native SQLite connectors.
+bun run tests sqlite/newest --connections native --list-files
+```
+
+> vitest also offers `vitest list --filesOnly`, but `--list-files` stays a
+> filesystem walk on purpose: it works without vitest (so it's usable from a
+> bun-only loop), is faster (no collection phase), and lists files by
+> discovery rather than by whether they register a runtime test — which is
+> what you want for inventory and propagation. `--list-tests` is the only
+> listing flag that must defer to vitest.
+
+### `--list-tests`
+
+`--list-tests` prints the test *names* the current selection would run —
+one full `file > describe > test` name per line — then exits without
+running them. It's the tool for **reviewing what already exists before
+deciding where to add coverage**, and for previewing which tests a
+`--test-name-pattern` matches.
+
+Unlike `--list-cells` (a pure filesystem walk), enumerating test names needs
+a runner to collect them, and **bun has no collect-only mode** — so
+`--list-tests` is **vitest-backed by design**: it always shells out to
+`vitest list` regardless of how the script was invoked. It is the one flag
+in the family that is not runtime-agnostic. Collection imports the test
+files and evaluates their `describe`/`test` registration but **not** the
+test bodies or `beforeAll` hooks, so no real DB is bootstrapped. It honours
+the coord / `--scope` / `--connections` path filter and `--test-name-pattern`.
+
+```bash
+# Every test name in one cell.
+bun run tests postgres/newest/pg --list-tests
+
+# Preview which tests a pattern matches before running with it.
+bun run tests postgres/newest/pg --list-tests --test-name-pattern inner-join
+
+# Machine-readable: pass --json through after `--`.
+bun run tests sqlite/newest --connections native --list-tests -- --json
+```
+
+`--list-cells`, `--list-files` and `--list-tests` are mutually exclusive —
+passing more than one is rejected (all three are terminal listing actions).
+
 ## Coverage
 
 Pass `--coverage` to any of the test CLIs; output lands under
@@ -374,10 +499,21 @@ vitest, `junit` under bun. Setting it implies `--report`.
 Under vitest: pass-through (`html`, `default`, `verbose`, `dot`, `tap`,
 `tap-flat`, `junit`, `json`, `tree`, `github-actions`).
 
-Under bun: only `junit` (file → `.test-report/junit.xml`) and `dots`
-(terminal). Other formats error. Multiple `--report-format` values are not
-supported (bun's `--reporter` is single-valued); first one wins and a
-warning is printed.
+Under bun: only `junit` (file → `.test-report/junit.xml`) and `dot` /
+`dots` (terminal, compact one-char-per-test progress). Other formats error.
+Multiple `--report-format` values are not supported (bun's `--reporter` is
+single-valued); first one wins and a warning is printed.
+
+**`dot` vs `dots` — use either.** The compact progress reporter is the one
+format whose *name* differs between runners (bun's is `dots`, vitest's is
+`dot`). The script accepts both as synonyms and normalises to the active
+runner's real name, so `--report-format dot` works under bun and
+`--report-format dots` works under vitest. `dot` is the documented canonical
+(it matches the mocha/jest/vitest convention). This is also the answer to
+"just give me terminal-only pass/fail progress" — there's no separate
+`--quiet`/`--silent` flag (vitest has `--silent`, bun has none; this suite's
+tests emit no `console.log` to silence anyway, and `… 2>&1 | tail` already
+yields the summary on either runtime).
 
 For the html test-execution SPA pass `--use-vitest`.
 

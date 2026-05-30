@@ -20,6 +20,12 @@ Usage:
                    [--open]
                    [--update-snapshots]
                    [--test-name-pattern <regex>]
+                   [--bail [<N>]]
+                   [--timeout <ms>]
+                   [--no-color]
+                   [--list-cells]
+                   [--list-files]
+                   [--list-tests]
                    [--help]
                    [-- <args passed to runner>]
 
@@ -91,9 +97,12 @@ Runner trade-off
   V8-based (column-level) vs bun's lcov collapse, and the html
   test-execution SPA is vitest-only.
   Under bun:
-    --report-format        junit (file) | dots (terminal). Default
-                           is junit when --report is on. html is
-                           rejected with an error — pass
+    --report-format        junit (file) | dot|dots (terminal compact
+                           progress). Default is junit when --report is
+                           on. `dot` and `dots` are synonyms normalised
+                           per runtime (bun: dots, vitest: dot), so
+                           either spelling works under either runner.
+                           html is rejected with an error — pass
                            --use-vitest for the SPA.
     --coverage-format      text | lcov | html | monocart. html is
                            rendered from lcov by
@@ -141,6 +150,14 @@ Defaults
   --coverage         off
   --coverage-format  html (when --coverage is on)
   --open             off
+  --update-snapshots off
+  --test-name-pattern (none — runs every test the path filter selects)
+  --bail             off (no bail; bare --bail means 1)
+  --timeout          60000 (ms; the value baked into the runner config)
+  --no-color         off (colors kept when stdout is a TTY)
+  --list-cells       off
+  --list-files       off
+  --list-tests       off (vitest-backed when used)
 
 WASM semantics
   Full-matrix mode (no positional coords): the main pass ALWAYS runs
@@ -240,8 +257,11 @@ Report flags (test-execution report)
         default, verbose, dot, tap, tap-flat, junit, json, tree,
         github-actions.
         Under bun, only `junit` (file at .test-report/junit.xml)
-        and `dots` (terminal-only) are supported. Other values —
-        including `html` — error out and prompt for --use-vitest.
+        and `dot`/`dots` (terminal-only compact progress) are
+        supported. `dot` and `dots` are accepted interchangeably and
+        normalised to the runner's own name (bun: dots, vitest: dot).
+        Other values — including `html` — error out and prompt for
+        --use-vitest.
 
 Coverage flags
   --coverage
@@ -293,6 +313,66 @@ Narrowing flags (runtime-agnostic — translated for you)
                         --test-name-pattern inner-join --update-snapshots
           npm run tests -- postgres/newest/pg/select.basic.test.ts \
                            --test-name-pattern inner-join --update-snapshots
+  --bail [<N>]
+        Stop the run after N test failures (default 1 when no count is
+        given). Saves wall-time in the iterate-on-one-cell loop: a
+        broken canonical aborts immediately instead of waiting for the
+        rest of the cell. Emitted as `--bail=N`, accepted verbatim by
+        both bun and vitest. `--bail 0` is rejected (use no flag at all
+        to disable bailing).
+  --timeout <ms>
+        Override the per-test timeout (positive integer, milliseconds).
+        Translated to bun's `--timeout` / vitest's `--testTimeout`.
+        Defaults to 60000 (the value baked into the runner config) when
+        omitted. Raise it to debug a slow docker-backed cell, or lower
+        it to fail-fast on a suspected hang instead of waiting 60s.
+        `--timeout 0` is rejected.
+  --no-color
+        Strip ANSI colors from the output (sets NO_COLOR=1, honoured by
+        both runtimes). Keeps agent transcripts and `grep`/`tail`
+        pipelines clean; also suppresses the color re-injection the
+        WASM-phase replay would otherwise do on a TTY.
+
+Listing flags (enumerate, don't run — mutually exclusive)
+  --list-cells
+        Print the connector-level cells
+        (test/db/<db>/<version>/<connector>) the current
+        coords/--scope/--connections select — one per line, sorted —
+        then exit WITHOUT running anything. Runner-free and
+        deterministic; a drop-in for the hand-rolled `for db in
+        test/db/*/…` inventory loop. Honours every path filter for free
+        (it lists exactly what a real run would visit at cell level).
+          tests --list-cells                       # every active cell
+          tests postgres --scope newest --list-cells
+          tests --connections native --list-cells
+  --list-files
+        Print the `*.test.ts` files the current selection would run — one
+        per line, sorted — then exit WITHOUT running anything. Like
+        --list-cells it's a runner-free filesystem walk (runtime-agnostic,
+        no vitest needed), just at file granularity: the level you
+        copy-bake during propagation. The glob mirrors the runner's
+        include (`test/**/*.test.ts`), so the output matches the files a
+        real run would visit — including in-scope `types.negative/` files.
+          tests postgres/newest/pg --list-files    # the 166 files in one cell
+          tests --connections native --list-files
+  --list-tests
+        Print the test NAMES the current selection would run (one full
+        `file > describe > test` name per line), then exit without
+        running them. Useful to review what already exists before
+        deciding where to add coverage, or to preview which tests a
+        --test-name-pattern matches.
+        VITEST-BACKED BY DESIGN: bun has no collect-only mode, so this
+        always uses `vitest list` regardless of how the script was
+        invoked — the one flag in this family that is not
+        runtime-agnostic. Collection imports the test files and
+        evaluates their describe/test registration but NOT the test
+        bodies or beforeAll hooks, so no real DB is bootstrapped.
+        Honours the coord/--scope/--connections path filter and
+        --test-name-pattern; pass `-- --json` for machine-readable
+        output.
+          tests postgres/newest/pg --list-tests
+          tests postgres/newest/pg --list-tests --test-name-pattern inner-join
+          tests sqlite/newest --connections native --list-tests -- --json
 
 Browser flag
   --open
@@ -340,6 +420,11 @@ Examples
   bun run tests postgres/newest/pg/select.basic.test.ts \
                 --test-name-pattern inner-join --update-snapshots
                                                            # refresh one test's snapshot
+  bun run tests postgres/newest/pg --docker --bail         # stop at first failure
+  bun run tests --list-cells                               # enumerate active cells, no run
+  bun run tests postgres --scope newest --list-cells       # cells a propagation would touch
+  bun run tests postgres/newest/pg --list-files            # enumerate test files (filesystem)
+  bun run tests postgres/newest/pg --list-tests            # enumerate test names (vitest-backed)
   bun run tests 'postgres/*/pg' --docker                   # focused: glob
   bun run tests 'postgres/*/{pg,postgres}' --docker --scope newest
                                                            # focused: glob + brace + scope
@@ -380,6 +465,16 @@ COVERAGE_FORMAT=()
 OPEN_AFTER=off
 UPDATE_SNAPSHOTS=off
 TEST_NAME_PATTERN=
+# Empty sentinel: distinguishes "no --bail" from "--bail with a count".
+# `--bail` alone resolves to 1 below.
+BAIL=
+NO_COLOR_FLAG=off
+LIST_CELLS=off
+LIST_FILES=off
+LIST_TESTS=off
+# Empty sentinel: "user didn't pass --timeout". Resolves to the 60000ms
+# default (the value run_phase otherwise hardcodes) when left empty.
+TIMEOUT=
 EXTRA_ARGS=()
 
 while [ $# -gt 0 ]; do
@@ -408,6 +503,21 @@ while [ $# -gt 0 ]; do
         --update-snapshots)     UPDATE_SNAPSHOTS=on; shift ;;
         --test-name-pattern)    TEST_NAME_PATTERN="$2"; shift 2 ;;
         --test-name-pattern=*)  TEST_NAME_PATTERN="${1#--test-name-pattern=}"; shift ;;
+        --bail)
+            # Optional count: `--bail` alone → 1; `--bail 3` consumes the
+            # next arg only when it's a bare integer (so `--bail --docker`
+            # keeps --docker as a flag).
+            case "${2:-}" in
+                ''|*[!0-9]*)    BAIL=1; shift ;;
+                *)              BAIL="$2"; shift 2 ;;
+            esac ;;
+        --bail=*)               BAIL="${1#--bail=}"; shift ;;
+        --timeout)              TIMEOUT="$2"; shift 2 ;;
+        --timeout=*)            TIMEOUT="${1#--timeout=}"; shift ;;
+        --no-color)             NO_COLOR_FLAG=on; shift ;;
+        --list-cells)           LIST_CELLS=on; shift ;;
+        --list-files)           LIST_FILES=on; shift ;;
+        --list-tests)           LIST_TESTS=on; shift ;;
         -h|--help)              print_help; exit 0 ;;
         --)                     shift; EXTRA_ARGS=("$@"); break ;;
         --*)                    echo "Unknown argument: $1 (use --help)" >&2; exit 2 ;;
@@ -441,6 +551,30 @@ esac
 case "$CONNECTIONS" in all|docker|wasm|native) ;; *)
     echo "Invalid --connections: $CONNECTIONS (expected all|docker|wasm|native)" >&2; exit 2 ;;
 esac
+if [ -n "$BAIL" ]; then
+    case "$BAIL" in
+        ''|*[!0-9]*|0)  echo "Invalid --bail: $BAIL (expected a positive integer; bare --bail means 1)" >&2; exit 2 ;;
+    esac
+fi
+if [ -n "$TIMEOUT" ]; then
+    case "$TIMEOUT" in
+        ''|*[!0-9]*|0)  echo "Invalid --timeout: $TIMEOUT (expected a positive integer, milliseconds)" >&2; exit 2 ;;
+    esac
+fi
+# --list-cells / --list-files / --list-tests are all terminal listing
+# actions (enumerate and exit). At most one may be passed.
+_list_count=0
+[ "$LIST_CELLS" = "on" ] && _list_count=$((_list_count + 1))
+[ "$LIST_FILES" = "on" ] && _list_count=$((_list_count + 1))
+[ "$LIST_TESTS" = "on" ] && _list_count=$((_list_count + 1))
+if [ "$_list_count" -gt 1 ]; then
+    echo "Error: --list-cells, --list-files and --list-tests are mutually exclusive terminal listing actions; pass only one." >&2
+    exit 2
+fi
+# run_phase reads this global for the per-test timeout (bun's --timeout /
+# vitest's --testTimeout). Empty --timeout falls back to the 60000ms
+# default that matches vitest.config.ts's testTimeout.
+TEST_TIMEOUT_MS="${TIMEOUT:-60000}"
 # Resolve the docker-scope default. Empty means "user didn't pass it":
 # follow --scope (newest filters paths AND would skip the real-DB gate
 # for any version we don't even visit).
@@ -465,6 +599,45 @@ if ! apply_connection_type_filter "$CONNECTIONS"; then
     exit 2
 fi
 
+# --list-cells: print the connector-level cells the current
+# coords/scope/connections select, one per line, then exit without
+# running anything. Deterministic, runner-free — a tested replacement
+# for the hand-rolled `for db in test/db/*/…` inventory loop. MAIN_PATHS
+# is already coord/scope/connection-filtered, so the listing honours all
+# of those for free.
+if [ "$LIST_CELLS" = "on" ]; then
+    list_cells_from_main_paths
+    exit $?
+fi
+
+# --list-files: print the *.test.ts files the current selection would run,
+# one per line, then exit. Like --list-cells it's a runner-free filesystem
+# walk (so it stays runtime-agnostic and works without vitest), just at
+# file granularity — the level you copy-bake during propagation. The glob
+# mirrors the runner's include, so MAIN_PATHS' scope/connection filtering
+# carries straight through.
+if [ "$LIST_FILES" = "on" ]; then
+    list_files_from_main_paths
+    exit $?
+fi
+
+# --list-tests: enumerate the test NAMES the current selection would run,
+# without running them, then exit. Unlike --list-cells (a filesystem walk),
+# this needs a runner to collect test names — and bun has no collect-only
+# mode, so this is vitest-backed by design: it always uses `vitest list`
+# regardless of how the script was invoked. Collection imports the test
+# files and evaluates their describe/test registration but NOT the test
+# bodies or beforeAll hooks, so no real DB is bootstrapped. Honours the
+# coord/scope/connection path filter (MAIN_PATHS) and --test-name-pattern;
+# extra runner args after `--` pass through (e.g. `--json` for parsing).
+if [ "$LIST_TESTS" = "on" ]; then
+    if [ "$NO_COLOR_FLAG" = "on" ]; then export NO_COLOR=1; fi
+    list_args=()
+    if [ -n "$TEST_NAME_PATTERN" ]; then list_args+=(--testNamePattern "$TEST_NAME_PATTERN"); fi
+    vitest list "${MAIN_PATHS[@]}" "${list_args[@]}" "${EXTRA_ARGS[@]}"
+    exit $?
+fi
+
 runtime="$(detect_runtime)"
 if [ "$USE_VITEST" = "on" ]; then runtime="npm"; fi
 
@@ -484,6 +657,11 @@ if [ "$UPDATE_SNAPSHOTS" = "on" ] || [ -n "$TEST_NAME_PATTERN" ]; then
         if [ -n "$flag" ]; then NARROWING_FLAGS+=("$flag"); fi
     done <<<"$NARROW_OUT"
 fi
+# --bail rides along the same way. `--bail=N` is accepted verbatim by
+# both bun (`--bail=<val>`) and vitest (`--bail <number>` / `=N`), so no
+# per-runtime translation is needed — only the empty→1 default already
+# resolved at parse time.
+if [ -n "$BAIL" ]; then NARROWING_FLAGS+=("--bail=$BAIL"); fi
 
 # Soft guard: refreshing snapshots across the WHOLE matrix (no coord,
 # no name filter) rewrites every snapshot in ~2.5k files at once — almost
@@ -495,6 +673,13 @@ if [ "$UPDATE_SNAPSHOTS" = "on" ] && [ "$FOCUSED" = "off" ] && [ -z "$TEST_NAME_
     echo "  Scope it with a coord (e.g. 'tests postgres/newest/pg …') or" >&2
     echo "  --test-name-pattern <regex> to refresh only the tests you mean." >&2
 fi
+
+# --no-color: NO_COLOR=1 is honoured by both bun and vitest (and most of
+# the libraries underneath), so one env export covers both runtimes and
+# also keeps the WASM-phase replay plain-text. The FORCE_COLOR /
+# CLICOLOR_FORCE re-injection in the WASM tee below is gated on this so
+# the two don't fight.
+if [ "$NO_COLOR_FLAG" = "on" ]; then export NO_COLOR=1; fi
 
 export TS_SQL_QUERY_DOCKER="$DOCKER"
 if [ "$DOCKER_MODE" = "reuse" ]; then export TESTCONTAINERS_REUSE_ENABLE=true; fi
@@ -646,7 +831,7 @@ if [ "$FOCUSED" = "off" ] && [ "$CONNECTIONS" = "all" ] && [ "$WASM" = "on" ]; t
     WASM_LOG="$(mktemp)"
     export TS_SQL_QUERY_WASM=on
     export TSSQLQUERY_PARALLEL_DBS=false
-    if [ -t 1 ]; then
+    if [ -t 1 ] && [ "$NO_COLOR_FLAG" = "off" ]; then
         export FORCE_COLOR=1
         export CLICOLOR_FORCE=1
     fi

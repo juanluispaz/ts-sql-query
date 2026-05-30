@@ -419,18 +419,18 @@ Once the canonical is GREEN/YELLOW, propagate via a small `cp` script (or
 1. **Identify active cells from the working tree** — never rely on a
    count this document hardcoded. Inventory drifts: new connectors land,
    old ones are retired, new `compatibilityVersion` subfolders show up.
-   Recompute fresh:
+   Recompute fresh with `--list-cells` (runner-free, deterministic, skips
+   `domain/` + `types.negative/` for you):
 
    ```bash
-   for db in test/db/*/; do
-       for v in "$db"*/; do
-           [ "$(basename "$v")" = "domain" ]          && continue
-           [ "$(basename "$v")" = "types.negative" ]  && continue
-           for c in "$v"*/; do
-               [ -d "$c" ] && printf '%s\n' "$c"
-           done
-       done
-   done | sort
+   bun run tests --list-cells              # every active cell, sorted
+   ```
+
+   It honours the path filters, so you can preview exactly the set a
+   scoped propagation will touch before copy-baking:
+
+   ```bash
+   bun run tests 'postgres/*/{pg,postgres}' --scope newest --list-cells
    ```
 
    The single normative count is `bun run tests:audit`'s output, which

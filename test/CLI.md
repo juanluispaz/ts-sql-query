@@ -15,6 +15,7 @@ the `--docker` / `--wasm` flags drive see
 - [Coord patterns: literals, globs, braces, multi-coord](#coord-patterns)
 - [Narrowing inside a coordinate](#narrowing-inside-a-coordinate)
 - [Listing cells or tests without running](#listing-cells)
+- [The validation summary](#validation-summary)
 - [Coverage](#coverage)
 - [Coverage report formats](#coverage-report-formats)
 - [Test-execution report formats](#test-execution-report-formats)
@@ -93,11 +94,17 @@ Orthogonal — combine freely (except for the [Forbidden combinations](#forbidde
 | `--timeout <ms>` | Override the per-test timeout (positive integer ms). Translated to bun's `--timeout` / vitest's `--testTimeout`. `--timeout 0` is rejected. | `60000` |
 | `--no-color` | Strip ANSI colors from the output (sets `NO_COLOR=1`, honoured by both runtimes). Also suppresses the WASM-phase color re-injection on a TTY. | off |
 | `--list-cells` | Print the connector-level cells the current coords/`--scope`/`--connections` select, one per line, then exit without running. See [Listing cells or tests without running](#listing-cells). | off |
+| `--list-cells-with-mode [running\|all\|real\|mock\|skipped]` | Like `--list-cells`, but each cell is annotated with its real/mock/skipped mode under the current flags. Optional filter: `running` (default — cells that will run), `all` (incl. off/skipped), `real`, `mock`, `skipped`. See [Listing cells or tests without running](#listing-cells). | off |
 | `--list-files` | Print the `*.test.ts` files the current selection would run (filesystem walk, runtime-agnostic), then exit without running. See [Listing cells or tests without running](#listing-cells). | off |
 | `--list-tests` | Print the test *names* the current selection would run (vitest-backed), then exit without running. See [Listing cells or tests without running](#listing-cells). | off |
+| `--validation-summary [running\|all\|real\|mock\|skipped]` | After a normal run, print the same annotated block `--list-cells-with-mode` would — which cells were validated real vs mock. Same optional filter. See [The validation summary](#validation-summary). | off |
 
 `TS_SQL_QUERY_DBS` is a third env-level knob, comma-list of database
-folder names (or `all` / `none`); narrows the SCOPE of the run.
+folder names (or `all` / `none`). It's a **per-database real/mock gate**
+(like `--docker` but scoped by db): a db not in the list has its real
+branch gated off and its tests run against the mock. It does **not** skip
+tests or filter the path set — set it in the environment
+(`TS_SQL_QUERY_DBS=postgres bun run tests …`); there's no CLI flag for it.
 
 The CLI flags above set env vars consumed at runtime by
 [`test/lib/backends.ts`](./lib/backends.ts): `TS_SQL_QUERY_DOCKER`,
@@ -301,11 +308,12 @@ bun run tests postgres/newest/pg --docker --timeout 180000 # roomier timeout for
 bun run tests postgres/newest/pg --no-color 2>&1 | tail   # clean, parseable output
 ```
 
+<a id="listing-cells"></a>
 ## Listing cells or tests without running
 
-Three terminal flags enumerate the selection and exit without running it,
-at increasing granularity — cells, then files, then test names. They are
-mutually exclusive (pass only one).
+Four terminal flags enumerate the selection and exit without running it:
+cells (plain or mode-annotated), files, then test names. They are mutually
+exclusive (pass only one).
 
 ### `--list-cells`
 
@@ -334,6 +342,72 @@ bun run tests sqlite/newest/better-sqlite3/config.uuid-strategy.test.ts --list-c
 
 A selection that resolves to no connector cell (e.g. a coord naming only a
 `types.negative/` folder) prints a note to stderr and exits non-zero.
+
+### `--list-cells-with-mode`
+
+`--list-cells-with-mode` annotates cells with their mode under the *current*
+flags. Unlike `--list-cells` — which lists only the selection —
+`--list-cells-with-mode` considers the **whole matrix** and gives every cell
+a verdict plus the reason, so you can see not just what runs but what's
+**off and why**. (It's its own terminal flag — not a modifier — so the
+listing is unambiguous.)
+
+The per-cell **verdict**:
+
+- `real` — runs against a real engine: `(docker)` / `(wasm)` / `(native)`.
+- `mock` — runs, but against the mock: `(docker; needs --docker)`, `(wasm;
+  needs --wasm)`, `(docker; docker-scope=newest skips <version>)`, or
+  `(db out of TS_SQL_QUERY_DBS scope → real gated)` — the database is out of
+  `TS_SQL_QUERY_DBS` scope, so the real branch is gated off but the test
+  still runs against the mock (it is **not** skipped).
+- `skipped` — off, **excluded from the run** (the runner never sees it),
+  with the reason (in precedence order): `(not selected: outside coords)`,
+  `(excluded by --connections <type>)`, `(excluded by --scope newest)`.
+
+An **optional filter** selects which verdicts to print:
+
+| filter | shows |
+|---|---|
+| *(omitted)* / `running` | the cells that run a body: `real` + `mock`. The default. |
+| `all` | the whole matrix, including the off (`skipped`) ones. |
+| `real` | only `real` cells. |
+| `mock` | only `mock` cells. |
+| `skipped` | only the off cells (any skip reason). |
+
+```bash
+# Default (running): only the cells that run; docker/wasm cells are mock
+# without their flag, native is always real.
+bun run tests 'postgres/*/{pg,pglite}' --list-cells-with-mode
+
+# all → the whole matrix, each off cell labelled with why it's excluded.
+bun run tests postgres/newest --connections docker --docker --list-cells-with-mode all
+#   test/db/postgres/newest/pg          real    (docker)
+#   test/db/postgres/newest/pglite      skipped (excluded by --connections docker)
+#   test/db/postgres/oldest/pg          skipped (not selected: outside coords)
+#   test/db/mariadb/newest/mariadb      skipped (not selected: outside coords)
+#   …
+#   -- 3 running cells: 3 real, 0 mock; 14 other cells skipped
+
+# real keeps only the cells that bring up a real engine ("active cases").
+bun run tests postgres/newest --docker --wasm --list-cells-with-mode real
+
+# skipped → only the off cells; here, oldest excluded by --scope newest.
+bun run tests postgres --scope newest --docker --list-cells-with-mode skipped
+```
+
+A footer tallies the **running** cells (real + mock) and, separately, the
+count of **other cells skipped** — independent of the display filter:
+
+```
+-- 3 running cells: 3 real, 0 mock; 14 other cells skipped
+```
+
+The real/mock projection mirrors [`isRealDbEnabled()`](./lib/backends.ts#L105)
+— the runtime source of truth for the real/mock gate — but stays a
+runner-free bash computation, so `--list-cells-with-mode` is as instant as
+`--list-cells`. (If the gate logic in `backends.ts` changes, the `cell_mode`
+helper in [`scripts/_test-common.sh`](../scripts/_test-common.sh) must change
+with it; a `KEEP IN SYNC` marker flags it there.)
 
 ### `--list-files`
 
@@ -392,8 +466,35 @@ bun run tests postgres/newest/pg --list-tests --test-name-pattern inner-join
 bun run tests sqlite/newest --connections native --list-tests -- --json
 ```
 
-`--list-cells`, `--list-files` and `--list-tests` are mutually exclusive —
-passing more than one is rejected (all three are terminal listing actions).
+`--list-cells`, `--list-cells-with-mode`, `--list-files` and `--list-tests`
+are mutually exclusive — passing more than one is rejected (all are terminal
+listing actions).
+
+<a id="validation-summary"></a>
+## The validation summary
+
+`--validation-summary` is the run-time counterpart of
+`--list-cells-with-mode`: instead of listing-and-exiting, it lets the run
+proceed normally and then prints the same annotated real/mock block at the
+end. It
+answers, after the fact, **which cells were validated against a real engine
+versus only the mock** — the "mock-validated vs real-validated" distinction
+a coverage round reports when it closes (see
+[`COVERAGE_RUNBOOK.md`](./COVERAGE_RUNBOOK.md)).
+
+```bash
+# Full matrix + the breakdown of what actually hit a real engine.
+bun run tests --docker --validation-summary
+
+# Only the real cells, for one database.
+bun run tests postgres/newest --docker --wasm --validation-summary real
+```
+
+It takes the same optional filter as `--list-cells-with-mode`
+(`running` — default, the cells that ran; `all`; `real`; `mock`; `skipped`)
+and is identical in shape (same `cell_mode` projection). It is independent
+of pass/fail and is mutually exclusive with the terminal listing actions
+(those exit before any run could happen).
 
 ## Coverage
 

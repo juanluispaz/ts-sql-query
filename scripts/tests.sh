@@ -24,8 +24,10 @@ Usage:
                    [--timeout <ms>]
                    [--no-color]
                    [--list-cells]
+                   [--list-cells-with-mode [running|all|real|mock|skipped]]
                    [--list-files]
                    [--list-tests]
+                   [--validation-summary [running|all|real|mock|skipped]]
                    [--help]
                    [-- <args passed to runner>]
 
@@ -156,8 +158,11 @@ Defaults
   --timeout          60000 (ms; the value baked into the runner config)
   --no-color         off (colors kept when stdout is a TTY)
   --list-cells       off
+  --list-cells-with-mode off (when set: running — show cells that will run;
+                     all|real|mock|skipped filter the listing)
   --list-files       off
   --list-tests       off (vitest-backed when used)
+  --validation-summary off (when set: running; all|real|mock|skipped filter)
 
 WASM semantics
   Full-matrix mode (no positional coords): the main pass ALWAYS runs
@@ -345,6 +350,35 @@ Listing flags (enumerate, don't run — mutually exclusive)
           tests --list-cells                       # every active cell
           tests postgres --scope newest --list-cells
           tests --connections native --list-cells
+  --list-cells-with-mode [running|all|real|mock|skipped]
+        Annotate cells with their mode under the CURRENT flags. Unlike
+        --list-cells (which lists only the selection), this considers the
+        WHOLE matrix and gives every cell a verdict + reason:
+          real     `(docker|wasm|native)` — brings up a real engine.
+          mock     runs against the mock: `(…; needs --docker/--wasm)`,
+                   `(docker; docker-scope=newest skips <version>)`, or
+                   `(db out of TS_SQL_QUERY_DBS scope → real gated)` —
+                   the db is out of scope so the real branch is gated
+                   off, but the test still runs (mock).
+          skipped  off — EXCLUDED FROM THE RUN (the runner never sees
+                   it), with the reason: `(not selected: outside
+                   coords)`, `(excluded by --connections <type>)`, or
+                   `(excluded by --scope newest)`.
+        The optional filter selects which verdicts to print:
+          running  (default) the cells that run a body: real + mock.
+          all      the whole matrix, including the off (skipped) ones.
+          real     only cells that bring up a real engine.
+          mock     only cells running against the mock.
+          skipped  only the off cells (any skip reason).
+        A footer tallies the running cells (real + mock) and, separately,
+        the OTHER cells that are skipped — independent of the filter:
+        `-- 3 running cells: 3 real, 0 mock; 14 other cells skipped`.
+        The real/mock projection mirrors isRealDbEnabled() in
+        test/lib/backends.ts.
+          tests --docker --list-cells-with-mode          # what runs real vs mock
+          tests --docker --wasm --list-cells-with-mode real   # only the real cells
+          tests --docker --list-cells-with-mode mock     # what's still on the mock
+          tests postgres/newest --list-cells-with-mode all    # whole matrix, why each is off
   --list-files
         Print the `*.test.ts` files the current selection would run — one
         per line, sorted — then exit WITHOUT running anything. Like
@@ -373,6 +407,20 @@ Listing flags (enumerate, don't run — mutually exclusive)
           tests postgres/newest/pg --list-tests
           tests postgres/newest/pg --list-tests --test-name-pattern inner-join
           tests sqlite/newest --connections native --list-tests -- --json
+
+Run-summary flag
+  --validation-summary [running|all|real|mock|skipped]
+        After a normal run finishes, print the same annotated block
+        `--list-cells-with-mode` would produce with the same flags —
+        i.e. which cells were validated against a REAL engine vs only
+        the MOCK this run. Answers the "mock-validated vs real-validated"
+        question when closing a coverage round. Takes the same optional
+        filter as --list-cells-with-mode (running = what ran, default;
+        all = also the skipped ones; real / mock / skipped = only that
+        mode). Default off. Mutually exclusive with the terminal listing
+        actions (they exit before any run).
+          tests --docker --validation-summary           # full matrix + breakdown
+          tests postgres/newest/pg --docker --validation-summary real
 
 Browser flag
   --open
@@ -425,6 +473,9 @@ Examples
   bun run tests postgres --scope newest --list-cells       # cells a propagation would touch
   bun run tests postgres/newest/pg --list-files            # enumerate test files (filesystem)
   bun run tests postgres/newest/pg --list-tests            # enumerate test names (vitest-backed)
+  bun run tests --docker --list-cells-with-mode            # which cells run real vs mock
+  bun run tests --docker --wasm --list-cells-with-mode real # only the cells that go real
+  bun run tests --docker --validation-summary              # run + real/mock breakdown at the end
   bun run tests 'postgres/*/pg' --docker                   # focused: glob
   bun run tests 'postgres/*/{pg,postgres}' --docker --scope newest
                                                            # focused: glob + brace + scope
@@ -472,6 +523,14 @@ NO_COLOR_FLAG=off
 LIST_CELLS=off
 LIST_FILES=off
 LIST_TESTS=off
+# Empty sentinel: "no --list-cells-with-mode". Resolves to `all` or `real`
+# (the cell filter) when the flag is present. A terminal listing action
+# like --list-cells, but each cell is annotated with its real/mock mode
+# under the current flags.
+LIST_CELLS_WITH_MODE=
+# Empty sentinel: "no --validation-summary". `all` or `real` when present;
+# prints the same annotated block after a normal run finishes.
+VAL_SUMMARY=
 # Empty sentinel: "user didn't pass --timeout". Resolves to the 60000ms
 # default (the value run_phase otherwise hardcodes) when left empty.
 TIMEOUT=
@@ -518,6 +577,23 @@ while [ $# -gt 0 ]; do
         --list-cells)           LIST_CELLS=on; shift ;;
         --list-files)           LIST_FILES=on; shift ;;
         --list-tests)           LIST_TESTS=on; shift ;;
+        --list-cells-with-mode)
+            # Optional value: consume the next token only when it's a
+            # valid filter (running|all|real|mock); otherwise default to
+            # `running` and leave the token (it's a coord or another flag).
+            # Mirrors --bail's bounded-set lookahead, so both `=real` and a
+            # space-separated `real` work without swallowing a coord.
+            case "${2:-}" in
+                running|all|real|mock|skipped)  LIST_CELLS_WITH_MODE="$2"; shift 2 ;;
+                *)                              LIST_CELLS_WITH_MODE=running; shift ;;
+            esac ;;
+        --list-cells-with-mode=*) LIST_CELLS_WITH_MODE="${1#--list-cells-with-mode=}"; shift ;;
+        --validation-summary)
+            case "${2:-}" in
+                running|all|real|mock|skipped)  VAL_SUMMARY="$2"; shift 2 ;;
+                *)                              VAL_SUMMARY=running; shift ;;
+            esac ;;
+        --validation-summary=*) VAL_SUMMARY="${1#--validation-summary=}"; shift ;;
         -h|--help)              print_help; exit 0 ;;
         --)                     shift; EXTRA_ARGS=("$@"); break ;;
         --*)                    echo "Unknown argument: $1 (use --help)" >&2; exit 2 ;;
@@ -561,14 +637,30 @@ if [ -n "$TIMEOUT" ]; then
         ''|*[!0-9]*|0)  echo "Invalid --timeout: $TIMEOUT (expected a positive integer, milliseconds)" >&2; exit 2 ;;
     esac
 fi
-# --list-cells / --list-files / --list-tests are all terminal listing
-# actions (enumerate and exit). At most one may be passed.
+case "$LIST_CELLS_WITH_MODE" in ''|running|all|real|mock|skipped) ;; *)
+    echo "Invalid --list-cells-with-mode: $LIST_CELLS_WITH_MODE (expected running|all|real|mock|skipped)" >&2; exit 2 ;;
+esac
+case "$VAL_SUMMARY" in ''|running|all|real|mock|skipped) ;; *)
+    echo "Invalid --validation-summary: $VAL_SUMMARY (expected running|all|real|mock|skipped)" >&2; exit 2 ;;
+esac
+
+# --list-cells / --list-cells-with-mode / --list-files / --list-tests are
+# all terminal listing actions (enumerate and exit). At most one may be
+# passed.
 _list_count=0
-[ "$LIST_CELLS" = "on" ] && _list_count=$((_list_count + 1))
-[ "$LIST_FILES" = "on" ] && _list_count=$((_list_count + 1))
-[ "$LIST_TESTS" = "on" ] && _list_count=$((_list_count + 1))
+[ "$LIST_CELLS" = "on" ]          && _list_count=$((_list_count + 1))
+[ -n "$LIST_CELLS_WITH_MODE" ]    && _list_count=$((_list_count + 1))
+[ "$LIST_FILES" = "on" ]          && _list_count=$((_list_count + 1))
+[ "$LIST_TESTS" = "on" ]          && _list_count=$((_list_count + 1))
 if [ "$_list_count" -gt 1 ]; then
-    echo "Error: --list-cells, --list-files and --list-tests are mutually exclusive terminal listing actions; pass only one." >&2
+    echo "Error: --list-cells, --list-cells-with-mode, --list-files and --list-tests are mutually exclusive terminal listing actions; pass only one." >&2
+    exit 2
+fi
+# --validation-summary runs AFTER a normal run; the terminal listing
+# actions exit before any run, so combining them is a contradiction.
+if [ -n "$VAL_SUMMARY" ] && [ "$_list_count" -gt 0 ]; then
+    echo "Error: --validation-summary prints after a run; it can't be combined with a terminal listing action (--list-cells/--list-cells-with-mode/--list-files/--list-tests)." >&2
+    echo "  For just the annotated block without running, use: --list-cells-with-mode${VAL_SUMMARY:+ $VAL_SUMMARY}" >&2
     exit 2
 fi
 # run_phase reads this global for the per-test timeout (bun's --timeout /
@@ -605,6 +697,13 @@ fi
 # for the hand-rolled `for db in test/db/*/…` inventory loop. MAIN_PATHS
 # is already coord/scope/connection-filtered, so the listing honours all
 # of those for free.
+if [ -n "$LIST_CELLS_WITH_MODE" ]; then
+    # Cell listing annotated with each cell's real/mock/skipped mode under
+    # the current flags, filtered by --list-cells-with-mode's value
+    # (running|all|real|mock|skipped).
+    list_cells_with_mode "$LIST_CELLS_WITH_MODE"
+    exit $?
+fi
 if [ "$LIST_CELLS" = "on" ]; then
     list_cells_from_main_paths
     exit $?
@@ -761,6 +860,11 @@ if [ "$COVERAGE" = "on" ]; then
     else
         emit_phase_legend "$cov_label" "$MODE" off "$DOCKER" "$DOCKER_SCOPE" "$SCOPE" "$runtime" "${MAIN_PATHS[@]}"
     fi
+    if [ -n "$VAL_SUMMARY" ]; then
+        echo ""
+        echo "Validation summary (real/mock per cell under the current flags):"
+        list_cells_with_mode "$VAL_SUMMARY" || true
+    fi
     exit "$ec"
 fi
 
@@ -888,6 +992,15 @@ if [ -n "$WASM_LOG" ] && [ -s "$WASM_LOG" ]; then
     echo ""
     echo "WASM phase results (ran first, replayed for visibility):"
     tail -n 4 "$WASM_LOG"
+fi
+
+# Validation summary: re-project each in-scope cell's real/mock mode under
+# the current flags, so the user sees what was validated against a real
+# engine vs only the mock. Independent of pass/fail.
+if [ -n "$VAL_SUMMARY" ]; then
+    echo ""
+    echo "Validation summary (real/mock per cell under the current flags):"
+    list_cells_with_mode "$VAL_SUMMARY" || true
 fi
 
 # In the non-coverage path we still need to open the report after a

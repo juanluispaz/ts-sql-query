@@ -2,10 +2,17 @@
 //
 //   TS_SQL_QUERY_DBS    — comma list of database folder names under
 //                         `test/db/` (e.g. `postgres,mariadb,sqlite`).
-//                         Special values: `all` (default) and `none`. This
-//                         only narrows the SCOPE of the run — which tests
-//                         participate — it does not change what any
-//                         individual test does.
+//                         Special values: `all` (default) and `none`. A
+//                         per-database real-DB gate, exactly like
+//                         TS_SQL_QUERY_DOCKER but scoped by database: a db
+//                         NOT in the list has its real branch gated off, so
+//                         its tests transparently fall back to the mock.
+//                         It does NOT skip any test (every test still runs)
+//                         and it does NOT filter the file/coord set (the
+//                         `tests` script never reads it to build paths) —
+//                         it only feeds isRealDbEnabled() below, deciding
+//                         real vs mock per database. `none` forces every db
+//                         to the mock.
 //
 //   TS_SQL_QUERY_DOCKER — `on` or `off` (default `off`). Gates whether the
 //                         real-DB branch of a docker-backed connector

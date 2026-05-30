@@ -220,6 +220,188 @@ list_files_from_main_paths() {
     printf '%s\n' "${out[@]}" | sort -u
 }
 
+# Resolve whether a cell that IS in the run runs against a REAL engine or
+# the MOCK under the current flags, and why. Echoes one tab-separated record:
+#
+#     <verdict>\t<annotation>
+#
+#   verdict    ∈ real | mock   (never `skipped` — that's a path-exclusion
+#              decision made by _cell_mode_classified, not a runtime gate)
+#   annotation human-readable "(kind; reason)" suffix
+#
+# Arg: <cell-path>  e.g. test/db/postgres/newest/pg  (trailing slash ok)
+# Reads (globals): DOCKER, DOCKER_SCOPE, WASM   (the resolved flag values
+#                  from tests.sh) + env TS_SQL_QUERY_DBS.
+#
+# !!! MIRRORS isRealDbEnabled() in test/lib/backends.ts — KEEP IN SYNC. !!!
+# That function is the runtime source of truth and returns real-or-not;
+# whenever it returns false the cell falls back to the MOCK (it still runs).
+# So every "false" reason here is a `mock` verdict, NOT a skip — including a
+# db that's out of TS_SQL_QUERY_DBS scope (isBackendEnabled only feeds
+# isRealDbEnabled; the test still executes against the mock). This is a bash
+# projection of the same decision so --list-cells-with-mode /
+# --validation-summary stay runner-free. If the gate logic there changes,
+# change it here too
+# (the CLAUDE.md maintenance note for the tests CLI points back here).
+cell_mode() {
+    local cell="${1%/}"
+    local rest="${cell#test/db/}"
+    local db="${rest%%/*}"
+    local r2="${rest#*/}"; local version="${r2%%/*}"
+    local connector="${rest##*/}"
+
+    # db-in-scope gate (TS_SQL_QUERY_DBS): 'all'/empty → all; 'none' → none;
+    # otherwise a comma list of database folder names. NOTE: a db out of
+    # scope is NOT skipped — isBackendEnabled only feeds isRealDbEnabled, so
+    # the real branch is gated OFF and the cell runs against the MOCK (the
+    # test still executes). Verdict is therefore `mock`, not `skipped`.
+    local dbs="${TS_SQL_QUERY_DBS:-all}"
+    case "$dbs" in
+        ''|all) ;;
+        none)   printf 'mock\t(db out of TS_SQL_QUERY_DBS scope → real gated)\n'; return ;;
+        *)
+            case ",$dbs," in
+                *",$db,"*) ;;
+                *) printf 'mock\t(db out of TS_SQL_QUERY_DBS scope → real gated)\n'; return ;;
+            esac ;;
+    esac
+
+    # Kind-of-backend gate, mirroring RealDbBackend classification.
+    local kind
+    if _connector_matches_kind "$connector" wasm; then kind=wasm
+    elif _connector_matches_kind "$connector" native; then kind=native
+    else kind=docker; fi
+
+    case "$kind" in
+        native)
+            printf 'real\t(native)\n' ;;
+        wasm)
+            if [ "${WASM:-off}" = "on" ]; then printf 'real\t(wasm)\n'
+            else printf 'mock\t(wasm; needs --wasm)\n'; fi ;;
+        docker)
+            if [ "${DOCKER:-off}" != "on" ]; then
+                printf 'mock\t(docker; needs --docker)\n'
+            elif [ "${DOCKER_SCOPE:-all}" = "newest" ] && [ "$version" != "newest" ]; then
+                printf 'mock\t(docker; docker-scope=newest skips %s)\n' "$version"
+            else
+                printf 'real\t(docker)\n'
+            fi ;;
+    esac
+}
+
+# The cells the current COORDS match, IGNORING the --scope / --connections
+# gating, one per line (no trailing slash). Used to tell "outside the coords
+# you asked for" apart from "excluded by a filter" when annotating modes.
+# Empty COORDS → the whole connector matrix.
+#
+# Implemented by re-resolving the coords with SCOPE/CONNECTIONS forced to
+# `all` (so nothing is gated out), then restoring the real selection. Reads
+# COORDS / FOCUSED indirectly via resolve_main_paths.
+_coord_universe_cells() {
+    local _scope="$SCOPE" _conn="$CONNECTIONS" rc
+    local _main=("${MAIN_PATHS[@]}") _wasm=("${WASM_LIST[@]}")
+    SCOPE=all
+    CONNECTIONS=all
+    if resolve_main_paths >/dev/null 2>&1; then
+        list_cells_from_main_paths 2>/dev/null
+        rc=$?
+    else
+        rc=1
+    fi
+    SCOPE="$_scope"; CONNECTIONS="$_conn"
+    MAIN_PATHS=("${_main[@]}"); WASM_LIST=("${_wasm[@]}")
+    return $rc
+}
+
+# Classify ONE cell against ALL of the current gates and explain why, for
+# the full-matrix listing. Echoes "<verdict>\t<annotation>" with verdict ∈
+# real | mock | skipped.
+#
+# `skipped` means the cell is EXCLUDED FROM THE RUN entirely (the runner
+# never sees it) — only the path-level filters do that, checked here in
+# precedence order: outside coords > --connections > --scope newest. If the
+# cell survives those it IS in the run, and cell_mode decides real vs mock
+# (TS_SQL_QUERY_DBS lives there as a real→mock gate, not a skip).
+#
+# Arg: <cell-path> <universe>   (<universe> = newline list from
+#                                _coord_universe_cells)
+# Reads (globals): SCOPE, CONNECTIONS (+ whatever cell_mode reads).
+_cell_mode_classified() {
+    local cell="${1%/}" universe="$2"
+    local rest="${cell#test/db/}"
+    local version connector
+    rest="${rest#*/}"; version="${rest%%/*}"
+    connector="${cell##*/}"
+
+    case $'\n'"$universe"$'\n' in
+        *$'\n'"$cell"$'\n'*) ;;  # inside the coord selection
+        *) printf 'skipped\t(not selected: outside coords)\n'; return ;;
+    esac
+    if [ "${CONNECTIONS:-all}" != "all" ] && ! _connector_matches_kind "$connector" "$CONNECTIONS"; then
+        printf 'skipped\t(excluded by --connections %s)\n' "$CONNECTIONS"; return
+    fi
+    if [ "${SCOPE:-all}" = "newest" ] && [ "$version" != "newest" ]; then
+        printf 'skipped\t(excluded by --scope newest)\n'; return
+    fi
+    cell_mode "$cell"
+}
+
+# List EVERY connector cell in the matrix annotated with its real/mock/
+# skipped mode under the current flags, one per line, aligned. Powers
+# --list-cells-with-mode and --validation-summary.
+#
+# The universe is the whole matrix on purpose (the chosen semantics): a cell
+# outside the current coords/scope/connections selection is shown as
+# `skipped` WITH THE REASON it is off, rather than silently omitted. The
+# filter then selects which verdicts to print:
+#   running (default) cells that will run a body: real + mock.
+#   all               every cell, including the off (skipped) ones.
+#   real / mock / skipped   only that verdict.
+#
+# Footer tallies running cells (real + mock) and, separately, the count of
+# OTHER cells that are skipped — independent of the display filter.
+# Reads (globals): MAIN_PATHS[]/COORDS etc. via _coord_universe_cells.
+list_cells_with_mode() {
+    local filter="${1:-running}"
+    local universe all_cells cell verdict annotation show shown=0
+    local n_real=0 n_mock=0 n_skipped=0
+    universe="$(_coord_universe_cells)"
+    all_cells="$(list_all_connector_paths)"
+    while IFS= read -r cell; do
+        [ -n "$cell" ] || continue
+        cell="${cell%/}"
+        IFS=$'\t' read -r verdict annotation < <(_cell_mode_classified "$cell" "$universe")
+        case "$verdict" in
+            real)    n_real=$((n_real + 1)) ;;
+            mock)    n_mock=$((n_mock + 1)) ;;
+            skipped) n_skipped=$((n_skipped + 1)) ;;
+        esac
+        show=0
+        case "$filter" in
+            all)     show=1 ;;
+            running) [ "$verdict" != "skipped" ] && show=1 ;;
+            real)    [ "$verdict" = "real" ] && show=1 ;;
+            mock)    [ "$verdict" = "mock" ] && show=1 ;;
+            skipped) [ "$verdict" = "skipped" ] && show=1 ;;
+        esac
+        if [ "$show" -eq 1 ]; then
+            printf '%-44s %-7s %s\n' "$cell" "$verdict" "$annotation"
+            shown=$((shown + 1))
+        fi
+    done <<<"$all_cells"
+    if [ "$shown" -eq 0 ]; then
+        case "$filter" in
+            real)    echo "(no cells run against a real engine under the current flags — add --docker and/or --wasm)" >&2 ;;
+            mock)    echo "(no cells run as mock under the current flags — every running cell is real)" >&2 ;;
+            skipped) echo "(no cells are off — every matrix cell is in the current selection)" >&2 ;;
+        esac
+    fi
+    # Footer: running cells (real + mock) headline; the off ones counted
+    # separately as "other cells skipped". Independent of the display filter.
+    printf -- '-- %d running cells: %d real, %d mock; %d other cells skipped\n' \
+        "$((n_real + n_mock))" "$n_real" "$n_mock" "$n_skipped"
+}
+
 # Filter MAIN_PATHS in-place against a connection-type. Each path is
 # classified by its connector segment (4th component under test/db/):
 #
@@ -889,9 +1071,15 @@ resolve_main_paths() {
     fi
 
     # Append `/` for directory targets so the runner treats them as
-    # path filters, not project-name filters.
+    # path filters, not project-name filters. Idempotent: the bare-db +
+    # --scope newest branch already appends a trailing slash, and a
+    # double slash (`…/newest//`) breaks the single-`%/` strip in
+    # list_cells_from_main_paths / list_files_from_main_paths.
     for i in "${!MAIN_PATHS[@]}"; do
-        if [ -d "${MAIN_PATHS[$i]}" ]; then MAIN_PATHS[$i]="${MAIN_PATHS[$i]}/"; fi
+        case "${MAIN_PATHS[$i]}" in
+            */) ;;
+            *) if [ -d "${MAIN_PATHS[$i]}" ]; then MAIN_PATHS[$i]="${MAIN_PATHS[$i]}/"; fi ;;
+        esac
     done
 }
 

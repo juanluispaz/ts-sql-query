@@ -364,6 +364,85 @@ engine, the engine's rejection is real signal: prefer restructuring
 the test to a shape every engine accepts over silencing the
 mismatch.
 
+#### The mirror-image smell: weakening real-DB to match strong mock
+
+`if (!ctx.realDbEnabled) { expect(rows).toEqual(exact) } else { expect(rows.length).toBeGreaterThan(0); /* … */ }`
+is the same smell wearing the opposite costume. The mock branch
+asserts a precise value; the real-DB branch asserts only that the
+shape is "something with a length", which would let almost any
+regression through. `DESIGN.md §1` calls it out — recipe to remove
+it:
+
+1. **Identify what makes real-DB diverge from mock.** Usually one of:
+   - Aggregate order isn't deterministic (JSON aggregates,
+     `GROUP_CONCAT`, `STRING_AGG`, …) and no public API exposes an
+     `ORDER BY` for the aggregate.
+   - The seed default makes the assertion trivial (`view_count = 0n`
+     for every issue → `views: [0n, 0n]` if you `aggregateAsArrayOfOneColumn`
+     over project 1's issues).
+   - A row count or affected-row count varies per dialect.
+
+2. **Apply the cheapest fix that lets the assertion be unconditional**:
+   - **Sort in JS** the dimension that's non-deterministic, then
+     compare exactly:
+
+     ```ts
+     const sorted = rows.map(r => ({ ...r, views: [...r.views].sort((a, b) => Number(a - b)) }))
+     expect(sorted).toEqual([{ projectId: 1, views: [100n, 200n] }])
+     ```
+
+     A pure-JS sort is free, repeats per run, and absorbs whatever
+     order the engine chose to emit the JSON aggregate in. This is
+     also the right fix when adding an `ORDER BY` to the SQL would
+     change the test's premise (e.g. the test asserts the SQL the
+     lib emits *without* an explicit `ORDER BY` — synthesising one
+     just to make JS comparison easier moves the SQL snapshot away
+     from what the test was added to pin).
+
+   - **`UPDATE` inside `ctx.withRollback`** to populate the
+     interesting values when the seed default would trivialise the
+     assertion. The SELECT must remain the **last** statement so
+     `ctx.lastSql` / `ctx.lastParams` still capture it; the rollback
+     reverts the schema for the next test. Pattern:
+
+     ```ts
+     await ctx.withRollback(async () => {
+         ctx.mockNext(1)
+         await ctx.conn.update(tIssue).set({ viewCount: 100n }).where(tIssue.id.equals(1)).executeUpdate()
+         ctx.mockNext(1)
+         await ctx.conn.update(tIssue).set({ viewCount: 200n }).where(tIssue.id.equals(2)).executeUpdate()
+
+         ctx.mockNext([{ projectId: 1, views: [100n, 200n] }])
+         const rows = await ctx.conn.selectFrom(tIssue)
+             .where(tIssue.projectId.equals(1))
+             .select({ projectId: tIssue.projectId, views: ctx.conn.aggregateAsArrayOfOneColumn(tIssue.viewCount) })
+             .groupBy('projectId')
+             .executeSelectMany()
+         expect(ctx.lastSql).toMatchInlineSnapshot(…)            // last stmt = the SELECT
+         const sorted = rows.map(r => ({ ...r, views: [...r.views].sort((a, b) => Number(a - b)) }))
+         expect(sorted).toEqual([{ projectId: 1, views: [100n, 200n] }])
+     })
+     ```
+
+   - **Pick a query the existing seed already produces a meaningful
+     answer for** — when the test goal allows. Cheaper than UPDATEs
+     when one of the seeded values is already what you want to
+     assert.
+
+3. **Only after (1) and (2) genuinely fail** — e.g. the dialect
+   actually returns a different value for legitimate reasons (float
+   precision, engine-specific time-zone handling, affected-row count)
+   — fall back to two assertions with a comment naming the cause.
+   The mock assertion stays exact; the real-DB assertion is the
+   widest predicate that still distinguishes "the engine ran this
+   query and returned something plausible" from any regression you
+   care about. Length checks alone almost never qualify.
+
+When you write the test, write the **strongest** unconditional
+assertion you can defend. A test that "passes everywhere" on the
+strength of `expect(rows.length).toBeGreaterThan(0)` is a test that
+fails to catch the bug it was added for.
+
 ### If a new test surfaces a bug in `src/`
 
 **Division of labor.** The agent writing or porting tests detects

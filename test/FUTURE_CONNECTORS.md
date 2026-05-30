@@ -170,6 +170,37 @@ only mode is "serializable", set implicitly). The test
 `docs:transaction/isolation-level` is commented out in every sqlite
 cell (`test/db/sqlite/*/<connector>/docs.transaction.test.ts`).
 
+### `bun_sql_postgres` — `Date` parameter binding (Bun#29010)
+
+Bun.SQL's PostgreSQL adapter serialises JS `Date` parameters via
+`Date#toString()` (e.g. `"Mon Jan 15 2024 …"`) instead of an
+ISO/timestamp format. PostgreSQL rejects the bound value with
+`invalid input syntax for type date|timestamp` whenever a `Date`
+intended as `localDate` / `localDateTime` reaches the driver. Open
+upstream: <https://github.com/oven-sh/bun/issues/29010>.
+
+`localTime` is unaffected because `transformValueToDB('localTime',
+Date)` ships a bare `'HH:MM:SS'` string, not a `Date`. Numeric and
+text parameters are unaffected for the same reason.
+
+Tests commented out in `test/db/postgres/newest/bun_sql_postgres/`
+**and** `test/db/postgres/oldest/bun_sql_postgres/` until the bug is
+fixed upstream — the canonical body is preserved inside `/* */` so
+a fix is one comment removal plus a snapshot bake:
+
+- `select.postgres-const-force-type-cast.test.ts` →
+  `const-localdate-forces-date-cast`,
+  `const-localdatetime-forces-timestamp-cast`,
+  `const-custom-localdate-falls-through-without-cast`.
+
+Coverage-driven test generation **must** consult this section before
+copying any test that constructs a `new Date(...)` parameter from the
+`pg`/`postgres`/`pglite` canonical to `bun_sql_postgres` — the bug
+applies to every `localDate` / `localDateTime` `Date` parameter,
+not just the three names already commented out. The right move is to
+copy AND immediately re-wrap the affected tests in `/* */` with this
+section linked from the reason header.
+
 ## Connectors not in the matrix today
 
 These are reachable from the public exports and have their own runner

@@ -71,6 +71,45 @@ see [§1.3](#1-principles) for the precise rule.
    inverse anti-pattern (skipping the whole test in real mode with
    `if (ctx.realDbEnabled) return`) is governed by principle 18 below.
 
+   **The mirror-image smell: weakening real-DB to match strong mock.**
+   `if (!ctx.realDbEnabled) { expect(rows).toEqual(exact) } else
+   { expect(rows.length).toBeGreaterThan(0); expect(Array.isArray(...)).toBe(true) }`
+   is the same anti-pattern dressed differently. The mock branch asserts
+   the value rigorously; the real-DB branch barely asserts anything,
+   yet the test reports as covering both modes. Either form drops
+   real-DB validation onto the floor. The remedy is the same as for
+   any non-deterministic situation: make the real-DB side deterministic
+   so both modes can share **one** unconditional `expect(...).toEqual(...)`.
+   Typical levers, in increasing cost:
+
+   - **Add an `ORDER BY`** so the result set has a stable order —
+     *when the test's premise allows it*. Some tests intentionally
+     omit `ORDER BY` because the test's whole point is the SQL the
+     lib emits without one (the default ordering, the dialect's
+     tie-breaking, the absence of a synthesised `ORDER BY` from a
+     hook that only triggers under specific conditions). Adding a
+     gratuitous `ORDER BY` would change what the test exercises.
+     When the premise does allow it, sort by the projected primary
+     key.
+   - **Sort the result in JS** when the SQL has no exposed `ORDER BY`
+     for the unstable dimension, OR when adding one would defeat the
+     test's purpose (e.g. the inner array produced by
+     `aggregateAsArrayOfOneColumn(...)` — the JSON aggregate's element
+     order is not guaranteed across dialects, and no public API
+     exposes an `ORDER BY` for it). The cheap trick is
+     `rows.map(r => ({ ...r, items: [...r.items].sort(cmp) }))` →
+     `expect(sorted).toEqual([...sortedExpected])`. Sorting in JS
+     also lets a test that deliberately omits SQL-level `ORDER BY`
+     still assert exact values across all dialects.
+   - **Align the mock to what the seed actually produces.** If the
+     seed default makes the assertion trivial (`view_count = 0n` for
+     every issue → `views: [0n, 0n]`), either pick a query the seed
+     already produces meaningful output for, or run an UPDATE inside
+     `ctx.withRollback` to populate known values before the SELECT
+     (the SELECT is then the last query, so `ctx.lastSql` still
+     captures it). See [`MAINTAINING.md` § Mock-only is a smell](./MAINTAINING.md#mock-only-is-a-smell--restructure-before-reaching-for-the-guard)
+     for the worked-example recipes.
+
 2. **SQL and params are inline snapshots.** Every test puts the emitted SQL
    string and the emitted params behind `toMatchInlineSnapshot(...)`. Both
    `bun:test` and `vitest` know how to update inline snapshots in place

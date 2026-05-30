@@ -1,19 +1,31 @@
-# `test/` — TODOs for future connectors and versions
+# `test/` — external caveats: per-driver, per-engine, per-runtime
 
-Working notes for an agent that later expands the matrix beyond today's
-17 cells (more `compatibilityVersion` zones, additional connectors, the
-sync / prisma sub-trees). This file lists every dialect- or
-connector-specific decision the current `docs.*.test.ts` files bake in,
-so the next pass can revisit the call rather than re-discover it.
+Catalogue of caveats imposed by the **external** systems the test matrix
+talks to — driver packages, database engines, runtimes. These are NOT
+bugs in `ts-sql-query` and NOT deliberate library gaps; they are
+constraints from outside the library that test authors have to work
+around when writing or porting tests.
 
-Today's matrix is fixed: do **not** open new cells from these notes.
-Treat them as a checklist for when the matrix is extended.
+Boundary with the other catalogues:
+
+| File | What it catalogues |
+|---|---|
+| [`BUGS.md`](./BUGS.md) | bugs in `src/` (`ts-sql-query` itself) |
+| [`LIMITATIONS.md`](./LIMITATIONS.md) | deliberate gaps in `src/` declared by the project author |
+| This file | external — what a driver / engine / runtime can't do (or doesn't yet do) |
+
+Today's matrix already wires the workarounds in every affected cell; the
+"Dialect-specific notes" section below documents them. The other
+sections list connectors not in the matrix today, connection-subclass
+patterns that don't fit the shared domain, and the operational checklist
+for adding new infrastructure. Treat the items as a checklist when the
+matrix is extended.
 
 ## How the constraints surface today
 
 Each item below describes a `docs:` or `docs-extra:` test that is
 **commented out** in some cells with a `/* ... */` block per the
-symmetry rule ([`DESIGN.md` §4](./DESIGN.md#4-symmetry-rules--critical-maintainability-property)).
+symmetry rule ([`DESIGN.md` § Symmetry rule](./DESIGN.md#symmetry-rule)).
 The body stays verbatim, prefixed by a one-line `// Not applicable on
 <DB>: ...` reason. To find every commented test mechanically:
 
@@ -288,8 +300,8 @@ itself; the `if (ctx.realDbEnabled)` switch already covers it.
 
 ## Operational checklist when adding a new connector or version
 
-1. **Read** `DESIGN.md §8` (adding a database) and `MAINTAINING.md`
-   (adding a database section).
+1. **Read** [`NEW_DATABASE.md`](./NEW_DATABASE.md) (end-to-end recipe
+   for adding a database / connector / version).
 2. **Mirror** every `docs.*.test.ts` from a sibling cell (the sqlite
    canonical `test/db/sqlite/newest/bun_sqlite/` is the cheapest
    source). Use `cp` over the whole set, then run the matrix snapshot

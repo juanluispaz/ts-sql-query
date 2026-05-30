@@ -33,7 +33,7 @@ import { DBConnection } from './domain/connection.js'
 // registered as user functions exactly like the connector docs and
 // src/examples/{BetterSqlite3,NodeSqlite}*Example.ts show. (The `sqlite3`
 // driver has no user-function API, so the one uuid test is commented out in
-// that cell — see test/FUTURE_CONNECTORS.md.)
+// that cell — see test/EXTERNAL_CAVEATS.md.)
 // uuid_str / uuid_blob are NULL-safe (return NULL on NULL input), mirroring
 // the real uuid extension and bun:sqlite's built-ins. A query that applies
 // `uuid_str(col)` over a table where the optional uuid column is NULL must

@@ -6,7 +6,7 @@ print_help() {
 Usage:
   tests:audit [--help]
 
-Walks test/db/ and verifies the symmetry rule (DESIGN.md §4): every
+Walks test/db/ and verifies the symmetry rule (DESIGN.md § Symmetry): every
 cell of a database must declare the same `.test.ts` files with the
 same `describe` / `test` names in the same order (executed OR
 commented out).

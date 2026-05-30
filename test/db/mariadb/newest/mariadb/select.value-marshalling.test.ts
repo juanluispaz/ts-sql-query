@@ -15,7 +15,7 @@
 //             which `sqlite3` (no user-function API) and `sqlite-wasm-OO1`
 //             (functions not registered; its example uses the 'string'
 //             strategy instead) don't provide.
-// See test/FUTURE_CONNECTORS.md. bun:sqlite ships the uuid functions
+// See test/EXTERNAL_CAVEATS.md. bun:sqlite ships the uuid functions
 // built-in; better-sqlite3 / node:sqlite get them registered in runners.ts.
 //
 // Bodies run inside `ctx.withRollback(...)`. The value assertion is

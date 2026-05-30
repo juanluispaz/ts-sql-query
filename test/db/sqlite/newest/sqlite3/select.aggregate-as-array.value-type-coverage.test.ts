@@ -139,7 +139,7 @@ describe(ctx.label, () => {
     // JS BigInt parameter (it sends NULL, tripping the NOT NULL on
     // `view_count`). The UPDATE step above sends `100n`/`200n` and
     // immediately fails with `SQLITE_CONSTRAINT: NOT NULL constraint
-    // failed: issue.view_count`. See `test/FUTURE_CONNECTORS.md`.
+    // failed: issue.view_count`. See `test/EXTERNAL_CAVEATS.md`.
     /*
     test('aggregate-of-bigint-column-as-array', async () => {
         // Pins the `bigint` case in the SqlServer JSON switch. SqlServer
@@ -226,7 +226,7 @@ describe(ctx.label, () => {
 
     // Not applicable on sqlite3: the default uuid-extension strategy emits
     // `uuid_str(external_ref)`, and the `sqlite3` driver has no user-function
-    // API to register `uuid_str`. See test/FUTURE_CONNECTORS.md.
+    // API to register `uuid_str`. See test/EXTERNAL_CAVEATS.md.
     /*
     test('aggregate-of-optional-uuid-column-as-array', async () => {
         // Pins the `uuid` case in the SqlServer JSON switch.
@@ -284,7 +284,7 @@ describe(ctx.label, () => {
     // Not applicable on sqlite3: the wrapped-aggregate object includes
     // `external_ref` which expands to `uuid_str(external_ref)` (uuid-extension
     // strategy), and the `sqlite3` driver has no user-function API to register
-    // `uuid_str`. See test/FUTURE_CONNECTORS.md.
+    // `uuid_str`. See test/EXTERNAL_CAVEATS.md.
     /*
     test('aggregate-of-object-with-bigint-uuid-and-double', async () => {
         // Wrapped (object-shape) `aggregateAsArray({...})` mixing

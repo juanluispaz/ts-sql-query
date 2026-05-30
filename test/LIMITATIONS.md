@@ -34,7 +34,7 @@ How a limitation differs from a bug:
 | Declared by | The project author | Anyone who runs into it |
 | Lives in | This file, plus a one-line `// TODO[LIMITATION]` on affected tests | [`BUGS.md`](./BUGS.md) and a one-line `// TODO[BUG]` |
 | Fix expected | Not on the near-term roadmap | Yes, once an agent picks it up |
-| Test action | Skip or work around — see the entry for the recipe | Mark the assertion and keep the suite green per [`MAINTAINING.md`](./MAINTAINING.md#if-a-new-test-surfaces-a-bug-in-src) |
+| Test action | Skip or work around — see the entry for the recipe | Mark the assertion and keep the suite green per [`WRITING_TESTS.md`](./WRITING_TESTS.md#when-a-test-surfaces-a-bug-in-src) |
 
 To find affected tests:
 
@@ -206,7 +206,7 @@ exercise the walker from tests — and verify that the scaffolding
 stays correct (in sync with `__toSql` as new value-source /
 table-or-view / query-builder shapes are added) — is to read the
 underscore-prefixed method directly. That **breaks
-[`test/DESIGN.md` §1.3 ("public surface only")](./DESIGN.md#1-principles)**.
+[`test/DESIGN.md` § Public surface only](./DESIGN.md#public-surface-only)**.
 
 **What this means for tests** — the exception is centralised in a
 single seam, [`test/lib/isAllowed.ts`](./lib/isAllowed.ts), which is

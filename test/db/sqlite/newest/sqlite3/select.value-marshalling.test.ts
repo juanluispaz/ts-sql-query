@@ -15,7 +15,7 @@
 //             which `sqlite3` (no user-function API) and `sqlite-wasm-OO1`
 //             (functions not registered; its example uses the 'string'
 //             strategy instead) don't provide.
-// See test/FUTURE_CONNECTORS.md. bun:sqlite ships the uuid functions
+// See test/EXTERNAL_CAVEATS.md. bun:sqlite ships the uuid functions
 // built-in; better-sqlite3 / node:sqlite get them registered in runners.ts.
 //
 // Bodies run inside `ctx.withRollback(...)`. The value assertion is
@@ -35,7 +35,7 @@ describe(ctx.label, () => {
 
     // Not applicable on sqlite3: the `sqlite3` npm driver cannot bind a JS
     // BigInt parameter (it sends NULL, tripping the NOT NULL on view_count).
-    // See test/FUTURE_CONNECTORS.md.
+    // See test/EXTERNAL_CAVEATS.md.
     /*
     test('marshalling/bigint-insert-select-roundtrip', async () => {
         await ctx.withRollback(async () => {
@@ -130,7 +130,7 @@ describe(ctx.label, () => {
 
     // Not applicable on sqlite3: the default uuid-extension strategy emits
     // uuid_blob/uuid_str, and the `sqlite3` driver has no user-function API
-    // to register them. See test/FUTURE_CONNECTORS.md.
+    // to register them. See test/EXTERNAL_CAVEATS.md.
     /*
     test('marshalling/uuid-insert-select-roundtrip', async () => {
         const ref = '0a8f9c1e-1111-4222-8333-444455556666'

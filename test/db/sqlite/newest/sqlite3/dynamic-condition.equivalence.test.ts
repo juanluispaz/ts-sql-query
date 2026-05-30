@@ -383,7 +383,7 @@ describe(ctx.label, () => {
 
     // Not applicable on sqlite3: the default uuid-extension strategy emits
     // `uuid_str(external_ref)`, and the node-sqlite3 driver exposes no
-    // user-function API to register `uuid_str` (see test/FUTURE_CONNECTORS.md).
+    // user-function API to register `uuid_str` (see test/EXTERNAL_CAVEATS.md).
     /*
     test('equivalence/uuid-as-string-operator-path', async () => {
         // For the like/insensitive operator family the builder rewrites a

@@ -25,7 +25,7 @@ function _typeNegatives() {
     // Rule: column value types must match. `priority` is `int`; passing a
     // string must not compile. tsgo reports the error at the offending
     // property, not at the values() call site, so the directive sits on
-    // the property — see test/MAINTAINING.md for why this asymmetry exists.
+    // the property — see test/WRITING_TESTS.md for why this asymmetry exists.
     void connection.insertInto(tIssue).values({
         projectId: 1,
         number:    1,

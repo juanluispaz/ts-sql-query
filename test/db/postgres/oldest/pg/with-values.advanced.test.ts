@@ -48,6 +48,30 @@ class VProjectPatchOptional extends Values<DBConnection, 'projectPatchOpt'> {
     newName   = this.optionalColumn('string')
 }
 
+// Branded-type ergonomics that production apps commonly want at the
+// edges of typed SQL: an `IssueId` newtype + a `Money` newtype.
+// The values view models a batch upload of issue financial summaries
+// from an external system.
+type IssueId    = number & { readonly __brand: 'IssueId' }
+type Money      = number & { readonly __brand: 'Money' }
+
+class VIssueBilling extends Values<DBConnection, 'issueBilling'> {
+    // `column<T>('customInt', 'IssueId')` reaches Values.ts:96 — the
+    // `typeof adapter === 'string'` branch of the column impl.
+    issueId  = this.column<IssueId>('customInt', 'IssueId')
+    // `optionalColumn<T>('customDouble', 'Money')` reaches Values.ts:130 —
+    // the optional sibling of the same branch.
+    amount   = this.optionalColumn<Money>('customDouble', 'Money')
+    // `virtualColumnFromFragment` / `optionalVirtualColumnFromFragment`
+    // fields belong here too (a `state` enum + an `optional billingRef`)
+    // but their canonical form — `fragment.sql\`'open'\`` /
+    // `fragment.sql\`null\`` — fails TS overload resolution today; see
+    // `test/BUGS.md` for the open entry. The two tests that would
+    // exercise the dispatch branch (Values.ts:162-168 / 198-205) are
+    // block-commented further down in this file; restore the field
+    // declarations here and uncomment them once the lib types are fixed.
+}
+
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
     afterAll(() => ctx.down(), ctx.timeoutMs)
@@ -166,6 +190,128 @@ describe(ctx.label, () => {
             ])
         }
     })
+
+    test('values-with-custom-typed-columns-emits-customint-customdouble-casts', async () => {
+        // `column<T>('customInt', 'IssueId')` and
+        // `optionalColumn<T>('customDouble', 'Money')` on the
+        // `VIssueBilling` view above route through the
+        // `typeof adapter === 'string'` branch of Values.ts:94-99 /
+        // 128-133 — the only branch reached when the user passes a
+        // typeName. The emitted VALUES tuple still casts placeholders
+        // (`customInt` and `customDouble` are not enumerated in the
+        // postgres switch, so the fallback in
+        // `PostgreSqlConnection.transformPlaceholder` picks the cast
+        // from `typeof valueSentToDB` — `int4` / `float8`).
+        ctx.mockNext([
+            { issueId: 101 as IssueId, amount: 19.99 as Money },
+            { issueId: 102 as IssueId, amount: undefined        },
+        ])
+        const billing = Values.create(VIssueBilling, 'issueBilling', [
+            { issueId: 101 as IssueId, amount: 19.99 as Money },
+            { issueId: 102 as IssueId, amount: null as unknown as Money },
+        ])
+
+        const rows = await ctx.conn.selectFrom(billing)
+            .select({
+                issueId: billing.issueId,
+                amount:  billing.amount,
+            })
+            .orderBy('issueId')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with issueBilling(issueId, amount) as (values ($1::int4, $2::float8), ($3::int4, $4)) select issueId as "issueId", amount as amount from issueBilling order by "issueId""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            101,
+            19.99,
+            102,
+            null,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ issueId: IssueId; amount?: Money }>>>()
+        expect(rows).toEqual([
+            { issueId: 101 as IssueId, amount: 19.99 as Money },
+            { issueId: 102 as IssueId },
+        ])
+    })
+
+    // TODO[BUG] virtualColumnFromFragment + bare-literal `fragment.sql\`…\``
+    // fails TS overload resolution; see `test/BUGS.md`. Body is the
+    // canonical form the lib SHOULD accept once the typing is fixed —
+    // restore the matching `state` field on `VIssueBilling` (a
+    // `virtualColumnFromFragment<OrderState>('enum', 'OrderState',
+    // fragment => fragment.sql\`'open'\`)`) and uncomment.
+    /*
+    test('values-virtual-column-from-fragment-with-custom-type-emits-inline-fragment', async () => {
+        // `virtualColumnFromFragment<T>('enum', 'OrderState', fn)` reaches
+        // Values.ts:162-168 — the `typeof arg1 === 'string'` branch. The
+        // column does NOT appear in the VALUES tuple; the fragment SQL
+        // is inlined wherever `billing.state` is selected.
+        ctx.mockNext([
+            { issueId: 101 as IssueId, state: 'open' as OrderState },
+            { issueId: 102 as IssueId, state: 'open' as OrderState },
+        ])
+        const billing = Values.create(VIssueBilling, 'issueBilling', [
+            { issueId: 101 as IssueId, amount: 19.99 as Money },
+            { issueId: 102 as IssueId, amount: null as unknown as Money },
+        ])
+
+        const rows = await ctx.conn.selectFrom(billing)
+            .select({
+                issueId: billing.issueId,
+                state:   billing.state,
+            })
+            .orderBy('issueId')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(ctx.lastParams).toMatchInlineSnapshot()
+        assertType<Exact<typeof rows, Array<{ issueId: IssueId; state: OrderState }>>>()
+        expect(rows).toEqual([
+            { issueId: 101 as IssueId, state: 'open' as OrderState },
+            { issueId: 102 as IssueId, state: 'open' as OrderState },
+        ])
+    })
+    */
+
+    // TODO[BUG] optionalVirtualColumnFromFragment + bare-literal
+    // `fragment.sql\`null\`` fails TS overload resolution; see
+    // `test/BUGS.md`. Body is the canonical form — restore the matching
+    // `billingRef` field on `VIssueBilling` (an
+    // `optionalVirtualColumnFromFragment<string>('customUuid',
+    // 'BillingRef', fragment => fragment.sql\`null\`)`) and uncomment.
+    /*
+    test('values-optional-virtual-column-from-fragment-with-custom-type-emits-inline-fragment', async () => {
+        // `optionalVirtualColumnFromFragment<T>('customUuid', 'BillingRef', fn)`
+        // reaches Values.ts:198-205. Same dispatch branch as the
+        // required-virtual-column test above; the projection surfaces
+        // `string | undefined`.
+        ctx.mockNext([
+            { issueId: 101 as IssueId, billingRef: undefined as string | undefined },
+            { issueId: 102 as IssueId, billingRef: undefined as string | undefined },
+        ])
+        const billing = Values.create(VIssueBilling, 'issueBilling', [
+            { issueId: 101 as IssueId, amount: 19.99 as Money },
+            { issueId: 102 as IssueId, amount: null as unknown as Money },
+        ])
+
+        const rows = await ctx.conn.selectFrom(billing)
+            .select({
+                issueId:    billing.issueId,
+                billingRef: billing.billingRef,
+            })
+            .orderBy('issueId')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(ctx.lastParams).toMatchInlineSnapshot()
+        assertType<Exact<typeof rows, Array<{ issueId: IssueId; billingRef?: string }>>>()
+        expect(rows).toEqual([
+            { issueId: 101 as IssueId },
+            { issueId: 102 as IssueId },
+        ])
+    })
+    */
 
     test('values-create-with-empty-list-throws-cannot-be-empty', () => {
         // `Values.create(type, name, [])` reaches the guard at L272-275

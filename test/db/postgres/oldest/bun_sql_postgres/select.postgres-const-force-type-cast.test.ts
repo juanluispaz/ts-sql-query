@@ -1,5 +1,5 @@
 // Coverage of `PostgreSqlConnection.transformPlaceholder` for the
-// `forceTypeCast = true` branch (PostgreSqlConnection.ts:95-122). When a
+// `forceTypeCast = true` branch (PostgreSqlConnection.ts:95-141). When a
 // const value source is projected as a SELECT column,
 // `PostgreSqlSqlBuilder._appendColumnValue` forwards through
 // `__toSql(forceTypeCast = true)`; each typed const triggers the
@@ -9,6 +9,13 @@
 // same path with `forceTypeCast = true`); this file adds the other
 // typed casts: `::int4`, `::int8`, `::float8`, `::text`, `::uuid`,
 // `::date`, `::time`, `::timestamp`.
+//
+// The closing block (`const-custom-* …`) exercises the value-shape
+// fallback (PostgreSqlConnection.ts:124-140): `customInt`,
+// `customDouble`, `customLocalDate`, `custom` etc. drop through the
+// type switch and the cast is picked from `typeof valueSentToDB`
+// (`bigint → ::int8`; `number` int32 → `::int4`; `number` int64 →
+// `::int8`; `number` float → `::float8`; anything else → no cast).
 //
 // PostgreSQL-specific: every other dialect's `transformPlaceholder`
 // either no-ops (no `::cast` syntax) or uses a wholly different
@@ -154,6 +161,129 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2024-01-15T12:34:56.000Z,
+          ]
+        `)
+    })
+    */
+
+    test('const-custom-int-small-falls-through-to-int4-cast', async () => {
+        // PostgreSqlConnection.ts:128-131. `customInt` is not enumerated
+        // in the type switch, so the placeholder cast is decided from
+        // `typeof valueSentToDB`. A plain int32 number routes to `::int4`.
+        // Realistic shape: a branded ID type tagged as `IssueId`.
+        type IssueId = number & { readonly __brand: 'IssueId' }
+        const id = 42 as IssueId
+        ctx.mockNext(id)
+        await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.const<IssueId, 'IssueId'>(id, 'customInt', 'IssueId'))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::int4 as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            42,
+          ]
+        `)
+    })
+
+    test('const-custom-int-large-falls-through-to-int8-cast', async () => {
+        // PostgreSqlConnection.ts:132-134. A `customInt` whose runtime
+        // value exceeds int32 routes to `::int8` from the same fallback
+        // ladder. 9_999_999_999 > 2^31-1 (2_147_483_647).
+        type AuditPosition = number & { readonly __brand: 'AuditPosition' }
+        const pos = 9_999_999_999 as AuditPosition
+        ctx.mockNext(pos)
+        await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.const<AuditPosition, 'AuditPosition'>(pos, 'customInt', 'AuditPosition'))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::int8 as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            9999999999,
+          ]
+        `)
+    })
+
+    test('const-custom-int-bigint-falls-through-to-int8-cast', async () => {
+        // PostgreSqlConnection.ts:124-126. `typeof valueSentToDB ===
+        // 'bigint'` is checked before the number ladder, so a `bigint`
+        // value on a `customInt` const routes to `::int8` even though
+        // `customInt` itself never appears in the switch.
+        type LargeCount = bigint & { readonly __brand: 'LargeCount' }
+        const c = 12345678901234n as LargeCount
+        ctx.mockNext(c)
+        await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.const<LargeCount, 'LargeCount'>(c, 'customInt', 'LargeCount'))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::int8 as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            12345678901234n,
+          ]
+        `)
+    })
+
+    test('const-custom-double-falls-through-to-float8-cast', async () => {
+        // PostgreSqlConnection.ts:135-137. `customDouble` carries a
+        // non-integer number; the `Number.isInteger` branch falls into
+        // `::float8`.
+        type Money = number & { readonly __brand: 'Money' }
+        const amount = 19.99 as Money
+        ctx.mockNext(amount)
+        await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.const<Money, 'Money'>(amount, 'customDouble', 'Money'))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::float8 as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            19.99,
+          ]
+        `)
+    })
+
+    test('const-custom-string-falls-through-without-cast', async () => {
+        // PostgreSqlConnection.ts:140. A `custom` typeName whose value is
+        // a string ends the fallback ladder at the final bare `return
+        // placeholder` — no cast appended. Realistic shape: a branded
+        // slug carried through a domain helper.
+        type Slug = string & { readonly __brand: 'Slug' }
+        const s = 'marketing-site' as Slug
+        ctx.mockNext(s)
+        await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.const<Slug, 'Slug'>(s, 'custom', 'Slug'))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "marketing-site",
+          ]
+        `)
+    })
+
+    // Not applicable on bun_sql_postgres: Bun.SQL's PostgreSQL adapter
+    // currently serialises `Date` parameters via `Date#toString()` (e.g.
+    // `"Mon Jan 15 2024 …"`) instead of an ISO/timestamp format, so
+    // PostgreSQL rejects the bound value with `invalid input syntax for
+    // type date|timestamp` whenever a `localDate` / `localDateTime`
+    // `Date` reaches the driver. The fix has to land upstream in Bun.
+    // See https://github.com/oven-sh/bun/issues/29010 for the bug
+    // report. Body kept verbatim from the canonical pg cell so a fix
+    // here is a `/* */` removal and nothing else.
+    /*
+    test('const-custom-localdate-falls-through-without-cast', async () => {
+        // PostgreSqlConnection.ts:140. A `customLocalDate` carries a
+        // Date object; `typeof` is `object` so the number/bigint ladder
+        // is skipped and the placeholder is emitted bare. Distinct from
+        // the enumerated `'localDate'` case (which routes to `::date`).
+        type SettlementDate = Date & { readonly __brand: 'SettlementDate' }
+        const d = new Date('2024-02-20T00:00:00Z') as SettlementDate
+        ctx.mockNext(d)
+        await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.const<SettlementDate, 'SettlementDate'>(d, 'customLocalDate', 'SettlementDate'))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2024-02-20T00:00:00.000Z,
           ]
         `)
     })

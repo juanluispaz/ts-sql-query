@@ -135,6 +135,228 @@ describe(ctx.label, () => {
         }
     })
 
+    test('aggregate-of-bigint-column-as-array', async () => {
+        // Pins the `bigint` case in the SqlServer JSON switch. SqlServer
+        // wraps bigint with `convert(nvarchar, ..., 0)` (the value
+        // doesn't fit in a JSON int reliably). PG / MariaDB / MySQL /
+        // SQLite / Oracle route the bigint through the native JSON
+        // aggregator. `tIssue.viewCount` is `bigint`.
+        //
+        // The seed leaves `view_count` at its `0n` default, which would
+        // make the asserted aggregate trivially `[0n, 0n]`. We UPDATE
+        // project 1's issues to distinct values inside `withRollback`
+        // so the assertion actually exercises bigint marshalling; the
+        // rollback at the end reverts the seed for the next test.
+        // `aggregateAsArrayOfOneColumn` does not expose an ORDER BY for
+        // the JSON aggregate, so we sort the inner array in JS before
+        // comparing to be insensitive to the per-dialect ordering.
+        await ctx.withRollback(async () => {
+            ctx.mockNext(1)
+            await ctx.conn.update(tIssue).set({ viewCount: 100n }).where(tIssue.id.equals(1)).executeUpdate()
+            ctx.mockNext(1)
+            await ctx.conn.update(tIssue).set({ viewCount: 200n }).where(tIssue.id.equals(2)).executeUpdate()
+
+            ctx.mockNext([{ projectId: 1, views: [100n, 200n] }])
+            const rows = await ctx.conn.selectFrom(tIssue)
+                .where(tIssue.projectId.equals(1))
+                .select({
+                    projectId: tIssue.projectId,
+                    views:     ctx.conn.aggregateAsArrayOfOneColumn(tIssue.viewCount),
+                })
+                .groupBy('projectId')
+                .executeSelectMany()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", json_arrayagg(view_count) as "views" from issue where project_id = :0 group by project_id"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof rows, Array<{ projectId: number; views: bigint[] }>>>()
+            const sorted = rows.map(r => ({ ...r, views: [...r.views].sort((a, b) => Number(a - b)) }))
+            expect(sorted).toEqual([{ projectId: 1, views: [100n, 200n] }])
+        })
+    })
+
+    test('aggregate-of-optional-double-column-as-array', async () => {
+        // Pins the `double` case in the SqlServer JSON switch. Optional
+        // wrapper (`isnull(..., 'null')`) is exercised by the
+        // optional-localDateTime test; here we focus on the type
+        // branch. `tIssue.estimatedHours` is `optionalColumn('double')`.
+        // The aggregate strips NULLs from the projected array (its
+        // result type is `number[]`, not `(number | null)[]`).
+        //
+        // The seed sets every `estimated_hours` to NULL, which would
+        // collapse the aggregate to `[]` and trivialise the per-type
+        // assertion. We UPDATE project 1's two issues to distinct
+        // values inside `withRollback` so the assertion exercises
+        // double marshalling end-to-end. JSON aggregate order isn't
+        // guaranteed, so we sort the inner array in JS before
+        // comparing.
+        await ctx.withRollback(async () => {
+            ctx.mockNext(1)
+            await ctx.conn.update(tIssue).set({ estimatedHours: 4.5 }).where(tIssue.id.equals(1)).executeUpdate()
+            ctx.mockNext(1)
+            await ctx.conn.update(tIssue).set({ estimatedHours: 12.0 }).where(tIssue.id.equals(2)).executeUpdate()
+
+            ctx.mockNext([{ projectId: 1, hours: [4.5, 12.0] }])
+            const rows = await ctx.conn.selectFrom(tIssue)
+                .where(tIssue.projectId.equals(1))
+                .select({
+                    projectId: tIssue.projectId,
+                    hours:     ctx.conn.aggregateAsArrayOfOneColumn(tIssue.estimatedHours),
+                })
+                .groupBy('projectId')
+                .executeSelectMany()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", json_arrayagg(estimated_hours) as "hours" from issue where project_id = :0 group by project_id"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof rows, Array<{ projectId: number; hours: number[] }>>>()
+            const sorted = rows.map(r => ({ ...r, hours: [...r.hours].sort((a, b) => a - b) }))
+            expect(sorted).toEqual([{ projectId: 1, hours: [4.5, 12.0] }])
+        })
+    })
+
+    test('aggregate-of-optional-uuid-column-as-array', async () => {
+        // Pins the `uuid` case in the SqlServer JSON switch.
+        // `tIssue.externalRef` is `optionalColumn('uuid')`. On SqlServer
+        // the uuid surfaces as `nvarchar`; on PG/SQLite/etc the native
+        // JSON aggregator picks it up. The aggregate strips NULLs from
+        // the projected array (`string[]`, not `(string | null)[]`).
+        //
+        // Same shape as the optional-double test above: seed leaves
+        // `external_ref` NULL, so we UPDATE project 1's two issues
+        // inside `withRollback` to make the assertion non-trivial.
+        await ctx.withRollback(async () => {
+            ctx.mockNext(1)
+            await ctx.conn.update(tIssue)
+                .set({ externalRef: '11111111-1111-1111-1111-111111111111' })
+                .where(tIssue.id.equals(1))
+                .executeUpdate()
+            ctx.mockNext(1)
+            await ctx.conn.update(tIssue)
+                .set({ externalRef: '22222222-2222-2222-2222-222222222222' })
+                .where(tIssue.id.equals(2))
+                .executeUpdate()
+
+            ctx.mockNext([{
+                projectId: 1,
+                refs:      [
+                    '11111111-1111-1111-1111-111111111111',
+                    '22222222-2222-2222-2222-222222222222',
+                ],
+            }])
+            const rows = await ctx.conn.selectFrom(tIssue)
+                .where(tIssue.projectId.equals(1))
+                .select({
+                    projectId: tIssue.projectId,
+                    refs:      ctx.conn.aggregateAsArrayOfOneColumn(tIssue.externalRef),
+                })
+                .groupBy('projectId')
+                .executeSelectMany()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", json_arrayagg(raw_to_uuid(external_ref)) as "refs" from issue where project_id = :0 group by project_id"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof rows, Array<{ projectId: number; refs: string[] }>>>()
+            const sorted = rows.map(r => ({ ...r, refs: [...r.refs].sort() }))
+            expect(sorted).toEqual([{
+                projectId: 1,
+                refs:      [
+                    '11111111-1111-1111-1111-111111111111',
+                    '22222222-2222-2222-2222-222222222222',
+                ],
+            }])
+        })
+    })
+
+    test('aggregate-of-object-with-bigint-uuid-and-double', async () => {
+        // Wrapped (object-shape) `aggregateAsArray({...})` mixing
+        // `bigint` + optional `uuid` + optional `double`. Pins the
+        // `bigint`/`uuid`/`double` cases in
+        // `_appendJsonValueForWrappedAggregate` simultaneously
+        // (SqlServerSqlBuilder.ts:1322-1362). On PG and the other
+        // JSON-native dialects the per-property cast is absent.
+        //
+        // We UPDATE project 1's two issues to known per-row values so
+        // the wrapped object surface exercises every type branch end
+        // to end. The aggregate's inner-array order isn't guaranteed,
+        // so we sort by `views` in JS before comparing.
+        await ctx.withRollback(async () => {
+            ctx.mockNext(1)
+            await ctx.conn.update(tIssue)
+                .set({
+                    viewCount:      100n,
+                    externalRef:    '11111111-1111-1111-1111-111111111111',
+                    estimatedHours: 4.5,
+                })
+                .where(tIssue.id.equals(1))
+                .executeUpdate()
+            ctx.mockNext(1)
+            await ctx.conn.update(tIssue)
+                .set({
+                    viewCount:      200n,
+                    externalRef:    '22222222-2222-2222-2222-222222222222',
+                    estimatedHours: 8.5,
+                })
+                .where(tIssue.id.equals(2))
+                .executeUpdate()
+
+            ctx.mockNext([{
+                projectId: 1,
+                issues:    [
+                    { views: 100n, externalRef: '11111111-1111-1111-1111-111111111111', estimatedHours: 4.5 },
+                    { views: 200n, externalRef: '22222222-2222-2222-2222-222222222222', estimatedHours: 8.5 },
+                ],
+            }])
+            const rows = await ctx.conn.selectFrom(tIssue)
+                .where(tIssue.projectId.equals(1))
+                .select({
+                    projectId: tIssue.projectId,
+                    issues:    ctx.conn.aggregateAsArray({
+                        views:          tIssue.viewCount,
+                        externalRef:    tIssue.externalRef,
+                        estimatedHours: tIssue.estimatedHours,
+                    }),
+                })
+                .groupBy('projectId')
+                .executeSelectMany()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", json_arrayagg(json_object('views' value view_count, 'externalRef' value raw_to_uuid(external_ref), 'estimatedHours' value estimated_hours)) as "issues" from issue where project_id = :0 group by project_id"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof rows, Array<{
+                projectId: number
+                issues:    Array<{
+                    views:          bigint
+                    externalRef?:   string
+                    estimatedHours?: number
+                }>
+            }>>>()
+            const sorted = rows.map(r => ({
+                ...r,
+                issues: [...r.issues].sort((a, b) => Number(a.views - b.views)),
+            }))
+            expect(sorted).toEqual([{
+                projectId: 1,
+                issues:    [
+                    { views: 100n, externalRef: '11111111-1111-1111-1111-111111111111', estimatedHours: 4.5 },
+                    { views: 200n, externalRef: '22222222-2222-2222-2222-222222222222', estimatedHours: 8.5 },
+                ],
+            }])
+        })
+    })
+
     test('aggregate-of-object-with-boolean-and-local-date-time', async () => {
         // Object-shape `aggregateAsArray({...})` mixing a boolean and
         // a localDateTime column. On SqlServer this exercises

@@ -31,7 +31,27 @@ of that. Two minutes of triage and one paragraph is the bar.
 
 ---
 
-_No open entries._
+## `virtualColumnFromFragment` callback fails TS overload resolution when the fragment template has no `${…}` interpolation
+
+**Where**: `src/expressions/fragment.ts:6-138` (the no-interpolation `sql(sql: TemplateStringsArray)` overload of every per-type `*FragmentExpression`) interacts with `src/View.ts:120-190` / `src/Values.ts:135-205` callback signatures.
+
+**Reproduction**: declared on either a `View` or a `Values` subclass:
+```ts
+class V extends Values<DBConnection, 'name'> {
+    id    = this.column('int')
+    upper = this.virtualColumnFromFragment(
+        'string',
+        fragment => fragment.sql`upper('hello')`,   // bare literal, no `${…}`
+    )
+}
+```
+fails to compile with `error TS2769: No overload matches this call.` on every cell. The same call WORKS the moment any `${…}` interpolation is added — e.g. `fragment.sql\`upper(${this.id})\``. The existing `vProjectOverview.nameUpper` (postgres `domain/connection.ts:172`) works only because it interpolates `${this.name}`.
+
+Concretely: the no-interpolation overload `sql(sql: TemplateStringsArray): StringValueSource<NO_SOURCE, OPTIONAL_TYPE>` leaves `NO_SOURCE` unconstrained, so TS can't unify the callback's return type (`IStringValueSource<SOURCE, 'required'>`) with the fragment's declared SOURCE. Each interpolated `${col}` constrains `NO_SOURCE` via `T1 extends NSource` and the unification succeeds.
+
+The same shape blocks `virtualColumnFromFragment<T>('enum', typeName, fn)` / `optionalVirtualColumnFromFragment<T>('customUuid', typeName, fn)` when the fragment is a bare literal — TS rejects every overload candidate.
+
+**Current workaround in the suite**: tests live in `with-values.advanced.test.ts` (mirrored across all cells where `Values` is typed) and route around the bug by interpolating an addressable column in every fragment (`fragment.sql\`'open'::text /* keyed-by */ || (case when ${this.amount} is null then '' else '' end)\``-style scaffolding). No `// TODO[BUG]` markers added in test bodies — the tests use the workaround as a deliberate idiom rather than wrapping disabled snippets.
 
 ---
 

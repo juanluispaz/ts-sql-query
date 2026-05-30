@@ -102,6 +102,10 @@ runner produces compatible inline snapshot format. Direct invocation also
 works for the runner-side equivalents: `bun test test/db/postgres/newest/ --update-snapshots`
 or `npx vitest run test/db/postgres/newest/ -u`.
 
+Add `--bail` if a snapshot refresh that's expected to be small starts
+breaking — the run stops at the first failure so you can inspect the diff
+instead of churning every snapshot after it.
+
 Review the diff before committing — a snapshot change is real signal that
 the emitted SQL has changed.
 
@@ -126,6 +130,12 @@ If snapshots stay green, the test is `real-validated` in that cell. See
 [`DESIGN.md` § Real-DB validation](./DESIGN.md#real-db-validation) for
 the vocabulary; report it at the close of the round so the next agent (or
 the user) knows what's still mock-validated only.
+
+While iterating on a real-DB run that may fail, add `--bail` to abort at
+the first failure instead of waiting for the rest of the cell — the docker
+matrix is the slow lane and the inner "fix the canonical, re-bake,
+re-validate" loop benefits the most. Full flag reference in
+[`CLI.md` § Flags](./CLI.md#flags).
 
 ## Adding a test
 

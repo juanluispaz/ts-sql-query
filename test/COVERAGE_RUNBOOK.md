@@ -96,6 +96,11 @@ touched; do not let it overrule the working tree.
    The summary line per database (`postgres: N cells, M test files, K
    tests per cell`) is the authoritative count for this session.
 
+   For a flat, machine-readable listing of every active cell (sorted, one
+   per line, no audit narrative), use `bun run tests --list-cells` — same
+   set, no test execution. Useful when verifying the propagation target
+   set in §8 before copy-baking.
+
 2. **Diff this runbook's "last touched" markers against today's state**.
    Quick spot-checks:
    - Does the EXTERNAL_CAVEATS catalog this runbook lists in §4.5 / §7 /

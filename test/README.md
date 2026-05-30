@@ -146,14 +146,19 @@ bun run tests
 # One cell, fastest possible iteration.
 bun run tests postgres/newest/pg
 
-# Real-DB validation of one cell (docker).
-bun run tests postgres/newest/pg --docker
+# Real-DB validation of one cell (docker). Add --bail to abort on first
+# failure while iterating — saves wall-time on the slow lane.
+bun run tests postgres/newest/pg --docker --bail
 
 # Real WASM on a wasm cell.
 bun run tests postgres/oldest/pglite --wasm
 
 # Update snapshots.
 bun run tests postgres/newest/pg --update-snapshots
+
+# Enumerate the active cells (sorted, one per line, no test execution).
+# Handy before propagating a wave or scoping a focused run.
+bun run tests --list-cells
 
 # Pre-push sanity sweep.
 bun run tests:audit && bun run validate:tests && bun run tests

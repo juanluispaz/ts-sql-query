@@ -76,6 +76,10 @@ The sub-agent also produces an **EXTERNAL_CAVEATS sweep** — a list of
 (Bun#29010, sqlite3 BigInt, sqlite uuid_str, etc.). The propagation step
 applies these mechanically — see
 [`COVERAGE_RUNBOOK.md` § Propagation](./COVERAGE_RUNBOOK.md#propagation).
+Cross-check the cell list the sub-agent returns against
+`bun run tests <wave-coord-glob> --list-cells` to confirm the wraps land
+on exactly the cells the propagation will touch — no manual `find` over
+`test/db/`.
 
 **If the sub-agent flags an issue the writing agent disagrees with**:
 explain *to the user* in the wrap-up — not to the sub-agent — why the

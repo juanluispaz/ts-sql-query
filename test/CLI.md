@@ -278,8 +278,8 @@ Pass-through after `--` remains the right tool for runner-specific flags the
 script doesn't wrap — but for snapshot refresh and test-name filtering,
 reach for the first-class flags.
 
-Two more runner behaviours are first-class so you don't have to forward
-them after `--`:
+These three runner behaviours are first-class so you don't have to
+forward them after `--`:
 
 - **`--bail [<N>]`** stops the run after `N` failures (default 1). In the
   iterate-on-one-cell loop (`tests <cell> --docker`), a broken canonical
@@ -292,8 +292,7 @@ them after `--`:
   lower it to fail-fast on a suspected hang instead of waiting the full 60s.
   `--timeout 0` is rejected.
 - **`--no-color`** sets `NO_COLOR=1` (both runtimes honour it), keeping
-  transcripts and `grep` / `tail` pipelines free of ANSI escapes. It also
-  suppresses the color re-injection the WASM-phase replay does on a TTY.
+  transcripts and `grep` / `tail` pipelines free of ANSI escapes.
 
 ```bash
 bun run tests postgres/newest/pg --docker --bail          # stop at first failure

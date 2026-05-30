@@ -386,6 +386,17 @@ its cell**, before propagating. Per
 - **Canonical is WASM** (rare for canonical, but in some dialect-specific
   tests): run `bun run tests <canonical-path> --wasm`.
 
+The above runs the path AND the kind's full real layer. If you want only
+the canonical cell to come up real while the rest of the run stays mock
+(useful when the wave touches a `SqlBuilder` branch shared with siblings
+and you want a fast sanity sweep of the whole family with one cell
+real-validated), pass the cell as the flag's argument:
+`bun run tests <wave-coord-glob> --docker postgres/newest/pg` — only
+`postgres/newest/pg` comes up against its real engine; every other docker
+cell falls through to the mock. Same shape for `--wasm <cell>` and
+`--native <cell>`.
+See [`CLI.md` § Flags — Axis 2](./CLI.md#flags).
+
 If the real-DB run reveals a divergence (different value, different
 ordering, different affected-row count), that divergence is the signal
 the assertion needs adjustment — either by sorting, by UPDATE-in-rollback,

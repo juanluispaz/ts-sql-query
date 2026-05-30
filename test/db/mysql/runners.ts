@@ -275,7 +275,8 @@ export interface MySqlTestSpec {
 
 export function createMySql2PoolTestContext(spec: MySqlTestSpec): MySqlTestContext {
     const version = spec.label.split(' / ')[0] ?? ''
-    const realDbEnabled = isRealDbEnabled(DATABASE, /* needsDocker */ true, version)
+    const connector = spec.label.split(' / ')[1] ?? ''
+    const realDbEnabled = isRealDbEnabled(DATABASE, /* needsDocker */ true, version, connector)
     const buildRunner = memoizeSharedRunner(async (params: { host: string; port: number; workerDb: string }) => {
         // MySql2PoolQueryRunner wraps the callback-style Pool, not the
         // promise-style one — import accordingly.

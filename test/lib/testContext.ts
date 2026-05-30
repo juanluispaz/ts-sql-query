@@ -133,7 +133,7 @@ export interface TestContextOptions<CONN> {
     compatibilityVersion?: number | undefined
     database: DatabaseType
     timeoutMs?: number | undefined
-    /** True if the real DB backend is currently enabled (`isBackendEnabled('pg')`, …). */
+    /** True if this cell's real DB backend is enabled (`isRealDbEnabled(db, kind, version, connector)`). */
     realDbEnabled: boolean
     /**
      * Build a real (driver-backed) runner. Called from `up()` when

@@ -387,7 +387,8 @@ export interface OracleTestSpec {
 
 export function createOracleDBPoolTestContext(spec: OracleTestSpec): OracleTestContext {
     const version = spec.label.split(' / ')[0] ?? ''
-    const realDbEnabled = isRealDbEnabled(DATABASE, /* needsDocker */ true, version)
+    const connector = spec.label.split(' / ')[1] ?? ''
+    const realDbEnabled = isRealDbEnabled(DATABASE, /* needsDocker */ true, version, connector)
     const buildRunner = memoizeSharedRunner(async (params: { host: string; port: number; workerUser: string }) => {
         const oracledb = await import('oracledb')
         const { OracleDBPoolQueryRunner } = await import('../../../src/queryRunners/OracleDBPoolQueryRunner.js')

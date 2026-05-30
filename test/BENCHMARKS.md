@@ -21,19 +21,19 @@ docker is involved, matrix at ~14k tests / ~2.5k files:
 | Invocation | Wall | User+sys CPU | CPU% |
 |---|---|---|---|
 | **`bun run tests`** (mocked, no WASM) | **8.3 s** | ~95 s | 1142% |
-| **`bun run tests --scope newest`** | **5.0 s** | ~55 s | 1094% |
+| **`bun run tests --run-versions newest`** | **5.0 s** | ~55 s | 1094% |
 | **`bun run tests --wasm`** (real pglite/sqlite-wasm) | **12.8 s** | ~103 s | 801% |
-| **`bun run tests --wasm --scope newest`** | **7.7 s** | ~60 s | 785% |
+| **`bun run tests --wasm --run-versions newest`** | **7.7 s** | ~60 s | 785% |
 | **`bun run tests --docker`** (warm containers) | **4:39** | ~1940 s | 694% |
 | `bun run tests --docker` (cold start) | 4:20 | ~1845 s | 709% |
-| **`bun run tests --docker --scope newest`** (warm) | **4:35** | ~1160 s | 420% |
+| **`bun run tests --docker --run-versions newest`** (warm) | **4:35** | ~1160 s | 420% |
 | **`bun run tests --docker --wasm`** (warm) | **4:36** | ~1940 s | 701% |
 
 A few things stand out:
 
 - **The mocked loop is sub-10 s.** Even at ~14k tests, the parallel fan-out
   (12 worker processes) keeps wall time inside a tight feedback window.
-  `--scope newest` brings it down further (~5 s) by skipping `<db>/oldest/*`
+  `--run-versions newest` brings it down further (~5 s) by skipping `<db>/oldest/*`
   cells outright.
 - **Real WASM costs ~5 extra seconds** on top of mocked. Cheap. Compared to
   vitest the gap here is dramatic — see the matrix below.
@@ -41,7 +41,7 @@ A few things stand out:
   schema/seed memoised once per process, the docker matrix takes ~4:30. The
   bottleneck is the per-container DDL throughput when 12 workers reseed their
   own per-worker databases concurrently — see "Why is docker so much slower?".
-- **`--scope newest` barely moves the docker wall time** under bun. The newest
+- **`--run-versions newest` barely moves the docker wall time** under bun. The newest
   path is what already dominates wall time (the slowest container — usually
   sqlserver/oracle — pins the run); dropping oldest cells releases CPU but not
   wall time. The savings are real but small (~4 s out of 4:39).
@@ -85,14 +85,14 @@ that the "winner" column is not a real claim.
 | Invocation | bun wall | vitest wall | Reading |
 |---|---|---|---|
 | `tests` (mocked) | **8.3 s** | 60.4 s | **bun ~7×** — robust |
-| `tests --scope newest` | **5.0 s** | 40.8 s | **bun ~8×** — robust |
+| `tests --run-versions newest` | **5.0 s** | 40.8 s | **bun ~8×** — robust |
 | `tests --wasm` | **12.8 s** | 5:02 | **bun ~24×** — robust |
-| `tests --wasm --scope newest` | **7.7 s** | 2:51 | **bun ~22×** — robust |
+| `tests --wasm --run-versions newest` | **7.7 s** | 2:51 | **bun ~22×** — robust |
 | `tests --docker` (warm) | 4:39 | 2:20 / 3:01 | **inconclusive** (see below) |
 | `tests --docker` (cold) | 4:20 | 3:11 | **inconclusive** |
-| `tests --docker --scope newest` (warm) | 4:35 | 4:24 | **inconclusive** |
+| `tests --docker --run-versions newest` (warm) | 4:35 | 4:24 | **inconclusive** |
 | `tests --docker --wasm` (warm) | 4:36 | 6:17 | **inconclusive** |
-| `tests --docker --wasm --scope newest` | 4:54 | 4:50 | **inconclusive** |
+| `tests --docker --wasm --run-versions newest` | 4:54 | 4:50 | **inconclusive** |
 
 **Why the docker rows are inconclusive:**
 
@@ -140,7 +140,7 @@ the runtime cost trade-off is no longer a reason to switch on its own.
 ## Practical workflow
 
 - **Daily iteration (mocked)**: `bun run tests` (~8 s) or
-  `bun run tests --scope newest` (~5 s) if you only care about newest-version
+  `bun run tests --run-versions newest` (~5 s) if you only care about newest-version
   behaviour. `tests <coord>` for a single cell.
 - **Validate one cell against real-DB cheaply**: `bun run tests <cell>` —
   if `<cell>` is a SQLite native connector (better-sqlite3, bun_sqlite,
@@ -150,6 +150,6 @@ the runtime cost trade-off is no longer a reason to switch on its own.
 - **Pre-merge confidence**: `bun run tests --docker` (~4:30) — every test runs
   against its real engine. Add `--wasm` (~no extra cost under bun) for the
   full matrix.
-- **WASM-touching changes**: `bun run tests --connections wasm --wasm` to
+- **WASM-touching changes**: `bun run tests --run-connectors wasm --wasm` to
   verify only the pglite / sqlite-wasm-OO1 cells against the real module
   (parallel by default; add `--mode sequential` for the old serial recipe).

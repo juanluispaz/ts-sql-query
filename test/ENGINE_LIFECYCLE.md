@@ -19,7 +19,7 @@ mutation safety contract that runs ON TOP of this infra see
 - [Container reuse](#container-reuse)
 - [Cross-invocation reuse](#cross-invocation-reuse)
 - [Narrowing the docker scope](#narrowing-the-docker-scope)
-- [Path scope vs docker scope](#path-scope-vs-docker-scope)
+- [Participation vs real/mock](#participation-vs-real-mock)
 - [Schema / seed change revalidation](#schema--seed-change-revalidation)
 - [Per-worker test databases](#per-worker-test-databases)
 - [WASM lifecycle](#wasm-lifecycle)
@@ -78,14 +78,13 @@ for comparison was ~228 s per run.
 
 ## Narrowing the docker scope
 
-Container reuse cuts the *startup* tax. `--docker-scope newest` cuts the
-*matrix* tax: when `--docker` is on, only cells under `<db>/newest/*` keep
-their real-DB branch — older versions transparently fall back to the mock for
-that run.
+Container reuse cuts the *startup* tax. `--docker newest` cuts the *matrix*
+tax: only cells under `<db>/newest/*` keep their real-DB branch — older docker
+versions transparently fall back to the mock for that run.
 
 ```bash
 # Real backends only on `newest`; older versions go through the mock.
-bun run tests --docker --docker-scope newest
+bun run tests --docker newest
 ```
 
 Same shape as `--wasm` (a narrower scope than the full matrix), different
@@ -93,66 +92,65 @@ motivation:
 
 - `--wasm` exists because real WASM is CPU-bound and dominates wall time when
   imported under parallel workers.
-- `--docker-scope newest` exists because most regressions surface on any
-  recent version of an engine. Hitting `oldest` is only worth the wall-time
-  cost when you're investigating something version-specific —
-  backward-compatibility shims, deprecated SQL, fall-back code paths, etc.
+- `--docker newest` exists because most regressions surface on any recent
+  version of an engine. Hitting `oldest` is only worth the wall-time cost when
+  you're investigating something version-specific — backward-compatibility
+  shims, deprecated SQL, fall-back code paths, etc.
 
-The CLI flag exports `TS_SQL_QUERY_DOCKER_SCOPE=newest` for the runner. The
-gate sits in [`test/lib/backends.ts`](./lib/backends.ts):
-[`isRealDbEnabled(db, 'docker', version)`](./lib/backends.ts#L105) returns
-`false` when the scope is `newest` and the cell's version is not `newest`. The
-version is derived from the cell's `spec.label` (the `<version> / <connector>`
-prefix); no per-cell changes are needed when a new connector or version is
-added.
+The gate sits in [`test/lib/backends.ts`](./lib/backends.ts):
+[`isRealDbEnabled(db, 'docker', version, connector)`](./lib/backends.ts#L105)
+returns `false` when the docker selection is `newest` and the cell's version
+is not `newest`. The version/connector are derived from the cell's `spec.label`
+(`<version> / <connector>`); no per-cell changes are needed when a new
+connector or version is added.
 
-Default is `all`. The flag is a no-op without `--docker`.
+Default is `none` (docker cells mock). For an even finer scope, pass coords:
+`--docker postgres/newest/pg` makes just that cell real and the rest mock.
 
 When mixing flags:
 
-| Combination | What runs |
+| Combination | What runs real |
 |---|---|
-| `--docker` (default scope `all`) | every docker cell hits its real DB |
-| `--docker --docker-scope newest` | only `<db>/newest/*` cells hit real DBs; older versions mock |
-| `--docker-scope newest` (no `--docker`) | all docker cells fall back to mocks (scope is no-op) |
-| `--docker --docker-scope newest --wasm` | newest docker cells real, WASM phase real, older docker cells mock |
+| `--docker` (= `all`) | every docker cell hits its real DB |
+| `--docker newest` | only `<db>/newest/*` docker cells real; older versions mock |
+| `--docker postgres/newest/pg` | only that cell real; every other docker cell mock |
+| `--docker newest --wasm` | newest docker cells real, WASM phase real, older docker cells mock |
 
-## Path scope vs docker scope
+## Participation vs real/mock
 
-`--docker-scope newest` flips the real/mock gate but keeps every test running.
-`--scope newest` is one step further — it filters the **file set** the runner
-walks, so older-version cells are not even enumerated:
+`--docker newest` flips the real/mock gate but keeps every docker test
+running (older versions mock). `--run-versions newest` is a different axis —
+it filters the **file set** the runner walks (Axis 1, participation), so
+older-version cells are not even enumerated:
 
 | Flag | Older-version cells |
 |---|---|
-| `--docker-scope newest` | run against the mock |
-| `--scope newest` | not run at all |
+| `--docker newest` | run, against the mock (real/mock axis) |
+| `--run-versions newest` | not run at all (participation axis) |
 
 Practical use: coverage runs. Older-version coverage is almost always a
 subset of the newest cell's coverage (same SQL builder, same expressions), so
 feeding the runner an extra ~570 file invocations only pads the report.
-`--scope newest` skips them — `bun run tests` drops from 14k tests / 8 s to
-11k tests / 5 s on a typical box. Implies `--docker-scope=newest` automatically
-(running real containers for versions you don't even visit is wasted setup);
-pass `--docker-scope` explicitly to override.
+`--run-versions newest` skips them — `bun run tests` drops from 14k tests / 8 s
+to 11k tests / 5 s on a typical box.
 
-Focused runs (`tests <coord>`) accept `--scope newest` too, and combine it
+Focused runs (`tests <coord>`) accept `--run-versions newest` too, and combine it
 with the multi-coord / glob / brace-expansion support to address arbitrary
 slices of the matrix:
 
-- Single-segment coord (`tests postgres --scope newest`): the run expands to
+- Single-segment coord (`tests postgres --run-versions newest`): the run expands to
   `<db>/newest/` + `<db>/types.negative/`.
-- Glob coord (`tests 'postgres/*/pg' --scope newest`): the script expands the
+- Glob coord (`tests 'postgres/*/pg' --run-versions newest`): the script expands the
   glob, then drops paths matching `*/oldest/*` from the expansion. So
   `postgres/*/pg` resolves to just `postgres/newest/pg`.
-- Brace expansion (`tests 'postgres/*/{pg,postgres}' --scope newest`): works
+- Brace expansion (`tests 'postgres/*/{pg,postgres}' --run-versions newest`): works
   whether you quote the coord or not.
-- Multi-coord (`tests 'postgres/*/pg' sqlite/newest --scope newest`): combine
+- Multi-coord (`tests 'postgres/*/pg' sqlite/newest --run-versions newest`): combine
   literals, globs, and brace-expanded sets in a single invocation.
-- A coord pointing at `*/oldest/*` combined with `--scope newest` is rejected
+- A coord pointing at `*/oldest/*` combined with `--run-versions newest` is rejected
   outright as an explicit contradiction.
 
-`tests --connections wasm --scope newest` drops the `oldest` WASM entries from
+`tests --run-connectors wasm --run-versions newest` drops the `oldest` WASM entries from
 the WASM path set too.
 
 ## Schema / seed change revalidation
@@ -230,7 +228,7 @@ box), `--no-file-parallelism` for vitest (parallel out of the box).
 
 The dedicated WASM phase (full-matrix `--wasm` two-phase split) is always
 sequential; WASM is CPU-bound and parallel buys nothing. A focused /
-connection-typed WASM run (`tests --connections wasm --wasm`) defaults to
+connection-typed WASM run (`tests --run-connectors wasm --wasm`) defaults to
 parallel because the cell set is tiny — pass `--mode sequential` if you want
 the same shape as the old `tests:wasm`.
 
@@ -253,8 +251,8 @@ there. The two costs that make them their own gating category:
    parallel main pass finishes — the WASM cost lands serially at the end,
    not competing with the docker workers.
 
-In focused mode (`tests <coord> --wasm`) the two-phase split doesn't fire
-and `--wasm` is a single-pass override that sets `TS_SQL_QUERY_WASM=on`.
+In focused mode (`tests <coord> --wasm`) the two-phase split doesn't fire —
+`--wasm` runs the WASM cells real in a single pass.
 
 When `--wasm` is off, every WASM cell still runs — its SQL + params + type +
 mock round-trip assertions all fire — but the WebAssembly module is never

@@ -8,25 +8,35 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 print_help() {
     cat <<'EOF'
 Usage:
-  tests [<coord>…] [--mode <parallel|sequential>]
-                   [--docker] [--docker-mode <reuse|no-reuse>]
-                   [--docker-scope <all|newest>]
-                   [--scope <all|newest>]
-                   [--connections <all|docker|wasm|native>]
-                   [--wasm]
+  tests [<coord>…]
+                   # Runner / runtime:
+                   [--mode <parallel|sequential>]
+                   #   · Axis 1 — participation (what RUNS; excludes):
+                   [--run-versions <all|newest>]
+                   [--run-connectors <all|docker|wasm|native>]
+                   #   · Axis 2 — real/mock (what's REAL among what runs):
+                   [--docker [all|none|newest|<coord>]]…
+                   [--wasm   [all|none|newest|<coord>]]…
+                   [--native [all|none|newest|<coord>]]…
+                   #   · engine / runtime controls:
+                   [--docker-mode <reuse|no-reuse>]
                    [--use-vitest] [--ui]
+                   # Reports & coverage:
                    [--report    [--report-format <name>]…]
                    [--coverage  [--coverage-format <name>]…]
                    [--open]
+                   # Narrowing (runtime-agnostic):
                    [--update-snapshots]
                    [--test-name-pattern <regex>]
                    [--bail [<N>]]
                    [--timeout <ms>]
                    [--no-color]
+                   # Listing (enumerate, don't run):
                    [--list-cells]
                    [--list-cells-with-mode [running|all|real|mock|skipped]]
                    [--list-files]
                    [--list-tests]
+                   # Run summary:
                    [--validation-summary [running|all|real|mock|skipped]]
                    [--help]
                    [-- <args passed to runner>]
@@ -56,7 +66,7 @@ Coords
                  breakpoint when one exists (e.g. `13_000_001`,
                  `10_005_000`). `<db>/types.negative/` is a sibling
                  used for compile-time negatives — not a version
-                 folder — and is included only under --connections=all.
+                 folder — and is included only under --run-connectors=all.
     <connector>  per-driver folder under <db>/<version>/, one of the
                  entries in docs/configuration/query-runners/recommended/
                  for that DB (e.g. postgres: pg, postgres,
@@ -89,7 +99,7 @@ Coords
   expansion runs — anything outside that vocabulary is rejected. An
   unmatched glob is an error, not a silent zero-test run.
 
-  Under --scope newest a coord that literally names oldest
+  Under --run-versions newest a coord that literally names oldest
   (`postgres/oldest`, `*/oldest/*`) is rejected as a contradiction;
   globs are expanded and any `*/oldest/*` matches are filtered out.
 
@@ -135,16 +145,12 @@ Runner trade-off
 
 Defaults
   --mode             parallel
-  --docker           off (docker cells fall through to mock)
+  --run-versions     all  (every version under test/db/<db>/* runs)
+  --run-connectors   all  (every connector kind runs)
+  --docker           none (docker cells run mock; bare --docker = all)
+  --wasm             none (WASM cells run mock; bare --wasm = all)
+  --native           all  (native SQLite runs real; --native none = mock)
   --docker-mode      reuse  (containers stay alive between invocations)
-  --docker-scope     all  (every docker cell hits its real DB);
-                     follows --scope when --docker-scope was not given
-                     explicitly (so `--scope newest` implies it too)
-  --scope            all  (every cell under test/db/<db>/* runs)
-  --connections      all  (every connector type runs)
-  --wasm             off (WASM cells fall through to mock — modules are
-                     never imported, so their bootstrap cost is paid
-                     by nothing)
   --use-vitest       off (runtime detected from npm_config_user_agent)
   --ui               off (implies --use-vitest)
   --report           off (test-execution report)
@@ -165,75 +171,70 @@ Defaults
   --validation-summary off (when set: running; all|real|mock|skipped filter)
 
 WASM semantics
-  Full-matrix mode (no positional coords): the main pass ALWAYS runs
-  WASM connectors (pglite, sqlite-wasm-OO1) as mocks. When --wasm is
-  set, a sequential pass runs the WASM cells against the real module
-  FIRST, then the parallel main pass runs; the WASM summary is
-  re-emitted at the end so both phase summaries stay visible after
-  the main pass scrolls. WASM failures short-circuit the main pass.
-  This split keeps the parallel main pass fast — WASM is CPU-bound
-  and tanks parallel throughput.
+  Full-matrix mode (no positional coords): when --wasm selects any real
+  WASM cell, a sequential pass runs the WASM cells FIRST (real per the
+  selection), then the parallel main pass runs them mocked; the WASM
+  summary is re-emitted at the end so both phase summaries stay visible.
+  WASM failures short-circuit the main pass. The split keeps the parallel
+  main pass fast — WASM is CPU-bound. ALL WASM runs in its own unit, no
+  matter how granular the --wasm selection is.
 
-  Focused mode (one or more coords): --wasm is a single-pass
-  override. The two-phase split is bypassed because focused runs are
-  smaller and the user already chose what to run; we honour that
-  verbatim and just set TS_SQL_QUERY_WASM=on for the one pass.
+  Focused mode (one or more coords): single pass — the --wasm selection is
+  applied to that one pass directly (no split).
 
 Runner flags
   --mode <parallel|sequential>
         parallel:   per-worker DBs + parallel test files (default).
         sequential: single shared DB, one worker.
-  --docker
-        Docker-backed connectors hit their real DB. Without it they
-        run their SQL/params/type assertions against the mock.
+  Two axes (see "WASM semantics" above for the split):
+    Axis 1 — participation (which cells RUN; these only EXCLUDE):
+  --run-versions <all|newest>
+        all:    every version under test/db/<db>/* runs (default).
+        newest: only `<db>/newest/*` + `<db>/types.negative/*` cells run;
+                older versions are NOT executed at all. A post-filter on
+                the coords — it excludes, it does not mock.
+  --run-connectors <all|docker|wasm|native>
+        Which connector KINDS run. all (default) | docker (pg, postgres,
+        bun_sql_postgres, mariadb, mysql2, oracledb, mssql) | wasm (pglite,
+        sqlite-wasm-OO1) | native (better-sqlite3, bun_sqlite, node_sqlite,
+        sqlite3). A pure path filter: EXCLUDES the other kinds from the run
+        (does NOT mock them). `types.negative/` folders are dialect-level
+        and dropped under any non-all filter. Mirrors RealDbBackend in
+        test/lib/backends.ts.
+    Axis 2 — real/mock (what's REAL among what runs). Each takes EITHER one
+    literal all|none|newest OR a single <coord> (same coord rules); bare = all.
+    Two things to know about the coord form:
+      • One token per flag. To target several cells, REPEAT the flag —
+        `--docker a --docker b`, NOT `--docker a b`. Each flag swallows only
+        the next token; any extra space-separated coord falls through to the
+        POSITIONAL coords (Axis 1 participation), silently narrowing the run
+        instead of marking another cell real.
+      • Cell-level granularity. The real/mock gate keys on the cell
+        <db>/<version>/<connector>, so a 4th-level <file> coord is REJECTED
+        with an error (it would add no granularity — the whole cell is the
+        unit). Drop the file segment: `--docker postgres/newest/pg`, not
+        `--docker postgres/newest/pg/x.test.ts`. (Positional Axis-1 coords
+        still accept the <file> level — that narrows which tests RUN.)
+      Mixing a literal with a coord (`--docker all postgres/newest/pg`) is an
+      error; a coord matching no running cell of this kind warns as a no-op.
+  --docker [all|none|newest|<coord>]
+        Which docker-backed cells hit a real container; the rest run mock.
+        bare/all = every docker cell real; none = all mock; newest = only
+        <db>/newest/* docker cells real; <coord> = only the matching docker
+        cell(s) real (repeat the flag for more). Default none.
+  --wasm [all|none|newest|<coord>]
+        Same vocabulary for the WASM cells. Default none. When real on the
+        full matrix, WASM runs in its own sequential phase (see above).
+  --native [all|none|newest|<coord>]
+        Same vocabulary for the native SQLite drivers. Default all (real).
+        `--native none` routes them through the mock — the cheap way to
+        make a run fully mock.
+  Engine / runtime controls (neither axis — they pick the container
+  lifecycle and the runtime, not which cells run or which are real):
   --docker-mode <reuse|no-reuse>
         reuse:    sets TESTCONTAINERS_REUSE_ENABLE=true. Containers
                   persist across invocations — preferred for local dev.
         no-reuse: fresh containers every run. Hermetic; CI baseline.
-  --docker-scope <all|newest>
-        all:    every docker-backed cell hits its real DB (default).
-        newest: only cells under `<db>/newest/*` hit a real DB; older
-                versions fall back to the mock. Faster smoke run that
-                still catches most regressions. No-op without --docker.
-                Analogous in shape to --wasm (a scope narrower than the
-                full matrix); motivation is speed, not correctness.
-                When --scope=newest and --docker-scope wasn't given
-                explicitly, this defaults to `newest` too — running the
-                real container for a version you don't even visit is
-                wasted work.
-  --scope <all|newest>
-        all:    every cell under `test/db/<db>/*` runs (default).
-        newest: filter the file set the runner visits to
-                `<db>/newest/*` + `<db>/types.negative/*` (dialect-only
-                typecheck cells stay in scope). Older versions are not
-                executed at all — different from --docker-scope, which
-                keeps the test running but flips the real/mock gate.
-                Implies --docker-scope=newest unless the user passed
-                --docker-scope explicitly. Useful for shortening
-                coverage runs when older-version coverage is redundant
-                with the matching newest cell.
-  --connections <all|docker|wasm|native>
-        all:    every connector type runs (default).
-        docker: only docker-backed connectors (pg, postgres,
-                bun_sql_postgres, mariadb, mysql2, oracledb, mssql).
-        wasm:   only WASM connectors (pglite, sqlite-wasm-OO1).
-        native: only embedded-native connectors that need no extra
-                infrastructure to go real — today the SQLite drivers
-                (better-sqlite3, bun_sqlite, node_sqlite, sqlite3).
-                Mirrors the `RealDbBackend = 'docker'|'wasm'|'native'`
-                type in test/lib/backends.ts.
-        Pure path filter, like --scope: the runner is invoked only on
-        cells whose connector folder matches the chosen type. Does
-        NOT auto-imply --docker or --wasm — `--connections docker`
-        without --docker runs docker cells mocked; `--connections
-        wasm` without --wasm runs WASM cells mocked. `types.negative/`
-        folders are dialect-level (no connector) and are excluded
-        from any non-all filter. The two-phase WASM split fires only
-        in `--connections=all` mode (in other modes either no WASM
-        is in scope or everything is WASM — single pass either way).
-  --wasm
-        After the main pass, run the WASM cells (sequential) against
-        the real pglite / sqlite-wasm-OO1 module.
   --use-vitest
         Force vitest even if invoked via `bun run`. The test process
         runs under Node; vitest's richer V8 coverage and full
@@ -342,28 +343,27 @@ Listing flags (enumerate, don't run — mutually exclusive)
   --list-cells
         Print the connector-level cells
         (test/db/<db>/<version>/<connector>) the current
-        coords/--scope/--connections select — one per line, sorted —
+        coords/--run-versions/--run-connectors select — one per line, sorted —
         then exit WITHOUT running anything. Runner-free and
         deterministic; a drop-in for the hand-rolled `for db in
         test/db/*/…` inventory loop. Honours every path filter for free
         (it lists exactly what a real run would visit at cell level).
           tests --list-cells                       # every active cell
-          tests postgres --scope newest --list-cells
-          tests --connections native --list-cells
+          tests postgres --run-versions newest --list-cells
+          tests --run-connectors native --list-cells
   --list-cells-with-mode [running|all|real|mock|skipped]
         Annotate cells with their mode under the CURRENT flags. Unlike
         --list-cells (which lists only the selection), this considers the
         WHOLE matrix and gives every cell a verdict + reason:
           real     `(docker|wasm|native)` — brings up a real engine.
-          mock     runs against the mock: `(…; needs --docker/--wasm)`,
-                   `(docker; docker-scope=newest skips <version>)`, or
-                   `(db out of TS_SQL_QUERY_DBS scope → real gated)` —
-                   the db is out of scope so the real branch is gated
-                   off, but the test still runs (mock).
+          mock     runs against the mock, with why its kind's selection
+                   didn't include it: `(<kind>; needs --docker/--wasm)`,
+                   `(docker; --docker newest skips <version>)`, or
+                   `(<kind>; not in --<kind> coords)`.
           skipped  off — EXCLUDED FROM THE RUN (the runner never sees
                    it), with the reason: `(not selected: outside
-                   coords)`, `(excluded by --connections <type>)`, or
-                   `(excluded by --scope newest)`.
+                   coords)`, `(excluded by --run-connectors <type>)`, or
+                   `(excluded by --run-versions newest)`.
         The optional filter selects which verdicts to print:
           running  (default) the cells that run a body: real + mock.
           all      the whole matrix, including the off (skipped) ones.
@@ -388,7 +388,7 @@ Listing flags (enumerate, don't run — mutually exclusive)
         include (`test/**/*.test.ts`), so the output matches the files a
         real run would visit — including in-scope `types.negative/` files.
           tests postgres/newest/pg --list-files    # the 166 files in one cell
-          tests --connections native --list-files
+          tests --run-connectors native --list-files
   --list-tests
         Print the test NAMES the current selection would run (one full
         `file > describe > test` name per line), then exit without
@@ -401,12 +401,12 @@ Listing flags (enumerate, don't run — mutually exclusive)
         runtime-agnostic. Collection imports the test files and
         evaluates their describe/test registration but NOT the test
         bodies or beforeAll hooks, so no real DB is bootstrapped.
-        Honours the coord/--scope/--connections path filter and
+        Honours the coord/--run-versions/--run-connectors path filter and
         --test-name-pattern; pass `-- --json` for machine-readable
         output.
           tests postgres/newest/pg --list-tests
           tests postgres/newest/pg --list-tests --test-name-pattern inner-join
-          tests sqlite/newest --connections native --list-tests -- --json
+          tests sqlite/newest --run-connectors native --list-tests -- --json
 
 Run-summary flag
   --validation-summary [running|all|real|mock|skipped]
@@ -457,11 +457,11 @@ Examples
   bun run tests                                            # fast loop
   bun run tests --docker                                   # + docker
   bun run tests --docker --wasm                            # full matrix
-  bun run tests --scope newest                             # skip oldest cells
-  bun run tests --coverage --scope newest --open           # shorter coverage
-  bun run tests --connections wasm --wasm                  # only WASM cells (real)
-  bun run tests --connections docker --docker              # only docker-backed cells
-  bun run tests --connections native                       # only embedded SQLite
+  bun run tests --run-versions newest                             # skip oldest cells
+  bun run tests --coverage --run-versions newest --open           # shorter coverage
+  bun run tests --run-connectors wasm --wasm                  # only WASM cells (real)
+  bun run tests --run-connectors docker --docker              # only docker-backed cells
+  bun run tests --run-connectors native                       # only embedded SQLite
   bun run tests postgres/newest/pg                         # focused: one cell
   bun run tests postgres/newest/pg --test-name-pattern inner-join
                                                            # focused: one cell + test-name regex
@@ -470,14 +470,14 @@ Examples
                                                            # refresh one test's snapshot
   bun run tests postgres/newest/pg --docker --bail         # stop at first failure
   bun run tests --list-cells                               # enumerate active cells, no run
-  bun run tests postgres --scope newest --list-cells       # cells a propagation would touch
+  bun run tests postgres --run-versions newest --list-cells       # cells a propagation would touch
   bun run tests postgres/newest/pg --list-files            # enumerate test files (filesystem)
   bun run tests postgres/newest/pg --list-tests            # enumerate test names (vitest-backed)
   bun run tests --docker --list-cells-with-mode            # which cells run real vs mock
   bun run tests --docker --wasm --list-cells-with-mode real # only the cells that go real
   bun run tests --docker --validation-summary              # run + real/mock breakdown at the end
   bun run tests 'postgres/*/pg' --docker                   # focused: glob
-  bun run tests 'postgres/*/{pg,postgres}' --docker --scope newest
+  bun run tests 'postgres/*/{pg,postgres}' --docker --run-versions newest
                                                            # focused: glob + brace + scope
   bun run tests --report                                   # bun → junit.xml
   bun run tests --coverage --coverage-format=html --open   # bun coverage html
@@ -498,15 +498,17 @@ EOF
 
 COORDS=()
 MODE=parallel
-DOCKER=off
 DOCKER_MODE=reuse
-# Empty sentinel: distinguishes "user didn't pass --docker-scope" from
-# "user explicitly chose `all`". When --scope=newest fires, we promote
-# this to `newest` ONLY if it's still empty (no explicit override).
-DOCKER_SCOPE=
-SCOPE=all
-CONNECTIONS=all
-WASM=off
+# Axis 1 — participation post-filters on the coordinate set (what RUNS).
+RUN_VERSIONS=all      # was --run-versions
+RUN_CONNECTORS=all    # was --run-connectors
+# Axis 2 — real/mock selection per backend kind (what's REAL among what runs).
+# Each flag (--docker/--wasm/--native) accumulates tokens: a literal
+# all|none|newest, or coords (same coord rules). Resolved later into a
+# mode + cell-set per kind, then exported as TS_SQL_QUERY_DOCKER/WASM/NATIVE.
+DOCKER_TOKENS=()
+WASM_TOKENS=()
+NATIVE_TOKENS=()
 USE_VITEST=off
 UI=off
 REPORT=off
@@ -540,16 +542,26 @@ while [ $# -gt 0 ]; do
     case "$1" in
         --mode)                 MODE="$2"; shift 2 ;;
         --mode=*)               MODE="${1#--mode=}"; shift ;;
-        --docker)               DOCKER=on; shift ;;
         --docker-mode)          DOCKER_MODE="$2"; shift 2 ;;
         --docker-mode=*)        DOCKER_MODE="${1#--docker-mode=}"; shift ;;
-        --docker-scope)         DOCKER_SCOPE="$2"; shift 2 ;;
-        --docker-scope=*)       DOCKER_SCOPE="${1#--docker-scope=}"; shift ;;
-        --scope)                SCOPE="$2"; shift 2 ;;
-        --scope=*)              SCOPE="${1#--scope=}"; shift ;;
-        --connections)          CONNECTIONS="$2"; shift 2 ;;
-        --connections=*)        CONNECTIONS="${1#--connections=}"; shift ;;
-        --wasm)                 WASM=on; shift ;;
+        --run-versions)         RUN_VERSIONS="$2"; shift 2 ;;
+        --run-versions=*)       RUN_VERSIONS="${1#--run-versions=}"; shift ;;
+        --run-connectors)       RUN_CONNECTORS="$2"; shift 2 ;;
+        --run-connectors=*)     RUN_CONNECTORS="${1#--run-connectors=}"; shift ;;
+        # Axis 2: each takes an optional value — a literal all|none|newest or
+        # a coord. Bare (next is a flag or end) means `all`. Repeatable to
+        # pass multiple coords. The lookahead consumes the next token unless
+        # it's another flag, so `--docker postgres/newest/pg` works and
+        # `--docker --wasm` leaves --wasm alone.
+        --docker)
+            case "${2:-}" in ''|-*) DOCKER_TOKENS+=(all); shift ;; *) DOCKER_TOKENS+=("$2"); shift 2 ;; esac ;;
+        --docker=*)             DOCKER_TOKENS+=("${1#--docker=}"); shift ;;
+        --wasm)
+            case "${2:-}" in ''|-*) WASM_TOKENS+=(all); shift ;; *) WASM_TOKENS+=("$2"); shift 2 ;; esac ;;
+        --wasm=*)               WASM_TOKENS+=("${1#--wasm=}"); shift ;;
+        --native)
+            case "${2:-}" in ''|-*) NATIVE_TOKENS+=(all); shift ;; *) NATIVE_TOKENS+=("$2"); shift 2 ;; esac ;;
+        --native=*)             NATIVE_TOKENS+=("${1#--native=}"); shift ;;
         --use-vitest)           USE_VITEST=on; shift ;;
         --ui)                   UI=on; USE_VITEST=on; shift ;;
         --report)               REPORT=on; shift ;;
@@ -621,11 +633,11 @@ esac
 case "$DOCKER_MODE" in reuse|no-reuse) ;; *)
     echo "Invalid --docker-mode: $DOCKER_MODE (expected reuse|no-reuse)" >&2; exit 2 ;;
 esac
-case "$SCOPE" in all|newest) ;; *)
-    echo "Invalid --scope: $SCOPE (expected all|newest)" >&2; exit 2 ;;
+case "$RUN_VERSIONS" in all|newest) ;; *)
+    echo "Invalid --run-versions: $RUN_VERSIONS (expected all|newest)" >&2; exit 2 ;;
 esac
-case "$CONNECTIONS" in all|docker|wasm|native) ;; *)
-    echo "Invalid --connections: $CONNECTIONS (expected all|docker|wasm|native)" >&2; exit 2 ;;
+case "$RUN_CONNECTORS" in all|docker|wasm|native) ;; *)
+    echo "Invalid --run-connectors: $RUN_CONNECTORS (expected all|docker|wasm|native)" >&2; exit 2 ;;
 esac
 if [ -n "$BAIL" ]; then
     case "$BAIL" in
@@ -667,18 +679,9 @@ fi
 # vitest's --testTimeout). Empty --timeout falls back to the 60000ms
 # default that matches vitest.config.ts's testTimeout.
 TEST_TIMEOUT_MS="${TIMEOUT:-60000}"
-# Resolve the docker-scope default. Empty means "user didn't pass it":
-# follow --scope (newest filters paths AND would skip the real-DB gate
-# for any version we don't even visit).
-if [ -z "$DOCKER_SCOPE" ]; then
-    if [ "$SCOPE" = "newest" ]; then DOCKER_SCOPE=newest; else DOCKER_SCOPE=all; fi
-fi
-case "$DOCKER_SCOPE" in all|newest) ;; *)
-    echo "Invalid --docker-scope: $DOCKER_SCOPE (expected all|newest)" >&2; exit 2 ;;
-esac
 
 # Resolve MAIN_PATHS (and WASM_LIST in full-matrix mode) from
-# COORDS / SCOPE / FOCUSED. Full implementation + edge cases live
+# COORDS / RUN_VERSIONS / FOCUSED. Full implementation + edge cases live
 # in `resolve_main_paths` in _test-common.sh.
 resolve_main_paths || exit $?
 
@@ -686,10 +689,22 @@ resolve_main_paths || exit $?
 # (test/, test/db/<db>/, …) get expanded to their typed connector
 # children. `types.negative/` is dropped under any non-all filter.
 # Helper exits non-zero when the filter empties the set.
-if ! apply_connection_type_filter "$CONNECTIONS"; then
-    echo "Error: --connections $CONNECTIONS left no paths to run." >&2
+if ! apply_connection_type_filter "$RUN_CONNECTORS"; then
+    echo "Error: --run-connectors $RUN_CONNECTORS left no paths to run." >&2
     exit 2
 fi
+
+# Axis 2 — resolve each kind's real/mock selection from its --docker/--wasm/
+# --native tokens into a mode (+ cell-set when coords were given). Defaults:
+# docker/wasm = none (mock), native = all (real). resolve_kind_real sets
+# REAL_MODE / REAL_CELLS and warns on no-op (coords that match no running
+# cell of that kind). Lives in _test-common.sh.
+resolve_kind_real docker none "${DOCKER_TOKENS[@]}" || exit $?
+DOCKER_MODE_SEL="$REAL_MODE"; DOCKER_CELLS="$REAL_CELLS"
+resolve_kind_real wasm none "${WASM_TOKENS[@]}" || exit $?
+WASM_MODE_SEL="$REAL_MODE"; WASM_CELLS="$REAL_CELLS"
+resolve_kind_real native all "${NATIVE_TOKENS[@]}" || exit $?
+NATIVE_MODE_SEL="$REAL_MODE"; NATIVE_CELLS="$REAL_CELLS"
 
 # --list-cells: print the connector-level cells the current
 # coords/scope/connections select, one per line, then exit without
@@ -780,13 +795,18 @@ fi
 # the two don't fight.
 if [ "$NO_COLOR_FLAG" = "on" ]; then export NO_COLOR=1; fi
 
-export TS_SQL_QUERY_DOCKER="$DOCKER"
+# Per-kind env strings the runtime gate (backends.ts) reads: all|none|newest
+# or a comma list of <db>/<version>/<connector> cell keys. docker + native
+# apply to every phase; wasm is set per-phase below (it runs real in its own
+# sequential unit when the two-phase split fires).
+DOCKER_ENV="$(kind_env_value "$DOCKER_MODE_SEL" "$DOCKER_CELLS")"
+WASM_ENV="$(kind_env_value "$WASM_MODE_SEL" "$WASM_CELLS")"
+NATIVE_ENV="$(kind_env_value "$NATIVE_MODE_SEL" "$NATIVE_CELLS")"
+# Whether any WASM cell goes real — drives the two-phase split + forbidden combo.
+WASM_REAL=off; [ "$WASM_MODE_SEL" != "none" ] && WASM_REAL=on
+export TS_SQL_QUERY_DOCKER="$DOCKER_ENV"
+export TS_SQL_QUERY_NATIVE="$NATIVE_ENV"
 if [ "$DOCKER_MODE" = "reuse" ]; then export TESTCONTAINERS_REUSE_ENABLE=true; fi
-# Only propagate scope when docker is on. With docker off the env var
-# is a no-op (the backends.ts gate short-circuits on docker=off first),
-# but keeping it out of the env when irrelevant avoids the appearance
-# in the legend that this is doing something.
-if [ "$DOCKER" = "on" ]; then export TS_SQL_QUERY_DOCKER_SCOPE="$DOCKER_SCOPE"; fi
 
 # Fill in runtime-aware defaults for REPORT_FORMAT / COVERAGE_FORMAT
 # (and inject `default` alongside html under vitest so the user
@@ -801,8 +821,8 @@ validate_open_request || exit $?
 # compound the problem (each worker emits its own shard, two phases =
 # 2N shards). Forcing the user to choose keeps the report a single
 # coherent artifact.
-if [ "$COVERAGE" = "on" ] && [ "$WASM" = "on" ] && [ "$MODE" = "parallel" ]; then
-    echo "Error: --coverage cannot be combined with --wasm under --mode parallel." >&2
+if [ "$COVERAGE" = "on" ] && [ "$WASM_REAL" = "on" ] && [ "$MODE" = "parallel" ]; then
+    echo "Error: --coverage cannot be combined with real --wasm under --mode parallel." >&2
     echo "  Reason: coverage requires a single runner invocation. With --wasm" >&2
     echo "  in parallel mode the matrix splits into two phases (real WASM," >&2
     echo "  sequential + main parallel mocked), and the two coverage outputs" >&2
@@ -824,11 +844,9 @@ fi
 # sequential mode the WASM cells run with the real module inside this
 # same single pass (no contention since serial).
 if [ "$COVERAGE" = "on" ]; then
-    if [ "$WASM" = "on" ]; then
-        export TS_SQL_QUERY_WASM=on
-    else
-        export TS_SQL_QUERY_WASM=off
-    fi
+    # Single pass — wasm runs real per its resolved selection (none if not
+    # requested), no two-phase split.
+    export TS_SQL_QUERY_WASM="$WASM_ENV"
     if [ "$MODE" = "sequential" ]; then
         export TSSQLQUERY_PARALLEL_DBS=false
     fi
@@ -855,11 +873,7 @@ if [ "$COVERAGE" = "on" ]; then
     else
         cov_label="Coverage run"
     fi
-    if [ "$WASM" = "on" ]; then
-        emit_phase_legend "$cov_label" "$MODE" mixed "$DOCKER" "$DOCKER_SCOPE" "$SCOPE" "$runtime" "${MAIN_PATHS[@]}"
-    else
-        emit_phase_legend "$cov_label" "$MODE" off "$DOCKER" "$DOCKER_SCOPE" "$SCOPE" "$runtime" "${MAIN_PATHS[@]}"
-    fi
+    emit_phase_legend "$cov_label" "$MODE" "$runtime" "$DOCKER_ENV" "$WASM_ENV" "$NATIVE_ENV" "$RUN_VERSIONS" "$RUN_CONNECTORS"
     if [ -n "$VAL_SUMMARY" ]; then
         echo ""
         echo "Validation summary (real/mock per cell under the current flags):"
@@ -922,18 +936,21 @@ trap __cleanup_test_logs EXIT
 
 # Two-phase WASM split fires only when:
 #   - the matrix is full (FOCUSED=off), AND
-#   - --connections=all (otherwise either no WASM cells are in scope,
+#   - --run-connectors=all (otherwise either no WASM cells are in scope,
 #     or every cell is WASM — a "main phase" would be empty or
 #     redundant). Single pass handles both.
-# In every other case --wasm is a single-pass override that just sets
-# TS_SQL_QUERY_WASM=on for the upcoming main pass below.
-if [ "$FOCUSED" = "off" ] && [ "$CONNECTIONS" = "all" ] && [ "$WASM" = "on" ]; then
+#   - WASM has at least one real cell (WASM_REAL=on).
+# In every other case wasm is a single-pass: TS_SQL_QUERY_WASM is set to its
+# resolved selection for the upcoming main pass below. The split keeps ALL
+# wasm in its own sequential unit (unchanged), regardless of how granular the
+# --wasm selection is.
+if [ "$FOCUSED" = "off" ] && [ "$RUN_CONNECTORS" = "all" ] && [ "$WASM_REAL" = "on" ]; then
     if [ "${#WASM_LIST[@]}" -eq 0 ]; then
-        echo "Error: --scope newest filtered every WASM cell. Drop --wasm or --scope newest." >&2
+        echo "Error: --run-versions newest filtered every WASM cell. Drop --wasm or --run-versions newest." >&2
         exit 2
     fi
     WASM_LOG="$(mktemp)"
-    export TS_SQL_QUERY_WASM=on
+    export TS_SQL_QUERY_WASM="$WASM_ENV"
     export TSSQLQUERY_PARALLEL_DBS=false
     if [ -t 1 ] && [ "$NO_COLOR_FLAG" = "off" ]; then
         export FORCE_COLOR=1
@@ -944,21 +961,22 @@ if [ "$FOCUSED" = "off" ] && [ "$CONNECTIONS" = "all" ] && [ "$WASM" = "on" ]; t
     if [ "$runtime" = "bun" ]; then
         emit_bun_github_summary "WASM phase" "$WASM_LOG"
     fi
-    emit_phase_legend "WASM phase" sequential on n/a n/a "$SCOPE" "$runtime" "${WASM_LIST[@]}"
+    emit_phase_legend "WASM phase" sequential "$runtime" none "$WASM_ENV" none "$RUN_VERSIONS" "$RUN_CONNECTORS"
     if [ "$ec" -ne 0 ]; then exit "$ec"; fi
 fi
 
-# Main pass. TS_SQL_QUERY_WASM gating:
-#   * --wasm off → always mock (`off`).
-#   * --wasm on  → real (`on`) UNLESS we just ran the two-phase split
-#                  (full matrix + --connections=all + --wasm), in which
-#                  case the split already covered real WASM and the
-#                  main pass mocks the WASM cells to keep it fast.
-if [ "$WASM" = "on" ] && { [ "$FOCUSED" = "on" ] || [ "$CONNECTIONS" != "all" ]; }; then
-    export TS_SQL_QUERY_WASM=on
+# Main pass. TS_SQL_QUERY_WASM for this pass:
+#   * wasm not real            → none (mock).
+#   * wasm real, single-pass   → its resolved selection (focused, or
+#                                --run-connectors != all: no split happened).
+#   * wasm real, split fired   → none here (the sequential WASM unit above
+#                                already ran the real wasm cells).
+if [ "$WASM_REAL" = "on" ] && { [ "$FOCUSED" = "on" ] || [ "$RUN_CONNECTORS" != "all" ]; }; then
+    MAIN_WASM_ENV="$WASM_ENV"
 else
-    export TS_SQL_QUERY_WASM=off
+    MAIN_WASM_ENV=none
 fi
+export TS_SQL_QUERY_WASM="$MAIN_WASM_ENV"
 if [ "$MODE" = "sequential" ]; then
     export TSSQLQUERY_PARALLEL_DBS=false
 else
@@ -966,11 +984,8 @@ else
 fi
 if [ "$FOCUSED" = "on" ]; then
     main_label="Focused run: ${COORDS[*]}"
-    main_wasm_scope="off"
-    [ "$WASM" = "on" ] && main_wasm_scope="on"
 else
     main_label="Main phase"
-    main_wasm_scope="off"
 fi
 if [ "$runtime" = "bun" ] && [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
     MAIN_LOG="$(mktemp)"
@@ -981,7 +996,7 @@ else
     run_phase "$runtime" "$MODE" "${MAIN_PATHS[@]}" "${RUNNER_TAIL[@]}" "${EXTRA_ARGS[@]}"
     ec=$?
 fi
-emit_phase_legend "$main_label" "$MODE" "$main_wasm_scope" "$DOCKER" "$DOCKER_SCOPE" "$SCOPE" "$runtime" "${MAIN_PATHS[@]}"
+emit_phase_legend "$main_label" "$MODE" "$runtime" "$DOCKER_ENV" "$MAIN_WASM_ENV" "$NATIVE_ENV" "$RUN_VERSIONS" "$RUN_CONNECTORS"
 
 # Re-emit the saved WASM summary so the user sees both phases'
 # headline numbers without having to scroll up. Last 4 lines covers

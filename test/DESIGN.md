@@ -210,11 +210,10 @@ for how the report should look.
     scraper actually publishes. Full convention in
     [`WRITING_TESTS.md` § Docs snippets](./WRITING_TESTS.md#docs-snippets).
 
-13. **`TS_SQL_QUERY_DBS`, `TS_SQL_QUERY_DOCKER`, `TS_SQL_QUERY_DOCKER_SCOPE`
-    and `TS_SQL_QUERY_WASM` are orthogonal.** Each test must be runnable
-    with or without any combination of them, without duplicating the test
-    body. See [`TEST_LIB.md` § `backends.ts`](./TEST_LIB.md#backendsts--gating-flags--realdbbackend)
-    for the gating model and [`CLI.md`](./CLI.md) for the user-facing flags.
+13. **`--docker`, `--wasm` and `--native` are orthogonal per-kind real/mock
+    gates.** Each test must be runnable real or mock for its kind, without
+    duplicating the test body. See [`TEST_LIB.md` § `backends.ts`](./TEST_LIB.md#backendsts--the-realmock-gate--realdbbackend)
+    for the gating model and [`CLI.md`](./CLI.md) for the flags.
 
 14. **Two test runners, both first-class: `bun:test` and `vitest`.** Files
     import from `test/lib/testRunner.ts`, a shim that resolves to the right

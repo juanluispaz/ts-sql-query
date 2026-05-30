@@ -184,7 +184,9 @@ async function getOrCreateBunSqliteDb(): Promise<import('bun:sqlite').Database> 
 export function createBunSqliteTestContext(spec: BunSqliteTestSpec): SqliteTestContext {
     // In-process, but the connector module itself can only load under Bun.
     // Under node+vitest we keep the mock branch and never touch bun:sqlite.
-    const realDbEnabled = isBun && isRealDbEnabled(DATABASE, /* needsDocker */ false)
+    const version = spec.label.split(' / ')[0] ?? ''
+    const connector = spec.label.split(' / ')[1] ?? ''
+    const realDbEnabled = isBun && isRealDbEnabled(DATABASE, /* needsDocker */ false, version, connector)
 
     return decorateSqliteContext(createTestContext<DBConnection>({
         label: spec.label,
@@ -241,7 +243,9 @@ async function getOrCreateBetterSqlite3Db(): Promise<import('better-sqlite3').Da
 export function createBetterSqlite3TestContext(spec: SqliteTestSpec): SqliteTestContext {
     // better-sqlite3 has a native binding that fails to load under Bun's
     // Node API shim. We only fire the real branch outside Bun.
-    const realDbEnabled = !isBun && isRealDbEnabled(DATABASE, /* needsDocker */ false)
+    const version = spec.label.split(' / ')[0] ?? ''
+    const connector = spec.label.split(' / ')[1] ?? ''
+    const realDbEnabled = !isBun && isRealDbEnabled(DATABASE, /* needsDocker */ false, version, connector)
 
     return decorateSqliteContext(createTestContext<DBConnection>({
         label: spec.label,
@@ -293,7 +297,9 @@ export function createNodeSqliteTestContext(spec: SqliteTestSpec): SqliteTestCon
         }
         return resolvedRealDb
     }
-    const realDbEnabled = isNodeSqliteAvailable() && isRealDbEnabled(DATABASE, /* needsDocker */ false)
+    const version = spec.label.split(' / ')[0] ?? ''
+    const connector = spec.label.split(' / ')[1] ?? ''
+    const realDbEnabled = isNodeSqliteAvailable() && isRealDbEnabled(DATABASE, /* needsDocker */ false, version, connector)
 
     return decorateSqliteContext(createTestContext<DBConnection>({
         label: spec.label,
@@ -353,7 +359,9 @@ function sqlite3Exec(database: import('sqlite3').Database, sql: string): Promise
 }
 
 export function createSqlite3TestContext(spec: SqliteTestSpec): SqliteTestContext {
-    const realDbEnabled = isRealDbEnabled(DATABASE, /* needsDocker */ false)
+    const version = spec.label.split(' / ')[0] ?? ''
+    const connector = spec.label.split(' / ')[1] ?? ''
+    const realDbEnabled = isRealDbEnabled(DATABASE, /* needsDocker */ false, version, connector)
 
     return decorateSqliteContext(createTestContext<DBConnection>({
         label: spec.label,
@@ -407,7 +415,9 @@ export function createSqliteWasmOO1TestContext(spec: SqliteTestSpec): SqliteTest
     // sqlite-wasm-OO1 is in-process WASM — gated by `TS_SQL_QUERY_WASM`
     // so `tests` (no --wasm) can route this connector through the mock
     // without paying the per-worker WASM bootstrap cost.
-    const realDbEnabled = isRealDbEnabled(DATABASE, 'wasm')
+    const version = spec.label.split(' / ')[0] ?? ''
+    const connector = spec.label.split(' / ')[1] ?? ''
+    const realDbEnabled = isRealDbEnabled(DATABASE, 'wasm', version, connector)
 
     return decorateSqliteContext(createTestContext<DBConnection>({
         label: spec.label,

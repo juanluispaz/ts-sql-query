@@ -83,7 +83,7 @@ WASM_PATHS=(
 )
 
 # Connector folder names by connection type. Used by the
-# `--connections` flag to filter the cell set the runner visits.
+# `--run-connectors` flag to filter the cell set the runner visits.
 # Mirrors the `RealDbBackend` type in `test/lib/backends.ts`:
 #
 #   wasm   : WebAssembly-based engines that bootstrap a real module
@@ -220,6 +220,46 @@ list_files_from_main_paths() {
     printf '%s\n' "${out[@]}" | sort -u
 }
 
+# ---------------------------------------------------------------------------
+# INTERNAL real/mock env channel (script → runtime gate)
+#
+# The real/mock decision per backend KIND travels from this script to the
+# test runtime through three env vars — the authoritative contract lives
+# HERE (this is the side that produces them); the consumer
+# `test/lib/backends.ts` parses them and points back here.
+#
+#   TS_SQL_QUERY_DOCKER  — which docker-backed cells run real
+#   TS_SQL_QUERY_WASM    — which WASM cells (pglite, sqlite-wasm-OO1) run real
+#   TS_SQL_QUERY_NATIVE  — which native SQLite cells run real
+#
+# Each value is one of:
+#   all          every cell of this kind is real
+#   none         every cell of this kind is mocked
+#   newest       only `<db>/newest/*` cells of this kind are real
+#   <cell-list>  comma list of `<db>/<version>/<connector>` keys — only the
+#                listed cells are real (the granular `--<kind> <coord>` form)
+#
+# These are INTERNAL: users never set them. They are derived from the
+# `--docker` / `--wasm` / `--native` flags by resolve_kind_real (literal
+# all|none|newest, or coords expanded to a cell-list) and serialised by
+# kind_env_value below. A cell not selected for its kind falls back to the
+# mock; the test body runs in both modes.
+# ---------------------------------------------------------------------------
+
+# Echo the env string for a kind's resolved real-selection: the literal mode
+# for all|none|newest, or a comma-joined <db>/<version>/<connector> list for
+# `cells`.
+#   Args: <mode> <cells-space-separated>
+kind_env_value() {
+    local mode="$1" cells="$2" out="" c
+    if [ "$mode" = "cells" ]; then
+        for c in $cells; do out="${out:+$out,}$c"; done
+        printf '%s\n' "$out"
+    else
+        printf '%s\n' "$mode"
+    fi
+}
+
 # Resolve whether a cell that IS in the run runs against a REAL engine or
 # the MOCK under the current flags, and why. Echoes one tab-separated record:
 #
@@ -230,19 +270,15 @@ list_files_from_main_paths() {
 #   annotation human-readable "(kind; reason)" suffix
 #
 # Arg: <cell-path>  e.g. test/db/postgres/newest/pg  (trailing slash ok)
-# Reads (globals): DOCKER, DOCKER_SCOPE, WASM   (the resolved flag values
-#                  from tests.sh) + env TS_SQL_QUERY_DBS.
+# Reads (globals): the resolved per-kind selections set by tests.sh —
+#   {DOCKER,WASM,NATIVE}_MODE_SEL (all|none|newest|cells) and
+#   {DOCKER,WASM,NATIVE}_CELLS (space list of <db>/<version>/<connector>).
 #
 # !!! MIRRORS isRealDbEnabled() in test/lib/backends.ts — KEEP IN SYNC. !!!
-# That function is the runtime source of truth and returns real-or-not;
-# whenever it returns false the cell falls back to the MOCK (it still runs).
-# So every "false" reason here is a `mock` verdict, NOT a skip — including a
-# db that's out of TS_SQL_QUERY_DBS scope (isBackendEnabled only feeds
-# isRealDbEnabled; the test still executes against the mock). This is a bash
-# projection of the same decision so --list-cells-with-mode /
-# --validation-summary stay runner-free. If the gate logic there changes,
-# change it here too
-# (the CLAUDE.md maintenance note for the tests CLI points back here).
+# That function is the runtime source of truth; whenever it returns false the
+# cell falls back to the MOCK (it still runs). Every "false" reason here is a
+# `mock` verdict, NOT a skip. This is the bash projection of the same per-kind
+# selection so --list-cells-with-mode / --validation-summary stay runner-free.
 cell_mode() {
     local cell="${1%/}"
     local rest="${cell#test/db/}"
@@ -250,65 +286,129 @@ cell_mode() {
     local r2="${rest#*/}"; local version="${r2%%/*}"
     local connector="${rest##*/}"
 
-    # db-in-scope gate (TS_SQL_QUERY_DBS): 'all'/empty → all; 'none' → none;
-    # otherwise a comma list of database folder names. NOTE: a db out of
-    # scope is NOT skipped — isBackendEnabled only feeds isRealDbEnabled, so
-    # the real branch is gated OFF and the cell runs against the MOCK (the
-    # test still executes). Verdict is therefore `mock`, not `skipped`.
-    local dbs="${TS_SQL_QUERY_DBS:-all}"
-    case "$dbs" in
-        ''|all) ;;
-        none)   printf 'mock\t(db out of TS_SQL_QUERY_DBS scope → real gated)\n'; return ;;
-        *)
-            case ",$dbs," in
-                *",$db,"*) ;;
-                *) printf 'mock\t(db out of TS_SQL_QUERY_DBS scope → real gated)\n'; return ;;
+    local kind mode cells flag
+    if _connector_matches_kind "$connector" wasm; then
+        kind=wasm; mode="${WASM_MODE_SEL:-none}"; cells="$WASM_CELLS"; flag=--wasm
+    elif _connector_matches_kind "$connector" native; then
+        kind=native; mode="${NATIVE_MODE_SEL:-all}"; cells="$NATIVE_CELLS"; flag=--native
+    else
+        kind=docker; mode="${DOCKER_MODE_SEL:-none}"; cells="$DOCKER_CELLS"; flag=--docker
+    fi
+
+    case "$mode" in
+        all)    printf 'real\t(%s)\n' "$kind" ;;
+        none)   printf 'mock\t(%s; needs %s)\n' "$kind" "$flag" ;;
+        newest)
+            if [ "$version" = "newest" ]; then printf 'real\t(%s)\n' "$kind"
+            else printf 'mock\t(%s; %s newest skips %s)\n' "$kind" "$flag" "$version"; fi ;;
+        cells)
+            case " $cells " in
+                *" $db/$version/$connector "*) printf 'real\t(%s)\n' "$kind" ;;
+                *) printf 'mock\t(%s; not in %s coords)\n' "$kind" "$flag" ;;
             esac ;;
-    esac
-
-    # Kind-of-backend gate, mirroring RealDbBackend classification.
-    local kind
-    if _connector_matches_kind "$connector" wasm; then kind=wasm
-    elif _connector_matches_kind "$connector" native; then kind=native
-    else kind=docker; fi
-
-    case "$kind" in
-        native)
-            printf 'real\t(native)\n' ;;
-        wasm)
-            if [ "${WASM:-off}" = "on" ]; then printf 'real\t(wasm)\n'
-            else printf 'mock\t(wasm; needs --wasm)\n'; fi ;;
-        docker)
-            if [ "${DOCKER:-off}" != "on" ]; then
-                printf 'mock\t(docker; needs --docker)\n'
-            elif [ "${DOCKER_SCOPE:-all}" = "newest" ] && [ "$version" != "newest" ]; then
-                printf 'mock\t(docker; docker-scope=newest skips %s)\n' "$version"
-            else
-                printf 'real\t(docker)\n'
-            fi ;;
     esac
 }
 
-# The cells the current COORDS match, IGNORING the --scope / --connections
+# Expand a set of coords (same coord rules) into cell keys
+# <db>/<version>/<connector>, IGNORING the --run-versions/--run-connectors
+# gating. One key per line. Reuses the coord machinery by re-resolving with
+# those filters forced to `all`, then restoring. Powers resolve_kind_real.
+expand_real_coords() {
+    local _coords=("$@")
+    local _sc=("${COORDS[@]}") _f="$FOCUSED" _rv="$RUN_VERSIONS" _rc="$RUN_CONNECTORS"
+    local _m=("${MAIN_PATHS[@]}") _w=("${WASM_LIST[@]}") rc
+    COORDS=("${_coords[@]}"); FOCUSED=on
+    RUN_VERSIONS=all; RUN_CONNECTORS=all
+    local _p
+    if resolve_main_paths >/dev/null 2>&1; then
+        # A 4th-level <file> coord resolves to a *.test.ts path here. The
+        # real/mock gate keys on the cell <db>/<version>/<connector>, so a
+        # file adds no granularity — signal it (rc=3) so the caller can
+        # reject it instead of silently promoting the whole cell to real.
+        rc=0
+        for _p in "${MAIN_PATHS[@]}"; do
+            case "$_p" in *.test.ts) rc=3; break ;; esac
+        done
+        [ "$rc" -eq 0 ] && list_cells_from_main_paths 2>/dev/null | sed 's#^test/db/##'
+    else rc=1; fi
+    COORDS=("${_sc[@]}"); FOCUSED="$_f"; RUN_VERSIONS="$_rv"; RUN_CONNECTORS="$_rc"
+    MAIN_PATHS=("${_m[@]}"); WASM_LIST=("${_w[@]}")
+    return "$rc"
+}
+
+# Resolve one backend KIND's real-selection from its --flag tokens.
+#   Args: <kind> <default-mode> <token…>
+# Sets globals: REAL_MODE (all|none|newest|cells), REAL_CELLS (space list of
+# <db>/<version>/<connector>). Warns (stderr) when given coords that match no
+# running cell of this kind (no-op). Returns 2 on contradictory tokens
+# (a literal mixed with coords, or more than one literal).
+resolve_kind_real() {
+    local kind="$1" default_mode="$2"; shift 2
+    local tokens=("$@")
+    REAL_MODE="$default_mode"; REAL_CELLS=""
+    [ "${#tokens[@]}" -eq 0 ] && return 0
+
+    local literals=() coords=() t
+    for t in "${tokens[@]}"; do
+        case "$t" in all|none|newest) literals+=("$t") ;; *) coords+=("$t") ;; esac
+    done
+    if [ "${#literals[@]}" -gt 0 ]; then
+        if [ "${#coords[@]}" -gt 0 ] || [ "${#literals[@]}" -gt 1 ]; then
+            echo "Error: --$kind takes EITHER one of all|none|newest OR coords, not both (got: ${tokens[*]})." >&2
+            return 2
+        fi
+        REAL_MODE="${literals[0]}"
+        return 0
+    fi
+
+    # All coords: expand → keep only this kind's cells → build the list.
+    local key conn out="" candidate=0 inrun=0 runsel expanded erc
+    runsel="$(list_cells_from_main_paths 2>/dev/null | sed 's#^test/db/##')"
+    # Command substitution (not process substitution) so we can read
+    # expand_real_coords's exit code: rc=3 means a 4th-level <file> coord,
+    # which the cell-level real/mock gate can't honour — reject it.
+    expanded="$(expand_real_coords "${coords[@]}")"; erc=$?
+    if [ "$erc" -eq 3 ]; then
+        echo "Error: --$kind does not accept a 4th-level <file> coord (got: ${coords[*]}). The real/mock selection is per cell <db>/<version>/<connector>; drop the file segment (e.g. postgres/newest/pg, not postgres/newest/pg/x.test.ts)." >&2
+        return 2
+    fi
+    while IFS= read -r key; do
+        [ -n "$key" ] || continue
+        conn="${key##*/}"
+        _connector_matches_kind "$conn" "$kind" || continue
+        candidate=$((candidate + 1))
+        out="${out:+$out }$key"
+        case $'\n'"$runsel"$'\n' in *$'\n'"$key"$'\n'*) inrun=$((inrun + 1)) ;; esac
+    done <<< "$expanded"
+    REAL_MODE=cells; REAL_CELLS="$out"
+    if [ "$candidate" -eq 0 ]; then
+        echo "Warning: --$kind ${coords[*]} matched no $kind cells (no-op)." >&2
+    elif [ "$inrun" -eq 0 ]; then
+        echo "Warning: --$kind ${coords[*]} targets $kind cells excluded from the run by --run-versions/--run-connectors/coords (no-op)." >&2
+    fi
+    return 0
+}
+
+# The cells the current COORDS match, IGNORING the --run-versions / --run-connectors
 # gating, one per line (no trailing slash). Used to tell "outside the coords
 # you asked for" apart from "excluded by a filter" when annotating modes.
 # Empty COORDS → the whole connector matrix.
 #
-# Implemented by re-resolving the coords with SCOPE/CONNECTIONS forced to
+# Implemented by re-resolving the coords with RUN_VERSIONS/RUN_CONNECTORS forced to
 # `all` (so nothing is gated out), then restoring the real selection. Reads
 # COORDS / FOCUSED indirectly via resolve_main_paths.
 _coord_universe_cells() {
-    local _scope="$SCOPE" _conn="$CONNECTIONS" rc
+    local _scope="$RUN_VERSIONS" _conn="$RUN_CONNECTORS" rc
     local _main=("${MAIN_PATHS[@]}") _wasm=("${WASM_LIST[@]}")
-    SCOPE=all
-    CONNECTIONS=all
+    RUN_VERSIONS=all
+    RUN_CONNECTORS=all
     if resolve_main_paths >/dev/null 2>&1; then
         list_cells_from_main_paths 2>/dev/null
         rc=$?
     else
         rc=1
     fi
-    SCOPE="$_scope"; CONNECTIONS="$_conn"
+    RUN_VERSIONS="$_scope"; RUN_CONNECTORS="$_conn"
     MAIN_PATHS=("${_main[@]}"); WASM_LIST=("${_wasm[@]}")
     return $rc
 }
@@ -319,13 +419,13 @@ _coord_universe_cells() {
 #
 # `skipped` means the cell is EXCLUDED FROM THE RUN entirely (the runner
 # never sees it) — only the path-level filters do that, checked here in
-# precedence order: outside coords > --connections > --scope newest. If the
-# cell survives those it IS in the run, and cell_mode decides real vs mock
-# (TS_SQL_QUERY_DBS lives there as a real→mock gate, not a skip).
+# precedence order: outside coords > --run-connectors > --run-versions newest.
+# If the cell survives those it IS in the run, and cell_mode decides real vs
+# mock from the per-kind --docker/--wasm/--native selection.
 #
 # Arg: <cell-path> <universe>   (<universe> = newline list from
 #                                _coord_universe_cells)
-# Reads (globals): SCOPE, CONNECTIONS (+ whatever cell_mode reads).
+# Reads (globals): RUN_VERSIONS, RUN_CONNECTORS (+ whatever cell_mode reads).
 _cell_mode_classified() {
     local cell="${1%/}" universe="$2"
     local rest="${cell#test/db/}"
@@ -337,11 +437,11 @@ _cell_mode_classified() {
         *$'\n'"$cell"$'\n'*) ;;  # inside the coord selection
         *) printf 'skipped\t(not selected: outside coords)\n'; return ;;
     esac
-    if [ "${CONNECTIONS:-all}" != "all" ] && ! _connector_matches_kind "$connector" "$CONNECTIONS"; then
-        printf 'skipped\t(excluded by --connections %s)\n' "$CONNECTIONS"; return
+    if [ "${RUN_CONNECTORS:-all}" != "all" ] && ! _connector_matches_kind "$connector" "$RUN_CONNECTORS"; then
+        printf 'skipped\t(excluded by --run-connectors %s)\n' "$RUN_CONNECTORS"; return
     fi
-    if [ "${SCOPE:-all}" = "newest" ] && [ "$version" != "newest" ]; then
-        printf 'skipped\t(excluded by --scope newest)\n'; return
+    if [ "${RUN_VERSIONS:-all}" = "newest" ] && [ "$version" != "newest" ]; then
+        printf 'skipped\t(excluded by --run-versions newest)\n'; return
     fi
     cell_mode "$cell"
 }
@@ -454,9 +554,9 @@ apply_connection_type_filter() {
     return 0
 }
 
-# Emit newline-separated paths for the `--scope newest` filter — one
+# Emit newline-separated paths for the `--run-versions newest` filter — one
 # `<db>/newest/` plus the dialect-agnostic `<db>/types.negative/` per
-# database under `test/db/`. Different from `--docker-scope newest`
+# database under `test/db/`. Different from `--docker newest`
 # (which only flips the real/mock gate on docker-backed cells): this
 # narrows which TEST FILES the runner visits at all. Used by `tests`
 # and `tests <coord>` to keep coverage runs short by skipping the
@@ -478,7 +578,7 @@ expand_newest_paths() {
 }
 
 # Keep only WASM_PATHS entries that pass through a `newest/` segment.
-# Used by the `--scope newest` filter so the WASM phase
+# Used by the `--run-versions newest` filter so the WASM phase
 # skips e.g. `postgres/oldest/pglite/`.
 filter_newest_wasm_paths() {
     local p
@@ -716,85 +816,32 @@ clean_report_dir() {
 # that look identical otherwise. Driven by the flags/paths the caller
 # passes in — does not hard-code phase order.
 #
-# Args: <phase-label> <mode> <wasm-real> <docker> <docker-scope> <path-scope> <runtime> [<path>…]
-#   <phase-label>  free-form, e.g. "WASM phase", "Main phase", "Coverage run"
+# Args: <label> <mode> <runtime> <docker-env> <wasm-env> <native-env> <run-versions> <run-connectors>
+#   <label>        free-form, e.g. "WASM phase", "Main phase", "Coverage run"
 #   <mode>         "parallel" | "sequential"
-#   <wasm-real>    "on"  → real WASM modules loaded, non-WASM cells excluded
-#                  "off" → WASM connectors fall through to mocks
-#                  "mixed" → real WASM inside a single full-matrix pass
-#                            (the coverage-mode flow when --wasm is set)
-#   <docker>       "on"  → docker-backed cells hit real DB containers
-#                  "off" → docker-backed cells fall through to mocks
-#                  "n/a" → phase doesn't exercise docker-backed cells
-#                          (e.g. the WASM-only phase)
-#   <docker-scope> "all"     → every docker cell hits its real DB
-#                  "newest"  → only `<db>/newest/*` cells hit a real DB;
-#                              older versions fall back to the mock
-#                  Free-form values are echoed verbatim. Ignored unless
-#                  <docker> is "on".
-#   <path-scope>   "all"     → every cell under `test/db/<db>/*` runs
-#                  "newest"  → only `<db>/newest/*` (+ `<db>/types.negative/*`)
-#                              cells run; the rest are excluded from the
-#                              invocation (different from <docker-scope>:
-#                              <path-scope> narrows file selection, not
-#                              just the real/mock gate)
-#                  "n/a"     → phase runs a fixed path set (WASM-only phase
-#                              or a focused coord that already specifies
-#                              the version)
 #   <runtime>      "bun" | "npm" (for the runner line)
-#   <path>…        paths the runner was invoked with; verbatim in the
-#                  rendered "Cells" list so the legend reflects the
-#                  actual invocation rather than an inferred shape.
+#   <docker/wasm/native-env>  the resolved per-kind real selection for this
+#                  phase: `all` | `none` | `newest` | a comma cell-list.
+#   <run-versions> participation version filter ("all" | "newest").
+#   <run-connectors> participation connector filter ("all"|docker|wasm|native).
 #
 # Silently no-ops when $GITHUB_STEP_SUMMARY is unset (local runs).
 emit_phase_legend() {
-    local label="$1" mode="$2" wasm_real="$3" docker="$4" docker_scope_val="$5" path_scope_val="$6" runtime="$7"; shift 7
+    local label="$1" mode="$2" runtime="$3" docker_env="$4" wasm_env="$5" native_env="$6" rv="$7" rc="$8"
     if [ -z "${GITHUB_STEP_SUMMARY:-}" ]; then return 0; fi
-
-    local wasm_scope docker_scope path_scope runner
-    case "$wasm_real" in
-        on)    wasm_scope='real WASM modules loaded; non-WASM cells excluded from this round' ;;
-        off)   wasm_scope='WASM connectors fall through to mocks' ;;
-        mixed) wasm_scope='real WASM modules loaded inside a single full-matrix pass' ;;
-        *)     wasm_scope="$wasm_real" ;;
-    esac
-    case "$docker" in
-        on)
-            case "$docker_scope_val" in
-                all)    docker_scope='real DB containers — every docker-backed cell hits its real DB' ;;
-                newest) docker_scope='real DB containers — only `<db>/newest/*` cells hit a real DB (older versions fall back to mocks)' ;;
-                *)      docker_scope="real DB containers (scope: $docker_scope_val)" ;;
-            esac ;;
-        off) docker_scope='docker-backed cells fall through to mocks' ;;
-        n/a) docker_scope='not applicable (phase does not exercise docker-backed cells)' ;;
-        *)   docker_scope="$docker" ;;
-    esac
-    case "$path_scope_val" in
-        all)    path_scope='every cell under `test/db/<db>/*` runs' ;;
-        newest) path_scope='only `<db>/newest/*` and `<db>/types.negative/*` cells run; older versions are excluded from the invocation' ;;
-        n/a)    path_scope='not applicable (phase runs a fixed path set)' ;;
-        *)      path_scope="$path_scope_val" ;;
-    esac
+    local runner
     case "$runtime" in
         bun) runner='bun test' ;;
         npm) runner='vitest' ;;
         *)   runner="$runtime" ;;
     esac
-
     {
         printf '### Round details\n\n'
         printf -- '- **Phase:** %s\n' "$label"
         printf -- '- **Runner:** %s\n' "$runner"
         printf -- '- **Mode:** %s\n' "$mode"
-        printf -- '- **WASM connectors:** %s\n' "$wasm_scope"
-        printf -- '- **Docker backends:** %s\n' "$docker_scope"
-        printf -- '- **Path scope:** %s\n' "$path_scope"
-        if [ "$#" -gt 0 ]; then
-            printf -- '- **Cells:**\n'
-            for p in "$@"; do
-                printf -- '  - `%s`\n' "$p"
-            done
-        fi
+        printf -- '- **Runs (participation):** versions=%s, connectors=%s\n' "$rv" "$rc"
+        printf -- '- **Real engine (per kind):** docker=%s, wasm=%s, native=%s\n' "$docker_env" "$wasm_env" "$native_env"
         printf '\n'
     } >> "$GITHUB_STEP_SUMMARY"
 }
@@ -935,7 +982,7 @@ open_report_in_browser() {
 #
 # Reads (globals):
 #   COORDS[]         — positional coord args from the caller (may be empty).
-#   SCOPE            — "all" | "newest".
+#   RUN_VERSIONS            — "all" | "newest".
 #   FOCUSED          — "on" | "off". Set by the caller from `${#COORDS[@]}`.
 #   WASM_PATHS[]     — the canonical WASM path list (defined above).
 #
@@ -949,8 +996,8 @@ open_report_in_browser() {
 #
 # Exit codes:
 #   0 on success. Non-zero (with an error to stderr) on:
-#     * --scope newest matches no paths (full matrix or bare-db coord),
-#     * a coord with `oldest` under --scope newest (explicit conflict),
+#     * --run-versions newest matches no paths (full matrix or bare-db coord),
+#     * a coord with `oldest` under --run-versions newest (explicit conflict),
 #     * a glob/brace coord that matches nothing,
 #     * a deep coord that doesn't exist on disk,
 #     * a coord with characters outside the strict whitelist
@@ -967,11 +1014,11 @@ resolve_main_paths() {
     WASM_LIST=("${WASM_PATHS[@]}")
     if [ "$FOCUSED" = "off" ]; then
         MAIN_PATHS=(test/)
-        if [ "$SCOPE" = "newest" ]; then
+        if [ "$RUN_VERSIONS" = "newest" ]; then
             MAIN_PATHS=()
             while IFS= read -r p; do MAIN_PATHS+=("$p"); done < <(expand_newest_paths)
             if [ "${#MAIN_PATHS[@]}" -eq 0 ]; then
-                echo "Error: --scope newest matched no paths under test/db/. Add a <db>/newest/ folder or drop --scope newest." >&2
+                echo "Error: --run-versions newest matched no paths under test/db/. Add a <db>/newest/ folder or drop --run-versions newest." >&2
                 return 2
             fi
             WASM_LIST=()
@@ -997,10 +1044,10 @@ resolve_main_paths() {
             */*)            shape=deep ;;
             *)              shape=bare-db ;;
         esac
-        if [ "$SCOPE" = "newest" ]; then
+        if [ "$RUN_VERSIONS" = "newest" ]; then
             case "$coord" in
                 */oldest|*/oldest/*)
-                    echo "Error: --scope newest is incompatible with a coord pointing at oldest: $coord" >&2
+                    echo "Error: --run-versions newest is incompatible with a coord pointing at oldest: $coord" >&2
                     return 2 ;;
             esac
         fi
@@ -1021,7 +1068,7 @@ resolve_main_paths() {
                 MAIN_PATHS+=("${matches[@]}")
                 ;;
             bare-db)
-                if [ "$SCOPE" = "newest" ]; then
+                if [ "$RUN_VERSIONS" = "newest" ]; then
                     added=0
                     for sub in newest types.negative; do
                         if [ -d "test/db/$coord/$sub" ]; then
@@ -1030,7 +1077,7 @@ resolve_main_paths() {
                         fi
                     done
                     if [ "$added" -eq 0 ]; then
-                        echo "Error: --scope newest matched no subfolders under test/db/$coord/ (looked for newest/ + types.negative/)." >&2
+                        echo "Error: --run-versions newest matched no subfolders under test/db/$coord/ (looked for newest/ + types.negative/)." >&2
                         return 2
                     fi
                 else
@@ -1053,9 +1100,9 @@ resolve_main_paths() {
         esac
     done
 
-    # Final --scope newest pass: drop `*/oldest/*` matches that a glob
+    # Final --run-versions newest pass: drop `*/oldest/*` matches that a glob
     # may have pulled in (bare-db was already scope-expanded above).
-    if [ "$SCOPE" = "newest" ]; then
+    if [ "$RUN_VERSIONS" = "newest" ]; then
         local filtered=()
         for t in "${MAIN_PATHS[@]}"; do
             case "$t" in
@@ -1065,14 +1112,14 @@ resolve_main_paths() {
         done
         MAIN_PATHS=("${filtered[@]}")
         if [ "${#MAIN_PATHS[@]}" -eq 0 ]; then
-            echo "Error: --scope newest left no paths to run for ${COORDS[*]}." >&2
+            echo "Error: --run-versions newest left no paths to run for ${COORDS[*]}." >&2
             return 2
         fi
     fi
 
     # Append `/` for directory targets so the runner treats them as
     # path filters, not project-name filters. Idempotent: the bare-db +
-    # --scope newest branch already appends a trailing slash, and a
+    # --run-versions newest branch already appends a trailing slash, and a
     # double slash (`…/newest//`) breaks the single-`%/` strip in
     # list_cells_from_main_paths / list_files_from_main_paths.
     for i in "${!MAIN_PATHS[@]}"; do

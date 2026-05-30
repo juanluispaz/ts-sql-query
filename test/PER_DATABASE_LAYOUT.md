@@ -98,7 +98,7 @@ returns a `TestContext<DBConnection>`. Each factory wires:
   `BunSqlPostgresQueryRunner`, …).
 - The container handle (docker) or in-process bootstrap (WASM, native).
 - The `realDbEnabled` decision via
-  [`isRealDbEnabled(database, requires, version?)`](./lib/backends.ts#L105).
+  [`isRealDbEnabled(database, requires, version?, connector?)`](./lib/backends.ts#L105).
 - Optional `mockRunnerClass` for connector-specialised mocks
   ([`mockRunners/`](./lib/mockRunners/README.md)).
 - `onReseed` (re-apply schema+seed against the runner's native handle).
@@ -109,7 +109,8 @@ Canonical pattern (excerpt from
 ```ts
 export function createPgTestContext(spec: PgTestSpec): PostgresTestContext {
     const version = spec.label.split(' / ')[0] ?? ''
-    const realDbEnabled = isRealDbEnabled(DATABASE, /* needsDocker */ true, version)
+    const connector = spec.label.split(' / ')[1] ?? ''
+    const realDbEnabled = isRealDbEnabled(DATABASE, /* needsDocker */ true, version, connector)
     const buildRunner = memoizeSharedRunner(spec.createRealRunner)
 
     return decoratePostgresContext(createTestContext<DBConnection>({

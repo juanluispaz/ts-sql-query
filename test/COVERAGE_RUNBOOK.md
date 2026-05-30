@@ -120,7 +120,7 @@ touched; do not let it overrule the working tree.
 - Matrix shape changes (new/removed cell): re-walk §4.5, §8, §10.
 - Canonical path changes: update §6.1.
 - Discovery alias changes: keep §2 true.
-- `tests` CLI flag changes (`--scope`, `--connections`, etc.): re-check
+- `tests` CLI flag changes (`--run-versions`, `--run-connectors`, etc.): re-check
   §1, §6, §8.
 - Anchor moves in DESIGN.md / WRITING_TESTS.md / BUGS.md /
   LIMITATIONS.md / EXTERNAL_CAVEATS.md / ANTIPATTERNS.md: whoever moves
@@ -162,7 +162,7 @@ cost of shipping is hours of cleanup the next session.
 The user runs `bun run coverage:for-discover-tests` **before** the
 session. The alias produces
 `.test-report/coverage/coverage-summary.json` and `coverage-final.json` in
-istanbul JSON format, scoped to `--scope newest` (older `<db>/<version>/`
+istanbul JSON format, scoped to `--run-versions newest` (older `<db>/<version>/`
 cells skipped — they re-emit the same SQL as `newest` for symmetric
 changes) and excluding `src/queryRunners/**` (docker-backed driver
 implementations; their `.catch(...)` arms are the dominant uncov, and
@@ -435,7 +435,7 @@ Once the canonical is GREEN/YELLOW, propagate via a small `cp` script (or
    scoped propagation will touch before copy-baking:
 
    ```bash
-   bun run tests 'postgres/*/{pg,postgres}' --scope newest --list-cells
+   bun run tests 'postgres/*/{pg,postgres}' --run-versions newest --list-cells
    ```
 
    The single normative count is `bun run tests:audit`'s output, which

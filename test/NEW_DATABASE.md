@@ -54,7 +54,7 @@ database has to satisfy see [`PER_DATABASE_LAYOUT.md`](./PER_DATABASE_LAYOUT.md)
      feature detection: `.exec` for PGlite, `.unsafe` for postgres.js /
      bun:sql, `.query` for pg.Pool).
    - **`isRealDbEnabled`** — call
-     [`isRealDbEnabled(DATABASE, requires, version?)`](./lib/backends.ts#L105)
+     [`isRealDbEnabled(DATABASE, requires, version?, connector?)`](./lib/backends.ts#L105)
      with the connector's `RealDbBackend` ('docker' | 'wasm' | 'native')
      and the version derived from `spec.label`.
 

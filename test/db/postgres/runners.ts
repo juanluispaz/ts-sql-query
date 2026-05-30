@@ -331,7 +331,8 @@ export interface PgTestSpec {
 
 export function createPgTestContext(spec: PgTestSpec): PostgresTestContext {
     const version = spec.label.split(' / ')[0] ?? ''
-    const realDbEnabled = isRealDbEnabled(DATABASE, /* needsDocker */ true, version)
+    const connector = spec.label.split(' / ')[1] ?? ''
+    const realDbEnabled = isRealDbEnabled(DATABASE, /* needsDocker */ true, version, connector)
     let workerUri: string | null = null
     // Memoise the spec's pool/connection so it lives for the worker
     // process, not per test file. The `setup.ts` factories don't have
@@ -417,7 +418,9 @@ export function createPgLiteTestContext(spec: PgLiteTestSpec): PostgresTestConte
     // PgLite is in-process WASM — gated by `TS_SQL_QUERY_WASM` so
     // `tests` (no --wasm) can route this connector through the mock
     // without paying the per-worker WASM bootstrap cost.
-    const realDbEnabled = isRealDbEnabled(DATABASE, 'wasm')
+    const version = spec.label.split(' / ')[0] ?? ''
+    const connector = spec.label.split(' / ')[1] ?? ''
+    const realDbEnabled = isRealDbEnabled(DATABASE, 'wasm', version, connector)
 
     return decoratePostgresContext(createTestContext<DBConnection>({
         label: spec.label,
@@ -459,7 +462,8 @@ export function createBunSqlPostgresTestContext(spec: PgTestSpec): PostgresTestC
     // branch entirely; under bun we still depend on docker for the
     // postgres engine.
     const version = spec.label.split(' / ')[0] ?? ''
-    const realDbEnabled = isBun && isRealDbEnabled(DATABASE, /* needsDocker */ true, version)
+    const connector = spec.label.split(' / ')[1] ?? ''
+    const realDbEnabled = isBun && isRealDbEnabled(DATABASE, /* needsDocker */ true, version, connector)
     let workerUri: string | null = null
     const buildRunner = memoizeSharedRunner(spec.createRealRunner)
 

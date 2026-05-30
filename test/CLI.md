@@ -38,7 +38,7 @@ to `vitest run`. Same entry under either runtime.
 
 **Under `npm run`**, bare `--flag` tokens are consumed by npm itself as
 config (you'll see `npm warn Unknown cli config "--flag"`). Use the `--`
-separator: `npm run tests -- --docker --scope newest`. Bun does not have
+separator: `npm run tests -- --docker --run-versions newest`. Bun does not have
 this problem.
 
 ## Test-loop discipline
@@ -57,7 +57,7 @@ feedback.
 
 1. `bun run tests <coord>` — single cell or file. Tightest loop; use while
    editing.
-2. `bun run tests --scope newest` — change spans several databases. Skips
+2. `bun run tests --run-versions newest` — change spans several databases. Skips
    `<db>/oldest/*` (~5 s instead of ~8 s, ~3 k fewer assertions).
 3. `bun run tests` — full mocked matrix. **Pre-push** sanity sweep.
 4. `bun run tests --docker` / `--wasm` — only when the change touches a
@@ -74,89 +74,113 @@ Orthogonal — combine freely (except for the [Forbidden combinations](#forbidde
 
 | Flag | What it does | Default |
 |---|---|---|
-| `--docker` | Docker-backed connectors hit their real DB. Without it they fall through to the mock. | off (mock) |
+| **Axis 1 — participation (what RUNS; excludes, never mocks)** | | |
+| `--run-versions <all\|newest>` | Post-filter on the coords by version: `newest` visits only `<db>/newest/*` (+ `<db>/types.negative/*`) — older versions are **not executed at all**. | `all` |
+| `--run-connectors <all\|docker\|wasm\|native>` | Post-filter on the coords by connector kind. `wasm` = pglite + sqlite-wasm-OO1; `native` = embedded SQLite drivers; `docker` = containerised engines. Pure path filter (excludes the rest from the run) — it does **not** set real/mock. | `all` |
+| **Axis 2 — real/mock (what's REAL among what runs)** | | |
+| `--docker [all\|none\|newest\|<coord>]`… | Which docker-backed cells run against a real container. Bare = `all`; `newest` = only `<db>/newest/*`; a `<coord>` = only the matching docker cell(s) real, the rest mock. **Repeat the flag** for several coords (see note below). | `none` (mock) |
+| `--wasm [all\|none\|newest\|<coord>]`… | Same vocabulary and coord rules as `--docker` (repeat the flag for several coords — see note below), for the WASM cells (pglite, sqlite-wasm-OO1). When real on the full matrix, WASM runs in its own sequential phase (two-phase split). | `none` (mock) |
+| `--native [all\|none\|newest\|<coord>]`… | Same vocabulary and coord rules as `--docker` (repeat the flag for several coords — see note below), for the native SQLite drivers (better-sqlite3, bun_sqlite, node_sqlite, sqlite3). `--native none` forces them to the mock — the cheap way to make a run fully mock. | `all` (real) |
+| **Engine / runtime controls (neither axis — container lifecycle and runtime, not which cells run or which are real)** | | |
 | `--docker-mode <reuse\|no-reuse>` | Container reuse policy. `reuse` sets `TESTCONTAINERS_REUSE_ENABLE=true` and keeps containers alive between invocations. `no-reuse` is hermetic. | `reuse` |
-| `--docker-scope <all\|newest>` | When `newest`, only cells under `<db>/newest/*` keep the real-DB branch; older versions fall back to the mock. No-op without `--docker`. | `all` |
-| `--scope <all\|newest>` | When `newest`, the runner only visits `<db>/newest/*` and `<db>/types.negative/*` cells — older versions are **not executed at all**. Implies `--docker-scope=newest` unless overridden. | `all` |
-| `--connections <all\|docker\|wasm\|native>` | Filter the file set by connector type. `wasm` = pglite + sqlite-wasm-OO1; `native` = embedded SQLite drivers (better-sqlite3, bun_sqlite, node_sqlite, sqlite3); `docker` = containerised engines. Pure path filter — does **not** auto-imply `--docker` / `--wasm`. | `all` |
-| `--wasm` | When `--connections=all`, runs a second sequential pass over the WASM cells against real pglite / sqlite-wasm-OO1 after the main pass (two-phase split). In other `--connections` modes — or in focused mode — it's a single-pass override setting `TS_SQL_QUERY_WASM=on`. | off (mock) |
 | `--mode <parallel\|sequential>` | Parallel uses one worker per logical core (minus reserved); sequential runs everything in one worker. | `parallel` |
 | `--use-vitest` | Force vitest runtime even under `bun run`. Implied by `--ui`. | off |
 | `--ui` | Launch `@vitest/ui` (implies `--use-vitest`). | off |
+| **Reports & coverage** | | |
 | `--report` | Emit test-execution report under `.test-report/`. | off |
 | `--report-format <name>` | Repeatable. See [Test-execution report formats](#test-execution-report-formats). | runtime-dependent |
 | `--coverage` | Emit coverage report under `.test-report/coverage/`. | off |
 | `--coverage-format <name>` | Repeatable. See [Coverage report formats](#coverage-report-formats). | `html` |
 | `--open` | After a green run, open the richest available HTML report. | off |
+| **Narrowing (runtime-agnostic — translated to the active runner's spelling)** | | |
 | `--update-snapshots` | Refresh the snapshots of the tests this run executes. Translated to bun's `--update-snapshots` / vitest's `--update` for you. | off |
 | `--test-name-pattern <regex>` | Run only the tests whose name matches `<regex>`, composed with the path filter. Translated to bun's `--test-name-pattern` / vitest's `--testNamePattern` for you. | (none) |
 | `--bail [<N>]` | Stop the run after `N` test failures (`N` defaults to 1). Emitted as `--bail=N`, accepted verbatim by both runtimes. `--bail 0` is rejected; omit the flag to disable bailing. | off |
 | `--timeout <ms>` | Override the per-test timeout (positive integer ms). Translated to bun's `--timeout` / vitest's `--testTimeout`. `--timeout 0` is rejected. | `60000` |
 | `--no-color` | Strip ANSI colors from the output (sets `NO_COLOR=1`, honoured by both runtimes). Also suppresses the WASM-phase color re-injection on a TTY. | off |
-| `--list-cells` | Print the connector-level cells the current coords/`--scope`/`--connections` select, one per line, then exit without running. See [Listing cells or tests without running](#listing-cells). | off |
+| **Listing (enumerate, don't run — mutually exclusive)** | | |
+| `--list-cells` | Print the connector-level cells the current coords/`--run-versions`/`--run-connectors` select, one per line, then exit without running. See [Listing cells or tests without running](#listing-cells). | off |
 | `--list-cells-with-mode [running\|all\|real\|mock\|skipped]` | Like `--list-cells`, but each cell is annotated with its real/mock/skipped mode under the current flags. Optional filter: `running` (default — cells that will run), `all` (incl. off/skipped), `real`, `mock`, `skipped`. See [Listing cells or tests without running](#listing-cells). | off |
 | `--list-files` | Print the `*.test.ts` files the current selection would run (filesystem walk, runtime-agnostic), then exit without running. See [Listing cells or tests without running](#listing-cells). | off |
 | `--list-tests` | Print the test *names* the current selection would run (vitest-backed), then exit without running. See [Listing cells or tests without running](#listing-cells). | off |
+| **Run summary (after a normal run)** | | |
 | `--validation-summary [running\|all\|real\|mock\|skipped]` | After a normal run, print the same annotated block `--list-cells-with-mode` would — which cells were validated real vs mock. Same optional filter. See [The validation summary](#validation-summary). | off |
 
-`TS_SQL_QUERY_DBS` is a third env-level knob, comma-list of database
-folder names (or `all` / `none`). It's a **per-database real/mock gate**
-(like `--docker` but scoped by db): a db not in the list has its real
-branch gated off and its tests run against the mock. It does **not** skip
-tests or filter the path set — set it in the environment
-(`TS_SQL_QUERY_DBS=postgres bun run tests …`); there's no CLI flag for it.
+**Two axes.** *Axis 1* (positional coords → `--run-versions` →
+`--run-connectors`) decides what **runs**; it only ever EXCLUDES cells.
+*Axis 2* (`--docker` / `--wasm` / `--native`) decides what runs **real** vs
+the **mock** among them. The two are orthogonal: `--run-connectors docker`
+runs *only* docker cells; `--docker` makes (some) docker cells *real*. A cell
+not selected as real for its kind falls back to the mock — the test body runs
+either way, so no test is duplicated.
 
-The CLI flags above set env vars consumed at runtime by
-[`test/lib/backends.ts`](./lib/backends.ts): `TS_SQL_QUERY_DOCKER`,
-`TS_SQL_QUERY_DOCKER_SCOPE`, `TS_SQL_QUERY_WASM`, `TS_SQL_QUERY_DBS`. The
-setup files in each cell read those gates via
-[`isRealDbEnabled(db, kind, version?)`](./lib/backends.ts#L105); if any of
-the gates says "off" the real-DB branch falls back to the mock without
-duplicating the test body.
+**Targeting specific cells real (the bug-fix flow).** The `<coord>` form of
+`--docker` / `--wasm` / `--native` uses the same coord rules as the positional
+args, with two things to keep in mind:
 
-**Every test runs in both modes.** With `--docker` off, a docker-backed
-connector's real-DB branch is skipped but its SQL, params, type and mock
-round-trip assertions still execute. With `--wasm` off, same for pglite /
-sqlite-wasm-OO1. The native in-process connectors (better-sqlite3,
-bun:sqlite, node:sqlite, sqlite3) ignore both flags and keep running their
-real DB.
+- **One token per flag — repeat it for more.** Each `--docker`/`--wasm`/`--native`
+  consumes exactly the next token. To mark several cells real, repeat the flag:
+  `--docker postgres/newest/pg --docker mariadb/newest`. Do **not** space-separate
+  (`--docker postgres/newest/pg mariadb/newest`) — only the first token attaches
+  to the flag; the rest fall through to the *positional* coords (Axis 1), silently
+  narrowing the run instead of marking another cell real.
+- **Cell-level granularity.** The real/mock gate keys on the cell
+  `<db>/<version>/<connector>`, so a 4th-level `<file>` coord is **rejected with
+  an error** — it would add no granularity (the cell is the unit). Drop the file
+  segment: `--docker postgres/newest/pg`, not
+  `--docker postgres/newest/pg/select.basic.test.ts`. (Positional Axis-1 coords
+  *do* accept the `<file>` level — that narrows which tests **run**.)
+
+Mixing a literal with a coord (`--docker all postgres/newest/pg`) errors; a coord
+that matches no running cell of that kind warns as a no-op.
 
 ```bash
-# Full matrix, mocked, no real WASM. ~8 s for ~14k tests under bun.
+# One cell real, everything else mock — cheap regression while fixing a SqlBuilder.
+bun run tests --docker postgres/newest/pg
+
+# Two specific cells real — repeat the flag, don't space-separate.
+bun run tests --docker postgres/newest/pg --docker mariadb/newest
+```
+
+**Every test runs in both modes.** With `--docker` off (default), a
+docker-backed connector's real-DB branch is gated off but its SQL, params,
+type and mock round-trip assertions still execute. Same for `--wasm` off and
+pglite / sqlite-wasm-OO1. Native SQLite is real by default (`--native all`);
+`--native none` routes it through the mock too.
+
+```bash
+# Full matrix, mocked docker/wasm, real native. ~8 s for ~14k tests under bun.
 bun run tests
 
 # + real docker backends. ~4:30 with warm containers.
 bun run tests --docker
 
 # Smoke against real DBs but only on the newest version of each engine.
-bun run tests --docker --docker-scope newest
+bun run tests --docker newest
 
-# Skip older-version cells entirely (paths AND docker gate).
-bun run tests --scope newest
+# Skip older-version cells entirely (participation: not run at all).
+bun run tests --run-versions newest
 
 # Full matrix (docker + real WASM second phase). ~4:36 under bun.
 bun run tests --docker --wasm
 
-# Only WASM cells, real WASM module.
-bun run tests --connections wasm --wasm
+# Only WASM cells run, real WASM module.
+bun run tests --run-connectors wasm --wasm
 
-# Only docker-backed connectors, against real containers.
-bun run tests --connections docker --docker
+# Only docker-backed connectors run, against real containers.
+bun run tests --run-connectors docker --docker
 
-# Only the embedded SQLite drivers (zero-infra, always real).
-bun run tests --connections native
+# Only the embedded SQLite drivers run (zero-infra, real by default).
+bun run tests --run-connectors native
+
+# Bug-fix flow: validate one cell real, everything else cheap mock.
+bun run tests --docker postgres/newest/pg
 
 # Hermetic — fresh containers every run. CI baseline.
 bun run tests --docker --docker-mode no-reuse
 
-# Sequential for debugging. Single shared DB, no parallel noise.
-bun run tests --mode sequential
-
-# Narrow to one database.
-TS_SQL_QUERY_DBS=mariadb bun run tests --docker
-
-# Hard off-switch: nothing in scope, no real-DB branch anywhere.
-TS_SQL_QUERY_DBS=none bun run tests
+# Fully mocked — even native SQLite routed through the mock.
+bun run tests --native none
 ```
 
 ## Focused runs
@@ -177,7 +201,7 @@ of four levels — database, version, connector, or a single test file:
 | Level | What it is | Examples |
 |---|---|---|
 | `<db>` | Folder under `test/db/`. | `mariadb`, `mysql`, `oracle`, `postgres`, `sqlite`, `sqlserver` |
-| `<version>` | Compatibility-version folder under `<db>/`. `newest` (= `Number.POSITIVE_INFINITY`), `oldest` (the `< lowest-breakpoint` zone), or the literal numeric breakpoint when one exists. `<db>/types.negative/` is a sibling for compile-time negatives — not a version folder — and is included only under `--connections=all`. | `newest`, `oldest`, `13_000_001`, `10_005_000` |
+| `<version>` | Compatibility-version folder under `<db>/`. `newest` (= `Number.POSITIVE_INFINITY`), `oldest` (the `< lowest-breakpoint` zone), or the literal numeric breakpoint when one exists. `<db>/types.negative/` is a sibling for compile-time negatives — not a version folder — and is included only under `--run-connectors=all`. | `newest`, `oldest`, `13_000_001`, `10_005_000` |
 | `<connector>` | Per-driver folder under `<db>/<version>/`. | postgres: `pg`, `postgres`, `bun_sql_postgres`, `pglite`; sqlite: `better-sqlite3`, `bun_sqlite`, `node_sqlite`, `sqlite3`, `sqlite-wasm-OO1` |
 | `<file>` | A single `*.test.ts` file inside `<connector>/` — narrowest focus. | `select.basic.test.ts` |
 
@@ -220,9 +244,9 @@ handles globs AND braces whether you quote the coord or not.**
 bun run tests 'postgres/*/pg' --docker
 bun run tests postgres/*/pg --docker
 
-# Same, with --scope newest: the script drops `*/oldest/*` paths
+# Same, with --run-versions newest: the script drops `*/oldest/*` paths
 # from the expansion — only postgres/newest/pg actually runs.
-bun run tests 'postgres/*/pg' --docker --scope newest
+bun run tests 'postgres/*/pg' --docker --run-versions newest
 
 # Two connectors of one database, every version.
 bun run tests 'postgres/*/{pg,postgres}' --docker
@@ -244,7 +268,7 @@ any expansion runs.
 
 An unmatched glob/brace expansion is an error (nullglob), not a silent
 zero-test run. A coord that literally names `oldest` together with
-`--scope newest` is rejected outright — that's an explicit contradiction.
+`--run-versions newest` is rejected outright — that's an explicit contradiction.
 
 ## Narrowing inside a coordinate
 
@@ -319,7 +343,7 @@ exclusive (pass only one).
 
 `--list-cells` prints the connector-level cells
 (`test/db/<db>/<version>/<connector>`) that the current
-coords / `--scope` / `--connections` select — one per line, sorted — then
+coords / `--run-versions` / `--run-connectors` select — one per line, sorted — then
 exits **without running any test**. It's runner-free and deterministic: a
 drop-in replacement for the hand-rolled `for db in test/db/*/…` inventory
 loop, and it honours every path filter for free because it lists exactly
@@ -330,10 +354,10 @@ the cells a real run would visit.
 bun run tests --list-cells
 
 # The exact set a propagation would touch — verify before copy-baking.
-bun run tests 'postgres/*/{pg,postgres}' --scope newest --list-cells
+bun run tests 'postgres/*/{pg,postgres}' --run-versions newest --list-cells
 
 # Only one connector type.
-bun run tests --connections native --list-cells
+bun run tests --run-connectors native --list-cells
 
 # A single file collapses to its owning cell.
 bun run tests sqlite/newest/better-sqlite3/config.uuid-strategy.test.ts --list-cells
@@ -355,14 +379,13 @@ listing is unambiguous.)
 The per-cell **verdict**:
 
 - `real` — runs against a real engine: `(docker)` / `(wasm)` / `(native)`.
-- `mock` — runs, but against the mock: `(docker; needs --docker)`, `(wasm;
-  needs --wasm)`, `(docker; docker-scope=newest skips <version>)`, or
-  `(db out of TS_SQL_QUERY_DBS scope → real gated)` — the database is out of
-  `TS_SQL_QUERY_DBS` scope, so the real branch is gated off but the test
-  still runs against the mock (it is **not** skipped).
+- `mock` — runs, but against the mock, with the reason its kind's
+  selection didn't include it: `(docker; needs --docker)`, `(wasm; needs
+  --wasm)`, `(docker; --docker newest skips <version>)`, or `(docker; not in
+  --docker coords)`.
 - `skipped` — off, **excluded from the run** (the runner never sees it),
   with the reason (in precedence order): `(not selected: outside coords)`,
-  `(excluded by --connections <type>)`, `(excluded by --scope newest)`.
+  `(excluded by --run-connectors <type>)`, `(excluded by --run-versions newest)`.
 
 An **optional filter** selects which verdicts to print:
 
@@ -380,9 +403,9 @@ An **optional filter** selects which verdicts to print:
 bun run tests 'postgres/*/{pg,pglite}' --list-cells-with-mode
 
 # all → the whole matrix, each off cell labelled with why it's excluded.
-bun run tests postgres/newest --connections docker --docker --list-cells-with-mode all
+bun run tests postgres/newest --run-connectors docker --docker --list-cells-with-mode all
 #   test/db/postgres/newest/pg          real    (docker)
-#   test/db/postgres/newest/pglite      skipped (excluded by --connections docker)
+#   test/db/postgres/newest/pglite      skipped (excluded by --run-connectors docker)
 #   test/db/postgres/oldest/pg          skipped (not selected: outside coords)
 #   test/db/mariadb/newest/mariadb      skipped (not selected: outside coords)
 #   …
@@ -391,8 +414,8 @@ bun run tests postgres/newest --connections docker --docker --list-cells-with-mo
 # real keeps only the cells that bring up a real engine ("active cases").
 bun run tests postgres/newest --docker --wasm --list-cells-with-mode real
 
-# skipped → only the off cells; here, oldest excluded by --scope newest.
-bun run tests postgres --scope newest --docker --list-cells-with-mode skipped
+# skipped → only the off cells; here, oldest excluded by --run-versions newest.
+bun run tests postgres --run-versions newest --docker --list-cells-with-mode skipped
 ```
 
 A footer tallies the **running** cells (real + mock) and, separately, the
@@ -428,7 +451,7 @@ The per-cell count matches the "N test files per cell" line in
 bun run tests postgres/newest/pg --list-files
 
 # Only the native SQLite connectors.
-bun run tests sqlite/newest --connections native --list-files
+bun run tests sqlite/newest --run-connectors native --list-files
 ```
 
 > vitest also offers `vitest list --filesOnly`, but `--list-files` stays a
@@ -453,7 +476,7 @@ a runner to collect them, and **bun has no collect-only mode** — so
 in the family that is not runtime-agnostic. Collection imports the test
 files and evaluates their `describe`/`test` registration but **not** the
 test bodies or `beforeAll` hooks, so no real DB is bootstrapped. It honours
-the coord / `--scope` / `--connections` path filter and `--test-name-pattern`.
+the coord / `--run-versions` / `--run-connectors` path filter and `--test-name-pattern`.
 
 ```bash
 # Every test name in one cell.
@@ -463,7 +486,7 @@ bun run tests postgres/newest/pg --list-tests
 bun run tests postgres/newest/pg --list-tests --test-name-pattern inner-join
 
 # Machine-readable: pass --json through after `--`.
-bun run tests sqlite/newest --connections native --list-tests -- --json
+bun run tests sqlite/newest --run-connectors native --list-tests -- --json
 ```
 
 `--list-cells`, `--list-cells-with-mode`, `--list-files` and `--list-tests`
@@ -513,7 +536,7 @@ bun run tests --coverage --docker --wasm --mode sequential
 bun run tests postgres/newest/pg --coverage
 
 # Just the WASM cells.
-bun run tests --connections wasm --wasm --coverage
+bun run tests --run-connectors wasm --wasm --coverage
 
 # Under npm/vitest, prefix flags with `--`:
 npm run tests -- --coverage
@@ -636,11 +659,11 @@ the AI to read when asked to suggest additional tests from the gaps:
 | `coverage:fast` | `tests --report --coverage --open` |
 | `coverage:no-docker` | `tests --report --wasm --coverage --mode sequential --open` |
 | `coverage:complete` | `tests --report --docker --wasm --coverage --mode sequential --open` |
-| `coverage:for-discover-tests` | `tests --use-vitest --coverage --coverage-format json --coverage-format json-summary --coverage-format text-summary --scope newest` |
+| `coverage:for-discover-tests` | `tests --use-vitest --coverage --coverage-format json --coverage-format json-summary --coverage-format text-summary --run-versions newest` |
 | `coverage:reopen` | Same script as `tests:reopen`. |
 
 <a id="coverage-for-discover-tests-alias"></a>**The discovery alias**
-(`coverage:for-discover-tests`) uses `--scope newest` on purpose:
+(`coverage:for-discover-tests`) uses `--run-versions newest` on purpose:
 older-version cells exercise the same `SqlBuilder` code paths as the
 matching `<db>/newest/*` cell, so they would not reveal extra uncovered
 lines or branches. The tests generated from those gaps still land in the

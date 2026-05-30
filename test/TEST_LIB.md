@@ -13,7 +13,7 @@ per-database tree convention see [`PER_DATABASE_LAYOUT.md`](./PER_DATABASE_LAYOU
 - [`testContext.ts` — `ctx` API surface](#testcontextts--ctx-api-surface)
 - [`testContext.ts` — mutation safety contract](#testcontextts--mutation-safety-contract)
 - [`captureInterceptor.ts` — SQL / params recorder](#captureinterceptorts--sql--params-recorder)
-- [`backends.ts` — gating flags + `RealDbBackend`](#backendsts--gating-flags--realdbbackend)
+- [`backends.ts` — the real/mock gate + `RealDbBackend`](#backendsts--the-realmock-gate--realdbbackend)
 - [`testRunner.ts` + `testRuntime.{bun,vitest}.ts` — runtime shim](#testrunnerts--testruntimebunvitestts--runtime-shim)
 - [`assertType.ts` — compile-time type assertions](#asserttypets--compile-time-type-assertions)
 - [`setupTimezone.ts` — force UTC](#setuptimezonets--force-utc)
@@ -142,19 +142,22 @@ captures three things every test asserts:
 Tests don't construct or override the interceptor — it's wired by
 `createTestContext` ([`testContext.ts:274`](./lib/testContext.ts#L274)).
 
-## `backends.ts` — gating flags + `RealDbBackend`
+## `backends.ts` — the real/mock gate + `RealDbBackend`
 
-Three environment variables drive what fires at runtime:
+`isRealDbEnabled(database, requires, version?, connector?)` is the runtime
+source of truth: given a cell's db / kind / version / connector it returns
+whether that cell's real-DB branch fires (otherwise the cell transparently
+falls back to the mock — the test body runs either way). `RealDbBackend`
+(`'docker' | 'wasm' | 'native'`) tags which heavyweight backend a connector
+needs.
 
-| Env | Values | Default | What it gates |
-|---|---|---|---|
-| `TS_SQL_QUERY_DBS` | comma list of DB folder names, `all`, `none` | `all` | which databases are in scope (path filter) |
-| `TS_SQL_QUERY_DOCKER` | `on` / `off` | `off` | whether docker-backed real-DB branches fire |
-| `TS_SQL_QUERY_DOCKER_SCOPE` | `all` / `newest` | `all` | when docker is on, narrow to `<db>/newest/*` cells |
-| `TS_SQL_QUERY_WASM` | `on` / `off` | `on` (script sets `off` w/o `--wasm`) | whether WASM-backed real-DB branches fire |
-
-The CLI in `scripts/tests.sh` sets these; see [`CLI.md`](./CLI.md) for the
-user-facing flags.
+The gate is driven by an **internal** per-kind env channel the `tests` script
+produces from the `--docker` / `--wasm` / `--native` flags. That's an
+implementation detail — the agent uses the flags, never the env vars. The
+authoritative contract (the env var names, their `all|none|newest|<cell-list>`
+grammar, and how the flags resolve into them) lives where it's produced, in
+[`scripts/_test-common.sh`](../scripts/_test-common.sh); `backends.ts` parses
+it and points back there. For the user-facing flags see [`CLI.md`](./CLI.md).
 
 `RealDbBackend = 'docker' | 'wasm' | 'native'` ([`backends.ts:68`](./lib/backends.ts#L68))
 tags a connector by **gating profile**:
@@ -168,7 +171,7 @@ tags a connector by **gating profile**:
   (better-sqlite3, bun_sqlite, node_sqlite, sqlite3).
 
 The convenience predicate
-[`isRealDbEnabled(database, requires, version?)`](./lib/backends.ts#L105)
+[`isRealDbEnabled(database, requires, version?, connector?)`](./lib/backends.ts#L105)
 combines scope + flag + version-scope into a single boolean every connector
 factory consumes. The legacy boolean overload (`isRealDbEnabled(db, needsDocker)`)
 is kept for callers that pre-date the WASM toggle: `true` reads as

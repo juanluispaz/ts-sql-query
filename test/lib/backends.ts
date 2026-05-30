@@ -1,168 +1,91 @@
-// Three orthogonal flags drive what a test does at runtime:
+// Per-kind real/mock gate. This file parses three INTERNAL env vars —
+// `TS_SQL_QUERY_DOCKER` / `TS_SQL_QUERY_WASM` / `TS_SQL_QUERY_NATIVE` — each
+// of which is `all` | `none` | `newest` | a comma list of
+// `<db>/<version>/<connector>` cell keys, and decides per cell whether its
+// real-DB branch fires (otherwise the cell transparently falls back to the
+// mock — the test body still runs).
 //
-//   TS_SQL_QUERY_DBS    — comma list of database folder names under
-//                         `test/db/` (e.g. `postgres,mariadb,sqlite`).
-//                         Special values: `all` (default) and `none`. A
-//                         per-database real-DB gate, exactly like
-//                         TS_SQL_QUERY_DOCKER but scoped by database: a db
-//                         NOT in the list has its real branch gated off, so
-//                         its tests transparently fall back to the mock.
-//                         It does NOT skip any test (every test still runs)
-//                         and it does NOT filter the file/coord set (the
-//                         `tests` script never reads it to build paths) —
-//                         it only feeds isRealDbEnabled() below, deciding
-//                         real vs mock per database. `none` forces every db
-//                         to the mock.
+// These vars are an internal script↔runtime channel: users drive them
+// through the `--docker` / `--wasm` / `--native` flags, never by hand. The
+// full contract — what each value means and how the flags (incl. their
+// coords) resolve into these strings — is documented in
+// `scripts/_test-common.sh` (the side that produces them). KEEP IN SYNC with
+// that resolution.
 //
-//   TS_SQL_QUERY_DOCKER — `on` or `off` (default `off`). Gates whether the
-//                         real-DB branch of a docker-backed connector
-//                         actually runs. Every test executes regardless of
-//                         this flag — when the real branch is gated off,
-//                         it transparently falls back to the mock. There
-//                         is no duplicated code path: the same body
-//                         describes both modes.
-//
-//   TS_SQL_QUERY_DOCKER_SCOPE — `all` (default) or `newest`. When `newest`
-//                         only the cells under `<db>/newest/*` keep their
-//                         real-DB branch active; older versions transparently
-//                         fall back to the mock. Same shape as the WASM toggle:
-//                         the test bodies do not change, only the gate.
-//                         Motivation is speed — for most regressions, hitting
-//                         a single recent version per DB catches the issue
-//                         without paying for the full version matrix.
-//                         No-op when TS_SQL_QUERY_DOCKER is off.
-//
-//   TS_SQL_QUERY_WASM   — `on` or `off` (default `on`). Same idea as
-//                         TS_SQL_QUERY_DOCKER but for the in-process WASM
-//                         connectors (pglite, sqlite-wasm-OO1). Those
-//                         engines bootstrap their WebAssembly heap inside
-//                         the worker process and are heavily CPU-bound
-//                         under parallel runners; setting this to `off`
-//                         lets `tests` (without --wasm) keep the WASM
-//                         cells in the matrix while routing them through
-//                         the mock instead of paying the WASM bootstrap
-//                         cost.
-//
-// Together they let `tests` (no flags) and `tests --docker` (no --wasm)
-// exercise the whole suite without paying the cost of the real backends
-// those flags disable — every test still runs, the SQL + params + type +
-// mock-round-trip assertions still fire, and the in-process connectors
-// not affected by the flag (e.g. native sqlite under --wasm off) keep
-// running their real DB.
-
-export type DockerMode = 'on' | 'off'
-export type WasmMode = 'on' | 'off'
-export type DockerScope = 'all' | 'newest'
+// Absent defaults (only when a cell file is run directly, not via `tests`):
+// docker = none, wasm = all, native = all.
 
 /**
- * Tag of which heavyweight backend a connector needs for its real-DB
- * branch. The category groups connectors by **gating profile** (what
- * has to be enabled to take the real path), not by implementation:
+ * Tag of which heavyweight backend a connector needs for its real-DB branch.
+ * Groups connectors by **gating profile** (which `--flag` enables their real
+ * path), not by implementation:
  *
- *   - `docker`: needs a real DB container (mariadb, mysql2, oracledb,
- *     mssql, pg, postgres, bun_sql_postgres). Gated by `--docker`.
- *   - `wasm`: needs a WebAssembly module bootstrap (pglite,
- *     sqlite-wasm-OO1). Gated by `--wasm`. Pulled out as its own
- *     category because the bootstrap is CPU-bound and dominates wall
- *     time under parallel workers — see the two-phase split in
- *     `scripts/tests.sh`.
- *   - `native`: needs nothing extra. Always real. Today these are the
- *     embedded SQLite drivers (better-sqlite3, bun_sqlite,
- *     node_sqlite, sqlite3). Note that pglite / sqlite-wasm-OO1 are
- *     also in-process, but they belong to `wasm` because their
- *     gating profile differs.
+ *   - `docker`: needs a real DB container (mariadb, mysql2, oracledb, mssql,
+ *     pg, postgres, bun_sql_postgres). Gated by `--docker`.
+ *   - `wasm`: needs a WebAssembly module bootstrap (pglite, sqlite-wasm-OO1).
+ *     Gated by `--wasm`. Its own category because the bootstrap is CPU-bound
+ *     and dominates wall time under parallel workers — see the two-phase split
+ *     in `scripts/tests.sh`.
+ *   - `native`: embedded SQLite drivers (better-sqlite3, bun_sqlite,
+ *     node_sqlite, sqlite3) — no extra infra. Gated by `--native` (default
+ *     `all`, i.e. real). pglite / sqlite-wasm-OO1 are also in-process but
+ *     belong to `wasm` because their gating profile differs.
  */
 export type RealDbBackend = 'docker' | 'wasm' | 'native'
 
-/** True iff this database folder is in scope for the current run. */
-export function isBackendEnabled(database: string): boolean {
-    return ENABLED_DBS === 'all' || ENABLED_DBS.has(database)
-}
-
-/** True iff docker-backed real-DB branches should fire. */
-export function isDockerEnabled(): boolean {
-    return DOCKER_MODE === 'on'
-}
-
-/** True iff WASM-backed real-DB branches should fire. */
-export function isWasmEnabled(): boolean {
-    return WASM_MODE === 'on'
-}
-
-/** Which docker-backed cells get a real DB. `newest` mocks every other version. */
-export function dockerScope(): DockerScope {
-    return DOCKER_SCOPE
+interface Selection {
+    readonly mode: 'all' | 'none' | 'newest' | 'cells'
+    readonly cells?: ReadonlySet<string>
 }
 
 /**
- * Convenience for connector setups: a connector's real-DB branch fires
- * iff its database is in scope AND the kind of heavyweight backend it
- * needs (docker / wasm / nothing) is enabled.
+ * A connector's real-DB branch fires iff the cell is selected as `real` for
+ * its backend KIND under the current flags.
  *
- * The legacy boolean overload (`isRealDbEnabled(db, needsDocker)`) is
- * kept for callers that pre-date the WASM toggle: `true` is read as
- * `'docker'`, `false` as `'native'`.
+ * The legacy boolean overload (`isRealDbEnabled(db, needsDocker)`) maps
+ * `true → 'docker'`, `false → 'native'`.
  *
- * The optional `version` is the cell's `<version>` folder (e.g. `newest`,
- * `oldest`). It is only inspected when `requires === 'docker'` and the
- * scope is narrowed to `newest`: callers that omit it bypass the scope
- * check (the existing WASM / native paths). Docker-backed
- * `create*TestContext` factories derive it from `spec.label`.
+ * `version` and `connector` are the cell's `<version>` / `<connector>` folders
+ * (from `spec.label = "<version> / <connector>"`). They are required for the
+ * `newest` (version) and `<cell-list>` (db/version/connector) selections;
+ * `all` / `none` ignore them. The `create*TestContext` factories pass both.
  */
-export function isRealDbEnabled(database: string, requires: RealDbBackend | boolean, version?: string): boolean {
+export function isRealDbEnabled(
+    database: string,
+    requires: RealDbBackend | boolean,
+    version?: string,
+    connector?: string,
+): boolean {
     const kind: RealDbBackend = typeof requires === 'boolean'
         ? (requires ? 'docker' : 'native')
         : requires
-    if (!isBackendEnabled(database)) return false
-    if (kind === 'docker' && !isDockerEnabled()) return false
-    if (kind === 'wasm' && !isWasmEnabled()) return false
-    if (kind === 'docker' && DOCKER_SCOPE === 'newest' && version !== undefined && version !== 'newest') return false
-    return true
+    const sel = kind === 'docker' ? DOCKER_SEL : kind === 'wasm' ? WASM_SEL : NATIVE_SEL
+    switch (sel.mode) {
+        case 'none': return false
+        case 'all': return true
+        case 'newest': return version === 'newest'
+        case 'cells':
+            if (version === undefined || connector === undefined || sel.cells === undefined) return false
+            return sel.cells.has(`${database}/${version}/${connector}`)
+    }
 }
 
 // ---- parsing ------------------------------------------------------------
 
-const ENABLED_DBS: 'all' | ReadonlySet<string> = parseDbsFlag()
-const DOCKER_MODE: DockerMode = parseDockerFlag()
-const WASM_MODE: WasmMode = parseWasmFlag()
-const DOCKER_SCOPE: DockerScope = parseDockerScopeFlag()
+const DOCKER_SEL: Selection = parseSelection(readEnv('TS_SQL_QUERY_DOCKER'), 'none')
+const WASM_SEL: Selection = parseSelection(readEnv('TS_SQL_QUERY_WASM'), 'all')
+const NATIVE_SEL: Selection = parseSelection(readEnv('TS_SQL_QUERY_NATIVE'), 'all')
 
-function parseDbsFlag(): 'all' | ReadonlySet<string> {
-    const raw = readEnv('TS_SQL_QUERY_DBS')
-    if (raw === undefined || raw === '' || raw === 'all') return 'all'
-    if (raw === 'none') return new Set()
-    const out = new Set<string>()
+function parseSelection(raw: string | undefined, fallback: 'all' | 'none'): Selection {
+    if (raw === undefined || raw === '') return { mode: fallback }
+    if (raw === 'all' || raw === 'none' || raw === 'newest') return { mode: raw }
+    // Anything else is a comma list of `<db>/<version>/<connector>` cell keys.
+    const cells = new Set<string>()
     for (const part of raw.split(',')) {
         const t = part.trim()
-        if (t !== '') out.add(t)
+        if (t !== '') cells.add(t)
     }
-    return out
-}
-
-function parseDockerFlag(): DockerMode {
-    const raw = readEnv('TS_SQL_QUERY_DOCKER')
-    if (raw === undefined || raw === '') return 'off'
-    if (raw === 'on' || raw === 'off') return raw
-    throw new Error(`TS_SQL_QUERY_DOCKER must be "on" or "off" (got: ${raw})`)
-}
-
-function parseWasmFlag(): WasmMode {
-    const raw = readEnv('TS_SQL_QUERY_WASM')
-    // Defaults to `on` because WASM connectors run in-process and have
-    // no external dependency that a typical developer would want to opt
-    // out of by accident. The `tests` CLI sets this to `off` when invoked
-    // without `--wasm`, to skip the WASM bootstrap cost; passing `--wasm`
-    // re-enables it for the sequential second pass.
-    if (raw === undefined || raw === '') return 'on'
-    if (raw === 'on' || raw === 'off') return raw
-    throw new Error(`TS_SQL_QUERY_WASM must be "on" or "off" (got: ${raw})`)
-}
-
-function parseDockerScopeFlag(): DockerScope {
-    const raw = readEnv('TS_SQL_QUERY_DOCKER_SCOPE')
-    if (raw === undefined || raw === '') return 'all'
-    if (raw === 'all' || raw === 'newest') return raw
-    throw new Error(`TS_SQL_QUERY_DOCKER_SCOPE must be "all" or "newest" (got: ${raw})`)
+    return { mode: 'cells', cells }
 }
 
 function readEnv(name: string): string | undefined {

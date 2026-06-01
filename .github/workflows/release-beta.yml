@@ -27,7 +27,7 @@ jobs:
 
       # Build
       - name: Prepare
-        run: bun run generate-prisma
+        run: bun run codegen
       - name: Bun build (tsc)
         run: bun run validate
       # Same src check with tsgo (preview TS 7 compiler).
@@ -80,7 +80,7 @@ jobs:
 
       # Build
       - name: Prepare
-        run: npm run generate-prisma
+        run: npm run codegen
       - name: Build
         run: npm run build
       # Type-check src with tsgo (preview TS 7 compiler) in addition to

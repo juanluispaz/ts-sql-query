@@ -27,7 +27,7 @@ jobs:
 
       # Build
       - name: Prepare
-        run: npm run generate-prisma
+        run: npm run codegen
       - name: Build
         run: npm run build
 
@@ -74,7 +74,7 @@ jobs:
 
       # Prepare generated clients used by examples
       - name: Prepare
-        run: bun run generate-prisma
+        run: bun run codegen
 
       # Build check without emitting dist (tsc).
       - name: Bun build (tsc)

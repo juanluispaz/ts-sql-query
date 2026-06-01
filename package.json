@@ -243,7 +243,9 @@
         "linq"
     ],
     "scripts": {
-        "generate-prisma": "prisma generate --schema src/examples/prisma/postgresql.prisma; prisma generate --schema src/examples/prisma/mysql.prisma; prisma generate --schema src/examples/prisma/mariadb.prisma; prisma generate --schema src/examples/prisma/sqlite.prisma; prisma generate --schema src/examples/prisma/sqlserver.prisma",
+        "codegen": "bash scripts/codegen.sh",
+        "codegen:prisma": "prisma generate --schema src/examples/prisma/postgresql.prisma; prisma generate --schema src/examples/prisma/mysql.prisma; prisma generate --schema src/examples/prisma/mariadb.prisma; prisma generate --schema src/examples/prisma/sqlite.prisma; prisma generate --schema src/examples/prisma/sqlserver.prisma",
+        "codegen:doc-code": "bash scripts/codegen-doc-code.sh",
         "all-examples": "sh ./scripts/all-examples.sh",
         "no-docker-examples": "sh ./scripts/no-docker-examples.sh",
         "coverage": "npm_config_user_agent=npm/coverage nyc sh ./scripts/all-examples.sh",

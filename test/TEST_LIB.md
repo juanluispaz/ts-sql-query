@@ -9,6 +9,8 @@ while still surviving most non-trivial refactors.
 For docker / WASM lifecycle (which lives in `containerLifecycle.ts` but is its
 own topic) see [`ENGINE_LIFECYCLE.md`](./ENGINE_LIFECYCLE.md). For the
 per-database tree convention see [`PER_DATABASE_LAYOUT.md`](./PER_DATABASE_LAYOUT.md).
+For the documentation code extractor (`lib/docCodeExtractor/`, which compiles the
+doc snippets) see [`DOC_CODE_EXTRACTOR.md`](./DOC_CODE_EXTRACTOR.md).
 
 - [`testContext.ts` — `ctx` API surface](#testcontextts--ctx-api-surface)
 - [`testContext.ts` — mutation safety contract](#testcontextts--mutation-safety-contract)

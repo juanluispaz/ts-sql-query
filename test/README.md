@@ -47,6 +47,7 @@ uses.
 | Quick `tests` commands and the inner-loop discipline | [`CLI.md`](./CLI.md) |
 | Coverage runs and report formats (html, monocart, etc.) | [`CLI.md` § Coverage](./CLI.md#coverage) |
 | Wall-time numbers for each invocation, bun vs vitest | [`BENCHMARKS.md`](./BENCHMARKS.md) |
+| Validate the documentation code examples (the `tsc`-checked doc snippets) | [`DOC_CODE_EXTRACTOR.md`](./DOC_CODE_EXTRACTOR.md) |
 | The shell scripts behind the CLIs | [`scripts/tests.sh`](../scripts/tests.sh) |
 
 ### … write or port a test
@@ -96,6 +97,7 @@ uses.
 | Want | Read |
 |---|---|
 | Every file under `test/lib/` (assertType, captureInterceptor, ctx, runtime shim, audit, setupTimezone, …) | [`TEST_LIB.md`](./TEST_LIB.md) |
+| How the documentation code examples are compiled & kept correct (the extractor, templates, simplified definitions) | [`DOC_CODE_EXTRACTOR.md`](./DOC_CODE_EXTRACTOR.md) |
 | The mutation safety contract (`withRollback` / `withCommit` / `withReseed`) | [`TEST_LIB.md` § Mutation safety contract](./TEST_LIB.md#testcontextts--mutation-safety-contract) |
 | Connector-specialised mocks (when a real runner transforms params) | [`lib/mockRunners/README.md`](./lib/mockRunners/README.md) |
 | Docker container reuse, schema/seed revalidation, per-worker DBs | [`ENGINE_LIFECYCLE.md`](./ENGINE_LIFECYCLE.md) |
@@ -119,6 +121,7 @@ test/
 │   ├── setupTimezone.ts                  ← forces UTC
 │   ├── canonical-cell-review-prompt.md   ← validation sub-agent prompt asset
 │   ├── coverage/                         ← bun lcov → html / monocart
+│   ├── docCodeExtractor/                 ← doc snippet → compilable .ts (DOC_CODE_EXTRACTOR.md)
 │   └── mockRunners/                      ← connector-specialised mocks
 └── db/<database>/<compatibilityVersion>/<connector>/
                                           ← test cells; see PER_DATABASE_LAYOUT.md

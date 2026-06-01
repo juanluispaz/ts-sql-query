@@ -2222,7 +2222,6 @@ type QueryRunner = any
 type OuterJoinSource = any
 type Argument = any
 type DynamicFilter = any
-type EXTERNAL_PROPERTY_TYPE = any
 type RawFragment = any
 type CustomizedTableOrView = any
 type AnyValueSource = ValueSource<any>

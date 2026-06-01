@@ -54,6 +54,7 @@ class DurationLogginQueryRunner extends InterceptorQueryRunner<DurationPayload> 
 async function main() {
     const connection = new DBConnection(new DurationLogginQueryRunner(otherQueryRunner));
     // Do your queries here
+    connection // ...
 }
 ```
 
@@ -71,6 +72,7 @@ All these functions receive as argument:
 
 - **`type: QueryType`**: type of the query to be executed. The `QueryType` is defined as:
 
+<!-- doc-code-snippet-template: simplifiedDefinition -->
 ```ts
 type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | 'selectOneColumnManyRows' |
     'insert' | 'insertReturningLastInsertedId' | 'insertReturningMultipleLastInsertedId' |

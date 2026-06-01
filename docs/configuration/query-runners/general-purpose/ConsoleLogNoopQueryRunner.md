@@ -35,5 +35,6 @@ import { ConsoleLogNoopQueryRunner } from "ts-sql-query/queryRunners/ConsoleLogN
 async function main() {
     const connection = new DBConnection(new ConsoleLogNoopQueryRunner());
     // Do your queries here
+    connection // ...
 }
 ```

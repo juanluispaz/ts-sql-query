@@ -35,5 +35,8 @@ import { NoopQueryRunner } from "ts-sql-query/queryRunners/NoopQueryRunner";
 async function main() {
     const connection = new DBConnection(new NoopQueryRunner());
     // Queries here will not hit a real database
+    
+    // Do your queries here
+    connection // ...
 }
 ```

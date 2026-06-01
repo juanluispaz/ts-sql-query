@@ -6,7 +6,7 @@ search:
 
 This API provides methods to construct and execute SQL `DELETE` statements using a fluent interface in `ts-sql-query`. It allows for conditional deletion, joining with other tables, and optionally returning deleted data.
 
-```ts
+```typescript
 interface DeleteExpression {
     /** Allows to create the where dynamically */
     dynamicWhere(): this
@@ -92,7 +92,7 @@ interface DeleteExpression {
 }
 ```
 
-```ts
+```typescript
 /**
  * Returning projection of the values that will be retrieved from the database.
  * 

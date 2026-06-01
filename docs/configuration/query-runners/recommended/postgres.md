@@ -2,6 +2,7 @@
 search:
   boost: 0.577
 ---
+<!-- doc-code-template: postgresql -->
 # postgres
 
 This page explains how to use `ts-sql-query` with the [postgres.js](https://github.com/porsager/postgres) driver.
@@ -29,7 +30,7 @@ This page explains how to use `ts-sql-query` with the [postgres.js](https://gith
 Executes queries through a [postgres.js](https://github.com/porsager/postgres) connection obtained from a pool.
 
 ```ts
-import * as postgres from 'postgres';
+import postgres from 'postgres'
 import { PostgresQueryRunner } from 'ts-sql-query/queryRunners/PostgresQueryRunner';
 
 const sql = postgres({
@@ -43,5 +44,6 @@ const sql = postgres({
 async function main() {
     const connection = new DBConnection(new PostgresQueryRunner(sql));
     // Do your queries here
+    connection // ...
 }
 ```

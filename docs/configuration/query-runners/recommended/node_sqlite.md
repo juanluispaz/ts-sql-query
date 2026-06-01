@@ -2,6 +2,7 @@
 search:
   boost: 0.577
 ---
+<!-- doc-code-template: sqlite -->
 # node:sqlite
 
 This runner provides integration with Node.js' built-in [`node:sqlite`](https://nodejs.org/api/sqlite.html) `DatabaseSync` API, allowing `ts-sql-query` to execute queries on SQLite databases without installing an additional SQLite driver. It wraps an instance of a connected SQLite database and must be used in combination with a `ts-sql-query` connection.
@@ -41,6 +42,7 @@ const db = new DatabaseSync('foobar.db', options);
 async function main() {
     const connection = new DBConnection(new NodeSqliteQueryRunner(db));
     // Do your queries here
+    connection // ...
 }
 ```
 
@@ -73,7 +75,7 @@ const uuidBlob: NodeSqliteFunction = (value) => {
     return Buffer.from(uuidParse(value));
 };
 
-const db = new DatabaseSync(/* ... */);
+const db = new DatabaseSync('foobar.db', options);
 
 // Implement uuid extension functions
 

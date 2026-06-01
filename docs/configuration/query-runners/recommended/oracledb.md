@@ -2,6 +2,7 @@
 search:
   boost: 0.577
 ---
+<!-- doc-code-template: oracle -->
 # oracledb
 
 This page explains how to use `ts-sql-query` with the [oracledb](https://www.npmjs.com/package/oracledb) driver. It covers three approaches: using a connection pool promise, using a connection pool or using a single connection directly.
@@ -56,6 +57,7 @@ process
 async function main() {
     const connection = new DBConnection(new OracleDBPoolPromiseQueryRunner(poolPromise));
     // Do your queries here
+    connection // ...
 }
 ```
 
@@ -92,6 +94,7 @@ async function main() {
     const pool = await poolPromise;
     const connection = new DBConnection(new OracleDBPoolQueryRunner(pool));
     // Do your queries here
+    connection // ...
 }
 ```
 
@@ -137,6 +140,7 @@ async function main() {
     try {
         const connection = new DBConnection(new OracleDBQueryRunner(oracleConnection));
         // Do your queries here
+        connection // ...
     } finally {
         await oracleConnection.close();
     }

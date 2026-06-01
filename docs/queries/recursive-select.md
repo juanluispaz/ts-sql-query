@@ -418,6 +418,7 @@ const recursiveChildrenCompany: Promise<{
 
 [Oracle](../configuration/supported-databases/oracle.md) database supports an alternative syntax (additional to the previously mentioned) that can be more performant in some situations using the `start with` and `connect by` (or `connect by nocycle`) clauses.
 
+<!-- doc-code-snippet-template: oracle -->
 ```ts
 const recursiveChildrenCompany = await connection.selectFrom(tCompany)
     .select({

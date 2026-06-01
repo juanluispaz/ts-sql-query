@@ -60,6 +60,7 @@ The generated Prisma client and the adapter must correspond to the same database
     async function main() {
         const connection = new DBConnection(new PrismaQueryRunner(prisma))
         // Do your queries here
+        connection // ...
     }
     ```
 === "MySQL"
@@ -80,6 +81,7 @@ The generated Prisma client and the adapter must correspond to the same database
     async function main() {
         const connection = new DBConnection(new PrismaQueryRunner(prisma))
         // Do your queries here
+        connection // ...
     }
     ```
 ===+ "PostgreSQL"
@@ -95,6 +97,7 @@ The generated Prisma client and the adapter must correspond to the same database
     async function main() {
         const connection = new DBConnection(new PrismaQueryRunner(prisma))
         // Do your queries here
+        connection // ...
     }
     ```
 === "SQLite"
@@ -112,6 +115,7 @@ The generated Prisma client and the adapter must correspond to the same database
     async function main() {
         const connection = new DBConnection(new PrismaQueryRunner(prisma))
         // Do your queries here
+        connection // ...
     }
     ```
 === "SQL Server"
@@ -135,6 +139,7 @@ The generated Prisma client and the adapter must correspond to the same database
     async function main() {
         const connection = new DBConnection(new PrismaQueryRunner(prisma))
         // Do your queries here
+        connection // ...
     }
     ```
 
@@ -179,8 +184,19 @@ You can pass as the second argument of the `PrismaQueryRunner` constructor a con
 const connection = new DBConnection(new PrismaQueryRunner(prisma));
 
 const transactionResult = connection.transaction(async () => {
-    const companyId = await connection.insertInto ...
-    const customerId = await connection.insertInto ... // using the companyId
+    const companyId = await connection.insertInto(tCompany).set({
+            name: 'Top Company'
+        })
+        .returningLastInsertedId()
+        .executeInsert();
+
+    const customerId = await connection.insertInto(tCustomer).set({
+            firstName: 'John',
+            lastName: 'Smith',
+            companyId: companyId
+        })
+        .returningLastInsertedId()
+        .executeInsert();
 
     return {companyId, customerId};
 });
@@ -192,8 +208,19 @@ If you want to use `prismaClient.$transaction` directly, you must create the `Pr
 const transactionResult = prisma.$transaction(async (prismaTransaction) => {
     const connection = new DBConnection(new PrismaQueryRunner(prismaTransaction));
 
-    const companyId = await connection.insertInto ...
-    const customerId = await connection.insertInto ... // using the companyId
+    const companyId = await connection.insertInto(tCompany).set({
+            name: 'Top Company'
+        })
+        .returningLastInsertedId()
+        .executeInsert();
+
+    const customerId = await connection.insertInto(tCustomer).set({
+            firstName: 'John',
+            lastName: 'Smith',
+            companyId: companyId
+        })
+        .returningLastInsertedId()
+        .executeInsert();
 
     return {companyId, customerId};
 });

@@ -102,7 +102,7 @@ interface CompanyInfoWithNumberOfCustomers {
     numberOfCustomers: number;
 }
 
-async function getCompanyInfoWithNumberOfCustomers(connection: DBConnection, id: number): CompanyInfoWithNumberOfCustomers {
+async function getCompanyInfoWithNumberOfCustomers(connection: DBConnection, id: number): Promise<CompanyInfoWithNumberOfCustomers> {
     return await buildCompaniesWithNumberOfCustomersQuery(connection)
         .where(tCompany.id.equals(id))
         .executeSelectOne()

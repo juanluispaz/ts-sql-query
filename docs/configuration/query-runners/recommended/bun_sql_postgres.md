@@ -2,6 +2,7 @@
 search:
   boost: 0.577
 ---
+<!-- doc-code-template: postgresql -->
 # Bun SQL for PostgreSQL
 
 This page explains how to use `ts-sql-query` with the [Bun SQL](https://bun.com/docs/runtime/sql) driver, allowing `ts-sql-query` to execute queries on [PostgreSQL](../../supported-databases/postgresql.md) databases.
@@ -52,5 +53,6 @@ const sql = new SQL({
 async function main() {
     const connection = new DBConnection(new BunSqlPostgresQueryRunner(sql));
     // Do your queries here
+    connection // ...
 }
 ```

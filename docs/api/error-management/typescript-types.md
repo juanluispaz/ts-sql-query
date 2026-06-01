@@ -6,7 +6,7 @@ The declarations below are based on `src/TsSqlError.ts`. Keep this page focused 
 
 ## Imports
 
-```ts
+```typescriptreact
 import {
   QueryExecutionSource,
   TsSqlDatabaseErrorCode,
@@ -21,17 +21,17 @@ import {
 
 ## Database Error Metadata Types
 
-```ts
-export type TsSqlDatabaseErrorCode = string
-export type TsSqlDatabaseErrorNumber = string | number
+```typescript
+type TsSqlDatabaseErrorCode = string
+type TsSqlDatabaseErrorNumber = string | number
 ```
 
 `databaseErrorCode` stores the symbolic or textual signal when available. `databaseErrorNumber` stores numeric vendor codes and SQLSTATE-like values when available. `databaseErrorMessage` is a string field inside the reason object, not a standalone exported type.
 
 ## Reason Types
 
-```ts
-export type TsSqlErrorReason = 
+```typescript
+type TsSqlErrorReason = 
 
     /* ********************************************************************************************
      * Query validations specified when the query is built
@@ -363,7 +363,7 @@ export type TsSqlErrorReason =
     | /** Unknown error */
       { reason: 'UNKNOWN' }
 
-export type TsSqlInternalErrorReason =
+type TsSqlInternalErrorReason =
     | /** The builder ended in an invalid state */
       { reason: 'INTERNAL', internalErrorType: 'illegal state' }
     | /** Result column not found or it has the wrong type */
@@ -396,17 +396,18 @@ export type TsSqlInternalErrorReason =
 
 This is the public shape most consumers need when narrowing errors. The runtime implementation also preserves stack traces and attaches the native error through the standard `cause` mechanism when one is available.
 
-```ts
+```typescript
 /**
  * Base class of all errors returned by ts-sql-query.
  */
-export class TsSqlError extends Error {
+class TsSqlError extends Error {
     /** Identifies the error category and provides additional details about what went wrong. */
     errorReason: TsSqlErrorReason
 
     constructor(errorReason: TsSqlErrorReason, message: string)
     constructor(errorReason: TsSqlErrorReason, message: string, cause: unknown)
     constructor(errorReason: TsSqlErrorReason, messageOrCause: unknown)
+    // TsSqlError's constructor implementation ...
 }
 
 /**
@@ -414,7 +415,7 @@ export class TsSqlError extends Error {
  *
  * Note: This error always wraps any TsSqlProcessingError.
  */
-export class TsSqlQueryExecutionError extends TsSqlError {
+class TsSqlQueryExecutionError extends TsSqlError {
     /** Captures where the failing query execution was requested. */
     source: QueryExecutionSource
     /** Captures where the surrounding transaction was started, when available. */
@@ -429,11 +430,19 @@ export class TsSqlQueryExecutionError extends TsSqlError {
     constructor(source: QueryExecutionSource, errorReason: TsSqlErrorReason, message: string)
     constructor(source: QueryExecutionSource, errorReason: TsSqlErrorReason, message: string, cause: unknown)
     constructor(source: QueryExecutionSource, errorReason: TsSqlErrorReason, messageOrCause: unknown)
+    // TsSqlQueryExecutionError's constructor implementation ...
 
     attachTransactionSource(source: QueryExecutionSource): this
+    // TsSqlQueryExecutionError's attachTransactionSource implementation ...
+
     attachRollbackError(error: unknown): this
+    // TsSqlQueryExecutionError's attachRollbackError implementation ...
+
     attachTransactionError(error: unknown): this
+    // TsSqlQueryExecutionError's attachTransactionError implementation ...
+
     attachAdditionalError(additional: unknown, name: string): this
+    // TsSqlQueryExecutionError's attachAdditionalError implementation ...
 }
 
 /**
@@ -441,8 +450,9 @@ export class TsSqlQueryExecutionError extends TsSqlError {
  *
  * Note: This is not used as an error, only as a marker to collect the call stack.
  */
-export class QueryExecutionSource extends Error {
+class QueryExecutionSource extends Error {
     constructor(message: string)
+    // QueryExecutionSource's constructor implementation ...
 }
 
 /**
@@ -450,16 +460,17 @@ export class QueryExecutionSource extends Error {
  *
  * Note: This error is always wrapped by TsSqlQueryExecutionError when the query is requested to be executed.
  */
-export class TsSqlProcessingError extends TsSqlError {
+class TsSqlProcessingError extends TsSqlError {
     constructor(errorReason: TsSqlErrorReason, message: string)
     constructor(errorReason: TsSqlErrorReason, message: string, cause: unknown)
     constructor(errorReason: TsSqlErrorReason, messageOrCause: unknown)
+    // TsSqlProcessingError's constructor implementation ...
 }
 ```
 
 ## Narrowing Example
 
-```ts
+```typescriptreact
 try {
   await connection.selectFrom(tCustomer).selectAll().executeSelectMany()
 } catch (error) {

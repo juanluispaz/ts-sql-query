@@ -2,6 +2,7 @@
 search:
   boost: 0.577
 ---
+<!-- doc-code-template: sqlite -->
 # Bun SQL for SQLite
 
 This page explains how to use `ts-sql-query` with the [Bun SQL](https://bun.com/docs/runtime/sql) driver configured with the SQLite adapter, allowing `ts-sql-query` to execute queries on [SQLite](../../supported-databases/sqlite.md) databases.
@@ -46,6 +47,7 @@ const sql = new SQL({
 async function main() {
     const connection = new DBConnection(new BunSqlSqliteQueryRunner(sql));
     // Do your queries here
+    connection // ...
 }
 ```
 

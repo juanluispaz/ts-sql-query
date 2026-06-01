@@ -6,7 +6,7 @@ search:
 
 This API provides methods to construct and execute SQL `INSERT` statements using a fluent interface in `ts-sql-query`. It supports inserting single or multiple rows, inserting from a SELECT statement, handling conflict resolution (e.g., upserts), and optionally returning inserted data.
 
-```ts
+```typescript
 interface InsertExpression {
     /**
      * Allow setting the shape of the values to insert. This shape allows you to map
@@ -406,7 +406,7 @@ interface InsertExpression {
 }
 ```
 
-```ts
+```typescript
 /** Columns required by the insert */
 type InsertSets = { [columnName: string]: any }
 /** Columns required by the insert, but marked as optionals */

@@ -2,6 +2,7 @@
 search:
   boost: 0.577
 ---
+<!-- doc-code-template: sqlite -->
 # sqlite3
 
 This runner provides integration with the [sqlite3](https://www.npmjs.com/package/sqlite3) driver, allowing `ts-sql-query` to execute queries on SQLite databases. It wraps an instance of a connected SQLite database and must be used in combination with a `ts-sql-query` connection.
@@ -41,5 +42,6 @@ const db = new Database('./database.sqlite');
 async function main() {
     const connection = new DBConnection(new Sqlite3QueryRunner(db));
     // Do your queries here
+    connection // ...
 }
 ```

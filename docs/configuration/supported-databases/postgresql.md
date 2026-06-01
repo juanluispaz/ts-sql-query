@@ -2,6 +2,7 @@
 search:
   boost: 0.59
 ---
+<!-- doc-code-template: postgresql -->
 # PostgreSQL
 
 This page describes how `ts-sql-query` integrates with **[PostgreSQL](https://www.postgresql.org)**, including dialect-specific behavior, configuration options, and available features. It covers the proper setup of a PostgreSQL connection, guidelines for connection management, and advanced behaviors such as explicit typing.

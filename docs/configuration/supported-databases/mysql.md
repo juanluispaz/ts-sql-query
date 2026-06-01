@@ -2,6 +2,7 @@
 search:
   boost: 0.59
 ---
+<!-- doc-code-template: mysql -->
 # MySQL
 
 This page describes how `ts-sql-query` integrates with **[MySQL](https://www.mysql.com)**, including dialect-specific behavior, configuration options, and available features. It covers the proper setup of a MySQL connection, guidelines for connection management, and advanced behaviors such as UUID handling.

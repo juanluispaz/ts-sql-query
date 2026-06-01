@@ -2,6 +2,7 @@
 search:
   boost: 0.59
 ---
+<!-- doc-code-template: sqlite -->
 # SQLite
 
 This page describes how `ts-sql-query` integrates with **[SQLite](https://sqlite.org)**, including dialect-specific behaviors, configuration options, and available features. It covers the proper setup of a SQLite connection, guidelines for connection management, and advanced behaviors such as UUID handling.
@@ -36,7 +37,7 @@ class DBConnection extends SqliteConnection<'DBConnection'> { }
 
 ```ts
 import { SqliteConnection } from "ts-sql-query/connections/SqliteConnection";
-import { SqliteDateTimeFormat, SqliteDateTimeFormatType } from "ts-sql-query/connections/SqliteConfiguration";
+import type { SqliteDateTimeFormat, SqliteDateTimeFormatType } from "ts-sql-query/connections/SqliteConfiguration";
 
 class DBConnection extends SqliteConnection<'DBConnection'> {
     protected override getDateTimeFormat(type: SqliteDateTimeFormatType): SqliteDateTimeFormat {

@@ -19,15 +19,17 @@ import { getQueryExecutionStack } from 'ts-sql-query/queryRunners/QueryRunner';
 import { InterceptorQueryRunner, QueryType } from "ts-sql-query/queryRunners/InterceptorQueryRunner";
 
 class DurationLogginQueryRunner extends InterceptorQueryRunner<void> {
-    onQuery(queryType: QueryType, query: string, params: any[]): DurationPlayload {
+    onQuery(queryType: QueryType, query: string, params: any[]): void {
         const stack: string | undefined = getQueryExecutionStack(query, params)
         console.log('query execution stack', stack)
+        // Additional information
+        console.log('query type', queryType)
     }
     onQueryResult(queryType: QueryType, query: string, params: any[], result: any, playload: void): void {
-        ...    
+        // Your DurationLogginQueryRunner's onQueryResult implementation ...
     }
     onQueryError(queryType: QueryType, query: string, params: any[], error: any, playload: void): void {
-        ...
+        // Your DurationLogginQueryRunner's onQueryError implementation ...
     }
 }
 ```
@@ -51,7 +53,7 @@ import { getFunctionExecutingQuery, FunctionExecutingQueryInformation } from 'ts
 import { InterceptorQueryRunner, QueryType } from "ts-sql-query/queryRunners/InterceptorQueryRunner";
 
 class DurationLogginQueryRunner extends InterceptorQueryRunner<void> {
-    onQuery(queryType: QueryType, query: string, params: any[]): DurationPlayload {
+    onQuery(queryType: QueryType, query: string, params: any[]): void {
         const info : FunctionExecutingQueryInformation | undefined = getFunctionExecutingQuery(query, params)
         if (!info) {
             return
@@ -64,12 +66,14 @@ class DurationLogginQueryRunner extends InterceptorQueryRunner<void> {
         console.log('Name of the file where the query was requested to be executed', fileName)
         console.log('Line number where the query was requested to be executed', lineNumber)
         console.log('Position in the line where the query was requested to be executed', positionNumber)
+        // Additional information
+        console.log('query type', queryType)
     }
     onQueryResult(queryType: QueryType, query: string, params: any[], result: any, playload: void): void {
-        ...    
+        // Your DurationLogginQueryRunner's onQueryResult implementation ...
     }
     onQueryError(queryType: QueryType, query: string, params: any[], error: any, playload: void): void {
-        ...
+        // Your DurationLogginQueryRunner's onQueryError implementation ...
     }
 }
 ```
@@ -90,15 +94,17 @@ import { isSelectPageCountQuery } from 'ts-sql-query/queryRunners/QueryRunner';
 import { InterceptorQueryRunner, QueryType } from "ts-sql-query/queryRunners/InterceptorQueryRunner";
 
 class DurationLogginQueryRunner extends InterceptorQueryRunner<void> {
-    onQuery(queryType: QueryType, query: string, params: any[]): DurationPlayload {
+    onQuery(queryType: QueryType, query: string, params: any[]): void {
         const isCount: boolean = isSelectPageCountQuery(query, params)
         console.log('the query is a select count in a select page', isCount)
+        // Additional information
+        console.log('query type', queryType)
     }
     onQueryResult(queryType: QueryType, query: string, params: any[], result: any, playload: void): void {
-        ...    
+        // Your DurationLogginQueryRunner's onQueryResult implementation ...
     }
     onQueryError(queryType: QueryType, query: string, params: any[], error: any, playload: void): void {
-        ...
+        // Your DurationLogginQueryRunner's onQueryError implementation ...
     }
 }
 ```
@@ -112,15 +118,17 @@ import { getQueryExecutionName } from 'ts-sql-query/queryRunners/QueryRunner';
 import { InterceptorQueryRunner, QueryType } from "ts-sql-query/queryRunners/InterceptorQueryRunner";
 
 class DurationLogginQueryRunner extends InterceptorQueryRunner<void> {
-    onQuery(queryType: QueryType, query: string, params: any[]): DurationPlayload {
+    onQuery(queryType: QueryType, query: string, params: any[]): void {
         const name: string | undefined = getQueryExecutionName(query, params)
         console.log('query execution name', name)
+        // Additional information
+        console.log('query type', queryType)
     }
     onQueryResult(queryType: QueryType, query: string, params: any[], result: any, playload: void): void {
-        ...    
+        // Your DurationLogginQueryRunner's onQueryResult implementation ...
     }
     onQueryError(queryType: QueryType, query: string, params: any[], error: any, playload: void): void {
-        ...
+        // Your DurationLogginQueryRunner's onQueryError implementation ...
     }
 }
 ```
@@ -150,15 +158,17 @@ import { getQueryExecutionMetadata } from 'ts-sql-query/queryRunners/QueryRunner
 import { InterceptorQueryRunner, QueryType } from "ts-sql-query/queryRunners/InterceptorQueryRunner";
 
 class DurationLogginQueryRunner extends InterceptorQueryRunner<void> {
-    onQuery(queryType: QueryType, query: string, params: any[]): DurationPlayload {
+    onQuery(queryType: QueryType, query: string, params: any[]): void {
         const metadata: unknown = getQueryExecutionMetadata(query, params)
         console.log('query execution metadata', metadata)
+        // Additional information
+        console.log('query type', queryType)
     }
     onQueryResult(queryType: QueryType, query: string, params: any[], result: any, playload: void): void {
-        ...    
+        // Your DurationLogginQueryRunner's onQueryResult implementation ...
     }
     onQueryError(queryType: QueryType, query: string, params: any[], error: any, playload: void): void {
-        ...
+        // Your DurationLogginQueryRunner's onQueryError implementation ...
     }
 }
 ```

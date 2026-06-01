@@ -92,7 +92,7 @@ CREATE COLLATION es_insensitive (
 ## Instantiating the connection with the database connection
 
 ```ts
-const { Pool } = require('pg');
+import { Pool } from 'pg';
 import { PgPoolQueryRunner } from "ts-sql-query/queryRunners/PgPoolQueryRunner";
 
 const pool = new Pool();
@@ -100,6 +100,8 @@ const pool = new Pool();
 async function main() {
     const connection = new DBConnection(new PgPoolQueryRunner(pool));
     // Do your queries here
+    connection // ...
+    
     /*
      * Maybe you want to perform the queries in a transaction:
      * await connection.transaction(async () => {
@@ -129,7 +131,7 @@ Have a mock database connection is useful when you want to make unit tests. Usin
 ```ts
 import { MockQueryRunner } from "ts-sql-query/queryRunners/MockQueryRunner";
 
-function test('my db test', () => {
+test('my db test', () => {
     const connection = new DBConnection(new MockQueryRunner(
         (type, query, params, index) => {
             switch (index) {

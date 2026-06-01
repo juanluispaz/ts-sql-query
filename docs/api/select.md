@@ -20,7 +20,7 @@ The select query definition must follow the logical order or the alternative ord
 - **Alternative order 4**: from, join, **select**, **group by**, **having**, order by, limit, offset, **WHERE**, customizeQuery
 - **Alternative order 5**: from, join, **select**, **group by**, **having**, order by, limit, offset, customizeQuery, **WHERE**
 
-```ts
+```typescript
 interface SelectExpression {
     /** Allows to add a from to the select query */
     from(table: Table | View): this
@@ -197,7 +197,7 @@ interface SelectExpression {
 }
 ```
 
-```ts
+```typescript
 /**
  * Modes of sorting in an order by.
  * If the database don't support one of then it will be emulated.
@@ -207,7 +207,7 @@ type OrderByMode = 'asc' | 'desc' | 'asc nulls first' | 'asc nulls last' | 'desc
                    'desc nulls first insensitive' | 'desc nulls last insensitive'
 ```
 
-```ts
+```typescript
 /**
  * Select projection of the value that vill be retreived from the database.
  * 

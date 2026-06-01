@@ -35,16 +35,18 @@ import { LoggingQueryRunner } from "ts-sql-query/queryRunners/LoggingQueryRunner
 async function main() {
     const connection = new DBConnection(new LoggingQueryRunner({
         onQuery(queryType, query, params) {
-            console.log('onQuery', queryType, query, params, { startedAt })
+            console.log('onQuery', queryType, query, params)
         },
         onQueryResult(queryType, query, params, result) {
-            console.log('onQueryResult', queryType, query, params, result, { startedAt, endedAt })
+            console.log('onQueryResult', queryType, query, params, result)
         },
         onQueryError(queryType, query, params, error) {
-            console.log('onQueryError', queryType, query, params, error, { startedAt, endedAt })
+            console.log('onQueryError', queryType, query, params, error)
         }
     }, otherQueryRunner));
+
     // Do your queries here
+    connection // ...
 }
 ```
 
@@ -60,6 +62,7 @@ All these functions receive as argument:
 
 - **`type: QueryType`**: type of the query to be executed. The `QueryType` is defined as:
 
+<!-- doc-code-snippet-template: simplifiedDefinition -->
 ```ts
 type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | 'selectOneColumnManyRows' |
     'insert' | 'insertReturningLastInsertedId' | 'insertReturningMultipleLastInsertedId' |

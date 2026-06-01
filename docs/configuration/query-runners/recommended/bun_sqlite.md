@@ -2,6 +2,7 @@
 search:
   boost: 0.577
 ---
+<!-- doc-code-template: sqlite -->
 # Bun Sqlite
 
 This runner provides integration with the [Bun Sqlite](https://bun.com/docs/runtime/sqlite) driver, allowing `ts-sql-query` to execute queries on [SQLite](../../supported-databases/sqlite.md) databases.
@@ -35,6 +36,7 @@ const db = new Database('foobar.db', options);
 async function main() {
     const connection = new DBConnection(new BunSqliteQueryRunner(db));
     // Do your queries here
+    connection // ...
 }
 ```
 

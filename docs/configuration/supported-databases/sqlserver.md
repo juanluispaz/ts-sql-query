@@ -2,6 +2,7 @@
 search:
   boost: 0.59
 ---
+<!-- doc-code-template: sqlserver -->
 # SQL Server
 
 This page describes how `ts-sql-query` integrates with **[SQL Server](https://www.microsoft.com/en/sql-server)**, including dialect-specific behavior, configuration options, and available features. It covers the proper setup of a SQL Server connection, guidelines for connection management, and advanced behaviors such as UUID handling.

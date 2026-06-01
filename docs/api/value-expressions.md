@@ -14,8 +14,8 @@ Be aware, in the database, when null is part of an operation the result of the o
 
 All data manipulation operations are implemented as methods on the value itself, that means if you what to calculate the absolute, in sql is `abs(value)` but in `ts-sql-query` is represented as `value.abs()`.
 
-```ts
-interface ValueSource<T> {
+```typescript
+interface ValueSource<T, TYPE_NAME> {
     isConstValue(): boolean
     /**
      * It returns the proper type of the value, instead of the any type included here to simplify
@@ -35,8 +35,8 @@ interface ValueSource<T> {
 }
 ```
 
-```ts
-interface NullableValueSource<T> extends ValueSource<T> {
+```typescript
+interface NullableValueSource<T, TYPE_NAME> extends ValueSource<T, TYPE_NAME> {
     isNull(): BooleanValueSource
     isNotNull(): BooleanValueSource
     valueWhenNull(value: T | this): this
@@ -48,8 +48,8 @@ interface NullableValueSource<T> extends ValueSource<T> {
 }
 ```
 
-```ts
-interface EqualableValueSource<T> extends NullableValueSource<T> {
+```typescript
+interface EqualableValueSource<T, TYPE_NAME> extends NullableValueSource<T, TYPE_NAME> {
     equalsIfValue(value: T | null | undefined): BooleanValueSource
     equals(value: T | this): BooleanValueSource
     notEqualsIfValue(value: T | null | undefined): BooleanValueSource
@@ -71,8 +71,8 @@ interface EqualableValueSource<T> extends NullableValueSource<T> {
 }
 ```
 
-```ts
-interface ComparableValueSource<T> extends EqualableValueSource<T> {
+```typescript
+interface ComparableValueSource<T, TYPE_NAME> extends EqualableValueSource<T, TYPE_NAME> {
     lessThanIfValue(value: T | null | undefined): BooleanValueSource
     lessThan(value: T | this): BooleanValueSource
     greaterThanIfValue(value: T | null | undefined): BooleanValueSource
@@ -86,11 +86,11 @@ interface ComparableValueSource<T> extends EqualableValueSource<T> {
 }
 ```
 
-```ts
+```typescript
 /**
  * Represents a boolean
  */
-interface BooleanValueSource extends EqualableValueSource<boolean> {
+interface BooleanValueSource extends EqualableValueSource<boolean, 'boolean'> {
     negate(): this
     and(value: boolean): this
     or(value: boolean): this
@@ -107,11 +107,11 @@ interface BooleanValueSource extends EqualableValueSource<boolean> {
 }
 ```
 
-```ts
+```typescript
 /**
  * Represents an int or a double
  */
-interface NumberValueSource extends ComparableValueSource<number> {
+interface NumberValueSource extends ComparableValueSource<number, 'number'> {
     asInt(): NumberValueSource
     asDouble(): NumberValueSource
     asBigint(): BigintValueSource
@@ -152,11 +152,11 @@ interface NumberValueSource extends ComparableValueSource<number> {
 }
 ```
 
-```ts
+```typescript
 /**
  * Represents a bigint
  */
-interface BigintValueSource extends ComparableValueSource<bigint> {
+interface BigintValueSource extends ComparableValueSource<bigint, 'bigint'> {
     abs(): this
     ceil(): this
     floor(): this
@@ -177,11 +177,11 @@ interface BigintValueSource extends ComparableValueSource<bigint> {
 }
 ```
 
-```ts
+```typescript
 /**
  * Represents a string
  */
-interface StringValueSource extends ComparableValueSource<string> {
+interface StringValueSource extends ComparableValueSource<string, 'string'> {
     equalsInsensitiveIfValue(value: string | null | undefined): BooleanValueSource
     equalsInsensitive(value: string | this): BooleanValueSource
     notEqualsInsensitiveIfValue(value: string | null | undefined): BooleanValueSource
@@ -236,20 +236,20 @@ interface StringValueSource extends ComparableValueSource<string> {
 }
 ```
 
-```ts
+```typescript
 /**
  * Represents an UUID
  */
- interface UuidValueSource extends ComparableValueSource<string> {
+ interface UuidValueSource extends ComparableValueSource<string, 'uuid'> {
     asString(): StringValueSource
  }
 ```
 
-```ts
+```typescript
 /**
  * Represents a local date without time (using a Date object)
  */
-interface LocalDateValueSource extends ComparableValueSource<Date> {
+interface LocalDateValueSource extends ComparableValueSource<Date, 'localDate'> {
     /** Gets the year */
     getFullYear(): NumberValueSource
     /** Gets the month (value between 0 to 11)*/
@@ -261,11 +261,11 @@ interface LocalDateValueSource extends ComparableValueSource<Date> {
 }
 ```
 
-```ts
+```typescript
 /**
  * Represents a local time without date (using a Date object)
  */
-interface LocalTimeValueSource extends ComparableValueSource<Date> {
+interface LocalTimeValueSource extends ComparableValueSource<Date, 'localTime'> {
     /** Gets the hours */
     getHours(): NumberValueSource
     /** Gets the minutes */
@@ -277,11 +277,11 @@ interface LocalTimeValueSource extends ComparableValueSource<Date> {
 }
 ```
 
-```ts
+```typescript
 /**
  * Represents a local date with time (using a Date object)
  */
-interface LocalDateTimeValueSource extends ComparableValueSource<Date> {
+interface LocalDateTimeValueSource extends ComparableValueSource<Date, 'localDateTime'> {
     /** Gets the year */
     getFullYear(): NumberValueSource
     /** Gets the month (value between 0 to 11)*/
@@ -303,11 +303,11 @@ interface LocalDateTimeValueSource extends ComparableValueSource<Date> {
 }
 ```
 
-```ts
+```typescript
 /**
  * Represents a custom int
  */
-interface CustomIntValueSource<T> extends ComparableValueSource<T> {
+interface CustomIntValueSource<T, TYPE_NAME> extends ComparableValueSource<T, TYPE_NAME> {
     abs(): this
     ceil(): this
     floor(): this
@@ -328,11 +328,11 @@ interface CustomIntValueSource<T> extends ComparableValueSource<T> {
 }
 ```
 
-```ts
+```typescript
 /**
  * Represents a custom double
  */
-interface CustomDoubleValueSource<T> extends ComparableValueSource<T> {
+interface CustomDoubleValueSource<T, TYPE_NAME> extends ComparableValueSource<T, TYPE_NAME> {
     abs(): this
     ceil(): this
     floor(): this
@@ -370,20 +370,20 @@ interface CustomDoubleValueSource<T> extends ComparableValueSource<T> {
 }
 ```
 
-```ts
+```typescript
 /**
  * Represents a custom UUID
  */
-interface CustomUuidValueSource<T> extends ComparableValueSource<T> {
+interface CustomUuidValueSource<T, TYPE_NAME> extends ComparableValueSource<T, TYPE_NAME> {
     asString(): StringValueSource
  }
 ```
 
-```ts
+```typescript
 /**
  * Represents a custom local date without time (using a Date object)
  */
-interface CustomLocalDateValueSource<T> extends ComparableValueSource<T> {
+interface CustomLocalDateValueSource<T, TYPE_NAME> extends ComparableValueSource<T, TYPE_NAME> {
     /** Gets the year */
     getFullYear(): NumberValueSource
     /** Gets the month (value between 0 to 11)*/
@@ -395,11 +395,11 @@ interface CustomLocalDateValueSource<T> extends ComparableValueSource<T> {
 }
 ```
 
-```ts
+```typescript
 /**
  * Represents a custom local time without date (using a Date object)
  */
-interface CustomLocalTimeValueSource<T> extends ComparableValueSource<T> {
+interface CustomLocalTimeValueSource<T, TYPE_NAME> extends ComparableValueSource<T, TYPE_NAME> {
     /** Gets the hours */
     getHours(): NumberValueSource
     /** Gets the minutes */
@@ -411,11 +411,11 @@ interface CustomLocalTimeValueSource<T> extends ComparableValueSource<T> {
 }
 ```
 
-```ts
+```typescript
 /**
  * Represents a custom local date with time (using a Date object)
  */
-interface CustomLocalDateTimeValueSource<T> extends ComparableValueSource<T> {
+interface CustomLocalDateTimeValueSource<T, TYPE_NAME> extends ComparableValueSource<T, TYPE_NAME> {
     /** Gets the year */
     getFullYear(): NumberValueSource
     /** Gets the month (value between 0 to 11)*/
@@ -437,11 +437,11 @@ interface CustomLocalDateTimeValueSource<T> extends ComparableValueSource<T> {
 }
 ```
 
-```ts
+```typescript
 /**
  * Represents the result of an aggregate as object array
  */
-interface AggregatedArrayValueSource<T> extends ValueSource<T> {
+interface AggregatedArrayValueSource<T> extends ValueSource<T, 'aggregated'> {
     useEmptyArrayForNoValue(): AggregatedArrayValueSource<T>
     asOptionalNonEmptyArray(): AggregatedArrayValueSource<T>
     asRequiredInOptionalObject(): AggregatedArrayValueSource<T>
@@ -450,9 +450,8 @@ interface AggregatedArrayValueSource<T> extends ValueSource<T> {
 }
 ```
 
-```ts
+```typescript
 interface AggregatedArrayValueSourceProjectableAsNullable<T> extends AggregatedArrayValueSource<T> {
     /** Returns the optional values as null instead of optional undefined values */
     projectingOptionalValuesAsNullable(): AggregatedArrayValueSource<T>
 }
-```

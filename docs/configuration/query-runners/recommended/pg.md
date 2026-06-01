@@ -2,6 +2,7 @@
 search:
   boost: 0.577
 ---
+<!-- doc-code-template: postgresql -->
 # pg
 
 This page explains how to use `ts-sql-query` with the [pg](https://www.npmjs.com/package/pg) driver. It covers two approaches: using a connection pool or using a single connection directly.
@@ -29,7 +30,7 @@ This page explains how to use `ts-sql-query` with the [pg](https://www.npmjs.com
 Executes queries through a [pg](https://www.npmjs.com/package/pg) connection obtained from a pool.
 
 ```ts
-import { Pool, PoolClient } from 'pg';
+import { Pool } from 'pg';
 import { PgPoolQueryRunner } from "ts-sql-query/queryRunners/PgPoolQueryRunner";
 
 const pool = new Pool({
@@ -43,6 +44,7 @@ const pool = new Pool({
 async function main() {
     const connection = new DBConnection(new PgPoolQueryRunner(pool));
     // Do your queries here
+    connection // ...
 }
 ```
 
@@ -55,7 +57,7 @@ async function main() {
 Executes queries through a dedicated [pg](https://www.npmjs.com/package/pg) connection.
 
 ```ts
-import { Pool, PoolClient } from 'pg';
+import { Pool } from 'pg';
 import { PgQueryRunner } from "ts-sql-query/queryRunners/PgQueryRunner";
 
 const pool = new Pool({
@@ -71,6 +73,7 @@ async function main() {
     try {
         const connection = new DBConnection(new PgQueryRunner(pgConnection));
         // Do your queries here
+        connection // ...
     } finally {
         pgConnection.release();
     }

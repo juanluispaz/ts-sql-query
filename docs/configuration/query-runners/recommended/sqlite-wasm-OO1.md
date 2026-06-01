@@ -2,6 +2,7 @@
 search:
   boost: 0.577
 ---
+<!-- doc-code-template: sqlite -->
 # sqlite-wasm OO1
 
 This runner provides integration with the WebAssembly-based [sqlite-wasm](https://www.npmjs.com/package/@sqlite.org/sqlite-wasm) [Object Oriented API 1](https://sqlite.org/wasm/doc/trunk/api-oo1.md), allowing `ts-sql-query` to execute queries on SQLite databases. It wraps an instance of a connected SQLite database and must be used in combination with a `ts-sql-query` connection.
@@ -33,13 +34,15 @@ This runner provides integration with the WebAssembly-based [sqlite-wasm](https:
 Enables executing queries through a dedicated WebAssembly-based [sqlite-wasm](https://www.npmjs.com/package/@sqlite.org/sqlite-wasm) [Object Oriented API 1](https://sqlite.org/wasm/doc/trunk/api-oo1.md) connection.
 
 ```ts
-import sqlite3InitModule from '@sqlite.org/sqlite-wasm';
+import sqlite3InitModule from "@sqlite.org/sqlite-wasm";
 import { Sqlite3WasmOO1QueryRunner } from "ts-sql-query/queryRunners/Sqlite3WasmOO1QueryRunner";
+import type { Database } from "@sqlite.org/sqlite-wasm";
 
 async function main() {
     const sqlite3 = await sqlite3InitModule();
     const db: Database = new sqlite3.oo1.DB();
     const connection = new DBConnection(new Sqlite3WasmOO1QueryRunner(db));
     // Do your queries here
+    connection // ...
 }
 ```

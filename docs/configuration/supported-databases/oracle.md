@@ -2,6 +2,7 @@
 search:
   boost: 0.59
 ---
+<!-- doc-code-template: oracle -->
 # Oracle
 
 This page describes how `ts-sql-query` integrates with **[Oracle](https://www.oracle.com/database/)**, including dialect-specific behavior, configuration options, and available features. It covers the proper setup of a Oracle connection, guidelines for connection management, and advanced behaviors such as UUID handling.

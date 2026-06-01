@@ -35,6 +35,7 @@ import { ConsoleLogQueryRunner } from "ts-sql-query/queryRunners/ConsoleLogQuery
 async function main() {
     const connection = new DBConnection(new ConsoleLogQueryRunner(otherQueryRunner));
     // Do your queries here
+    connection // ...
 }
 ```
 
@@ -42,7 +43,7 @@ async function main() {
 
 The constructor receives a secondary optional argument with the following definition: 
 
-```ts
+```typescript
 interface ConsoleLogQueryRunnerOpts {
     timeGranularity?: 'ms' | 'us' | 'ns' // Granularity of time and duration logged, default 'ms'
     logTimestamps?: boolean // Include the time value when the log happened in nanoseconds since an arbitrary starting point, default false

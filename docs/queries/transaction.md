@@ -18,8 +18,19 @@ For simple transaction management, you can use the `transaction` method in the c
 
 ```ts
 const transactionResult = connection.transaction(async () => {
-    const companyId = await connection.insertInto ...
-    const customerId = await connection.insertInto ...
+    const companyId = await connection.insertInto(tCompany).set({
+            name: 'Top Company'
+        })
+        .returningLastInsertedId()
+        .executeInsert();
+
+    const customerId = await connection.insertInto(tCustomer).set({
+            firstName: 'John',
+            lastName: 'Smith',
+            companyId: companyId
+        })
+        .returningLastInsertedId()
+        .executeInsert();
 
     return {companyId, customerId};
 });
@@ -87,7 +98,7 @@ You can set the transaction's isolation level by providing an additional argumen
 
 ```ts
 const transactionResult = connection.transaction(async () => {
-    ...
+    // ...
 }, connection.isolationLevel('serializable', 'read only'));
 ```
 

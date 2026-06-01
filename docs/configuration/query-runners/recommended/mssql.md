@@ -2,6 +2,7 @@
 search:
   boost: 0.577
 ---
+<!-- doc-code-template: sqlserver -->
 # mssql
 
 This page explains how to use `ts-sql-query` with the [mssql](https://www.npmjs.com/package/mssql) driver. It covers two approaches: using a connection pool promise or using a connection pool.
@@ -44,6 +45,7 @@ const poolPromise = new ConnectionPool({
 async function main() {
     const connection = new DBConnection(new MssqlPoolPromiseQueryRunner(poolPromise));
     // Do your queries here
+    connection // ...
 }
 ```
 
@@ -68,5 +70,6 @@ async function main() {
     const mssqlPool = await poolPromise;
     const connection = new DBConnection(new MssqlPoolQueryRunner(mssqlPool));
     // Do your queries here
+    connection // ...
 }
 ```

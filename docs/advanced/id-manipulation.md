@@ -10,7 +10,7 @@ Sometimes you want to encrypt the ID handled by the database. To do it, you can 
 
 You can create the connection and define the rules to handle a type called `encryptedID`:
 
-```ts
+```typescriptreact
 import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
 import { IDEncrypter } from "ts-sql-query/extras/IDEncrypter";
 
@@ -50,7 +50,7 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
 
 You can create the table, specifying the id type as `custom` or `customComparable` with type name `encryptedID` and data type `string` (the type of the encrypted data):
 
-```ts
+```typescriptreact
 import { Table } from "ts-sql-query" // or "ts-sql-query/Table";
 
 const tCompany = new class TCompany extends Table<DBConnection, 'TCompany'> {
@@ -75,7 +75,7 @@ const tCustomer = new class TCustomer extends Table<DBConnection, 'TCustomer'> {
 
 If you execute an insert that returns the id, the id will be encrypted:
 
-```ts
+```typescriptreact
 const id = await connection
             .insertInto(tCompany)
             .values({ name: 'ACME' })
@@ -87,7 +87,7 @@ The returned id will be `uftSdCUhUTBQ0111` for id 1 in the database.
 
 You can perform a select using the encrypted id:
 
-```ts
+```typescriptreact
 let company = await connection
             .selectFrom(tCompany)
             .where(tCompany.id.equals('uftSdCUhUTBQ0111'))
@@ -108,7 +108,7 @@ Sometimes you want to encrypt the ID handled by the database and ensure is globa
 
 You can create the connection and define the rules to handle the ID type:
 
-```ts
+```typescriptreact
 import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
 import { IDEncrypter } from "ts-sql-query/extras/IDEncrypter";
 
@@ -150,7 +150,7 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
 
 You can create the table, specifying the id type as `custom` or `customComparable` with type name that starts with `ID:` followed by a prefix and data type `string` (the type of the encrypted data):
 
-```ts
+```typescriptreact
 import { Table } from "ts-sql-query" // or "ts-sql-query/Table";
 
 const tCompany = new class TCompany extends Table<DBConnection, 'TCompany'> {
@@ -175,7 +175,7 @@ const tCustomer = new class TCustomer extends Table<DBConnection, 'TCustomer'> {
 
 If you execute an insert that returns the id, the id will be encrypted:
 
-```ts
+```typescriptreact
 const id = await connection
             .insertInto(tCompany)
             .values({ name: 'ACME' })
@@ -187,7 +187,7 @@ The returned id will be `coFJL3xTJZvP6Kd30d` for id 1 in the database.
 
 You can perform a select using the encrypted id:
 
-```ts
+```typescriptreact
 let company = await connection
             .selectFrom(tCompany)
             .where(tCompany.id.equals('coFJL3xTJZvP6Kd30d'))

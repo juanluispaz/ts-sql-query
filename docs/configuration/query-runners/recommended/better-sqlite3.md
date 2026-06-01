@@ -2,6 +2,7 @@
 search:
   boost: 0.577
 ---
+<!-- doc-code-template: sqlite -->
 # better-sqlite3
 
 This runner provides integration with the [better-sqlite3](https://www.npmjs.com/package/better-sqlite3) driver, allowing `ts-sql-query` to execute queries on SQLite databases. It wraps an instance of a connected SQLite database and must be used in combination with a `ts-sql-query` connection.
@@ -34,13 +35,14 @@ Enables executing queries through a dedicated [better-sqlite3](https://www.npmjs
 
 ```ts
 import { BetterSqlite3QueryRunner } from "ts-sql-query/queryRunners/BetterSqlite3QueryRunner";
-import * as betterSqlite3 from "better-sqlite3";
+import Database from "better-sqlite3";
 
-const db = betterSqlite3('foobar.db', options);
+const db = new Database('foobar.db', options);
 
 async function main() {
     const connection = new DBConnection(new BetterSqlite3QueryRunner(db));
     // Do your queries here
+    connection // ...
 }
 ```
 
@@ -53,10 +55,10 @@ async function main() {
 To work with [UUIDs in SQLite](../../supported-databases/sqlite.md#uuid-strategies) the default strategy is `uuid-extension` that requires the [uuid extension](https://sqlite.org/src/file?name=ext/misc/uuid.c); you can provide a compatible implementation as indicated here:
 
 ```ts
-import * as betterSqlite3 from "better-sqlite3";
+import Database from "better-sqlite3";
 import { parse as uuidParse, stringify as uuidStringify, v7 as uuidv7 } from "uuid";
 
-const db = betterSqlite3(/* ... */);
+const db = new Database('foobar.db', options);
 
 // Implement uuid extension functions
 

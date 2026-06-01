@@ -93,7 +93,7 @@ import { InsertableValuesShapedAs } from 'ts-sql-query' // or 'ts-sql-query/extr
 const myCustomerShape = {
     newFirstName: 'firstName',
     newLastName: 'lastName'
-}
+} as const;
 
 type InsertableShapedCompany = InsertableValuesShapedAs<typeof tCustomer, typeof myCustomerShape>;
 ```
@@ -120,7 +120,7 @@ import { InsertableRowShapedAs } from 'ts-sql-query' // or 'ts-sql-query/extras/
 const myCustomerShape = {
     newFirstName: 'firstName',
     newLastName: 'lastName'
-}
+} as const;
 
 type InserableShapedCompanyRow = InsertableRowShapedAs<typeof tCustomer, typeof myCustomerShape>;
 ```
@@ -143,7 +143,7 @@ import { UpdatableOnInsertConflictValuesShapedAs } from 'ts-sql-query' // or 'ts
 const myCustomerShape = {
     newFirstName: 'firstName',
     newLastName: 'lastName'
-}
+} as const;
 
 type UpdatableShapedCompanyOnInsertConflict = UpdatableOnInsertConflictValuesShapedAs<typeof tCustomer, typeof myCustomerShape>;
 ```
@@ -170,7 +170,7 @@ import { UpdatableOnInsertConflictRowShapedAs } from 'ts-sql-query' // or 'ts-sq
 const myCustomerShape = {
     newFirstName: 'firstName',
     newLastName: 'lastName'
-}
+} as const;
 
 type UpdatableShapedCompanyOnInsertConflictRow = UpdatableOnInsertConflictRowShapedAs<typeof tCustomer, typeof myCustomerShape>;
 ```
@@ -195,7 +195,7 @@ import { UpdatableValuesShapedAs } from 'ts-sql-query' // or 'ts-sql-query/extra
 const myCustomerShape = {
     newFirstName: 'firstName',
     newLastName: 'lastName'
-}
+} as const;
 
 type UpdatableShapedCustomer = UpdatableValuesShapedAs<typeof tCustomer, typeof myCustomerShape>;
 ```
@@ -222,7 +222,7 @@ import { UpdatableRowShapedAs } from 'ts-sql-query' // or 'ts-sql-query/extras/t
 const myCustomerShape = {
     newFirstName: 'firstName',
     newLastName: 'lastName'
-}
+} as const;
 
 type UpdatableShapedCustomerRow = UpdatableRowShapedAs<typeof tCustomer, typeof myCustomerShape>;
 ```

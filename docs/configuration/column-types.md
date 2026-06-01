@@ -35,7 +35,7 @@ The following table lists the available column types you can assign, along with 
 
 You can define a column with these types as indicated next:
 
-```ts
+```typescriptreact
 this.column('ColumnName', 'boolean')
 this.column('ColumnName', 'int')
 this.column('ColumnName', 'bigint')
@@ -71,7 +71,7 @@ You can control how a value is sent and received from the database. For that pur
 **Example**: Imagine you want to store an RGB colour as a single number in the database, but in your application, you want to handle it as an object with R, G & B properties as a number. You can define a type adapter as:
 
 ```ts
-import { DefaultTypeAdapter, TypeAdapter } from "ts-sql-query" // or "ts-sql-query/TypeAdapter"
+import { type DefaultTypeAdapter, type TypeAdapter } from "ts-sql-query" // or "ts-sql-query/TypeAdapter"
 
 interface RgbColor {r: number, g: number, b: number}
 
@@ -82,7 +82,7 @@ function isRgbColor(value: any): value is RgbColor {
         && typeof value.b === 'number'
 }
 
-export class RgbColorTypeAdapter implements TypeAdapter {
+class RgbColorTypeAdapter implements TypeAdapter {
     transformValueFromDB(value: unknown, type: string, next: DefaultTypeAdapter): unknown {
         if (type === 'RgbColor' && value) {
             if (value instanceof Uint8Array && value.length == 3) {
@@ -117,7 +117,7 @@ export class RgbColorTypeAdapter implements TypeAdapter {
 
 And you can define the column as:
 
-```ts
+```typescriptreact
 this.column<RgbColor>('ColumnName', 'custom', 'RgbColor', new RgbColorTypeAdapter())
 ```
 
@@ -183,6 +183,6 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
 
 And you can define the column as:
 
-```ts
+```typescriptreact
 this.column<RgbColor>('ColumnName', 'custom', 'RgbColor')
 ```

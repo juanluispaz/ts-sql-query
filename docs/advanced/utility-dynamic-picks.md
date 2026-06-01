@@ -28,6 +28,7 @@ Returns a new object including only the properties in `availableFields` that are
 import { dynamicPick } from 'ts-sql-query' // or 'ts-sql-query/dynamicCondition';
 
 const availableFields = {
+    id: tCustomer.id,
     firstName: tCustomer.firstName,
     lastName: tCustomer.lastName,
     birthday: tCustomer.birthday
@@ -144,7 +145,7 @@ To achieve that, use the function `expandTypeFromDynamicPickPaths` from `ts-sql-
 
 ### Creating definitions based on your database types
 
-```ts
+```tsx
 import { dynamicPickPaths, expandTypeFromDynamicPickPaths, DynamicPickPaths, PickValuesPath } from "ts-sql-query" // or "ts-sql-query/dynamicCondition"
 
 const customerInformationFields = {
@@ -172,7 +173,7 @@ async function getCustomersInformation<FIELDS extends CustomerInformationFields>
 
 ### Creating definitions based on your business types
 
-```ts
+```tsx
 import { dynamicPickPaths, expandTypeFromDynamicPickPaths } from "ts-sql-query" // or "ts-sql-query/dynamicCondition"
 
 interface CustomerInformation {

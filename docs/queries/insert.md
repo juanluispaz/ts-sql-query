@@ -430,7 +430,7 @@ const customersToInsert = [
         customerLastName: 'Person'
     }
 ]
-currentCompanyId = 23
+const currentCompanyId = 23
 
 const insertMultipleCustomers = await connection.insertInto(tCustomer)
     .shapedAs({
@@ -517,6 +517,7 @@ const insertMultipleCustomers: Promise<number[]>
 
 When you write your insert query, you set the initial value calling:
 
+<!-- doc-code-snippet-template: simplifiedDefinitionInQuery -->
 ```ts
 interface InsertExpression {
     /** Alias to set method: Set the values for insert */
@@ -533,6 +534,7 @@ The `set` and `values` methods will require you to provide a value at least for 
 
 When you set the initial value, you can start manipulating them using the following methods:
 
+<!-- doc-code-snippet-template: simplifiedDefinitionInQuery -->
 ```ts
 interface InsertExpression {
     /** 
@@ -664,6 +666,7 @@ interface InsertExpression {
      */
     disallowAnyOtherSet(errorMessage: string, ...columns: string[]): this
     disallowAnyOtherSet(error: Error, ...columns: string[]): this
+}
 ```
 
 All these methods have a `When` variant that allows you to specify as the first argument a boolean that, when it is true, the action will be executed. Like: `setWhen(when: boolean, columns: InsertSets): this`
@@ -674,6 +677,7 @@ ts-sql-query offers many commodity methods to manipulate the data to insert, all
 
 When you write your insert query, you set the initial value calling:
 
+<!-- doc-code-snippet-template: simplifiedDefinitionInQuery -->
 ```ts
 interface InsertExpression {
     values(columns: InsertSets[]): this
@@ -685,6 +689,7 @@ The `values` method will require you to provide a value at least for the require
 
 When you set the initial value, you can start manipulating them (all at the same time, with same new values) using the following methods:
 
+<!-- doc-code-snippet-template: simplifiedDefinitionInQuery -->
 ```ts
 interface InsertExpression {
     /** 
@@ -815,6 +820,7 @@ interface InsertExpression {
      */
     disallowAnyOtherSet(errorMessage: string, ...columns: string[]): this
     disallowAnyOtherSet(error: Error, ...columns: string[]): this
+}
 ```
 
 All these methods have a `When` variant that allows you to specify as the first argument a boolean that, when it is true, the action will be executed. Like: `setForAll(columns: InsertSets): this`

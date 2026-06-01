@@ -35,11 +35,12 @@ import { MockQueryRunner } from "ts-sql-query/queryRunners/MockQueryRunner";
 async function main() {
     const connection = new DBConnection(new MockQueryRunner(
         (type, query, params, index) => {
-            // verify your queries here
+            // MockQueryRunner: verify your queries here
         }
     ));
 
     // Do your queries here
+    connection // ...
 }
 ```
 
@@ -49,6 +50,7 @@ The `MockQueryRunner` receives a function as argument to the constructor, this f
 
 - **`type: QueryType`**: type of the query to be executed. The `QueryType` is defined as:
 
+<!-- doc-code-snippet-template: simplifiedDefinition -->
 ```ts
 // Types of queries that can be intercepted and mocked
 type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | 'selectOneColumnManyRows' |
@@ -127,6 +129,7 @@ These are the same errors a real driver would trigger against the same payload â
 
 The second constructor argument accepts either a `DatabaseType` string (shown above) or a configuration object with the following fields:
 
+<!-- doc-code-snippet-template: simplifiedDefinition -->
 ```ts
 interface MockQueryRunnerConfig {
     database?: DatabaseType

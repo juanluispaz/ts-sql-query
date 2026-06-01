@@ -2,6 +2,7 @@
 search:
   boost: 0.7
 ---
+<!-- doc-code-template: sqlite -->
 # Synchronous query runners
 
 Some query runners support executing queries synchronously if you provide a Promise implementation that supports it, like [synchronous-promise](https://www.npmjs.com/package/synchronous-promise).
@@ -43,17 +44,17 @@ The promise passed to `sync()` must be truly synchronous — typically a databas
 ```ts
 import { BetterSqlite3QueryRunner } from "ts-sql-query/queryRunners/BetterSqlite3QueryRunner";
 import { sync } from "ts-sql-query"; // or "ts-sql-query/extras/sync"
-import * as betterSqlite3 from "better-sqlite3";
+import Database from "better-sqlite3";
 import { SynchronousPromise } from "synchronous-promise";
 
-const db = betterSqlite3('foobar.db', options);
+const db = new Database('foobar.db', options);
 
 function main() {
     const connection = new DBConnection(new BetterSqlite3QueryRunner(db, { promise: SynchronousPromise }));
     // Do your queries here, surrounding each one with the sync function. For example:
     const selectCompanies = sync(
         connection.selectFrom(tCompany)
-            .where(tCompany.isBig)
+            .where(tCompany.id.equals(123))
             .select({
                 id: tCompany.id,
                 name: tCompany.name
@@ -61,8 +62,10 @@ function main() {
             .executeSelectMany()
     );
 
-    var result = sync(connection.insertInto...)
-    result = sync(connection.update...)
-    result = sync(connection.delete...)
+    selectCompanies // ...
+
+    // var result = sync(connection.insertInto...)
+    // result = sync(connection.update...)
+    // result = sync(connection.delete...)
 }
 ```

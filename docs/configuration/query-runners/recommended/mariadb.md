@@ -2,6 +2,7 @@
 search:
   boost: 0.577
 ---
+<!-- doc-code-template: mariadb -->
 # mariadb
 
 This page explains how to use `ts-sql-query` with the [mariadb](https://www.npmjs.com/package/mariadb) driver. It covers two approaches: using a connection pool or using a single connection directly.
@@ -44,6 +45,7 @@ const pool = createPool({
 async function main() {
     const connection = new DBConnection(new MariaDBPoolQueryRunner(pool));
     // Do your queries here
+    connection // ...
 }
 ```
 
@@ -68,6 +70,7 @@ async function main() {
     try {
         const connection = new DBConnection(new MariaDBQueryRunner(mariaDBConnection));
         // Do your queries here
+        connection // ...
     } finally {
         mariaDBConnection.release();
     }

@@ -540,6 +540,7 @@ const updateCustomer: Promise<number>
 
 If you are using [MariaDB](../configuration/supported-databases/mariadb.md) or [MySQL](../configuration/supported-databases/mysql.md) you can update multiples tables in a single query. To do this you will need to join the tables to update, and then specify the value's shape.
 
+<!-- doc-code-snippet-template: mariadb -->
 ```ts
 const shapedUpdateCustomerNameAndCompanyName = {
     id: 12,
@@ -556,7 +557,7 @@ const shapedUpdateCustomerNameAndCompanyNameResult = connection.update(tCustomer
         companyName: tCompany.name
     })
     .set(shapedUpdateCustomerNameAndCompanyName)
-    .where(tCustomer.id.equals(shapedUpdateCustomerName.id))
+    .where(tCustomer.id.equals(shapedUpdateCustomerNameAndCompanyName.id))
     .executeUpdate()
 ```
 
@@ -636,6 +637,7 @@ const shapedUpdateCustomerNameAndCompanyNameResult: Promise<number>
 
 When you write your update query, you set the initial value calling:
 
+<!-- doc-code-snippet-template: simplifiedDefinitionInQuery -->
 ```ts
 interface UpdateExpression {
     set(columns: UpdateSets): this
@@ -648,6 +650,7 @@ The `set` and method will require you to provide the values to update. The `dyna
 
 When you set the initial value, you can start manipulating them using the following methods:
 
+<!-- doc-code-snippet-template: simplifiedDefinitionInQuery -->
 ```ts
 interface UpdateExpression {
     /** Set the values for update */
@@ -766,6 +769,7 @@ interface UpdateExpression {
      */
     disallowAnyOtherSet(errorMessage: string, ...columns: string[]): this
     disallowAnyOtherSet(error: Error, ...columns: string[]): this
+}
 ```
 
 All these methods have a `When` variant that allows you to specify as the first argument a boolean that, when it is true, the action will be executed. Like: `setWhen(when: boolean, columns: UpdateSets): this`

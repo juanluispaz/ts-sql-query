@@ -16,7 +16,7 @@ Type adapters control how values are serialized when writing to the database and
 
     The `CustomBooleanTypeAdapter` lets you define custom values to represent booleans when they don’t match the database's default boolean format. For example, a column might store `'yes'` for true and `'no'` for false instead of using standard boolean types. See [Custom booleans values](../advanced/custom-booleans-values.md) for more information.
 
-```ts
+```typescript
 interface TypeAdapter {
     transformValueFromDB(value: unknown, type: string, next: DefaultTypeAdapter): unknown
     transformValueToDB(value: unknown, type: string, next: DefaultTypeAdapter): unknown
@@ -24,7 +24,7 @@ interface TypeAdapter {
 }
 ```
 
-```ts
+```typescript
 interface DefaultTypeAdapter {
     transformValueFromDB(value: unknown, type: string): unknown
     transformValueToDB(value: unknown, type: string): unknown
@@ -32,24 +32,33 @@ interface DefaultTypeAdapter {
 }
 ```
 
-```ts
+```typescript
 class CustomBooleanTypeAdapter implements TypeAdapter {
     readonly trueValue: number | string
     readonly falseValue: number | string
 
     constructor(trueValue: number, falseValue: number)
     constructor(trueValue: string, falseValue: string)
+    // CustomBooleanTypeAdapter's constructor implementation ...
 
     transformValueFromDB(value: unknown, type: string, next: DefaultTypeAdapter): unknown
+    // CustomBooleanTypeAdapter's transformValueFromDB implementation ...
+
     transformValueToDB(value: unknown, type: string, next: DefaultTypeAdapter): unknown
+    // CustomBooleanTypeAdapter's transformValueToDB implementation ...
 }
 ```
 
-```ts
+```typescript
 class ForceTypeCast implements TypeAdapter {
     transformValueFromDB(value: unknown, type: string, next: DefaultTypeAdapter): unknown
+    // ForceTypeCast's transformValueFromDB implementation ...
+
     transformValueToDB(value: unknown, type: string, next: DefaultTypeAdapter): unknown
-    transformPlaceholder(placeholder: string, type: string, _forceTypeCast: boolean, valueSentToDB: unknown, next: DefaultTypeAdapter): string
+    // ForceTypeCast's transformValueToDB implementation ...
+
+    transformPlaceholder(placeholder: string, type: string, forceTypeCast: boolean, valueSentToDB: unknown, next: DefaultTypeAdapter): string
+    // ForceTypeCast's transformPlaceholder implementation ...
 }
 ```
 

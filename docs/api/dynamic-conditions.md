@@ -12,7 +12,7 @@ This page describes the API for building dynamic conditions in `ts-sql-query`, e
 
 A dynamic condition allows you to create a condition whose structure is defined at runtime. To create a dynamic condition, you must call the method `dynamicConditionFor` from the connection. This method receives a map where the key is the name with which is going to be referred the field, and the value is the corresponding value source to be used in the query. The `dynamicConditionFor` method returns an object that contains the method `withValues` that receives the dynamic criteria and returns a boolean value source that you can use in any place where a boolean can be used in the query (like the where).
 
-```ts
+```typescriptreact
 const dynamicCondition = connection.dynamicConditionFor(selectFields).withValues(filter)
 ```
 
@@ -20,7 +20,7 @@ The utility type `DynamicCondition` from `ts-sql-query/dynamicCondition` allows 
 
 For the filter definition:
 
-```ts
+```typescript
 type FilterType = DynamicCondition<{
     myBoolean: 'boolean'
     myInt: 'int'
@@ -39,7 +39,7 @@ type FilterType = DynamicCondition<{
 
 The `FilterType` definition looks like this:
 
-```ts
+```tsx
 type FilterType = {
     not?: FilterType
     and?: Array<FilterType | undefined>
@@ -66,7 +66,7 @@ You can use the properties `and`, `or` and `not` to perform the logical operatio
 
 The definition of the different types are:
 
-```ts
+```typescript
 interface EqualableFilter<TYPE> {
     isNull?: boolean
     isNotNull?: boolean
@@ -85,7 +85,7 @@ interface EqualableFilter<TYPE> {
 }
 ```
 
-```ts
+```typescript
 interface ComparableFilter<TYPE> extends EqualableFilter<TYPE> {
     lessThanIfValue?: TYPE | null | undefined
     lessThan?: TYPE
@@ -98,7 +98,7 @@ interface ComparableFilter<TYPE> extends EqualableFilter<TYPE> {
 }
 ```
 
-```ts
+```typescript
 interface StringFilter extends ComparableFilter<string> {
     equalsInsensitiveIfValue?: string | null | undefined
     equalsInsensitive?: string
@@ -141,14 +141,17 @@ interface StringFilter extends ComparableFilter<string> {
 
 You can extend the set of rules defining your own. For this, you will need to construct an object (it can contain inner objects), where the key is the name of the rule, and the value is a function that receives as an argument the configuration of the rule, and it must return a boolean value source. When you create the dynamic condition, you must provide the extension as the second argument; if you use the `DynamicCondition` utility type, you must provide the type of your extension object as a second argument.
 
-```ts
+```typescriptreact
 const extension = {
     myCondition: (value: string /* your custom rule input */) => {
         // return a BooleanValueSource based on the value
-        ...
+        // ...
     }
     myGroup: {
-        myGroupCondition: (value: number /* it can be your own type*/) => { ... }
+        myGroupCondition: (value: number /* it can be your own type*/) => { 
+            // return a BooleanValueSource based on the value
+            // ... 
+        }
     }
 }
 const dynamicCondition = connection.dynamicConditionFor(selectFields).withValues(filter, extension)

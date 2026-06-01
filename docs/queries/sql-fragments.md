@@ -346,7 +346,7 @@ You will define the function `bitwiseShiftLeft` that receives two `int` as argum
     Otherwise, type inference will not correctly reflect the presence of optional values in the resulting expression.
 
 ```ts
-const bitwiseMovements: number | null = null;
+const bitwiseMovements = 1;
 const multiplier = 2;
 
 const companiesUsingCustomFunctionFragment = connection.selectFrom(tCompany)
@@ -431,7 +431,7 @@ const companiesUsingCustomFunctionFragment: Promise<{
 
 `ts-sql-query` allows you to write raw SQL to extend and customize the generated queries in several places.
 
-```ts
+```typescriptreact
 const from = this.const(new Date('2019-01-01'), 'localDateTime')
 const to = this.const(new Date('2020-01-01'), 'localDateTime')
 const fragment = connection.rawFragment`between ${from} and ${to}`
@@ -446,6 +446,8 @@ Some databases offer additional features that require writing the table name in 
 **Example**:
 
 You must define the connection with the customization function as:
+
+<!-- doc-code-snippet-template: sqlserver -->
 ```ts
 class DBConnection extends SqlServerConnection<'DBConnection'> { 
 
@@ -458,6 +460,8 @@ class DBConnection extends SqlServerConnection<'DBConnection'> {
 ```
 
 When you write the query, you use the customization function as:
+
+<!-- doc-code-snippet-template: sqlserver -->
 ```ts
 const customerIn2019 = connection.forSystemTimeBetween(tCustomer, 'customerIn2019', new Date('2019-01-01'), new Date('2020-01-01'))
 

@@ -2,6 +2,7 @@
 search:
   boost: 0.577
 ---
+<!-- doc-code-template: mysql -->
 # mysql2
 
 This page explains how to use `ts-sql-query` with the [mysql2](https://www.npmjs.com/package/mysql2) driver. It covers two approaches: using a connection pool or using a single connection directly.
@@ -46,6 +47,7 @@ const pool = createPool({
 async function main() {
     const connection = new DBConnection(new MySql2PoolQueryRunner(pool));
     // Do your queries here
+    connection // ...
 }
 ```
 
@@ -86,5 +88,6 @@ function main() {
 
 async function doYourLogic(connection: DBConnection) {
     // Do your queries here
+    connection // ...
 }
 ```

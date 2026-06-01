@@ -2,6 +2,7 @@
 search:
   boost: 0.577
 ---
+<!-- doc-code-template: mysql -->
 # Bun SQL for MySQL
 
 This page explains how to use `ts-sql-query` with the [Bun SQL](https://bun.com/docs/runtime/sql) driver configured with the MySQL adapter, allowing `ts-sql-query` to execute queries on [MySQL](../../supported-databases/mysql.md) or [MariaDB](../../supported-databases/mariadb.md) databases.
@@ -61,5 +62,6 @@ const sql = new SQL({
 async function main() {
     const connection = new DBConnection(new BunSqlMySqlQueryRunner(sql));
     // Do your queries here
+    connection // ...
 }
 ```

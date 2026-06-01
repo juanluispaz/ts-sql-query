@@ -2,6 +2,7 @@
 search:
   boost: 0.577
 ---
+<!-- doc-code-template: postgresql -->
 # pglite
 
 This page explains how to use `ts-sql-query` with the [pglite](https://www.npmjs.com/package/@electric-sql/pglite) driver for local [PostgreSQL](../../supported-databases/postgresql.md) databases.
@@ -37,5 +38,6 @@ const db = await PGlite.create('memory://')
 async function main() {
     const connection = new DBConnection(new PgLiteQueryRunner(db));
     // Do your queries here
+    connection // ...
 }
 ```

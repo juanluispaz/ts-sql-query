@@ -17,11 +17,6 @@ validations are the point** of the tool. The type-checked corpus it produces is
 *also* reusable by downstream tooling — notably the symbol-index searcher — but
 that is an **additional benefit layered on top**, not the primary goal.
 
-> **Status:** complete. The generated tests are ordinary matrix cells
-> (`test/db/<db>/newest/documentation/`, plus a synthetic `general` db), pass under
-> both compilers and at runtime, and the full matrix is green — no runner special
-> case remains.
-
 The **extractor** is standalone, self-contained code under
 [`lib/docCodeExtractor/`](./lib/docCodeExtractor/) (its own `walk.ts`, no
 dependency on the rest of `test/lib/`). The **runtime mock** the SQL tests use is
@@ -32,12 +27,12 @@ For the navigation map see [`README.md`](./README.md); for `test/lib/` see
 - [Run it](#run-it)
 - [Run the SQL tests](#run-the-sql-tests)
 - [Fence-language routing](#fence-language-routing)
-- [SQL tests — how a ```ts becomes a test](#sql-tests)
-- [Re-routing & escape-hatch directives](#directives)
+- [SQL tests — how a ```ts becomes a test](#sql-tests--how-a-ts-becomes-a-test)
+- [Re-routing & escape-hatch directives](#re-routing--escape-hatch-directives)
 - [Generated shape](#generated-shape)
 - [Templates](#templates)
 - [The documentation source files](#the-documentation-source-files)
-- [Current state & pending work](#current-state)
+- [Docs ↔ code feedback loop](#docs--code-feedback-loop)
 - [Files](#files)
 
 ## Run it
@@ -73,7 +68,7 @@ See [`CLI.md` § Documentation tests are ordinary matrix cells](./CLI.md#documen
 These tests never touch a real DB — they use [`DocCodeMockRunner`](./lib/mockRunners/DocCodeMockRunner.ts)
 (self-contained), so `--docker`/`--wasm` don't apply even though they live in the
 matrix. The synthetic `general` db and the `documentation` connector are excluded
-from the symmetry audit (`auditTestSymmetry.ts`).
+from the symmetry audit ([`auditTestSymmetry.ts`](./lib/auditTestSymmetry.ts)).
 
 ## Fence-language routing
 
@@ -92,7 +87,6 @@ A `=== "Label"` at column 0 opens a dialect tab group; any other column-0
 non-blank line closes it (so a ` ```ts ` indented inside an `!!! info` admonition
 isn't mis-attributed to a tab). Default db for a column-0 ```ts is **postgresql**.
 
-<a name="sql-tests"></a>
 ## SQL tests — how a ```ts becomes a test
 
 After a ```ts, the extractor collects the **dialect SQL fences** that follow it
@@ -138,11 +132,10 @@ After a ```ts, the extractor collects the **dialect SQL fences** that follow it
   `SQL Server`) via `LABEL_TO_DB`; an unknown/absent label is tolerated.
 - **SQL-only assertion** — only the SQL string is checked, not params, not result
   types/values.
-- **Whitespace normalisation** (`normalizeSql` in `mockRunners/DocCodeMockRunner.ts`, mirrored by
-  `collapseWs` at gen time): the docs pretty-print SQL across lines; the builder
-  emits it on one line. Normalisation collapses all whitespace runs to one space
-  AND drops the space the line-breaks add right after `(` and right before `)`
-  (so `( select … ) )` == `(select …))`). Both sides are normalised at runtime.
+- **Whitespace normalisation** — docs pretty-print SQL across lines, the builder
+  emits one line. `normalizeSql` (in [`DocCodeMockRunner.ts`](./lib/mockRunners/DocCodeMockRunner.ts),
+  mirrored by `collapseWs` at gen time) collapses whitespace runs and drops the
+  spaces right after `(` / right before `)`. Both sides go through it at runtime.
 - **The mock result is a heuristic** (`DocCodeMockRunner` returns `[]` for
   many-rows, `1` for affected-count/insert-id, `{}` for a single row, `null` for
   the rest, per `QueryType`) so the snippet runs far enough to emit the SQL. The
@@ -157,22 +150,19 @@ After a ```ts, the extractor collects the **dialect SQL fences** that follow it
       heuristic seeds `{}`; none-or-one is seeded `null` (no row, valid) instead.
     - `executeSelectPage` runs data + count: seeded `[]` then `0` (the count is an
       int — `{}` makes its transform throw), mirroring the matrix select-page tests.
-    - a required `*One()` (`executeSelectOne`, `executeInsertOne`, …) returns a
-      single object/value whose REQUIRED columns throw when projected from `{}`. The
-      extractor reads the **```tsx result type** that follows the SQL fences and
-      seeds a dummy row shaped by it: an object `Promise<{…}>` → a FLAT row keyed by
-      dotted alias (`name: {firstName}` → `"name.firstName"`, the alias ts-sql-query
-      reads), an aggregated array/list → `[]`, a scalar → that scalar. Leaf values
-      are type-shaped (`number`→`0`, `string`→`'x'` (non-empty — `''` reads as null),
-      `Date`→`new Date(0)`, …); optional fields are skipped (their column may be
-      absent). When the type isn't enough, override with `doc-code-snippet-result`.
+    - a required `*One()` (`executeSelectOne`, `executeInsertOne`, …) projects a
+      single value; the extractor reads the **```tsx result type** that follows
+      the SQL fences and seeds a dummy row shaped by it — FLAT row keyed by dotted
+      alias (`name: {firstName}` → `"name.firstName"`); aggregated list → `[]`;
+      scalar defaults `0`, `'x'` (non-empty — `''` reads as null), `new Date(0)`;
+      optional fields skipped. Override with `doc-code-snippet-result` when the
+      type isn't enough.
 - **The expected SQL literal is rendered in `toMatchInlineSnapshot` form** — a
   backtick template wrapping the double-quoted SQL (`` `"…"` ``), with `` ` `` /
   `${` / `\` escaped (`snapshotLiteral` in the extractor). This makes the asserted
   text read identically to the db-matrix snapshots of the same SQL, so one grep
   finds both; `assertSql`/`assertSqls` drop the wrapping `"` before comparing.
 
-<a name="directives"></a>
 ## Re-routing & escape-hatch directives
 
 Invisible HTML comments (render to nothing in Markdown):
@@ -199,6 +189,59 @@ Precedence for the non-SQL routing (most specific wins): **per-snippet › per-p
 › default**. Targets **combine** (several pages/snippets may feed the same
 template; a directive may name an existing db template or a simplified-definition
 template to *add* to it).
+
+### In a docs page
+
+The directives are plain HTML comments — invisible in the rendered page, anchored
+to the fence that follows them. A representative slice of a `.md` file:
+
+````markdown
+<!-- doc-code-template: postgresql -->
+
+# Postgres-only helpers
+
+<!-- doc-code-snippet-template: postgresql, mariadb -->
+```ts
+type Row = { id: number, name: string }
+```
+
+<!-- doc-code-snippet-result: { id: 1, name: 'Acme' } -->
+```ts
+const row = connection.selectFrom(tCompany).where(tCompany.id.equals(1))
+    .select({ id: tCompany.id, name: tCompany.name }).executeSelectOne()
+```
+
+```postgresql
+select id as id, name as name from company where id = $1
+```
+
+<!-- doc-code-snippet-result: { id: 2, name: 'Beta' } -->
+```ts
+const next = connection.selectFrom(tCompany).where(tCompany.id.equals(2))
+    .select({ id: tCompany.id, name: tCompany.name }).executeSelectOne()
+```
+
+```postgresql
+select id as id, name as name from company where id = $1
+```
+````
+
+What the extractor does with it:
+
+1. The page-level `doc-code-template: postgresql` pins every routed-by-default
+   snippet to the postgres template.
+2. The first `ts` (a type-only setup snippet, no SQL fence after it) has a
+   per-snippet `doc-code-snippet-template: postgresql, mariadb` and is emitted
+   into BOTH templates as a compile-only function.
+3. The two query `ts` snippets each get their own `doc-code-snippet-result`, so
+   `docCodeMock.next({…})` is queued before each runs.
+4. Each query is paired with the `postgresql` fence that immediately follows it,
+   producing two `test()` calls in `postgres/newest/documentation/`.
+
+Stack directives by writing them on separate comment lines above the fence (any
+order). A snippet with `doc-code-snippet-template` *and* `doc-code-snippet-result`
+on consecutive lines is valid — the extractor reads the whole run of comments
+attached to the fence.
 
 ## Generated shape
 
@@ -269,35 +312,23 @@ Three similarly-named things, different roles, two locations:
   db, `<name>.generated.test.ts` for the general ones). Gitignored
   (`*.generated.test.ts`); exists only to be type-checked + run as part of `test/db/`.
 
-<a name="current-state"></a>
-## Current state & pending work
+## Docs ↔ code feedback loop
 
-**Done:** extractor (multi-db SQL pairing + `--`/`//` skip + comment stripping +
-directives + per-db tabs + `*One()` dummy from ```tsx), the mock, templates wired &
-compiling clean (`validate:tests` green under both compilers), the generated tests
-moved INTO the matrix as ordinary cells (no runner special case). All doc SQL tests
-pass (`bun run tests '*/newest/documentation'`; the full matrix is green).
+Every SQL test is named after its source location (`<page>:<line>`), so a failure
+points straight at the doc page and line that disagrees with what the builder
+emits. A change in `src/` that alters emitted SQL surfaces as a failing test per
+affected snippet — telling you *exactly which docs pages need updating in
+tandem*; conversely, a docs edit that drifts from the library fails its own test.
 
-**The doc-fix loop:** when a SQL test fails it's because the **documented SQL** must
-be corrected (the doc author's job). Recurring patterns:
+Recurring failure patterns:
 
 1. **Real SQL diff** — the documented SQL is stale → update the fence.
 2. **`Received: ""`** — the ```ts is a *setup fragment* (e.g.
    `const fieldsToPick = { … }`) that doesn't execute a query, but a SQL fence
-   follows it; the extractor pairs the fence with the *immediately-preceding* ```ts,
-   which emits nothing. This is left as a **visible failing test on purpose** (a
-   real ```ts paired with SQL always becomes a test) so the doc error surfaces; the
-   fix is to restructure the doc so the fence follows the snippet that actually
-   executes (only `//`-only ```ts blocks are auto-dropped).
-
-(Full-line `-- …` comments inside a fence are no longer a failure pattern — the
-extractor strips them automatically; see `stripSqlComments`. A `--` *trailing* on a
-SQL line or inside a string literal still survives.)
-
-**Open questions / ideas not yet built:**
-- Stacked `doc-code-snippet-result` comments seed successive queries via the `next()`
-  queue — exercised by a smoke test, but untested across a real multi-query doc
-  snippet at scale.
+   follows it; the extractor pairs the fence with the *immediately-preceding*
+   ```ts, which emits nothing. Left as a **visible failing test on purpose** so
+   the doc error surfaces; restructure the doc so the fence follows the snippet
+   that actually executes (only `//`-only ```ts blocks are auto-dropped).
 
 ## Files
 
@@ -306,6 +337,6 @@ SQL line or inside a string literal still survives.)
 | [`lib/docCodeExtractor/docCodeExtractor.ts`](./lib/docCodeExtractor/docCodeExtractor.ts) | the extractor + standalone entry point |
 | [`lib/docCodeExtractor/walk.ts`](./lib/docCodeExtractor/walk.ts) | self-contained recursive file walk |
 | [`lib/mockRunners/DocCodeMockRunner.ts`](./lib/mockRunners/DocCodeMockRunner.ts) | `DocCodeMockRunner` (capture + history + heuristic + `next()` + `assertSql`/`assertSqls`) + `normalizeSql` |
-| `scripts/codegen-doc-code.sh` | `codegen:doc-code` wrapper |
+| [`scripts/codegen-doc-code.sh`](../scripts/codegen-doc-code.sh) | `codegen:doc-code` wrapper |
 | [`templates/doc-code/newest/documentation/`](./templates/doc-code/newest/documentation/) | the per-target templates (db named by db folder; general by name) |
-| `lib/auditTestSymmetry.ts` → `NON_CELL_CONNECTORS` / `NON_CELL_DATABASES` | excludes the `documentation` connector + `general` db from the symmetry audit |
+| [`lib/auditTestSymmetry.ts`](./lib/auditTestSymmetry.ts) → `NON_CELL_CONNECTORS` / `NON_CELL_DATABASES` | excludes the `documentation` connector + `general` db from the symmetry audit |

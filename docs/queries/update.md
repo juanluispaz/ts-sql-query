@@ -304,7 +304,7 @@ The executed query is:
     from company 
     where 
             customer.company_id = company.id 
-        and lower(company.name) like lower('%' || ? || '%') escape '\\'
+        and lower(company.name) like lower('%' || ? || '%') escape '\'
     ```
 === "SQL Server"
     ```sqlserver

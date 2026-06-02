@@ -6,6 +6,8 @@ npm-debug.log*
 package-lock.json
 dist
 generated
+# Documentation SQL tests generated into the matrix (test/db/<db>/newest/documentation/)
+*.generated.test.ts
 .nyc_output
 .venv
 bun.lock

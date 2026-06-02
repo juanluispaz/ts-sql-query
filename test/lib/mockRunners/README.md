@@ -15,6 +15,14 @@ the test matrix exercises. Some are intentionally thin (re-export
 future connector-specific quirk is a single-file change rather than a
 refactor of the test infrastructure.
 
+> **Also here, but a different kind of mock:**
+> [`DocCodeMockRunner.ts`](./DocCodeMockRunner.ts) is the `MockQueryRunner`
+> subclass the **documentation SQL tests** build their connection from — it
+> records the emitted SQL (`lastSql` / `history`) and asserts it
+> (`assertSql` / `assertSqls`). It is NOT a connector specialisation (it
+> doesn't mirror a real runner), so the per-real-runner conventions below
+> don't apply to it. See [`DOC_CODE_EXTRACTOR.md`](../../DOC_CODE_EXTRACTOR.md).
+
 ## The example that motivated the folder
 
 `BunSqliteQueryRunner.addParam`, `BetterSqlite3QueryRunner.addParam`,

@@ -1,15 +1,35 @@
-import { OracleConnection } from '../../../src/connections/OracleConnection.js'
-import { MockQueryRunner } from '../../../src/queryRunners/MockQueryRunner.js'
-import { Table } from '../../../src/Table.js'
-import { CustomBooleanTypeAdapter } from '../../../src/TypeAdapter.js'
-import { View } from '../../../src/View.js'
+import { describe, test } from '../../../../lib/testRunner.js'
+import { MockQueryRunner } from '../../../../../src/queryRunners/MockQueryRunner.js'
+import { MariaDBConnection } from '../../../../../src/connections/MariaDBConnection.js'
+import { DocCodeMockRunner } from '../../../../lib/mockRunners/DocCodeMockRunner.js'
+import { Table } from '../../../../../src/Table.js'
+import { CustomBooleanTypeAdapter } from '../../../../../src/TypeAdapter.js'
+import { View } from '../../../../../src/View.js'
+import { Values } from '../../../../../src/Values.js'
 
-import oracledb from 'oracledb'
-import { OracleDBPoolPromiseQueryRunner } from '../../../src/queryRunners/OracleDBPoolPromiseQueryRunner.js'
-import { OracleDBPoolQueryRunner } from '../../../src/queryRunners/OracleDBPoolQueryRunner.js'
-import { OracleDBQueryRunner } from '../../../src/queryRunners/OracleDBQueryRunner.js'
+import { PrismaMariaDb } from '@prisma/adapter-mariadb'
+import { PrismaClient } from '../../../../../src/examples/prisma/generated/mariadb/client.js'
+import { PrismaQueryRunner } from '../../../../../src/queryRunners/PrismaQueryRunner.js'
 
-class DBConnection extends OracleConnection<'DBConnection'> { 
+import { createPool } from 'mariadb'
+import { MariaDBQueryRunner } from '../../../../../src/queryRunners/MariaDBQueryRunner.js'
+import { MariaDBPoolQueryRunner } from '../../../../../src/queryRunners/MariaDBPoolQueryRunner.js'
+
+import { 
+    extractColumnsFrom,
+    extractWritableColumnsFrom,
+} from '../../../../../src/extras/utils.js'
+import { 
+    dynamicPick, 
+    dynamicPickPaths, 
+    expandTypeFromDynamicPickPaths,
+    type DynamicPickPaths,
+    type PickValuesPath,
+    type DynamicCondition
+} from '../../../../../src/dynamicCondition.js'
+import { fromRef, type TableOrViewLeftJoinOf, type TableOrViewOf } from '../../../../../src/extras/types.js'
+
+class DBConnection extends MariaDBConnection<'DBConnection'> {
     // insensitiveCollation = 'acs'
 
     bitwiseShiftLeft = this.buildFragmentWithArgs(
@@ -43,7 +63,7 @@ class DBConnection extends OracleConnection<'DBConnection'> {
         const from = this.const(fromDate, 'localDateTime')
         const to = this.const(toDate, 'localDateTime')
         return this.rawFragment`${table} for system_time between ${from} and ${to} ${alias}`
-    }) 
+    })
 
     myOwnProcedure(param1: number) {
         return this.executeProcedure('myOwnprocedure', [this.const(param1, 'int')]);
@@ -112,13 +132,20 @@ const tRecord = new class TRecord extends Table<DBConnection, 'TRecord'> {
     }
 }()
 
-const connection = new DBConnection(new MockQueryRunner(() => { }))
+const docCodeMock = new DocCodeMockRunner()
+const connection = new DBConnection(docCodeMock)
 
 /******************** 
  * Generated code
  */
 
+describe('mariadb documentation', () => {
+
+test('snippets registered', () => {})
+
 // Generated code here
+
+})
 
 /******************** 
  * Noops to make the compiler happy
@@ -129,8 +156,26 @@ void tCustomer
 void tCustomCompany
 void tRecord
 void connection
+void PrismaMariaDb
+void PrismaClient
+void PrismaQueryRunner
+void createPool
+void MariaDBQueryRunner
+void MariaDBPoolQueryRunner
+void MockQueryRunner
+void Values
 
-void oracledb
-void OracleDBPoolPromiseQueryRunner
-void OracleDBPoolQueryRunner
-void OracleDBQueryRunner
+void extractColumnsFrom
+void extractWritableColumnsFrom
+void dynamicPick
+void dynamicPickPaths
+void expandTypeFromDynamicPickPaths
+void fromRef
+
+void function(
+    _dpp: DynamicPickPaths<any>,
+    _dc: DynamicCondition<any>,
+    _tovljo: TableOrViewLeftJoinOf<any>,
+    _tovo: TableOrViewOf<any>,
+    _pvp: PickValuesPath<any, never>
+) {}

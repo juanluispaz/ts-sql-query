@@ -71,7 +71,7 @@ The executed query is:
         comp.name as "companyName" 
     from customer 
     inner join company comp on customer.company_id = comp.id 
-    where lower(customer.first_name) like lower(:0 || '%') escape '\\' 
+    where lower(customer.first_name) like lower(:0 || '%') escape '\' 
     order by 
         lower("firstName"), 
         lower("lastName") asc
@@ -101,7 +101,7 @@ The executed query is:
         comp.name as companyName 
     from customer 
     inner join company as comp on customer.company_id = comp.id 
-    where lower(customer.first_name) like lower(? || '%') escape '\\' 
+    where lower(customer.first_name) like lower(? || '%') escape '\' 
     order by 
         lower(firstName), 
         lower(lastName) asc
@@ -305,7 +305,7 @@ The executed query is:
     where company_id in (
         select id as "result" 
         from company 
-        where name like ('%' || :0 || '%') escape '\\'
+        where name like ('%' || :0 || '%') escape '\'
     ) 
     order by 
         "customerFirstName" asc nulls first, 
@@ -337,7 +337,7 @@ The executed query is:
     where company_id in (
         select id as result 
         from company 
-        where name like ('%' || ? || '%') escape '\\'
+        where name like ('%' || ? || '%') escape '\'
     ) 
     order by 
         customerFirstName asc nulls first, 
@@ -884,7 +884,7 @@ The executed query is:
         companyName as "acmeCompanyName", 
         customerCount as "acmeCustomerCount" 
     from customerCountPerCompany 
-    where lower(companyName) like lower('%' || :0 || '%') escape '\\'
+    where lower(companyName) like lower('%' || :0 || '%') escape '\'
     ```
 ===+ "PostgreSQL"
     ```postgresql
@@ -926,7 +926,7 @@ The executed query is:
         companyName as acmeCompanyName, 
         customerCount as acmeCustomerCount 
     from customerCountPerCompany 
-    where lower(companyName) like lower('%' || ? || '%') escape '\\'
+    where lower(companyName) like lower('%' || ? || '%') escape '\'
     ```
 === "SQL Server"
     ```sqlserver

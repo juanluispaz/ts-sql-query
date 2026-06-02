@@ -79,7 +79,7 @@ The executed query is:
     select 
         id as id, 
         first_name as firstName, 
-        last_name as [lastName], 
+        last_name as lastName, 
         birthday as birthday 
     from customer 
     where id = @0
@@ -175,7 +175,7 @@ The executed query is:
     select 
         id as id, 
         first_name as firstName, 
-        last_name as [lastName], 
+        last_name as lastName, 
         birthday as birthday 
     from customer 
     where id = @0

@@ -12,7 +12,7 @@ Runs every code generator, in order:
   1. codegen:prisma     generate the per-database Prisma clients used by the
                         src/examples/prisma/ examples
   2. codegen:doc-code   extract compilable TypeScript from the documentation
-                        snippets into test/documentation/generated/
+                        snippets into test/db/<db>/newest/documentation/ cells
 
 Each sub-generator is invoked through the same runtime that launched this
 script (bun via `bun run`, npm via `npm run`), so the bun-first dev loop and the

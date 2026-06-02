@@ -1,18 +1,37 @@
-import { SqlServerConnection } from '../../../src/connections/SqlServerConnection.js'
-import { MockQueryRunner } from '../../../src/queryRunners/MockQueryRunner.js'
-import { Table } from '../../../src/Table.js'
-import { CustomBooleanTypeAdapter } from '../../../src/TypeAdapter.js'
-import { View } from '../../../src/View.js'
+import { describe, test } from '../../../../lib/testRunner.js'
+import { MockQueryRunner } from '../../../../../src/queryRunners/MockQueryRunner.js'
+import { MySqlConnection } from '../../../../../src/connections/MySqlConnection.js'
+import { DocCodeMockRunner } from '../../../../lib/mockRunners/DocCodeMockRunner.js'
+import { Table } from '../../../../../src/Table.js'
+import { CustomBooleanTypeAdapter } from '../../../../../src/TypeAdapter.js'
+import { View } from '../../../../../src/View.js'
+import { Values } from '../../../../../src/Values.js'
 
-import { PrismaMssql } from '@prisma/adapter-mssql'
-import { PrismaClient } from '../../../src/examples/prisma/generated/sqlserver/client.js'
-import { PrismaQueryRunner } from '../../../src/queryRunners/PrismaQueryRunner.js'
-import { MssqlPoolPromiseQueryRunner } from '../../../src/queryRunners/MssqlPoolPromiseQueryRunner.js'
-import { MssqlPoolQueryRunner } from '../../../src/queryRunners/MssqlPoolQueryRunner.js'
+import { PrismaMariaDb } from '@prisma/adapter-mariadb'
+import { PrismaClient } from '../../../../../src/examples/prisma/generated/mysql/client.js'
+import { PrismaQueryRunner } from '../../../../../src/queryRunners/PrismaQueryRunner.js'
 
-import mssql from 'mssql'
+import { SQL } from 'bun'
+import { BunSqlMySqlQueryRunner } from '../../../../../src/queryRunners/BunSqlMySqlQueryRunner.js'
+import { createPool } from 'mysql2'
+import { MySql2PoolQueryRunner } from '../../../../../src/queryRunners/MySql2PoolQueryRunner.js'
+import { MySql2QueryRunner } from '../../../../../src/queryRunners/MySql2QueryRunner.js'
 
-class DBConnection extends SqlServerConnection<'DBConnection'> { 
+import { 
+    extractColumnsFrom,
+    extractWritableColumnsFrom,
+} from '../../../../../src/extras/utils.js'
+import { 
+    dynamicPick, 
+    dynamicPickPaths, 
+    expandTypeFromDynamicPickPaths,
+    type DynamicPickPaths,
+    type PickValuesPath,
+    type DynamicCondition
+} from '../../../../../src/dynamicCondition.js'
+import { fromRef, type TableOrViewLeftJoinOf, type TableOrViewOf } from '../../../../../src/extras/types.js'
+
+class DBConnection extends MySqlConnection<'DBConnection'> { 
     // insensitiveCollation = 'acs'
 
     bitwiseShiftLeft = this.buildFragmentWithArgs(
@@ -115,13 +134,20 @@ const tRecord = new class TRecord extends Table<DBConnection, 'TRecord'> {
     }
 }()
 
-const connection = new DBConnection(new MockQueryRunner(() => { }))
+const docCodeMock = new DocCodeMockRunner()
+const connection = new DBConnection(docCodeMock)
 
 /******************** 
  * Generated code
  */
 
+describe('mysql documentation', () => {
+
+test('snippets registered', () => {})
+
 // Generated code here
+
+})
 
 /******************** 
  * Noops to make the compiler happy
@@ -132,9 +158,28 @@ void tCustomer
 void tCustomCompany
 void tRecord
 void connection
-void PrismaMssql
+void PrismaMariaDb
 void PrismaClient
 void PrismaQueryRunner
-void mssql
-void MssqlPoolPromiseQueryRunner
-void MssqlPoolQueryRunner
+void SQL
+void BunSqlMySqlQueryRunner
+void createPool
+void MySql2PoolQueryRunner
+void MySql2QueryRunner
+void MockQueryRunner
+void Values
+
+void extractColumnsFrom
+void extractWritableColumnsFrom
+void dynamicPick
+void dynamicPickPaths
+void expandTypeFromDynamicPickPaths
+void fromRef
+
+void function(
+    _dpp: DynamicPickPaths<any>,
+    _dc: DynamicCondition<any>,
+    _tovljo: TableOrViewLeftJoinOf<any>,
+    _tovo: TableOrViewOf<any>,
+    _pvp: PickValuesPath<any, never>
+) {}

@@ -26,6 +26,14 @@ const TEST_DB_DIR = 'test/db'
 //   - `types.negative` is the compile-time negatives folder
 const NON_CELL_DIRS = new Set(['domain', 'types.negative'])
 
+// The auto-generated documentation SQL tests live in a `documentation` connector
+// (test/db/<db>/newest/documentation/) and a synthetic `general` database
+// (test/db/general/…). They are NOT part of the per-db connector symmetry — they
+// only exist under `newest`, carry db-specific generated files, and `general` is
+// not a real database — so the audit ignores both.
+const NON_CELL_CONNECTORS = new Set(['documentation'])
+const NON_CELL_DATABASES = new Set(['general'])
+
 interface Cell {
     label: string                    // e.g. "newest/pg"
     files: Map<string, string[]>     // file name → ordered test names
@@ -74,6 +82,7 @@ function loadCells(databaseDir: string): Cell[] {
         if (NON_CELL_DIRS.has(version)) continue
         const versionDir = join(databaseDir, version)
         for (const connector of dirs(versionDir).sort()) {
+            if (NON_CELL_CONNECTORS.has(connector)) continue
             const cellDir = join(versionDir, connector)
             const files = new Map<string, string[]>()
             for (const fn of testFiles(cellDir).sort()) {
@@ -185,7 +194,7 @@ function main(): number {
         return 0
     }
 
-    const databases = dirs(TEST_DB_DIR).sort()
+    const databases = dirs(TEST_DB_DIR).sort().filter(d => !NON_CELL_DATABASES.has(d))
     if (databases.length === 0) {
         console.log(`No databases under ${TEST_DB_DIR}/.`)
         return 0

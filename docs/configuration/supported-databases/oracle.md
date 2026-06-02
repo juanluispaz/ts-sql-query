@@ -63,7 +63,7 @@ class DBConnection extends OracleConnection<'DBConnection'> {
 
 You can configure the strategy by overriding the `uuidStrategy` field in your connection class:
 
-```ts
+```typescriptreact
 import { OracleConnection } from "ts-sql-query/connections/OracleConnection";
 
 class DBConnection extends OracleConnection<'DBConnection'> {

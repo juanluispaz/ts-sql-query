@@ -77,8 +77,8 @@ The executed query to get the data is:
         last_name as "lastName" 
     from customer 
     where 
-           lower(first_name) like lower(:0 || '%') escape '\\' 
-        or lower(last_name) like lower(:1 || '%') escape '\\' 
+           lower(first_name) like lower(:0 || '%') escape '\' 
+        or lower(last_name) like lower(:1 || '%') escape '\' 
     order by 
         "firstName", 
         "lastName" 
@@ -109,8 +109,8 @@ The executed query to get the data is:
         last_name as lastName 
     from customer 
     where 
-           lower(first_name) like lower(? || '%') escape '\\' 
-        or lower(last_name) like lower(? || '%') escape '\\' 
+           lower(first_name) like lower(? || '%') escape '\' 
+        or lower(last_name) like lower(? || '%') escape '\' 
     order by 
         firstName, 
         lastName 
@@ -159,8 +159,8 @@ The executed query to get the count is:
     select count(*) 
     from customer 
     where 
-           lower(first_name) like lower(:0 || '%') escape '\\' 
-        or lower(last_name) like lower(:1 || '%') escape '\\'
+           lower(first_name) like lower(:0 || '%') escape '\' 
+        or lower(last_name) like lower(:1 || '%') escape '\'
     ```
 ===+ "PostgreSQL"
     ```postgresql
@@ -175,8 +175,8 @@ The executed query to get the count is:
     select count(*) 
     from customer 
     where 
-           lower(first_name) like lower(? || '%') escape '\\' 
-        or lower(last_name) like lower(? || '%') escape '\\'
+           lower(first_name) like lower(? || '%') escape '\' 
+        or lower(last_name) like lower(? || '%') escape '\'
     ```
 === "SQL Server"
     ```sqlserver

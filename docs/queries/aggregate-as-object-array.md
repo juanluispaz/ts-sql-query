@@ -77,7 +77,7 @@ The executed query is:
     from company 
     left join customer on customer.company_id = company.id 
     where company.id = ? 
-    group by company.id, company.name
+    group by company.id, company.`name`
     ```
 === "Oracle"
     ```oracle
@@ -201,7 +201,7 @@ The executed query is:
     from company 
     left join customer on customer.company_id = company.id 
     where company.id = ? 
-    group by company.id, company.name
+    group by company.id, company.`name`
     ```
 === "Oracle"
     ```oracle
@@ -353,7 +353,7 @@ The executed query is:
             ) a_1_
         ) as "customers" 
         from company 
-        where id = :0`
+        where id = :0
     ```
 ===+ "PostgreSQL"
     ```postgresql

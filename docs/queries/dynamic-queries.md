@@ -105,7 +105,7 @@ The executed query is:
         first_name || :0 || last_name as "name", 
         birthday as "birthday" 
     from customer 
-    where first_name like ('%' || :1 || '%') escape '\\' 
+    where first_name like ('%' || :1 || '%') escape '\' 
     order by 
         lower("name"), 
         "birthday" asc nulls last
@@ -129,7 +129,7 @@ The executed query is:
         first_name || ? || last_name as name, 
         birthday as birthday 
     from customer 
-    where first_name like ('%' || ? || '%') escape '\\' 
+    where first_name like ('%' || ? || '%') escape '\' 
     order by 
         lower(name), 
         birthday asc nulls last
@@ -144,7 +144,7 @@ The executed query is:
     where first_name like ('%' + @1 + '%') 
     order by 
         lower(name), 
-        iif(birthday is null, 1, 0), 
+        iif(customer.birthday is null, 1, 0), 
         birthday asc
     ```
 
@@ -247,7 +247,17 @@ const customers: Promise<{
 
 But in the case of `onlyCustomersOfUserCompany` is false, the condition in the where is omitted:
 ```ts
-const onlyCustomersOfUserCompany = false
+const userCompanyId = 16
+const onlyCustomersOfUserCompany = false // CHANGED
+
+const customers = await connection.selectFrom(tCustomer)
+    .where(tCustomer.companyId.equals(userCompanyId).onlyWhen(onlyCustomersOfUserCompany))
+    .select({
+        firstName: tCustomer.firstName,
+        lastName: tCustomer.lastName,
+        birthday: tCustomer.birthday
+    })
+    .executeSelectMany()
 ```
 
 The executed query is:
@@ -399,7 +409,18 @@ const customerWithIdWithRules: Promise<{
 
 But in the case of `displayNames` is false, the omitted expressions are replaced by null:
 ```ts
-const displayNames = false
+const customerId = 10
+const displayNames = false // CHANGED
+
+const customerWithIdWithRules = connection.selectFrom(tCustomer)
+    .where(tCustomer.id.equals(customerId))
+    .select({
+        id: tCustomer.id,
+        firstName: tCustomer.firstName.onlyWhenOrNull(displayNames),
+        lastName: tCustomer.lastName.onlyWhenOrNull(displayNames),
+        birthday: tCustomer.birthday
+    })
+    .executeSelectOne()
 ```
 
 The executed query is:
@@ -568,7 +589,17 @@ const customers: Promise<{
 
 But in the case of `companyName` is null or undefined, the condition in the where is omitted; in consequence, the company table is not used; thus the join is omitted:
 ```ts
-const companyName = null
+const companyName = null // CHANGED
+
+const customers = connection.selectFrom(tCustomer)
+    .optionalJoin(tCompany).on(tCompany.id.equals(tCustomer.companyId))
+    .where(tCompany.name.equalsIfValue(companyName))
+    .select({
+        firstName: tCustomer.firstName,
+        lastName: tCustomer.lastName,
+        birthday: tCustomer.birthday
+    })
+    .executeSelectMany()
 ```
 
 The executed query is:
@@ -738,7 +769,20 @@ const customerWithOptionalCompany: Promise<{
 
 But in the case of a column provided by the join is required, like when `canSeeCompanyInfo` is:
 ```ts
-const canSeeCompanyInfo = true
+const canSeeCompanyInfo = true // CHANGED
+
+const customerWithOptionalCompany = connection.selectFrom(tCustomer)
+    .optionalInnerJoin(tCompany).on(tCompany.id.equals(tCustomer.companyId))
+    .select({
+        id: tCustomer.id,
+        firstName: tCustomer.firstName,
+        lastName: tCustomer.lastName,
+        birthday: tCustomer.birthday,
+        companyId: tCompany.id.onlyWhenOrNull(canSeeCompanyInfo),
+        companyName: tCompany.name.onlyWhenOrNull(canSeeCompanyInfo)
+    })
+    .where(tCustomer.id.equals(12))
+    .executeSelectMany()
 ```
 
 The executed query is:

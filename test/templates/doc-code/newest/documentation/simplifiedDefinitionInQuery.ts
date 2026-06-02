@@ -1,14 +1,36 @@
-import type { DynamicCondition } from "../../../src/dynamicCondition.js"
+import { describe, test } from '../../../../lib/testRunner.js'
+import type { DynamicCondition } from "../../../../../src/dynamicCondition.js"
 
 /******************** 
  * Generated code
  */
 
+describe('simplifiedDefinitionInQuery documentation', () => {
+
+test('snippets registered', () => {})
+
 // Generated code here
+
+})
 
 /******************** 
  * Noops to make the compiler happy
  */
+
+/** Columns required by the insert */
+type InsertSets = { [columnName: string]: any }
+/** Columns required by the insert, but marked as optionals */
+type OptionalInsertSets = { [columnName: string]: any }
+/** Columns required by the update */
+type UpdateSets = { [columnName: string]: any }
+/** Columns required by the update, but marked as optional */
+type OptionalUpdateSets = { [columnName: string]: any }
+void function (
+    _is: InsertSets,
+    _ois: OptionalInsertSets,
+    _us: UpdateSets,
+    _ous: OptionalUpdateSets
+) {}
 
 type RESULT = any
 type Default = any
@@ -34,7 +56,7 @@ void function (
     _ctv: CustomizedTableOrView,
     _avs: AnyValueSource,
     _tis: TransactionIsolationLevel,
-) { }
+) {}
 interface ValueSource<T, TYPE_NAME> {
     makeCompilerHappy_type: T
     makeCompilerHappy_typeName: TYPE_NAME
@@ -67,11 +89,4 @@ void function(
     _met: MyEnumType,
     _mct: MyCustomType,
     _mcct: MyCustomComparableType
-) {}
-
-type DatabaseType = any
-type PromiseProvider = any
-void function(
-    _dt: DatabaseType,
-    _pp: PromiseProvider
 ) {}

@@ -9,8 +9,10 @@ while still surviving most non-trivial refactors.
 For docker / WASM lifecycle (which lives in `containerLifecycle.ts` but is its
 own topic) see [`ENGINE_LIFECYCLE.md`](./ENGINE_LIFECYCLE.md). For the
 per-database tree convention see [`PER_DATABASE_LAYOUT.md`](./PER_DATABASE_LAYOUT.md).
-For the documentation code extractor (`lib/docCodeExtractor/`, which compiles the
-doc snippets) see [`DOC_CODE_EXTRACTOR.md`](./DOC_CODE_EXTRACTOR.md).
+For the documentation code extractor (`lib/docCodeExtractor/` + the
+`DocCodeMockRunner` in `lib/mockRunners/DocCodeMockRunner.ts`, which turn the doc snippets into matrix
+test cells that type-check the examples and assert their SQL via mock) see
+[`DOC_CODE_EXTRACTOR.md`](./DOC_CODE_EXTRACTOR.md).
 
 - [`testContext.ts` — `ctx` API surface](#testcontextts--ctx-api-surface)
 - [`testContext.ts` — mutation safety contract](#testcontextts--mutation-safety-contract)
@@ -298,6 +300,9 @@ Key bits:
   context-insensitive so commented-out blocks count.
 - [`NON_CELL_DIRS`](./lib/auditTestSymmetry.ts#L27) — `domain/` and
   `types.negative/` are not cells and are skipped.
+- `NON_CELL_CONNECTORS` (`documentation`) / `NON_CELL_DATABASES` (`general`) — the
+  generated doc-snippet test cells are db-specific and not authored per-cell, so they
+  are exempt from the symmetry rule (see [`DOC_CODE_EXTRACTOR.md`](./DOC_CODE_EXTRACTOR.md)).
 - [`emitGithubSummary`](./lib/auditTestSymmetry.ts#L154) — markdown row
   per-database for `$GITHUB_STEP_SUMMARY` in CI.
 

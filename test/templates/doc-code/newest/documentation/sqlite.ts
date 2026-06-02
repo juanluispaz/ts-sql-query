@@ -1,21 +1,49 @@
-import { MySqlConnection } from '../../../src/connections/MySqlConnection.js'
-import { MockQueryRunner } from '../../../src/queryRunners/MockQueryRunner.js'
-import { Table } from '../../../src/Table.js'
-import { CustomBooleanTypeAdapter } from '../../../src/TypeAdapter.js'
-import { View } from '../../../src/View.js'
+import { describe, test } from '../../../../lib/testRunner.js'
+import { MockQueryRunner } from '../../../../../src/queryRunners/MockQueryRunner.js'
+import { SqliteConnection } from '../../../../../src/connections/SqliteConnection.js'
+import { DocCodeMockRunner } from '../../../../lib/mockRunners/DocCodeMockRunner.js'
+import { Table } from '../../../../../src/Table.js'
+import { CustomBooleanTypeAdapter } from '../../../../../src/TypeAdapter.js'
+import { View } from '../../../../../src/View.js'
+import { Values } from '../../../../../src/Values.js'
 
-import { PrismaMariaDb } from '@prisma/adapter-mariadb'
-import { PrismaClient } from '../../../src/examples/prisma/generated/mysql/client.js'
-import { PrismaQueryRunner } from '../../../src/queryRunners/PrismaQueryRunner.js'
+import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3'
+import { PrismaClient } from '../../../../../src/examples/prisma/generated/sqlite/client.js'
+import { PrismaQueryRunner } from '../../../../../src/queryRunners/PrismaQueryRunner.js'
 
+import { BetterSqlite3QueryRunner } from '../../../../../src/queryRunners/BetterSqlite3QueryRunner.js'
+import { Sqlite3QueryRunner } from '../../../../../src/queryRunners/Sqlite3QueryRunner.js'
+import { BunSqliteQueryRunner } from '../../../../../src/queryRunners/BunSqliteQueryRunner.js'
+import { BunSqlSqliteQueryRunner } from '../../../../../src/queryRunners/BunSqlSqliteQueryRunner.js'
+import { NodeSqliteQueryRunner } from '../../../../../src/queryRunners/NodeSqliteQueryRunner.js'
+import sqlite3InitModule from '@sqlite.org/sqlite-wasm'
+import { Sqlite3WasmOO1QueryRunner } from '../../../../../src/queryRunners/Sqlite3WasmOO1QueryRunner.js'
 import { SQL } from 'bun'
-import { BunSqlMySqlQueryRunner } from '../../../src/queryRunners/BunSqlMySqlQueryRunner.js'
-import { createPool } from 'mysql2'
-import { MySql2PoolQueryRunner } from '../../../src/queryRunners/MySql2PoolQueryRunner.js'
-import { MySql2QueryRunner } from '../../../src/queryRunners/MySql2QueryRunner.js'
+import { sync } from '../../../../../src/extras/sync.js'
+import { SynchronousPromise } from "synchronous-promise";
+import { parse as uuidParse, stringify as uuidStringify, v7 as uuidv7 } from "uuid";
+import { type SqliteDateTimeFormat, type SqliteDateTimeFormatType } from "../../../../../src/connections/SqliteConfiguration.js";
 
-class DBConnection extends MySqlConnection<'DBConnection'> { 
+import { 
+    extractColumnsFrom,
+    extractWritableColumnsFrom,
+} from '../../../../../src/extras/utils.js'
+import { 
+    dynamicPick, 
+    dynamicPickPaths, 
+    expandTypeFromDynamicPickPaths,
+    type DynamicPickPaths,
+    type PickValuesPath,
+    type DynamicCondition
+} from '../../../../../src/dynamicCondition.js'
+import { fromRef, type TableOrViewLeftJoinOf, type TableOrViewOf } from '../../../../../src/extras/types.js'
+
+class DBConnection extends SqliteConnection<'DBConnection'> {
     // insensitiveCollation = 'acs'
+
+    protected override getDateTimeFormat() {
+        return 'UTC as text using T separator and Z timezone' as const
+    }
 
     bitwiseShiftLeft = this.buildFragmentWithArgs(
         this.arg('int', 'required'),
@@ -117,28 +145,89 @@ const tRecord = new class TRecord extends Table<DBConnection, 'TRecord'> {
     }
 }()
 
-const connection = new DBConnection(new MockQueryRunner(() => { }))
+const docCodeMock = new DocCodeMockRunner()
+const connection = new DBConnection(docCodeMock)
+let options: any = {}
 
 /******************** 
  * Generated code
  */
 
+describe('sqlite documentation', () => {
+
+test('snippets registered', () => {})
+
 // Generated code here
+
+})
 
 /******************** 
  * Noops to make the compiler happy
  */
+class Database {
+    constructor(_1: any, _2?: any) {}
+    function(_1: any, _2: any) {}
+}
+void Database
+
+// node:sql
+type SQLInputValue = any
+type SQLOutputValue = any
+class DatabaseSync {
+    constructor(_1: any, _2?: any) {}
+    function(_1: any, _2: any) {}
+}
+
+void DatabaseSync
+void function(
+    _siv: SQLInputValue,
+    _sov: SQLOutputValue
+) {}
 
 void tCompany
 void tCustomer
 void tCustomCompany
 void tRecord
 void connection
-void PrismaMariaDb
+void options
+void Values
+
+void PrismaBetterSqlite3
 void PrismaClient
 void PrismaQueryRunner
+
+void BetterSqlite3QueryRunner
+void Sqlite3QueryRunner
+void BunSqliteQueryRunner
+void BunSqlSqliteQueryRunner
+void NodeSqliteQueryRunner
 void SQL
-void BunSqlMySqlQueryRunner
-void createPool
-void MySql2PoolQueryRunner
-void MySql2QueryRunner
+void sync
+void SynchronousPromise
+void sqlite3InitModule
+void Sqlite3WasmOO1QueryRunner
+void MockQueryRunner
+
+void uuidParse
+void uuidStringify
+void uuidv7
+
+void function(
+    _sdtf: SqliteDateTimeFormat,
+    _sdtft: SqliteDateTimeFormatType
+) {}
+
+void extractColumnsFrom
+void extractWritableColumnsFrom
+void dynamicPick
+void dynamicPickPaths
+void expandTypeFromDynamicPickPaths
+void fromRef
+
+void function(
+    _dpp: DynamicPickPaths<any>,
+    _dc: DynamicCondition<any>,
+    _tovljo: TableOrViewLeftJoinOf<any>,
+    _tovo: TableOrViewOf<any>,
+    _pvp: PickValuesPath<any, never>
+) {}

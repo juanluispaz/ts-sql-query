@@ -18,7 +18,7 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> { }
 
 By default empty string as treated as null, if you want to allow sending and receiving empty strings to the database set the `allowEmptyString` property in the connection to true.
 
-```ts
+```typescriptreact
 import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
 
 class DBConnection extends PostgreSqlConnection<'DBConnection'> { 
@@ -34,7 +34,7 @@ By default, when you specify that you want to perform an insensitive operation (
 
 Providing the collation allows you to perform more advanced insensitive operations like case insensitive and accent insensitive, or even more in some languages (like manage some letter composition alternatives). Some databases offer general collations that are case insensitive and accent insensitive. But it is expected you want to use a collation specific to the language used by the user.
 
-```ts
+```ttypescriptreact
 import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
 
 class DBConnection extends PostgreSqlConnection<'DBConnection'> { 

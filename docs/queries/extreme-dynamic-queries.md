@@ -93,7 +93,7 @@ The executed query is:
         first_name || :0 || last_name as "name", 
         birthday as "birthday" 
     from customer 
-    where first_name like ('%' || :1 || '%') escape '\\' 
+    where first_name like ('%' || :1 || '%') escape '\' 
     order by 
         lower("name"), 
         "birthday" asc nulls last
@@ -117,7 +117,7 @@ The executed query is:
         first_name || ? || last_name as name, 
         birthday as birthday 
     from customer 
-    where first_name like ('%' || ? || '%') escape '\\' 
+    where first_name like ('%' || ? || '%') escape '\' 
     order by 
         lower(name), 
         birthday asc nulls last
@@ -132,7 +132,7 @@ The executed query is:
     where first_name like ('%' + @1 + '%') 
     order by 
         lower(name), 
-        iif(birthday is null, 1, 0), 
+        iif(customer.birthday is null, 1, 0), 
         birthday asc
     ```
 
@@ -251,10 +251,10 @@ The executed query is:
     inner join company on customer.company_id = company.id 
     where 
         (
-               lower(customer.first_name) like lower(:0 || '%') escape '\\' 
+               lower(customer.first_name) like lower(:0 || '%') escape '\' 
             or (
-                    lower(customer.last_name) like lower(:1 || '%') escape '\\' 
-                and customer.last_name like ('%' || :2) escape '\\'
+                    lower(customer.last_name) like lower(:1 || '%') escape '\' 
+                and customer.last_name like ('%' || :2) escape '\'
             )
         ) and company.name = :3 
     order by 
@@ -295,10 +295,10 @@ The executed query is:
     inner join company on customer.company_id = company.id 
     where 
         (
-               lower(customer.first_name) like lower(? || '%') escape '\\' 
+               lower(customer.first_name) like lower(? || '%') escape '\' 
             or (
-                    lower(customer.last_name) like lower(? || '%') escape '\\' 
-                and customer.last_name like ('%' || ?) escape '\\'
+                    lower(customer.last_name) like lower(? || '%') escape '\' 
+                and customer.last_name like ('%' || ?) escape '\'
             )
         ) and company.name = ? 
     order by 
@@ -418,12 +418,10 @@ The executed query is:
 === "SQLite"
     ```sqlite
     select 
-        id as id, 
         first_name as firstName, 
-        last_name as lastName, 
-        birthday as birthday 
-    from customer 
-    where id = ?
+        last_name as lastName,
+        id as id
+    from customer
     ```
 === "SQL Server"
     ```sqlserver
@@ -556,11 +554,33 @@ const customerWithOptionalCompany: Promise<{
 
 But in the case of a column provided by the join is required, like when `fieldsToPick` is:
 ```ts
+import { dynamicPick, dynamicPickPaths } from "ts-sql-query" // or "ts-sql-query/dynamicCondition"
+
+const availableFields = {
+    id: tCustomer.id,
+    firstName: tCustomer.firstName,
+    lastName: tCustomer.lastName,
+    birthday: tCustomer.birthday,
+    companyId: tCompany.id,
+    companyName: tCompany.name
+}
+
+// CHANGED: fieldsToPick requiring more information
 const fieldsToPick = {
     firstName: true,
     lastName: true,
     companyName: true
 }
+
+// always include id field as required
+// Alternative: const pickedFields = dynamicPickPaths(availableFields, fieldsToPickList, ['id'])
+const pickedFields = dynamicPick(availableFields, fieldsToPick, ['id'])
+
+const customerWithOptionalCompany = connection.selectFrom(tCustomer)
+    .optionalInnerJoin(tCompany).on(tCompany.id.equals(tCustomer.companyId))
+    .select(pickedFields)
+    .where(tCustomer.id.equals(12))
+    .executeSelectMany()
 ```
 
 The executed query is:
@@ -886,8 +906,8 @@ The executed query is:
     where 
             company.name = :0 
         and (
-               lower(customer.first_name) like lower('%' || :1 || '%') escape '\\' 
-            or lower(customer.last_name) like lower('%' || :2 || '%') escape '\\'
+               lower(customer.first_name) like lower('%' || :1 || '%') escape '\' 
+            or lower(customer.last_name) like lower('%' || :2 || '%') escape '\'
         ) 
     order by 
         lower("company.name") asc, 
@@ -928,8 +948,8 @@ The executed query is:
     where 
             company.name = ? 
         and (
-               lower(customer.first_name) like lower('%' || ? || '%') escape '\\' 
-            or lower(customer.last_name) like lower('%' || ? || '%') escape '\\'
+               lower(customer.first_name) like lower('%' || ? || '%') escape '\' 
+            or lower(customer.last_name) like lower('%' || ? || '%') escape '\'
         ) 
     order by 
         lower("company.name") asc, 
@@ -1089,6 +1109,22 @@ const customersOfCompany: Promise<{
 
 But in case of a column provided by the join is required, like when `fieldsToPick` is:
 ```ts
+import { dynamicPick } from "ts-sql-query" // or "ts-sql-query/dynamicCondition"
+
+const availableFields = {
+    id: tCustomer.id,
+    name: {
+        firstName: tCustomer.firstName,
+        lastName: tCustomer.lastName,
+    },
+    birthday: tCustomer.birthday,
+    company: {
+        id: tCompany.id,
+        name: tCompany.name
+    }
+};
+
+// CHANGED: fieldsToPick requiring more information
 const fieldsToPick = {
     name: {
         firstName: true,
@@ -1098,6 +1134,15 @@ const fieldsToPick = {
         name: true
     }
 }
+
+// include allways id field as required
+const pickedFields = dynamicPick(availableFields, fieldsToPick, ['id']);
+
+const customerWithOptionalCompany = await connection.selectFrom(tCustomer)
+    .optionalInnerJoin(tCompany).on(tCompany.id.equals(tCustomer.companyId))
+    .select(pickedFields)
+    .where(tCustomer.id.equals(12))
+    .executeSelectMany();
 ```
 
 The executed query is:
@@ -1179,7 +1224,8 @@ In this example, several functionalities are used together using dynamic conditi
 
 Having this code:
 
-```ts
+<!-- doc-code-snippet-template: mariadb, mysql, oracle, postgresql, sqlite, sqlserver -->
+```typescript
 function buildComanyAvailableFields<CUSTOMER extends TableOrViewLeftJoinOf<typeof tCustomer, 'favouriteCustomer'>>(_connection: DBConnection, favouriteCustomerRef: CUSTOMER) {
     const favouriteCustomer = fromRef(tCustomer, favouriteCustomerRef);
 
@@ -1299,7 +1345,7 @@ The executed query is:
         name as "name" 
     from company 
     where 
-            lower(name) like lower('%' || :0 || '%') escape '\\' 
+            lower(name) like lower('%' || :0 || '%') escape '\' 
         and parent_id = :1
     ```
 ===+ "PostgreSQL"
@@ -1319,7 +1365,7 @@ The executed query is:
         name as name 
     from company 
     where 
-            lower(name) like lower('%' || ? || '%') escape '\\' 
+            lower(name) like lower('%' || ? || '%') escape '\' 
         and parent_id = ?
     ```
 === "SQL Server"
@@ -1392,11 +1438,11 @@ The executed query is:
     from company 
     left outer join customer favouriteCustomer on company.parent_id = favouriteCustomer.id 
     where 
-        (exists(
+        exists(
             select id as "result" 
             from customer 
-            where lower(first_name || :1 || last_name) like lower('%' || :2 || '%') escape '\\'
-        ) = 1) and company.parent_id = :3
+            where lower(first_name || :1 || last_name) like lower('%' || :2 || '%') escape '\'
+        ) and company.parent_id = :3
     ```
 ===+ "PostgreSQL"
     ```postgresql
@@ -1425,7 +1471,7 @@ The executed query is:
         exists(
             select id as result 
             from customer 
-            where lower(first_name || ? || last_name) like lower('%' || ? || '%') escape '\\'
+            where lower(first_name || ? || last_name) like lower('%' || ? || '%') escape '\'
         ) and company.parent_id = ?
     ```
 === "SQL Server"
@@ -1437,11 +1483,11 @@ The executed query is:
     from company 
     left outer join customer as favouriteCustomer on company.parent_id = favouriteCustomer.id 
     where 
-        (exists(
+        exists(
             select id as [result] 
             from customer 
             where lower(first_name + @1 + last_name) like lower('%' + @2 + '%')
-        ) = 1) and company.parent_id = @3
+        ) and company.parent_id = @3
     ```
 
 The parameters are: `[ " ", " ", "smith", 23 ]`
@@ -1506,7 +1552,7 @@ The executed query is:
         favouriteCustomer.id in (
             select parent_id as "result" 
             from company 
-            where lower(name) like lower('%' || :0 || '%') escape '\\'
+            where lower(name) like lower('%' || :0 || '%') escape '\'
         ) and company.parent_id = :1
     ```
 ===+ "PostgreSQL"
@@ -1534,7 +1580,7 @@ The executed query is:
         favouriteCustomer.id in (
             select parent_id as result 
             from company 
-            where lower(name) like lower('%' || ? || '%') escape '\\'
+            where lower(name) like lower('%' || ? || '%') escape '\'
         ) and company.parent_id = ?
     ```
 === "SQL Server"
@@ -1621,15 +1667,15 @@ The executed query is:
     from company 
     where 
         (
-            (exists(
+            exists(
                 select id as "result" 
                 from customer 
-                where lower(first_name || :0 || last_name) like lower('%' || :1 || '%') escape '\\'
-            ) = 1) or (exists(
+                where lower(first_name || :0 || last_name) like lower('%' || :1 || '%') escape '\'
+            ) or exists(
                 select id as "result" 
                 from customer 
                 where birthday = :2
-            ) = 1)
+            )
         ) and parent_id = :3
     ```
 ===+ "PostgreSQL"
@@ -1662,7 +1708,7 @@ The executed query is:
             exists(
                 select id as result 
                 from customer 
-                where lower(first_name || ? || last_name) like lower('%' || ? || '%') escape '\\'
+                where lower(first_name || ? || last_name) like lower('%' || ? || '%') escape '\'
             ) or exists(
                 select id as result 
                 from customer 
@@ -1677,17 +1723,16 @@ The executed query is:
         name as name 
     from company 
     where 
-        (
-            (exists(
-                select id as [result] 
-                from customer 
-                where lower(first_name + @0 + last_name) like lower('%' + @1 + '%')
-            ) = 1) or (exists(
-                select id as [result] 
-                from customer 
-                where birthday = @2
-            ) = 1)
-        ) and parent_id = @3
+        (exists(
+            select id as [result] 
+            from customer 
+            where lower(first_name + @0 + last_name) like lower('%' + @1 + '%')
+        ) or exists(
+            select id as [result] 
+            from customer 
+            where birthday = @2
+        ))
+        and parent_id = @3
     ```
 
 The parameters are: `[ " ", "John", 2000-03-01T00:00:00.000Z, 23 ]`

@@ -80,6 +80,13 @@ Coords
     tests postgres/newest/pg                             # one (version × connector) cell
     tests postgres/newest/pg/select.basic.test.ts        # one file
 
+  Documentation SQL tests are ORDINARY matrix cells — a `documentation` connector
+  in each db's newest version (plus a synthetic `general` db) — so they're addressed
+  like any other coord and always run mock (self-contained):
+    tests '*/newest/documentation'                       # every doc test cell
+    tests postgres/newest/documentation                  # one db's doc cell
+    tests general/newest/documentation                   # the non-db (general) docs
+
   Multiple coords combined in one invocation (mix any of the four
   levels freely):
     tests postgres/newest/pg sqlite/newest/bun_sqlite

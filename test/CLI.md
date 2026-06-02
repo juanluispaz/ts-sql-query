@@ -205,6 +205,28 @@ of four levels — database, version, connector, or a single test file:
 | `<connector>` | Per-driver folder under `<db>/<version>/`. | postgres: `pg`, `postgres`, `bun_sql_postgres`, `pglite`; sqlite: `better-sqlite3`, `bun_sqlite`, `node_sqlite`, `sqlite3`, `sqlite-wasm-OO1` |
 | `<file>` | A single `*.test.ts` file inside `<connector>/` — narrowest focus. | `select.basic.test.ts` |
 
+### Documentation tests are ordinary matrix cells
+
+The doc-snippet SQL tests are **not a special case** — they are generated into the
+matrix as a `documentation` connector in each db's `newest` version
+(`test/db/<db>/newest/documentation/doc-code.generated.test.ts`), plus a synthetic
+`general` db for the non-db templates
+(`test/db/general/newest/documentation/<name>.generated.test.ts`). They are always
+mock (self-contained), so `--docker`/`--wasm` don't apply to them, but they're
+addressed with the same four-level coords as any other cell:
+
+```bash
+bun run tests '*/newest/documentation'                              # every doc test cell
+bun run tests postgres/newest/documentation                        # one db's doc cell
+bun run tests general/newest/documentation                         # the non-db (general) docs
+bun run tests postgres/newest/documentation/doc-code.generated.test.ts  # one file
+```
+
+The generated files are gitignored (`*.generated.test.ts`) and produced by
+`bun run codegen:doc-code` from templates at
+`test/templates/doc-code/newest/documentation/`. Full reference:
+[`DOC_CODE_EXTRACTOR.md`](./DOC_CODE_EXTRACTOR.md).
+
 ```bash
 # Level 4: single test file (the narrowest focus).
 bun run tests postgres/newest/pg/select.basic.test.ts

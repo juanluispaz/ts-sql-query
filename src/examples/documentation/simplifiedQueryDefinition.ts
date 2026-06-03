@@ -1,3 +1,5 @@
+// BEGIN
+
 /*
  * Simplified versions of the query's API
  */
@@ -712,7 +714,7 @@ interface Connection {
     transformPlaceholder(placeholder: string, type: string, forceTypeCast: boolean, valueSentToDB: unknown): string
 
     /** Protected method that returns true if the provided string is a reserved keyword, otherwise return false */
-    isReservedWord(word: string): boolean
+    isReservedKeyword(word: string): boolean
     /** Protected method that returns the provided string as a indefier quoting it all the time */
     forceAsIdentifier(identifier: string): string
     /** 
@@ -2217,6 +2219,7 @@ declare class ForceTypeCast implements TypeAdapter {
     transformPlaceholder(placeholder: string, type: string, _forceTypeCast: boolean, valueSentToDB: unknown, next: DefaultTypeAdapter): string
 }
 
+// END
 
 /******************** 
  * Noops to make the compiler happy

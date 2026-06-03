@@ -309,7 +309,7 @@ interface Connection {
     transformPlaceholder(placeholder: string, type: string, forceTypeCast: boolean, valueSentToDB: unknown): string
 
     /** Protected method that returns true if the provided string is a reserved keyword, otherwise return false */
-    isReservedWord(word: string): boolean
+    isReservedKeyword(word: string): boolean
     /** Protected method that returns the provided string as a indefier quoting it all the time */
     forceAsIdentifier(identifier: string): string
     /** 

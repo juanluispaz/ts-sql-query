@@ -14,7 +14,7 @@ doc snippets into ordinary matrix test cells that validate them **twice**:
 
 The docs stay correct by construction, not by manual review. **These two
 validations are the point** of the tool. The type-checked corpus it produces is
-*also* reusable by downstream tooling — notably the symbol-index searcher — but
+*also* reusable by downstream tooling — notably the code-index searcher — but
 that is an **additional benefit layered on top**, not the primary goal.
 
 The **extractor** is standalone, self-contained code under

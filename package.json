@@ -255,6 +255,8 @@
         "validate:tests:tsc": "tsc -p test/tsconfig.tsc.json --noEmit",
         "tests": "bash scripts/tests.sh",
         "tests:audit": "bash scripts/tests-audit.sh",
+        "tests:index": "bash scripts/tests-index.sh",
+        "tests:index:verify": "bash scripts/tests-index-verify.sh",
         "tests:stop-containers": "bash scripts/tests-stop-containers.sh",
         "tests:reopen": "bash scripts/tests-reopen.sh",
         "test:fast": "bash scripts/tests.sh",

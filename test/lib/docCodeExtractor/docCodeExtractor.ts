@@ -5,7 +5,7 @@
 // query against a mock and assert the emitted SQL equals the SQL the docs show.
 // So the docs can't drift from the library — compilation and SQL are both covered.
 // (The type-checked corpus is ALSO reusable by downstream tooling such as the
-// symbol-index searcher, but that is an ADDITIONAL benefit, not the goal, and this
+// code-index searcher, but that is an ADDITIONAL benefit, not the goal, and this
 // tool doesn't depend on it.)
 // Extraction is PURELY TEXTUAL — no snippet parsing, no code transformation
 // beyond the simple rules below; the user owns the templates' imports and the
@@ -493,9 +493,11 @@ function declaredTypeRefs(code: string): string[] {
 }
 
 // ── emission ─────────────────────────────────────────────────────────────────
-// `line` is the snippet's 1-based source line in its .md page (used for both the
-// comment and the generated identifier, so they point back to the exact fence).
-interface Snippet { code: string; page: string; line: number }
+// `line` is the snippet's 1-based source line in its .md page (the OPENING fence;
+// used for the comment and the generated identifier, so they point back to the
+// exact fence). `endLine` is the CLOSING fence's line, so [line, endLine] brackets
+// the whole snippet in the markdown — BEGIN carries `line`, END carries `endLine`.
+interface Snippet { code: string; page: string; line: number; endLine: number }
 
 // The statements that mark a snippet's FIRST-LEVEL declarations as used, so
 // noUnusedLocals stays happy — used by BOTH emission paths (inside the function
@@ -518,7 +520,7 @@ function usageMarks(body: string): string[] {
 // doc code and which are generated scaffolding — the function wrapper, the
 // `void` usage marks, and the noop type function all sit OUTSIDE BEGIN…END.
 function beginMark(s: Snippet): string { return `// BEGIN ${s.page}:${s.line}` }
-function endMark(s: Snippet): string { return `// END ${s.page}:${s.line}` }
+function endMark(s: Snippet): string { return `// END ${s.page}:${s.endLine}` }
 
 function emitFunction(s: Snippet, id: string): string {
     const body = applySubstitutions(stripImports(s.code))
@@ -644,7 +646,8 @@ export function extractDocCode(): DocCodeResult {
             const b = blocks[i]!
             if (b.lang === 'tsx') { tsx++; continue }
             if (b.lang === 'typescriptreact') { tsr++; continue }
-            const snippet: Snippet = { code: b.body.join('\n'), page: f, line: b.startLine }
+            // endLine = closing-fence line: startLine (open fence) + body lines + 1.
+            const snippet: Snippet = { code: b.body.join('\n'), page: f, line: b.startLine, endLine: b.startLine + b.body.length + 1 }
             if (b.lang === 'typescript') {
                 const targets = b.snippetTemplates.length ? b.snippetTemplates : [override ?? SIMPLIFIED_TEMPLATE]
                 for (const t of targets) add(t, { kind: 'typescript', snippet })

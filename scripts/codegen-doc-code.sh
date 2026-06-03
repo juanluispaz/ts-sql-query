@@ -9,7 +9,7 @@ Usage:
 PURPOSE: test the documentation's code examples — (1) type-check every snippet
 against the real library, and (2) run each query against a mock and assert the
 emitted SQL matches the SQL the docs show. (The type-checked corpus is also reused
-by the symbol-index searcher, but that's an additional benefit, not the goal.)
+by the code-index searcher, but that's an additional benefit, not the goal.)
 
 Extracts the code snippets from docs/**/*.md into compilable TypeScript as ordinary
 matrix cells (gitignored via *.generated.test.ts), built from the templates in

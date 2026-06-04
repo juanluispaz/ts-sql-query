@@ -48,6 +48,7 @@ uses.
 | Coverage runs and report formats (html, monocart, etc.) | [`CLI.md` § Coverage](./CLI.md#coverage) |
 | Wall-time numbers for each invocation, bun vs vitest | [`BENCHMARKS.md`](./BENCHMARKS.md) |
 | Validate the documentation code examples (type-check + mock SQL tests of the doc snippets) | [`DOC_CODE_EXTRACTOR.md`](./DOC_CODE_EXTRACTOR.md) |
+| Search the codebase for a symbol — where it lives / is reached / explained / tested (`tests:where-is`, builds on `tests:index`) | [`CODE_SEARCH.md`](./CODE_SEARCH.md) |
 | The shell scripts behind the CLIs | [`scripts/tests.sh`](../scripts/tests.sh) |
 
 ### … write or port a test
@@ -83,6 +84,7 @@ uses.
 | The canonical-cell validation gate (pre-propagation review) | [`QUALITY_GATE.md`](./QUALITY_GATE.md) |
 | The actual prompt the validation sub-agent receives | [`lib/canonical-cell-review-prompt.md`](./lib/canonical-cell-review-prompt.md) |
 | Catalogue of past failure modes with rules + gates | [`ANTIPATTERNS.md`](./ANTIPATTERNS.md) |
+| Ask the index where a coverage-report symbol is reached / explained / tested (`tests:where-is`) | [`CODE_SEARCH.md`](./CODE_SEARCH.md) |
 
 ### … know what's broken or limited
 
@@ -99,6 +101,7 @@ uses.
 | Every file under `test/lib/` (assertType, captureInterceptor, ctx, runtime shim, audit, setupTimezone, …) | [`TEST_LIB.md`](./TEST_LIB.md) |
 | How the documentation code examples are tested — type-checked AND their SQL asserted via mock (the extractor, templates, simplified definitions) | [`DOC_CODE_EXTRACTOR.md`](./DOC_CODE_EXTRACTOR.md) |
 | The mutation safety contract (`withRollback` / `withCommit` / `withReseed`) | [`TEST_LIB.md` § Mutation safety contract](./TEST_LIB.md#testcontextts--mutation-safety-contract) |
+| How the code index is built / how to modify the indexer or searcher (schema, extractors, queries) | [`lib/codeIndexer/CODE_INDEXER.md`](./lib/codeIndexer/CODE_INDEXER.md), [`lib/codeSearcher/CODE_SEARCHER.md`](./lib/codeSearcher/CODE_SEARCHER.md) |
 | Connector-specialised mocks (when a real runner transforms params) | [`lib/mockRunners/README.md`](./lib/mockRunners/README.md) |
 | Docker container reuse, schema/seed revalidation, per-worker DBs | [`ENGINE_LIFECYCLE.md`](./ENGINE_LIFECYCLE.md) |
 | The WASM lifecycle (pglite, sqlite-wasm-OO1) | [`ENGINE_LIFECYCLE.md` § WASM lifecycle](./ENGINE_LIFECYCLE.md#wasm-lifecycle) |
@@ -122,6 +125,8 @@ test/
 │   ├── canonical-cell-review-prompt.md   ← validation sub-agent prompt asset
 │   ├── coverage/                         ← bun lcov → html / monocart
 │   ├── docCodeExtractor/                 ← doc snippet → matrix test cell: type-check + mock SQL (DOC_CODE_EXTRACTOR.md)
+│   ├── codeIndexer/                      ← builds the queryable SQLite code map (tests:index, CODE_INDEXER.md)
+│   ├── codeSearcher/                     ← searches that map: where-is a symbol (tests:where-is, CODE_SEARCHER.md)
 │   └── mockRunners/                      ← connector-specialised mocks + DocCodeMockRunner.ts (the doc SQL tests' mock)
 └── db/<database>/<compatibilityVersion>/<connector>/
                                           ← test cells; see PER_DATABASE_LAYOUT.md

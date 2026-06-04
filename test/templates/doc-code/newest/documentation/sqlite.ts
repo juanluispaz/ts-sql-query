@@ -7,18 +7,11 @@ import { CustomBooleanTypeAdapter } from '../../../../../src/TypeAdapter.js'
 import { View } from '../../../../../src/View.js'
 import { Values } from '../../../../../src/Values.js'
 
-import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3'
 import { PrismaClient } from '../../../../../src/examples/prisma/generated/sqlite/client.js'
 import { PrismaQueryRunner } from '../../../../../src/queryRunners/PrismaQueryRunner.js'
 
-import { BetterSqlite3QueryRunner } from '../../../../../src/queryRunners/BetterSqlite3QueryRunner.js'
-import { Sqlite3QueryRunner } from '../../../../../src/queryRunners/Sqlite3QueryRunner.js'
-import { BunSqliteQueryRunner } from '../../../../../src/queryRunners/BunSqliteQueryRunner.js'
-import { BunSqlSqliteQueryRunner } from '../../../../../src/queryRunners/BunSqlSqliteQueryRunner.js'
-import { NodeSqliteQueryRunner } from '../../../../../src/queryRunners/NodeSqliteQueryRunner.js'
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm'
 import { Sqlite3WasmOO1QueryRunner } from '../../../../../src/queryRunners/Sqlite3WasmOO1QueryRunner.js'
-import { SQL } from 'bun'
 import { sync } from '../../../../../src/extras/sync.js'
 import { SynchronousPromise } from "synchronous-promise";
 import { parse as uuidParse, stringify as uuidStringify, v7 as uuidv7 } from "uuid";
@@ -37,6 +30,14 @@ import {
     type DynamicCondition
 } from '../../../../../src/dynamicCondition.js'
 import { fromRef, type TableOrViewLeftJoinOf, type TableOrViewOf } from '../../../../../src/extras/types.js'
+
+const PrismaBetterSqlite3 = null as any
+const BetterSqlite3QueryRunner = null as any
+const Sqlite3QueryRunner = null as any
+const BunSqliteQueryRunner = null as any
+const BunSqlSqliteQueryRunner = null as any
+const NodeSqliteQueryRunner = null as any
+const SQL = null as any
 
 class DBConnection extends SqliteConnection<'DBConnection'> {
     // insensitiveCollation = 'acs'

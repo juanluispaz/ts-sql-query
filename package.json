@@ -270,7 +270,7 @@
         "coverage:complete:fast": "bash scripts/tests.sh --use-vitest --report --docker --coverage --open",
         "coverage:complete:fast:newest": "bash scripts/tests.sh --use-vitest --report --docker newest --coverage --open",
         "coverage:complete": "bash scripts/tests.sh --use-vitest --report --docker --wasm --coverage --mode sequential --open",
-        "coverage:for-discover-tests": "bash scripts/tests.sh --use-vitest --coverage --coverage-format json --coverage-format json-summary --coverage-format text-summary --run-versions newest",
+        "coverage:for-discover-tests": "bash scripts/tests.sh --use-vitest --coverage --coverage-format json --coverage-format json-summary --coverage-format text-summary --run-versions newest --native none",
         "coverage:reopen": "bash scripts/tests-reopen.sh",
         "build": "rm -rf dist/*; tsc --version && tsc -p tsconfig.build.json",
         "build:tsgo": "rm -rf dist/*; tsgo --version && tsgo -p tsconfig.build.json",

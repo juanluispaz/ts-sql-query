@@ -80,14 +80,15 @@ import { ConsoleLogQueryRunner } from '../../../../../src/queryRunners/ConsoleLo
 import { LoggingQueryRunner } from '../../../../../src/queryRunners/LoggingQueryRunner.js'
 import { NoopQueryRunner } from '../../../../../src/queryRunners/NoopQueryRunner.js'
 
-import { SQL } from 'bun'
-import { BunSqlPostgresQueryRunner } from '../../../../../src/queryRunners/BunSqlPostgresQueryRunner.js'
 import { PGlite } from '@electric-sql/pglite'
 import { PgLiteQueryRunner } from '../../../../../src/queryRunners/PgLiteQueryRunner.js'
 import postgres from 'postgres'
 import { PostgresQueryRunner } from '../../../../../src/queryRunners/PostgresQueryRunner.js'
 
 import { TsSqlError } from '../../../../../src/TsSqlError.js'
+
+const SQL = null as any
+const BunSqlPostgresQueryRunner = null as any
 
 class DBConnection extends PostgreSqlConnection<'DBConnection'> { 
     // insensitiveCollation = 'acs'

@@ -76,6 +76,14 @@ async function main(): Promise<void> {
     check('reconcile gap sources ⊆ {master,doc,doc-inquery}', recon.gaps.every(g => g.source === 'master' || g.source === 'doc' || g.source === 'doc-inquery'))
     check('partial rows emit no missing gaps', !recon.gaps.some(g => g.side === 'missing_in_simplified' && recon.reconcile.some(r => r.simplified_name === g.simplified_name && r.source === g.source && r.partial === 1)))
 
+    // ── publics-marking phase: flags derived and within their vocabulary ──
+    check('member.visibility ⊆ {public,public_impl,internal}', src.members.every(m => m.visibility === 'public' || m.visibility === 'public_impl' || m.visibility === 'internal'))
+    check('is_public ⇒ is_public_surface', src.symbols.every(s => s.is_public !== 1 || s.is_public_surface === 1))
+    check('some public members exist', src.members.some(m => m.visibility === 'public'), `${src.members.filter(m => m.visibility === 'public').length}`)
+    check('some public_impl members exist', src.members.some(m => m.visibility === 'public_impl'), `${src.members.filter(m => m.visibility === 'public_impl').length}`)
+    check('is_abstract ⇒ class', src.symbols.every(s => s.is_abstract !== 1 || s.kind === 'class'))
+    check('some abstract classes exist', src.symbols.some(s => s.is_abstract === 1), `${src.symbols.filter(s => s.is_abstract === 1).length}`)
+
     // ── negative-type sanity ──
     check('neg_type: marker_line < target_line', negTypes.negTypes.every(n => n.marker_line < n.target_line))
 

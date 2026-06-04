@@ -23,8 +23,10 @@ export interface SymbolRow {
     module_id: number
     name: string
     kind: string
+    is_abstract: 0 | 1          // 1 for an abstract class (shared implementation base)
     is_exported: 0 | 1
-    is_public: 0 | 1
+    is_public: 0 | 1            // directly importable through package.json exports
+    is_public_surface: 0 | 1    // public surface: importable OR a fluent-API/simplified interface (set by the publics-marking phase)
     exported_name: string | null
     start_line: number
     start_col: number
@@ -33,6 +35,10 @@ export interface SymbolRow {
     jsdoc: string | null
 }
 
+// A member's place in the public surface. Only functions exposed by a PUBLIC INTERFACE
+// are public; a class method that implements one is public-by-impl; the rest are internal.
+export type Visibility = 'public' | 'public_impl' | 'internal'
+
 export interface MemberRow {
     id: number
     symbol_id: number
@@ -40,6 +46,7 @@ export interface MemberRow {
     kind: string
     is_optional: 0 | 1
     is_static: 0 | 1
+    visibility: Visibility      // public | public_impl | internal (set by the publics-marking phase)
     signature: string | null
     start_line: number
     start_col: number
@@ -196,12 +203,12 @@ export const INSERTS = {
         row: (r: ModuleRow): SqlValue[] => [r.id, r.path, r.area, r.is_public, r.export_subpath, r.zone],
     },
     symbol: {
-        sql: 'INSERT INTO symbol (id,module_id,name,kind,is_exported,is_public,exported_name,start_line,start_col,end_line,end_col,jsdoc) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
-        row: (r: SymbolRow): SqlValue[] => [r.id, r.module_id, r.name, r.kind, r.is_exported, r.is_public, r.exported_name, r.start_line, r.start_col, r.end_line, r.end_col, r.jsdoc],
+        sql: 'INSERT INTO symbol (id,module_id,name,kind,is_abstract,is_exported,is_public,is_public_surface,exported_name,start_line,start_col,end_line,end_col,jsdoc) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+        row: (r: SymbolRow): SqlValue[] => [r.id, r.module_id, r.name, r.kind, r.is_abstract, r.is_exported, r.is_public, r.is_public_surface, r.exported_name, r.start_line, r.start_col, r.end_line, r.end_col, r.jsdoc],
     },
     member: {
-        sql: 'INSERT INTO member (id,symbol_id,name,kind,is_optional,is_static,signature,start_line,start_col,end_line,end_col,jsdoc) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
-        row: (r: MemberRow): SqlValue[] => [r.id, r.symbol_id, r.name, r.kind, r.is_optional, r.is_static, r.signature, r.start_line, r.start_col, r.end_line, r.end_col, r.jsdoc],
+        sql: 'INSERT INTO member (id,symbol_id,name,kind,is_optional,is_static,visibility,signature,start_line,start_col,end_line,end_col,jsdoc) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',
+        row: (r: MemberRow): SqlValue[] => [r.id, r.symbol_id, r.name, r.kind, r.is_optional, r.is_static, r.visibility, r.signature, r.start_line, r.start_col, r.end_line, r.end_col, r.jsdoc],
     },
     heritage: {
         sql: 'INSERT INTO heritage (symbol_id,base_name,relation,commented,simplified) VALUES (?,?,?,?,?)',

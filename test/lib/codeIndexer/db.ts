@@ -30,6 +30,18 @@ export interface IndexDb {
     close(): void
 }
 
+// Read-only view of an index, for CONSUMERS (the code searcher) that only query.
+// A narrow surface — no DDL, no writes — so a search can never mutate the artifact,
+// and the backend can open the file read-only (no -wal/-shm sidecars created).
+export interface QueryDb {
+    /** Which backend is actually serving this handle (diagnostics). */
+    readonly backend: string
+    /** Run a query and return all rows as plain objects. */
+    all<T = Record<string, SqlValue>>(sql: string, params?: SqlValue[]): T[]
+    /** Release resources. */
+    close(): void
+}
+
 export type SqlValue = string | number | bigint | boolean | null | Uint8Array
 
 // Pragmas for a fast one-shot bulk build; safe because the index is a
@@ -49,6 +61,44 @@ export async function openIndexDb(path: string): Promise<IndexDb> {
     const node = await openNodeSqliteIndexDb(path)
     if (node) return node
     return openBetterSqlite3IndexDb(path)
+}
+
+// ── read-only dispatcher (for consumers/searchers) ──────────────────────────
+// Same backend selection as openIndexDb, but opens the file read-only and exposes
+// only the query surface (QueryDb). No bulk/finalise pragmas: a search must not
+// mutate the index. Throws a clear error if the file is missing.
+export async function openIndexDbReadonly(path: string): Promise<QueryDb> {
+    if (typeof (globalThis as { Bun?: unknown }).Bun !== 'undefined') {
+        const { Database } = await import('bun:sqlite')
+        const db = new Database(path, { readonly: true })
+        return {
+            backend: 'bun:sqlite',
+            all<T>(sql: string, params: SqlValue[] = []) {
+                return db.query(sql).all(...(params as never[])) as T[]
+            },
+            close() { db.close() },
+        }
+    }
+    try {
+        const sqlite = await import('node:sqlite')
+        const db = new sqlite.DatabaseSync(path, { readOnly: true })
+        return {
+            backend: 'node:sqlite',
+            all<T>(sql: string, params: SqlValue[] = []) {
+                return db.prepare(sql).all(...(params as never[])) as T[]
+            },
+            close() { db.close() },
+        }
+    } catch { /* node:sqlite not exposed — fall through to better-sqlite3 */ }
+    const { default: Database } = await import('better-sqlite3')
+    const db = new Database(path, { readonly: true })
+    return {
+        backend: 'better-sqlite3',
+        all<T>(sql: string, params: SqlValue[] = []) {
+            return db.prepare(sql).all(...(params as never[])) as T[]
+        },
+        close() { db.close() },
+    }
 }
 
 // ── bun:sqlite backend ──────────────────────────────────────────────────────

@@ -7,7 +7,7 @@
 
 // Bump when the schema (tables/columns) changes, so a consumer can reject an index built
 // by an older/newer tool. Written to the meta table at build time as schema_version.
-export const SCHEMA_VERSION = 1
+export const SCHEMA_VERSION = 3
 
 export const SCHEMA = `
 -- Build metadata (key/value): schema_version, built_at (ISO), git_rev, git_dirty, resolve
@@ -32,8 +32,10 @@ CREATE TABLE symbol (
     module_id     INTEGER NOT NULL REFERENCES module(id),
     name          TEXT NOT NULL,
     kind          TEXT NOT NULL,            -- interface|class|type|function|const|enum|namespace
+    is_abstract   INTEGER NOT NULL,         -- 1 for an abstract class (the shared implementation base, e.g. AbstractConnection/AbstractSelect); 0 otherwise
     is_exported   INTEGER NOT NULL,         -- exported from its own module
     is_public     INTEGER NOT NULL,         -- importable by name through package exports
+    is_public_surface INTEGER NOT NULL,     -- part of the PUBLIC SURFACE: is_public, OR a fluent-API interface (area 'expressions') / curated 'simplified' def. These are reached through the public connection methods even though not directly importable. Set by the publics-marking phase.
     exported_name TEXT,                     -- public name if re-exported (usually same as name)
     start_line    INTEGER NOT NULL,
     start_col     INTEGER NOT NULL,
@@ -49,7 +51,8 @@ CREATE TABLE member (
     kind        TEXT NOT NULL,              -- method|property|getter|setter|index|call|construct
     is_optional INTEGER NOT NULL,
     is_static   INTEGER NOT NULL,
-    signature   TEXT,                       -- trimmed member text
+    visibility  TEXT NOT NULL,              -- public | public_impl | internal. ONLY functions exposed by a PUBLIC INTERFACE are public: 'public' = declared on a public-surface interface (the contract); 'public_impl' = a CLASS method whose name a public interface exposes (it implements the contract — public by implementation); 'internal' = on no public interface (e.g. __addOrderBy). Set by the publics-marking phase.
+    signature   TEXT,                       -- the member SIGNATURE only (declaration up to the body / initializer; no implementation), trimmed to 400 chars
     start_line  INTEGER NOT NULL,
     start_col   INTEGER NOT NULL,
     end_line    INTEGER NOT NULL,
@@ -65,11 +68,13 @@ CREATE TABLE heritage (
     simplified INTEGER NOT NULL             -- 1 when this is a SYNTHESISED edge: the class realizes a SIMPLIFIED definition (base_name is a simplified def name, area='simplified'), injected from the reconcile map so the simplified def shows up as "another implemented interface". Real analyses filter simplified=0 (like commented=0).
 );
 
-CREATE INDEX idx_symbol_name   ON symbol(name);
-CREATE INDEX idx_symbol_module ON symbol(module_id);
-CREATE INDEX idx_member_name   ON member(name);
-CREATE INDEX idx_member_symbol ON member(symbol_id);
-CREATE INDEX idx_heritage_sym  ON heritage(symbol_id);
+CREATE INDEX idx_symbol_name     ON symbol(name);
+CREATE INDEX idx_symbol_module   ON symbol(module_id);
+CREATE INDEX idx_symbol_surface  ON symbol(is_public_surface);
+CREATE INDEX idx_member_name     ON member(name);
+CREATE INDEX idx_member_symbol   ON member(symbol_id);
+CREATE INDEX idx_member_vis      ON member(visibility);
+CREATE INDEX idx_heritage_sym    ON heritage(symbol_id);
 
 -- ── reconcile: simplified definitions ↔ the real implementing class ──────────
 -- src/examples/documentation/simplifiedQueryDefinition.ts holds hand-maintained,

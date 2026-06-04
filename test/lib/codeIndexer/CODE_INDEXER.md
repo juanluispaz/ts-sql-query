@@ -13,12 +13,14 @@ ask precise questions about the project instead of grepping:
 - Which `src/expressions` interfaces are not implemented by any builder?
 
 This folder is the **INDEXER** — it *builds* the database. The tool that *answers*
-searches over it (the "where-is" searcher) is a separate consumer; it reuses this
-tool's [`db.ts`](db.ts), [`schema.ts`](schema.ts) and [`model.ts`](model.ts).
+searches over it — the **`tests:where-is` searcher** — is a separate consumer that
+reuses this tool's [`db.ts`](db.ts) (its read-only `openIndexDbReadonly`) and
+[`schema.ts`](schema.ts); see [`../codeSearcher/CODE_SEARCHER.md`](../codeSearcher/CODE_SEARCHER.md).
 
-> This is the **reference** doc (how to build it, what's inside, how to consume it).
-> The full design rationale, decisions, roadmap and the searcher design live in the
-> working document [`test/lib/symbolIndex/DESIGN.md`](../symbolIndex/DESIGN.md).
+> **Just want to USE it?** Read [`test/CODE_SEARCH.md`](../../CODE_SEARCH.md) instead —
+> the agent-facing usage doc. This file is the **implementation reference** (how to
+> build it, what's inside, how to extend it). The full design rationale, decisions and
+> roadmap live in the working document [`test/lib/symbolIndex/DESIGN.md`](../symbolIndex/DESIGN.md).
 
 ## Build it
 
@@ -107,10 +109,14 @@ bulk-inserted by [`build.ts`](build.ts) (which also writes the `meta` table dire
 ### `src/` dimension — [`extractSrc.ts`](extractSrc.ts)
 - **module** — every `src/**/*.ts` (+ the simplified query map as a pseudo-module);
   `area`, `is_public`, `export_subpath`, `zone`.
-- **symbol** — interface/class/type/function/const/enum, with `is_public`, full span,
-  JSDoc.
-- **member** — methods/properties/getters of interfaces & classes (signature + span +
-  JSDoc).
+- **symbol** — interface/class/type/function/const/enum, with `is_public` (directly
+  importable), **`is_public_surface`** (importable OR a fluent-API/simplified interface —
+  see the *publics-marking phase* below), **`is_abstract`** (1 for an `abstract class` — the
+  shared implementation base), full span, JSDoc.
+- **member** — methods/properties/getters of interfaces & classes (signature **only** —
+  the declaration up to the body/initializer, no implementation — + span + JSDoc; read the
+  body via the span), with **`visibility`** = `public` | `public_impl` | `internal`
+  (the publics-marking phase).
 - **heritage** — `extends` / `implements` edges (`base_name` = head identifier), plus a
   **`commented`** flag (`implements` commented out in source, `/*Name,*/`, captured so a
   deliberate gap is distinguishable from a forgotten one) and a **`simplified`** flag
@@ -131,6 +137,26 @@ bulk-inserted by [`build.ts`](build.ts) (which also writes the `meta` table dire
   `new SqlOperation*ValueSource('_op', …)` later runs `sqlBuilder['_op'](…)` via element
   access (invisible to the checker — dynamic), so the operation string `'_op'` — the exact
   `SqlBuilder` method — is recorded at the construction site (`resolved_*` NULL by design).
+
+#### Publics-marking phase (derives `symbol.is_public_surface` + `member.visibility`)
+A finalization pass in `extractSrc.ts`, run once every symbol and member is known. The
+rule, from the architecture: **only functions exposed by a PUBLIC INTERFACE are public.**
+A *public interface* is an `interface` that is directly exported (`is_public`) OR lives in
+the fluent-API area `expressions` / the curated `simplified` map — these are reached
+through the public connection methods even though their module isn't directly importable.
+From that the phase sets:
+- `symbol.is_public_surface = 1` when the symbol is directly importable OR is such an interface.
+- `member.visibility`:
+  - `public` — declared on a public interface (the contract).
+  - `public_impl` — a CLASS method whose name a public interface exposes (it implements the
+    contract — *public by implementation*; e.g. `AbstractSelect.orderBy`).
+  - `internal` — declared on no public interface (e.g. `__addOrderBy`).
+
+Materialising these (vs. recomputing the heuristic per query) keeps the rule in ONE place
+and makes consumer queries a single predicate (`WHERE visibility='public'`,
+`WHERE is_public_surface=1`). The `public_impl` match is name-based, consistent with the
+tool's resolution-scatter convention (a `.orderBy` binds to the overloaded interface, not
+the impl — match by name across the owning family).
 
 ### `test/` matrix dimension — [`extractTests.ts`](extractTests.ts)
 - **test_block** — one `test()`/`it()` leaf, in its matrix cell (`db`,`version`,

@@ -131,6 +131,17 @@ function isExported(node: ts.Node): boolean {
     return hasModifier(node, ts.SyntaxKind.ExportKeyword)
 }
 
+// The member SIGNATURE only — the declaration up to (but not including) an
+// implementation body or property initializer. For a class method we keep
+// `foo(a: X): Y`, NOT its body; for an interface member (no body) it's the whole
+// text. The body is implementation detail, reachable by opening the member's span
+// (start_line..end_line) — storing it here would just be truncated source noise.
+function memberSignature(m: ts.Node, sf: ts.SourceFile): string {
+    const stop = (m as { body?: ts.Node }).body ?? (m as { initializer?: ts.Node }).initializer
+    const raw = stop ? sf.text.slice(m.getStart(sf), stop.getStart(sf)) : m.getText(sf)
+    return raw.replace(/\s+/g, ' ').trim().replace(/[={]\s*$/, '').trim().slice(0, 400)
+}
+
 // Emit members for an interface/class declaration, registering each member NODE in
 // the declMap so a `.where()`-style reference can resolve straight to its row.
 function emitMembers(
@@ -148,7 +159,8 @@ function emitMembers(
             id, symbol_id: symbolId, name, kind: memberKind(m),
             is_optional: (m as { questionToken?: unknown }).questionToken ? 1 : 0,
             is_static: hasModifier(m, ts.SyntaxKind.StaticKeyword) ? 1 : 0,
-            signature: m.getText(sf).replace(/\s+/g, ' ').trim().slice(0, 400),
+            visibility: 'internal',   // provisional — the publics-marking phase sets the real value
+            signature: memberSignature(m, sf),
             ...sp, jsdoc: jsdocOf(m, sf),
         })
         declMap.set(m, { symbol_id: symbolId, member_id: id })
@@ -299,8 +311,9 @@ function walkModule(
                     const sp = span(node, sf)
                     const id = ids.next()
                     symbols.push({
-                        id, module_id: moduleId, name: vn, kind: 'const',
+                        id, module_id: moduleId, name: vn, kind: 'const', is_abstract: 0,
                         is_exported: isExported(node) ? 1 : 0, is_public: isPublicName(vn) ? 1 : 0,
+                        is_public_surface: 0,   // provisional — set by the publics-marking phase
                         exported_name: isPublicName(vn) ? vn : null, ...sp, jsdoc: jsdocOf(node, sf),
                     })
                     // Register the VariableDeclaration node (what the symbol resolves to), not the statement.
@@ -315,7 +328,9 @@ function walkModule(
         const symId = ids.next()
         symbols.push({
             id: symId, module_id: moduleId, name, kind,
+            is_abstract: kind === 'class' && hasModifier(node, ts.SyntaxKind.AbstractKeyword) ? 1 : 0,
             is_exported: isExported(node) ? 1 : 0, is_public: isPublicName(name) ? 1 : 0,
+            is_public_surface: 0,   // provisional — set by the publics-marking phase
             exported_name: isPublicName(name) ? name : null, ...sp, jsdoc: jsdocOf(node, sf),
         })
         declMap.set(node, { symbol_id: symId, member_id: null })
@@ -400,6 +415,40 @@ export function extractSrc(program: ts.Program, checker: ts.TypeChecker, ids: Id
     for (const { sf, area, moduleId } of srcFiles) {
         if (area === 'examples' || area === 'simplified') continue
         walkInvocations(sf, moduleId, ids, invocations, checker, declMap)
+    }
+
+    // ── publics-marking phase ────────────────────────────────────────────────
+    // Now that every symbol and member is known, derive the public-surface flags in
+    // one place. RULE (per the architecture): only functions exposed by a PUBLIC
+    // INTERFACE are public. A public interface is an `interface` that is directly
+    // exported (is_public) OR lives in the fluent-API area 'expressions' / the curated
+    // 'simplified' map — reached through the public connection methods even though the
+    // module itself isn't directly importable. From that:
+    //   symbol.is_public_surface = directly importable OR is such an interface.
+    //   member.visibility = 'public'      (declared on a public interface — the contract),
+    //                       'public_impl' (a CLASS method whose name a public interface
+    //                                      exposes — public by implementation),
+    //                       'internal'    (declared on no public interface, e.g. __addOrderBy).
+    const areaById = new Map<number, string>(modules.map(m => [m.id, m.area]))
+    const isPublicIface = (s: SymbolRow): boolean => {
+        if (s.kind !== 'interface') return false
+        if (s.is_public === 1) return true
+        const area = areaById.get(s.module_id)
+        return area === 'expressions' || area === 'simplified'
+    }
+    const publicIfaceIds = new Set<number>()
+    for (const s of symbols) {
+        const pubIface = isPublicIface(s)
+        s.is_public_surface = (s.is_public === 1 || pubIface) ? 1 : 0
+        if (pubIface) publicIfaceIds.add(s.id)
+    }
+    const publicMemberNames = new Set<string>()
+    for (const mb of members) if (publicIfaceIds.has(mb.symbol_id)) publicMemberNames.add(mb.name)
+    const kindById = new Map<number, string>(symbols.map(s => [s.id, s.kind]))
+    for (const mb of members) {
+        mb.visibility = publicIfaceIds.has(mb.symbol_id) ? 'public'
+            : (kindById.get(mb.symbol_id) === 'class' && publicMemberNames.has(mb.name)) ? 'public_impl'
+                : 'internal'
     }
 
     return { modules, symbols, members, heritage, invocations, declMap }

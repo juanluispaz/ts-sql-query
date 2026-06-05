@@ -95,7 +95,7 @@ not one id — start from `__addOrderBy`'s invocation caller name, then the real
 name. The bare `is_public member with no resolved ref` count is inflated for the same reason —
 treat it as candidates, confirmed by a name-level check.
 
-## What it indexes (16 tables — [`schema.ts`](schema.ts) is authoritative)
+## What it indexes (21 tables — [`schema.ts`](schema.ts) is authoritative)
 
 Built by one extractor per dimension; rows are assembled in [`model.ts`](model.ts) and
 bulk-inserted by [`build.ts`](build.ts) (which also writes the `meta` table directly).
@@ -181,6 +181,12 @@ the impl — match by name across the owning family).
   Answers "where in the docs is `X` reflected / explained?".
 
 ### legacy examples dimension — [`extractExamples.ts`](extractExamples.ts)
+- **example_block.{db,version,connector}** — the matrix CELL each legacy example targets, derived
+  from its filename (no folder structure): db (`PgExample`→postgres), version (`-compatibility`
+  suffix → oldest, else newest), connector (`PgExample`→pg, `BunSqlPostgresExample`→bun_sql_postgres,
+  …; `''` for the `documentation/` per-db generators). Via `dbFromExampleFile` /
+  `versionFromExampleFile` / `connectorFromExampleFile`. These columns let the searcher's `--coord`
+  address the legacy examples by full cell, exactly like the matrix test cells.
 - **example_block** / **example_ref** — `src/examples/` cases; `example_ref` is one row
   per occurrence with `line`/`col` + `resolved_symbol_id`/`resolved_member_id`.
   `src/examples/prisma/` (generated) excluded.
@@ -192,6 +198,32 @@ the impl — match by name across the owning family).
   block in the test dimension; this makes each negative assertion first-class.
 - **neg_type_ref** — the API names in the statement that contains the target line, resolved —
   "WHICH API (+ line) does this negative test guard?" (e.g. `onConflictOn`/`insertInto`/`values`).
+
+### schema-v4 extras — [`extractExtras.ts`](extractExtras.ts)
+Four dimensions the searcher's v2 intents need (see [`../symbolIndex/REPORT_MODEL_V2.md`](../symbolIndex/REPORT_MODEL_V2.md)).
+The first three reuse the `extractSrc` declMap; `bug_marker` is a plain comment scan over `test/`.
+- **version_gate** — one row per comparison against a per-db compatibility-version field
+  (`compatibilityVersion <op> <numeric breakpoint>`) in the SqlBuilders: the enclosing method,
+  the `operator` (mirrored so it reads field-first), the `breakpoint` literal. The navigation
+  target for version/matrix work (`--version-gates`, case E).
+- **sql_emit** — one row per SQL-ish string literal emitted inside a SqlBuilder method (`literal`
+  + `literal_lc` for case-insensitive LIKE). The build-side bridge `--emits-keyword <fragment>`
+  uses: from a bad SQL token to the code that emits it (case D/F).
+- **producer** — `(member_id, produces_symbol_id)`: a member whose return type resolves (via the
+  checker) to an indexed interface/class — "what call returns a receiver of this type" (`--producers`,
+  case B). Self-returns (`this`) and unresolved types are skipped.
+- **todo_marker** — one row per `// TODO` in a test file (`file`, `line`, `tag`, `text`), the
+  bracketed modifier captured as `tag` (`BUG`, `LIMITATION`, … or NULL for a bare `// TODO`).
+  `--bugs` surfaces the `tag='BUG'` subset (the generator→fixer divergence channel; `test/BUGS.md`
+  itself is read directly) and `--limitation` the `tag='LIMITATION'` subset (`test/LIMITATIONS.md`);
+  any other tags are indexed for completeness, not yet consumed by a section.
+- **emitted_sql** — one row per `toMatchInlineSnapshot` argument that looks like SQL, in a matrix
+  cell (`source='test'`) or a generated documentation cell (`source='doc'`). NO block FK: the
+  searcher recovers the owning block by `file` + line-containment (`test_block.start_line..end_line`,
+  or `doc_test_block.gen_start_line..gen_end_line`), so this stays decoupled from those extractors.
+  Surfaced by `--emitted-sql` (the SQL a symbol's tests/docs assert, cases C/D) and matchable by
+  fragment for the stale-SQL sweep (case F). Legacy `src/examples/` use runtime assertions, not
+  inline snapshots, so they are not represented here.
 
 ## Three tricky patterns it captures
 

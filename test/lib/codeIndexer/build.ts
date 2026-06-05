@@ -19,6 +19,7 @@ import { SCHEMA, SCHEMA_VERSION } from './schema.js'
 import { Ids, INSERTS } from './model.js'
 import { buildProgram, setResolveEnabled } from './resolve.js'
 import { extractSrc } from './extractSrc.js'
+import { extractExtras, extractTodoMarkers, extractEmittedSql } from './extractExtras.js'
 import { reconcileSimplified } from './reconcileSimplified.js'
 import { extractTests } from './extractTests.js'
 import { extractDocTests } from './extractDocTests.js'
@@ -95,6 +96,15 @@ async function main(): Promise<void> {
         db.insertMany(INSERTS.reconcile.sql, recon.reconcile.map(INSERTS.reconcile.row))
         db.insertMany(INSERTS.reconcileGap.sql, recon.gaps.map(INSERTS.reconcileGap.row))
         db.insertMany(INSERTS.invocation.sql, src.invocations.map(INSERTS.invocation.row))
+        // schema-v4 extras: version gates + emitted-SQL literals + producer edges + bug markers.
+        const extras = extractExtras(program, checker, src.declMap, src.modules, ids)
+        const todos = extractTodoMarkers(program, ids)
+        const emittedSql = extractEmittedSql(program, ids)
+        db.insertMany(INSERTS.versionGate.sql, extras.versionGates.map(INSERTS.versionGate.row))
+        db.insertMany(INSERTS.sqlEmit.sql, extras.sqlEmits.map(INSERTS.sqlEmit.row))
+        db.insertMany(INSERTS.producer.sql, extras.producers.map(INSERTS.producer.row))
+        db.insertMany(INSERTS.todoMarker.sql, todos.map(INSERTS.todoMarker.row))
+        db.insertMany(INSERTS.emittedSql.sql, emittedSql.map(INSERTS.emittedSql.row))
         lines.push(
             `  modules:     ${src.modules.length}`,
             `  symbols:     ${src.symbols.length}  (public: ${src.symbols.filter(s => s.is_public).length})`,
@@ -102,6 +112,7 @@ async function main(): Promise<void> {
             `  heritage:    ${src.heritage.length}  (simplified edges: ${recon.heritage.length})`,
             `  reconcile:   ${recon.reconcile.length}  (gap members: ${recon.gaps.length})`,
             `  invocations: ${src.invocations.length}  (${pct(src.invocations)})`,
+            `  version gates:${extras.versionGates.length}  ·  sql emits: ${extras.sqlEmits.length}  ·  producers: ${extras.producers.length}  ·  todo markers: ${todos.length} (BUG: ${todos.filter(t => t.tag === 'BUG').length})  ·  emitted sql: ${emittedSql.length}`,
         )
         return src.declMap
     })()

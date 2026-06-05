@@ -10,6 +10,7 @@
 
 import { setResolveEnabled, buildProgram } from './resolve.js'
 import { extractSrc } from './extractSrc.js'
+import { extractExtras, extractTodoMarkers, extractEmittedSql } from './extractExtras.js'
 import { reconcileSimplified } from './reconcileSimplified.js'
 import { extractTests } from './extractTests.js'
 import { extractDocTests } from './extractDocTests.js'
@@ -41,6 +42,9 @@ async function main(): Promise<void> {
     const docs = extractDocTests(program, checker, src.declMap, ids)
     const examples = extractExamples(program, checker, src.declMap, ids)
     const negTypes = extractNegTypeTests(program, checker, src.declMap, ids)
+    const extras = extractExtras(program, checker, src.declMap, src.modules, ids)
+    const todos = extractTodoMarkers(program, ids)
+    const emittedSql = extractEmittedSql(program, ids)
     console.log(`code-indexer verify (name-based) — extracted in ${((performance.now() - t0) / 1000).toFixed(1)} s\n`)
 
     // ── counts in a sane range (catch an extractor that silently went empty) ──
@@ -86,6 +90,27 @@ async function main(): Promise<void> {
 
     // ── negative-type sanity ──
     check('neg_type: marker_line < target_line', negTypes.negTypes.every(n => n.marker_line < n.target_line))
+
+    // ── schema-v4 extras (version gates / sql emits / producers / bug markers) ──
+    check('version gates ≥ 1', extras.versionGates.length >= 1, `${extras.versionGates.length}`)
+    check('version gates carry a numeric breakpoint', extras.versionGates.every(g => /\d/.test(g.breakpoint)))
+    check('sql emits ≥ 100', extras.sqlEmits.length >= 100, `${extras.sqlEmits.length}`)
+    check('sql emits lowercased', extras.sqlEmits.every(e => e.literal_lc === e.literal.toLowerCase()))
+    check('producers ≥ 1', extras.producers.length >= 1, `${extras.producers.length}`)
+    allIn('producer.member_id → member', extras.producers.map(p => p.member_id), new Set(src.members.map(m => m.id)))
+    allIn('producer.produces_symbol_id → symbol', extras.producers.map(p => p.produces_symbol_id), symbolIds)
+    check('todo markers under test/', todos.every(b => b.file.startsWith('test/')))
+    check('todo markers ≥ 1', todos.length >= 1, `${todos.length}`)
+    check('some TODO[BUG] markers tagged', todos.some(t => t.tag === 'BUG'), `BUG: ${todos.filter(t => t.tag === 'BUG').length}`)
+    check('emitted sql ≥ 1000', emittedSql.length >= 1000, `${emittedSql.length}`)
+    check('emitted sql sources ⊆ {test,doc}', emittedSql.every(e => e.source === 'test' || e.source === 'doc'))
+    check('emitted sql looks like SQL', emittedSql.every(e => /^(select|insert|update|delete|with|create|drop|alter|truncate|begin|commit|rollback|savepoint|merge|set )/i.test(e.sql)))
+    const KNOWN_DBS = new Set(['mariadb', 'mysql', 'oracle', 'postgres', 'sqlite', 'sqlserver'])
+    check('example.db ⊆ known dbs ∪ null', examples.exampleBlocks.every(b => b.db === null || KNOWN_DBS.has(b.db)))
+    check('most example blocks have a db', examples.exampleBlocks.filter(b => b.db !== null).length > examples.exampleBlocks.length * 0.8, `${examples.exampleBlocks.filter(b => b.db !== null).length}/${examples.exampleBlocks.length}`)
+    check('example.version ⊆ {newest,oldest}', examples.exampleBlocks.every(b => b.version === 'newest' || b.version === 'oldest'))
+    check('some oldest (-compatibility) examples', examples.exampleBlocks.some(b => b.version === 'oldest'))
+    check('most non-doc example blocks have a connector', examples.exampleBlocks.filter(b => b.is_doc === 0 && b.connector).length > examples.exampleBlocks.filter(b => b.is_doc === 0).length * 0.8)
 
     console.log(`\n${failures === 0 ? 'OK — all invariants hold' : `FAILED — ${failures} invariant(s) broken`}`)
     process.exit(failures === 0 ? 0 : 1)

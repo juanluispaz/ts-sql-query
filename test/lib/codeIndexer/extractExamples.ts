@@ -31,6 +31,53 @@ export interface ExampleExtract {
     exampleRefs: ExampleRefRow[]
 }
 
+// The database a legacy example targets, derived from its filename (the examples carry their
+// db in the file name, not in cell coordinates). Order matters: check the more specific names
+// before postgres' broad pg/postgres match. Returns null for an unrecognised file.
+export function dbFromExampleFile(file: string): string | null {
+    const base = (file.split('/').pop() ?? '').toLowerCase()
+    if (/mariadb/.test(base)) return 'mariadb'
+    if (/mysql/.test(base)) return 'mysql'
+    if (/oracle/.test(base)) return 'oracle'
+    if (/sqlserver|mssql/.test(base)) return 'sqlserver'
+    if (/sqlite/.test(base)) return 'sqlite'
+    if (/postgres|postgresql|pglite|pg/.test(base)) return 'postgres'
+    return null
+}
+
+// The compatibility version the example targets: a '-compatibility' filename → the oldest
+// supported version; everything else → newest. (Sqlite-modern, *Example.ts → newest.)
+export function versionFromExampleFile(file: string): string {
+    return /-compatibility/i.test(file) ? 'oldest' : 'newest'
+}
+
+// The driver/connector the example uses, from the filename — matched to the matrix connector
+// names where they line up. Order matters (specific before general: pglite before pg, the
+// bun_sql_* before bun_sqlite, etc.). The documentation/ files are per-db doc generators with
+// no single driver, so they get '' (db + version still apply).
+export function connectorFromExampleFile(file: string): string {
+    if (file.includes('/examples/documentation/')) return ''
+    const base = (file.split('/').pop() ?? '').toLowerCase()
+    if (/prisma/.test(base)) return 'prisma'
+    if (/bunsqlpostgres/.test(base)) return 'bun_sql_postgres'
+    if (/bunsqlmysql/.test(base)) return 'bun_sql_mysql'
+    if (/bunsqlmariadb/.test(base)) return 'bun_sql_mariadb'
+    if (/bunsqlsqlite/.test(base)) return 'bun_sql_sqlite'
+    if (/bunsqlite/.test(base)) return 'bun_sqlite'
+    if (/bettersqlite3/.test(base)) return 'better-sqlite3'
+    if (/nodesqlite/.test(base)) return 'node_sqlite'
+    if (/sqlite3wasmoo1/.test(base)) return 'sqlite-wasm-OO1'
+    if (/sqlite3/.test(base)) return 'sqlite3'
+    if (/pglite/.test(base)) return 'pglite'
+    if (/mssql|tedious/.test(base)) return 'mssql'
+    if (/oracledb/.test(base)) return 'oracledb'
+    if (/mysql2/.test(base)) return 'mysql2'
+    if (/mariadb/.test(base)) return 'mariadb'
+    if (/postgresexample/.test(base)) return 'postgres'
+    if (/pg/.test(base)) return 'pg'
+    return ''
+}
+
 // A half-open [start, end) character interval = one example case.
 interface Interval { start: number, end: number }
 
@@ -70,6 +117,9 @@ function processFile(relPath: string, ids: Ids, blocks: ExampleBlockRow[], refs:
     if (!sf) return
     const text = sf.text
     const isDoc = relPath.includes('/examples/documentation/') ? 1 : 0
+    const db = dbFromExampleFile(relPath)
+    const version = versionFromExampleFile(relPath)
+    const connector = connectorFromExampleFile(relPath)
 
     const intervals = isDoc ? docIntervals(text) : assertIntervals(sf)
     if (intervals.length === 0) return
@@ -80,7 +130,7 @@ function processFile(relPath: string, ids: Ids, blocks: ExampleBlockRow[], refs:
     const blockIds = intervals.map((iv, i) => {
         const id = ids.next()
         blocks.push({
-            id, file: relPath, is_doc: isDoc, ordinal: i + 1,
+            id, file: relPath, db, version, connector, is_doc: isDoc, ordinal: i + 1,
             start_line: lineOf(iv.start), end_line: lineOf(Math.max(iv.start, iv.end - 1)),
         })
         return id

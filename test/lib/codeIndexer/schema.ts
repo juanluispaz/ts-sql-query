@@ -7,7 +7,7 @@
 
 // Bump when the schema (tables/columns) changes, so a consumer can reject an index built
 // by an older/newer tool. Written to the meta table at build time as schema_version.
-export const SCHEMA_VERSION = 3
+export const SCHEMA_VERSION = 4
 
 export const SCHEMA = `
 -- Build metadata (key/value): schema_version, built_at (ISO), git_rev, git_dirty, resolve
@@ -75,6 +75,7 @@ CREATE INDEX idx_member_name     ON member(name);
 CREATE INDEX idx_member_symbol   ON member(symbol_id);
 CREATE INDEX idx_member_vis      ON member(visibility);
 CREATE INDEX idx_heritage_sym    ON heritage(symbol_id);
+CREATE INDEX idx_heritage_base   ON heritage(base_name);   -- implementedBy joins heritage by base_name (interface→class bridge)
 
 -- ── reconcile: simplified definitions ↔ the real implementing class ──────────
 -- src/examples/documentation/simplifiedQueryDefinition.ts holds hand-maintained,
@@ -154,6 +155,7 @@ CREATE TABLE test_ref (
 );
 
 CREATE INDEX idx_test_block_cell ON test_block(db, version, connector);
+CREATE INDEX idx_test_block_file ON test_block(file);   -- enclosingTestBlock (test-line inverse search) looks a block up by file
 CREATE INDEX idx_test_ref_name   ON test_ref(symbol_name);
 CREATE INDEX idx_test_ref_block  ON test_ref(test_block_id);
 CREATE INDEX idx_test_ref_rsym   ON test_ref(resolved_symbol_id);
@@ -245,7 +247,7 @@ CREATE TABLE invocation (
 
 CREATE INDEX idx_inv_callee ON invocation(callee_name);
 CREATE INDEX idx_inv_caller ON invocation(caller_name);
-CREATE INDEX idx_inv_module ON invocation(module_id);
+CREATE INDEX idx_inv_module ON invocation(module_id, line);   -- (module_id) prefix for joins + (module_id,line) for calleesAt (--location-target callees)
 CREATE INDEX idx_inv_rsym   ON invocation(resolved_symbol_id);
 CREATE INDEX idx_inv_rmem   ON invocation(resolved_member_id);
 
@@ -260,11 +262,17 @@ CREATE INDEX idx_inv_rmem   ON invocation(resolved_member_id);
 CREATE TABLE example_block (
     id          INTEGER PRIMARY KEY,
     file        TEXT NOT NULL,            -- src/examples/<...>.ts
+    db          TEXT,                     -- database the example targets, from the filename (PgExample→postgres, MySql2Example→mysql, …); NULL if unrecognised
+    version     TEXT,                     -- compatibility version, from the filename: '-compatibility' suffix → oldest, else newest
+    connector   TEXT,                     -- driver/connector, from the filename (PgExample→pg, BunSqlPostgresExample→bun_sql_postgres, …); '' for the documentation/ per-db generators
     is_doc      INTEGER NOT NULL,         -- 1 when under src/examples/documentation/ (renders into docs)
     ordinal     INTEGER NOT NULL,         -- 1-based index of the example within the file
     start_line  INTEGER NOT NULL,
     end_line    INTEGER NOT NULL
 );
+-- The legacy examples carry their cell coordinates in the file NAME (no folder structure), so
+-- these derived columns let --coord address them by db/version/connector like the matrix cells.
+CREATE INDEX idx_example_block_cell ON example_block(db, version, connector);
 
 -- One row per OCCURRENCE (line/col in the example .ts file); count = COUNT(*).
 CREATE TABLE example_ref (
@@ -321,4 +329,90 @@ CREATE INDEX idx_neg_type_ref_rmem ON neg_type_ref(resolved_member_id);
 -- REMOVED — it was a less precise duplicate of the documentation dimension above
 -- (doc_test_block / doc_test_ref), which covers every snippet (kind test|fn|decl)
 -- with exact positions, per db, and verification. That is why the doc tests exist.
+
+-- ── version_gate (schema v4): compatibility-version branches in the SqlBuilders ─
+-- One row per comparison against a per-db compatibility-version field (e.g.
+-- this._connectionConfiguration.compatibilityVersion < 18_000_000). The navigation
+-- target for version/matrix work: which methods branch on which breakpoint. Answers
+-- "how does this codebase gate by version, and at which breakpoints" (see REPORT_MODEL_V2 E).
+CREATE TABLE version_gate (
+    id               INTEGER PRIMARY KEY,
+    module_id        INTEGER NOT NULL REFERENCES module(id),
+    scope_name       TEXT,                 -- enclosing method/function (NULL at top level)
+    scope_start_line INTEGER,
+    scope_end_line   INTEGER,
+    field            TEXT NOT NULL,        -- the gated field, e.g. 'compatibilityVersion'
+    operator         TEXT NOT NULL,        -- <, <=, >, >=, ===, !==
+    breakpoint       TEXT NOT NULL,        -- the literal compared against, e.g. '18_000_000'
+    line             INTEGER NOT NULL,
+    col              INTEGER NOT NULL
+);
+CREATE INDEX idx_version_gate_module ON version_gate(module_id);
+CREATE INDEX idx_version_gate_scope  ON version_gate(scope_name);
+CREATE INDEX idx_version_gate_bp     ON version_gate(breakpoint);
+
+-- ── sql_emit (schema v4): SQL string literals emitted by the SqlBuilders ──────
+-- One row per string literal that looks like emitted SQL inside an _append*/_build*
+-- (or any sqlBuilders-area) method. The build-side bridge for an emission bug: from a
+-- bad SQL token ('returning old.', 'collate') to the code that emits it (REPORT_MODEL_V2
+-- D). Searched by --emits-keyword <fragment> via a substring match on literal.
+CREATE TABLE sql_emit (
+    id               INTEGER PRIMARY KEY,
+    module_id        INTEGER NOT NULL REFERENCES module(id),
+    scope_name       TEXT,                 -- enclosing method/function
+    scope_start_line INTEGER,
+    scope_end_line   INTEGER,
+    literal          TEXT NOT NULL,        -- the string-literal SQL fragment (lowercased copy in literal_lc)
+    literal_lc       TEXT NOT NULL,        -- lower(literal) for case-insensitive LIKE
+    line             INTEGER NOT NULL,
+    col              INTEGER NOT NULL
+);
+CREATE INDEX idx_sql_emit_module ON sql_emit(module_id);
+-- (no index on literal_lc: --emits-keyword uses a leading-wildcard LIKE '%frag%', which no index
+--  can serve; sql_emit is small (~1.8k rows) so the scan is cheap.)
+
+-- ── todo_marker (schema v4): ALL // TODO[...] markers across the test matrix ──
+-- One row per // TODO comment, with its bracketed MODIFIER captured as tag (e.g. 'BUG',
+-- 'PERF', …; NULL for a plain // TODO). TODO[BUG] is the channel the test-generator uses to
+-- flag a real-DB divergence to the bug-fixer (test/BUGS.md itself is read directly; it's tiny)
+-- and is surfaced by --bugs (tag='BUG'); the other tags are indexed for completeness even
+-- though nothing consumes them yet. "Is this already a known divergence?" (REPORT_MODEL_V2 C/D).
+CREATE TABLE todo_marker (
+    id    INTEGER PRIMARY KEY,
+    file  TEXT NOT NULL,                   -- the file carrying the marker
+    line  INTEGER NOT NULL,
+    tag   TEXT,                            -- the bracketed modifier (BUG, PERF, …); NULL for a bare // TODO
+    text  TEXT NOT NULL,                   -- the marker text after the modifier
+    scope TEXT                             -- nearest enclosing test/describe name, when known
+);
+CREATE INDEX idx_todo_marker_file ON todo_marker(file);
+CREATE INDEX idx_todo_marker_tag  ON todo_marker(tag);
+
+-- ── producer (schema v4): public calls whose RETURN TYPE yields a receiver ────
+-- One row per public member (method/function) whose return type resolves to an indexed
+-- interface/class symbol. Answers case B's "what public call returns an object I can call
+-- <method> on" — the upstream/receiver question, the inverse of the call chain. Given a
+-- searched member, find its owner interface(s), then the producers of those owners.
+CREATE TABLE producer (
+    member_id          INTEGER NOT NULL REFERENCES member(id),   -- the producing member
+    produces_symbol_id INTEGER NOT NULL REFERENCES symbol(id)    -- the symbol it returns (interface/class)
+);
+CREATE INDEX idx_producer_produces ON producer(produces_symbol_id);
+CREATE INDEX idx_producer_member   ON producer(member_id);
+
+-- ── emitted_sql (schema v4): the asserted SQL snapshots (tests + docs) ────────
+-- One row per toMatchInlineSnapshot string that looks like SQL, in a matrix test cell
+-- ('test') or a generated documentation cell ('doc'). No block FK: the searcher joins by
+-- file + line-containment against test_block (file/start_line/end_line) or doc_test_block
+-- (gen_file/gen_start_line/gen_end_line), so this stays decoupled from those extractors.
+-- The emitted-sql section shows the SQL a symbol's tests/docs assert (cases C/D/F). Legacy
+-- examples are not covered here (the legacy suite uses runtime assertions, not inline snapshots).
+CREATE TABLE emitted_sql (
+    id     INTEGER PRIMARY KEY,
+    source TEXT NOT NULL,                  -- 'test' (matrix cell) | 'doc' (generated documentation cell)
+    file   TEXT NOT NULL,                  -- the *.test.ts carrying the snapshot
+    line   INTEGER NOT NULL,               -- line of the toMatchInlineSnapshot call
+    sql    TEXT NOT NULL                   -- the SQL text (snapshot quotes stripped)
+);
+CREATE INDEX idx_emitted_sql_file ON emitted_sql(file, line);
 `

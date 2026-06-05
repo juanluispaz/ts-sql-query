@@ -69,6 +69,17 @@ does NOT need to classify entries against these shapes when writing
 them — pattern-matching the symptom to a shape is the fixing agent's
 first move, not the detector's.
 
+Before pattern-matching, gather the emission context:
+`bun run tests:where-is --search <symbol> --for emission-bug` bundles
+`emitted-sql full · implemented-by full (non-overriders) · version-gates
+· bugs full · chain none` — the SQL the symbol emits across tests and
+docs, every implementing class, the compatibility-version branches
+that gate the method, and sibling `// TODO[BUG]` markers, in one
+report. (`chain` is off on purpose — emission happens after the
+call-chain, so the chain never reaches the emission site; use
+`--emits-keyword <sql-fragment>` to walk back from the SQL token to
+the builder code instead.)
+
 Each entry above usually falls into one of these:
 
 - **TS accepts something runtime rejects** — a method typed on a
@@ -102,11 +113,17 @@ When the fix lands:
 
 1. Patch `src/` and add the negative-type test (where applicable).
 2. Remove the corresponding entry from the open list above.
-3. Walk `grep -rn "TODO\[BUG\]" test/db/` and either uncomment the
+3. **Walk every place that reflected the old behaviour**:
+   `bun run tests:where-is --search <symbol> --for post-fix-sync` bundles
+   `emitted-sql full · docs full · examples full · tests detail · chain
+   none` — every asserted SQL across tests and docs, the doc pages that
+   explain it, the legacy `src/examples/` occurrences, and per-test
+   references. Anything still naming the old behaviour needs refreshing.
+4. Walk `grep -rn "TODO\[BUG\]" test/db/` and either uncomment the
    wrapped tests (if the fix re-enables the snippet) or rewrite the
    comment-out reason to its final form — e.g. "Not applicable on
    `<DB>`: <reason>; see `test/db/<db>/types.negative/<file>.ts` for
    the compile-time negative".
-4. Push the changelog entry under
+5. Push the changelog entry under
    [`docs/CHANGELOG.md`](../docs/CHANGELOG.md) describing the
    user-visible change.

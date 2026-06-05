@@ -1,26 +1,30 @@
 # Code Searcher — using it
 
 **Search the codebase for a symbol** and get back, in one report, where it lives, how
-it's reached from the public API, where it's explained in the docs, and what tests it
-— across `src/`, the `test/` matrix, the published `docs/` and the legacy
+it's reached from the public API, where it's explained in the docs, and which tests
+cover it — across `src/`, the `test/` matrix, the published `docs/` and the legacy
 `src/examples/`, without grepping four worlds by hand.
 
 The searcher is the **feature**. It runs against a queryable **SQLite map of the
 codebase** (the *code index*), which is just a **prerequisite** you build once.
 
-This is the **usage** doc — what you run and how to read the answer. To *modify* the
-tools, read the implementation references:
-[`lib/codeSearcher/CODE_SEARCHER.md`](./lib/codeSearcher/CODE_SEARCHER.md) (the
-searcher) and [`lib/codeIndexer/CODE_INDEXER.md`](./lib/codeIndexer/CODE_INDEXER.md)
-(the index it reads). For the **why** — the intents and lessons that shaped the flags —
-see [`lib/codeSearcher/MODEL.md`](./lib/codeSearcher/MODEL.md).
+This is the **usage** doc — what you run and how to read the answer. **If you're
+using the tool, this file is enough**; the implementation references under
+[`lib/codeSearcher/`](./lib/codeSearcher/) and [`lib/codeIndexer/`](./lib/codeIndexer/)
+exist for the person modifying the tools, not for the agent consuming them.
+
+- [The command you'll use](#the-command-youll-use)
+- [When you'd use it](#when-youd-use-it)
+- [Reading the report](#reading-the-report)
+- [Worked example — internal symbol to docs & tests](#worked-example--internal-symbol-to-docs--tests)
+- [Staleness — when to rebuild](#staleness--when-to-rebuild)
 
 ## The command you'll use
 
 The invocation has three orthogonal parts (the same shape as `--help`): pick **one door** (WHAT
 to search for), shape the report with **one levelled flag per section** (`none` hides it; defaults
 reproduce the classic report), and narrow the data dimensions with **filters**. `--for <intent>`
-presets a section set. (The old `--search-mode` is gone — `--chain` / `--name-search` replace it.)
+presets a section set.
 
 ```
 tests:where-is  <door>  [<section> <level>]…  [<filter>]…  [--for <intent>]  [--index <path>]
@@ -120,16 +124,28 @@ bun run tests:index                  # build / refresh the index (~18 s)
 
 You're generating tests from a coverage report and you hold a symbol — often an
 **internal** one like `__addOrderBy`, or a public name you're weighing — or just a
-file:line from the report. Ask:
+file:line from the report. For a quick existence/classification check, the bare
+default is enough:
 
 ```bash
 bun run tests:where-is --search __addOrderBy
 ```
 
-and you get, in one markdown report: does it exist? public or internal? the public
-methods that reach it; where it's explained in the docs (page:line); which
-simplified definition reflects it; and how saturated its test coverage is per
-database. Paste it into a wave plan as a verifiable artifact.
+For wave planning, reach straight for the preset that bundles the sections you
+actually need:
+
+```bash
+bun run tests:where-is --search __addOrderBy --for coverage-gap
+```
+
+`--for coverage-gap` expands to `classification full · chain full · producers ·
+tests gaps · examples full`, so a single call gives you, in one markdown report:
+does it exist? public or internal? the public methods that reach it; where it's
+explained in the docs (page:line); which simplified definition reflects it; and
+which cells are **missing** coverage. Paste it into the wave plan as a verifiable
+artifact. The other intents (`emission-bug`, `version-work`, `post-fix-sync`) have
+their own presets — see the table above. Explicit flags always override the
+preset, so you can refine without restarting from scratch.
 
 ## Reading the report
 
@@ -159,6 +175,25 @@ directly-exported symbols. So a member is marked:
 `tests:where-is --search orderBy` shows the contract interfaces as `[public]` and
 `AbstractSelect.orderBy` as `[public impl]`; `tests:where-is --search __addOrderBy` is
 `[internal]` — reachable only *through* the public `orderBy` (see the chain search below).
+
+### When the symbol is not found
+
+If `Classification` reads **not found**, the indexed `src/` surface has no symbol by
+that name. Three causes, in order of likelihood:
+
+1. **Typo or wrong casing** — re-check spelling, especially the leading `__` for
+   internals (`addOrderBy` vs `__addOrderBy`) and camelCase boundaries.
+2. **Same behaviour, different name** — try `--search-pattern <regex>` over a likely
+   prefix (or a fragment of the documented intent) to surface the actual API.
+3. **Hallucinated API** — the symbol does not exist in the library. If you were
+   about to propose a wave around it, STOP — the wave is invalid. Paste the
+   `Classification` block into the wave plan as the exit artifact and open a
+   follow-up to discuss with the user whether the documented behaviour lives
+   under a different name or whether the docs are stale. See
+   [`ANTIPATTERNS.md` § Hallucinated API](./ANTIPATTERNS.md#5-hallucinated-api).
+
+This is the mechanical close of the pre-flight required by
+[`COVERAGE_RUNBOOK.md` § Verify the API actually exists](./COVERAGE_RUNBOOK.md#verify-the-api-actually-exists).
 
 ### The call-chain (`--chain`) and name search (`--name-search`)
 
@@ -215,7 +250,7 @@ provenance and warns when it's likely out of date:
 ```
 
 If you see those warnings and your question is about code you just changed, re-run
-`bun run tests:index`. (The searcher refuses outright only when the index is from an
-incompatible tool version — a schema mismatch.) For a RAM-constrained machine,
-`bun run tests:index -- --no-resolve` builds faster/lighter but drops the precise
-binding links; name-based lookups still work.
+`bun run tests:index`. If the searcher ever refuses the index outright instead of
+just warning, the same rebuild is the fix. For a RAM-constrained machine, `bun run
+tests:index -- --no-resolve` builds faster/lighter but drops the precise binding
+links; name-based lookups still work.

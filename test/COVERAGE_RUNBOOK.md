@@ -203,26 +203,53 @@ rounds.
 ### Verify the API actually exists
 
 ```bash
-grep -rn "<api-symbol>\b" src/ | head -10
+bun run tests:where-is --search <api-symbol>
 ```
 
-If `grep` returns nothing, the API is a hallucination. Don't propose a
-test for a symbol that doesn't exist — propose a follow-up to discuss
-with the user whether the documented behaviour is implemented elsewhere
-or whether the docs are stale. See
-[`ANTIPATTERNS.md` § Hallucinated API](./ANTIPATTERNS.md#5-hallucinated-api).
+The `Classification` block tells you immediately whether the symbol
+exists (`public` / `public impl` / `internal` / **not found**) and on
+which surface it lives. **Not found** means the API is a hallucination —
+don't propose a test; open a follow-up to discuss whether the documented
+behaviour lives under a different name or whether the docs are stale.
+Paste the `Classification` block into the wave plan as a verifiable
+artifact. See [`CODE_SEARCH.md`](./CODE_SEARCH.md) for the full report
+shape and [`ANTIPATTERNS.md` § Hallucinated API](./ANTIPATTERNS.md#5-hallucinated-api)
+for context.
+
+If the index isn't built yet, run `bun run tests:index` first (~18 s).
+A bare `grep -rn "<api-symbol>\b" src/` is an acceptable fallback when
+the index is unavailable — same exit rule (no hits → hallucination).
 
 ### Verify the existing test inventory
 
-For each candidate API and connector, list every test file that already
-references it:
+```bash
+bun run tests:where-is --search <api-symbol> --for coverage-gap
+```
+
+`--for coverage-gap` is the preset for this step — it expands to
+`classification full · chain full · producers · tests gaps · examples
+full`, so a single call gives you the public reach of the API, every
+cell **missing** coverage, and the legacy examples. Refine with
+`--tests detail` if you also want per-test names for the cells that
+already cover it, or `--coord <db>` to focus a single database. See
+[`CODE_SEARCH.md` § Presets](./CODE_SEARCH.md#the-command-youll-use)
+for the full preset map.
+
+If your proposed wave targets a cell that already covers the API, the
+wave is redundant — drop it. `--tests gaps` identifies the cells where
+the wave can actually close a hole. For cells with existing tests,
+**read those tests in full** (not just the test names) to judge whether
+the coverage is strong (full-canonical-body, mock-validated →
+real-validated) or weak (`mirror-image smell`,
+`stub-as-commented-test`). A weak existing test justifies a wave that
+strengthens it; a strong one means the wave is duplication.
+
+Fallback when the index is unavailable:
 
 ```bash
 grep -rln "<api-symbol>" test/db/postgres/newest/pg/ | head
 grep -rln "<api-symbol>" test/db/sqlite/newest/bun_sqlite/ | head
 ```
-
-If matches exist, **read those tests in full** (not just the test names).
 If the existing test covers the API but the asserted *value* is weak
 (e.g. `expect(rows.length).toBe(2)` instead of `expect(rows).toEqual(...)`),
 the wave is not "add a test" but "strengthen the existing test". Frame it

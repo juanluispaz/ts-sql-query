@@ -158,7 +158,12 @@ A new `<compatibilityVersion>` folder under an existing database:
 
 4. **Copy the test set** from a sibling version (`newest/` is the
    superset; copying from there and then commenting out anything not
-   typed at this older version usually works).
+   typed at this older version usually works). To see which APIs are
+   gated by `compatibilityVersion` and at which breakpoints, use
+   `bun run tests:where-is --search <api> --for version-work` — the
+   preset bundles `version-gates full · tests summary · chain none`,
+   handy when planning step 6's triage. See
+   [`CODE_SEARCH.md`](./CODE_SEARCH.md) for the full preset map.
 
 5. **Bake snapshots** — the SqlBuilder branches on `compatibilityVersion`,
    so each cell emits its own SQL. The snapshot recipe is the same:

@@ -48,7 +48,6 @@ uses.
 | Coverage runs and report formats (html, monocart, etc.) | [`CLI.md` § Coverage](./CLI.md#coverage) |
 | Wall-time numbers for each invocation, bun vs vitest | [`BENCHMARKS.md`](./BENCHMARKS.md) |
 | Validate the documentation code examples (type-check + mock SQL tests of the doc snippets) | [`DOC_CODE_EXTRACTOR.md`](./DOC_CODE_EXTRACTOR.md) |
-| Search the codebase for a symbol — where it lives / is reached / explained / tested (`tests:where-is`, builds on `tests:index`) | [`CODE_SEARCH.md`](./CODE_SEARCH.md) |
 | The shell scripts behind the CLIs | [`scripts/tests.sh`](../scripts/tests.sh) |
 
 ### … write or port a test
@@ -84,7 +83,7 @@ uses.
 | The canonical-cell validation gate (pre-propagation review) | [`QUALITY_GATE.md`](./QUALITY_GATE.md) |
 | The actual prompt the validation sub-agent receives | [`lib/canonical-cell-review-prompt.md`](./lib/canonical-cell-review-prompt.md) |
 | Catalogue of past failure modes with rules + gates | [`ANTIPATTERNS.md`](./ANTIPATTERNS.md) |
-| Ask the index where a coverage-report symbol is reached / explained / tested (`tests:where-is`) | [`CODE_SEARCH.md`](./CODE_SEARCH.md) |
+| Find where a symbol lives / is reached / explained / tested; verify an API exists before proposing a wave (`tests:where-is`, builds on `tests:index`) | [`CODE_SEARCH.md`](./CODE_SEARCH.md) |
 
 ### … know what's broken or limited
 

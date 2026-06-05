@@ -217,20 +217,24 @@ compile" with an `as any` cast (see antipattern #4).
 **Remedy**: before proposing any wave, run
 
 ```bash
-grep -rn "<api-symbol>\b" src/ | head -10
+bun run tests:where-is --search <api-symbol>
 ```
 
-If `grep` returns nothing, the API is a hallucination. Don't propose a
-test for a symbol that doesn't exist — propose a follow-up to discuss with
-the user whether the documented behaviour is implemented elsewhere or
-whether the docs are stale.
+The `Classification` block answers existence directly — `public` /
+`public impl` / `internal` / **not found**. **Not found** means the API
+is a hallucination; don't propose a test, open a follow-up to discuss
+whether the documented behaviour lives under a different name or whether
+the docs are stale. See
+[`CODE_SEARCH.md` § When the symbol is not found](./CODE_SEARCH.md#when-the-symbol-is-not-found).
 
-**Gate today**: COVERAGE_RUNBOOK §4.1 prescribes the grep. Self-policed.
+**Gate today**: mechanical via [`tests:where-is`](./CODE_SEARCH.md) — the
+searcher reports `not found` against the indexed `src/` surface and the
+agent pastes the `Classification` block into the wave plan as a
+verifiable artifact (no longer self-policed). COVERAGE_RUNBOOK §4.1
+prescribes the call.
 
-**Gate pending**: no easy mechanical gate (the agent could lie about
-having grepped). The validation sub-agent reviews each test's API
-references, but the wave-level catch is procedural — the runbook step
-discipline IS the gate.
+**Gate pending**: none. The check is mechanical and produces a copyable
+artifact; the wave-level discipline gap is closed.
 
 ---
 

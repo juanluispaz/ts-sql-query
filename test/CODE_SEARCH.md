@@ -12,33 +12,105 @@ This is the **usage** doc — what you run and how to read the answer. To *modif
 tools, read the implementation references:
 [`lib/codeSearcher/CODE_SEARCHER.md`](./lib/codeSearcher/CODE_SEARCHER.md) (the
 searcher) and [`lib/codeIndexer/CODE_INDEXER.md`](./lib/codeIndexer/CODE_INDEXER.md)
-(the index it reads).
+(the index it reads). For the **why** — the intents and lessons that shaped the flags —
+see [`lib/codeSearcher/MODEL.md`](./lib/codeSearcher/MODEL.md).
 
 ## The command you'll use
 
-You tell it **what** to search for (exactly one of three ways) and optionally **how**
-(`--search-mode`, below):
+The invocation has three orthogonal parts (the same shape as `--help`): pick **one door** (WHAT
+to search for), shape the report with **one levelled flag per section** (`none` hides it; defaults
+reproduce the classic report), and narrow the data dimensions with **filters**. `--for <intent>`
+presets a section set. (The old `--search-mode` is gone — `--chain` / `--name-search` replace it.)
+
+```
+tests:where-is  <door>  [<section> <level>]…  [<filter>]…  [--for <intent>]  [--index <path>]
+```
 
 ```bash
 bun run tests:where-is --search __addOrderBy                              # an exact name
 bun run tests:where-is --search-pattern 'orderBy'                         # regex → full reports
-bun run tests:where-is --search-pattern-summary 'orderBy'                 # regex → a pick-list
-bun run tests:where-is --search-location src/connections/MariaDBConnection.ts:84   # a source location
+bun run tests:where-is --search-location src/sqlBuilders/AbstractSqlBuilder.ts:1119               # a source line → enclosing fn
+bun run tests:where-is --search-location …:1119 --location-target callees                         # the fn invoked ON that line
+bun run tests:where-is --search-location test/db/postgres/newest/pg/select.basic.test.ts:45       # a TEST line → inverse search
+bun run tests:where-is --emits-keyword 'returning old.'                  # a SQL token → the code that emits it
+bun run tests:where-is --search orderBy --coord postgres --chain full --for coverage-gap          # combine freely
 ```
 
-- **`--search <name>`** — an exact symbol/member name.
-- **`--search-pattern <regex>`** — a JS regex over names (like vitest's `--testNamePattern`):
-  a **full report for every matching name** (capped, with a note if truncated).
-- **`--search-pattern-summary <regex>`** — the same regex, but just a compact **list** of the
-  matches: name · kind · **segregated visibility counts** (e.g. `public 15, public_impl 1`) ·
-  total decls · a sample location that **prefers an implementation class (abstract first) over an
-  interface**, so the pointer lands on the shared impl rather than the contract.
-- **`--search-location <path:line>`** — resolves to the function/method that **encloses**
-  that source line, then searches it (it prints which element it resolved to).
+### Doors — WHAT to search for (exactly one)
 
-It reads the code index at `test/lib/codeIndexer/generated/code-index.sqlite`
-(gitignored, disposable). **Build that index once** before the first search, and
-refresh it when it goes stale (see below):
+| Door | Resolves to |
+|---|---|
+| `--search <name>` | an exact symbol/member name (`orderBy`, `__addOrderBy`) |
+| `--search-pattern <regex>` | a JS regex over names → a **full report per** matching name (capped) |
+| `--search-pattern-summary <regex>` | the same regex → a compact **pick-list** (name · kind · visibility counts · decls · sample) |
+| `--search-location <path:line>` | a **source** line → the enclosing fn (or, with `--location-target callees`, the fn **invoked on** the line); a **test** line → inverse search (the `test_block` + the public API it exercises) |
+| `--emits-keyword <sql-fragment>` | the `SqlBuilder` code that emits that SQL token — the emission-bug door |
+
+### Sections — one levelled flag each (`none` hides)
+
+The **default** level is in **bold**; an un-flagged run = the classic report. The `what it shows`
+column doubles as the "reading the report" key (sections appear only when they have content).
+
+| Section flag | Levels (default **bold**) | What it shows |
+|---|---|---|
+| `--classification` | none · **summary** · full | exists? **public** (importable) / **public-surface** (fluent API, not importable) / **internal** / not found — its **kind**, and for a member which public interfaces expose it |
+| `--declared` | none · **summary** · full | every declaration site: kind + `path:line` + first JSDoc line |
+| `--signature` | none · **summary** · public-interface · public-impl · internal · full | signature + JSDoc, prefixed `[public]` / `[public impl]` / `[internal]` + owner kind, **simplified-map form first** |
+| `--chain` | none · **strict** · broad · full | the call-chain: public callers grouped by area + direct callers. `broad` climbs **past** public; `full` = the **whole internal stack** |
+| `--producers` | **none** · summary · full | public calls whose **return type** yields a receiver you can call the member on (the upstream/receiver search) |
+| `--implemented-by` | none · **summary** · full | each class implementing an interface that declares the member — impl line + impl/class spans, or "inherits it" (**non-overriders** shown); + the simplified def(s) it realizes |
+| `--version-gates` | **none** · summary · full | compatibility-version branches (`compatibilityVersion <op> <breakpoint>`) + the methods they gate |
+| `--docs` | none · **summary** · by-page · full | where it's **explained**: doc page + heading + exact line, per db, with the snippet kind |
+| `--simplified` | none · **summary** · full | when the name IS a simplified def: completeness vs the real API per source + drift; and where the member appears **inside** a simplified-def snippet |
+| `--emitted-sql` | **none** · summary · full | the asserted `toMatchInlineSnapshot` SQL the symbol's **tests + docs** produce, de-duped with the asserting cells + the refresh kind |
+| `--tests` | none · **summary** · detail · gaps | matrix coverage — `summary` = `newest/total` per db; `detail` = per-test; `gaps` = who's-**missing** per db |
+| `--examples` | none · **summary** · full | legacy `src/examples/` occurrences |
+| `--neg-types` | none · **summary** · full | `@ts-expect-error` negative-type assertions, per db |
+| `--bugs` | **none** · summary · full | `// TODO[BUG]` markers mentioning the name (the BUG subset of all indexed TODO markers) |
+| `--limitation` | **none** · summary · full | `// TODO[LIMITATION]` markers mentioning the name (the sibling tag; not in any preset) |
+| `--name-search` | **none** · full | name-based discovery — every place the name appears, per dimension (high recall) |
+
+### Global focus — matrix coordinates (`--coord`)
+
+`--coord` is the **single focus filter** — a matrix coordinate `db[/version[/connector[/file]]]`
+with glob `*` and brace `{a,b}`, **repeatable** (union). It focuses **every db/cell-aware section**,
+best-effort per dimension (the same mental model as the main `tests` CLI's coordinates, but as a
+global focus). Exact closed-set values; no fuzzy substrings.
+
+| | Matched against the coord |
+|---|---|
+| **tests**, **emitted-sql** (test rows) | the **full cell** — `db` / `version` / `connector` (/ test-file basename) |
+| **legacy examples** | the **full cell** too — db/version/connector are derived from the filename (`PgExample`→`postgres/newest/pg`, `MariaDBExample-compatibility`→`mariadb/oldest/mariadb`; the `documentation/` generators have no connector) |
+| **docs**, **shown-in-simplified-def**, **negative-type**, **emitted-sql** (doc rows) | the **db segment** only (these have no version/connector). db-agnostic `general` docs are always kept |
+
+The optional **4th (file) segment** is a glob/brace on the test-file **basename**; it **coexists**
+with `--file-name-pattern` (a regex over the full path that also covers doc pages) — both AND. A
+coord matching no indexed cell/file is an **error** (nullglob). Examples: `--coord postgres`
+(everything postgres) · `--coord 'postgres/*/{pg,postgres}'` (those connectors) · `--coord
+'mariadb/oldest'` (the `-compatibility` examples) · `--coord 'postgres/newest/pg/select.order-by*'`
+(a test file) · `--coord '*/newest' --coord mysql`.
+
+### Narrow WITHIN the sections (orthogonal to the matrix axes)
+
+| Narrowing | Narrows |
+|---|---|
+| `--test-name-pattern <regex>` | tests by name |
+| `--file-name-pattern <regex>` | file dimensions (test files, doc pages) |
+| `--owner-kind <interface\|class\|type>` · `--owner <name>` | declared / signature by owner |
+| `--breakpoint <n>` | version-gates to one breakpoint (e.g. `18_000_000`) |
+
+### Presets — `--for <intent>` (explicit flags still override)
+
+| `--for` | sets |
+|---|---|
+| `coverage-gap` | classification full · chain full · producers · tests gaps · examples full |
+| `emission-bug` | emitted-sql full · implemented-by full (non-overriders) · version-gates · bugs full · **chain none** |
+| `version-work` | version-gates full · tests summary · chain none |
+| `post-fix-sync` | emitted-sql full · docs full · examples full · tests detail · chain none |
+
+`--index <path>` selects which code-index file to read (default
+`test/lib/codeIndexer/generated/code-index.sqlite`, gitignored/disposable) — rarely needed. **Build
+the index once** before the first search and refresh it when stale:
 
 ```bash
 bun run tests:index                  # build / refresh the index (~18 s)
@@ -61,22 +133,8 @@ database. Paste it into a wave plan as a verifiable artifact.
 
 ## Reading the report
 
-Sections appear only when they have content:
-
-| Section | Tells you |
-|---|---|
-| **Classification** | exists? **public** (directly importable), **public-surface** (used through the fluent API, not directly importable), or **internal** / **not found** — its **kind** (interface / class / type), and for a member whether it's exposed by a public interface and by which ones |
-| **Declared** | every declaration site, prefixed with its **kind** (interface / class / type / …), `path:line` + the first JSDoc line |
-| **Signature** | the signature + JSDoc, each prefixed with `[public]` / `[public impl]` / `[internal]` + the **owner kind**, **simplified-map form first** (the human-readable one the docs render) |
-| **Implemented by** | each class implementing an interface declaring this member — the line points at the **implementation** (with both the implementation span and class span), or just the class span when the class inherits it — plus the simplified def(s) it realizes, located (the bridge to "what docs talk about") |
-| **Explained in docs** | doc page + section heading + exact line, per database, with the snippet kind |
-| **Shown in simplified-def docs** | where the member appears inside a simplified-definition snippet in the docs |
-| **Simplified definition** | when the name IS a simplified def: how complete it is vs the real API, per source, with drift flags |
-| **Coverage** | matrix tests by database — **total and newest-only** (`newest/total`; older versions usually re-emit the same snapshots, so newest is the telling number) — legacy example occurrences, negative-type assertions |
-| **Search: …** | the result of each `--search-mode` you ran (see *Two search strategies* below) |
-
-The facts above (classification, signature, where it's implemented/explained/tested) are
-always shown. The **Search** section(s) are what you choose with `--search-mode`.
+Sections appear only when they have content; **what each shows** is the `What it shows` column of
+the **Sections** table above. The cross-cutting reading conventions:
 
 Every `file:line` in the report is followed by a **labelled block range** naming what
 that range is — `(definition spans lines N–M)` for a declaration, `(caller body lines
@@ -102,32 +160,32 @@ directly-exported symbols. So a member is marked:
 `AbstractSelect.orderBy` as `[public impl]`; `tests:where-is --search __addOrderBy` is
 `[internal]` — reachable only *through* the public `orderBy` (see the chain search below).
 
-### Two search strategies (`--search-mode`)
+### The call-chain (`--chain`) and name search (`--name-search`)
 
-The report has two parts: the **facts** (always shown — classification, signature, where it's
-implemented/explained/tested) and the **search**, which answers "where/how is this used?".
-There are two fundamentally different ways to answer that, and `--search-mode` picks them. It
-is **repeatable** — combine strategies freely. If you pass none, `chain-strict` runs.
+The report's **facts** are always shown (classification, signature, where it's
+implemented/explained/tested). The **searches** answer "where/how is this used?", and each is
+its own levelled flag:
 
 ```bash
-bun run tests:where-is --search <name>                                       # chain-strict (default)
-bun run tests:where-is --search <name> --search-mode chain-broad
-bun run tests:where-is --search <name> --search-mode chain-strict --search-mode name   # combine
+bun run tests:where-is --search <name>                          # --chain strict (default)
+bun run tests:where-is --search <name> --chain broad            # climb past the public callers
+bun run tests:where-is --search <name> --chain full             # the WHOLE internal stack
+bun run tests:where-is --search <name> --name-search full       # every place the name appears
 ```
 
-| `--search-mode` | how it searches | answers | precision |
-|---|---|---|---|
-| **`chain-strict`** (default) | **call-chain**: walk the recorded invocation graph upward from the symbol and **stop at the first public caller** (grouped by area) | "what public API reaches this — the precise route" | high (tight, on-operation) |
-| **`chain-broad`** | **call-chain**, but keep climbing **past** the public callers through the whole graph | "the wider surrounding chain" | lower — the invocation edges are name-based, so it crosses shared `query`/`__toSql` funnels and pulls in sibling operations |
-| **`name`** | **name-based**: match the name across every dimension (symbols, members, tests, docs, examples, negatives) | "everywhere this name appears" | low/high-recall — ignores the call-chain entirely, so it finds usages the graph can't connect, with noise |
+| level | how it searches | answers |
+|---|---|---|
+| **`--chain strict`** (default) | call-chain upward, **stop at the first public caller** (grouped by area) | "what public API reaches this — the precise route" |
+| **`--chain broad`** | call-chain, climbing **past** the public callers through the whole graph | "the wider surrounding chain" (lower precision — name-based edges cross funnels) |
+| **`--chain full`** | the **entire internal stack**, every hop grouped by depth | "the complete route, internal included" — for understanding a deep emission site |
+| **`--name-search full`** | name-based across every dimension (symbols, members, tests, docs, examples, negatives) | "everywhere this name appears" (high recall, low precision) |
 
-The first two are the *same* search (the call-chain) at two stop points; `name` is the *other*
-search (pure name lookup). A hop is *public* when the calling function is itself public (a
-`public`/`public_impl` member or a public-surface symbol), in **any** area. Example:
-`--search __addOrderBy` (chain-strict) reports it's reached by the public `orderBy` /
-`orderByFromString` — the precise chain; add `--search-mode name` to also see every mention.
+A hop is *public* when the calling function is itself public (a `public`/`public_impl` member or
+a public-surface symbol), in **any** area. **`--chain` is the wrong tool for an emission/syntax
+bug** — the SQL is built then executed, so neither the runtime stack nor the call-chain reaches
+the emission; use `--emits-keyword` instead (and `--for emission-bug` sets `--chain none`).
 
-Under `npm run` the flags need a `--` separator (`npm run tests:where-is -- --search <name> --search-mode name`);
+Under `npm run` the flags need a `--` separator (`npm run tests:where-is -- --search <name> --chain full`);
 under `bun run` they pass straight through.
 
 ## Worked example — internal symbol to docs & tests
@@ -151,7 +209,7 @@ The index is a **snapshot** of the tree at build time. Every report header state
 provenance and warns when it's likely out of date:
 
 ```
-> index: built 2026-06-03T20:32:03Z · 40fa555f-dirty · resolved · schema v3
+> index: built 2026-06-05T14:20:00Z · 40fa555f-dirty · resolved · schema v4
 > ⚠️  index built at 40fa555f, working tree is at d9100896 — likely STALE; rebuild with `tests:index`
 > ⚠️  working tree is dirty — the index may not reflect uncommitted edits
 ```

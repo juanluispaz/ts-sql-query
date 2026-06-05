@@ -258,6 +258,7 @@
         "tests:index": "bash scripts/tests-index.sh",
         "tests:index:verify": "bash scripts/tests-index-verify.sh",
         "tests:where-is": "bash scripts/tests-where-is.sh",
+        "tests:where-is:check": "bash scripts/tests-where-is-check.sh",
         "tests:stop-containers": "bash scripts/tests-stop-containers.sh",
         "tests:reopen": "bash scripts/tests-reopen.sh",
         "test:fast": "bash scripts/tests.sh",

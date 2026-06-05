@@ -255,29 +255,17 @@ export function callChain(db: QueryDb, seed: string, broad: boolean): ChainResul
     return { hops, truncated }
 }
 
-// ── R2: coverage — which databases test the name, at test() granularity ──────
-// `tests` is across ALL matrix versions; `newest` is just the canonical newest cells
-// (older versions usually re-emit the same snapshots, so newest is the telling number).
-export interface CoverageRow { db: string, tests: number, newest: number }
-export function testCoverage(db: QueryDb, name: string): CoverageRow[] {
-    return db.all<CoverageRow>(
-        `SELECT tb.db,
-                count(DISTINCT tb.id) AS tests,
-                count(DISTINCT CASE WHEN tb.version='newest' THEN tb.id END) AS newest
-         FROM test_ref tr JOIN test_block tb ON tb.id=tr.test_block_id
-         WHERE tr.symbol_name=? GROUP BY tb.db ORDER BY newest DESC, tests DESC`,
+// One row per legacy-example OCCURRENCE of the name, carrying the example's cell coordinates
+// (db/version/connector from the filename) so the searcher can apply --coord per occurrence and
+// then count (occurrences + distinct blocks).
+export interface ExampleOcc { example_block_id: number, db: string, version: string, connector: string }
+export function exampleOccurrences(db: QueryDb, name: string): ExampleOcc[] {
+    return db.all<ExampleOcc>(
+        `SELECT er.example_block_id, COALESCE(eb.db,'') AS db, COALESCE(eb.version,'') AS version, COALESCE(eb.connector,'') AS connector
+         FROM example_ref er JOIN example_block eb ON eb.id=er.example_block_id
+         WHERE er.symbol_name=?`,
         [name],
     )
-}
-
-export interface ExampleCoverage { occurrences: number, blocks: number }
-export function exampleCoverage(db: QueryDb, name: string): ExampleCoverage {
-    const [row] = db.all<ExampleCoverage>(
-        `SELECT count(*) AS occurrences, count(DISTINCT example_block_id) AS blocks
-         FROM example_ref WHERE symbol_name=?`,
-        [name],
-    )
-    return row ?? { occurrences: 0, blocks: 0 }
 }
 
 // ── neg_type (§11.2): which negative assertions guard the name, by db ────────
@@ -302,6 +290,8 @@ export interface DocHit {
     block_start: number    // enclosing scope: the doc snippet's markdown fence spans block_start..block_end
     block_end: number
 }
+// `dbs` is a comma-list of the databases the snippet is copied into; the searcher's --coord
+// db focus is applied in JS over that list (so a glob/brace coord works without SQL gymnastics).
 export function docHits(db: QueryDb, name: string): DocHit[] {
     return db.all<DocHit>(
         `SELECT dtb.page, dtb.heading, r.md_line, r.md_col, dtb.kind,
@@ -354,6 +344,192 @@ export function memberShownInSimplified(db: QueryDb, memberName: string): DefDoc
          GROUP BY b.simplified_def, b.page, r.md_line, b.db
          ORDER BY b.simplified_def, b.page, r.md_line`,
         [memberName],
+    )
+}
+
+// ── global-filter / coord validation: known axis values + the matrix cells ───
+export function knownDbs(db: QueryDb): string[] {
+    return db.all<{ db: string }>(
+        `SELECT DISTINCT db FROM test_block UNION SELECT DISTINCT db FROM doc_test_block ORDER BY db`,
+    ).map(r => r.db)
+}
+// Every distinct cell+file the searcher can address with --coord — the matrix test files UNION
+// the legacy-example files (examples carry their cell in the filename). `file` lets a 4th-level
+// coord (db/version/connector/file) be nullglob-validated; coordMatch ignores it for shorter coords.
+export function distinctCells(db: QueryDb): { db: string, version: string, connector: string, file: string }[] {
+    return db.all<{ db: string, version: string, connector: string, file: string }>(
+        `SELECT DISTINCT db, version, connector, file FROM test_block
+         UNION
+         SELECT DISTINCT db, version, connector, file FROM example_block WHERE db IS NOT NULL`,
+    )
+}
+
+// ── tests: per-test DETAIL (one row per matrix test exercising the name) ─────
+// The raw rows behind `--tests detail`; render.ts applies the result filters
+// (version / connector / name-regex / file-regex) in JS, since SQLite has no regex.
+export interface TestDetailRow {
+    db: string
+    version: string
+    connector: string
+    file: string
+    name: string          // full 'describe > … > test' name
+    start_line: number
+    is_active: number     // 0 when .skip/.todo/commented
+}
+export function testCoverageDetail(db: QueryDb, name: string): TestDetailRow[] {
+    return db.all<TestDetailRow>(
+        `SELECT DISTINCT tb.db, tb.version, tb.connector, tb.file, tb.name, tb.start_line, tb.is_active
+         FROM test_ref tr JOIN test_block tb ON tb.id=tr.test_block_id
+         WHERE tr.symbol_name=?
+         ORDER BY tb.db, tb.version, tb.connector, tb.start_line`,
+        [name],
+    )
+}
+
+// ── tests: GAPS per db — which `newest` connectors are MISSING a test ────────
+// The full set of newest cells in the matrix vs the ones that actually test the name;
+// render.ts diffs them per db to print "covered ✓ / MISSING ✗" per connector.
+export interface CellRow { db: string, connector: string }
+export function newestConnectorsByDb(db: QueryDb): CellRow[] {
+    return db.all<CellRow>(
+        `SELECT DISTINCT db, connector FROM test_block WHERE version='newest' ORDER BY db, connector`,
+    )
+}
+
+// ── --location-target callees: the function(s) INVOKED on a given src line ───
+export interface CalleeAt { callee_name: string, kind: string, col: number }
+export function calleesAt(db: QueryDb, path: string, line: number): CalleeAt[] {
+    return db.all<CalleeAt>(
+        `SELECT DISTINCT i.callee_name, i.kind, i.col
+         FROM invocation i JOIN module m ON m.id=i.module_id
+         WHERE m.path=? AND i.line=? ORDER BY i.col`,
+        [path, line],
+    )
+}
+
+// ── test-line inverse search: the test_block ENCLOSING a test/*.ts:line ──────
+export interface TestBlockHit {
+    id: number
+    db: string
+    version: string
+    connector: string
+    file: string
+    name: string
+    start_line: number
+    end_line: number
+    is_active: number
+}
+export function enclosingTestBlock(db: QueryDb, file: string, line: number): TestBlockHit | null {
+    const [row] = db.all<TestBlockHit>(
+        `SELECT id, db, version, connector, file, name, start_line, end_line, is_active
+         FROM test_block WHERE file=? AND start_line<=? AND end_line>=?
+         ORDER BY (end_line - start_line) ASC LIMIT 1`,
+        [file, line, line],
+    )
+    return row ?? null
+}
+// The public API names a test_block exercises (for the inverse-search report).
+export interface ApiInBlock { symbol_name: string, line: number, uses: number }
+export function testBlockApi(db: QueryDb, blockId: number): ApiInBlock[] {
+    return db.all<ApiInBlock>(
+        `SELECT symbol_name, min(line) AS line, count(*) AS uses
+         FROM test_ref WHERE test_block_id=? GROUP BY symbol_name ORDER BY line`,
+        [blockId],
+    )
+}
+
+// ── version_gate (schema v4): compatibility-version branches ─────────────────
+export interface VersionGateRow {
+    path: string
+    scope_name: string | null
+    scope_start_line: number | null
+    scope_end_line: number | null
+    field: string
+    operator: string
+    breakpoint: string
+    line: number
+}
+// Gates whose enclosing scope IS this name (e.g. --search _useUpdateOldValueInFrom).
+export function versionGatesByScope(db: QueryDb, scopeName: string): VersionGateRow[] {
+    return db.all<VersionGateRow>(
+        `SELECT m.path, g.scope_name, g.scope_start_line, g.scope_end_line, g.field, g.operator, g.breakpoint, g.line
+         FROM version_gate g JOIN module m ON m.id=g.module_id
+         WHERE g.scope_name=? ORDER BY m.path, g.line`,
+        [scopeName],
+    )
+}
+// The whole version landscape (for --search compatibilityVersion or the version-work intent).
+export function versionGatesAll(db: QueryDb, breakpoint: string | null): VersionGateRow[] {
+    const where = breakpoint ? 'WHERE g.breakpoint=?' : ''
+    return db.all<VersionGateRow>(
+        `SELECT m.path, g.scope_name, g.scope_start_line, g.scope_end_line, g.field, g.operator, g.breakpoint, g.line
+         FROM version_gate g JOIN module m ON m.id=g.module_id ${where}
+         ORDER BY g.breakpoint, m.path, g.line`,
+        breakpoint ? [breakpoint] : [],
+    )
+}
+
+// ── sql_emit (schema v4): emission sites for --emits-keyword ──────────────────
+export interface SqlEmitRow { path: string, scope_name: string | null, scope_start_line: number | null, scope_end_line: number | null, literal: string, line: number }
+export function sqlEmitsMatching(db: QueryDb, fragment: string): SqlEmitRow[] {
+    return db.all<SqlEmitRow>(
+        `SELECT m.path, e.scope_name, e.scope_start_line, e.scope_end_line, e.literal, e.line
+         FROM sql_emit e JOIN module m ON m.id=e.module_id
+         WHERE e.literal_lc LIKE ? ORDER BY m.path, e.line`,
+        [`%${fragment.toLowerCase()}%`],
+    )
+}
+
+// ── producer (schema v4): public calls whose RETURN TYPE yields a receiver ────
+// Given a searched member name, find the interfaces that declare it, then the members
+// whose return type produces one of those interfaces (the receiver one calls it on).
+export interface ProducerRow { producer: string, owner: string, owner_kind: string, path: string, start_line: number, end_line: number, produces: string }
+export function producersOf(db: QueryDb, memberName: string): ProducerRow[] {
+    return db.all<ProducerRow>(
+        `SELECT pm.name AS producer, ps.name AS owner, ps.kind AS owner_kind,
+                m.path, pm.start_line, pm.end_line, prod_s.name AS produces
+         FROM member mb
+         JOIN producer p ON p.produces_symbol_id=mb.symbol_id
+         JOIN symbol prod_s ON prod_s.id=mb.symbol_id
+         JOIN member pm ON pm.id=p.member_id
+         JOIN symbol ps ON ps.id=pm.symbol_id
+         JOIN module m ON m.id=ps.module_id
+         WHERE mb.name=?
+         GROUP BY pm.id ORDER BY ps.name, pm.name`,
+        [memberName],
+    )
+}
+
+// ── todo_marker (schema v4): markers (by tag) mentioning the name ─────────────
+// --bugs surfaces tag='BUG' (the generator→fixer channel); --limitation surfaces
+// tag='LIMITATION'. Other indexed TODO tags aren't consumed by a section yet.
+export interface TodoMarkerHit { file: string, line: number, text: string }
+export function todoMarkersMatching(db: QueryDb, name: string, tag: string): TodoMarkerHit[] {
+    return db.all<TodoMarkerHit>(
+        `SELECT file, line, text FROM todo_marker WHERE tag=? AND text LIKE ? ORDER BY file, line`,
+        [tag, `%${name}%`],
+    )
+}
+
+// ── emitted_sql (schema v4): the SQL a symbol's tests/docs assert ────────────
+// Joined by file + line-containment against the block spans (no block FK stored). 'test'
+// rows match the matrix cell span; 'doc' rows match the generated-cell gen_* span.
+export interface EmittedSqlHit { source: string, db: string, cell: string, file: string, line: number, sql: string }
+export function emittedSqlForName(db: QueryDb, name: string): EmittedSqlHit[] {
+    return db.all<EmittedSqlHit>(
+        `SELECT DISTINCT 'test' AS source, tb.db AS db, tb.db||'/'||tb.version||'/'||tb.connector AS cell,
+                es.file, es.line, es.sql
+         FROM test_ref tr JOIN test_block tb ON tb.id=tr.test_block_id
+         JOIN emitted_sql es ON es.source='test' AND es.file=tb.file AND es.line>=tb.start_line AND es.line<=tb.end_line
+         WHERE tr.symbol_name=?
+         UNION ALL
+         SELECT DISTINCT 'doc' AS source, dtb.db AS db, dtb.db||'/documentation' AS cell,
+                es.file, es.line, es.sql
+         FROM doc_test_ref dr JOIN doc_test_block dtb ON dtb.id=dr.doc_test_block_id
+         JOIN emitted_sql es ON es.source='doc' AND es.file=dtb.gen_file AND es.line>=dtb.gen_start_line AND es.line<=dtb.gen_end_line
+         WHERE dr.symbol_name=?
+         ORDER BY source, db`,
+        [name, name],
     )
 }
 

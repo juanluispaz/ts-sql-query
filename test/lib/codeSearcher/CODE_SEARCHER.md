@@ -18,10 +18,16 @@ it ([`tests:index`](../codeIndexer/CODE_INDEXER.md)) is a separate producer. The
 searcher reuses the indexer's [`db.ts`](../codeIndexer/db.ts) (the read-only handle)
 and [`schema.ts`](../codeIndexer/schema.ts) (the `SCHEMA_VERSION` it gates on).
 
+> **Regression guard:** [`verify.ts`](./verify.ts) (run via `tests:where-is:check`) unit-tests the
+> pure logic — `--coord` matrix matching and the door/section/level/preset arg model — with no
+> index and no DB. It is **not** a `*.test.ts`, so the `test/` matrix never collects it; run it on
+> demand. Validate types with `bun run validate:tests` (tsgo) / `:tsc`.
+
 > **Just want to USE it?** Read [`test/CODE_SEARCH.md`](../../CODE_SEARCH.md) instead —
 > the agent-facing usage doc. This file is the **implementation reference** (modules,
-> the read-only seam, how to extend it). The full design rationale lives in
-> [`test/lib/symbolIndex/DESIGN.md`](../symbolIndex/DESIGN.md) §9.
+> the read-only seam, how to extend it). The design rationale (the **why** — intents, the
+> cross-cutting lessons, what was and wasn't built) lives in [`MODEL.md`](./MODEL.md), and the six
+> worked case studies that discovered it in [`CASE_STUDIES.md`](./CASE_STUDIES.md).
 
 ## Run it
 
@@ -34,16 +40,26 @@ bun run tests:where-is --search-pattern-summary '<regex>'               # regex 
 bun run tests:where-is --search-location src/foo/Bar.ts:84               # a source location → enclosing fn
 ```
 
-HOW to search — `--search-mode` (repeatable, default chain-strict):
+Plus the v4 doors: `--location-target callees` (the fn invoked ON a src line), a TEST-file
+`--search-location` (inverse search → the `test_block` + API it exercises), and
+`--emits-keyword <sql-fragment>` (SQL token → the SqlBuilder code that emits it).
+
+HOW to shape the report — **one levelled flag per section** (`--search-mode` was removed):
 
 ```bash
-bun run tests:where-is --search <name> --search-mode chain-broad
-bun run tests:where-is --search <name> --search-mode chain-strict --search-mode name
-bun run tests:where-is --search <name> --db <path>                       # non-default index file
+bun run tests:where-is --search <name> --chain full          # whole internal stack (vs strict/broad)
+bun run tests:where-is --search <name> --tests gaps          # who's-missing per db
+bun run tests:where-is --search <name> --producers full --version-gates full --bugs full
+bun run tests:where-is --search <name> --name-search full    # name-based discovery (was --search-mode name)
+bun run tests:where-is --search <name> --for emission-bug    # preset a section set
+bun run tests:where-is --search <name> --db <path>           # non-default index file
 # or, directly:
 bun test/lib/codeSearcher/search.ts --search <name> [flags]
 npx tsx test/lib/codeSearcher/search.ts --search <name> [flags]          # under Node
 ```
+
+Full flag reference: `bun run tests:where-is --help` (and [`MODEL.md`](./MODEL.md) for the model —
+doors × levelled sections × `--coord` focus × presets, and the rationale behind them).
 
 - **`--search-pattern`** resolves to matching names and prints a **full report for each**
   (capped at 25, separated by `---`, with a note if truncated); **`--search-pattern-summary`**
@@ -91,7 +107,8 @@ In a **chain search** the line is the **exact invocation site** (`invocation.lin
 the searched symbol is called), not the caller's start; the labelled range is the
 caller's body.
 
-The **facts** (always shown) and the **search** sections (chosen via `--search-mode`):
+Each section is a **levelled flag** (`none`/`summary`/`full` + shape levels); `none` hides it.
+Defaults reproduce the classic report. The sections:
 
 | Section | Source recipe | Answers |
 |---|---|---|
@@ -102,9 +119,14 @@ The **facts** (always shown) and the **search** sections (chosen via `--search-m
 | **Explained in docs** | R3 | doc page + heading + exact `md_line`/`md_col` + kind + dbs |
 | **Shown in simplified-def docs** | R8b | where the member appears inside a `decl` (simplified def) snippet |
 | **Simplified definition** | R8 | per-source (`master`/`doc`/`doc-inquery`) shown-vs-real + drift |
-| **Coverage** | R2 + neg_type | matrix tests by db (`newest/total` — newest is the telling number), legacy examples, negative-type assertions |
-| **Search: chain-strict / chain-broad** | R5 + §9.1/§9.2 | *(search)* call-chain — the public callers that reach it, grouped by area, + direct callers (see below) |
-| **Search: name** | R6 | *(search)* name-based — hit count per dimension (low precision, high recall) |
+| **How to obtain a receiver (producers)** | `producer` | (`--producers`) public calls whose return type yields a receiver of this type (case B) |
+| **Version gates** | `version_gate` | (`--version-gates`) compatibility-version branches + the methods they gate (case E) |
+| **Emitted SQL** | `emitted_sql` | (`--emitted-sql`) the asserted SQL the symbol's tests/docs produce, de-duped with the asserting cells (case C/D/F) |
+| **Coverage** | R2 + neg_type | (`--tests <summary\|detail\|gaps>`) matrix tests by db (`newest/total`), per-test detail, or who's-missing per db; legacy examples; negative-type assertions |
+| **Known divergences** | `todo_marker` | (`--bugs`) `// TODO[BUG]` markers mentioning the name (case C/D/F) |
+| **Known limitations** | `todo_marker` | (`--limitation`) `// TODO[LIMITATION]` markers — the sibling tag (not in any preset) |
+| **Search: chain (strict/broad/full)** | R5 + §9.1/§9.2 | *(search, `--chain`)* call-chain — public callers grouped by area + direct callers; `full` = the whole internal stack |
+| **Search: name** | R6 | *(search, `--name-search`)* name-based — hit count per dimension (low precision, high recall) |
 
 **Public surface — read straight from the index.** The public/internal verdict is
 **materialised by the indexer's publics-marking phase** (see CODE_INDEXER.md), so the searcher
@@ -116,12 +138,12 @@ method that implements one is `public_impl`; the rest are `internal` (e.g. `__ad
 for the "exposed by X, Y" detail. This is why an internal helper still surfaces *through* the
 chain search.
 
-### Two search strategies (`--search-mode`)
+### The two searches (`--chain`, `--name-search`)
 
-`--search-mode` selects **how** to answer "where/how is this used?". It is **repeatable** —
-combine strategies; if none is given, `chain-strict` runs. There are two distinct searches:
+The "where/how is this used?" question has two distinct answers, each its own levelled flag
+(`--search-mode` was removed). `--chain` defaults to `strict`.
 
-**Call-chain search (`chain-strict`, `chain-broad`).** `callChain` in
+**Call-chain search (`--chain strict|broad|full`).** `callChain` in
 [`queries.ts`](queries.ts) is an **iterative BFS upward** over the `invocation` table,
 keeping module context. A hop is a **public hop** when the calling function is itself
 public — a `public`/`public_impl` member, or a public-surface symbol — in the SAME module,
@@ -137,7 +159,10 @@ the same search at two stop points:
   operations: more recall, less precision. Bounded by `CHAIN_MAX_DEPTH` (8) /
   `CHAIN_MAX_EDGES` (400); a truncated graph is flagged.
 
-**Name-based search (`name`).** `discovery` in [`queries.ts`](queries.ts) ignores the
+**`--chain full`** renders the *entire* internal stack — every recorded hop grouped by depth,
+not just the public callers — for understanding a deep emission site end to end.
+
+**Name-based search (`--name-search full`).** `discovery` in [`queries.ts`](queries.ts) ignores the
 call-chain entirely and counts every occurrence of the name across all dimensions
 (symbol/member/invocation/test/doc/example/neg). It finds usages the graph can't connect
 (dynamic dispatch, re-exports), at the cost of noise — high recall, low precision.

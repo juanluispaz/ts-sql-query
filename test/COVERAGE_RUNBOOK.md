@@ -39,7 +39,20 @@ tests on the first wave.
 1. **[`CLAUDE.md`](../CLAUDE.md)** at the repo root — repo-wide conventions,
    the `tests` / `tests:audit` command vocabulary, the reserved `test*`
    names.
-2. **[`DESIGN.md`](./DESIGN.md)** in full — the normative core. Pay
+2. **[`CODE_SEARCH.md`](./CODE_SEARCH.md)** in full — the doors, sections,
+   presets and cross-cutting reading conventions are all operational, not
+   optional. **Pay special attention to
+   [§ "This tool vs. textual search"](./CODE_SEARCH.md#this-tool-vs-textual-search)**
+   so that, **before the first search of the session**, you know when to
+   reach for `tests:where-is` (semantic, structural, cross-world: symbol
+   declarations, call-chains, type-arg references, brand sites, doc + test
+   + example coverage) and when to fall back to `grep` (literal text,
+   byte-anchored edits, prose, switch case literals). Skipping this step
+   and going straight to `grep` is the pattern that recently lost
+   `Table.ts` from a bug fix — the entry listed two files; `--declared
+   full` would have listed the three. Refresh the index at session start:
+   `bun run tests:index`.
+3. **[`DESIGN.md`](./DESIGN.md)** in full — the normative core. Pay
    specific attention to:
    - § Real-DB validation — the `mock-validated` vs `real-validated`
      vocabulary that closes the round.
@@ -48,27 +61,27 @@ tests on the first wave.
    - § Mock-only is a smell (both forms) — most common past failure.
    - § The `as any` runtime-guard exception — the ONLY sanctioned `as any`
      in test bodies.
-3. **[`WRITING_TESTS.md`](./WRITING_TESTS.md)** — operational counterpart.
+4. **[`WRITING_TESTS.md`](./WRITING_TESTS.md)** — operational counterpart.
    The sections the runbook deep-links into:
    - § Testing a runtime guard that is also typed at compile time.
    - § When the canonical cell can't compile the body.
    - § Imports used only from commented-out blocks.
    - § When a test surfaces a bug in `src/`.
-4. **[`BUGS.md`](./BUGS.md)** — every entry. A bug entry is a contract:
+5. **[`BUGS.md`](./BUGS.md)** — every entry. A bug entry is a contract:
    it lists which tests are wrapped, which workarounds are forbidden, and
    what the final fix has to do. Reading the entry first prevents
    re-surfacing the same bug and proposing a workaround.
-5. **[`LIMITATIONS.md`](./LIMITATIONS.md)** — every entry. These are
+6. **[`LIMITATIONS.md`](./LIMITATIONS.md)** — every entry. These are
    declared library gaps. A wave that assumes the lib will throw
    `MISSING_GROUP_BY_COLUMN`, gate by deployed-engine-version, or
    enforce something `LIMITATIONS.md` says it will not enforce is doomed.
-6. **[`EXTERNAL_CAVEATS.md`](./EXTERNAL_CAVEATS.md)** — every
+7. **[`EXTERNAL_CAVEATS.md`](./EXTERNAL_CAVEATS.md)** — every
    "Dialect-specific notes" subsection. These are the caveats in force on
    today's matrix: `sqlite3` BigInt, missing `uuid_str`, `Bun#29010`,
    MySQL no RETURNING, Oracle/SqlServer/MariaDB on-conflict shapes. The
    §8 propagation sweep is mechanical only if the agent knows the
    catalog.
-7. **[`ANTIPATTERNS.md`](./ANTIPATTERNS.md)** — every entry. Catalogue of
+8. **[`ANTIPATTERNS.md`](./ANTIPATTERNS.md)** — every entry. Catalogue of
    past failures, the rule each violated and the gate adopted. If a
    proposed wave matches an entry by shape, you're about to repeat
    history.

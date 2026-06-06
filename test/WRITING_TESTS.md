@@ -644,15 +644,38 @@ hands them off; a separate fixing agent diagnoses and patches `src/`.
 Mixing both roles breaks the test agent's breadth-first momentum and
 produces shallow analysis. This split is not optional.
 
-Before triaging, a quick lookup answers whether the API already has a
-known entry:
+Before triaging, **ask the index, not `grep`**. The same lookup answers
+three different questions in one report — paste the output into the
+entry as the verifiable artifact:
 
 ```bash
-bun run tests:where-is --search <api> --bugs summary --limitation summary
+bun run tests:where-is --search <api> --bugs summary --limitation summary --declared full
 ```
 
-If a `// TODO[BUG]` or `// TODO[LIMITATION]` already names the API, reuse
-the existing reason header instead of opening a duplicate entry.
+- `--bugs / --limitation` → if a `// TODO[BUG]` or `// TODO[LIMITATION]`
+  already names the API, reuse the existing reason header instead of
+  opening a duplicate.
+- `--declared full` → every declaration site of the symbol. Do **not**
+  trust a previously-opened entry's "Where:" line as exhaustive — that
+  field reflects what the original author saw. Recent miss: an entry on
+  `virtualColumnFromFragment` named `View.ts` and `Values.ts`; the
+  symbol also lives in `Table.ts`. A grep of the two listed files
+  would have left `Table.ts` regressed.
+
+If the bug is in the type system (overload, variance, assignability),
+swap the preset: `--for type-bug` bundles `declared full · signature
+full · ref-type-arg full · neg-types full · bugs summary · limitation
+summary · chain none` — the route is the signature, not the
+call-chain. And before inventing a new helper or type alias to work
+around the bug, check that the shape doesn't already exist under a
+different name:
+
+```bash
+bun run tests:where-is --search-pattern-summary '<shared-token>'
+```
+
+(Past near-miss: nearly re-introduced `AllowsNoTableOrViewRequired` by
+hand.) Full guide in [`CODE_SEARCH.md` § "This tool vs. textual search"](./CODE_SEARCH.md#this-tool-vs-textual-search).
 
 **Test author's checklist** (this is all you do when you find a suspect):
 

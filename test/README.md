@@ -88,16 +88,43 @@ uses.
 ### … find context fast (the searcher)
 
 `tests:where-is` answers *"where does this symbol live / get reached /
-get explained / get tested"* in one report. The hot spots where the
-docs already wire it into the flow — follow the inline hints rather
-than reading [`CODE_SEARCH.md`](./CODE_SEARCH.md) end-to-end:
+get explained / get tested"* in one report. **Read
+[`CODE_SEARCH.md`](./CODE_SEARCH.md) in full once at session start** —
+doors, sections, presets and reading conventions are all operational.
+Pay special attention to
+[§ "This tool vs. textual search"](./CODE_SEARCH.md#this-tool-vs-textual-search):
+it is the gate that decides searcher vs grep per question. The hot spots
+where the docs wire it into the flow are below — use them as quick
+reminders, not as a substitute for reading the searcher doc once.
+
+**Before you `grep`** — if your next move targets a symbol, type, member
+or SQL token, the searcher already models it. Reach for one of these:
+
+| If you were about to grep for… | Use this instead |
+|---|---|
+| a method / type / symbol name in `src/` (`virtualColumnFromFragment`) | `--search <name> --declared full` — every declaration site (the lesson the `Table.ts` miss taught: a bug entry can name two files when the symbol lives in three) |
+| "what helper exists that contains this token?" (`NoTableOrViewRequired`) | `--search-pattern-summary '<token>'` — pick-list of every matching name with kind, visibility, count, sample |
+| "who overrides / implements this?" | `--implemented-by` (classes), `--ref-implements` (interfaces extending it) |
+| "who calls this from the public surface?" | `--chain strict` (default) — call-chain stopping at the first public caller |
+| "from this signature, what types does it compose and where do they live?" | `--location-target types` (or `--ref-type-arg` for blast radius of a type alias) |
+| "what dispatches on this `unique symbol` brand?" | `--location-target brand` or `--ref-brand` |
+| a SQL token → the builder code that emits it | `--emits-keyword '<sql-fragment>'` |
+| every place a name appears anywhere (high recall fallback) | `--name-search full` |
+
+Grep still wins for **literal prose** (comments, doc bodies, `EXTERNAL_CAVEATS.md`
+catalogues), **switch case literals** (`case 'x'`), **byte-anchored mass edits**
+(perl/python on file positions) and **exact occurrence counts**. The rule of
+thumb lives in [`CODE_SEARCH.md`](./CODE_SEARCH.md#this-tool-vs-textual-search).
+
+Then, for the round-shaping presets:
 
 | Want | Command shape | Where it's wired |
 |---|---|---|
 | Verify an API exists before proposing a wave | `--search <api>` (Classification) | [`COVERAGE_RUNBOOK.md` § Verify the API actually exists](./COVERAGE_RUNBOOK.md#verify-the-api-actually-exists), [`ANTIPATTERNS.md` § Hallucinated API](./ANTIPATTERNS.md#5-hallucinated-api), [`WRITING_TESTS.md` § When a test surfaces a bug](./WRITING_TESTS.md#when-a-test-surfaces-a-bug-in-src) |
 | Plan a coverage wave (existing coverage + missing cells + cell caveats) | `--for coverage-gap` | [`COVERAGE_RUNBOOK.md` § Verify the existing test inventory](./COVERAGE_RUNBOOK.md#verify-the-existing-test-inventory) |
 | Propagate the canonical to sibling cells | `--for propagation` | [`COVERAGE_RUNBOOK.md` § Propagation](./COVERAGE_RUNBOOK.md#propagation), [`QUALITY_GATE.md`](./QUALITY_GATE.md) |
-| Investigate a `src/` emission bug (SQL + impls + version gates + sibling markers) | `--for emission-bug` | [`BUGS.md` § Common bug shapes](./BUGS.md#common-bug-shapes-for-the-fixing-agent) |
+| Investigate a `src/` emission bug (SQL emitted + impls + version gates + sibling markers) | `--for emission-bug` | [`BUGS.md` § Common bug shapes](./BUGS.md#common-bug-shapes-for-the-fixing-agent) |
+| Investigate a `src/` type bug (overload, variance, assignability — the route is the signature, not the call-chain) | `--for type-bug` | [`BUGS.md` § Common bug shapes](./BUGS.md#common-bug-shapes-for-the-fixing-agent) |
 | After patching `src/`, find docs/tests/examples to refresh | `--for post-fix-sync` | [`BUGS.md` § When the fix lands](./BUGS.md) |
 | Add or extend a compatibility-version cell | `--for version-work` | [`NEW_DATABASE.md` § Adding a compatibility version](./NEW_DATABASE.md#adding-a-compatibility-version) |
 | Add a `@ts-expect-error` rule, consistent with existing locks | `--neg-types full` | [`WRITING_TESTS.md` § Negative type tests](./WRITING_TESTS.md#negative-type-tests) |

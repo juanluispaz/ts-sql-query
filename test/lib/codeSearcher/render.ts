@@ -492,40 +492,48 @@ export function render(db: QueryDb, name: string, opts: SearchOptions, meta: Met
         }
     }
 
-    // Cell caveats — TODO[BUG]/TODO[LIMITATION] in the cells the --coord focus touches (case G).
-    // COORD-scoped, NOT filtered by the searched symbol: a wave or propagation can be invalidated by
-    // a caveat declared on the target CELL (e.g. MariaDB UPDATE…RETURNING needs 13.0.1+), which the
-    // name-filtered --bugs/--limitation never surface. Needs a --coord to scope to.
+    // Cell caveats — TODO[BUG]/TODO[LIMITATION] declared on cells (case G). COORD-scoped and NOT
+    // filtered by the searched symbol: a wave/propagation can be invalidated by a caveat on the target
+    // CELL (e.g. MariaDB UPDATE…RETURNING needs 13.0.1+), which name-filtered --bugs/--limitation miss.
+    // The LEVEL is the view, --coord only filters which cells appear (it never changes the view):
+    //   summary → the per-cell MAP (each cell + its caveat counts);  full → the MARKERS, cell-prefixed.
     if (S.cellCaveats !== 'none') {
-        if (!F.coord.length) {
-            push('## Cell caveats (coord-scoped)')
-            push('_pass `--coord <db[/version[/connector]]>` to list TODO[BUG]/TODO[LIMITATION] in the cells you are about to touch._')
-            push()
-        } else {
-            const rows = Q.caveatMarkers(db)
-                .map(m => ({ ...m, cell: cellFromPath(m.file) }))
-                .filter((m): m is typeof m & { cell: CellLike } => !!m.cell && coordMatchAny(m.cell, F.coord))
-            if (rows.length) {
-                push('## Cell caveats — TODO markers in the focused cells (coord-scoped)')
-                const cap = S.cellCaveats === 'full' ? rows.length : Math.min(rows.length, 15)
-                const byCell = new Map<string, typeof rows>()
-                for (const r of rows.slice(0, cap)) {
-                    const k = `${r.cell.db}/${r.cell.version}/${r.cell.connector}`
-                    const l = byCell.get(k) ?? []
-                    if (!l.length) byCell.set(k, l)
-                    l.push(r)
-                }
-                for (const [k, list] of byCell) {
-                    push(`- **${k}**`)
-                    for (const r of list) {
-                        const text = r.text.length > 140 ? r.text.slice(0, 137) + '…' : r.text
-                        push(`  - [${r.tag}] ${r.file.split('/').pop()}:${r.line} — ${text}`)
-                    }
-                }
-                if (rows.length > cap) push(`- …and ${rows.length - cap} more`)
-                push('_(caveats apply to the CELL, not your symbol — see test/BUGS.md / test/LIMITATIONS.md.)_')
-                push()
+        const scoped = Q.caveatMarkers(db)
+            .map(m => ({ ...m, cell: cellFromPath(m.file) }))
+            .filter((m): m is typeof m & { cell: CellLike } => !!m.cell && coordMatchAny(m.cell, F.coord))
+        const cellKey = (c: CellLike): string => `${c.db}/${c.version}/${c.connector}`
+        const matrix = F.coord.length ? '' : ' (whole matrix)'
+        if (scoped.length && S.cellCaveats === 'summary') {
+            // summary = the per-cell MAP: which cells carry caveats + counts (one entry = one cell).
+            push(`## Cell caveats — per-cell map${matrix}`)
+            const byCell = new Map<string, { bug: number, lim: number }>()
+            for (const m of scoped) {
+                const k = cellKey(m.cell)
+                let c = byCell.get(k)
+                if (!c) { c = { bug: 0, lim: 0 }; byCell.set(k, c) }
+                if (m.tag === 'BUG') c.bug++; else c.lim++
             }
+            const cells = [...byCell.entries()].sort((a, b) => (b[1].bug + b[1].lim) - (a[1].bug + a[1].lim))
+            const cap = Math.min(cells.length, 40)
+            for (const [k, c] of cells.slice(0, cap)) {
+                const parts = [c.bug ? `${c.bug} BUG` : '', c.lim ? `${c.lim} LIMITATION` : ''].filter(Boolean).join(', ')
+                push(`- ${k} — ${c.bug + c.lim} (${parts})`)
+            }
+            if (cells.length > cap) push(`- …and ${cells.length - cap} more cells`)
+            push('_(counts per cell, not by symbol; `--cell-caveats full` shows the markers — narrow with `--coord` first.)_')
+            push()
+        } else if (scoped.length) {
+            // full = the MARKERS, each prefixed with its cell (one entry = one marker).
+            push(`## Cell caveats — markers${matrix}`)
+            const sorted = [...scoped].sort((a, b) => cellKey(a.cell).localeCompare(cellKey(b.cell)) || a.line - b.line)
+            const cap = Math.min(sorted.length, 60)
+            for (const m of sorted.slice(0, cap)) {
+                const text = m.text.length > 140 ? m.text.slice(0, 137) + '…' : m.text
+                push(`- ${cellKey(m.cell)} · [${m.tag}] ${m.file.split('/').pop()}:${m.line} — ${text}`)
+            }
+            if (sorted.length > cap) push(`- …and ${sorted.length - cap} more markers`)
+            push('_(caveats apply to the CELL, not your symbol — see test/BUGS.md / test/LIMITATIONS.md.)_')
+            push()
         }
     }
 

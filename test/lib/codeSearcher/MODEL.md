@@ -37,7 +37,10 @@ The three axes are orthogonal and combine freely:
 
 **Combine by default.** The biggest win across the cases: firing several sections at once turns ~7
 search rounds into ~2. Single-section calls are for *re-focusing* after a broad orient, never the
-opening move. The `--for` presets bundle the door+section set; explicit flags still override.
+opening move. The `--for` presets bundle the door+section set; explicit flags still override. (One
+preset value is coord-aware: `coverage-gap`/`propagation` carry `--cell-caveats` at `summary` — the
+per-cell map — while browsing, and auto-raise it to `full` — the markers — once a `--coord` scopes the
+work. The level *meanings* stay fixed; only the preset's pick of level tracks the `--coord`.)
 
 ---
 
@@ -134,7 +137,7 @@ levels. The default column reproduces the classic report when no flag is passed.
 | `--neg-types` | none·**summary**·full | `@ts-expect-error` assertions — `summary` = count per db; `full` = each rule comment + rejected snippet + file:line (to model a new lock, cases H/I) |
 | `--bugs` | **none**·summary·full | `// TODO[BUG]` markers **naming the symbol** (→ `test/BUGS.md`); name-scoped |
 | `--limitation` | **none**·summary·full | `// TODO[LIMITATION]` markers **naming the symbol** (→ `test/LIMITATIONS.md`); name-scoped |
-| `--cell-caveats` | **none**·summary·full | BUG/LIMITATION markers **in the cells `--coord` matches** — coord-scoped, *not* by symbol (a caveat declared on the target cell). Case G |
+| `--cell-caveats` | **none**·summary·full | BUG/LIMITATION declared on cells — coord-scoped, *not* by symbol. **Level = view:** `summary` = per-cell map (each cell + counts), `full` = the markers (cell-prefixed); `--coord` only filters which cells. Case G |
 | `--name-search` | **none**·full | name-based discovery across every dimension (high recall) |
 
 Not built: a `--matrix` (cell-symmetry) section and a tests `version-split` shape — see §6.

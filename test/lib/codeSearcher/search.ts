@@ -173,7 +173,7 @@ SECTIONS — one level each; default in (parens); "none" hides the section:
   --neg-types <none|summary|full>                            (summary) full=each rule + snippet + line
   --bugs <none|summary|full>                                 (none)    // TODO[BUG] markers naming the symbol
   --limitation <none|summary|full>                           (none)    // TODO[LIMITATION] markers naming the symbol
-  --cell-caveats <none|summary|full>                         (none)    BUG/LIMITATION markers in the --coord cells
+  --cell-caveats <none|summary|full>                         (none)    BUG/LIMITATION on cells (coord-scoped): summary=per-cell map, full=markers; --coord filters cells
   --name-search <none|full>                                  (none)
 
 GLOBAL FOCUS — matrix COORDINATES, the one focus filter (db[/version[/connector[/file]]]):
@@ -330,6 +330,12 @@ export function buildOptions(a: Args): SearchOptions {
     const presetSections = a.preset ? PRESETS[a.preset]! : {}
     const sections: Sections = { ...DEFAULT_SECTIONS, ...presetSections, ...a.sectionOverrides }
     const filters: Filters = { ...DEFAULT_FILTERS, ...a.filterOverrides }
+    // Preset cell-caveats is coord-aware: `summary` (the per-cell map) when browsing, auto-raised to
+    // `full` (the markers) once you scope with a --coord. The level MEANING is fixed (summary=map,
+    // full=markers); the preset just picks the useful one. An explicit --cell-caveats still wins.
+    if (presetSections.cellCaveats && a.sectionOverrides.cellCaveats === undefined && a.filterOverrides.coord?.length) {
+        sections.cellCaveats = 'full'
+    }
     return { sections, filters }
 }
 

@@ -608,8 +608,11 @@ guarded by those `TODO[LIMITATION]`s*. The **same `--cell-caveats`** answers it 
     `cellFromPath(marker) ∈ --coord`. In `coverage-gap` / `propagation`.
 - **The mechanism decision we made:** `--cell-caveats` shows **all** caveats in a touched cell, *not*
   coord ∩ name (the whole point of G.2 is a caveat that doesn't name the symbol). It's a normal
-  levelled section (no magic auto-fire); it needs a `--coord` and prints a hint without one. §A.4
-  (propagation) shares the identical mechanism — deciding it once settled both.
+  levelled section (no magic auto-fire). **The level is the view, `--coord` only filters cells:**
+  `summary` = the per-cell **map** (each cell + its caveat counts), `full` = the **markers**
+  (cell-prefixed). The view never changes with `--coord` (it only narrows which cells appear), so the
+  same level always means the same thing. §A.4 (propagation) shares the identical mechanism — deciding
+  it once settled both.
 
 ## A follow-up considered and rejected: auto-scoping caveats to the gap cells
 

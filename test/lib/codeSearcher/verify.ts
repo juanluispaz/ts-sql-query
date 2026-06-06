@@ -76,11 +76,17 @@ check('explicit flag overrides the preset',      override.sections.chain === 'no
 check('unknown --for intent → error',            parseArgs(['--search', 'x', '--for', 'nope']).error !== null)
 
 // caveat surfacing — P1a (name-scoped in feature-centric presets) + the coord-scoped --cell-caveats
-check('coverage-gap raises cell-caveats',        cov.sections.cellCaveats === 'summary')
+check('coverage-gap cell-caveats=summary (no coord)', cov.sections.cellCaveats === 'summary')
+// preset cell-caveats is coord-aware: summary (map) browsing → full (markers) once scoped; explicit wins.
+check('preset cell-caveats → full with --coord',  buildOptions(parseArgs(['--search', 'x', '--for', 'coverage-gap', '--coord', 'postgres'])).sections.cellCaveats === 'full')
+check('explicit --cell-caveats overrides the bump', buildOptions(parseArgs(['--search', 'x', '--for', 'coverage-gap', '--coord', 'postgres', '--cell-caveats', 'summary'])).sections.cellCaveats === 'summary')
 check('version-work adds bugs+limitation',       buildOptions(parseArgs(['--search', 'x', '--for', 'version-work'])).sections.bugs === 'summary' && buildOptions(parseArgs(['--search', 'x', '--for', 'version-work'])).sections.limitation === 'summary')
 const prop = buildOptions(parseArgs(['--search', 'x', '--for', 'propagation']))
 check('propagation preset exists + composes',    prop.sections.tests === 'gaps' && prop.sections.cellCaveats === 'summary' && prop.sections.chain === 'none')
 check('--cell-caveats full is accepted',         parseArgs(['--search', 'x', '--cell-caveats', 'full']).sectionOverrides.cellCaveats === 'full')
+// --cell-caveats is coord-scoped but NEVER errors on a missing --coord — it renders an explanatory
+// note instead (one consistent behaviour, explicit or preset), so the reader is never surprised.
+check('--cell-caveats w/o --coord does not error',  parseArgs(['--search', 'x', '--cell-caveats', 'full']).error === null)
 check('cellFromPath parses a cell',              eq(cellFromPath('test/db/mariadb/newest/mariadb/update.returning.test.ts'), { db: 'mariadb', version: 'newest', connector: 'mariadb', file: 'update.returning.test.ts' }))
 check('cellFromPath rejects a non-cell path',    cellFromPath('test/lib/codeSearcher/render.ts') === null)
 

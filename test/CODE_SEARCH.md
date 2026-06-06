@@ -72,7 +72,7 @@ column doubles as the "reading the report" key (sections appear only when they h
 | `--neg-types` | none · **summary** · full | `@ts-expect-error` negative-type assertions — `summary` = count per db; `full` = each assertion's **rule comment + rejected snippet + file:line** (what you model a new lock on) |
 | `--bugs` | **none** · summary · full | `// TODO[BUG]` markers whose text **names the searched symbol** (the BUG subset of all indexed TODO markers) |
 | `--limitation` | **none** · summary · full | `// TODO[LIMITATION]` markers whose text **names the searched symbol** (the sibling tag) |
-| `--cell-caveats` | **none** · summary · full | **coord-scoped:** every `// TODO[BUG]`/`// TODO[LIMITATION]` in the cells `--coord` matches — *not* filtered by the symbol. Surfaces a caveat declared on the target **cell** (e.g. a dialect/version limitation) that a wave or propagation would otherwise hit late. Needs a `--coord`; without one it prints a hint |
+| `--cell-caveats` | **none** · summary · full | **coord-scoped:** `// TODO[BUG]`/`// TODO[LIMITATION]` declared on cells, *not* filtered by the symbol — surfaces a caveat on the target **cell** (a dialect/version limitation) a wave/propagation would hit late. **The level is the view:** `summary` = the per-cell **map** (each cell + its caveat counts); `full` = the **markers** (each line cell-prefixed). `--coord` only **filters which cells** appear — it never changes the view |
 | `--name-search` | **none** · full | name-based discovery — every place the name appears, per dimension (high recall) |
 
 > **Caveats: `--bugs` / `--limitation` (name-scoped) vs `--cell-caveats` (coord-scoped).** A `// TODO`
@@ -123,17 +123,23 @@ coord matching no indexed cell/file is an **error** (nullglob). Examples: `--coo
 
 ### Presets — `--for <intent>` (explicit flags still override)
 
-| `--for` | sets |
+Each preset sets a **level per section** (shown below); every section it doesn't name keeps its
+default. Explicit flags still override.
+
+| `--for` | section `level` it sets |
 |---|---|
-| `coverage-gap` | classification full · chain full · producers · tests gaps · examples full · **cell-caveats** |
-| `emission-bug` | emitted-sql full · implemented-by full (non-overriders) · version-gates · bugs full · limitation · **chain none** |
-| `version-work` | version-gates full · tests summary · bugs · limitation · chain none |
-| `post-fix-sync` | emitted-sql full · docs full · examples full · tests detail · bugs · chain none |
-| `propagation` | classification · tests gaps · examples · **cell-caveats** · chain none — the COVERAGE_RUNBOOK *Propagation* view (copy the canonical test to the sibling cells) |
+| `coverage-gap` | classification `full` · chain `full` · producers `summary` · tests `gaps` · examples `full` · cell-caveats `summary`→`full` if `--coord` |
+| `emission-bug` | emitted-sql `full` · implemented-by `full` (non-overriders) · version-gates `summary` · bugs `full` · limitation `summary` · chain `none` |
+| `version-work` | version-gates `full` · tests `summary` · bugs `summary` · limitation `summary` · chain `none` |
+| `post-fix-sync` | emitted-sql `full` · docs `full` · examples `full` · tests `detail` · bugs `summary` · chain `none` |
+| `propagation` | classification `summary` · tests `gaps` · examples `summary` · cell-caveats `summary`→`full` if `--coord` · chain `none` — the COVERAGE_RUNBOOK *Propagation* view (copy the canonical test to the sibling cells) |
 
 The caveat sections split by *scope*: `--bugs`/`--limitation` are **name-scoped** (markers naming the
-symbol) and ride the feature-centric presets; `--cell-caveats` is **coord-scoped** (markers in the
-cells you focus) and rides `coverage-gap` / `propagation` — pair it with a `--coord`.
+symbol) and ride the feature-centric presets; `--cell-caveats` is **coord-scoped** and rides
+`coverage-gap` / `propagation` **coord-aware** — `summary` (the per-cell **map**) while you browse
+with no `--coord`, auto-raised to `full` (the **markers**) the moment you scope with a `--coord`. The
+level meaning is fixed (`summary`=map, `full`=markers); the preset just picks the useful one. An
+explicit `--cell-caveats` still overrides.
 
 `--index <path>` selects which code-index file to read (default
 `test/lib/codeIndexer/generated/code-index.sqlite`, gitignored/disposable) — rarely needed. **Build

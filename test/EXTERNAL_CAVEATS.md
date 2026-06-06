@@ -67,6 +67,25 @@ limitations surface, isolated into one test per value type in
   - `marshalling/uuid-insert-select-roundtrip` — commented out in
     `test/db/sqlite/newest/sqlite3/` and
     `test/db/sqlite/newest/sqlite-wasm-OO1/`.
+  - `select.aggregate-as-array.value-type-coverage.test.ts` →
+    `aggregate-of-optional-uuid-column-as-array` (pure uuid) — commented
+    out in `test/db/sqlite/newest/sqlite3/` and
+    `test/db/sqlite/newest/sqlite-wasm-OO1/`; nothing else in the test, so
+    the whole test goes.
+  - `select.aggregate-as-array.value-type-coverage.test.ts` →
+    `aggregate-of-object-with-bigint-uuid-and-double` (mixed
+    `bigint` + `uuid` + `double`) — handled **differently per cell**:
+    - `sqlite-wasm-OO1`: only the `externalRef` (`uuid`) property is
+      commented out (the lines are kept in place with `//` / `/* */` so a
+      fix is an un-comment + snapshot bake); the test stays **live** and
+      keeps real-validating the `bigint` + `double` branches, since
+      sqlite-wasm-OO1 binds BigInt fine.
+    - `sqlite3`: the **whole** test stays commented — the `sqlite3` driver
+      additionally can't bind the `view_count` BigInt (same reason
+      `aggregate-of-bigint-column-as-array` is commented there), so
+      dropping only the uuid property wouldn't make it runnable. The
+      `double` branch is covered by the live
+      `aggregate-of-optional-double-column-as-array`.
   - `dynamic-condition.equivalence.test.ts` →
     `equivalence/uuid-as-string-operator-path` — same root cause
     (`.asString()` on a uuid emits `uuid_str(external_ref)`); commented
@@ -251,6 +270,29 @@ applies to every `localDate` / `localDateTime` `Date` parameter,
 not just the three names already commented out. The right move is to
 copy AND immediately re-wrap the affected tests in `/* */` with this
 section linked from the reason header.
+
+### `pglite` — `Date` parameter bound to an uncast (text-inferred) placeholder
+
+When a `Date` parameter reaches a **bare** placeholder (no `::`-cast),
+PostgreSQL infers the parameter type as text/unknown. pglite's
+in-process serializer is then handed a JS `Date` for a string-typed
+param and rejects it with `Invalid input for string type`. The
+wire-protocol postgres drivers (`pg`, `postgres`) stringify a `Date`
+before it reaches the server, so they round-trip fine; pglite's
+serializer does not. This is a pglite constraint, **not** a library
+bug — the cast is deliberately omitted (the test pins exactly that),
+so there's nothing to change in `src/`.
+
+Commented out in `test/db/postgres/newest/pglite/` **and**
+`test/db/postgres/oldest/pglite/`:
+
+- `select.postgres-const-force-type-cast.test.ts` →
+  `const-custom-localdate-falls-through-without-cast`. The enumerated
+  `'localDate'` / `'localDateTime'` cases are unaffected because they
+  route to `::date` / `::timestamp`, giving the serializer a typed
+  target. Only the `customLocalDate` fall-through (bare placeholder)
+  trips it. Body kept verbatim so a future pglite fix is a `/* */`
+  removal plus a snapshot bake.
 
 ## Connectors not in the matrix today
 

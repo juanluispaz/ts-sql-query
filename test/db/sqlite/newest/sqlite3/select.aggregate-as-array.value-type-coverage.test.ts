@@ -281,10 +281,18 @@ describe(ctx.label, () => {
     })
     */
 
-    // Not applicable on sqlite3: the wrapped-aggregate object includes
-    // `external_ref` which expands to `uuid_str(external_ref)` (uuid-extension
-    // strategy), and the `sqlite3` driver has no user-function API to register
-    // `uuid_str`. See test/EXTERNAL_CAVEATS.md.
+    // Not applicable on sqlite3: the wrapped-aggregate object hits TWO sqlite3
+    // limitations at once, so unlike sqlite-wasm-OO1 (which drops only the uuid
+    // property) the whole test stays commented here:
+    //   1. `external_ref` expands to `uuid_str(external_ref)` (uuid-extension
+    //      strategy) and the `sqlite3` driver has no user-function API to
+    //      register `uuid_str`;
+    //   2. `view_count` is a `bigint` and the `sqlite3` driver cannot bind a JS
+    //      BigInt (it sends NULL) — same reason `aggregate-of-bigint-column-as-array`
+    //      above is commented out.
+    // Dropping only the uuid property would still leave the unbindable bigint,
+    // and dropping both would leave just `double`, already covered by the live
+    // `aggregate-of-optional-double-column-as-array`. See test/EXTERNAL_CAVEATS.md.
     /*
     test('aggregate-of-object-with-bigint-uuid-and-double', async () => {
         // Wrapped (object-shape) `aggregateAsArray({...})` mixing

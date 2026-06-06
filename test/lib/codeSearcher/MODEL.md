@@ -22,10 +22,11 @@ and **`--for <intent>` presets the section set**:
 
 | Intent | Triggered by | Door | Sections it raises | Anti-pattern |
 |---|---|---|---|---|
-| **coverage-gap** | a red `src/` line, or a name to cover | `--search-location` (enclosing) · `--search` | classification · `--chain full` · `--producers` · simplified · docs · `--tests gaps` · examples | — |
-| **emission-bug** (real-vs-mock) | "this test fails on the real DB" (a test path) | test-line `--search-location` · `--emits-keyword` | `--emitted-sql` · `--implemented-by` (incl. **non-overriders**) · `--version-gates` · `--bugs` · **`--chain none`** | `--chain` is useless here (build→execute is data-flow) |
-| **version-work** | a DB release note / breakpoint | `--search compatibilityVersion` · `--emits-keyword` | `--version-gates full` · tests | starting from one statement kind hides the others |
-| **post-fix-sync** | a merged fix changed the emitted SQL | `--emits-keyword` · `--search <feature>` | `--emitted-sql` · docs · examples · tests detail | a `--update-snapshots` run leaves examples + docs stale |
+| **coverage-gap** | a red `src/` line, or a name to cover | `--search-location` (enclosing) · `--search` | classification · `--chain full` · `--producers` · simplified · docs · `--tests gaps` · examples · `--cell-caveats` | — |
+| **propagation** | the canonical cell is baked; copy it to siblings | `--search` (`--coord '*/newest'`) | classification · `--tests gaps` · examples · `--cell-caveats` · `--chain none` | replicating ≠ finding — no chain/producers needed |
+| **emission-bug** (real-vs-mock) | "this test fails on the real DB" (a test path) | test-line `--search-location` · `--emits-keyword` | `--emitted-sql` · `--implemented-by` (incl. **non-overriders**) · `--version-gates` · `--bugs` · `--limitation` · **`--chain none`** | `--chain` is useless here (build→execute is data-flow) |
+| **version-work** | a DB release note / breakpoint | `--search compatibilityVersion` · `--emits-keyword` | `--version-gates full` · tests · `--bugs` · `--limitation` | starting from one statement kind hides the others |
+| **post-fix-sync** | a merged fix changed the emitted SQL | `--emits-keyword` · `--search <feature>` | `--emitted-sql` · docs · examples · tests detail · `--bugs` | a `--update-snapshots` run leaves examples + docs stale |
 
 The three axes are orthogonal and combine freely:
 
@@ -81,6 +82,15 @@ These recurred across the cases and shaped the model. Each notes how it landed.
   domain; the agent **locates but doesn't edit** them — `emitted-sql` labels the doc source as
   "user-owned". And `test/BUGS.md` / `test/LIMITATIONS.md` are just *read* (small files); only the
   scattered `// TODO[BUG]` / `// TODO[LIMITATION]` markers are indexed (§5).
+- **L9 — A caveat is scoped two ways, and a wave needs both.** A `// TODO[BUG]`/`// TODO[LIMITATION]`
+  matters either because it **names the symbol** you're touching (a known bug on
+  `virtualColumnFromFragment`) or because it's declared on the **cell** you're writing into (MariaDB
+  UPDATE…RETURNING needs 13.0.1+ — true of *any* work in that cell, whatever the symbol). The
+  feature-centric intents catch the first; coverage-gap / propagation are blocked by the second.
+  *Built:* **name-scoped** `--bugs`/`--limitation` (markers mentioning the symbol, in the
+  feature-centric presets) **and** **coord-scoped** `--cell-caveats` (markers in the `--coord` cells,
+  in coverage-gap/propagation). A wave is invalidated by a cell caveat the symbol never names — the
+  name filter alone is blind to it (case G). *Discovered post-A–F by building case G before deciding.*
 
 ---
 
@@ -121,9 +131,10 @@ levels. The default column reproduces the classic report when no flag is passed.
 | `--emitted-sql` | **none**·summary·full | the asserted SQL from **tests + docs**, de-duped with the asserting cells + refresh kind (L2, L7) |
 | `--tests` | none·**summary**·detail·gaps | rollup `newest/total` per db / per-test / who's-**missing** per db |
 | `--examples` | none·**summary**·full | legacy `src/examples/` occurrences (L5) |
-| `--neg-types` | none·**summary**·full | `@ts-expect-error` assertions per db |
-| `--bugs` | **none**·summary·full | `// TODO[BUG]` markers mentioning the name (→ `test/BUGS.md`) |
-| `--limitation` | **none**·summary·full | `// TODO[LIMITATION]` markers (→ `test/LIMITATIONS.md`); the sibling tag, in no preset |
+| `--neg-types` | none·**summary**·full | `@ts-expect-error` assertions — `summary` = count per db; `full` = each rule comment + rejected snippet + file:line (to model a new lock, cases H/I) |
+| `--bugs` | **none**·summary·full | `// TODO[BUG]` markers **naming the symbol** (→ `test/BUGS.md`); name-scoped |
+| `--limitation` | **none**·summary·full | `// TODO[LIMITATION]` markers **naming the symbol** (→ `test/LIMITATIONS.md`); name-scoped |
+| `--cell-caveats` | **none**·summary·full | BUG/LIMITATION markers **in the cells `--coord` matches** — coord-scoped, *not* by symbol (a caveat declared on the target cell). Case G |
 | `--name-search` | **none**·full | name-based discovery across every dimension (high recall) |
 
 Not built: a `--matrix` (cell-symmetry) section and a tests `version-split` shape — see §6.
@@ -168,7 +179,7 @@ added **five schema-v4 dimensions** (built in `extractExtras.ts`, asserted in `v
 | `version_gate` | `--version-gates` | `compatibilityVersion <op> <breakpoint>` comparisons in the SqlBuilders (AST) |
 | `sql_emit` | `--emits-keyword` | SQL string literals in the SqlBuilders (substring match on `literal_lc`) |
 | `producer` | `--producers` | members whose return type resolves (checker) to an indexed interface/class |
-| `todo_marker` | `--bugs` (`tag='BUG'`), `--limitation` (`tag='LIMITATION'`) | every `// TODO[<tag>]` in `test/` |
+| `todo_marker` | `--bugs` (`tag='BUG'`, name-scoped), `--limitation` (`tag='LIMITATION'`, name-scoped), `--cell-caveats` (BUG+LIMITATION, coord-scoped) | every `// TODO[<tag>]` in `test/` |
 | `emitted_sql` | `--emitted-sql` | `toMatchInlineSnapshot` SQL in test + documentation cells; the searcher joins it to the block by file + line-containment |
 
 `example_block` also gained `db`/`version`/`connector` columns (filename-derived) so `--coord`
@@ -190,6 +201,28 @@ directly by the agent, not indexed.
   the file-list is the main CLI's job.
 - **An auto "fires when …" precondition sentence** in classification (L1). It needs branch-condition
   reasoning; the agent infers the precondition from chain/producers/version-gates instead.
+- **`--for negative-types` (proposal E) as a dedicated preset.** Reconsidered against cases H/I and
+  rejected: the fix flow's negative half is already covered — `--for emission-bug` *already* shows
+  `--neg-types` (it never suppresses the `summary` default), so the only real gap was that `--neg-types`
+  showed a count, not the rules. That gap is now closed (`--neg-types full` lists each rule comment +
+  rejected snippet + file:line). A separate preset would re-split the two-step fix into two reports for
+  no gain.
+- **A "negative-coverage gap" lens** (declared restrictions/holes without a matching `@ts-expect-error`).
+  Out of the searcher's scope by design: knowing *what type-safety is missing* is the job of a future
+  **type-coverage** tool (the type-level equivalent of runtime code coverage), not a static index
+  query — the searcher can show "no lock here + here's the documented hole", but deciding what *should*
+  be invalid is dialect/type semantics (the `--real-capable` wall again). Case H surfaced the need and
+  drew the boundary.
+- **Auto-surfacing `--cell-caveats` at the no-`--coord` coverage-gap orient** (scope caveats to the
+  symbol's gap cells automatically). Verified against the index, then rejected: limited tests are
+  *commented out* → no `test_block` → the limited cells *are* genuine gaps, so a `--cell-caveats`
+  does catch them. But two things sink the auto-scope: (1) `--cell-caveats` lists **all** caveats in a
+  cell, so auto-firing across every gap cell surfaces caveats unrelated to the wave (an `orderBy` wave
+  into mariadb would show the RETURNING limitation — noise); (2) it's premature — `--cell-caveats`
+  already rides the `coverage-gap`/`propagation` presets, so it fires the moment the agent adds a
+  `--coord`, which is exactly when it picks the cells it will write into. The explicit focused call is
+  the precise, low-noise tool; the no-coord orient is a pure overview. Building the mini-case (Case G
+  follow-up) is what surfaced this — the guardrail is already at the right moment.
 
 ---
 

@@ -34,6 +34,7 @@ export interface Sections {
     negTypes: Level
     bugs: Level
     limitation: Level
+    cellCaveats: Level
     nameSearch: NameSearchLevel
 }
 
@@ -61,7 +62,7 @@ export const DEFAULT_SECTIONS: Sections = {
     classification: 'summary', declared: 'summary', signature: 'summary', chain: 'strict',
     producers: 'none', implementedBy: 'summary', versionGates: 'none', docs: 'summary',
     simplified: 'summary', emittedSql: 'none', tests: 'summary', examples: 'summary',
-    negTypes: 'summary', bugs: 'none', limitation: 'none', nameSearch: 'none',
+    negTypes: 'summary', bugs: 'none', limitation: 'none', cellCaveats: 'none', nameSearch: 'none',
 }
 export const DEFAULT_FILTERS: Filters = {
     coord: [],
@@ -193,6 +194,14 @@ export function coordDbMatchAny(rowDb: string, patterns: string[]): boolean {
 // Whether a single coord's DB segment matches a database (for per-coord validation).
 export function coordDbMatches(rowDb: string, pattern: string): boolean {
     return coordSegmentRegex(pattern.split('/')[0]!).test(rowDb)
+}
+// Derive the matrix cell of a `test/db/<db>/<version>/<connector>/…/<file>` path (for coord-scoped
+// caveat surfacing). Returns null for paths outside the cell layout (e.g. test/lib/…), which the
+// coord filter then drops.
+export function cellFromPath(file: string): CellLike | null {
+    const p = file.split('/')
+    if (p[0] !== 'test' || p[1] !== 'db' || p.length < 5) return null
+    return { db: p[2]!, version: p[3]!, connector: p[4]!, file: p[p.length - 1]! }
 }
 
 // Filter a member list by the owner-kind / owner result filters (declared/signature).
@@ -443,6 +452,16 @@ export function render(db: QueryDb, name: string, opts: SearchOptions, meta: Met
             push('## Negative-type assertions')
             const total = neg.reduce((a, r) => a + r.assertions, 0)
             push(`- ${total} (${neg.map(r => `${r.db} ${r.assertions}`).join(', ')})`)
+            if (S.negTypes === 'full') {
+                // The actual rules — what an author needs to model a new @ts-expect-error lock on (H/I).
+                const rows = Q.negAssertions(db, name).filter(r => coordDbMatchAny(r.db, F.coord))
+                const cap = Math.min(rows.length, 40)
+                for (const r of rows.slice(0, cap)) {
+                    push(`  · ${r.file.replace(/^test\/db\//, '')}:${r.line} — ${r.description ?? '(no rule comment)'}`)
+                    if (r.snippet) push(`      ${r.snippet.length > 100 ? r.snippet.slice(0, 97) + '…' : r.snippet}`)
+                }
+                if (rows.length > cap) push(`  · …and ${rows.length - cap} more`)
+            }
             push()
         }
     }
@@ -470,6 +489,43 @@ export function render(db: QueryDb, name: string, opts: SearchOptions, meta: Met
             if (markers.length > cap) push(`- …and ${markers.length - cap} more`)
             push('_(test/LIMITATIONS.md is the full channel — read it directly.)_')
             push()
+        }
+    }
+
+    // Cell caveats — TODO[BUG]/TODO[LIMITATION] in the cells the --coord focus touches (case G).
+    // COORD-scoped, NOT filtered by the searched symbol: a wave or propagation can be invalidated by
+    // a caveat declared on the target CELL (e.g. MariaDB UPDATE…RETURNING needs 13.0.1+), which the
+    // name-filtered --bugs/--limitation never surface. Needs a --coord to scope to.
+    if (S.cellCaveats !== 'none') {
+        if (!F.coord.length) {
+            push('## Cell caveats (coord-scoped)')
+            push('_pass `--coord <db[/version[/connector]]>` to list TODO[BUG]/TODO[LIMITATION] in the cells you are about to touch._')
+            push()
+        } else {
+            const rows = Q.caveatMarkers(db)
+                .map(m => ({ ...m, cell: cellFromPath(m.file) }))
+                .filter((m): m is typeof m & { cell: CellLike } => !!m.cell && coordMatchAny(m.cell, F.coord))
+            if (rows.length) {
+                push('## Cell caveats — TODO markers in the focused cells (coord-scoped)')
+                const cap = S.cellCaveats === 'full' ? rows.length : Math.min(rows.length, 15)
+                const byCell = new Map<string, typeof rows>()
+                for (const r of rows.slice(0, cap)) {
+                    const k = `${r.cell.db}/${r.cell.version}/${r.cell.connector}`
+                    const l = byCell.get(k) ?? []
+                    if (!l.length) byCell.set(k, l)
+                    l.push(r)
+                }
+                for (const [k, list] of byCell) {
+                    push(`- **${k}**`)
+                    for (const r of list) {
+                        const text = r.text.length > 140 ? r.text.slice(0, 137) + '…' : r.text
+                        push(`  - [${r.tag}] ${r.file.split('/').pop()}:${r.line} — ${text}`)
+                    }
+                }
+                if (rows.length > cap) push(`- …and ${rows.length - cap} more`)
+                push('_(caveats apply to the CELL, not your symbol — see test/BUGS.md / test/LIMITATIONS.md.)_')
+                push()
+            }
         }
     }
 

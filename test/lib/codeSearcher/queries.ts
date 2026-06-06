@@ -278,6 +278,17 @@ export function negCoverage(db: QueryDb, name: string): NegCoverageRow[] {
         [name],
     )
 }
+// --neg-types full: the actual assertions (the rule comment + rejected snippet + file:line), not a
+// count — what a negative-test author needs to model a new @ts-expect-error lock on (cases H/I).
+export interface NegAssertion { db: string, file: string, line: number, description: string | null, snippet: string | null }
+export function negAssertions(db: QueryDb, name: string): NegAssertion[] {
+    return db.all<NegAssertion>(
+        `SELECT nt.db, nt.file, nt.marker_line AS line, nt.description, nt.snippet
+         FROM neg_type_ref nr JOIN neg_type nt ON nt.id=nr.neg_type_id
+         WHERE nr.symbol_name=? ORDER BY nt.db, nt.file, nt.marker_line`,
+        [name],
+    )
+}
 
 // ── R3: where explained / reflected in the docs (doc_test dimension) ─────────
 export interface DocHit {
@@ -352,6 +363,10 @@ export function knownDbs(db: QueryDb): string[] {
     return db.all<{ db: string }>(
         `SELECT DISTINCT db FROM test_block UNION SELECT DISTINCT db FROM doc_test_block ORDER BY db`,
     ).map(r => r.db)
+}
+// The compatibility-version breakpoints that appear in the SqlBuilders — to validate --breakpoint.
+export function knownBreakpoints(db: QueryDb): string[] {
+    return db.all<{ breakpoint: string }>(`SELECT DISTINCT breakpoint FROM version_gate ORDER BY breakpoint`).map(r => r.breakpoint)
 }
 // Every distinct cell+file the searcher can address with --coord — the matrix test files UNION
 // the legacy-example files (examples carry their cell in the filename). `file` lets a 4th-level
@@ -508,6 +523,16 @@ export function todoMarkersMatching(db: QueryDb, name: string, tag: string): Tod
     return db.all<TodoMarkerHit>(
         `SELECT file, line, text FROM todo_marker WHERE tag=? AND text LIKE ? ORDER BY file, line`,
         [tag, `%${name}%`],
+    )
+}
+
+// --cell-caveats (case G): every BUG/LIMITATION marker, NOT filtered by symbol — the searcher
+// derives each marker's cell from its file path and keeps the ones the --coord focus matches, so a
+// caveat declared on a cell (e.g. MariaDB UPDATE…RETURNING) surfaces for any work in that cell.
+export interface CaveatMarker { file: string, line: number, tag: string, text: string }
+export function caveatMarkers(db: QueryDb): CaveatMarker[] {
+    return db.all<CaveatMarker>(
+        `SELECT file, line, tag, text FROM todo_marker WHERE tag IN ('BUG','LIMITATION') ORDER BY file, line`,
     )
 }
 

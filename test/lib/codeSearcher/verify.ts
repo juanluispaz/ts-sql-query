@@ -7,7 +7,7 @@
 // Mirrors the indexer's verify.ts: a `check()` helper, a failure count, a non-zero exit on failure.
 
 import {
-    coordMatch, coordMatchAny, coordDbMatchAny, coordDbMatches,
+    coordMatch, coordMatchAny, coordDbMatchAny, coordDbMatches, cellFromPath,
     DEFAULT_SECTIONS, DEFAULT_FILTERS,
 } from './render.js'
 import { parseArgs, buildOptions } from './search.js'
@@ -74,6 +74,15 @@ check('preset emission-bug raises emitted-sql',  emi.sections.emittedSql === 'fu
 const override = buildOptions(parseArgs(['--search', 'x', '--for', 'coverage-gap', '--chain', 'none']))
 check('explicit flag overrides the preset',      override.sections.chain === 'none')
 check('unknown --for intent → error',            parseArgs(['--search', 'x', '--for', 'nope']).error !== null)
+
+// caveat surfacing — P1a (name-scoped in feature-centric presets) + the coord-scoped --cell-caveats
+check('coverage-gap raises cell-caveats',        cov.sections.cellCaveats === 'summary')
+check('version-work adds bugs+limitation',       buildOptions(parseArgs(['--search', 'x', '--for', 'version-work'])).sections.bugs === 'summary' && buildOptions(parseArgs(['--search', 'x', '--for', 'version-work'])).sections.limitation === 'summary')
+const prop = buildOptions(parseArgs(['--search', 'x', '--for', 'propagation']))
+check('propagation preset exists + composes',    prop.sections.tests === 'gaps' && prop.sections.cellCaveats === 'summary' && prop.sections.chain === 'none')
+check('--cell-caveats full is accepted',         parseArgs(['--search', 'x', '--cell-caveats', 'full']).sectionOverrides.cellCaveats === 'full')
+check('cellFromPath parses a cell',              eq(cellFromPath('test/db/mariadb/newest/mariadb/update.returning.test.ts'), { db: 'mariadb', version: 'newest', connector: 'mariadb', file: 'update.returning.test.ts' }))
+check('cellFromPath rejects a non-cell path',    cellFromPath('test/lib/codeSearcher/render.ts') === null)
 
 // coords + filters + removed flags
 check('--coord is repeatable (accumulates)',     eq(parseArgs(['--search', 'x', '--coord', 'a', '--coord', 'b']).filterOverrides.coord, ['a', 'b']))

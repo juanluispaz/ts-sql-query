@@ -69,10 +69,28 @@ column doubles as the "reading the report" key (sections appear only when they h
 | `--emitted-sql` | **none** · summary · full | the asserted `toMatchInlineSnapshot` SQL the symbol's **tests + docs** produce, de-duped with the asserting cells + the refresh kind |
 | `--tests` | none · **summary** · detail · gaps | matrix coverage — `summary` = `newest/total` per db; `detail` = per-test; `gaps` = who's-**missing** per db |
 | `--examples` | none · **summary** · full | legacy `src/examples/` occurrences |
-| `--neg-types` | none · **summary** · full | `@ts-expect-error` negative-type assertions, per db |
-| `--bugs` | **none** · summary · full | `// TODO[BUG]` markers mentioning the name (the BUG subset of all indexed TODO markers) |
-| `--limitation` | **none** · summary · full | `// TODO[LIMITATION]` markers mentioning the name (the sibling tag; not in any preset) |
+| `--neg-types` | none · **summary** · full | `@ts-expect-error` negative-type assertions — `summary` = count per db; `full` = each assertion's **rule comment + rejected snippet + file:line** (what you model a new lock on) |
+| `--bugs` | **none** · summary · full | `// TODO[BUG]` markers whose text **names the searched symbol** (the BUG subset of all indexed TODO markers) |
+| `--limitation` | **none** · summary · full | `// TODO[LIMITATION]` markers whose text **names the searched symbol** (the sibling tag) |
+| `--cell-caveats` | **none** · summary · full | **coord-scoped:** every `// TODO[BUG]`/`// TODO[LIMITATION]` in the cells `--coord` matches — *not* filtered by the symbol. Surfaces a caveat declared on the target **cell** (e.g. a dialect/version limitation) that a wave or propagation would otherwise hit late. Needs a `--coord`; without one it prints a hint |
 | `--name-search` | **none** · full | name-based discovery — every place the name appears, per dimension (high recall) |
+
+> **Caveats: `--bugs` / `--limitation` (name-scoped) vs `--cell-caveats` (coord-scoped).** A `// TODO`
+> caveat can block you for two different reasons, hence two flags:
+> - **`--bugs` / `--limitation`** match markers whose **text names the symbol you searched** —
+>   *"is there a known bug/limitation **about what I'm calling**?"* Independent of `--coord`.
+> - **`--cell-caveats`** lists **every** BUG+LIMITATION marker in the **cells `--coord` selects**,
+>   named or not — *"is anything declared on the **cell I'm about to write into** that blocks my wave?"*
+>
+> They diverge when a caveat is about a *dialect/version*, not a method. Searching `oldValues`,
+> `--limitation` finds the markers that literally say `oldValues()`, but **misses** the "MariaDB
+> UPDATE…RETURNING needs 13.0.1+" limitation in the same cells (its text never says `oldValues`) —
+> which `--cell-caveats --coord mariadb/newest` **does** surface. Name-scoped for *my symbol*,
+> coord-scoped for *my cell*.
+>
+> Note: every section (incl. `--cell-caveats`) rides a **resolved `--search`** — if the symbol comes
+> back *not found*, the report stops at that verdict and no section renders. Fix the symbol/typo
+> first; a coordinate alone doesn't drive a report.
 
 ### Global focus — matrix coordinates (`--coord`)
 
@@ -101,16 +119,21 @@ coord matching no indexed cell/file is an **error** (nullglob). Examples: `--coo
 | `--test-name-pattern <regex>` | tests by name |
 | `--file-name-pattern <regex>` | file dimensions (test files, doc pages) |
 | `--owner-kind <interface\|class\|type>` · `--owner <name>` | declared / signature by owner |
-| `--breakpoint <n>` | version-gates to one breakpoint (e.g. `18_000_000`) |
+| `--breakpoint <n>` | the `--version-gates` section to one compatibility-version breakpoint (e.g. `18_000_000`); validated — an unknown breakpoint errors with the known list |
 
 ### Presets — `--for <intent>` (explicit flags still override)
 
 | `--for` | sets |
 |---|---|
-| `coverage-gap` | classification full · chain full · producers · tests gaps · examples full |
-| `emission-bug` | emitted-sql full · implemented-by full (non-overriders) · version-gates · bugs full · **chain none** |
-| `version-work` | version-gates full · tests summary · chain none |
-| `post-fix-sync` | emitted-sql full · docs full · examples full · tests detail · chain none |
+| `coverage-gap` | classification full · chain full · producers · tests gaps · examples full · **cell-caveats** |
+| `emission-bug` | emitted-sql full · implemented-by full (non-overriders) · version-gates · bugs full · limitation · **chain none** |
+| `version-work` | version-gates full · tests summary · bugs · limitation · chain none |
+| `post-fix-sync` | emitted-sql full · docs full · examples full · tests detail · bugs · chain none |
+| `propagation` | classification · tests gaps · examples · **cell-caveats** · chain none — the COVERAGE_RUNBOOK *Propagation* view (copy the canonical test to the sibling cells) |
+
+The caveat sections split by *scope*: `--bugs`/`--limitation` are **name-scoped** (markers naming the
+symbol) and ride the feature-centric presets; `--cell-caveats` is **coord-scoped** (markers in the
+cells you focus) and rides `coverage-gap` / `propagation` — pair it with a `--coord`.
 
 `--index <path>` selects which code-index file to read (default
 `test/lib/codeIndexer/generated/code-index.sqlite`, gitignored/disposable) — rarely needed. **Build
@@ -124,28 +147,16 @@ bun run tests:index                  # build / refresh the index (~18 s)
 
 You're generating tests from a coverage report and you hold a symbol — often an
 **internal** one like `__addOrderBy`, or a public name you're weighing — or just a
-file:line from the report. For a quick existence/classification check, the bare
-default is enough:
+file:line from the report. Ask:
 
 ```bash
 bun run tests:where-is --search __addOrderBy
 ```
 
-For wave planning, reach straight for the preset that bundles the sections you
-actually need:
-
-```bash
-bun run tests:where-is --search __addOrderBy --for coverage-gap
-```
-
-`--for coverage-gap` expands to `classification full · chain full · producers ·
-tests gaps · examples full`, so a single call gives you, in one markdown report:
-does it exist? public or internal? the public methods that reach it; where it's
-explained in the docs (page:line); which simplified definition reflects it; and
-which cells are **missing** coverage. Paste it into the wave plan as a verifiable
-artifact. The other intents (`emission-bug`, `version-work`, `post-fix-sync`) have
-their own presets — see the table above. Explicit flags always override the
-preset, so you can refine without restarting from scratch.
+and you get, in one markdown report: does it exist? public or internal? the public
+methods that reach it; where it's explained in the docs (page:line); which
+simplified definition reflects it; and how saturated its test coverage is per
+database. Paste it into a wave plan as a verifiable artifact.
 
 ## Reading the report
 

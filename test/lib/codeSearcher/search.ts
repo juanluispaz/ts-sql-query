@@ -17,7 +17,7 @@ import { resolve, relative, isAbsolute } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { openIndexDbReadonly, type QueryDb } from '../codeIndexer/db.js'
 import { readMeta } from './meta.js'
-import { nameIndex, enclosingAt, calleesAt, enclosingTestBlock, testBlockApi, sqlEmitsMatching, knownDbs, distinctCells } from './queries.js'
+import { nameIndex, enclosingAt, calleesAt, enclosingTestBlock, testBlockApi, sqlEmitsMatching, knownDbs, knownBreakpoints, distinctCells } from './queries.js'
 import {
     render, DEFAULT_SECTIONS, DEFAULT_FILTERS, coordMatch, coordDbMatches,
     type SearchOptions, type Sections, type Filters,
@@ -44,15 +44,21 @@ const SECTION_SPECS = {
     '--neg-types': { key: 'negTypes', levels: ['none', 'summary', 'full'] },
     '--bugs': { key: 'bugs', levels: ['none', 'summary', 'full'] },
     '--limitation': { key: 'limitation', levels: ['none', 'summary', 'full'] },
+    '--cell-caveats': { key: 'cellCaveats', levels: ['none', 'summary', 'full'] },
     '--name-search': { key: 'nameSearch', levels: ['none', 'full'] },
 } as const satisfies Record<string, { key: keyof Sections, levels: readonly string[] }>
 
 // Intent presets — expand to a section set; explicit flags still override.
+// --bugs/--limitation are NAME-scoped (markers mentioning the symbol) — useful on the feature-centric
+// intents (version-work, emission-bug, post-fix-sync), where the agent searches the named feature.
+// --cell-caveats is COORD-scoped (markers in the cells the --coord touches), for coverage-gap /
+// propagation, where the blocker is a caveat on the target CELL, not on the symbol (case G).
 const PRESETS: Record<string, Partial<Sections>> = {
-    'coverage-gap': { classification: 'full', chain: 'full', producers: 'summary', tests: 'gaps', examples: 'full' },
-    'emission-bug': { chain: 'none', emittedSql: 'full', implementedBy: 'full', versionGates: 'summary', bugs: 'full' },
-    'version-work': { versionGates: 'full', tests: 'summary', chain: 'none' },
-    'post-fix-sync': { chain: 'none', emittedSql: 'full', docs: 'full', examples: 'full', tests: 'detail' },
+    'coverage-gap': { classification: 'full', chain: 'full', producers: 'summary', tests: 'gaps', examples: 'full', cellCaveats: 'summary' },
+    'emission-bug': { chain: 'none', emittedSql: 'full', implementedBy: 'full', versionGates: 'summary', bugs: 'full', limitation: 'summary' },
+    'version-work': { versionGates: 'full', tests: 'summary', chain: 'none', bugs: 'summary', limitation: 'summary' },
+    'post-fix-sync': { chain: 'none', emittedSql: 'full', docs: 'full', examples: 'full', tests: 'detail', bugs: 'summary' },
+    'propagation': { classification: 'summary', tests: 'gaps', examples: 'summary', cellCaveats: 'summary', chain: 'none' },
 }
 
 interface Args {
@@ -164,9 +170,10 @@ SECTIONS — one level each; default in (parens); "none" hides the section:
   --emitted-sql <none|summary|full>                          (none)    asserted SQL snapshots (tests+docs)
   --tests <none|summary|detail|gaps>                         (summary) detail=per-test, gaps=who's-missing
   --examples <none|summary|full>                             (summary)
-  --neg-types <none|summary|full>                            (summary)
-  --bugs <none|summary|full>                                 (none)    // TODO[BUG] markers
-  --limitation <none|summary|full>                           (none)    // TODO[LIMITATION] markers
+  --neg-types <none|summary|full>                            (summary) full=each rule + snippet + line
+  --bugs <none|summary|full>                                 (none)    // TODO[BUG] markers naming the symbol
+  --limitation <none|summary|full>                           (none)    // TODO[LIMITATION] markers naming the symbol
+  --cell-caveats <none|summary|full>                         (none)    BUG/LIMITATION markers in the --coord cells
   --name-search <none|full>                                  (none)
 
 GLOBAL FOCUS — matrix COORDINATES, the one focus filter (db[/version[/connector[/file]]]):
@@ -366,6 +373,15 @@ async function main(): Promise<void> {
                     console.error(`--coord '${pat}': no matrix cell/file matches (the version/connector/file segments apply to the test/example cells).`)
                     process.exit(2)
                 }
+            }
+        }
+        // --breakpoint must name a real SqlBuilder compatibility-version breakpoint (else the
+        // version-gates section would silently empty), mirroring --coord's nullglob validation.
+        if (opts.filters.breakpoint) {
+            const bps = knownBreakpoints(db)
+            if (!bps.includes(opts.filters.breakpoint)) {
+                console.error(`unknown --breakpoint '${opts.filters.breakpoint}' — known: ${bps.join(', ')}.`)
+                process.exit(2)
             }
         }
         const report = (name: string, banner = ''): string => banner + render(db, name, opts, meta)

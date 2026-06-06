@@ -79,8 +79,13 @@ first with `tests:index`). If the file is missing it exits non-zero with a hint.
 
 ## Staleness & compatibility gate ([`meta.ts`](meta.ts))
 
-The index is a snapshot of the tree at build time. Before trusting it, the searcher
-reads the indexer's `meta` table and:
+The index is a snapshot of the tree at build time, and **every answer comes only from that
+snapshot** — the searcher never reads repo source/test files at query time. Its sole filesystem
+touch is `existsSync` on the index file; the only external command is `git` (for the staleness
+banner below, never for answer data). So a report is always internally consistent (one build), and
+the banner is the *only* thing that tells you the snapshot has drifted from a working tree you're
+editing — the fix is a rebuild (`tests:index`), not a live file read. Before trusting it, the
+searcher reads the indexer's `meta` table and:
 
 - **Refuses** (exit 3) when `schema_version` ≠ the tool's `SCHEMA_VERSION` — an index
   built by an incompatible tool version.
@@ -123,8 +128,9 @@ Defaults reproduce the classic report. The sections:
 | **Version gates** | `version_gate` | (`--version-gates`) compatibility-version branches + the methods they gate (case E) |
 | **Emitted SQL** | `emitted_sql` | (`--emitted-sql`) the asserted SQL the symbol's tests/docs produce, de-duped with the asserting cells (case C/D/F) |
 | **Coverage** | R2 + neg_type | (`--tests <summary\|detail\|gaps>`) matrix tests by db (`newest/total`), per-test detail, or who's-missing per db; legacy examples; negative-type assertions |
-| **Known divergences** | `todo_marker` | (`--bugs`) `// TODO[BUG]` markers mentioning the name (case C/D/F) |
-| **Known limitations** | `todo_marker` | (`--limitation`) `// TODO[LIMITATION]` markers — the sibling tag (not in any preset) |
+| **Known divergences** | `todo_marker` | (`--bugs`) `// TODO[BUG]` markers **naming the symbol** (case C/D/F); name-scoped |
+| **Known limitations** | `todo_marker` | (`--limitation`) `// TODO[LIMITATION]` markers **naming the symbol**; name-scoped |
+| **Cell caveats** | `todo_marker` | (`--cell-caveats`) BUG+LIMITATION markers in the cells `--coord` matches — **coord-scoped**, not by symbol; `caveatMarkers` filtered by `cellFromPath ∈ coord` (case G) |
 | **Search: chain (strict/broad/full)** | R5 + §9.1/§9.2 | *(search, `--chain`)* call-chain — public callers grouped by area + direct callers; `full` = the whole internal stack |
 | **Search: name** | R6 | *(search, `--name-search`)* name-based — hit count per dimension (low precision, high recall) |
 
@@ -214,21 +220,24 @@ test/lib/codeSearcher/
 - **Schema changes** ride through `SCHEMA_VERSION`: when the indexer bumps it, an old
   index is refused automatically — no version logic needed here.
 
-## Roadmap — candidate next steps
+## Status & remaining candidates
 
-Prioritised by value to the coverage agent × cost (full rationale in DESIGN.md §9.5):
+The searcher is **complete** for the flows the case studies (A–I) surfaced — see
+[`MODEL.md`](./MODEL.md) for the as-built model and [`CASE_STUDIES.md`](./CASE_STUDIES.md) for what
+drove each piece, including what was deliberately **not** built and why ([`MODEL.md` §6](./MODEL.md)).
 
-1. **Coverage gaps per db** — show which `newest` dbs are MISSING a test (not just where it
-   IS tested); the agent's "where to add a test" directly. Cheap, fits the Coverage section.
-2. **Negative-type detail** — surface the `@ts-expect-error` rule + line + scope from
-   `neg_type`/`neg_type_ref`, not just a count.
-3. **Sibling API** — the other members on the same interface (the fluent state's surface).
-4. **Untested-public-surface sweep** — a separate mode/report (`--gaps`?): `public`/
-   `public_impl` members with zero `test_ref` (the agent's work queue). Bigger; different shape.
-5. **`--search-location` over tests** — `test/…:N` → resolve the `test_block` and list the
-   public API it exercises (inverse search).
-6. **Type-resolved chain walk** — follow `invocation.resolved_member_id` when present (fall
-   back to name) so `chain-broad` stops ballooning and the chain is type-precise.
-7. **JSON output mode** — only if a programmatic consumer needs it (the agent reads markdown).
+**Shipped** (incl. items off the original roadmap): coverage **gaps per db** (`--tests gaps`),
+**negative-type detail** (`--neg-types full`), **`--search-location` over tests** (the inverse
+search), plus the v4 dimensions — producers, version-gates, emitted-sql, **cell-caveats** (coord-scoped
+caveats), the `propagation` preset, and `--bugs`/`--limitation`.
 
-Recommendation: (1)+(2) first; (4) is the next real jump.
+**Genuinely-open candidates** (none currently driven by a case — pick up only if one surfaces):
+- **Sibling API** — the other members on the same interface (the fluent state's surface).
+- **Untested-public-surface sweep** — a separate report: `public` / `public_impl` members with zero
+  `test_ref` (a standing work-queue). Bigger; different shape.
+- **Type-resolved chain walk** — follow `invocation.resolved_member_id` so `chain-broad` is type-precise.
+
+**Out of scope** (rationale in [`MODEL.md` §6](./MODEL.md)): JSON output (the agent reads markdown);
+a `--real-capable` annotation (runtime, not static); a `--todo <category>` generic flag (no tag beyond
+BUG/LIMITATION exists); and a **negative-coverage-gap lens** — *"what type-safety is missing"* is a
+future **type-coverage** tool (the type-level twin of runtime code coverage), not a static index query.

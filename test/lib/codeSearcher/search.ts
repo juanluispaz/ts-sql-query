@@ -17,10 +17,10 @@ import { resolve, relative, isAbsolute } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { openIndexDbReadonly, type QueryDb } from '../codeIndexer/db.js'
 import { readMeta } from './meta.js'
-import { nameIndex, enclosingAt, calleesAt, enclosingTestBlock, testBlockApi, sqlEmitsMatching, knownDbs, knownBreakpoints, distinctCells } from './queries.js'
+import { nameIndex, enclosingAt, calleesAt, producedTypeAt, typesReferencedAt, typesReferencedIn, brandKeysAt, enclosingTestBlock, testBlockApi, sqlEmitsMatching, knownDbs, knownBreakpoints, distinctCells, type TypeRefHit } from './queries.js'
 import {
     render, DEFAULT_SECTIONS, DEFAULT_FILTERS, coordMatch, coordDbMatches,
-    type SearchOptions, type Sections, type Filters,
+    type SearchOptions, type Sections, type Filters, type Level,
 } from './render.js'
 
 const DEFAULT_DB = 'test/lib/codeIndexer/generated/code-index.sqlite'
@@ -33,8 +33,15 @@ const SECTION_SPECS = {
     '--declared': { key: 'declared', levels: ['none', 'summary', 'full'] },
     '--signature': { key: 'signature', levels: ['none', 'summary', 'public-interface', 'public-impl', 'internal', 'full'] },
     '--chain': { key: 'chain', levels: ['none', 'strict', 'broad', 'full'] },
-    '--producers': { key: 'producers', levels: ['none', 'summary', 'full'] },
-    '--implemented-by': { key: 'implementedBy', levels: ['none', 'summary', 'full'] },
+    '--ref-return': { key: 'refReturn', levels: ['none', 'summary', 'full'] },
+    '--ref-implements': { key: 'refImplements', levels: ['none', 'summary', 'full'] },
+    '--ref-type-arg': { key: 'refTypeArg', levels: ['none', 'summary', 'full'] },
+    '--ref-param': { key: 'refParam', levels: ['none', 'summary', 'full'] },
+    '--ref-field': { key: 'refField', levels: ['none', 'summary', 'full'] },
+    '--ref-new': { key: 'refNew', levels: ['none', 'summary', 'full'] },
+    '--ref-property': { key: 'refProperty', levels: ['none', 'summary', 'full'] },
+    '--ref-brand': { key: 'refBrand', levels: ['none', 'summary', 'full'] },
+    '--surface': { key: 'surface', levels: ['none', 'own', 'all', 'full'] },
     '--version-gates': { key: 'versionGates', levels: ['none', 'summary', 'full'] },
     '--docs': { key: 'docs', levels: ['none', 'summary', 'by-page', 'full'] },
     '--simplified': { key: 'simplified', levels: ['none', 'summary', 'full'] },
@@ -48,14 +55,34 @@ const SECTION_SPECS = {
     '--name-search': { key: 'nameSearch', levels: ['none', 'full'] },
 } as const satisfies Record<string, { key: keyof Sections, levels: readonly string[] }>
 
+// The "references to this element, by role" family — separate sections (granularity, so the agent
+// pays only for the role it needs), with `--refs <level>` as the shortcut to set them all at once.
+// refReturn (return type) + refImplements (implements/extends) read producer/heritage; refTypeArg /
+// refParam / refField / refNew / refProperty / refBrand read the `reference` dimension (type-arg/param/
+// field/new/property/brand roles — brand = a unique-symbol used as a computed key `[sym]: T`).
+const REF_FAMILY = ['refReturn', 'refImplements', 'refTypeArg', 'refParam', 'refField', 'refNew', 'refProperty', 'refBrand'] as const satisfies readonly (keyof Sections)[]
+const REF_LEVELS = ['none', 'summary', 'full'] as const
+
 // Intent presets — expand to a section set; explicit flags still override.
 // --bugs/--limitation are NAME-scoped (markers mentioning the symbol) — useful on the feature-centric
-// intents (version-work, emission-bug, post-fix-sync), where the agent searches the named feature.
+// intents (type-bug, version-work, emission-bug, post-fix-sync), where the agent searches the named feature.
 // --cell-caveats is COORD-scoped (markers in the cells the --coord touches), for coverage-gap /
 // propagation, where the blocker is a caveat on the target CELL, not on the symbol (case G).
+// type-bug is the TYPE-resolution counterpart of emission-bug: the route is the SIGNATURE, never the
+// call-chain/stack, so it raises --declared full (every overload site), --signature full, --neg-types
+// full (what must NOT compile), and the alias's blast radius --ref-type-arg full; it drops --chain and
+// leaves version-gates/docs/emitted-sql off (all noise for a type error).
+// `bare` turns EVERY section off — start from a blank report and add only the section(s) you want,
+// instead of spelling out a dozen `--<section> none`. Explicit flags (and --refs) still turn things
+// back on: `--for bare --surface own` shows ONLY the surface.
+const ALL_OFF: Partial<Sections> = Object.fromEntries(
+    (Object.keys(DEFAULT_SECTIONS) as (keyof Sections)[]).map(k => [k, 'none']),
+) as Partial<Sections>
 const PRESETS: Record<string, Partial<Sections>> = {
-    'coverage-gap': { classification: 'full', chain: 'full', producers: 'summary', tests: 'gaps', examples: 'full', cellCaveats: 'summary' },
-    'emission-bug': { chain: 'none', emittedSql: 'full', implementedBy: 'full', versionGates: 'summary', bugs: 'full', limitation: 'summary' },
+    bare: ALL_OFF,
+    'coverage-gap': { classification: 'full', chain: 'full', refReturn: 'summary', tests: 'gaps', examples: 'full', cellCaveats: 'summary' },
+    'type-bug': { declared: 'full', signature: 'full', refTypeArg: 'full', negTypes: 'full', bugs: 'summary', limitation: 'summary', chain: 'none' },
+    'emission-bug': { chain: 'none', emittedSql: 'full', refImplements: 'full', versionGates: 'summary', bugs: 'full', limitation: 'summary' },
     'version-work': { versionGates: 'full', tests: 'summary', chain: 'none', bugs: 'summary', limitation: 'summary' },
     'post-fix-sync': { chain: 'none', emittedSql: 'full', docs: 'full', examples: 'full', tests: 'detail', bugs: 'summary' },
     'propagation': { classification: 'summary', tests: 'gaps', examples: 'summary', cellCaveats: 'summary', chain: 'none' },
@@ -67,9 +94,10 @@ interface Args {
     patternSummary: string | null
     location: string | null
     emitsKeyword: string | null
-    locationTarget: 'enclosing' | 'callees'
+    locationTarget: 'enclosing' | 'enclosing-all' | 'callees' | 'produces' | 'types' | 'types-all' | 'brand'
     sectionOverrides: Partial<Sections>
     filterOverrides: Partial<Filters>
+    refsAll: string | null   // --refs <level>: the shortcut that sets the whole --ref-* family
     preset: string | null
     index: string
     help: boolean
@@ -84,7 +112,7 @@ function compileRe(pattern: string | null): RegExp | string {
 export function parseArgs(argv: string[]): Args {
     const a: Args = {
         exact: null, pattern: null, patternSummary: null, location: null, emitsKeyword: null, locationTarget: 'enclosing',
-        sectionOverrides: {}, filterOverrides: {}, preset: null, index: DEFAULT_DB, help: false, error: null,
+        sectionOverrides: {}, filterOverrides: {}, refsAll: null, preset: null, index: DEFAULT_DB, help: false, error: null,
     }
     const need = (i: number): string | null => argv[i] ?? null
     for (let i = 0; i < argv.length; i++) {
@@ -99,8 +127,15 @@ export function parseArgs(argv: string[]): Args {
         if (t === '--emits-keyword') { a.emitsKeyword = val(); continue }
         if (t === '--location-target') {
             const v = val()
-            if (v === 'enclosing' || v === 'callees') a.locationTarget = v
-            else a.error = `invalid --location-target '${v ?? '(missing)'}' — use enclosing | callees.`
+            if (v === 'enclosing' || v === 'enclosing-all' || v === 'callees' || v === 'produces' || v === 'types' || v === 'types-all' || v === 'brand') a.locationTarget = v
+            else a.error = `invalid --location-target '${v ?? '(missing)'}' — use enclosing | enclosing-all | callees | produces | types | types-all | brand.`
+            continue
+        }
+        // the --ref-* family shortcut: set every reference-role section at once
+        if (t === '--refs') {
+            const v = val()
+            if (v && (REF_LEVELS as readonly string[]).includes(v)) a.refsAll = v
+            else a.error = `invalid level '${v ?? '(missing)'}' for --refs — use one of: ${REF_LEVELS.join(', ')}.`
             continue
         }
         // sections
@@ -151,9 +186,15 @@ WHAT to search for — exactly one:
   --search-location <path:line>    a SOURCE line → the element it resolves to (see
                                    --location-target); a TEST line → the test_block it
                                    encloses (inverse: public API exercised by that test)
-  --location-target <enclosing|callees>
-                                   for a source --search-location: the function ENCLOSING
-                                   the line (default), or the function(s) INVOKED on it
+  --location-target <enclosing|enclosing-all|callees|produces|types|types-all|brand>
+                                   for a source --search-location: the function ENCLOSING the line
+                                   (default — the concrete overload), the WHOLE function (every
+                                   overload, incl. interface methods with no impl line), the
+                                   function(s) INVOKED on it, the TYPE it PRODUCES → its definition,
+                                   the indexed TYPES referenced on the line (types) / across the whole
+                                   function (types-all) → each one's def, or the BRAND marker a
+                                   computed-key line ([sym]: T) keys on → the marker symbol.
+                                   types/types-all print a terminal navigation list, not the section set
   --emits-keyword <sql-fragment>   a SQL token ('returning old.', 'collate') → the
                                    SqlBuilder code that emits it (the build-side bridge)
 
@@ -162,8 +203,17 @@ SECTIONS — one level each; default in (parens); "none" hides the section:
   --declared <none|summary|full>                             (summary)
   --signature <none|summary|public-interface|public-impl|internal|full>  (summary)
   --chain <none|strict|broad|full>                           (strict)  full = whole internal stack
-  --producers <none|summary|full>                            (none)    what call returns a receiver
-  --implemented-by <none|summary|full>                       (summary) incl. non-overriders
+  --ref-return <none|summary|full>                           (none)    references-by-role: AS A RETURN TYPE (how to obtain a receiver)
+  --ref-implements <none|summary|full>                       (summary) references-by-role: in implements/extends (incl. non-overriders)
+  --ref-type-arg <none|summary|full>                         (none)    references-by-role: AS A TYPE ARGUMENT (Outer<This>)
+  --ref-param <none|summary|full>                            (none)    references-by-role: AS A PARAMETER TYPE
+  --ref-field <none|summary|full>                            (none)    references-by-role: AS A FIELD/PROPERTY TYPE
+  --ref-new <none|summary|full>                              (none)    references-by-role: IN A CONSTRUCTION (new X(...))
+  --ref-property <none|summary|full>                         (none)    references-by-role: VIA PROPERTY ACCESS (read/write, not a call)
+  --ref-brand <none|summary|full>                            (none)    references-by-role: AS A BRAND KEY ([sym]: T — phantom/branded types)
+  --surface <none|own|all|full>                              (none)    members of the declaring TYPE / a member's SIBLINGS; level = inheritance
+                                   scope: own=direct only · all=+inherited/implemented (flat) · full=broken
+                                   down by source. Every member carries path:line + span
   --version-gates <none|summary|full>                        (none)    compatibility-version branches
   --docs <none|summary|by-page|full>                         (summary)
   --simplified <none|summary|full>                           (summary)
@@ -175,6 +225,9 @@ SECTIONS — one level each; default in (parens); "none" hides the section:
   --limitation <none|summary|full>                           (none)    // TODO[LIMITATION] markers naming the symbol
   --cell-caveats <none|summary|full>                         (none)    BUG/LIMITATION on cells (coord-scoped): summary=per-cell map, full=markers; --coord filters cells
   --name-search <none|full>                                  (none)
+  --refs <none|summary|full>                                 shortcut: set the WHOLE "references by role"
+                                   family (every --ref-* above) to one level at once; an explicit
+                                   per-role flag still overrides it
 
 GLOBAL FOCUS — matrix COORDINATES, the one focus filter (db[/version[/connector[/file]]]):
   --coord <coord>                  focus EVERY db/cell-aware section on a coordinate — glob '*'
@@ -211,15 +264,50 @@ function normPath(rawPath: string): string {
 }
 
 type LocationResult =
-    | { kind: 'symbol', name: string, banner: string }
+    | { kind: 'symbol', name: string, banner: string, focus?: { path: string, line: number } }
     | { kind: 'pick', names: string[], banner: string }
     | { kind: 'test', banner: string }
+    | { kind: 'report', text: string }   // a self-contained, terminal report (no section set) — e.g. --location-target types
     | { kind: 'error', message: string }
+
+// --location-target types / types-all: a terminal NAVIGATION report (like --search-pattern-summary),
+// NOT a section set. From a line (or its whole enclosing function) it lists the indexed types referenced
+// there + where each is defined — the forward dual of --ref-type-arg, resolved straight off the FK.
+function renderTypesReport(spec: string, scope: 'line' | 'all', enclosingLabel: string, noun: string, isFn: boolean, rows: TypeRefHit[]): string {
+    const where = scope === 'line'
+        ? `only this line (use \`types-all\` for the whole ${noun})`
+        : `the whole ${noun}${isFn ? ' — every overload + the implementation body' : ''}`
+    const head = scope === 'line'
+        ? `# types referenced at ${spec}`
+        : `# types referenced in \`${enclosingLabel}\` (whole ${noun})`
+    const lines = [
+        head, '',
+        `> ${scope === 'line' ? `in \`${enclosingLabel}\` — ` : `resolved from ${spec} — `}${where}; the return type is omitted (use \`--location-target produces\`).`,
+        `> ${rows.length} type${rows.length === 1 ? '' : 's'} · roles: type-arg/param/field/new`,
+        '',
+    ]
+    // def site with its full span, so a caller can extract the whole definition directly
+    const def = (r: TypeRefHit): string => {
+        if (!r.def_path) return '_unresolved_'
+        const span = r.def_end != null && r.def_line != null ? `spans lines ${r.def_line}–${r.def_end}` : ''
+        const inner = [r.def_kind, span].filter(Boolean).join(', ')
+        return `${r.def_path}:${r.def_line}${inner ? ` (${inner})` : ''}`
+    }
+    if (scope === 'all') {
+        lines.push('| type | role | sites | defined at |', '|---|---|---|---|')
+        for (const r of rows) lines.push(`| \`${r.ref_name}\` | ${r.role} | ${r.sites} | ${def(r)} |`)
+    } else {
+        lines.push('| type | role | defined at |', '|---|---|---|')
+        for (const r of rows) lines.push(`| \`${r.ref_name}\` | ${r.role} | ${def(r)} |`)
+    }
+    lines.push('', '_Next: `--search <type> --for type-bug` for the one you suspect._', '')
+    return lines.join('\n')
+}
 
 // Resolve `--search-location path:line`. A TEST file → inverse search (the enclosing
 // test_block + the public API it exercises). A source file → the callees on the line
 // (--location-target callees) or the enclosing function/member (default).
-function resolveLocation(db: QueryDb, spec: string, target: 'enclosing' | 'callees'): LocationResult {
+function resolveLocation(db: QueryDb, spec: string, target: 'enclosing' | 'enclosing-all' | 'callees' | 'produces' | 'types' | 'types-all' | 'brand'): LocationResult {
     const m = spec.match(/^(.*):(\d+)$/)
     if (!m) return { kind: 'error', message: `invalid --search-location '${spec}' — expected <path>:<line> (e.g. src/foo.ts:84).` }
     const path = normPath(m[1]!), line = Number(m[2])
@@ -252,10 +340,51 @@ function resolveLocation(db: QueryDb, spec: string, target: 'enclosing' | 'calle
         return { kind: 'pick', names, banner: `> ${path}:${line} invokes ${names.length} functions: ${names.map(n => `\`${n}\``).join(', ')} — a report for each.\n\n` }
     }
 
+    if (target === 'produces') {
+        const p = producedTypeAt(db, path, line)
+        if (!p) return { kind: 'error', message: `no produced/return type recorded for the function enclosing ${path}:${line} (its return may be a primitive or unresolved — try --location-target enclosing).` }
+        return { kind: 'symbol', name: p.type_name, banner: `> resolved ${path}:${line} → \`${p.via_owner}.${p.via_member}\` produces ${p.type_kind} \`${p.type_name}\` (defined at ${p.def_path}:${p.def_line}) — searching that type.\n` }
+    }
+
+    if (target === 'brand') {
+        const brands = brandKeysAt(db, path, line)
+        if (!brands.length) return { kind: 'error', message: `no brand key (\`[sym]: T\`) on ${path}:${line} — that line declares no phantom/branded-type marker (try --location-target enclosing or types).` }
+        const names = [...new Set(brands.map(b => b.ref_name))]
+        if (names.length === 1) {
+            const b = brands[0]!
+            return { kind: 'symbol', name: names[0]!, banner: `> resolved ${path}:${line} → brand marker \`${names[0]}\`${b.def_path ? ` (defined at ${b.def_path}:${b.def_line})` : ''} — searching it (add \`--ref-brand\` for every type it brands).\n` }
+        }
+        return { kind: 'pick', names, banner: `> ${path}:${line} brands with ${names.length} markers: ${names.map(n => `\`${n}\``).join(', ')} — a report for each.\n\n` }
+    }
+
+    if (target === 'types' || target === 'types-all') {
+        const enc = enclosingAt(db, path, line)   // labels the report; for types-all it scopes the query
+        const label = enc ? (enc.owner ? `${enc.owner}.${enc.name}` : enc.name) : path
+        // A member is a method (overloaded); a top-level symbol uses its own kind (interface/class/type/function).
+        const noun = enc ? (enc.owner ? 'function' : enc.kind) : 'function'
+        const isFn = enc ? (enc.owner !== null || enc.kind === 'function') : true
+        if (target === 'types') {
+            const rows = typesReferencedAt(db, path, line)
+            if (!rows.length) return { kind: 'error', message: `no indexed type references on ${path}:${line} (it may reference only primitives/unresolved types) — try --location-target types-all for the whole ${noun}.` }
+            return { kind: 'report', text: renderTypesReport(spec, 'line', label, noun, isFn, rows) }
+        }
+        if (!enc) return { kind: 'error', message: `no indexed function/symbol contains ${path}:${line} (is it a src/ file the index covers?).` }
+        const rows = typesReferencedIn(db, path, enc.name, enc.owner)
+        if (!rows.length) return { kind: 'error', message: `no indexed type references in \`${label}\` (it may reference only primitives/unresolved types).` }
+        return { kind: 'report', text: renderTypesReport(spec, 'all', label, noun, isFn, rows) }
+    }
+
     const enc = enclosingAt(db, path, line)
     if (!enc) return { kind: 'error', message: `no indexed function/symbol contains ${path}:${line} (is it a src/ file the index covers?).` }
     const owner = enc.owner ? `${enc.owner}.` : ''
-    return { kind: 'symbol', name: enc.name, banner: `> resolved ${path}:${line} → ${enc.kind} \`${owner}${enc.name}\` (lines ${enc.start_line}–${enc.end_line}) — searching that.\n` }
+    // `enclosing` carries the focus so the report pins to THIS declaration (the concrete overload at the
+    // line). `enclosing-all` drops it → the whole by-name function (every overload) — the only way to get
+    // all from an INTERFACE method, where there is no implementation line to land on.
+    const all = target === 'enclosing-all'
+    return {
+        kind: 'symbol', name: enc.name, ...(all ? {} : { focus: { path, line } }),
+        banner: `> resolved ${path}:${line} → ${enc.kind} \`${owner}${enc.name}\` (lines ${enc.start_line}–${enc.end_line}) — searching ${all ? 'the whole function (all overloads)' : 'that overload'}.\n`,
+    }
 }
 
 // ── pattern modes ────────────────────────────────────────────────────────────
@@ -328,12 +457,15 @@ function renderEmitsKeyword(db: QueryDb, fragment: string): string {
 // ── build the section/filter options from defaults + preset + explicit flags ─
 export function buildOptions(a: Args): SearchOptions {
     const presetSections = a.preset ? PRESETS[a.preset]! : {}
-    const sections: Sections = { ...DEFAULT_SECTIONS, ...presetSections, ...a.sectionOverrides }
+    // Precedence: DEFAULT < preset < --refs (the family shortcut) < explicit per-section flag.
+    const sections: Sections = { ...DEFAULT_SECTIONS, ...presetSections }
+    if (a.refsAll) for (const k of REF_FAMILY) sections[k] = a.refsAll as Level
+    Object.assign(sections, a.sectionOverrides)
     const filters: Filters = { ...DEFAULT_FILTERS, ...a.filterOverrides }
     // Preset cell-caveats is coord-aware: `summary` (the per-cell map) when browsing, auto-raised to
     // `full` (the markers) once you scope with a --coord. The level MEANING is fixed (summary=map,
     // full=markers); the preset just picks the useful one. An explicit --cell-caveats still wins.
-    if (presetSections.cellCaveats && a.sectionOverrides.cellCaveats === undefined && a.filterOverrides.coord?.length) {
+    if (presetSections.cellCaveats === 'summary' && a.sectionOverrides.cellCaveats === undefined && a.filterOverrides.coord?.length) {
         sections.cellCaveats = 'full'
     }
     return { sections, filters }
@@ -390,7 +522,7 @@ async function main(): Promise<void> {
                 process.exit(2)
             }
         }
-        const report = (name: string, banner = ''): string => banner + render(db, name, opts, meta)
+        const report = (name: string, banner = '', focus?: { path: string, line: number }): string => banner + render(db, name, opts, meta, focus)
 
         if (args.exact !== null) {
             process.stdout.write(report(args.exact))
@@ -399,8 +531,9 @@ async function main(): Promise<void> {
         } else if (args.location !== null) {
             const r = resolveLocation(db, args.location, args.locationTarget)
             if (r.kind === 'error') { console.error(r.message); process.exit(2) }
-            else if (r.kind === 'symbol') process.stdout.write(report(r.name, r.banner))
+            else if (r.kind === 'symbol') process.stdout.write(report(r.name, r.banner, r.focus))
             else if (r.kind === 'test') process.stdout.write(r.banner)   // inverse: the banner IS the report
+            else if (r.kind === 'report') process.stdout.write(r.text)   // types/types-all: a terminal navigation report (no section set)
             else process.stdout.write(r.banner + r.names.map(n => render(db, n, opts, meta)).join('\n---\n\n'))
         } else if (args.patternSummary !== null) {
             const re = compileRe(args.patternSummary)

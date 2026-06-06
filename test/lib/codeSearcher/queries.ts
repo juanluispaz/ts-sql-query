@@ -99,6 +99,7 @@ export interface MemberHit {
     name: string
     kind: string
     visibility: string        // public | public_impl | internal (materialised in the index)
+    is_implementation: number // 1 = the impl declaration (has a body); 0 = an overload/interface signature
     signature: string | null
     jsdoc: string | null
     owner: string
@@ -112,7 +113,7 @@ export interface MemberHit {
 
 export function members(db: QueryDb, name: string): MemberHit[] {
     return db.all<MemberHit>(
-        `SELECT mb.name, mb.kind, mb.visibility, mb.signature, mb.jsdoc,
+        `SELECT mb.name, mb.kind, mb.visibility, mb.is_implementation, mb.signature, mb.jsdoc,
                 s.name AS owner, s.kind AS owner_kind,
                 m.area, m.path, mb.start_line, mb.start_col, mb.end_line
          FROM member mb JOIN symbol s ON s.id=mb.symbol_id JOIN module m ON m.id=s.module_id
@@ -204,7 +205,92 @@ export interface ChainResult {
     truncated: boolean
 }
 
-export function callChain(db: QueryDb, seed: string, broad: boolean): ChainResult {
+// The chain is PRECISE when the index is resolved: it walks the checker-resolved callee edges
+// (`resolved_member_id` for method calls, `resolved_symbol_id` for call/new) and keys `visited` by the
+// caller's resolved ID, so two distinct methods that share a name never collapse into one node. Under a
+// `--no-resolve` index those FKs are NULL, so it relaxes to the name-based walk. The chain LEVEL
+// (strict/broad/full) is orthogonal — it controls depth/stopping, not precision.
+export function callChain(db: QueryDb, seed: string, broad: boolean, resolved: boolean): ChainResult {
+    return resolved ? callChainResolved(db, seed, broad) : callChainByName(db, seed, broad)
+}
+
+// The caller scope of an invocation, resolved to its declaration ID (member or top-level symbol) by
+// (module, name, span-start). ~98% of caller scopes map; the rest (arrow/anonymous scopes with no
+// declMap row) return null → the precise walk records the hop but does not climb past them.
+interface ScopeRef { kind: 'm' | 's', id: number, isPublic: boolean }
+function scopeIdResolver(db: QueryDb): (moduleId: number, name: string, startLine: number) => ScopeRef | null {
+    const cache = new Map<string, ScopeRef | null>()
+    return (moduleId, name, startLine) => {
+        const key = `${moduleId}:${startLine}:${name}`
+        const hit = cache.get(key)
+        if (hit !== undefined) return hit
+        let res: ScopeRef | null = null
+        const [mb] = db.all<{ id: number, visibility: string }>(
+            `SELECT mb.id, mb.visibility FROM member mb JOIN symbol s ON s.id=mb.symbol_id
+             WHERE s.module_id=? AND mb.start_line=? AND mb.name=? LIMIT 1`, [moduleId, startLine, name])
+        if (mb) res = { kind: 'm', id: mb.id, isPublic: mb.visibility === 'public' || mb.visibility === 'public_impl' }
+        else {
+            const [sy] = db.all<{ id: number, is_public_surface: number }>(
+                `SELECT id, is_public_surface FROM symbol WHERE module_id=? AND start_line=? AND name=? LIMIT 1`,
+                [moduleId, startLine, name])
+            if (sy) res = { kind: 's', id: sy.id, isPublic: sy.is_public_surface === 1 }
+        }
+        cache.set(key, res)
+        return res
+    }
+}
+
+function callChainResolved(db: QueryDb, seed: string, broad: boolean): ChainResult {
+    interface Node { kind: 'm' | 's', id: number, name: string }
+    const seedNodes: Node[] = [
+        ...db.all<{ id: number }>(`SELECT id FROM member WHERE name=?`, [seed]).map(r => ({ kind: 'm' as const, id: r.id, name: seed })),
+        ...db.all<{ id: number }>(`SELECT id FROM symbol WHERE name=?`, [seed]).map(r => ({ kind: 's' as const, id: r.id, name: seed })),
+    ]
+    const scopeOf = scopeIdResolver(db)
+    const hops: ChainHop[] = []
+    const visited = new Set<string>(seedNodes.map(n => `${n.kind}:${n.id}`))
+    let frontier = seedNodes
+    let truncated = false
+
+    for (let depth = 1; depth <= CHAIN_MAX_DEPTH && frontier.length; depth++) {
+        const next: Node[] = []
+        for (const node of frontier) {
+            const col = node.kind === 'm' ? 'resolved_member_id' : 'resolved_symbol_id'
+            const rows = db.all<{
+                caller_name: string, caller_kind: string, call_line: number, call_col: number,
+                caller_start_line: number | null, caller_end_line: number | null,
+                path: string, area: string, module_id: number,
+            }>(`SELECT i.caller_name, i.caller_kind, i.line AS call_line, i.col AS call_col,
+                       i.caller_start_line, i.caller_end_line, m.path, m.area, i.module_id
+                FROM invocation i JOIN module m ON m.id=i.module_id
+                WHERE i.${col}=? AND i.caller_name IS NOT NULL`, [node.id])
+            for (const r of rows) {
+                if (hops.length >= CHAIN_MAX_EDGES) { truncated = true; break }
+                const caller = r.caller_start_line !== null ? scopeOf(r.module_id, r.caller_name, r.caller_start_line) : null
+                const isPublic = caller?.isPublic ? 1 : 0
+                hops.push({
+                    callee: node.name, caller: r.caller_name, caller_kind: r.caller_kind, area: r.area,
+                    path: r.path, call_line: r.call_line, call_col: r.call_col,
+                    caller_start_line: r.caller_start_line, caller_end_line: r.caller_end_line,
+                    depth, is_public_hop: isPublic,
+                })
+                // strict: a PUBLIC hop is a stopping point; only climb when we can map the caller to an ID
+                // (an unmapped arrow/anonymous scope is a leaf for the precise walk).
+                const stopHere = !broad && isPublic === 1
+                if (caller && !stopHere) {
+                    const key = `${caller.kind}:${caller.id}`
+                    if (!visited.has(key)) { visited.add(key); next.push({ kind: caller.kind, id: caller.id, name: r.caller_name }) }
+                }
+            }
+            if (truncated) break
+        }
+        if (truncated) break
+        frontier = next
+    }
+    return { hops, truncated }
+}
+
+function callChainByName(db: QueryDb, seed: string, broad: boolean): ChainResult {
     // caller_public: is the enclosing function itself public? — a public/public_impl member,
     // OR a public-surface symbol (top-level function), in the SAME module. That makes the hop
     // a public entry point regardless of area (not just queryBuilders).
@@ -512,6 +598,194 @@ export function producersOf(db: QueryDb, memberName: string): ProducerRow[] {
          WHERE mb.name=?
          GROUP BY pm.id ORDER BY ps.name, pm.name`,
         [memberName],
+    )
+}
+
+// ── --location-target produces: the TYPE the function enclosing a src line returns ──
+// Forward read of the `producer` dimension (the dual of producersOf): the innermost member
+// whose span contains the line and whose RETURN type resolves to an indexed symbol → that
+// type's name + definition site. The "go to type definition" of the produced value.
+export interface ProducedType { type_name: string, type_kind: string, def_path: string, def_line: number, def_end: number, via_owner: string, via_member: string }
+export function producedTypeAt(db: QueryDb, path: string, line: number): ProducedType | null {
+    const [row] = db.all<ProducedType>(
+        `SELECT prod_s.name AS type_name, prod_s.kind AS type_kind, prod_m.path AS def_path,
+                prod_s.start_line AS def_line, prod_s.end_line AS def_end,
+                owner.name AS via_owner, mb.name AS via_member
+         FROM member mb
+         JOIN symbol owner ON owner.id=mb.symbol_id
+         JOIN module om ON om.id=owner.module_id
+         JOIN producer p ON p.member_id=mb.id
+         JOIN symbol prod_s ON prod_s.id=p.produces_symbol_id
+         JOIN module prod_m ON prod_m.id=prod_s.module_id
+         WHERE om.path=? AND mb.start_line<=? AND mb.end_line>=?
+         ORDER BY (mb.end_line - mb.start_line) ASC LIMIT 1`,
+        [path, line, line],
+    )
+    return row ?? null
+}
+
+// ── reference (schema v5): references to this element, by syntactic ROLE ──────
+// The reverse "references by role" views: where the searched element (a type for type-arg, a
+// member for property) is referenced in that role. Name-keyed (resolution-scatter convention),
+// the resolved FK is available in the row but the searcher queries by ref_name.
+export interface ReferenceHit { path: string, line: number, col: number | null, enclosing_member: string | null, enclosing_owner: string | null, enclosing_symbol: string | null }
+export function referencesByRole(db: QueryDb, name: string, role: string): ReferenceHit[] {
+    // The enclosing is a FK (member or top-level symbol); join to recover its name + owner — so the
+    // result is traceable to a real declaration, not a free-text scope name.
+    return db.all<ReferenceHit>(
+        `SELECT m.path, r.line, r.col,
+                em.name AS enclosing_member, eo.name AS enclosing_owner, es.name AS enclosing_symbol
+         FROM reference r
+         JOIN module m ON m.id=r.module_id
+         LEFT JOIN member em ON em.id=r.enclosing_member_id
+         LEFT JOIN symbol eo ON eo.id=em.symbol_id
+         LEFT JOIN symbol es ON es.id=r.enclosing_symbol_id
+         WHERE r.role=? AND r.ref_name=?
+         ORDER BY m.path, r.line`,
+        [role, name],
+    )
+}
+
+// ── --location-target types / types-all: the FORWARD read of `reference` ──────
+// The dual of referencesByRole (reverse: a type → its uses): from a SOURCE line (or its whole
+// enclosing function), the indexed TYPES referenced there → their definition sites. Reads the
+// type-valued roles only (type-arg/param/field/new); `property` is a value access, not a type, and
+// the return type is omitted by the extractor (--location-target produces covers it). The resolved
+// FK is on the row, so each type resolves straight to its def site — no re-search needed.
+const TYPE_ROLES = "('type-arg','param','field','new')"
+export interface TypeRefHit {
+    role: string
+    ref_name: string
+    sites: number              // occurrences (1 on a single line; N across a function's overloads/body)
+    col: number                // first column on the line (reading order); 0 for the types-all view
+    def_name: string | null
+    def_kind: string | null
+    def_path: string | null
+    def_line: number | null
+    def_end: number | null     // def span end — so a caller can extract the whole definition
+}
+// `types`: the type references on the EXACT line (the concrete overload's composed types).
+export function typesReferencedAt(db: QueryDb, path: string, line: number): TypeRefHit[] {
+    return db.all<TypeRefHit>(
+        `SELECT r.role, r.ref_name, count(*) AS sites, min(r.col) AS col,
+                rs.name AS def_name, rs.kind AS def_kind, dm.path AS def_path, rs.start_line AS def_line, rs.end_line AS def_end
+         FROM reference r
+         JOIN module m ON m.id=r.module_id
+         LEFT JOIN symbol rs ON rs.id=r.resolved_symbol_id
+         LEFT JOIN module dm ON dm.id=rs.module_id
+         WHERE m.path=? AND r.line=? AND r.role IN ${TYPE_ROLES}
+         GROUP BY r.role, r.ref_name, rs.name, rs.kind, dm.path, rs.start_line, rs.end_line
+         ORDER BY min(r.col)`,
+        [path, line],
+    )
+}
+// `types-all`: every type the WHOLE function references, via the traceable enclosing FK. A method's
+// overloads + implementation all share (owner symbol, member name), so matching on those unions them;
+// a top-level function's references carry enclosing_symbol_id with a null member. `owner` null selects
+// the symbol branch. Deduped by (role, ref_name) with a per-type site count.
+export function typesReferencedIn(db: QueryDb, path: string, name: string, owner: string | null): TypeRefHit[] {
+    if (owner !== null) {
+        return db.all<TypeRefHit>(
+            `SELECT r.role, r.ref_name, count(*) AS sites, 0 AS col,
+                    rs.name AS def_name, rs.kind AS def_kind, dm.path AS def_path, rs.start_line AS def_line, rs.end_line AS def_end
+             FROM reference r
+             JOIN member em ON em.id=r.enclosing_member_id
+             JOIN symbol o ON o.id=em.symbol_id
+             JOIN module om ON om.id=o.module_id
+             LEFT JOIN symbol rs ON rs.id=r.resolved_symbol_id
+             LEFT JOIN module dm ON dm.id=rs.module_id
+             WHERE om.path=? AND o.name=? AND em.name=? AND r.role IN ${TYPE_ROLES}
+             GROUP BY r.role, r.ref_name, rs.name, rs.kind, dm.path, rs.start_line, rs.end_line
+             ORDER BY r.role, r.ref_name`,
+            [path, owner, name],
+        )
+    }
+    return db.all<TypeRefHit>(
+        `SELECT r.role, r.ref_name, count(*) AS sites, 0 AS col,
+                rs.name AS def_name, rs.kind AS def_kind, dm.path AS def_path, rs.start_line AS def_line, rs.end_line AS def_end
+         FROM reference r
+         JOIN symbol es ON es.id=r.enclosing_symbol_id
+         JOIN module om ON om.id=es.module_id
+         LEFT JOIN symbol rs ON rs.id=r.resolved_symbol_id
+         LEFT JOIN module dm ON dm.id=rs.module_id
+         WHERE om.path=? AND es.name=? AND r.enclosing_member_id IS NULL AND r.role IN ${TYPE_ROLES}
+         GROUP BY r.role, r.ref_name, rs.name, rs.kind, dm.path, rs.start_line, rs.end_line
+         ORDER BY r.role, r.ref_name`,
+        [path, name],
+    )
+}
+
+// ── --surface: the members of the declaring type(s), inheritance-aware ────────
+// Seed a TYPE (interface/class) → its members; seed a MEMBER → its siblings (the other members of its
+// owner(s)). Owners = symbols named `name` ∪ the owners of members named `name`; the seed name is
+// excluded (a no-op for a type seed). The scope controls how far up the heritage graph it reaches:
+//   'own'  — only members declared directly on the owner(s) (no inheritance).
+//   'all'  — every member the type HAS: own + inherited (extends) + implemented (implements), flat.
+//   'full' — the same coverage, kept BROKEN DOWN by the contributing type (incl. each interface).
+// Every row carries `path` + `start_line` + `end_line` (the span) so a caller can extract the code.
+export type SurfaceScope = 'own' | 'all' | 'full'
+export interface SurfaceMember {
+    owner: string             // the type that DECLARES this member (own type or an ancestor)
+    owner_kind: string
+    is_own: number            // 1 = declared on a seed owner; 0 = inherited/implemented from an ancestor
+    name: string
+    kind: string
+    visibility: string
+    signature: string | null
+    path: string
+    start_line: number
+    end_line: number
+}
+function placeholders(n: number): string { return Array.from({ length: n }, () => '?').join(',') }
+export function surfaceOf(db: QueryDb, name: string, scope: SurfaceScope): SurfaceMember[] {
+    // seed owners: symbols named `name` ∪ owners of members named `name`
+    const seed = db.all<{ id: number }>(
+        `SELECT s.id FROM symbol s WHERE s.name=?
+         UNION SELECT s.id FROM symbol s JOIN member m ON m.symbol_id=s.id WHERE m.name=?`,
+        [name, name])
+    const seedIds = new Set(seed.map(r => r.id))
+    if (!seedIds.size) return []
+    const typeIds = new Set(seedIds)
+    if (scope !== 'own') {
+        // Heritage closure: follow extends + implements (commented-out edges excluded) by name
+        // (base_name → symbol.name), bounded against cycles.
+        let frontier = [...seedIds]
+        for (let guard = 0; frontier.length && guard < 50; guard++) {
+            const bases = db.all<{ id: number }>(
+                `SELECT DISTINCT b.id FROM heritage h JOIN symbol b ON b.name=h.base_name
+                 WHERE h.symbol_id IN (${placeholders(frontier.length)}) AND h.commented=0`,
+                frontier)
+            const next = bases.map(r => r.id).filter(id => !typeIds.has(id))
+            next.forEach(id => typeIds.add(id))
+            frontier = next
+        }
+    }
+    const ids = [...typeIds]
+    const rows = db.all<SurfaceMember & { source_id: number }>(
+        `SELECT s.id AS source_id, s.name AS owner, s.kind AS owner_kind, mb.name, mb.kind, mb.visibility,
+                mb.signature, m.path, mb.start_line, mb.end_line
+         FROM member mb JOIN symbol s ON s.id=mb.symbol_id JOIN module m ON m.id=s.module_id
+         WHERE mb.symbol_id IN (${placeholders(ids.length)}) AND mb.name != ?
+         ORDER BY (mb.visibility='public') DESC, (mb.visibility='public_impl') DESC, s.name, mb.name`,
+        [...ids, name])
+    return rows.map(r => ({ ...r, is_own: seedIds.has(r.source_id) ? 1 : 0 }))
+}
+
+// ── --location-target brand: the marker symbol(s) a computed key `[sym]: T` on a line keys on ──
+// From a brand-declaration line → the unique-symbol const it brands with (resolved off the FK), so the
+// searcher can jump to that marker and (with --ref-brand) its whole branded family. The forward dual of
+// --ref-brand. One brand per line is the norm; ≥1 → a pick-list, like --location-target callees.
+export interface BrandKeyHit { ref_name: string, def_path: string | null, def_line: number | null }
+export function brandKeysAt(db: QueryDb, path: string, line: number): BrandKeyHit[] {
+    return db.all<BrandKeyHit>(
+        `SELECT DISTINCT r.ref_name, dm.path AS def_path, rs.start_line AS def_line
+         FROM reference r
+         JOIN module m ON m.id=r.module_id
+         LEFT JOIN symbol rs ON rs.id=r.resolved_symbol_id
+         LEFT JOIN module dm ON dm.id=rs.module_id
+         WHERE m.path=? AND r.line=? AND r.role='brand'
+         ORDER BY r.ref_name`,
+        [path, line],
     )
 }
 

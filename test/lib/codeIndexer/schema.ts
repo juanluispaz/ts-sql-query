@@ -7,7 +7,7 @@
 
 // Bump when the schema (tables/columns) changes, so a consumer can reject an index built
 // by an older/newer tool. Written to the meta table at build time as schema_version.
-export const SCHEMA_VERSION = 4
+export const SCHEMA_VERSION = 6
 
 export const SCHEMA = `
 -- Build metadata (key/value): schema_version, built_at (ISO), git_rev, git_dirty, resolve
@@ -51,6 +51,7 @@ CREATE TABLE member (
     kind        TEXT NOT NULL,              -- method|property|getter|setter|index|call|construct
     is_optional INTEGER NOT NULL,
     is_static   INTEGER NOT NULL,
+    is_implementation INTEGER NOT NULL,     -- 1 = the impl declaration (has a body); 0 = an overload/interface signature. The impl catch-all (returns any) is the WHOLE function, not a callable overload.
     visibility  TEXT NOT NULL,              -- public | public_impl | internal. ONLY functions exposed by a PUBLIC INTERFACE are public: 'public' = declared on a public-surface interface (the contract); 'public_impl' = a CLASS method whose name a public interface exposes (it implements the contract — public by implementation); 'internal' = on no public interface (e.g. __addOrderBy). Set by the publics-marking phase.
     signature   TEXT,                       -- the member SIGNATURE only (declaration up to the body / initializer; no implementation), trimmed to 400 chars
     start_line  INTEGER NOT NULL,
@@ -399,6 +400,39 @@ CREATE TABLE producer (
 );
 CREATE INDEX idx_producer_produces ON producer(produces_symbol_id);
 CREATE INDEX idx_producer_member   ON producer(member_id);
+
+-- ── reference (schema v5): references to an indexed ELEMENT, by syntactic ROLE ─
+-- The "references to this element, by role" family that --producer (return role) and
+-- --heritage (implements/extends role) are already two slices of. This table holds the roles
+-- NOT covered by invocation / producer / heritage, resolved by the checker (resolveToken):
+-- TYPE roles (resolved_symbol_id set): role='type-arg' (an indexed TYPE used as a type argument,
+-- Outer of ThisType), 'param' (a parameter's declared type), 'field' (a property/field's declared
+-- type). The return-type position is NOT here — the producer dimension covers it.
+-- VALUE roles: role='new' (an indexed class constructed, new X(...); resolved_symbol_id set) and
+-- role='property' (an indexed MEMBER read/written via x.member that is NOT a call callee — calls are
+-- the invocation dimension; resolved_member_id set).
+-- Resolution-based, so a --no-resolve build emits no rows (like the resolved_* FKs going NULL).
+CREATE TABLE reference (
+    id                 INTEGER PRIMARY KEY,
+    role               TEXT NOT NULL,                            -- 'type-arg' | 'property'
+    ref_name           TEXT NOT NULL,                            -- the referenced element's name (display + name-key)
+    resolved_symbol_id INTEGER REFERENCES symbol(id),           -- set for type roles
+    resolved_member_id INTEGER REFERENCES member(id),           -- set for property role
+    module_id          INTEGER NOT NULL REFERENCES module(id),  -- where the reference occurs
+    line               INTEGER NOT NULL,
+    col                INTEGER,
+    -- The DECLARATION that encloses the reference, as a traceable FK (member if it sits in a
+    -- method/property, else the top-level symbol/function) — not a vague name. Its span/owner/name
+    -- come from the joined row, so they are never duplicated here. Both NULL = an unindexed enclosure.
+    enclosing_member_id INTEGER REFERENCES member(id),
+    enclosing_symbol_id INTEGER REFERENCES symbol(id)
+);
+-- The only query is referencesByRole: WHERE ref_name=? AND role=? (name-keyed, like the other
+-- *_ref lookups). A composite on (ref_name, role) — name first (selective) then role — serves it
+-- exactly. A standalone role index is a TRAP: with no ANALYZE, the planner prefers the low-cardinality
+-- role (1.4k–4.9k rows) over the name (~tens), so it is deliberately omitted; the resolved_* FKs are
+-- not queried by the searcher (it keys on ref_name), so they carry no index.
+CREATE INDEX idx_reference_name ON reference(ref_name, role);
 
 -- ── emitted_sql (schema v4): the asserted SQL snapshots (tests + docs) ────────
 -- One row per toMatchInlineSnapshot string that looks like SQL, in a matrix test cell

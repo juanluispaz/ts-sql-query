@@ -116,6 +116,11 @@ function memberKind(m: ts.ClassElement | ts.TypeElement): string {
 function memberName(m: ts.ClassElement | ts.TypeElement): string | null {
     const n = (m as { name?: ts.Node }).name
     if (n && (ts.isIdentifier(n) || ts.isStringLiteral(n) || ts.isPrivateIdentifier(n))) return n.text
+    // Computed key `[source]: T` — the phantom/branded-type markers (src/utils/symbols.ts). Indexed
+    // under the bracketed key name `[source]` so the brand shows on its owner's surface; the brand→symbol
+    // link is captured separately as a reference (role='brand'). Any identifier-keyed computed property
+    // is kept (we index more than we exploit on purpose — the niche is small and uniform).
+    if (n && ts.isComputedPropertyName(n) && ts.isIdentifier(n.expression)) return `[${n.expression.text}]`
     const k = memberKind(m)
     if (k === 'index') return '[index]'
     if (k === 'call') return '[call]'
@@ -159,6 +164,9 @@ function emitMembers(
             id, symbol_id: symbolId, name, kind: memberKind(m),
             is_optional: (m as { questionToken?: unknown }).questionToken ? 1 : 0,
             is_static: hasModifier(m, ts.SyntaxKind.StaticKeyword) ? 1 : 0,
+            // The IMPLEMENTATION declaration (has a body) vs an overload/interface SIGNATURE (none).
+            // Lets a search treat the impl's `: any` catch-all as "the whole function", not an overload.
+            is_implementation: (m as { body?: ts.Node }).body ? 1 : 0,
             visibility: 'internal',   // provisional — the publics-marking phase sets the real value
             signature: memberSignature(m, sf),
             ...sp, jsdoc: jsdocOf(m, sf),

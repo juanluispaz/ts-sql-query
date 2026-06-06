@@ -9,7 +9,7 @@
 //
 // Usage:  bun test/lib/codeIndexer/build.ts [--out <path>] [--no-resolve]
 //         (or via `bun run tests:index`). --no-resolve = name-based, low-memory/fast build
-//         (~1–2 GB / ~3 s vs ~8 GB / ~18 s): resolved_*_id FKs stay NULL, everything else same.
+//         (~1–2 GB / ~3 s vs ~8 GB / ~28 s): resolved_*_id FKs stay NULL, everything else same.
 
 import { mkdirSync, rmSync, existsSync } from 'node:fs'
 import { dirname } from 'node:path'
@@ -103,6 +103,7 @@ async function main(): Promise<void> {
         db.insertMany(INSERTS.versionGate.sql, extras.versionGates.map(INSERTS.versionGate.row))
         db.insertMany(INSERTS.sqlEmit.sql, extras.sqlEmits.map(INSERTS.sqlEmit.row))
         db.insertMany(INSERTS.producer.sql, extras.producers.map(INSERTS.producer.row))
+        db.insertMany(INSERTS.reference.sql, extras.references.map(INSERTS.reference.row))
         db.insertMany(INSERTS.todoMarker.sql, todos.map(INSERTS.todoMarker.row))
         db.insertMany(INSERTS.emittedSql.sql, emittedSql.map(INSERTS.emittedSql.row))
         lines.push(
@@ -113,6 +114,7 @@ async function main(): Promise<void> {
             `  reconcile:   ${recon.reconcile.length}  (gap members: ${recon.gaps.length})`,
             `  invocations: ${src.invocations.length}  (${pct(src.invocations)})`,
             `  version gates:${extras.versionGates.length}  ·  sql emits: ${extras.sqlEmits.length}  ·  producers: ${extras.producers.length}  ·  todo markers: ${todos.length} (BUG: ${todos.filter(t => t.tag === 'BUG').length})  ·  emitted sql: ${emittedSql.length}`,
+            `  references:  ${extras.references.length}  (${['type-arg', 'param', 'field', 'new', 'property', 'brand'].map(role => `${role}: ${extras.references.filter(r => r.role === role).length}`).join('  ·  ')})`,
         )
         return src.declMap
     })()

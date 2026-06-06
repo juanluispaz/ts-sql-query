@@ -216,7 +216,7 @@ artifact. See [`CODE_SEARCH.md`](./CODE_SEARCH.md) for the full report
 shape and [`ANTIPATTERNS.md` § Hallucinated API](./ANTIPATTERNS.md#5-hallucinated-api)
 for context.
 
-If the index isn't built yet, run `bun run tests:index` first (~18 s).
+If the index isn't built yet, run `bun run tests:index` first (~28 s).
 A bare `grep -rn "<api-symbol>\b" src/` is an acceptable fallback when
 the index is unavailable — same exit rule (no hits → hallucination).
 

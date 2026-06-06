@@ -14,13 +14,40 @@
 import ts from 'typescript'
 import { relative } from 'node:path'
 import { cellOf } from './extractTests.js'
-import type { DeclMap } from './resolve.js'
-import type { EmittedSqlRow, Ids, ModuleRow, ProducerRow, SqlEmitRow, TodoMarkerRow, VersionGateRow } from './model.js'
+import { resolveToken, type DeclMap, type RowRef } from './resolve.js'
+import type { EmittedSqlRow, Ids, ModuleRow, ProducerRow, ReferenceRow, SqlEmitRow, TodoMarkerRow, VersionGateRow } from './model.js'
 
 export interface ExtrasExtract {
     versionGates: VersionGateRow[]
     sqlEmits: SqlEmitRow[]
     producers: ProducerRow[]
+    references: ReferenceRow[]
+}
+
+// Classify a TypeReferenceNode by the POSITION it occupies, for the reference dimension:
+//   'type-arg' — inside a generic's typeArguments (`Outer<This>`); nested args (`A<B<C>>`) each
+//                see their direct parent, so B and C are type-arg while the outermost A is not.
+//   'param'    — a parameter's declared type.
+//   'field'    — a property/field's declared type.
+// Null for positions covered elsewhere (a method/fn RETURN type → the producer dimension) or not
+// captured (local var annotations, etc.).
+function typeRefRole(node: ts.TypeReferenceNode): 'type-arg' | 'param' | 'field' | null {
+    const p = node.parent
+    if (!p) return null
+    if ((ts.isTypeReferenceNode(p) || ts.isExpressionWithTypeArguments(p)) && !!p.typeArguments && p.typeArguments.indexOf(node) >= 0) return 'type-arg'
+    if (ts.isParameter(p) && p.type === node) return 'param'
+    if ((ts.isPropertyDeclaration(p) || ts.isPropertySignature(p)) && p.type === node) return 'field'
+    return null
+}
+
+// The nearest enclosing INDEXED declaration of a reference — climbs parents to the first node the
+// declMap knows (a method/property → member row; a top-level fn/type → symbol row). Lets the
+// reference carry its enclosure as a traceable FK instead of a vague name; span/owner/name come
+// from the joined row, never duplicated.
+function enclosingDecl(node: ts.Node, declMap: DeclMap): RowRef | null {
+    let p = node.parent
+    while (p) { const r = declMap.get(p); if (r) return r; p = p.parent }
+    return null
 }
 
 const OP_TEXT: Partial<Record<ts.SyntaxKind, string>> = {
@@ -101,6 +128,7 @@ export function extractExtras(
     const versionGates: VersionGateRow[] = []
     const sqlEmits: SqlEmitRow[] = []
     const producers: ProducerRow[] = []
+    const references: ReferenceRow[] = []
     const moduleByPath = new Map<string, ModuleRow>(modules.map(m => [m.path, m]))
 
     for (const sf of program.getSourceFiles()) {
@@ -145,6 +173,78 @@ export function extractExtras(
                     })
                 }
             }
+            // reference (type roles): an indexed TYPE referenced as a type argument / parameter type /
+            // field type. The return-type position is omitted — the producer dimension covers it.
+            if (ts.isTypeReferenceNode(node)) {
+                const role = typeRefRole(node)
+                if (role) {
+                    const tn = node.typeName
+                    const idTok = ts.isQualifiedName(tn) ? tn.right : tn
+                    const ref = resolveToken(checker, declMap, idTok)
+                    if (ref && ref.symbol_id !== null && ref.member_id === null) {
+                        const pos = sf.getLineAndCharacterOfPosition(idTok.getStart(sf))
+                        const enc = enclosingDecl(node, declMap)
+                        references.push({
+                            id: ids.next(), role, ref_name: idTok.text,
+                            resolved_symbol_id: ref.symbol_id, resolved_member_id: null, module_id: mod.id,
+                            line: pos.line + 1, col: pos.character + 1,
+                            enclosing_member_id: enc?.member_id ?? null, enclosing_symbol_id: enc?.symbol_id ?? null,
+                        })
+                    }
+                }
+            }
+            // reference role='new': an indexed CLASS/symbol constructed via `new X(...)`.
+            if (ts.isNewExpression(node)) {
+                const expr = node.expression
+                const tok = ts.isIdentifier(expr) ? expr : (ts.isPropertyAccessExpression(expr) ? expr.name : null)
+                if (tok) {
+                    const ref = resolveToken(checker, declMap, tok)
+                    if (ref && ref.symbol_id !== null && ref.member_id === null) {
+                        const pos = sf.getLineAndCharacterOfPosition(tok.getStart(sf))
+                        const enc = enclosingDecl(node, declMap)
+                        references.push({
+                            id: ids.next(), role: 'new', ref_name: tok.text,
+                            resolved_symbol_id: ref.symbol_id, resolved_member_id: null, module_id: mod.id,
+                            line: pos.line + 1, col: pos.character + 1,
+                            enclosing_member_id: enc?.member_id ?? null, enclosing_symbol_id: enc?.symbol_id ?? null,
+                        })
+                    }
+                }
+            }
+            // reference role='property': an indexed MEMBER read/written via `x.member` that is NOT
+            // a call callee (calls are the `invocation` dimension) — a property access, not a call.
+            if (ts.isPropertyAccessExpression(node) && !(ts.isCallExpression(node.parent) && node.parent.expression === node)) {
+                const ref = resolveToken(checker, declMap, node.name)
+                if (ref && ref.member_id !== null) {
+                    const pos = sf.getLineAndCharacterOfPosition(node.name.getStart(sf))
+                    const enc = enclosingDecl(node, declMap)
+                    references.push({
+                        id: ids.next(), role: 'property', ref_name: node.name.text,
+                        resolved_symbol_id: null, resolved_member_id: ref.member_id, module_id: mod.id,
+                        line: pos.line + 1, col: pos.character + 1,
+                        enclosing_member_id: enc?.member_id ?? null, enclosing_symbol_id: enc?.symbol_id ?? null,
+                    })
+                }
+            }
+            // reference role='brand': a computed property KEY `[source]: T` whose key resolves to an
+            // indexed unique-symbol const — the phantom/branded-type markers (src/utils/symbols.ts) the
+            // compiler discriminates on. The member itself is indexed under the name `[source]`; this row
+            // links that brand declaration to the marker symbol, so `--search source --ref-brand` lists
+            // every type carrying the brand (and `--location-target brand` resolves the line → the marker).
+            if (ts.isComputedPropertyName(node) && ts.isIdentifier(node.expression)) {
+                const idTok = node.expression
+                const ref = resolveToken(checker, declMap, idTok)
+                if (ref && ref.symbol_id !== null && ref.member_id === null) {
+                    const pos = sf.getLineAndCharacterOfPosition(idTok.getStart(sf))
+                    const enc = enclosingDecl(node, declMap)
+                    references.push({
+                        id: ids.next(), role: 'brand', ref_name: idTok.text,
+                        resolved_symbol_id: ref.symbol_id, resolved_member_id: null, module_id: mod.id,
+                        line: pos.line + 1, col: pos.character + 1,
+                        enclosing_member_id: enc?.member_id ?? null, enclosing_symbol_id: enc?.symbol_id ?? null,
+                    })
+                }
+            }
         })
     }
 
@@ -159,7 +259,7 @@ export function extractExtras(
         producers.push({ member_id: row.member_id, produces_symbol_id: produced })
     }
 
-    return { versionGates, sqlEmits, producers }
+    return { versionGates, sqlEmits, producers, references }
 }
 
 // ── emitted_sql: the asserted SQL snapshots in test + documentation cells ────

@@ -46,6 +46,7 @@ export interface MemberRow {
     kind: string
     is_optional: 0 | 1
     is_static: 0 | 1
+    is_implementation: 0 | 1     // 1 = the impl (has a body); 0 = an overload/interface signature
     visibility: Visibility      // public | public_impl | internal (set by the publics-marking phase)
     signature: string | null
     start_line: number
@@ -225,6 +226,19 @@ export interface ProducerRow {
     produces_symbol_id: number
 }
 
+export interface ReferenceRow {
+    id: number
+    role: string                          // 'type-arg' | 'param' | 'field' | 'new' | 'property'
+    ref_name: string
+    resolved_symbol_id: number | null     // type/new roles: the referenced symbol
+    resolved_member_id: number | null     // property role: the referenced member
+    module_id: number
+    line: number
+    col: number | null
+    enclosing_member_id: number | null    // the enclosing declaration as a traceable FK …
+    enclosing_symbol_id: number | null    // … (member if in a method/property, else the symbol/fn)
+}
+
 export interface EmittedSqlRow {
     id: number
     source: 'test' | 'doc'
@@ -257,8 +271,8 @@ export const INSERTS = {
         row: (r: SymbolRow): SqlValue[] => [r.id, r.module_id, r.name, r.kind, r.is_abstract, r.is_exported, r.is_public, r.is_public_surface, r.exported_name, r.start_line, r.start_col, r.end_line, r.end_col, r.jsdoc],
     },
     member: {
-        sql: 'INSERT INTO member (id,symbol_id,name,kind,is_optional,is_static,visibility,signature,start_line,start_col,end_line,end_col,jsdoc) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',
-        row: (r: MemberRow): SqlValue[] => [r.id, r.symbol_id, r.name, r.kind, r.is_optional, r.is_static, r.visibility, r.signature, r.start_line, r.start_col, r.end_line, r.end_col, r.jsdoc],
+        sql: 'INSERT INTO member (id,symbol_id,name,kind,is_optional,is_static,is_implementation,visibility,signature,start_line,start_col,end_line,end_col,jsdoc) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+        row: (r: MemberRow): SqlValue[] => [r.id, r.symbol_id, r.name, r.kind, r.is_optional, r.is_static, r.is_implementation, r.visibility, r.signature, r.start_line, r.start_col, r.end_line, r.end_col, r.jsdoc],
     },
     heritage: {
         sql: 'INSERT INTO heritage (symbol_id,base_name,relation,commented,simplified) VALUES (?,?,?,?,?)',
@@ -323,6 +337,10 @@ export const INSERTS = {
     producer: {
         sql: 'INSERT INTO producer (member_id,produces_symbol_id) VALUES (?,?)',
         row: (r: ProducerRow): SqlValue[] => [r.member_id, r.produces_symbol_id],
+    },
+    reference: {
+        sql: 'INSERT INTO reference (id,role,ref_name,resolved_symbol_id,resolved_member_id,module_id,line,col,enclosing_member_id,enclosing_symbol_id) VALUES (?,?,?,?,?,?,?,?,?,?)',
+        row: (r: ReferenceRow): SqlValue[] => [r.id, r.role, r.ref_name, r.resolved_symbol_id, r.resolved_member_id, r.module_id, r.line, r.col, r.enclosing_member_id, r.enclosing_symbol_id],
     },
     emittedSql: {
         sql: 'INSERT INTO emitted_sql (id,source,file,line,sql) VALUES (?,?,?,?,?)',

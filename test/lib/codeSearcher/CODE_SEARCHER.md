@@ -18,10 +18,14 @@ it ([`tests:index`](../codeIndexer/CODE_INDEXER.md)) is a separate producer. The
 searcher reuses the indexer's [`db.ts`](../codeIndexer/db.ts) (the read-only handle)
 and [`schema.ts`](../codeIndexer/schema.ts) (the `SCHEMA_VERSION` it gates on).
 
-> **Regression guard:** [`verify.ts`](./verify.ts) (run via `tests:where-is:check`) unit-tests the
-> pure logic — `--coord` matrix matching and the door/section/level/preset arg model — with no
-> index and no DB. It is **not** a `*.test.ts`, so the `test/` matrix never collects it; run it on
-> demand. Validate types with `bun run validate:tests` (tsgo) / `:tsc`.
+> **Regression guard:** [`verify.ts`](./verify.ts) (run via `tests:where-is:check`) has two phases.
+> **(1) Pure logic** — `--coord` matrix matching and the door/section/level/preset arg model — with no
+> index and no DB (always runs, fast). **(2) Output regression** — a golden set asserting the query +
+> render layers still produce the right reports (brand reverse/forward, `types` + def-span, `surface`
+> own/full + span, the precise chain, the `bare` preset, not-found), run against the built index and
+> **skipped** when it isn't there. Volatile line numbers are **derived from the index**, never
+> hard-coded, so unrelated edits don't break it. It is **not** a `*.test.ts`, so the `test/` matrix never
+> collects it; run it on demand. Validate types with `bun run validate:tests` (tsgo) / `:tsc`.
 
 > **Just want to USE it?** Read [`test/CODE_SEARCH.md`](../../CODE_SEARCH.md) instead —
 > the agent-facing usage doc. This file is the **implementation reference** (modules,
@@ -49,7 +53,7 @@ HOW to shape the report — **one levelled flag per section** (`--search-mode` w
 ```bash
 bun run tests:where-is --search <name> --chain full          # whole internal stack (vs strict/broad)
 bun run tests:where-is --search <name> --tests gaps          # who's-missing per db
-bun run tests:where-is --search <name> --producers full --version-gates full --bugs full
+bun run tests:where-is --search <name> --ref-return full --version-gates full --bugs full
 bun run tests:where-is --search <name> --name-search full    # name-based discovery (was --search-mode name)
 bun run tests:where-is --search <name> --for emission-bug    # preset a section set
 bun run tests:where-is --search <name> --db <path>           # non-default index file
@@ -120,11 +124,18 @@ Defaults reproduce the classic report. The sections:
 | **Classification** | R1 | exists? **public** (importable) / **public-surface** (fluent API, not importable) / **internal** / not found — its **kind**, and for a member which public interfaces expose it |
 | **Declared** | symbols by name | every declaration site prefixed with its **kind**, `path:line` + first JSDoc line |
 | **Signature** | members by name | signature + JSDoc, prefixed `[public]` / `[public impl]` / `[internal]` + owner kind, **simplified-map form first** |
-| **Implemented by** | R4 + R8 | each class implementing an interface that declares the member — line points at the **implementation** with both the implementation span and the class span, or (inherited) just the class span with no concrete line — plus the simplified def(s) it realizes, located |
+| **Referenced in implements/extends (implemented by)** | R4 + R8 | (`--ref-implements`) each class implementing an interface that declares the member — line points at the **implementation** with both the implementation span and the class span, or (inherited) just the class span with no concrete line — plus the simplified def(s) it realizes, located |
 | **Explained in docs** | R3 | doc page + heading + exact `md_line`/`md_col` + kind + dbs |
 | **Shown in simplified-def docs** | R8b | where the member appears inside a `decl` (simplified def) snippet |
 | **Simplified definition** | R8 | per-source (`master`/`doc`/`doc-inquery`) shown-vs-real + drift |
-| **How to obtain a receiver (producers)** | `producer` | (`--producers`) public calls whose return type yields a receiver of this type (case B) |
+| **Referenced as a return type (how to obtain a receiver)** | `producer` | (`--ref-return`) members whose return type yields a receiver of this type — the return-type role of "references to this element" (case B) |
+| **Referenced as a type argument** | `reference` | (`--ref-type-arg`) where the searched type appears as a type argument (`Outer<This>`) — the type-bug surface, a type alias's blast radius (case J) |
+| **Referenced as a parameter type** | `reference` | (`--ref-param`) where the searched type is a parameter's declared type |
+| **Referenced as a field type** | `reference` | (`--ref-field`) where the searched type is a property/field's declared type |
+| **Referenced in a construction (new)** | `reference` | (`--ref-new`) where the searched class is constructed (`new This(…)`) |
+| **Referenced via property access** | `reference` | (`--ref-property`) where the searched member is read/written as `x.member` (not a call) — cases B/L |
+| **Used as a brand key** | `reference` | (`--ref-brand`) where a `unique symbol` is a computed key `[sym]: T` (the phantom/branded-type markers) — `--search source --ref-brand` lists every branded type (case L) |
+| **Surface / siblings** | `surfaceOf` | (`--surface own\|all\|full`) the members of the declaring type(s): a TYPE seed → its members, a MEMBER seed → its siblings. Level = inheritance scope (own / +inherited&implemented flat / broken-down-by-source via the `heritage` closure); every member carries `path:line` + span |
 | **Version gates** | `version_gate` | (`--version-gates`) compatibility-version branches + the methods they gate (case E) |
 | **Emitted SQL** | `emitted_sql` | (`--emitted-sql`) the asserted SQL the symbol's tests/docs produce, de-duped with the asserting cells (case C/D/F) |
 | **Coverage** | R2 + neg_type | (`--tests <summary\|detail\|gaps>`) matrix tests by db (`newest/total`), per-test detail, or who's-missing per db; legacy examples; negative-type assertions |
@@ -153,17 +164,25 @@ The "where/how is this used?" question has two distinct answers, each its own le
 [`queries.ts`](queries.ts) is an **iterative BFS upward** over the `invocation` table,
 keeping module context. A hop is a **public hop** when the calling function is itself
 public — a `public`/`public_impl` member, or a public-surface symbol — in the SAME module,
-computed in SQL from `member.visibility` / `symbol.is_public_surface` (**any** area, not
+computed from `member.visibility` / `symbol.is_public_surface` (**any** area, not
 only `queryBuilders`); public callers are grouped by area. The two `chain-*` strategies are
 the same search at two stop points:
 - **`chain-strict`** (default): a branch stops as soon as it reaches a public caller —
   you've reached the public API; the precise route public→internal.
 - **`chain-broad`**: keep climbing past the public callers through the whole graph. Use
-  when strict yields nothing, or for the full surrounding context. The invocation edges are
-  **name-based** (`callee_name`/`caller_name`, not the resolved FKs — see the schema note),
-  so climbing past a shared name (`query`/`__toSql`/`execute`) crosses into sibling
-  operations: more recall, less precision. Bounded by `CHAIN_MAX_DEPTH` (8) /
-  `CHAIN_MAX_EDGES` (400); a truncated graph is flagged.
+  when strict yields nothing, or for the full surrounding context. Bounded by `CHAIN_MAX_DEPTH`
+  (8) / `CHAIN_MAX_EDGES` (400); a truncated graph is flagged.
+
+**Type-precise by default.** `callChain` dispatches on the index's resolve mode (`meta.resolved`):
+- `callChainResolved` (a resolved index) walks the **checker-resolved** callee edges —
+  `resolved_member_id` for method calls, `resolved_symbol_id` for plain calls/`new` — and keys
+  `visited` by the caller's resolved **ID** (mapped from `(module, name, span-start)` via
+  `scopeIdResolver`, ~98% of scopes; arrow/anonymous leaves don't climb). So same-named-but-distinct
+  methods never collapse mid-walk (the dozen `__toSql` impls stay separate). The chain LEVEL is
+  orthogonal — depth/stopping, not precision.
+- `callChainByName` (a `--no-resolve` index, `resolved_*` NULL) is the original **name-based** walk
+  (`callee_name`/`caller_name`); the section header flags it. Seeding is by name in both
+  (`--search __toSql` walks all of them); precision is in not conflating *other* names while climbing.
 
 **`--chain full`** renders the *entire* internal stack — every recorded hop grouped by depth,
 not just the public callers — for understanding a deep emission site end to end.
@@ -177,7 +196,8 @@ call-chain entirely and counts every occurrence of the name across all dimension
 > `.orderBy` resolves to the overloaded *interface* signatures, not the impl. The
 > searcher therefore keys cross-dimension lookups on the **name** (`symbol_name` /
 > `callee_name`), which is what the recipes do, so this scatter does not distort the
-> answer. The `resolved_*` FKs are available for callers that want an exact link.
+> answer. The `resolved_*` FKs are available for callers that want an exact link — the
+> **call-chain now uses them** (the precise walk above); the flat cross-dimension recipes stay name-keyed.
 
 ## Worked example — the validated chain
 
@@ -186,7 +206,7 @@ call-chain entirely and counts every occurrence of the name across all dimension
 
 - **Search: chain-strict** → `orderBy` / `orderByFromString` at the `queryBuilders`
   layer — the public methods that wrap it.
-- `tests:where-is --search orderBy` then lands the rest: **Implemented by** `AbstractSelect`
+- `tests:where-is --search orderBy` then lands the rest: **Referenced in implements/extends** `AbstractSelect`
   realizing the simplified def `SelectExpression`; **Explained in docs** at
   `docs/api/select.md:99-104` (the `SelectExpression` decl) plus every `.orderBy(...)`
   query example across `docs/queries/*.md` with exact lines; **Coverage** ~5 k matrix
@@ -229,15 +249,42 @@ drove each piece, including what was deliberately **not** built and why ([`MODEL
 **Shipped** (incl. items off the original roadmap): coverage **gaps per db** (`--tests gaps`),
 **negative-type detail** (`--neg-types full`), **`--search-location` over tests** (the inverse
 search), plus the v4 dimensions — producers, version-gates, emitted-sql, **cell-caveats** (coord-scoped
-caveats), the `propagation` preset, and `--bugs`/`--limitation`.
+caveats), the `propagation` preset, and `--bugs`/`--limitation`. **The "references by role" family**
+(case J): `--ref-return`/`--ref-implements` (renamed from `--producers`/`--implemented-by`) + the v5
+`reference` dimension powering **`--ref-type-arg`** (type-bug), **`--ref-param`**, **`--ref-field`**,
+**`--ref-new`** and **`--ref-property`** (cases B/L), the `--refs` shortcut, and the forward
+**`--location-target produces`**. Plus **overload handling** — `--search-location` pins to the concrete
+overload (with `--location-target enclosing-all` / landing on the impl → the whole function), keyed off
+the new **`member.is_implementation`** flag; and the **traceable `reference.enclosing_member_id/_symbol_id`
+FK** (replacing a vague enclosing name). Plus the **`--for type-bug` preset** (J-a) — `--declared full ·
+--signature full · --ref-type-arg full · --neg-types full · --bugs/--limitation summary · --chain none`,
+the TYPE twin of `emission-bug` (the route is the signature, never the stack). Plus the **forward-from-line
+type navigation** (J-b) — **`--location-target types`** (the indexed types referenced ON the exact line →
+each one's def) and **`--location-target types-all`** (across the whole function — every overload + impl
+body, via the enclosing FK). A **terminal navigation report** (`type · role · defined-at` + site count),
+not a section set — the dual of `--ref-type-arg`, reading `reference` forward; the 1-step replacement for
+"read the alias names off `--signature full`, then `--search` each". Plus the **brand / phantom-type
+dimension** (L) — `memberName` now indexes identifier-keyed computed properties under `[source]`/`[type]`,
+and a `reference` role=`brand` links each brand declaration to its `unique symbol` marker
+(`src/utils/symbols.ts`), powering the reverse **`--ref-brand`** (`--search source --ref-brand` → every
+type carrying the brand) and the forward **`--location-target brand`** (a `[sym]: T` line → the marker
+symbol). `--ref-brand` ↔ `--location-target brand` mirror `--ref-type-arg` ↔ `--location-target types`.
+Plus **`--surface`** — the members of the declaring type(s): a TYPE seed → its members (filling the
+gap that a type search otherwise lists no members), a MEMBER seed → its siblings; one `surfaceOf` query,
+both entry points. Its level is the **inheritance scope** (`own` / `all` / `full`) — `all`/`full` walk the
+`heritage` closure (`extends` + `implements`, by name) to include inherited & implemented members, `full`
+keeping them broken down by declaring type. Every member carries `path:line` + its span. And the
+**type-precise call-chain** —
+`callChain` walks the checker-resolved callee edges by ID (above), relaxing to name only on a
+`--no-resolve` index.
 
-**Genuinely-open candidates** (none currently driven by a case — pick up only if one surfaces):
-- **Sibling API** — the other members on the same interface (the fluent state's surface).
-- **Untested-public-surface sweep** — a separate report: `public` / `public_impl` members with zero
-  `test_ref` (a standing work-queue). Bigger; different shape.
-- **Type-resolved chain walk** — follow `invocation.resolved_member_id` so `chain-broad` is type-precise.
+**Genuinely-open candidates** (pick up when wanted):
+- *(none material — the bug-fixer agenda is closed, the surface/chain/brand enhancements shipped, and the
+  **output-regression harness** is now in `verify.ts` phase 2: golden query+render asserts against the built
+  index, derived line numbers, skipped when absent.)*
 
 **Out of scope** (rationale in [`MODEL.md` §6](./MODEL.md)): JSON output (the agent reads markdown);
 a `--real-capable` annotation (runtime, not static); a `--todo <category>` generic flag (no tag beyond
-BUG/LIMITATION exists); and a **negative-coverage-gap lens** — *"what type-safety is missing"* is a
-future **type-coverage** tool (the type-level twin of runtime code coverage), not a static index query.
+BUG/LIMITATION exists); the **untested-public-surface sweep** and any **negative-coverage-gap lens** —
+*"what's untested / what type-safety is missing"* belongs to a future **type-coverage** tool (the
+type-level twin of runtime code coverage, which can read this index), not to the searcher.

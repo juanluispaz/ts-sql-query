@@ -103,7 +103,7 @@ than reading [`CODE_SEARCH.md`](./CODE_SEARCH.md) end-to-end:
 | Add a `@ts-expect-error` rule, consistent with existing locks | `--neg-types full` | [`WRITING_TESTS.md` § Negative type tests](./WRITING_TESTS.md#negative-type-tests) |
 | Browse declared caveats on cells (BUG/LIMITATION markers per cell) | `--cell-caveats summary` (or `full` with `--coord`) | [`LIMITATIONS.md`](./LIMITATIONS.md), [`EXTERNAL_CAVEATS.md`](./EXTERNAL_CAVEATS.md), [`ANTIPATTERNS.md` § Blind copy](./ANTIPATTERNS.md#3-blind-copy-to-bun_sql_postgres) |
 
-`bun run tests:index` builds the underlying index (~18 s, gitignored).
+`bun run tests:index` builds the underlying index (~28 s, gitignored).
 The implementation references under `lib/codeSearcher/` and
 `lib/codeIndexer/` are for the agent **modifying** the tools, not for
 the agent consuming them.

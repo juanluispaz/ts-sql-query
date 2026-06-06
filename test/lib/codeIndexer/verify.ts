@@ -85,6 +85,9 @@ async function main(): Promise<void> {
     check('is_public ⇒ is_public_surface', src.symbols.every(s => s.is_public !== 1 || s.is_public_surface === 1))
     check('some public members exist', src.members.some(m => m.visibility === 'public'), `${src.members.filter(m => m.visibility === 'public').length}`)
     check('some public_impl members exist', src.members.some(m => m.visibility === 'public_impl'), `${src.members.filter(m => m.visibility === 'public_impl').length}`)
+    check('is_implementation ⊆ {0,1}', src.members.every(m => m.is_implementation === 0 || m.is_implementation === 1))
+    check('some implementation members exist', src.members.some(m => m.is_implementation === 1), `${src.members.filter(m => m.is_implementation === 1).length}`)
+    check('overloaded methods have ≥1 signature + the impl', (() => { const k = (m: typeof src.members[number]): string => `${m.symbol_id}:${m.name}`; const byKey = new Map<string, typeof src.members>(); for (const m of src.members) { const l = byKey.get(k(m)) ?? []; if (!l.length) byKey.set(k(m), l); l.push(m) } for (const g of byKey.values()) if (g.length > 1 && g.some(m => m.is_implementation === 1)) return g.filter(m => m.is_implementation === 0).length >= 1; return true })())
     check('is_abstract ⇒ class', src.symbols.every(s => s.is_abstract !== 1 || s.kind === 'class'))
     check('some abstract classes exist', src.symbols.some(s => s.is_abstract === 1), `${src.symbols.filter(s => s.is_abstract === 1).length}`)
 
@@ -99,6 +102,20 @@ async function main(): Promise<void> {
     check('producers ≥ 1', extras.producers.length >= 1, `${extras.producers.length}`)
     allIn('producer.member_id → member', extras.producers.map(p => p.member_id), new Set(src.members.map(m => m.id)))
     allIn('producer.produces_symbol_id → symbol', extras.producers.map(p => p.produces_symbol_id), symbolIds)
+    // schema-v5 reference dimension. It is RESOLUTION-based (resolveToken honours the --no-resolve
+    // guard), and this verify re-extracts in --no-resolve mode, so the table is EMPTY here by design
+    // (like the resolved_* FKs going NULL). The integrity/role-shape checks below hold vacuously when
+    // empty and meaningfully when populated; the real-build count is asserted by the searcher smoke.
+    const REF_ROLES = new Set(['type-arg', 'param', 'field', 'new', 'property', 'brand'])
+    check('references roles ⊆ {type-arg,param,field,new,property,brand}', extras.references.every(r => REF_ROLES.has(r.role)))
+    check('references empty under --no-resolve (resolution-gated)', extras.references.length === 0, `${extras.references.length}`)
+    check('type roles carry a symbol FK, no member FK', extras.references.filter(r => r.role !== 'property').every(r => r.resolved_symbol_id !== null && r.resolved_member_id === null))
+    allIn('reference.enclosing_member_id → member', extras.references.map(r => r.enclosing_member_id).filter((x): x is number => x !== null), new Set(src.members.map(m => m.id)))
+    allIn('reference.enclosing_symbol_id → symbol', extras.references.map(r => r.enclosing_symbol_id).filter((x): x is number => x !== null), symbolIds)
+    check('property refs carry a member FK, no symbol FK', extras.references.filter(r => r.role === 'property').every(r => r.resolved_member_id !== null && r.resolved_symbol_id === null))
+    allIn('reference.resolved_symbol_id → symbol', extras.references.map(r => r.resolved_symbol_id).filter((x): x is number => x !== null), symbolIds)
+    allIn('reference.resolved_member_id → member', extras.references.map(r => r.resolved_member_id).filter((x): x is number => x !== null), new Set(src.members.map(m => m.id)))
+    allIn('reference.module_id → module', extras.references.map(r => r.module_id), new Set(src.modules.map(m => m.id)))
     check('todo markers under test/', todos.every(b => b.file.startsWith('test/')))
     check('todo markers ≥ 1', todos.length >= 1, `${todos.length}`)
     check('some TODO[BUG] markers tagged', todos.some(t => t.tag === 'BUG'), `BUG: ${todos.filter(t => t.tag === 'BUG').length}`)

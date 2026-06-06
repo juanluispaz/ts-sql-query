@@ -1,9 +1,9 @@
 # `tests:where-is` — the case studies that discovered the requirements
 
-These six worked cases, from the **test-writing agent's chair**, are how the searcher's shape was
-discovered. Each takes a real coverage gap or failing test, lists the concrete problems the agent
-hits, and shows the command + the report that solves it. They drove the model in
-[`MODEL.md`](./MODEL.md); this doc keeps the discovery narrative.
+These worked cases, from the **test-writing agent's chair**, are how the searcher's shape was
+discovered and is still refined. Each takes a real coverage gap, failing test, or bug-fixing moment,
+lists the concrete problems the agent hits, and shows the command + the report that solves it (or the
+gap it leaves). They drove the model in [`MODEL.md`](./MODEL.md); this doc keeps the discovery narrative.
 
 > The commands are the **as-built** flags. The report blocks are illustrative of the *shape* of the
 > output (some counts/line numbers are sketched), not byte-exact. Where a case asked for something
@@ -14,13 +14,19 @@ latest addition** — **coord-scoped caveat surfacing** (`--cell-caveats`) plus 
 preset — reasoned through *as cases first*, then built. **Cases H and I** turn to the **negative** tests
 (proving the *type-safety* promise, not just runtime): their shared searcher need — `--neg-types full`
 showing the actual rules — is **built**; the broader *"what type-safety is missing"* analysis is a
-future **type-coverage** tool, out of the searcher's scope. The one idea rejected for noise (a combined
-`--tests` detail+gaps shape, P2a) is flagged inline:
+future **type-coverage** tool, out of the searcher's scope. **Cases J–L** are the forward-looking set: the residue of a real
+bug-fixing session (the `virtualColumnFromFragment` type fix, `5e1050b`) where the agent reached for
+`grep`/`Read` with the searcher available. Reasoned — like G/H/I — *as cases first* and **verified
+against the current tool before proposing any change** (Case I's discipline); most of the residue
+proves to be indiscipline (J) or honest `grep` territory (K, L), and the one real debt is
+**type-refs navigation** (J-b) — K's suspected "exported-only" collateral **dissolved on
+re-verification** (the matcher has no visibility filter; the miss was a sliced-output artifact). The
+one idea rejected for noise (a combined `--tests` detail+gaps shape, P2a) is flagged inline:
 
 | | Seed | Shape | What it surfaced |
 |---|---|---|---|
 | **A** | `SqlBuilder` line (orderBy insensitive) | coverage gap, reached by *data-flow* | per-section levels, `--chain full`, tests detail/gaps, **combine to cut rounds** |
-| **B** | `ValueSourceImpl` method (aggregate modifier) | coverage gap, reached by *chaining off a producer* | **`--producers`** (the receiver question), examples load-bearing for setup |
+| **B** | `ValueSourceImpl` method (aggregate modifier) | coverage gap, reached by *chaining off a producer* | **`--ref-return`** (the receiver question), examples load-bearing for setup |
 | **C** | a failing test line (real-vs-mock) | debugging from a *test* | **test-line inverse**, **`--emitted-sql`**, dialect divergence |
 | **D** | a failing test (syntax bug) | debugging where the **stack is useless** | **`--emits-keyword`**, **non-overriders** (absence as finding), `--chain none` |
 | **E** | a new DB version (PG18) | matrix-shaped work | **`--version-gates`** (+ what stayed with `tests:audit`) |
@@ -28,6 +34,9 @@ future **type-coverage** tool, out of the searcher's scope. The one idea rejecte
 | **G** | a declared caveat (MariaDB RETURNING limitation; `virtualColumnFromFragment` bug) | pre-write caveat scan | **`--cell-caveats`** (coord-scoped) — caveats in the cells you're about to touch, vs the name-scoped `--bugs`/`--limitation` |
 | **H** | a documented type-safety hole (aggregate-in-WHERE not flagged) | proactive negative coverage | **`--neg-types full`** now shows the *rules* (built); the *"what's missing"* analysis is a future type-coverage tool, **out of searcher scope** |
 | **I** | a just-fixed "TS accepts what runtime rejects" bug (`onConflictDoUpdateSet`) | the two-step fix's negative lock | `--for emission-bug` already carried `--neg-types` (summary); the only gap was the detail → **built**; preset E not needed |
+| **J** | a just-fixed type-resolution bug (`virtualColumnFromFragment`, `5e1050b`) | orienting a **type** bug (the firmest, not the call-chain) | `--declared full` already lists every site (the seed was indiscipline — Case I's echo); the real gap was **type-refs navigation** (signature → where the composed aliases live), now **shipped** both ways: `--ref-type-arg` (reverse) + `--location-target types`/`types-all` (forward-from-line); plus a `--for type-bug` preset, the TYPE twin of `emission-bug` |
+| **K** | reuse-don't-reinvent: find a helper by the **shape** of its body (`= SOURCE \| NNoTableOrViewRequiredFrom<SOURCE>`) | a form, no name | `--search-pattern` over a **named type in the shape** already surfaces sibling aliases (the agent skipped it); `--search-body` **rejected** (only a *structural* shape is `grep` territory); a suspected "exported-only" collateral **verified false** (matcher has no visibility filter) |
+| **L** | locating a unique-symbol-keyed member (`[source]: SOURCE` in `HasSource`) | a computed member key | reframed from "niche" to the type-discrimination backbone and **shipped**: the brand member is indexed (`[source]`) + a `reference` role=`brand` powers `--ref-brand` (reverse) and `--location-target brand` (forward) |
 
 ---
 
@@ -58,7 +67,7 @@ The biggest lesson up front: **combine sections**. One call answers what/route/f
 ```bash
 bun run tests:where-is --search-location src/sqlBuilders/AbstractSqlBuilder.ts:1119 \
     --classification full --chain full --docs full --signature public-interface --simplified full \
-    --implemented-by summary --tests summary
+    --ref-implements summary --tests summary
 ```
 
 ```markdown
@@ -77,9 +86,9 @@ full internal stack, by depth: `_appendOrderByColumnAliasInsensitive` ← `_buil
 is **data-flow, not a call** — `orderBy` stores the `'insensitive'` mode; the builder reads it at
 build time. The chain connects the builder side; the user side is the `OrderByMode` literal.
 
-## Implemented by
+## Referenced in implements/extends (implemented by)
 `AbstractSqlBuilder` (base) + overridden in PostgreSqlSqlBuilder / the MySQL-Maria / Oracle /
-SqlServer / Sqlite builders — the per-dialect emission differs (`--implemented-by full` to list).
+SqlServer / Sqlite builders — the per-dialect emission differs (`--ref-implements full` to list).
 
 ## Explained in docs (full)
 docs/api/select.md ("Order by", the `OrderByMode` modes) · docs/queries/select.md · dynamic-queries
@@ -110,7 +119,7 @@ stack, `--docs full` alone for just the feature — but the opening move is the 
 ```bash
 bun run tests:where-is --search orderBy \
     --tests detail --coord postgres/newest/pg --file-name-pattern order --test-name-pattern insensitive \
-    --classification none --chain none --signature none --implemented-by none --docs none --simplified none --examples none --neg-types none
+    --classification none --chain none --signature none --ref-implements none --docs none --simplified none --examples none --neg-types none
 ```
 
 → one list: `select.order-by.insensitive.test.ts` exists, its insensitive cases and (with
@@ -204,11 +213,11 @@ Problems: **(1)** what is `asOptionalNonEmptyArray`, and what makes the `__uuidS
 **(2 — new)** I need a *receiver* — what public call returns the object I call it on? **(3 — new)**
 the precondition is the receiver's value *type* (uuid), and uuid needs per-connector setup.
 
-## B.1 — orient (with `--producers`)
+## B.1 — orient (with `--ref-return`)
 
 ```bash
 bun run tests:where-is --search-location src/internal/ValueSourceImpl.ts:157 \
-    --classification full --producers full --chain full --docs full \
+    --classification full --ref-return full --chain full --docs full \
     --signature public-interface --simplified full --tests summary
 ```
 
@@ -218,7 +227,7 @@ bun run tests:where-is --search-location src/internal/ValueSourceImpl.ts:157 \
 public-surface member on interface `AggregatedArrayValueSource` (src/expressions/values.ts:975),
 implemented on `ValueSourceImpl`. (Line-157 branch fires when the receiver is a **uuid** column.)
 
-## How to obtain a receiver (producers)
+## Referenced as a return type (how to obtain a receiver)
 - `AbstractConnection.aggregateAsArray…` → returns `AggregatedArrayValueSource` — so the test shape
   is `connection.aggregateAsArray({ id: tUuidTable.id, … }).asOptionalNonEmptyArray()`, where the
   column is **uuid** → sets `__uuidString` → covers line 157.
@@ -232,7 +241,7 @@ covered in 6 dbs (e.g. `select.aggregate-as-array.modifiers.test.ts` → test
 `aggregate-as-array-as-optional-non-empty-array`) — but **0** over a uuid column → the gap.
 ```
 
-`--producers` is the headline: it answers "how do I get a receiver to call this on" (the inverse of
+`--ref-return` is the headline: it answers "how do I get a receiver to call this on" (the inverse of
 the chain), without which I can't even construct a failing test.
 
 ## B.2 — locate + per-connector uuid setup (examples earn their keep)
@@ -240,7 +249,7 @@ the chain), without which I can't even construct a failing test.
 ```bash
 bun run tests:where-is --search asOptionalNonEmptyArray \
     --tests detail --examples full --coord postgres/newest/pg --file-name-pattern aggregate \
-    --classification none --chain none --docs none --simplified none --signature none --producers none --neg-types none
+    --classification none --chain none --docs none --simplified none --signature none --ref-return none --neg-types none
 ```
 
 `select.aggregate-as-array.modifiers.test.ts` is the file to extend; the **Legacy examples** section
@@ -249,10 +258,13 @@ functions on the connector) — the standing rule: for connector-specific behavi
 UUIDs) follow the runner docs + `src/examples`, don't invent handling. Marginal in A, load-bearing here.
 
 ### What B taught → what shipped
-- **The receiver question ≠ the reach question** → `--producers` (members whose return type resolves
+- **The receiver question ≠ the reach question** → `--ref-return` (members whose return type resolves
   to the owner interface). Built.
 - **`examples` is load-bearing for setup-heavy features** → `--examples full`, and examples are now
   `--coord`-addressable by cell (db/version/connector from the filename).
+- **The branch trigger was a *property* (`__uuidString`)** — later generalised (case J) into the
+  references-by-role family: `--ref-property` lists where a member is read/written as `x.member` (not a
+  call), e.g. `--search __uuidString --ref-property full` → the `DBColumnImpl`/`ValueSourceImpl` sites.
 - *Not shipped:* the "branch precondition" as a named Classification field (same reason as A).
 
 ---
@@ -291,14 +303,14 @@ dialect emission, focused on the failing db:
 
 ```bash
 bun run tests:where-is --search orderBy --coord sqlserver/newest/mssql \
-    --emitted-sql full --implemented-by full --bugs full \
+    --emitted-sql full --ref-implements full --bugs full \
     --classification summary --chain none --docs none --simplified none --tests detail --examples none --neg-types none
 ```
 
 ```markdown
 ## Emitted SQL (asserted snapshots)
 - `… group by organization_id having … order by organizationId`  — sqlserver/newest/mssql (alias)
-## Implemented by
+## Referenced in implements/extends (implemented by)
 `_buildSelectOrderBy`: base `AbstractSqlBuilder` + **SqlServerSqlBuilder override** (…:232), which
 also WRAPS order-by selects in a subquery `select * from (…) _t_N_` (…:227) ⚠️ the alias may be out
 of scope in that wrapper — this dialect diverges; the others don't.
@@ -317,7 +329,7 @@ alias — that contrast IS the diagnosis.)
   — as the **entry**; the debug sections come from a follow-up search on the suspect symbol.
 - **An `emitted-sql` section** — the asserted SQL per cell, contrastable. Built (tests + docs).
 - **A `bugs` section** (`// TODO[BUG]` / `test/BUGS.md`). Built.
-- **Dialect divergence foregrounded** — `--implemented-by` shows the overriders. Built.
+- **Dialect divergence foregrounded** — `--ref-implements` shows the overriders. Built.
 - *Not shipped:* a `--real-capable` annotation (the index is static and can't know a *run's*
   outcome; the agent runs the failing test itself, so it already knows the cell is real-capable).
 
@@ -367,7 +379,7 @@ Methods to search next (the overriders are the usual suspects): `_appendRawColum
 Then the dialect decision — search the toggle, foreground who does **not** override it:
 
 ```bash
-bun run tests:where-is --search _useUpdateOldValueInFrom --implemented-by full --version-gates full \
+bun run tests:where-is --search _useUpdateOldValueInFrom --ref-implements full --version-gates full \
     --classification summary --chain none --signature summary --docs none --simplified none --tests none --examples none --neg-types none
 ```
 
@@ -387,10 +399,10 @@ is a *missing* override, three layers from anything the test or the stack shows.
 - **`--chain` is the wrong tool for an emission bug** → the `--for emission-bug` preset sets
   `--chain none`. Built.
 - **`--emits-keyword <fragment>`** — SQL token → the emitting code. Built (over `sql_emit`).
-- **"Who does NOT override" is the finding** — `--implemented-by` lists base + overriders +
+- **"Who does NOT override" is the finding** — `--ref-implements` lists base + overriders +
   **non-overriders** ("inherits it, does not override"). Built. No chain can express an absence.
 - **The dialect decision predicates (`_use*…()`)** are a navigation target — surfaced via
-  `--implemented-by` + `--version-gates`.
+  `--ref-implements` + `--version-gates`.
 
 ---
 
@@ -410,7 +422,7 @@ PG≥18, keep the emulation for <18, add a new `newest` cell (today's → a `<18
 
 ```bash
 bun run tests:where-is --search compatibilityVersion --version-gates full --classification summary \
-    --docs full --chain none --signature none --implemented-by none --tests none --examples none --neg-types none
+    --docs full --chain none --signature none --ref-implements none --tests none --examples none --neg-types none
 ```
 
 ```markdown
@@ -763,4 +775,280 @@ enough to model a fourth. `--neg-types full` now lists the three PG bare-form ru
   facts. (Recorded in [`MODEL.md` §6](./MODEL.md).)
 - **The lesson repeats G's:** building the case and **verifying against the tool** before changing it is
   what turned a plausible feature (a new preset) into a one-line detail fix.
+
+---
+
+# Case J — orienting a type-resolution bug (the site that got away)
+
+> **Proposed — verified against the tool, decision pending.** A–I record what shipped; J–L are the
+> residue of a real bug-fixing session, reasoned as cases *before* deciding. Seed: the
+> `virtualColumnFromFragment` / `optionalVirtualColumnFromFragment` type fix (`5e1050b`). Verifying J
+> against the *current* searcher dissolved its headline premise (Case I's lesson, again) and isolated
+> the one real gap underneath.
+
+## The setup (the real repo)
+
+The fix: `virtualColumnFromFragment(...)` / `optionalVirtualColumnFromFragment(...)` rejected a
+fragment with **no `${…}` interpolation** — `fragment => fragment.sql\`upper('hello')\`` — with
+`TS2769: No overload matches this call`. The no-interpolation overload returns a value source whose
+source is `NNoTableOrViewRequiredFrom<SOURCE>`, which the callback's declared return
+`IBooleanValueSource<SOURCE, …>` didn't admit. The fix added the helper
+`NSourceAllowingNoTableOrViewRequired<SOURCE> = SOURCE | NNoTableOrViewRequiredFrom<SOURCE>` and
+applied it to the callbacks in **View.ts, Values.ts and Table.ts**.
+
+## The situation (the fixing agent's chair)
+
+I have a method name and a type error. In one read I want: (1) every declaration site of the overload
+set, (2) the legible signature, (3) the type-aliases the signature composes and where they live,
+(4) sibling locks/bugs. What actually happened: the `BUGS.md` entry named only View.ts and Values.ts,
+so I grepped those two and **missed Table.ts** — the human had to remind me.
+
+## J.1 — the headline premise ("I must grep each site") is false
+
+`--declared full` lists **every** site in one read — and the default `--classification` already names
+all three owners:
+
+```bash
+bun run tests:where-is --search virtualColumnFromFragment --declared full
+```
+
+```markdown
+## Classification
+a **public-surface member**, exposed by `Table`, `Values`, `View` (declared on 3 interfaces + 3 classes).
+
+## Declared
+- [public impl] class `TableOf.virtualColumnFromFragment(…)`  — src/Table.ts:389
+- [public impl] class `ValuesOf.virtualColumnFromFragment(…)` — src/Values.ts:135
+- [public impl] class `ViewOf.virtualColumnFromFragment(…)`   — src/View.ts:120
+  (+ the three interface declarations in the simplified def)
+```
+
+The site that "got away" was never a tool gap: the very first orient names `Table`, `Values`, `View`
+and points at all three lines. The seed was **indiscipline** — grepping the `BUGS.md` prose instead of
+asking the index. (Same shape as Case I: the headline premise dissolves on contact with the tool.)
+
+## J.2 — the real gap: from a signature to where its composed types live
+
+`--signature full` shows the post-fix signature — but the composed alias is **text**, and the
+`path:line` is the method's own site, not the alias's:
+
+```bash
+bun run tests:where-is --search virtualColumnFromFragment --signature full
+```
+
+```markdown
+## Signature
+- [public impl] class `TableOf.virtualColumnFromFragment(type,
+    fn: (fragment: BooleanFragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, 'required'>)
+      => IBooleanValueSource<NSourceAllowingNoTableOrViewRequired<SOURCE>, 'required'>, adapter?): …`
+    — src/Table.ts:389        ← the method's site, NOT where the aliases are defined
+```
+
+To reach the helper at the heart of the fix I take its **name** out of the signature text and run a
+*second* exact search:
+
+```bash
+bun run tests:where-is --search NSourceAllowingNoTableOrViewRequired --declared full
+# → internal type NSourceAllowingNoTableOrViewRequired — src/utils/sourceName.ts:64
+```
+
+It resolves perfectly — but only because I copied the name by eye. For a **type** bug, "from this
+signature, what types does it compose and where do they live?" is first-order navigation, and the
+signature hands me the names without the sites. That second hop is the gap.
+
+## J.3 — the closest preset is the wrong shape
+
+```bash
+bun run tests:where-is --search virtualColumnFromFragment --for emission-bug | grep '^##'
+# ## Classification ## Signature ## Referenced in implements/extends (implemented by) ## Version gates ## Explained in docs ## Shown in simplified-def docs
+```
+
+`emission-bug` is built for a **runtime/SQL** bug: it raises `--emitted-sql`, `--version-gates`, docs
+— all noise for a type-resolution bug, where the route is never the call-chain (the error is in the
+*signature*, not a frame). It does **not** raise `--declared full` or `--neg-types full`, which is
+exactly what a type-bug orient wants.
+
+## What case J taught → what to build (and what not to)
+
+- **J-a — a `--for type-bug` preset: shipped as convenience, not a capability.** The shape a type bug
+  wants (`--declared full` · `--signature full` · `--ref-type-arg full` · `--neg-types full` ·
+  `--bugs`/`--limitation summary` · `--chain none`) genuinely differs from `emission-bug` (the route is
+  the signature, never the stack), and it's 6+ flags to retype. The seed's actual *failure* (missed
+  Table.ts) is fixed by the **default** orient, not by a preset — so the preset is convenience, not a
+  gap; the analysis (same call as Case I's preset E) held that it was *defensible as a recipe, weak as a
+  preset*. **Resolution:** shipped anyway, because once the **`--ref-type-arg`** dimension existed (J-b)
+  the preset gained a section emission-bug lacks — the alias's blast radius — and that, plus the
+  signature-not-stack framing, makes it a clean TYPE twin of `emission-bug` rather than a thin recipe.
+  Note the role correction: the original sketch said `--ref-implements full`; the shipped preset uses
+  **`--ref-type-arg full`** (where the type is a *type argument* — the actual blast radius of a composed
+  alias, not its heritage). It is **light-touch like the other presets** (it does not zero docs/simplified,
+  which point at the type definitions in `simplifiedQueryDefinition.ts` — useful for a type bug).
+- **J-b — type-refs navigation: the one genuine gap.** Today `--signature full` prints the composed
+  aliases as text and the agent re-searches each by name. Auto-resolving "this signature composes these
+  named types, defined here (`path:line`)" is structure `grep` can't give (only the types *in the
+  signature*, with their sites). **The strongest candidate of J–L.** *Resolved direction:* it became the
+  **"references to this element, by role"** family — the reverse role **`--ref-type-arg`** (where this
+  element is referenced as a type argument; the alias's blast radius is exactly the fix's surfaces) and
+  the forward **`--location-target produces`** (from a line → the type it returns). **Shipped:** the
+  family rename (`--ref-return`/`--ref-implements`) + `--refs` + `--location-target produces`, then the
+  v5 `reference` dimension powering **`--ref-type-arg`** — `--search NSourceAllowingNoTableOrViewRequired
+  --ref-type-arg full` lists every overload in Table/Values/View where the alias is a type argument (the
+  fix's exact surfaces), which `grep` can't tag as a *type-argument reference to that indexed type*. See
+  [`MODEL.md` §3/§5](./MODEL.md).
+  - **The forward-from-the-line half, now also shipped: `--location-target types` / `types-all`.** The
+    reverse (`--ref-type-arg`, type → uses) and the return-type forward (`produces`) left one gap: from
+    the *broken signature line itself*, enumerate the composed aliases and jump to each definition in
+    **one** step (it was two: read the names off `--signature full`, then `--search` each). `types` reads
+    the `reference` dimension forward on the exact line; `types-all` does it across the whole function via
+    the **traceable enclosing FK** (every overload + the impl body's `new`s). On `src/Table.ts:389` (a
+    `virtualColumnFromFragment` overload), `types` returns the 4 types on the line — incl.
+    `NSourceAllowingNoTableOrViewRequired` → `src/utils/sourceName.ts:64`; `types-all` returns the
+    function's whole 21-type vocabulary with site counts (the alias at 27 sites). It is a **terminal
+    navigation report, not a section** — a third "list, then decide" shape next to `--search-pattern-summary`
+    and the test inverse search. The full loop is now: land on the signature → `--location-target types`
+    → `--search <alias> --for type-bug`.
+- *Verified-false premise:* "I must grep each declaration site." `--declared full` (and even the
+  default classification) lists all three — the miss was indiscipline, not a tool gap.
+
+---
+
+# Case K — finding a helper by the shape of its definition (reuse, don't reinvent)
+
+> **One door rejected; a suspected collateral verified false.** Same session, the step *before* the
+> fix: the agent almost reinvented a type alias that already existed. Verifying the searcher confirmed
+> the rejection (it's `grep` territory) and — after a first reading that *seemed* to find a scope limit
+> — **dissolved that collateral on re-verification** (Case I's discipline, turned on my own output).
+
+## The setup (the real repo)
+
+Before introducing `NSourceAllowingNoTableOrViewRequired<SOURCE> = SOURCE | NNoTableOrViewRequiredFrom<SOURCE>`,
+I want to know whether an equivalent alias **already exists** — I have the *shape*
+(`SOURCE | NNoTableOrViewRequiredFrom<SOURCE>`), not a name. Grepping the RHS literal found
+`AllowsNoTableOrViewRequired` (a module-local helper at `src/extras/types.ts:103`) doing exactly that.
+
+## The situation (the agent's chair)
+
+Every door is keyed by **name / line / SQL token** (§2). None matches "a type alias whose *body* is
+this union". So:
+
+## K.1 — there's no door over declaration *bodies* — but the shape names a type
+
+Every door is keyed by **name / line / SQL token** (§2); none matches "a type alias whose *body* is
+this union". But the shape isn't nameless — it *references* `NNoTableOrViewRequiredFrom`. A
+name-fragment search over that token surfaces every sibling alias built around it:
+
+```bash
+bun run tests:where-is --search-pattern-summary 'NoTableOrViewRequired'
+```
+
+```markdown
+# matches for /NoTableOrViewRequired/ — 7 name(s)
+- `AllowsNoTableOrViewRequired`          — type · internal · src/extras/types.ts:103   ← the reusable helper
+- `NSourceAllowingNoTableOrViewRequired` — type · internal · src/utils/sourceName.ts:64
+- `NNoTableOrViewRequiredFrom` · `NoTableOrViewRequired` (interface) · …(+3 more)
+```
+
+`AllowsNoTableOrViewRequired` — the exact `SOURCE | NNoTableOrViewRequiredFrom<SOURCE>` I was about to
+reinvent — is right there. The searcher *did* have a path I skipped: when the shape references a
+**named** type, `--search-pattern` over that token is the reuse-by-shape tool.
+
+## K.2 — a suspected collateral that dissolved on re-verification
+
+A first pass *seemed* to show `--search-pattern` **missing** `AllowsNoTableOrViewRequired` (and
+`InferSourceFrom`) — both module-local `type`s with no `export` — which read like an "exported-only"
+scope limit. **Re-verifying killed it** (Case I, a third time): `nameIndex` (the matcher's source,
+[`queries.ts:18`](./queries.ts)) selects `FROM symbol` / `FROM member` with **no visibility filter**,
+and a clean run lists all 7, the two non-exported ones included. The apparent miss was an *observation
+artifact* — a sliced view that dropped the first rows — not a tool gap. `--search-pattern` reaches
+module-local declarations.
+
+## What case K taught → what to build (and what not to)
+
+- **K — `--search-body <regex>` (a door over declaration bodies): rejected, recorded.** When the shape
+  references a **named** type, `--search-pattern` over that token already finds the sibling aliases
+  (K.1) — the common case is covered. The only residue is a *purely structural* shape with no shared
+  named token (`T | null`), which isn't nameable and is honest `grep` territory — the same wall as F's
+  non-inline example SQL. A body-search door buys a rare case `grep` already serves. Recorded in
+  [`MODEL.md` §6](./MODEL.md) so it isn't re-proposed.
+- *Verified-false premise (mine):* "`--search-pattern` is exported-only." The matcher has no visibility
+  filter; the miss was a sliced-output artifact. Re-running clean is what caught it — the same
+  discipline cases G/I turned on the tool, turned here on my own first reading.
+
+---
+
+# Case L (minor) — locating a member keyed by a unique symbol (`[source]`)
+
+> **A small indexer gap, low priority.** The least of the three: a navigation the agent did with
+> `grep` and probably should keep doing — but verifying it drew a precise line about what the index
+> records.
+
+## The setup (the real repo)
+
+Reasoning about variance/assignability for the fix, I needed to find `[source]: SOURCE` — the member
+keyed by the `source` **unique symbol** (`src/utils/symbols.ts`) on `HasSource`
+(`src/utils/ITableOrView.ts:5-6`). I grepped `\[source\]`.
+
+## L.1 — the index finds the symbol, not the computed-key member
+
+```bash
+bun run tests:where-is --search source --signature full
+```
+
+```markdown
+## Declared
+- internal const `source` — src/utils/symbols.ts:6
+## Signature
+- class `TsSqlQueryExecutionError.source: QueryExecutionSource`    — src/TsSqlError.ts:409     ← plain `source` property
+- interface `ErrorContainer.readonly source: QueryExecutionSource` — src/utils/PromiseUtils.ts:147 ← plain `source` property
+```
+
+`--search source` resolves to the **const** (the symbol's declaration) and to plain string-named
+`source` properties — **not** to `[source]: SOURCE` in `HasSource`. The "declared on 1 interface + 1
+class" the classification reports is those plain properties, not the computed key. The member the seed
+wanted (`ITableOrView.ts:6`, confirmed by `grep`) never appears: computed-symbol-key members aren't
+indexed as references to the keying symbol.
+
+## What case L taught → what to build (and what not to)
+
+- **L — indexing computed-symbol-key members: ✅ BUILT (2026-06-06).** Initially parked as a low-frequency
+  niche, then reframed: the `[source]`/`[type]` brands are not a niche but the **type-discrimination
+  backbone** — ts-sql-query leans on `unique symbol` brands (`src/utils/symbols.ts`) so the compiler
+  rejects mixing incompatible sources/types, and the index was *blind* to every brand declaration
+  (`memberName` returned `null` for a `ComputedPropertyName` → the member was dropped). Two halves shipped,
+  both indexer (no schema change — `role` is open text, members are content):
+  1. **The brand member is indexed** — `memberName` now keeps an identifier-keyed computed property under
+     `[source]`, so it shows on its owner's surface and `--search '[source]'` finds every declaration.
+  2. **The brand→marker link is a `reference` row** (role=`brand`, resolved to the marker symbol, enclosing
+     FK to the branding type), powering the **reverse `--ref-brand`** (`--search source --ref-brand` → every
+     type branded by `source` — `HasSource`, `OfDB`, `TableOf`, the query builders, the value sources…) and
+     the **forward `--location-target brand`** (a `[sym]: T` line → the marker symbol; add `--ref-brand` for
+     its family). `--ref-brand` ↔ `--location-target brand` mirror `--ref-type-arg` ↔ `--location-target
+     types`. `grep '\[source\]'` still finds the text; what it *can't* do is enumerate the discriminated
+     family or resolve the brand to its marker definition — which is exactly what a type-assignability
+     investigation (the seed) needs.
+
+---
+
+## Closing J–L — the `grep`/compiler frontier (recorded so it isn't re-proposed)
+
+The residue also reconfirmed where the searcher should **not** go — the same wall H.2 drew for
+`--real-capable` and the type-coverage tool:
+
+- **The assignability question itself** ("does `NNoTableOrViewRequiredFrom<SOURCE>` assign to
+  `SOURCE`?") → the **compiler**. The index *locates* the types; a minimal repro + `tsgo`/`tsc`
+  *decides*. The searcher can show "here's the alias, here's its definition" (J-b), never "here's
+  whether the assignment holds".
+- **Exact enumeration for mass-edits** (counting occurrences, byte anchors for a `perl`/`python` pass
+  across N cells, verifying a count dropped to 0) → **grep**.
+- **Prose / comment & string literals** (keyed-by text, `EXTERNAL_CAVEATS.md`, `test('name')` strings
+  to edit) → **grep**.
+- **Literals inside a `switch`** (`case 'customInt'`) → **grep**; not a symbol, and TS adds no precision.
+
+The through-line of J–L mirrors A–I's discipline: **build the case, verify against the tool, and let
+the verification — not the proposal — decide.** Most of this residue was indiscipline (J) or honest
+`grep` territory (K); the searcher's one real debt was **type-refs navigation** (J-b), now paid off both
+directions (`--ref-type-arg` reverse + `--location-target types`/`types-all` forward). K's suspected
+collateral dissolved on re-verification (the matcher has no visibility filter). L, first parked as a niche,
+was **reframed** (the `[source]`/`[type]` brands are the type-discrimination backbone, not a corner) and
+**shipped** (`--ref-brand` + `--location-target brand`) — the verification, not the proposal, drew each line.
 

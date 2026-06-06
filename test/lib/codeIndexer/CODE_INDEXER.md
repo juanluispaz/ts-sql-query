@@ -33,15 +33,25 @@ bun test/lib/codeIndexer/build.ts [--out <path>] [--no-resolve]
 npx tsx test/lib/codeIndexer/build.ts [--out <path>] [--no-resolve]   # under Node
 ```
 
-**`--no-resolve`** skips the type resolution (`getSymbolAtLocation`), so the checker's type
-cache never grows: **~1–2 GB / ~3 s** instead of **~8 GB / ~18 s**. Same schema and same rows;
-the only difference is every `resolved_symbol_id` / `resolved_member_id` is NULL — name-based
-search (`symbol_name`) still works, but you lose binding-level precision and the lib-vs-noise
-filter (≈84% of test-ref name occurrences aren't lib API). Use it on RAM-constrained machines or
-when only name discovery is needed; the precise build is the default.
+**`--no-resolve`** (experimental, internal — **not** part of the searcher's documented usage) skips the
+type resolution (`getSymbolAtLocation`), so the checker's type cache never grows: **~1–2 GB / ~3 s**
+instead of **~8 GB / ~28 s**. Same schema and same rows; the only difference is every
+`resolved_symbol_id` / `resolved_member_id` is NULL — name-based search (`symbol_name`) still works, but
+you lose binding-level precision and the lib-vs-noise filter (≈84% of test-ref name occurrences aren't
+lib API). Use it on RAM-constrained machines or when only name discovery is needed; the precise build is
+the default.
+
+*Searcher consequence.* The searcher detects this build from the `meta.resolve` field (`name-based` vs
+`resolved`). The features that depend on resolved FKs **relax to name matching** on a `--no-resolve`
+index: notably the **call-chain** (`callChain` falls back to `callChainByName`, walking `callee_name`/
+`caller_name` edges instead of resolved IDs — so same-named methods can cross funnels), and the
+resolution-gated `reference` dimension is empty (`--ref-*` / `--location-target types`/`brand` return
+nothing). The report header prints `name-based` and the chain section flags the fallback. This is why
+`--no-resolve` stays out of the agent-facing [`CODE_SEARCH.md`](../../CODE_SEARCH.md): the documented tool
+is the precise (resolved) build.
 
 Output (default): **`test/lib/codeIndexer/generated/code-index.sqlite`** — gitignored
-(via the `generated` rule), and rebuilt **from scratch each run** (~18 s: ~2 s to build
+(via the `generated` rule), and rebuilt **from scratch each run** (~28 s: ~2 s to build
 the unified TypeScript Program, ~14 s to extract + type-resolve every reference, ~2 s to
 write). It lives in the tool's own `generated/` folder rather than `.test-report/`, which
 the test harness wipes even when the index is still valid. The run prints the chosen
@@ -95,7 +105,7 @@ not one id — start from `__addOrderBy`'s invocation caller name, then the real
 name. The bare `is_public member with no resolved ref` count is inflated for the same reason —
 treat it as candidates, confirmed by a name-level check.
 
-## What it indexes (21 tables — [`schema.ts`](schema.ts) is authoritative)
+## What it indexes (22 tables — [`schema.ts`](schema.ts) is authoritative)
 
 Built by one extractor per dimension; rows are assembled in [`model.ts`](model.ts) and
 bulk-inserted by [`build.ts`](build.ts) (which also writes the `meta` table directly).
@@ -116,7 +126,15 @@ bulk-inserted by [`build.ts`](build.ts) (which also writes the `meta` table dire
 - **member** — methods/properties/getters of interfaces & classes (signature **only** —
   the declaration up to the body/initializer, no implementation — + span + JSDoc; read the
   body via the span), with **`visibility`** = `public` | `public_impl` | `internal`
-  (the publics-marking phase).
+  (the publics-marking phase) and **`is_implementation`** (1 = the declaration has a body — the impl;
+  0 = an overload/interface signature). For an OVERLOADED method the impl is the `: any` catch-all (not
+  a callable overload); for a NON-overloaded method it is the single visible definition. A search uses
+  this to land-on-impl → show the whole function, and to mark the catch-all in the by-name signature list.
+  Members named by a **computed key** are kept under a bracketed name: `[index]`/`[call]`/`[construct]`
+  for index/call/construct signatures, and `[source]`/`[type]`/… for an **identifier-keyed computed
+  property** (`[source]: SOURCE`) — the phantom/branded-type pattern (case L). The brand→marker link is
+  also captured as a `reference` row (role=`brand`), so the member shows on its owner's surface *and*
+  `--ref-brand` lists every type a marker brands.
 - **heritage** — `extends` / `implements` edges (`base_name` = head identifier), plus a
   **`commented`** flag (`implements` commented out in source, `/*Name,*/`, captured so a
   deliberate gap is distinguishable from a forgotten one) and a **`simplified`** flag
@@ -199,7 +217,7 @@ the impl — match by name across the owning family).
 - **neg_type_ref** — the API names in the statement that contains the target line, resolved —
   "WHICH API (+ line) does this negative test guard?" (e.g. `onConflictOn`/`insertInto`/`values`).
 
-### schema-v4 extras — [`extractExtras.ts`](extractExtras.ts)
+### schema-v4/v5 extras — [`extractExtras.ts`](extractExtras.ts)
 Four dimensions the searcher's v2 intents need (see [`../symbolIndex/REPORT_MODEL_V2.md`](../symbolIndex/REPORT_MODEL_V2.md)).
 The first three reuse the `extractSrc` declMap; `bug_marker` is a plain comment scan over `test/`.
 - **version_gate** — one row per comparison against a per-db compatibility-version field
@@ -210,8 +228,28 @@ The first three reuse the `extractSrc` declMap; `bug_marker` is a plain comment 
   + `literal_lc` for case-insensitive LIKE). The build-side bridge `--emits-keyword <fragment>`
   uses: from a bad SQL token to the code that emits it (case D/F).
 - **producer** — `(member_id, produces_symbol_id)`: a member whose return type resolves (via the
-  checker) to an indexed interface/class — "what call returns a receiver of this type" (`--producers`,
+  checker) to an indexed interface/class — "what call returns a receiver of this type" (`--ref-return`,
   case B). Self-returns (`this`) and unresolved types are skipped.
+- **reference** (schema v5) — references to an indexed **element**, tagged by syntactic **`role`**.
+  TYPE roles (`resolved_symbol_id` set): `type-arg` (used as a type argument `Outer<This>` —
+  `--ref-type-arg`, the type-bug surface, case J), `param` (a parameter's declared type — `--ref-param`),
+  `field` (a property/field's declared type — `--ref-field`). VALUE roles: `new` (a class constructed
+  `new X(...)`, `resolved_symbol_id` set — `--ref-new`) and `property` (a MEMBER read/written via
+  `x.member`, NOT a call callee — `resolved_member_id` set, `--ref-property`, cases B/L) and `brand` (a
+  `unique symbol` used as a computed key `[sym]: T` — the phantom/branded-type markers in
+  `src/utils/symbols.ts`, `resolved_symbol_id` set — `--ref-brand`, case L). The
+  return-type position is omitted — `producer` (`--ref-return`) covers it. Resolution-based (uses
+  `resolveToken`, honours `--no-resolve` → empty under it); each row carries the resolved FK (what is
+  referenced), the site (`module_id`, `line`, `col`) and the **enclosing declaration as a traceable FK**
+  (`enclosing_member_id` if the ref sits in a method/property, else `enclosing_symbol_id` — never a
+  free-text name; its span/owner/name come from the joined row).
+
+  *Note on the family's storage.* The searcher's "references by role" (`--ref-*`) is one agent-facing
+  question spanning **two different storage kinds**: `reference` is an **occurrence** table (one row per
+  textual site), whereas `producer` (`--ref-return`) and `heritage` (`--ref-implements`) are **semantic
+  edge** tables (one row per resolved member→type / class→base relationship, reused by the produces
+  lookup and the reconcile/coverage audit). The shape follows the *use*, not the role name — they are
+  deliberately not the same table.
 - **todo_marker** — one row per `// TODO` in a test file (`file`, `line`, `tag`, `text`), the
   bracketed modifier captured as `tag` (`BUG`, `LIMITATION`, … or NULL for a bare `// TODO`).
   `--bugs` surfaces the `tag='BUG'` subset (the generator→fixer divergence channel; `test/BUGS.md`
@@ -500,4 +538,4 @@ wire it into the `openIndexDb` dispatcher. Everything above `db.ts` is backend-a
   current.
 - It uses the classic `typescript` package (not tsgo, which has no programmatic API yet).
   Unlike a pure-parse pass, it builds a real type-checked Program over the whole tree, so
-  a rebuild is ~18 s (the type resolution is the cost — and the point).
+  a rebuild is ~28 s (the type resolution is the cost — and the point).

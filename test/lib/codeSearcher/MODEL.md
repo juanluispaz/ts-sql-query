@@ -22,9 +22,11 @@ and **`--for <intent>` presets the section set**:
 
 | Intent | Triggered by | Door | Sections it raises | Anti-pattern |
 |---|---|---|---|---|
-| **coverage-gap** | a red `src/` line, or a name to cover | `--search-location` (enclosing) · `--search` | classification · `--chain full` · `--producers` · simplified · docs · `--tests gaps` · examples · `--cell-caveats` | — |
+| **bare** | "I want only one section" | any | **nothing** — every section `none`; add the one(s) you want explicitly (`--for bare --surface own`). Saves a dozen `--<section> none` | — |
+| **coverage-gap** | a red `src/` line, or a name to cover | `--search-location` (enclosing) · `--search` | classification · `--chain full` · `--ref-return` · simplified · docs · `--tests gaps` · examples · `--cell-caveats` | — |
 | **propagation** | the canonical cell is baked; copy it to siblings | `--search` (`--coord '*/newest'`) | classification · `--tests gaps` · examples · `--cell-caveats` · `--chain none` | replicating ≠ finding — no chain/producers needed |
-| **emission-bug** (real-vs-mock) | "this test fails on the real DB" (a test path) | test-line `--search-location` · `--emits-keyword` | `--emitted-sql` · `--implemented-by` (incl. **non-overriders**) · `--version-gates` · `--bugs` · `--limitation` · **`--chain none`** | `--chain` is useless here (build→execute is data-flow) |
+| **type-bug** | a type-resolution error on a name (case J) | `--search <name>` | `--declared full` · `--signature full` · `--ref-type-arg full` · `--neg-types full` · `--bugs` · `--limitation` · **`--chain none`** | the TYPE twin of emission-bug: the error is in the **signature**, never a frame — chasing the call-chain is wasted |
+| **emission-bug** (real-vs-mock) | "this test fails on the real DB" (a test path) | test-line `--search-location` · `--emits-keyword` | `--emitted-sql` · `--ref-implements` (incl. **non-overriders**) · `--version-gates` · `--bugs` · `--limitation` · **`--chain none`** | `--chain` is useless here (build→execute is data-flow) |
 | **version-work** | a DB release note / breakpoint | `--search compatibilityVersion` · `--emits-keyword` | `--version-gates full` · tests · `--bugs` · `--limitation` | starting from one statement kind hides the others |
 | **post-fix-sync** | a merged fix changed the emitted SQL | `--emits-keyword` · `--search <feature>` | `--emitted-sql` · docs · examples · tests detail · `--bugs` | a `--update-snapshots` run leaves examples + docs stale |
 
@@ -103,8 +105,12 @@ These recurred across the cases and shaped the model. Each notes how it landed.
 |---|---|
 | `--search <name>` | an exact symbol/member name |
 | `--search-pattern <regex>` / `--search-pattern-summary <regex>` | matching names → a full report per match / a compact pick-list |
-| `--search-location <path:line>` (`--location-target enclosing`, default) | the enclosing function/member |
+| `--search-location <path:line>` (`--location-target enclosing`, default) | the enclosing function/member — the **concrete overload** at that line (landing on the impl catch-all un-focuses to the whole function) |
+| `--search-location <path:line>` `--location-target enclosing-all` | the enclosing function but the **whole** of it — every overload (the only way for an interface method, with no impl line) |
 | `--search-location <path:line>` `--location-target callees` | the function(s) **invoked on** that line (≥1 → pick-list) |
+| `--search-location <path:line>` `--location-target produces` | the **type the enclosing function returns** → that type's definition (the forward "go to type definition"; reads the `producer` dimension forward) |
+| `--search-location <path:line>` `--location-target types` / `types-all` | the **indexed types referenced** on the line / across the **whole function** (every overload + impl body, via the enclosing FK) → each one's definition. A **terminal navigation report** (`type · role · defined-at(+span)` + site count), NOT a section set — reads `reference` forward; the dual of `--ref-type-arg` |
+| `--search-location <path:line>` `--location-target brand` | the **brand marker** a computed-key line `[sym]: T` keys on → the marker symbol (a full report; add `--ref-brand` for its branded family). Reads `reference` role=`brand` forward; the dual of `--ref-brand` |
 | `--search-location <test-file>:line` | **inverse search**: the enclosing `test_block` + the public API it exercises |
 | `--emits-keyword <sql-fragment>` | the `SqlBuilder` code that emits that SQL token (the build-side bridge) |
 
@@ -126,8 +132,15 @@ levels. The default column reproduces the classic report when no flag is passed.
 | `--declared` | none·**summary**·full | declaration sites (kind · path:line · first JSDoc line) |
 | `--signature` | none·**summary**·public-interface·public-impl·internal·full | signatures + JSDoc, `[public]`/`[public impl]`/`[internal]`, simplified-map form first |
 | `--chain` | none·**strict**·broad·full | call-chain; `full` = the whole internal stack |
-| `--producers` | **none**·summary·full | public calls whose **return type** yields a receiver of this type (L4) |
-| `--implemented-by` | none·**summary**·full | overriders **and non-overriders** (L3) + the simplified def(s) realized |
+| `--ref-return` | **none**·summary·full | **references-by-role:** referenced **as a return type** — members whose return type yields a receiver of this type (L4) |
+| `--ref-implements` | none·**summary**·full | **references-by-role:** referenced **in implements/extends** — overriders **and non-overriders** (L3) + the simplified def(s) realized |
+| `--ref-type-arg` | **none**·summary·full | **references-by-role:** referenced **as a type argument** (`Outer<This>`) — a type alias's blast radius across signatures (the type-bug, case J); v5 `reference` |
+| `--ref-param` | **none**·summary·full | **references-by-role:** referenced **as a parameter type**; v5 `reference` |
+| `--ref-field` | **none**·summary·full | **references-by-role:** referenced **as a field/property type**; v5 `reference` |
+| `--ref-new` | **none**·summary·full | **references-by-role:** the class referenced **in a construction** (`new This(…)`); v5 `reference` |
+| `--ref-property` | **none**·summary·full | **references-by-role:** the member referenced **via property access** (`x.member`, not a call) — cases B/L; v5 `reference` |
+| `--ref-brand` | **none**·summary·full | **references-by-role:** a `unique symbol` used **as a brand key** (`[sym]: T` — the phantom/branded-type markers the compiler discriminates on, `src/utils/symbols.ts`) — case L; `reference` role=`brand` |
+| `--surface` | **none**·own·all·full | the **members of the declaring type(s)**: a TYPE seed → its members; a MEMBER seed → its siblings (one `surfaceOf` query, both entry points). Level = **inheritance scope**: `own`=direct; `all`=+inherited(`extends`)+implemented(`implements`), flat; `full`=broken down by declaring type (incl. interfaces). Every member carries `path:line` + span |
 | `--version-gates` | **none**·summary·full | `compatibilityVersion` comparisons, their breakpoint + the gated method |
 | `--docs` | none·**summary**·by-page·full | where explained (page · heading · line · kind); `full` keeps every occurrence |
 | `--simplified` | none·**summary**·full | reconcile (completeness vs real API + drift) + where the member is shown inside a simplified-def snippet |
@@ -139,6 +152,29 @@ levels. The default column reproduces the classic report when no flag is passed.
 | `--limitation` | **none**·summary·full | `// TODO[LIMITATION]` markers **naming the symbol** (→ `test/LIMITATIONS.md`); name-scoped |
 | `--cell-caveats` | **none**·summary·full | BUG/LIMITATION declared on cells — coord-scoped, *not* by symbol. **Level = view:** `summary` = per-cell map (each cell + counts), `full` = the markers (cell-prefixed); `--coord` only filters which cells. Case G |
 | `--name-search` | **none**·full | name-based discovery across every dimension (high recall) |
+| `--refs` | none·summary·full | **shortcut, not a section:** sets the whole `--ref-*` family (`--ref-return` + `--ref-implements`) at one level; explicit per-role flag overrides, and `--refs` itself beats a `--for` preset |
+
+**References to this element, by role.** `--ref-return` and `--ref-implements` are two views of one
+question — *where is this element referenced, and how?* — kept as **separate sections** so the agent
+pays only for the role it needs (granularity = low noise), with `--refs` as the all-at-once shortcut.
+The **forward duals** live on `--search-location` (from a line *outward* to what it references):
+`--location-target produces` (→ the type the enclosing fn returns, reads `producer`),
+`--location-target types` / `types-all` (→ the indexed types referenced on the line / across the whole
+function, reads `reference`), and `--location-target brand` (→ the marker symbol a `[sym]: T` line keys
+on, reads `reference` role=`brand`). `--ref-type-arg` is the reverse of `types`; `--ref-brand` the reverse
+of `brand`. The reverse family by role: `--ref-return` (producer) and `--ref-implements` (heritage) read
+existing dimensions; **`--ref-type-arg`** (type argument — the type-bug, case J), **`--ref-param`**
+(parameter type), **`--ref-field`** (field type), **`--ref-new`** (construction), **`--ref-property`**
+(property access — cases B/L) and **`--ref-brand`** (brand key — case L) read the **`reference` dimension**
+(§5). `--chain` (call-graph walk) and `--name-search` (flat) stay outside the family by nature. See §6.
+
+**`--location-target types` / `types-all` are a navigation report, not a section** — a third "terminal
+list, no section set" shape alongside `--search-pattern-summary` (the recalled precedent: a list that
+needs the *which-one?* decision before `--search`) and the test-line inverse search ("the banner IS the
+report"). They resolve to *many* types, so rendering the section set is meaningless without first picking
+one; instead they print `type · role · defined-at(+span)` (with a site count for `types-all`) and ignore the
+`--<section>` flags. `types` = the exact line (concrete overload), `types-all` = the whole function (all
+overloads + impl body, via the traceable enclosing FK) — the same `enclosing`/`enclosing-all` axis.
 
 Not built: a `--matrix` (cell-symmetry) section and a tests `version-split` shape — see §6.
 
@@ -175,15 +211,17 @@ views — see §6.
 The v3 base — `symbol` / `member` / `heritage` / `invocation` / `reconcile` / `test_block` /
 `doc_test_block` / `example_block` / `neg_type` (+ their `*_ref`) — already powered classification,
 signature, chain, implemented-by, docs, simplified, tests, examples, neg-types. The intents above
-added **five schema-v4 dimensions** (built in `extractExtras.ts`, asserted in `verify.ts`):
+added **five schema-v4 dimensions** plus the **v5 `reference`** dimension (built in `extractExtras.ts`,
+asserted in `verify.ts`):
 
 | Dimension | Powers | How it's derived |
 |---|---|---|
 | `version_gate` | `--version-gates` | `compatibilityVersion <op> <breakpoint>` comparisons in the SqlBuilders (AST) |
 | `sql_emit` | `--emits-keyword` | SQL string literals in the SqlBuilders (substring match on `literal_lc`) |
-| `producer` | `--producers` | members whose return type resolves (checker) to an indexed interface/class |
+| `producer` | `--ref-return` | members whose return type resolves (checker) to an indexed interface/class |
 | `todo_marker` | `--bugs` (`tag='BUG'`, name-scoped), `--limitation` (`tag='LIMITATION'`, name-scoped), `--cell-caveats` (BUG+LIMITATION, coord-scoped) | every `// TODO[<tag>]` in `test/` |
 | `emitted_sql` | `--emitted-sql` | `toMatchInlineSnapshot` SQL in test + documentation cells; the searcher joins it to the block by file + line-containment |
+| `reference` (v5) | `--ref-type-arg`/`--ref-param`/`--ref-field`/`--ref-new`/`--ref-property` (roles `type-arg`/`param`/`field`/`new`/`property`) | checker-resolved references to an indexed element by syntactic role; resolution-gated (empty under `--no-resolve`) |
 
 `example_block` also gained `db`/`version`/`connector` columns (filename-derived) so `--coord`
 addresses the legacy examples by full cell. `test/BUGS.md` and `test/LIMITATIONS.md` are read
@@ -209,7 +247,9 @@ directly by the agent, not indexed.
   `--neg-types` (it never suppresses the `summary` default), so the only real gap was that `--neg-types`
   showed a count, not the rules. That gap is now closed (`--neg-types full` lists each rule comment +
   rejected snippet + file:line). A separate preset would re-split the two-step fix into two reports for
-  no gain.
+  no gain. (Distinct from the **shipped `--for type-bug`** preset: that one is centred on the type
+  *signature* + the alias's blast radius via `--ref-type-arg`, and merely *includes* `--neg-types full`
+  as one section — a type-resolution-bug orient, not a negative-types-only lens. No overlap.)
 - **A "negative-coverage gap" lens** (declared restrictions/holes without a matching `@ts-expect-error`).
   Out of the searcher's scope by design: knowing *what type-safety is missing* is the job of a future
   **type-coverage** tool (the type-level equivalent of runtime code coverage), not a static index
@@ -226,6 +266,14 @@ directly by the agent, not indexed.
   `--coord`, which is exactly when it picks the cells it will write into. The explicit focused call is
   the precise, low-noise tool; the no-coord orient is a pure overview. Building the mini-case (Case G
   follow-up) is what surfaced this — the guardrail is already at the right moment.
+- **`--search-body <regex>` (a door over declaration BODIES; case K).** Rejected: it would find a helper
+  by the *shape* of its definition (reuse-don't-reinvent), but when the shape references a **named** type,
+  `--search-pattern <token>` over that token already surfaces the sibling aliases — the common case is
+  covered. The only residue is a *purely structural* shape with no shared named token (`T | null`), which
+  isn't nameable and is honest `grep` territory — the same wall as F's non-inline example SQL. A new door
+  buys a rare case `grep` already serves. (The suspected "exported-only" scope of `--search-pattern` that
+  surfaced alongside was **verified false** — `nameIndex` has no visibility filter; the miss was a
+  sliced-output artifact.)
 
 ---
 

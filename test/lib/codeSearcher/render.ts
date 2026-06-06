@@ -17,14 +17,22 @@ export type SignatureLevel = 'none' | 'summary' | 'public-interface' | 'public-i
 export type TestsLevel = 'none' | 'summary' | 'detail' | 'gaps'
 export type DocsLevel = 'none' | 'summary' | 'by-page' | 'full'
 export type NameSearchLevel = 'none' | 'full'
+export type SurfaceLevel = 'none' | 'own' | 'all' | 'full'   // own = direct; all = +inherited/implemented (flat); full = broken down by source
 
 export interface Sections {
     classification: Level
     declared: Level
     signature: SignatureLevel
     chain: ChainLevel
-    producers: Level
-    implementedBy: Level
+    refReturn: Level        // references to this element AS A RETURN TYPE (the "how to obtain a receiver" view)
+    refImplements: Level    // references to this element IN AN implements/extends clause
+    refTypeArg: Level       // references to this type AS A TYPE ARGUMENT (Outer<This>)
+    refParam: Level         // references to this type AS A PARAMETER TYPE
+    refField: Level         // references to this type AS A FIELD/PROPERTY TYPE
+    refNew: Level           // references to this class IN A CONSTRUCTION (new X(...))
+    refProperty: Level      // references to this member VIA PROPERTY ACCESS (read/write, not a call)
+    refBrand: Level         // references to this unique-symbol AS A BRAND KEY ([sym]: T — phantom/branded types)
+    surface: SurfaceLevel   // members of the declaring type(s); level = inheritance scope (own/all/full)
     versionGates: Level
     docs: DocsLevel
     simplified: Level
@@ -60,7 +68,7 @@ export interface SearchOptions {
 
 export const DEFAULT_SECTIONS: Sections = {
     classification: 'summary', declared: 'summary', signature: 'summary', chain: 'strict',
-    producers: 'none', implementedBy: 'summary', versionGates: 'none', docs: 'summary',
+    refReturn: 'none', refImplements: 'summary', refTypeArg: 'none', refParam: 'none', refField: 'none', refNew: 'none', refProperty: 'none', refBrand: 'none', surface: 'none', versionGates: 'none', docs: 'summary',
     simplified: 'summary', emittedSql: 'none', tests: 'summary', examples: 'summary',
     negTypes: 'summary', bugs: 'none', limitation: 'none', cellCaveats: 'none', nameSearch: 'none',
 }
@@ -213,7 +221,15 @@ function applyOwnerFilter(mems: Q.MemberHit[], f: Filters): Q.MemberHit[] {
 }
 
 // ── the report ───────────────────────────────────────────────────────────────
-export function render(db: QueryDb, name: string, opts: SearchOptions, meta: MetaInfo): string {
+// `focus` (set when the door was a SOURCE --search-location) pins the report to the EXACT declaration
+// at that path:line — the concrete overload you landed on — instead of the whole by-name family. Without
+// it (a by-name --search) the declared/signature sections show the WHOLE function (every overload).
+export function render(db: QueryDb, name: string, opts: SearchOptions, meta: MetaInfo, focus?: { path: string, line: number }): string {
+    const atFocus = <T extends { path: string, start_line: number, end_line: number }>(rows: T[]): T[] => {
+        if (!focus) return rows
+        const at = rows.filter(r => r.path === focus.path && r.start_line <= focus.line && r.end_line >= focus.line)
+        return at.length ? at : rows
+    }
     const out: string[] = []
     const push = (s = ''): void => { out.push(s) }
     const S = opts.sections
@@ -243,17 +259,20 @@ export function render(db: QueryDb, name: string, opts: SearchOptions, meta: Met
         return out.join('\n') + '\n'   // nothing else to say
     }
 
-    // Declared (symbol declaration sites)
+    // Declared (symbol declaration sites). A SOURCE-line focus pins it to the declaration at that line
+    // (the concrete overload, for an overloaded function), else every declaration shows.
     if (S.declared !== 'none' && syms.length) {
+        const shownSyms = atFocus(syms)
         push('## Declared')
-        const cap = S.declared === 'full' ? syms.length : 12
-        for (const s of syms.slice(0, cap)) {
+        const cap = S.declared === 'full' ? shownSyms.length : 12
+        for (const s of shownSyms.slice(0, cap)) {
             const flags = [s.is_public ? 'public' : 'internal', s.kind].join(' ')
             push(`- ${flags} \`${s.name}\` — ${s.path}:${s.start_line}${block('definition spans', s.start_line, s.end_line)}`)
             const doc = firstLine(s.jsdoc)
             if (doc) push(`  - ${doc}`)
         }
-        if (syms.length > cap) push(`- …and ${syms.length - cap} more`)
+        if (shownSyms.length > cap) push(`- …and ${shownSyms.length - cap} more`)
+        if (focus && shownSyms.length < syms.length) push(`  (focused on ${focus.path}:${focus.line} — \`--search ${name}\` for all ${syms.length} declarations)`)
         push()
     }
 
@@ -265,37 +284,58 @@ export function render(db: QueryDb, name: string, opts: SearchOptions, meta: Met
         const wantVis = visFilter[S.signature] ?? null
         let shownMems = applyOwnerFilter(mems, F)
         if (wantVis) shownMems = shownMems.filter(m => m.visibility === wantVis)
-        if (shownMems.length) {
+        // An owner is OVERLOADED when it declares this name more than once (signatures + the impl). Only
+        // THEN is the impl a `: any` catch-all (not a callable overload). A method with NO overloads has
+        // exactly one declaration per owner — its impl IS the visible definition (don't treat it special).
+        const ownerCount = new Map<string, number>()
+        for (const m of mems) ownerCount.set(m.owner, (ownerCount.get(m.owner) ?? 0) + 1)
+        const isOverloadImpl = (m: Q.MemberHit): boolean => m.is_implementation === 1 && (ownerCount.get(m.owner) ?? 0) > 1
+        // A SOURCE-line focus → just the concrete overload; but landing on the overload IMPL (its `: any`
+        // catch-all body) isn't "a specific overload" → show the whole function instead.
+        let focusedMems = atFocus(shownMems)
+        let landedOnImpl = false
+        if (focus && focusedMems.length && focusedMems.every(isOverloadImpl)) { focusedMems = shownMems; landedOnImpl = true }
+        // Dedup by SIGNATURE (not owner.name) so distinct overloads all show — by name you get the
+        // whole function; located on a line you get that one. True duplicates still collapse.
+        const distinct: Q.MemberHit[] = []
+        const seen = new Set<string>()
+        for (const m of focusedMems) {
+            const sig = m.signature ? m.signature.replace(/\s+/g, ' ').trim() : m.name
+            const key = `${m.owner}.${sig}`
+            if (seen.has(key)) continue
+            seen.add(key); distinct.push(m)
+        }
+        if (distinct.length) {
             push('## Signature')
-            const cap = (S.signature === 'summary') ? 10 : shownMems.length
-            const shown = new Set<string>()
-            for (const m of shownMems) {
-                const key = `${m.owner}.${m.name}`
-                if (shown.has(key)) continue
-                shown.add(key)
-                if (shown.size > cap) { push(`- …and more (${shownMems.length} total member declarations)`); break }
+            const cap = (S.signature === 'summary') ? 10 : distinct.length
+            for (const m of distinct.slice(0, cap)) {
                 const sig = m.signature ? m.signature.replace(/\s+/g, ' ').trim() : m.name
                 const mark = m.visibility === 'public_impl' ? 'public impl' : m.visibility
-                push(`- [${mark}] ${m.owner_kind} \`${m.owner}.${sig}\`  — ${m.path}:${m.start_line}${block('definition spans', m.start_line, m.end_line)}`)
+                const implNote = isOverloadImpl(m) ? '  — _(implementation catch-all, not a callable overload)_' : ''
+                push(`- [${mark}] ${m.owner_kind} \`${m.owner}.${sig}\`  — ${m.path}:${m.start_line}${block('definition spans', m.start_line, m.end_line)}${implNote}`)
                 const doc = firstLine(m.jsdoc)
                 if (doc) push(`  - ${doc}`)
             }
+            if (distinct.length > cap) push(`- …and ${distinct.length - cap} more overload(s)`)
+            if (landedOnImpl) push(`  (landed on the implementation catch-all — showing the whole function, all overloads)`)
+            else if (focus && focusedMems.length < shownMems.length) push(`  (focused on the overload at ${focus.path}:${focus.line} — \`--search ${name}\` for all ${shownMems.length} declarations)`)
             push()
         }
     }
 
     // 3. Search — call-chain (strict / broad / full).
     if (S.chain !== 'none') {
-        renderChain(push, db, name, S.chain)
+        renderChain(push, db, name, S.chain, meta.resolved)
     }
 
-    // Producers — public calls whose return type yields a receiver of this type (case B).
-    if (S.producers !== 'none' && mems.length) {
+    // ref-return — references to this element AS A RETURN TYPE: members whose return type
+    // produces a receiver of this type (the "how to obtain a receiver" view, case B).
+    if (S.refReturn !== 'none' && mems.length) {
         const producers = Q.producersOf(db, name)
         if (producers.length) {
-            push('## How to obtain a receiver (producers)')
-            push(`Public calls whose return type produces an object you can call \`${name}\` on:`)
-            const cap = S.producers === 'full' ? producers.length : 12
+            push('## Referenced as a return type (how to obtain a receiver)')
+            push(`Members whose return type produces an object you can call \`${name}\` on:`)
+            const cap = S.refReturn === 'full' ? producers.length : 12
             for (const p of producers.slice(0, cap)) {
                 push(`- \`${p.owner}.${p.producer}\` → returns \`${p.produces}\` — ${p.path}:${p.start_line}${block('definition spans', p.start_line, p.end_line)}`)
             }
@@ -304,13 +344,14 @@ export function render(db: QueryDb, name: string, opts: SearchOptions, meta: Met
         }
     }
 
-    // §9.2 interface→class bridge (incl. non-overriders / inherited).
-    if (S.implementedBy !== 'none' && mems.length) {
+    // ref-implements — references to this element IN AN implements/extends clause: the
+    // interface→class bridge, incl. non-overriders / inherited (§9.2).
+    if (S.refImplements !== 'none' && mems.length) {
         const impls = Q.implementedBy(db, name)
         if (impls.length) {
-            push('## Implemented by')
+            push('## Referenced in implements/extends (implemented by)')
             push(`Classes implementing an interface that declares \`${name}\`:`)
-            const cap = S.implementedBy === 'full' ? impls.length : 20
+            const cap = S.refImplements === 'full' ? impls.length : 20
             for (const c of impls.slice(0, cap)) {
                 if (c.impl_start !== null) {
                     push(`- class \`${c.cls}\` — ${c.path}:${c.impl_start} (implementation spans lines ${c.impl_start}–${c.impl_end}; class spans lines ${c.class_start}–${c.class_end})`)
@@ -324,6 +365,77 @@ export function render(db: QueryDb, name: string, opts: SearchOptions, meta: Met
                 push('')
                 push('Realizes simplified def(s):')
                 for (const d of defs) push(`- \`${d.name}\` — ${d.path}:${d.start_line}${block('definition spans', d.start_line, d.end_line)}`)
+            }
+            push()
+        }
+    }
+
+    // ref-{type-arg,param,field,new,property} — the v5 `reference` dimension: where the searched
+    // element is referenced in a given syntactic role (keyed on the NAME). One helper, one section
+    // per role; each self-omits when empty.
+    const refRoleSection = (level: Level, role: string, header: string, desc: string): void => {
+        if (level === 'none') return
+        const hits = Q.referencesByRole(db, name, role)
+        if (!hits.length) return
+        push(`## ${header}`)
+        push(desc)
+        const cap = level === 'full' ? hits.length : 20
+        for (const h of hits.slice(0, cap)) {
+            const enclName = h.enclosing_member ? `${h.enclosing_owner ? `${h.enclosing_owner}.` : ''}${h.enclosing_member}` : h.enclosing_symbol
+            const encl = enclName ? ` (in \`${enclName}\`)` : ''
+            push(`- ${h.path}:${h.line}${encl}`)
+        }
+        if (hits.length > cap) push(`- …and ${hits.length - cap} more`)
+        push()
+    }
+    refRoleSection(S.refTypeArg, 'type-arg', 'Referenced as a type argument', `Where \`${name}\` appears as a type argument (\`Outer<${name}>\`):`)
+    refRoleSection(S.refParam, 'param', 'Referenced as a parameter type', `Where \`${name}\` is the declared type of a parameter:`)
+    refRoleSection(S.refField, 'field', 'Referenced as a field type', `Where \`${name}\` is the declared type of a property/field:`)
+    refRoleSection(S.refNew, 'new', 'Referenced in a construction (new)', `Where \`${name}\` is constructed (\`new ${name}(…)\`):`)
+    refRoleSection(S.refProperty, 'property', 'Referenced via property access', `Where \`${name}\` is read/written as a property (not called):`)
+    refRoleSection(S.refBrand, 'brand', 'Used as a brand key (branded/phantom types)', `Types branded by \`${name}\` — declared as the computed key \`[${name}]: T\` (the compiler discriminates on it):`)
+
+    // Surface — the members of the declaring type(s). Seed a TYPE → its own members (its surface); seed a
+    // MEMBER → its siblings (the other members of its owner(s), the fluent state's surface). Both from one
+    // query (Q.surfaceOf). summary = the member NAMES per owner; full = signature + visibility + location.
+    if (S.surface !== 'none') {
+        const scope = S.surface   // 'own' | 'all' | 'full'
+        const mem = Q.surfaceOf(db, name, scope)
+        if (mem.length) {
+            const typeSeed = mem.some(m => m.is_own === 1 && m.owner === name)
+            // every member line carries path:line + span, so a caller can extract the code directly
+            const line = (m: Q.SurfaceMember): string => {
+                const vis = m.visibility === 'public' ? '' : ` [${m.visibility}]`
+                return `  - ${m.signature ? `\`${m.signature}\`` : `\`${m.name}\``}${vis} — ${m.path}:${m.start_line}${block('spans', m.start_line, m.end_line)}`
+            }
+            const scopeNote = scope === 'own' ? 'declared directly (no inheritance)'
+                : scope === 'all' ? 'everything it has — own + inherited + implemented'
+                : 'broken down by declaring type — own + every inherited/implemented source'
+            push(`## ${typeSeed ? 'Surface — members of the type' : 'Sibling API — the surface around it'} (${scope}: ${scopeNote})`)
+
+            if (scope === 'full') {
+                // grouped by the contributing type, own owners first, each member with its span
+                const byOwner = new Map<string, Q.SurfaceMember[]>()
+                for (const m of mem) { const l = byOwner.get(m.owner) ?? []; if (!l.length) byOwner.set(m.owner, l); l.push(m) }
+                const owners = [...byOwner.keys()].sort((a, b) =>
+                    (byOwner.get(b)![0]!.is_own - byOwner.get(a)![0]!.is_own) || a.localeCompare(b))
+                const OWNER_CAP = 20
+                for (const owner of owners.slice(0, OWNER_CAP)) {
+                    const list = byOwner.get(owner)!
+                    const tag = list[0]!.is_own ? 'own' : 'inherited'
+                    push(`- **\`${owner}\`** (${list[0]!.owner_kind}, ${tag}) — ${list.length} member${list.length === 1 ? '' : 's'}:`)
+                    for (const m of list.slice(0, 40)) push(line(m))
+                    if (list.length > 40) push(`    - …and ${list.length - 40} more`)
+                }
+                if (owners.length > OWNER_CAP) push(`- …and ${owners.length - OWNER_CAP} more declaring type(s)`)
+            } else {
+                // own / all: a flat list, deduped by member name (own declaration wins)
+                const seen = new Set<string>()
+                const flat = mem.filter(m => { if (seen.has(m.name)) return false; seen.add(m.name); return true })
+                push(`${flat.length} member${flat.length === 1 ? '' : 's'}${scope === 'all' ? ' (across the heritage closure)' : ''}:`)
+                const CAP = 120
+                for (const m of flat.slice(0, CAP)) push(line(m))
+                if (flat.length > CAP) push(`  - …and ${flat.length - CAP} more`)
             }
             push()
         }
@@ -553,10 +665,10 @@ export function render(db: QueryDb, name: string, opts: SearchOptions, meta: Met
 }
 
 // ── chain section (strict | broad | full) ────────────────────────────────────
-function renderChain(push: (s?: string) => void, db: QueryDb, name: string, level: ChainLevel): void {
+function renderChain(push: (s?: string) => void, db: QueryDb, name: string, level: ChainLevel, resolved: boolean): void {
     const broad = level === 'broad' || level === 'full'
-    const chain = Q.callChain(db, name, broad)
-    push(`## Search: chain-${level} (call-chain)`)
+    const chain = Q.callChain(db, name, broad, resolved)
+    push(`## Search: chain-${level} (call-chain${resolved ? '' : ', name-based — index is --no-resolve'})`)
     if (!chain.hops.length) {
         push(`No recorded callers reach \`${name}\`.`)
         push()

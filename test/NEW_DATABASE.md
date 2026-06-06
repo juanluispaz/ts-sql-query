@@ -87,6 +87,11 @@ database has to satisfy see [`PER_DATABASE_LAYOUT.md`](./PER_DATABASE_LAYOUT.md)
    [`DESIGN.md` § Symmetry rule](./DESIGN.md#symmetry-rule), with the
    **full canonical body** kept inside `/* */` per
    [`DESIGN.md` § Full-canonical-body discipline](./DESIGN.md#full-canonical-body).
+   To browse the existing caveat shape across the matrix (the wrap
+   header conventions you'll mirror), use
+   `bun run tests:where-is --search <api> --cell-caveats summary` for
+   the per-cell map, or `--coord '<sibling-db>'` to raise it to the
+   markers themselves in that db's cells.
 
 9. **Run the validations**:
 
@@ -161,8 +166,12 @@ A new `<compatibilityVersion>` folder under an existing database:
    typed at this older version usually works). To see which APIs are
    gated by `compatibilityVersion` and at which breakpoints, use
    `bun run tests:where-is --search <api> --for version-work` — the
-   preset bundles `version-gates full · tests summary · chain none`,
-   handy when planning step 6's triage. See
+   preset bundles `version-gates full · tests summary · bugs ·
+   limitation · chain none`, so a single call shows the breakpoints
+   that apply to the method, the existing coverage per db, and any
+   `// TODO[BUG]` / `// TODO[LIMITATION]` markers naming it (the most
+   common version-gated case: a `LIMITATION` declaring "not supported
+   below version X"). Handy when planning step 6's triage. See
    [`CODE_SEARCH.md`](./CODE_SEARCH.md) for the full preset map.
 
 5. **Bake snapshots** — the SqlBuilder branches on `compatibilityVersion`,

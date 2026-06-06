@@ -85,6 +85,29 @@ uses.
 | Catalogue of past failure modes with rules + gates | [`ANTIPATTERNS.md`](./ANTIPATTERNS.md) |
 | Find where a symbol lives / is reached / explained / tested; verify an API exists before proposing a wave (`tests:where-is`, builds on `tests:index`) | [`CODE_SEARCH.md`](./CODE_SEARCH.md) |
 
+### … find context fast (the searcher)
+
+`tests:where-is` answers *"where does this symbol live / get reached /
+get explained / get tested"* in one report. The hot spots where the
+docs already wire it into the flow — follow the inline hints rather
+than reading [`CODE_SEARCH.md`](./CODE_SEARCH.md) end-to-end:
+
+| Want | Command shape | Where it's wired |
+|---|---|---|
+| Verify an API exists before proposing a wave | `--search <api>` (Classification) | [`COVERAGE_RUNBOOK.md` § Verify the API actually exists](./COVERAGE_RUNBOOK.md#verify-the-api-actually-exists), [`ANTIPATTERNS.md` § Hallucinated API](./ANTIPATTERNS.md#5-hallucinated-api), [`WRITING_TESTS.md` § When a test surfaces a bug](./WRITING_TESTS.md#when-a-test-surfaces-a-bug-in-src) |
+| Plan a coverage wave (existing coverage + missing cells + cell caveats) | `--for coverage-gap` | [`COVERAGE_RUNBOOK.md` § Verify the existing test inventory](./COVERAGE_RUNBOOK.md#verify-the-existing-test-inventory) |
+| Propagate the canonical to sibling cells | `--for propagation` | [`COVERAGE_RUNBOOK.md` § Propagation](./COVERAGE_RUNBOOK.md#propagation), [`QUALITY_GATE.md`](./QUALITY_GATE.md) |
+| Investigate a `src/` emission bug (SQL + impls + version gates + sibling markers) | `--for emission-bug` | [`BUGS.md` § Common bug shapes](./BUGS.md#common-bug-shapes-for-the-fixing-agent) |
+| After patching `src/`, find docs/tests/examples to refresh | `--for post-fix-sync` | [`BUGS.md` § When the fix lands](./BUGS.md) |
+| Add or extend a compatibility-version cell | `--for version-work` | [`NEW_DATABASE.md` § Adding a compatibility version](./NEW_DATABASE.md#adding-a-compatibility-version) |
+| Add a `@ts-expect-error` rule, consistent with existing locks | `--neg-types full` | [`WRITING_TESTS.md` § Negative type tests](./WRITING_TESTS.md#negative-type-tests) |
+| Browse declared caveats on cells (BUG/LIMITATION markers per cell) | `--cell-caveats summary` (or `full` with `--coord`) | [`LIMITATIONS.md`](./LIMITATIONS.md), [`EXTERNAL_CAVEATS.md`](./EXTERNAL_CAVEATS.md), [`ANTIPATTERNS.md` § Blind copy](./ANTIPATTERNS.md#3-blind-copy-to-bun_sql_postgres) |
+
+`bun run tests:index` builds the underlying index (~18 s, gitignored).
+The implementation references under `lib/codeSearcher/` and
+`lib/codeIndexer/` are for the agent **modifying** the tools, not for
+the agent consuming them.
+
 ### … know what's broken or limited
 
 | Want | Read |

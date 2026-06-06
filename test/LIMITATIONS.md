@@ -39,8 +39,16 @@ How a limitation differs from a bug:
 To find affected tests:
 
 ```bash
-grep -rn "TODO\[LIMITATION\]" test/db/
+bun run tests:where-is --search <api> --limitation full
 ```
+
+returns each `// TODO[LIMITATION]` that **names the API** across the
+matrix, with cell + file:line. To see the per-cell **map** of caveats
+declared on a target area (e.g. "what limitations live in mariadb/newest
+cells, named or not"), use `tests:where-is --search <any-api>
+--cell-caveats summary --coord '<cells>'` (or `full` for the markers
+themselves). Plain `grep -rn "TODO\[LIMITATION\]" test/db/` still works
+when the index isn't built.
 
 ---
 

@@ -27,11 +27,19 @@ Each item below describes a `docs:` or `docs-extra:` test that is
 **commented out** in some cells with a `/* ... */` block per the
 symmetry rule ([`DESIGN.md` § Symmetry rule](./DESIGN.md#symmetry-rule)).
 The body stays verbatim, prefixed by a one-line `// Not applicable on
-<DB>: ...` reason. To find every commented test mechanically:
+<DB>: ...` reason. To browse the caveat map mechanically:
 
 ```bash
-grep -rE "^    // Not applicable on" test/db/*/*/*/docs.*.test.ts
+bun run tests:where-is --search <any-api> --cell-caveats summary
 ```
+
+returns the per-cell **map** of `// TODO[BUG]` / `// TODO[LIMITATION]`
+markers (each cell + its caveat counts). Scope to a driver with
+`--coord '<driver-cells>'` and the preset auto-raises to `full` (the
+markers themselves) — `--cell-caveats` is the searcher's section
+designed for exactly this catalogue. Plain
+`grep -rE "^    // Not applicable on" test/db/*/*/*/docs.*.test.ts`
+still works when the index isn't built.
 
 ## Dialect-specific notes (already wired in today's matrix)
 

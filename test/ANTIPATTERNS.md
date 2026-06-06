@@ -139,7 +139,10 @@ grep -nE 'new Date\(' test/db/postgres/*/bun_sql_postgres/<new-file>
 
 and wrap every match in `/* */` with the `Bun#29010` reason header (verbatim
 from existing tests). Applies to **every** `Date` parameter for `localDate`
-or `localDateTime`, not just the three names currently commented out.
+or `localDateTime`, not just the three names currently commented out. To see
+the existing Bun#29010 wraps already in place across `bun_sql_postgres` cells
+(the shape your new wrap must match), run
+`bun run tests:where-is --search <api> --cell-caveats full --coord 'postgres/*/bun_sql_postgres'`.
 
 **Gate today**: caught by the validation sub-agent's `EXTERNAL_CAVEATS`
 sweep (see [`QUALITY_GATE.md`](./QUALITY_GATE.md)) — but only if it runs

@@ -248,6 +248,20 @@ test('postgres-negative-types', () => {
 - The `types.negative/` folder is **not** part of the cell matrix and is
   skipped by `tests:audit`.
 
+When adding a new `@ts-expect-error` rule, look up the existing locks on
+the symbol so the new one is **consistent with what's already there**
+(rule-comment convention, snippet granularity, scope):
+
+```bash
+bun run tests:where-is --search <symbol> --neg-types full
+```
+
+`--neg-types full` returns each existing assertion's **rule comment +
+rejected snippet + file:line** across every cell — what you model a
+new lock on. The same view rides under `--for emission-bug` when the
+negative test is the second step of fixing a typing bug (see
+[`BUGS.md` § When the fix lands](./BUGS.md)).
+
 ## Handling tsgo / tsc divergences
 
 `bun run validate:tests` runs `tsgo -p test/tsconfig.json --noEmit` (the
@@ -629,6 +643,16 @@ behaviour was documented on.
 hands them off; a separate fixing agent diagnoses and patches `src/`.
 Mixing both roles breaks the test agent's breadth-first momentum and
 produces shallow analysis. This split is not optional.
+
+Before triaging, a quick lookup answers whether the API already has a
+known entry:
+
+```bash
+bun run tests:where-is --search <api> --bugs summary --limitation summary
+```
+
+If a `// TODO[BUG]` or `// TODO[LIMITATION]` already names the API, reuse
+the existing reason header instead of opening a duplicate entry.
 
 **Test author's checklist** (this is all you do when you find a suspect):
 

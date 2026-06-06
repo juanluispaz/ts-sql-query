@@ -228,12 +228,19 @@ bun run tests:where-is --search <api-symbol> --for coverage-gap
 
 `--for coverage-gap` is the preset for this step — it expands to
 `classification full · chain full · producers · tests gaps · examples
-full`, so a single call gives you the public reach of the API, every
-cell **missing** coverage, and the legacy examples. Refine with
-`--tests detail` if you also want per-test names for the cells that
-already cover it, or `--coord <db>` to focus a single database. See
+full · cell-caveats`, so a single call gives you the public reach of
+the API, every cell **missing** coverage, the legacy examples and the
+declared `// TODO[BUG]` / `// TODO[LIMITATION]` markers on cells.
+`--cell-caveats` is **always on** under this preset; the level is the
+**view**: without `--coord` you get the per-cell **map** (each cell +
+its caveat counts), with `--coord` the preset auto-raises to the
+**markers** themselves (each line cell-prefixed) — `--coord` only
+narrows which cells appear, it never changes the view. Refine with
+`--tests detail` if you also want per-test names for cells that
+already cover the API. See
 [`CODE_SEARCH.md` § Presets](./CODE_SEARCH.md#the-command-youll-use)
-for the full preset map.
+for the full preset map and the `--bugs` (name-scoped) vs
+`--cell-caveats` (coord-scoped) distinction.
 
 If your proposed wave targets a cell that already covers the API, the
 wave is redundant — drop it. `--tests gaps` identifies the cells where
@@ -478,6 +485,27 @@ Once the canonical is GREEN/YELLOW, propagate via a small `cp` script (or
 
    The single normative count is `bun run tests:audit`'s output, which
    prints one summary line per database (`postgres: N cells, …`).
+
+   To see, per cell, the **propagation delta** for the symbol you're
+   about to copy (classification, missing-coverage cells, examples,
+   declared caveats), add a focused `tests:where-is` call:
+
+   ```bash
+   bun run tests:where-is --search <canonical-fn> --for propagation --coord '<focused-cells>'
+   ```
+
+   `--for propagation` bundles `classification · tests gaps · examples
+   · cell-caveats · chain none`. `--cell-caveats` is **always on**
+   under this preset; the level is the **view**: no `--coord` gives
+   the per-cell **map** (each cell + its caveat counts, useful when
+   browsing the whole matrix), `--coord` auto-raises to the
+   **markers** themselves (`// TODO[BUG]` / `// TODO[LIMITATION]`
+   declared inside the focused cells, e.g. "MariaDB UPDATE…RETURNING
+   needs 13.0.1+") — `--coord` only narrows which cells appear, it
+   never changes the view. See
+   [`CODE_SEARCH.md`](./CODE_SEARCH.md#the-command-youll-use) for the
+   name-scoped (`--bugs` / `--limitation`) vs coord-scoped
+   (`--cell-caveats`) distinction.
 
 2. **Copy the canonical** to each active cell. For tests that don't apply
    to a cell (per the [Symmetry rule](./DESIGN.md#symmetry-rule) or per

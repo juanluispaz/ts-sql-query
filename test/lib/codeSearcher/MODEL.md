@@ -124,7 +124,11 @@ levelled sections (`--chain`, `--name-search`). Doors that the version-work inte
 ## 3. Sections × levels
 
 One levelled flag per section; `none` hides it. Base levels `none|summary|full`; some add **shape**
-levels. The default column reproduces the classic report when no flag is passed.
+levels. The default column reproduces the classic report when no flag is passed. **The level arg is
+optional:** a bare flag turns the section on at its lightest non-`none` level (`levels[1]` — summary /
+strict / own / full), so `--ref-brand` ≡ `--ref-brand summary` — matching the muscle memory of "type the
+flag to turn it on". A token starting with `-` is never consumed as a level (bare flags don't eat the next
+flag).
 
 | Section flag | Levels (default **bold**) | Content |
 |---|---|---|

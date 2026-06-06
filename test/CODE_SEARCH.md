@@ -139,7 +139,10 @@ every declaration.
 ### Sections — one levelled flag each (`none` hides)
 
 The **default** level is in **bold**; an un-flagged run = the classic report. The `what it shows`
-column doubles as the "reading the report" key (sections appear only when they have content).
+column doubles as the "reading the report" key (sections appear only when they have content). **The level
+is optional** — a **bare** flag turns the section on at its lightest level (`--ref-brand` = `--ref-brand
+summary`, `--chain` = `--chain strict`, `--surface` = `--surface own`); pass a level only to go heavier or
+to hide it (`--chain none`).
 
 | Section flag | Levels (default **bold**) | What it shows |
 |---|---|---|

@@ -131,19 +131,23 @@ export function parseArgs(argv: string[]): Args {
             else a.error = `invalid --location-target '${v ?? '(missing)'}' — use enclosing | enclosing-all | callees | produces | types | types-all | brand.`
             continue
         }
-        // the --ref-* family shortcut: set every reference-role section at once
+        // A section flag's level is optional: passed BARE (`--ref-brand`, `--chain`) it turns the section
+        // on at its lightest non-`none` level — `levels[1]` (summary / strict / own / full as appropriate).
+        // A token is "a level" only if it doesn't start with `-` (so the next flag is never eaten as one).
+        const hasLevelArg = (): boolean => { const n = need(i + 1); return n !== null && !n.startsWith('-') }
+        // the --ref-* family shortcut: set every reference-role section at once (bare → summary)
         if (t === '--refs') {
-            const v = val()
-            if (v && (REF_LEVELS as readonly string[]).includes(v)) a.refsAll = v
-            else a.error = `invalid level '${v ?? '(missing)'}' for --refs — use one of: ${REF_LEVELS.join(', ')}.`
+            const v = hasLevelArg() ? val()! : REF_LEVELS[1]
+            if ((REF_LEVELS as readonly string[]).includes(v)) a.refsAll = v
+            else a.error = `invalid level '${v}' for --refs — use one of: ${REF_LEVELS.join(', ')}.`
             continue
         }
         // sections
         const spec = (SECTION_SPECS as Record<string, { key: keyof Sections, levels: readonly string[] }>)[t]
         if (spec) {
-            const v = val()
-            if (v && spec.levels.includes(v)) (a.sectionOverrides as Record<string, string>)[spec.key] = v
-            else a.error = `invalid level '${v ?? '(missing)'}' for ${t} — use one of: ${spec.levels.join(', ')}.`
+            const v = hasLevelArg() ? val()! : spec.levels[1]!   // bare → the lightest "on" level
+            if (spec.levels.includes(v)) (a.sectionOverrides as Record<string, string>)[spec.key] = v
+            else a.error = `invalid level '${v}' for ${t} — use one of: ${spec.levels.join(', ')}.`
             continue
         }
         // the single global focus filter — matrix coordinates (repeatable)
@@ -198,7 +202,8 @@ WHAT to search for — exactly one:
   --emits-keyword <sql-fragment>   a SQL token ('returning old.', 'collate') → the
                                    SqlBuilder code that emits it (the build-side bridge)
 
-SECTIONS — one level each; default in (parens); "none" hides the section:
+SECTIONS — one level each; default in (parens); "none" hides the section.
+  The level is OPTIONAL: a bare flag (--ref-brand, --chain) turns the section on at its lightest level.
   --classification <none|summary|full>                       (summary)
   --declared <none|summary|full>                             (summary)
   --signature <none|summary|public-interface|public-impl|internal|full>  (summary)

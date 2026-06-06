@@ -68,7 +68,7 @@ See [`CLI.md` § Documentation tests are ordinary matrix cells](./CLI.md#documen
 These tests never touch a real DB — they use [`DocCodeMockRunner`](./lib/mockRunners/DocCodeMockRunner.ts)
 (self-contained), so `--docker`/`--wasm` don't apply even though they live in the
 matrix. The synthetic `general` db and the `documentation` connector are excluded
-from the symmetry audit ([`auditTestSymmetry.ts`](./lib/auditTestSymmetry.ts)).
+from the symmetry audit ([`audit/symmetry.ts`](./lib/audit/symmetry.ts)).
 
 ## Fence-language routing
 
@@ -339,4 +339,4 @@ Recurring failure patterns:
 | [`lib/mockRunners/DocCodeMockRunner.ts`](./lib/mockRunners/DocCodeMockRunner.ts) | `DocCodeMockRunner` (capture + history + heuristic + `next()` + `assertSql`/`assertSqls`) + `normalizeSql` |
 | [`scripts/codegen-doc-code.sh`](../scripts/codegen-doc-code.sh) | `codegen:doc-code` wrapper |
 | [`templates/doc-code/newest/documentation/`](./templates/doc-code/newest/documentation/) | the per-target templates (db named by db folder; general by name) |
-| [`lib/auditTestSymmetry.ts`](./lib/auditTestSymmetry.ts) → `NON_CELL_CONNECTORS` / `NON_CELL_DATABASES` | excludes the `documentation` connector + `general` db from the symmetry audit |
+| [`lib/audit/symmetry.ts`](./lib/audit/symmetry.ts) → `NON_CELL_CONNECTORS` / `NON_CELL_DATABASES` | excludes the `documentation` connector + `general` db from the symmetry audit |

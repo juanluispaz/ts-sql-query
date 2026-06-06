@@ -151,6 +151,7 @@ the agent consuming them.
 | How the documentation code examples are tested — type-checked AND their SQL asserted via mock (the extractor, templates, simplified definitions) | [`DOC_CODE_EXTRACTOR.md`](./DOC_CODE_EXTRACTOR.md) |
 | The mutation safety contract (`withRollback` / `withCommit` / `withReseed`) | [`TEST_LIB.md` § Mutation safety contract](./TEST_LIB.md#testcontextts--mutation-safety-contract) |
 | How the code index is built / how to modify the indexer or searcher (schema, extractors, queries) | [`lib/codeIndexer/CODE_INDEXER.md`](./lib/codeIndexer/CODE_INDEXER.md), [`lib/codeSearcher/CODE_SEARCHER.md`](./lib/codeSearcher/CODE_SEARCHER.md) |
+| The `tests:audit` tool — symmetry check + anti-cheat content rules, the severity model, `tests-audit-ignore` | [`lib/audit/AUDIT.md`](./lib/audit/AUDIT.md) |
 | Connector-specialised mocks (when a real runner transforms params) | [`lib/mockRunners/README.md`](./lib/mockRunners/README.md) |
 | Docker container reuse, schema/seed revalidation, per-worker DBs | [`ENGINE_LIFECYCLE.md`](./ENGINE_LIFECYCLE.md) |
 | The WASM lifecycle (pglite, sqlite-wasm-OO1) | [`ENGINE_LIFECYCLE.md` § WASM lifecycle](./ENGINE_LIFECYCLE.md#wasm-lifecycle) |
@@ -167,7 +168,7 @@ test/
 │   ├── captureInterceptor.ts             ← SQL + params capture
 │   ├── backends.ts                       ← `isRealDbEnabled`, `RealDbBackend`
 │   ├── assertType.ts                     ← `Exact<A,B>`, `assertType<T extends true>`
-│   ├── auditTestSymmetry.ts              ← the symmetry audit
+│   ├── audit/                            ← tests:audit: symmetry check + anti-cheat rules (AUDIT.md)
 │   ├── containerLifecycle.ts             ← container/per-worker infra
 │   ├── isAllowed.ts                      ← query introspection escape hatch
 │   ├── setupTimezone.ts                  ← forces UTC

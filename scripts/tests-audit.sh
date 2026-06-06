@@ -14,8 +14,8 @@ commented out).
 Exit code 0 on a symmetric matrix, 1 on any divergence. Useful as a
 pre-merge check; runs in well under a second.
 
-The audit script lives at test/lib/auditTestSymmetry.ts and is
-type-checked by `bun run validate:tests`.
+The audit script lives at test/lib/audit/symmetry.ts and is
+type-checked by `bun run validate:tests`. Design doc: test/lib/audit/AUDIT.md.
 EOF
 }
 
@@ -23,4 +23,4 @@ case "${1:-}" in
     -h|--help) print_help; exit 0 ;;
 esac
 
-exec tsx test/lib/auditTestSymmetry.ts "$@"
+exec tsx test/lib/audit/symmetry.ts "$@"

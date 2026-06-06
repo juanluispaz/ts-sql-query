@@ -22,7 +22,7 @@ test cells that type-check the examples and assert their SQL via mock) see
 - [`assertType.ts` — compile-time type assertions](#asserttypets--compile-time-type-assertions)
 - [`setupTimezone.ts` — force UTC](#setuptimezonets--force-utc)
 - [`isAllowed.ts` — query introspection escape hatch](#isallowedts--query-introspection-escape-hatch)
-- [`auditTestSymmetry.ts` — the symmetry audit](#audittestsymmetryts--the-symmetry-audit)
+- [`audit/` — the symmetry audit (now its own tool)](#audit--the-symmetry-audit-now-its-own-tool)
 - [`containerLifecycle.ts` — shared container infra](#containerlifecyclets--shared-container-infra)
 - [`coverage/` — bun coverage post-processors](#coverage--bun-coverage-post-processors)
 - [`mockRunners/` — connector-specialised mocks](#mockrunners--connector-specialised-mocks)
@@ -281,35 +281,23 @@ etc. If you need a new introspection capability for a test, extend this file
 (one stable seam, one documented exception) — do not open a second escape
 route.
 
-## `auditTestSymmetry.ts` — the symmetry audit
+## `audit/` — the symmetry audit (now its own tool)
 
-The script behind `bun run tests:audit`. Walks `test/db/`, lists every
-`(version × connector)` cell per database, extracts test names from each
-`.test.ts` (including ones inside `/* … */` comment blocks — they count) and
-reports any divergence in:
+The audit moved into its own folder, [`audit/`](./lib/audit/), beside its
+design doc [`AUDIT.md`](./lib/audit/AUDIT.md) — the same convention as
+`codeIndexer/` and `codeSearcher/`. The symmetry check (the script behind
+`bun run tests:audit`) lives at [`audit/symmetry.ts`](./lib/audit/symmetry.ts):
+it walks `test/db/`, lists every `(version × connector)` cell per database,
+extracts test names from each `.test.ts` (including ones inside `/* … */`
+blocks — they count) and exits 1 on any divergence in the file set, the test
+names, or their order. `domain/` + `types.negative/` dirs, the `documentation`
+connector and the `general` db are excluded (see
+[`DOC_CODE_EXTRACTOR.md`](./DOC_CODE_EXTRACTOR.md)).
 
-- the set of `.test.ts` files between cells,
-- the set of test names within a shared file,
-- the order of those names.
-
-Exit code 0 when symmetric, 1 otherwise. Pre-merge check.
-
-Key bits:
-- [`extractTestNames(content)`](./lib/auditTestSymmetry.ts#L61) — regex that
-  captures `test('name', …)` / `it('name', …)` including `test.skip` etc.,
-  context-insensitive so commented-out blocks count.
-- [`NON_CELL_DIRS`](./lib/auditTestSymmetry.ts#L27) — `domain/` and
-  `types.negative/` are not cells and are skipped.
-- `NON_CELL_CONNECTORS` (`documentation`) / `NON_CELL_DATABASES` (`general`) — the
-  generated doc-snippet test cells are db-specific and not authored per-cell, so they
-  are exempt from the symmetry rule (see [`DOC_CODE_EXTRACTOR.md`](./DOC_CODE_EXTRACTOR.md)).
-- [`emitGithubSummary`](./lib/auditTestSymmetry.ts#L154) — markdown row
-  per-database for `$GITHUB_STEP_SUMMARY` in CI.
-
-To **extend the audit** (e.g. fail when a commented test body is a stub like
-`// Not supported on this dialect: X is not typed` instead of the canonical
-body), add a new check function and call it from `main()` alongside
-`checkDatabase`. Keep exit codes and the GitHub summary in sync.
+**To extend the audit**, read [`AUDIT.md`](./lib/audit/AUDIT.md) first — it is
+the anchor for the tool's roadmap: the anti-cheat content rules
+(`mirror-image`, `as-any`, `uuid-literal`), the warn→error severity model and
+the `tests-audit-ignore` suppression comment.
 
 ## `containerLifecycle.ts` — shared container infra
 

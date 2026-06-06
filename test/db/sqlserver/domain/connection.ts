@@ -20,16 +20,37 @@ export class DBConnection extends SqlServerConnection<'DBConnection'> {
         }
     }
 
+    // The `VIssueBilling` values view in `with-values.advanced.test.ts`
+    // declares custom types without a per-column `TypeAdapter`: `IssueId`
+    // (customInt), `Money` (customDouble) and `BillingRef` (customUuid).
+    // The default adapter passes custom typeNames through unchanged, and
+    // SQL Server hands an uncast VALUES placeholder back as a string — so a
+    // `customInt` read back from a VALUES tuple would surface as `"101"`
+    // instead of `101`. Marshalling these typeNames through their base
+    // native type on the connection keeps the round-trip typed correctly.
+    private static baseTypeForCustom(type: string): string {
+        switch (type) {
+            case 'IssueId':    return 'int'
+            case 'Money':      return 'double'
+            case 'BillingRef': return 'uuid'
+            default:           return type
+        }
+    }
+
     // SQL Server stores uuids in `uniqueidentifier` columns, which hand the
     // value back uppercased. Lowercase it on read so a uuid round-trips to
     // the exact string it was inserted with — the pattern documented in
     // docs/configuration/supported-databases/sqlserver.md.
     protected override transformValueFromDB(value: unknown, type: string): unknown {
-        const result = super.transformValueFromDB(value, type)
-        if (result && type === 'uuid') {
+        const base = DBConnection.baseTypeForCustom(type)
+        const result = super.transformValueFromDB(value, base)
+        if (result && base === 'uuid') {
             return (result as string).toLowerCase()
         }
         return result
+    }
+    protected override transformValueToDB(value: unknown, type: string): unknown {
+        return super.transformValueToDB(value, DBConnection.baseTypeForCustom(type))
     }
 
     // Public wrappers around the `protected` `executeProcedure` /

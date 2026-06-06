@@ -24,6 +24,30 @@ export class DBConnection extends SqliteConnection<'DBConnection'> {
             this.compatibilityVersion = compatibilityVersion
         }
     }
+
+    // The `VIssueBilling` values view in `with-values.advanced.test.ts`
+    // declares custom types without a per-column `TypeAdapter`: `IssueId`
+    // (customInt), `Money` (customDouble) and `BillingRef` (customUuid).
+    // The default adapter passes custom typeNames through unchanged; some
+    // drivers hand an uncast VALUES placeholder back as a string, so a
+    // `customInt` read from a VALUES tuple could surface as `"101"` rather
+    // than `101`. Marshalling these typeNames through their base native
+    // type on the connection keeps the round-trip typed correctly on every
+    // dialect (a no-op where the driver already returns the native type).
+    private static baseTypeForCustom(type: string): string {
+        switch (type) {
+            case 'IssueId':    return 'int'
+            case 'Money':      return 'double'
+            case 'BillingRef': return 'uuid'
+            default:           return type
+        }
+    }
+    protected override transformValueFromDB(value: unknown, type: string): unknown {
+        return super.transformValueFromDB(value, DBConnection.baseTypeForCustom(type))
+    }
+    protected override transformValueToDB(value: unknown, type: string): unknown {
+        return super.transformValueToDB(value, DBConnection.baseTypeForCustom(type))
+    }
     // No `callXxx` wrappers here. SQLite has no SQL-side stored
     // procedures / functions, so the parallel `exec.procedure-function`
     // test wave keeps every case commented out — see that file.

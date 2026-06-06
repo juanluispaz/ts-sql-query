@@ -234,20 +234,20 @@ describe(ctx.label, () => {
         await ctx.withRollback(async () => {
             ctx.mockNext(1)
             await ctx.conn.update(tIssue)
-                .set({ externalRef: '11111111-1111-1111-1111-111111111111' })
+                .set({ externalRef: 'c733575e-b5ba-400c-8803-3d3d4bbcd52f' })
                 .where(tIssue.id.equals(1))
                 .executeUpdate()
             ctx.mockNext(1)
             await ctx.conn.update(tIssue)
-                .set({ externalRef: '22222222-2222-2222-2222-222222222222' })
+                .set({ externalRef: 'c995d12f-ced4-4e94-a341-c2da118fe64b' })
                 .where(tIssue.id.equals(2))
                 .executeUpdate()
 
             ctx.mockNext([{
                 projectId: 1,
                 refs:      [
-                    '11111111-1111-1111-1111-111111111111',
-                    '22222222-2222-2222-2222-222222222222',
+                    'c733575e-b5ba-400c-8803-3d3d4bbcd52f',
+                    'c995d12f-ced4-4e94-a341-c2da118fe64b',
                 ],
             }])
             const rows = await ctx.conn.selectFrom(tIssue)
@@ -270,8 +270,8 @@ describe(ctx.label, () => {
             expect(sorted).toEqual([{
                 projectId: 1,
                 refs:      [
-                    '11111111-1111-1111-1111-111111111111',
-                    '22222222-2222-2222-2222-222222222222',
+                    'c733575e-b5ba-400c-8803-3d3d4bbcd52f',
+                    'c995d12f-ced4-4e94-a341-c2da118fe64b',
                 ],
             }])
         })
@@ -294,7 +294,7 @@ describe(ctx.label, () => {
             await ctx.conn.update(tIssue)
                 .set({
                     viewCount:      100n,
-                    externalRef:    '11111111-1111-1111-1111-111111111111',
+                    externalRef:    'c733575e-b5ba-400c-8803-3d3d4bbcd52f',
                     estimatedHours: 4.5,
                 })
                 .where(tIssue.id.equals(1))
@@ -303,7 +303,7 @@ describe(ctx.label, () => {
             await ctx.conn.update(tIssue)
                 .set({
                     viewCount:      200n,
-                    externalRef:    '22222222-2222-2222-2222-222222222222',
+                    externalRef:    'c995d12f-ced4-4e94-a341-c2da118fe64b',
                     estimatedHours: 8.5,
                 })
                 .where(tIssue.id.equals(2))
@@ -312,8 +312,8 @@ describe(ctx.label, () => {
             ctx.mockNext([{
                 projectId: 1,
                 issues:    [
-                    { views: 100n, externalRef: '11111111-1111-1111-1111-111111111111', estimatedHours: 4.5 },
-                    { views: 200n, externalRef: '22222222-2222-2222-2222-222222222222', estimatedHours: 8.5 },
+                    { views: 100n, externalRef: 'c733575e-b5ba-400c-8803-3d3d4bbcd52f', estimatedHours: 4.5 },
+                    { views: 200n, externalRef: 'c995d12f-ced4-4e94-a341-c2da118fe64b', estimatedHours: 8.5 },
                 ],
             }])
             const rows = await ctx.conn.selectFrom(tIssue)
@@ -350,8 +350,8 @@ describe(ctx.label, () => {
             expect(sorted).toEqual([{
                 projectId: 1,
                 issues:    [
-                    { views: 100n, externalRef: '11111111-1111-1111-1111-111111111111', estimatedHours: 4.5 },
-                    { views: 200n, externalRef: '22222222-2222-2222-2222-222222222222', estimatedHours: 8.5 },
+                    { views: 100n, externalRef: 'c733575e-b5ba-400c-8803-3d3d4bbcd52f', estimatedHours: 4.5 },
+                    { views: 200n, externalRef: 'c995d12f-ced4-4e94-a341-c2da118fe64b', estimatedHours: 8.5 },
                 ],
             }])
         })

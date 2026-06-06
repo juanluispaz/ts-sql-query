@@ -87,14 +87,14 @@ describe(ctx.label, () => {
 
     test('const-uuid-forces-uuid-cast', async () => {
         // PostgreSqlConnection.ts:114-115.
-        ctx.mockNext('11111111-1111-1111-1111-111111111111')
+        ctx.mockNext('c733575e-b5ba-400c-8803-3d3d4bbcd52f')
         await ctx.conn.selectFromNoTable()
-            .selectOneColumn(ctx.conn.const('11111111-1111-1111-1111-111111111111', 'uuid'))
+            .selectOneColumn(ctx.conn.const('c733575e-b5ba-400c-8803-3d3d4bbcd52f', 'uuid'))
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::uuid as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "11111111-1111-1111-1111-111111111111",
+            "c733575e-b5ba-400c-8803-3d3d4bbcd52f",
           ]
         `)
     })

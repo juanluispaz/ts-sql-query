@@ -61,6 +61,7 @@ export type NMaybyAliased<SOURCE extends string /* NSource without alias*/> = `$
 export type NNoTableOrViewRequired<DB extends NDB> = `${DB}noTableOrViewRequired/`
 export type NAnyNoTableOrViewRequired = `${any}/noTableOrViewRequired/`
 export type NNoTableOrViewRequiredFrom<SOURCE extends NSource> = NNoTableOrViewRequired<NGetDBFrom<SOURCE>>
+export type NSourceAllowingNoTableOrViewRequired<SOURCE extends NSource> = SOURCE | NNoTableOrViewRequiredFrom<SOURCE>
 export type NOldValues<DB extends string /* IDB */, NAME extends string> = `${DB}oldValues:${NAME}/`
 export type NOldValuesFrom<SOURCE extends NSource> = NOldValues<NGetDBFrom<SOURCE>, NGetNameFrom<SOURCE>>
 export type NValuesForInsert<DB extends string /* IDB */, NAME extends string> = `${DB}valuesForInsert:${NAME}/`

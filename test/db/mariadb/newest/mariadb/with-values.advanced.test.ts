@@ -75,11 +75,8 @@ describe(ctx.label, () => {
     */
 
     // Not supported on this dialect: `Values` is not typed. Body mirrors
-    // `postgres/newest/pg`. Note: in postgres the same test is ALSO
-    // commented for an unrelated TODO[BUG] (virtualColumnFromFragment +
-    // bare-literal `fragment.sql\`…\`` fails TS overload resolution;
-    // see `test/BUGS.md`). Restore both when MariaDB / MySQL grow
-    // `Values` support AND the lib bug is fixed.
+    // `postgres/newest/pg` so a fix here is a `/* */` removal — plus the
+    // snapshot bake — once MariaDB / MySQL grow `Values` support.
     /*
     test('values-virtual-column-from-fragment-with-custom-type-emits-inline-fragment', async () => {
         // `virtualColumnFromFragment<T>('enum', 'OrderState', fn)` reaches
@@ -114,11 +111,8 @@ describe(ctx.label, () => {
     */
 
     // Not supported on this dialect: `Values` is not typed. Body mirrors
-    // `postgres/newest/pg`. Note: in postgres the same test is ALSO
-    // commented for an unrelated TODO[BUG] (optionalVirtualColumnFromFragment
-    // + bare-literal `fragment.sql\`null\`` fails TS overload resolution;
-    // see `test/BUGS.md`). Restore both when MariaDB / MySQL grow
-    // `Values` support AND the lib bug is fixed.
+    // `postgres/newest/pg` so a fix here is a `/* */` removal — plus the
+    // snapshot bake — once MariaDB / MySQL grow `Values` support.
     /*
     test('values-optional-virtual-column-from-fragment-with-custom-type-emits-inline-fragment', async () => {
         // `optionalVirtualColumnFromFragment<T>('customUuid', 'BillingRef', fn)`

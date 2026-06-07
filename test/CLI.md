@@ -28,7 +28,7 @@ the `--docker` / `--wasm` flags drive see
 | Script | What it runs |
 |---|---|
 | `tests [<coord>…]` | No args: full matrix under `test/` (parallel, no docker, no real WASM by default; widen with flags). One or more positional coords: focused run on those paths only — globs (`'postgres/*/pg'`) and brace expansion (`postgres/*/{pg,postgres}`) supported, quoted or not. Same flag set either way. `--help` for all options. |
-| `tests:audit` | Symmetry audit — verifies every cell of a database declares the same test files and test names. Pre-merge check. See [`lib/audit/AUDIT.md`](./lib/audit/AUDIT.md). |
+| `tests:audit [<coord>…]` | Mechanical audit of `test/db/`: the symmetry check + the anti-cheat content rules (`mirror-image`, `one-sided-guard`). Static (no docker/DB), ~1 s. Accepts positional `<coord>` args to scope the run, same grammar as `tests` (see [Coord patterns](#coord-patterns)). Pre-merge check. See [`lib/audit/AUDIT.md`](./lib/audit/AUDIT.md). |
 | `tests:stop-containers` | Stops the warm docker containers that `--docker --docker-mode reuse` left running. |
 | `tests:reopen` | Re-open the previously generated `--report` / `--coverage` HTML without re-running tests. |
 

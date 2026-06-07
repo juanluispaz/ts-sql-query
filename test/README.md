@@ -82,6 +82,7 @@ uses.
 | The runbook itself | [`COVERAGE_RUNBOOK.md`](./COVERAGE_RUNBOOK.md) |
 | The canonical-cell validation gate (pre-propagation review) | [`QUALITY_GATE.md`](./QUALITY_GATE.md) |
 | The actual prompt the validation sub-agent receives | [`lib/canonical-cell-review-prompt.md`](./lib/canonical-cell-review-prompt.md) |
+| The mechanical anti-cheat check (`tests:audit`) — running it, what a finding means, how to fix/suppress, how to propose a new pattern | [`TESTS_AUDIT.md`](./TESTS_AUDIT.md) |
 | Catalogue of past failure modes with rules + gates | [`ANTIPATTERNS.md`](./ANTIPATTERNS.md) |
 | Find where a symbol lives / is reached / explained / tested; verify an API exists before proposing a wave (`tests:where-is`, builds on `tests:index`) | [`CODE_SEARCH.md`](./CODE_SEARCH.md) |
 
@@ -151,7 +152,7 @@ the agent consuming them.
 | How the documentation code examples are tested — type-checked AND their SQL asserted via mock (the extractor, templates, simplified definitions) | [`DOC_CODE_EXTRACTOR.md`](./DOC_CODE_EXTRACTOR.md) |
 | The mutation safety contract (`withRollback` / `withCommit` / `withReseed`) | [`TEST_LIB.md` § Mutation safety contract](./TEST_LIB.md#testcontextts--mutation-safety-contract) |
 | How the code index is built / how to modify the indexer or searcher (schema, extractors, queries) | [`lib/codeIndexer/CODE_INDEXER.md`](./lib/codeIndexer/CODE_INDEXER.md), [`lib/codeSearcher/CODE_SEARCHER.md`](./lib/codeSearcher/CODE_SEARCHER.md) |
-| The `tests:audit` tool — symmetry check + anti-cheat content rules, the severity model, `tests-audit-ignore` | [`lib/audit/AUDIT.md`](./lib/audit/AUDIT.md) |
+| The `tests:audit` tool — symmetry check + anti-cheat content rules, the severity model, the `tests-audit-disable-*` suppression | [`lib/audit/AUDIT.md`](./lib/audit/AUDIT.md) |
 | Connector-specialised mocks (when a real runner transforms params) | [`lib/mockRunners/README.md`](./lib/mockRunners/README.md) |
 | Docker container reuse, schema/seed revalidation, per-worker DBs | [`ENGINE_LIFECYCLE.md`](./ENGINE_LIFECYCLE.md) |
 | The WASM lifecycle (pglite, sqlite-wasm-OO1) | [`ENGINE_LIFECYCLE.md` § WASM lifecycle](./ENGINE_LIFECYCLE.md#wasm-lifecycle) |

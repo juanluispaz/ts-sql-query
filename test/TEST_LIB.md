@@ -294,10 +294,11 @@ names, or their order. `domain/` + `types.negative/` dirs, the `documentation`
 connector and the `general` db are excluded (see
 [`DOC_CODE_EXTRACTOR.md`](./DOC_CODE_EXTRACTOR.md)).
 
-**To extend the audit**, read [`AUDIT.md`](./lib/audit/AUDIT.md) first — it is
-the anchor for the tool's roadmap: the anti-cheat content rules
-(`mirror-image`, `as-any`, `uuid-literal`), the warn→error severity model and
-the `tests-audit-ignore` suppression comment.
+**To use the audit** (run it, read a finding, fix/suppress, propose a pattern),
+read [`TESTS_AUDIT.md`](./TESTS_AUDIT.md). **To extend it**, read
+[`AUDIT.md`](./lib/audit/AUDIT.md) first — it is the anchor for the tool's
+roadmap: the anti-cheat content rules (`mirror-image`, `as-any`, `uuid-literal`),
+the warn→error severity model and the `tests-audit-disable-*` suppression comment.
 
 ## `containerLifecycle.ts` — shared container infra
 

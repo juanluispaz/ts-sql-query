@@ -50,7 +50,11 @@ function dirs(p: string): string[] {
 }
 function testFiles(p: string): string[] {
     if (!isDir(p)) return []
-    return readdirSync(p).filter(n => isFile(join(p, n)) && n.endsWith('.test.ts'))
+    // `*.generated.test.ts` are exempt from ALL validation (even symmetry) — they
+    // are emitted, not authored. Today they only live under the (already-excluded)
+    // `documentation` connector; this guard keeps them out even if one ever lands
+    // in a real cell.
+    return readdirSync(p).filter(n => isFile(join(p, n)) && n.endsWith('.test.ts') && !n.endsWith('.generated.test.ts'))
 }
 
 /**
@@ -188,16 +192,23 @@ function emitGithubSummary(rows: DbReportRow[], passed: boolean): void {
     appendFileSync(summaryFile, lines.join('\n'))
 }
 
-function main(): number {
+export interface SymmetryResult { passed: boolean }
+
+// `dbFilter` (set by positional coords) scopes the symmetry check to those
+// databases — within a database it still compares all cells (symmetry is a
+// cross-cell rule). Undefined → every database.
+export function runSymmetryCheck(dbFilter?: Set<string>): SymmetryResult {
     if (!isDir(TEST_DB_DIR)) {
         console.log(`No ${TEST_DB_DIR}/ folder found; nothing to audit.`)
-        return 0
+        return { passed: true }
     }
 
-    const databases = dirs(TEST_DB_DIR).sort().filter(d => !NON_CELL_DATABASES.has(d))
+    const databases = dirs(TEST_DB_DIR).sort()
+        .filter(d => !NON_CELL_DATABASES.has(d))
+        .filter(d => !dbFilter || dbFilter.has(d))
     if (databases.length === 0) {
         console.log(`No databases under ${TEST_DB_DIR}/.`)
-        return 0
+        return { passed: true }
     }
 
     console.log('Test symmetry audit')
@@ -239,10 +250,8 @@ function main(): number {
     if (failed) {
         console.log('Symmetry audit FAILED.')
         console.log('Apply DESIGN §4: every cell of a database must contain the same files with the same test names in the same order. Comment out non-applicable tests, do not delete them.')
-        return 1
+        return { passed: false }
     }
     console.log('Symmetry audit passed.')
-    return 0
+    return { passed: true }
 }
-
-process.exit(main())

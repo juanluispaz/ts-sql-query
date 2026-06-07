@@ -800,13 +800,15 @@ export function todoMarkersMatching(db: QueryDb, name: string, tag: string): Tod
     )
 }
 
-// --cell-caveats (case G): every BUG/LIMITATION marker, NOT filtered by symbol — the searcher
-// derives each marker's cell from its file path and keeps the ones the --coord focus matches, so a
-// caveat declared on a cell (e.g. MariaDB UPDATE…RETURNING) surfaces for any work in that cell.
+// --cell-caveats (case G): every first-class disabled-test marker — BUG, LIMITATION and the permanent
+// dialect-boundary NOT-APPLICABLE — NOT filtered by symbol. The searcher derives each marker's cell from
+// its file path and keeps the ones the --coord focus matches, so a caveat declared on a cell (e.g. MariaDB
+// UPDATE…RETURNING, or a dialect boundary like Oracle-only CONNECT BY) surfaces for any work in that cell.
+// The `tag` keeps the three CATEGORIES distinct in the view (NOT-APPLICABLE is never merged into LIMITATION).
 export interface CaveatMarker { file: string, line: number, tag: string, text: string }
 export function caveatMarkers(db: QueryDb): CaveatMarker[] {
     return db.all<CaveatMarker>(
-        `SELECT file, line, tag, text FROM todo_marker WHERE tag IN ('BUG','LIMITATION') ORDER BY file, line`,
+        `SELECT file, line, tag, text FROM todo_marker WHERE tag IN ('BUG','LIMITATION','NOT-APPLICABLE') ORDER BY file, line`,
     )
 }
 

@@ -171,8 +171,10 @@ in [`tests:audit`](./TESTS_AUDIT.md):
   with the suppression syntax (eslint/oxlint style, reason mandatory)
   for the rare irreducible case. Siblings `any-type`, `ts-ignore`,
   `ts-expect-error` cover the other typer bypasses.
-- **Commented test without a reason header** — landed as
-  `commented-test-reason` (and `skipped-test-reason` for `test.skip` /
+- **Commented test without one of the three first-class reason
+  markers** (`// NOT-APPLICABLE`, `// TODO[LIMITATION]`, `// TODO[BUG]`)
+  — landed as `commented-test-reason` (and `skipped-test-reason` for
+  `test.skip` /
   `test.todo` siblings).
 - **Mock-only / real-DB skip** — landed as `mock-only` and `skip-real-db`.
 

@@ -6,11 +6,12 @@
 //                            `test.todo` / `it.todo`, plus the identifier forms
 //                            `xit` / `xtest` / `xdescribe` — a disabled test. It
 //                            carries the SAME obligation as a commented-out test
-//                            (the `commented-test-reason` twin): a
-//                            `TODO[LIMITATION]:` / `TODO[BUG]:` reason saying why
-//                            it is off. The skip is live code (AST), the reason
-//                            lives in a comment within 3 lines above (or on the
-//                            call's own line).
+//                            (the `commented-test-reason` twin): one of the three
+//                            first-class markers — `TODO[BUG]:` /
+//                            `TODO[LIMITATION]:` / `NOT-APPLICABLE:` (see
+//                            `../reasons.ts`) — saying why it is off. The skip is
+//                            live code (AST), the reason lives in a comment within
+//                            3 lines above (or on the call's own line).
 //   - `skip-real-db`         `test.skipIf(ctx.realDbEnabled)` /
 //                            `test.runIf(!ctx.realDbEnabled)` — a `mock-only`
 //                            evasion at the REGISTRATION level that the
@@ -23,12 +24,13 @@
 //
 // Engine: AST for the `.skip`/`.todo`/`.skipIf`/`.runIf` access (so a string or
 // comment mentioning them is never matched) + the TS scanner to find the
-// TODO-reason comments. No type checker. Anchor: 0 for both — clean preventive
+// reason-marker comments. No type checker. Anchor: 0 for both — clean preventive
 // gates.
 
 import ts from 'typescript'
 import type { Finding } from '../types.js'
 import { lineOf } from '../ast.js'
+import { DISABLED_TEST_REASON } from '../reasons.js'
 
 const RUNNERS = new Set(['test', 'it', 'describe'])
 const DISABLED = new Set(['skip', 'todo'])
@@ -36,7 +38,6 @@ const CONDITIONAL = new Set(['skipIf', 'runIf'])
 // The identifier forms of a disabled test (jest/vitest x-prefix) — same
 // obligation as `.skip`/`.todo`, but the callee is a bare identifier.
 const DISABLED_IDENTIFIERS = new Set(['xit', 'xtest', 'xdescribe'])
-const TODO_REASON = /TODO\[(?:LIMITATION|BUG)\]\s*:\s*\S/
 
 // The leftmost identifier of a property-access / call chain (`test.skip` → `test`).
 function rootIdentifier(node: ts.Expression): string | null {
@@ -47,14 +48,14 @@ function rootIdentifier(node: ts.Expression): string | null {
     return ts.isIdentifier(cur) ? cur.text : null
 }
 
-// Lines (1-based) carrying a `TODO[LIMITATION]:` / `TODO[BUG]:` reason comment.
-function todoReasonLines(sf: ts.SourceFile): Set<number> {
+// Lines (1-based) carrying a reason marker comment (TODO[BUG]/TODO[LIMITATION]/NOT-APPLICABLE).
+function reasonLinesOf(sf: ts.SourceFile): Set<number> {
     const scanner = ts.createScanner(ts.ScriptTarget.Latest, /*skipTrivia*/ false, ts.LanguageVariant.Standard, sf.text)
     const lines = new Set<number>()
     let tok = scanner.scan()
     while (tok !== ts.SyntaxKind.EndOfFileToken) {
         if (tok === ts.SyntaxKind.SingleLineCommentTrivia || tok === ts.SyntaxKind.MultiLineCommentTrivia) {
-            if (TODO_REASON.test(scanner.getTokenText())) {
+            if (DISABLED_TEST_REASON.test(scanner.getTokenText())) {
                 lines.add(sf.getLineAndCharacterOfPosition(scanner.getTokenPos()).line + 1)
             }
         }
@@ -65,7 +66,7 @@ function todoReasonLines(sf: ts.SourceFile): Set<number> {
 
 export function checkRegistrationSkip(sf: ts.SourceFile, file: string): Finding[] {
     const out: Finding[] = []
-    const reasonLines = todoReasonLines(sf)
+    const reasonLines = reasonLinesOf(sf)
     const hasReasonNear = (line: number): boolean => {
         for (let l = line - 3; l <= line; l++) if (reasonLines.has(l)) return true
         return false
@@ -80,7 +81,7 @@ export function checkRegistrationSkip(sf: ts.SourceFile, file: string): Finding[
                     rule: 'skipped-test-reason',
                     file,
                     line,
-                    message: `\`${n.expression.text}\` disables this test — like a commented-out test it must state why with a \`// TODO[LIMITATION]: <reason>\` or \`// TODO[BUG]: <reason>\` (within 3 lines above). A disabled test with no stated reason reads as "someone gave up here"`,
+                    message: `\`${n.expression.text}\` disables this test — like a commented-out test it must state why with a \`// TODO[BUG]: <reason>\`, \`// TODO[LIMITATION]: <reason>\`, or \`// NOT-APPLICABLE: <reason>\` (within 3 lines above). A disabled test with no stated reason reads as "someone gave up here"`,
                 })
             }
         }
@@ -95,7 +96,7 @@ export function checkRegistrationSkip(sf: ts.SourceFile, file: string): Finding[
                             rule: 'skipped-test-reason',
                             file,
                             line,
-                            message: `\`${root}.${member}\` disables this test — like a commented-out test it must state why with a \`// TODO[LIMITATION]: <reason>\` or \`// TODO[BUG]: <reason>\` (within 3 lines above). A disabled test with no stated reason reads as "someone gave up here"`,
+                            message: `\`${root}.${member}\` disables this test — like a commented-out test it must state why with a \`// TODO[BUG]: <reason>\`, \`// TODO[LIMITATION]: <reason>\`, or \`// NOT-APPLICABLE: <reason>\` (within 3 lines above). A disabled test with no stated reason reads as "someone gave up here"`,
                         })
                     }
                 } else if (CONDITIONAL.has(member)) {

@@ -43,8 +43,11 @@ Checks:
   non-public-api   a relative import past the supported surface: into a src
                    module that is not a package.json export, or into a
                    non-admitted test/lib file. [warn]
-  commented-test-reason  a commented-out test with no `// TODO[LIMITATION]: …`
-                   or `// TODO[BUG]: …` saying why it is disabled. [warn]
+  commented-test-reason  a commented-out test with no reason marker saying why
+                   it is disabled — one of `// TODO[BUG]: …` (defect in src/),
+                   `// TODO[LIMITATION]: …` (not covered yet / env), or
+                   `// NOT-APPLICABLE: …` (a permanent dialect boundary; runs in
+                   the dialects that support it). [warn]
   focused-test     a committed `test.only` / `it.only` / `describe.only` —
                    focuses the runner and silently skips the rest of the file,
                    so the cell looks green while almost nothing ran. Never
@@ -65,8 +68,9 @@ Checks:
   eslint-disable-other  an `eslint-disable` of any other (non-type) lint —
                    tracked separately so the type bucket stays clean. [warn]
   skipped-test-reason   `test.skip` / `it.skip` / `describe.skip` / `test.todo`
-                   with no `// TODO[LIMITATION]: …` / `// TODO[BUG]: …` reason —
-                   the `.skip` twin of commented-test-reason. [warn]
+                   with no reason marker (`// TODO[BUG]: …` / `// TODO[LIMITATION]: …`
+                   / `// NOT-APPLICABLE: …`) — the `.skip` twin of
+                   commented-test-reason. [warn]
   skip-real-db     `test.skipIf(ctx.realDbEnabled)` / `runIf(!realDbEnabled)` —
                    a mock-only evasion at the registration level (the test never
                    runs against the real engine). [warn]

@@ -250,11 +250,18 @@ The first three reuse the `extractSrc` declMap; `bug_marker` is a plain comment 
   edge** tables (one row per resolved member→type / class→base relationship, reused by the produces
   lookup and the reconcile/coverage audit). The shape follows the *use*, not the role name — they are
   deliberately not the same table.
-- **todo_marker** — one row per `// TODO` in a test file (`file`, `line`, `tag`, `text`), the
-  bracketed modifier captured as `tag` (`BUG`, `LIMITATION`, … or NULL for a bare `// TODO`).
-  `--bugs` surfaces the `tag='BUG'` subset (the generator→fixer divergence channel; `test/BUGS.md`
-  itself is read directly) and `--limitation` the `tag='LIMITATION'` subset (`test/LIMITATIONS.md`);
-  any other tags are indexed for completeness, not yet consumed by a section.
+- **todo_marker** — one row per disabled-test marker in a test file (`file`, `line`, `tag`, `text`).
+  Two forms are recognised: a `// TODO[<TAG>]` (the bracketed modifier → `tag`: `BUG`, `LIMITATION`, … or
+  NULL for a bare `// TODO`) **and** the first-class **`// NOT-APPLICABLE: <reason>`** (stored as
+  `tag='NOT-APPLICABLE'` — it is *not* a TODO, so it gets its own tag, matching the audit's
+  `NOT_APPLICABLE_REASON`). The searcher classifies by tag into **three distinct categories**: `--bugs`
+  (`tag='BUG'` — a src/ defect; `test/BUGS.md`), `--limitation` (`tag='LIMITATION'` — not covered yet / env;
+  `test/LIMITATIONS.md`), and **`--not-applicable`** (`tag='NOT-APPLICABLE'` — a *permanent dialect boundary*,
+  the test runs in the cells whose dialect supports it). NOT-APPLICABLE is **never merged into LIMITATION**
+  (different cause, different future). `--cell-caveats` surfaces all three by cell, counted per category.
+  Extraction scans all of `test/` (markers legitimately live in `.test.ts` cells); comments that *explain*
+  a marker in tooling files match too but carry no cell, so the coord-scoped view drops them and the
+  name-scoped views need a real symbol-name match. Any other `// TODO[<tag>]` is indexed, not yet consumed.
 - **emitted_sql** — one row per `toMatchInlineSnapshot` argument that looks like SQL, in a matrix
   cell (`source='test'`) or a generated documentation cell (`source='doc'`). NO block FK: the
   searcher recovers the owning block by `file` + line-containment (`test_block.start_line..end_line`,

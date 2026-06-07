@@ -301,14 +301,25 @@ export function extractEmittedSql(program: ts.Program, ids: Ids): EmittedSqlRow[
 // bare // TODO). --bugs filters to tag='BUG'; the rest are indexed for completeness.
 export function extractTodoMarkers(program: ts.Program, ids: Ids): TodoMarkerRow[] {
     const out: TodoMarkerRow[] = []
-    const RE = /\/\/\s*TODO(?:\s*\[([^\]]*)\])?\s*:?\s*(.*)$/
+    const TODO_RE = /\/\/\s*TODO(?:\s*\[([^\]]*)\])?\s*:?\s*(.*)$/
+    // `// NOT-APPLICABLE: <reason>` — a permanent DIALECT BOUNDARY (this cell never runs this test, by
+    // design). A FIRST-CLASS marker, NOT a TODO sub-tag (the word "TODO" implies pending work, which is
+    // exactly wrong here). Stored under tag='NOT-APPLICABLE' so the searcher classifies it separately
+    // from LIMITATION (actionable debt). Matches the audit's NOT_APPLICABLE_REASON (test/lib/audit/reasons.ts).
+    const NA_RE = /\/\/\s*NOT-APPLICABLE\s*:\s*(.*)$/
     for (const sf of program.getSourceFiles()) {
         if (sf.fileName.endsWith('.d.ts')) continue
         const rel = relative(process.cwd(), sf.fileName)
         if (!rel.startsWith('test/')) continue
         const lines = sf.text.split('\n')
         for (let i = 0; i < lines.length; i++) {
-            const m = lines[i]!.match(RE)
+            const line = lines[i]!
+            const na = line.match(NA_RE)
+            if (na) {
+                out.push({ id: ids.next(), file: rel, line: i + 1, tag: 'NOT-APPLICABLE', text: na[1]!.trim(), scope: null })
+                continue
+            }
+            const m = line.match(TODO_RE)
             if (!m) continue
             const tag = m[1] !== undefined ? m[1].trim() : null
             out.push({ id: ids.next(), file: rel, line: i + 1, tag: tag || null, text: m[2]!.trim(), scope: null })

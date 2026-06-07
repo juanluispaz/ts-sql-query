@@ -460,8 +460,8 @@ Recipe:
    not-applicable test:
 
    ```ts
-   // Not applicable on SQLite: tTable.oldValues() is only typed on
-   // PostgreSqlConnection, MariaDBConnection and SqlServerConnection.
+   // NOT-APPLICABLE: tTable.oldValues() is only typed on PostgreSqlConnection,
+   //                 MariaDBConnection and SqlServerConnection.
    /*
    test('docs:update/update-returning-old-values', async () => {
        // … FULL canonical body the SUPPORTING dialect would run, verbatim …
@@ -659,12 +659,14 @@ three different questions in one report — paste the output into the
 entry as the verifiable artifact:
 
 ```bash
-bun run tests:where-is --search <api> --bugs summary --limitation summary --declared full
+bun run tests:where-is --search <api> --bugs summary --limitation summary --not-applicable summary --declared full
 ```
 
-- `--bugs / --limitation` → if a `// TODO[BUG]` or `// TODO[LIMITATION]`
-  already names the API, reuse the existing reason header instead of
-  opening a duplicate.
+- `--bugs / --limitation / --not-applicable` → if any of the three
+  first-class reason markers (`// TODO[BUG]`, `// TODO[LIMITATION]`,
+  `// NOT-APPLICABLE`) already names the API, reuse the existing reason
+  header instead of opening a duplicate. The three categories are
+  distinct (see [`LIMITATIONS.md`](./LIMITATIONS.md) for the comparison).
 - `--declared full` → every declaration site of the symbol. Do **not**
   trust a previously-opened entry's "Where:" line as exhaustive — that
   field reflects what the original author saw. Recent miss: an entry on
@@ -675,10 +677,11 @@ bun run tests:where-is --search <api> --bugs summary --limitation summary --decl
 If the bug is in the type system (overload, variance, assignability),
 swap the preset: `--for type-bug` bundles `declared full · signature
 full · ref-type-arg full · neg-types full · bugs summary · limitation
-summary · chain none` — the route is the signature, not the
-call-chain. And before inventing a new helper or type alias to work
-around the bug, check that the shape doesn't already exist under a
-different name:
+summary · not-applicable summary · chain none` — the route is the
+signature, not the call-chain, and a `never` typing often means
+`NOT-APPLICABLE` (a deliberate dialect boundary, not a bug). Before
+inventing a new helper or type alias to work around the bug, check
+that the shape doesn't already exist under a different name:
 
 ```bash
 bun run tests:where-is --search-pattern-summary '<shared-token>'
@@ -689,18 +692,23 @@ hand.) Full guide in [`CODE_SEARCH.md` § "This tool vs. textual search"](./CODE
 
 **Test author's checklist** (this is all you do when you find a suspect):
 
-1. Two-minute triage — three buckets:
-   - **Dialect-specific limitation already documented** → comment-out the
-     test on the affected cell with `// Not applicable on <DB>: <reason>`
-     and, if the constraint is new, add an entry to
-     [`EXTERNAL_CAVEATS.md`](./EXTERNAL_CAVEATS.md).
-   - **Known library limitation per the author** →
-     [`LIMITATIONS.md`](./LIMITATIONS.md) already covers it; wrap with
-     `// TODO[LIMITATION]: see LIMITATIONS.md — <one-line>` and move on.
-   - **Anything else** → `// TODO[BUG]` (on the assertion if the test stays
-     live, or as the comment-out reason if you wrap the whole test). Add
-     ONE paragraph in [`BUGS.md`](./BUGS.md) — enough to reproduce, no
-     deeper.
+1. Two-minute triage — three buckets, three first-class reason markers
+   (full distinction in [`LIMITATIONS.md`](./LIMITATIONS.md)):
+   - **Dialect boundary by design** (the dialect doesn't support the
+     feature, will never run this test here, the same test runs live in
+     the cells whose dialect supports it) → block-comment with
+     `// NOT-APPLICABLE: <reason>` and, if the constraint is new in the
+     matrix, add an entry to [`EXTERNAL_CAVEATS.md`](./EXTERNAL_CAVEATS.md).
+     A paired `types.negative/` assertion on the unsupported dialect is
+     usually warranted.
+   - **Known library limitation per the author** (lib hasn't covered the
+     path yet, or the environment can't) →
+     [`LIMITATIONS.md`](./LIMITATIONS.md) already covers it; block-comment
+     with `// TODO[LIMITATION]: see LIMITATIONS.md — <one-line>` and move on.
+   - **Anything else** (the lib *should* support the call and is broken)
+     → `// TODO[BUG]: <reason>` (on the assertion if the test stays live,
+     or as the comment-out reason if you wrap the whole test). Add ONE
+     paragraph in [`BUGS.md`](./BUGS.md) — enough to reproduce, no deeper.
 2. Leave the suite green (assert current wrong behaviour, or block-comment
    per the symmetry rule with the full canonical body).
 3. Keep going with the next test. **Do not pause to read `src/`.**

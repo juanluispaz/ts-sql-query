@@ -31,8 +31,9 @@ skipped — internalise it before any `grep` or `Read` over `src/`:
    points, not ground truth.** The test author wrote them from what
    they saw; the searcher gives you every declaration site, every
    implementing class, every test that exercises the API, every
-   `// TODO[BUG]` and `// TODO[LIMITATION]` that names the symbol, and
-   the wrap shape across cells — in one report.
+   first-class reason marker that names the symbol (`// TODO[BUG]`,
+   `// TODO[LIMITATION]`, `// NOT-APPLICABLE`), and the wrap shape
+   across cells — in one report.
 
    Recent miss: an entry on `virtualColumnFromFragment` named
    `View.ts` and `Values.ts`; the symbol also lives in `Table.ts`.
@@ -91,22 +92,24 @@ Then gather the context appropriate to the bug's shape:
 - **SQL-emission bug** (the lib emits SQL the engine rejects, or the
   emitted SQL is wrong) — `bun run tests:where-is --search <symbol> --for emission-bug`
   bundles `emitted-sql full · implemented-by full (non-overriders) ·
-  version-gates · bugs full · limitation · chain none`: the SQL the
-  symbol emits across tests and docs, every implementing class, the
-  compatibility-version branches that gate the method, sibling
-  `// TODO[BUG]` markers and any declared `// TODO[LIMITATION]` that
-  names the symbol. `chain` is off on purpose — emission happens
-  after the call-chain, so the chain never reaches the emission site;
-  use `--emits-keyword <sql-fragment>` to walk back from the SQL
-  token to the builder code instead.
+  version-gates · bugs full · limitation · not-applicable · chain
+  none`: the SQL the symbol emits across tests and docs, every
+  implementing class, the compatibility-version branches that gate
+  the method, sibling `// TODO[BUG]` markers and any declared
+  `// TODO[LIMITATION]` / `// NOT-APPLICABLE` that names the symbol.
+  `chain` is off on purpose — emission happens after the call-chain,
+  so the chain never reaches the emission site; use
+  `--emits-keyword <sql-fragment>` to walk back from the SQL token
+  to the builder code instead.
 - **Type-system bug** (overload selection, variance, assignability —
   the symbol's typing rejects or accepts something it shouldn't) —
   `bun run tests:where-is --search <symbol> --for type-bug` bundles
   `declared full · signature full · ref-type-arg full · neg-types
-  full · bugs summary · limitation summary · chain none`: every
-  declaration + signature, every place the type is **used as a type
-  argument** (the blast radius of an alias), the existing
-  `@ts-expect-error` locks and sibling markers. The route for a type
+  full · bugs summary · limitation summary · not-applicable summary ·
+  chain none`: every declaration + signature, every place the type is
+  **used as a type argument** (the blast radius of an alias), the
+  existing `@ts-expect-error` locks and sibling markers. The route
+  for a type
   bug is the signature, not the call-chain — `chain` is off for the
   same reason as `emission-bug`. Before inventing a new helper or
   type alias, run `--search-pattern-summary '<shared-token>'` to
@@ -156,10 +159,13 @@ When the fix lands:
    still mention the symbol (typically the entry you're closing here).
    Anything still naming the old behaviour needs refreshing.
 4. Walk `grep -rn "TODO\[BUG\]" test/db/` and either uncomment the
-   wrapped tests (if the fix re-enables the snippet) or rewrite the
-   comment-out reason to its final form — e.g. "Not applicable on
-   `<DB>`: <reason>; see `test/db/<db>/types.negative/<file>.ts` for
-   the compile-time negative".
+   wrapped tests (if the fix re-enables the snippet) or **switch the
+   marker to its final category**. If the fix establishes that the
+   feature simply doesn't exist on this dialect, the right marker is
+   `// NOT-APPLICABLE: <reason>; see test/db/<db>/types.negative/<file>.ts
+   for the compile-time negative` — a permanent dialect boundary, not
+   pending work. If the bug exposed an unsolved library gap, use
+   `// TODO[LIMITATION]: see LIMITATIONS.md — <one-line>` instead.
 5. Push the changelog entry under
    [`docs/CHANGELOG.md`](../docs/CHANGELOG.md) describing the
    user-visible change.

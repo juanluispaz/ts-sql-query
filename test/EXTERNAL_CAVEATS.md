@@ -26,20 +26,35 @@ matrix is extended.
 Each item below describes a `docs:` or `docs-extra:` test that is
 **commented out** in some cells with a `/* ... */` block per the
 symmetry rule ([`DESIGN.md` § Symmetry rule](./DESIGN.md#symmetry-rule)).
-The body stays verbatim, prefixed by a one-line `// Not applicable on
-<DB>: ...` reason. To browse the caveat map mechanically:
+The body stays verbatim, prefixed by a one-line marker. The
+**categories of reason marker** are three (see
+[`LIMITATIONS.md`](./LIMITATIONS.md) for the comparison):
+
+- `// NOT-APPLICABLE: <reason>` — a **dialect boundary** the lib will
+  never run for this cell by design (the canonical case for everything
+  in this catalogue: MySQL has no RETURNING, Oracle has no ON CONFLICT,
+  …). The test runs and validates live on the cells whose dialect
+  supports the feature; here it is only present for symmetry.
+- `// TODO[LIMITATION]: <reason>` — the library hasn't covered it yet
+  (or the environment can't); see [`LIMITATIONS.md`](./LIMITATIONS.md).
+- `// TODO[BUG]: <reason>` — the library has a defect to fix; see
+  [`BUGS.md`](./BUGS.md).
+
+Most entries below are dialect boundaries → `// NOT-APPLICABLE: …`. To
+browse the caveat map mechanically:
 
 ```bash
 bun run tests:where-is --search <any-api> --cell-caveats summary
 ```
 
-returns the per-cell **map** of `// TODO[BUG]` / `// TODO[LIMITATION]`
-markers (each cell + its caveat counts). Scope to a driver with
-`--coord '<driver-cells>'` and the preset auto-raises to `full` (the
-markers themselves) — `--cell-caveats` is the searcher's section
-designed for exactly this catalogue. Plain
-`grep -rE "^    // Not applicable on" test/db/*/*/*/docs.*.test.ts`
-still works when the index isn't built.
+returns the per-cell **map** of every reason marker
+(`// NOT-APPLICABLE`, `// TODO[BUG]`, `// TODO[LIMITATION]`) — each cell
++ its caveat counts. Scope to a driver with `--coord '<driver-cells>'`
+and the preset auto-raises to `full` (the markers themselves) —
+`--cell-caveats` is the searcher's section designed for exactly this
+catalogue. Plain
+`grep -rE "^    // NOT-APPLICABLE" test/db/*/*/*/docs.*.test.ts` still
+works when the index isn't built.
 
 ## Dialect-specific notes (already wired in today's matrix)
 

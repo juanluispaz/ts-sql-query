@@ -103,24 +103,45 @@ finding. Fix a finding by making the test validate honestly — never by hiding 
 - `non-public-api` — a relative import past the public surface (into `src/` internals, or a non-admitted `test/lib/` helper). Import only the public library API and the admitted helpers.
 
 **Don't disable or fake tests silently**
-- `commented-test-reason` — a commented-out test with no reason. Add `// TODO[LIMITATION]: <reason>` or `// TODO[BUG]: <reason>`, or re-enable it.
-- `skipped-test-reason` — `test.skip` / `test.todo` / `xit` … needs the same `TODO[LIMITATION]`/`TODO[BUG]` reason.
+- `commented-test-reason` — a commented-out test with no reason. Add one of the three first-class markers (see below), or re-enable it.
+- `skipped-test-reason` — `test.skip` / `test.todo` / `xit` … needs the same reason marker as a commented-out test.
 - `focused-test` — a committed `test.only` / `describe.only`: it silently skips the rest of the file. Remove `.only`.
 - `non-deterministic-input` — `new Date()` (no arg), `Date.now()`, `Math.random()` used as a query input make the params non-deterministic. Use a fixed value (`new Date('2024-01-02T03:04:05Z')`). These are allowed only as **mock data** passed to `mockNext`, simulating the database's own `current_date` / `random()`.
 
 **Structure**
 - `symmetry` (always `error`) — every cell of a database must declare the same `.test.ts` files with the same test names in the same order (executed OR commented out). Keep the cells mirror images.
 
+## Disabling a test — the three reason markers
+
+A disabled test (commented out, or `.skip` / `.todo`) still counts for symmetry —
+it stays in every cell — so it can never be dropped silently. It must carry
+**exactly one** of three first-class markers, with a mandatory reason after the
+colon. Pick by the test's **future**:
+
+| Marker | Cause | Pending? | Re-enables in THIS cell? | Runs in another cell? | Tracked |
+|---|---|---|---|---|---|
+| `// TODO[BUG]: <reason>` | a defect in `src/` — the library *should* do this but fails today | yes, fix it | when the bug is fixed | normally no | `BUGS.md` |
+| `// TODO[LIMITATION]: <reason>` | the library doesn't cover it *yet* (by choice) / the env can't | yes, could be covered | if the decision/env changes | normally no | `LIMITATIONS.md` |
+| `// NOT-APPLICABLE: <reason>` | a deliberate **dialect boundary** (e.g. `START WITH … CONNECT BY` is Oracle-only) | **no — nothing pending** | **never** | **yes — it runs and validates where the dialect supports it** | symmetry + the dialect's `types.negative/` |
+
+A `TODO[*]` means there is pending work that could re-enable the test **here**;
+`NOT-APPLICABLE` is permanent and the test only ever runs **elsewhere**. Use
+`NOT-APPLICABLE` for a by-design boundary — **never** `TODO[NOT-APPLICABLE]` ("TODO"
+wrongly implies pending work). The markers are uppercase + hyphen, so prose like
+`// Not applicable on PostgreSQL: …` does **not** satisfy the rule — write the
+canonical `// NOT-APPLICABLE: …`. The reason should name the boundary (which
+dialect/feature) and, where useful, where the test *does* run.
+
 ## Suppress a finding — rarely, with a reason
 
 > **Not the same as disabling a test that doesn't apply to a database.** These
 > are two different mechanisms — don't confuse them:
 > - **The test does not apply to this database / is blocked by a bug** → you
->   **comment the test out** (or `test.skip` it) and mark *why* with a
->   `// TODO[LIMITATION]: <reason>` / `// TODO[BUG]: <reason>`. The test stops
->   running but **stays counted for symmetry** (it must exist, commented, in
->   every cell). This is governed by `commented-test-reason` / `skipped-test-reason`,
->   NOT by `tests-audit-disable`. See [`WRITING_TESTS.md`](./WRITING_TESTS.md).
+>   **comment the test out** (or `test.skip` it) and mark *why* with one of the
+>   three first-class reason markers (below). The test stops running but **stays
+>   counted for symmetry** (it must exist, commented, in every cell). This is
+>   governed by `commented-test-reason` / `skipped-test-reason`, NOT by
+>   `tests-audit-disable`. See [`WRITING_TESTS.md`](./WRITING_TESTS.md).
 > - **A live test genuinely cannot satisfy one specific audit rule** (it still
 >   runs, the rule's complaint is irreducible) → you **`tests-audit-disable`**
 >   that one rule on that line, below. The test keeps running and validating;

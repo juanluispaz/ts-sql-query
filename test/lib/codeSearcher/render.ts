@@ -40,8 +40,9 @@ export interface Sections {
     tests: TestsLevel
     examples: Level
     negTypes: Level
-    bugs: Level
-    limitation: Level
+    bugs: Level             // // TODO[BUG] markers naming the symbol — a src/ defect, re-enabled when fixed
+    limitation: Level       // // TODO[LIMITATION] markers naming the symbol — not covered yet / env
+    notApplicable: Level    // // NOT-APPLICABLE markers naming the symbol — a permanent dialect boundary
     cellCaveats: Level
     nameSearch: NameSearchLevel
 }
@@ -70,7 +71,7 @@ export const DEFAULT_SECTIONS: Sections = {
     classification: 'summary', declared: 'summary', signature: 'summary', chain: 'strict',
     refReturn: 'none', refImplements: 'summary', refTypeArg: 'none', refParam: 'none', refField: 'none', refNew: 'none', refProperty: 'none', refBrand: 'none', surface: 'none', versionGates: 'none', docs: 'summary',
     simplified: 'summary', emittedSql: 'none', tests: 'summary', examples: 'summary',
-    negTypes: 'summary', bugs: 'none', limitation: 'none', cellCaveats: 'none', nameSearch: 'none',
+    negTypes: 'summary', bugs: 'none', limitation: 'none', notApplicable: 'none', cellCaveats: 'none', nameSearch: 'none',
 }
 export const DEFAULT_FILTERS: Filters = {
     coord: [],
@@ -556,6 +557,22 @@ export function render(db: QueryDb, name: string, opts: SearchOptions, meta: Met
         }
     }
 
+    // Dialect boundaries — // NOT-APPLICABLE markers mentioning the name. A DIFFERENT category from a
+    // limitation: permanent, nothing pending, and the same test runs+validates in the cells whose dialect
+    // supports it (usually with a types.negative/ counterpart here). Distinct section, never merged into
+    // limitations — so an agent doesn't mistake a deliberate dialect boundary for actionable debt.
+    if (S.notApplicable !== 'none') {
+        const markers = Q.todoMarkersMatching(db, name, 'NOT-APPLICABLE')
+        if (markers.length) {
+            push('## Dialect boundaries (// NOT-APPLICABLE)')
+            const cap = S.notApplicable === 'full' ? markers.length : 15
+            for (const m of markers.slice(0, cap)) push(`- ${m.file}:${m.line} — ${m.text}`)
+            if (markers.length > cap) push(`- …and ${markers.length - cap} more`)
+            push('_(permanent — not a bug or a missing feature; the test runs in the cells whose dialect supports it.)_')
+            push()
+        }
+    }
+
     // Cell caveats — TODO[BUG]/TODO[LIMITATION] declared on cells (case G). COORD-scoped and NOT
     // filtered by the searched symbol: a wave/propagation can be invalidated by a caveat on the target
     // CELL (e.g. MariaDB UPDATE…RETURNING needs 13.0.1+), which name-filtered --bugs/--limitation miss.
@@ -568,26 +585,31 @@ export function render(db: QueryDb, name: string, opts: SearchOptions, meta: Met
         const cellKey = (c: CellLike): string => `${c.db}/${c.version}/${c.connector}`
         const matrix = F.coord.length ? '' : ' (whole matrix)'
         if (scoped.length && S.cellCaveats === 'summary') {
-            // summary = the per-cell MAP: which cells carry caveats + counts (one entry = one cell).
+            // summary = the per-cell MAP: which cells carry caveats + counts (one entry = one cell). The
+            // three categories are counted SEPARATELY (NOT-APPLICABLE is never folded into LIMITATION).
             push(`## Cell caveats — per-cell map${matrix}`)
-            const byCell = new Map<string, { bug: number, lim: number }>()
+            const byCell = new Map<string, { bug: number, lim: number, na: number }>()
             for (const m of scoped) {
                 const k = cellKey(m.cell)
                 let c = byCell.get(k)
-                if (!c) { c = { bug: 0, lim: 0 }; byCell.set(k, c) }
-                if (m.tag === 'BUG') c.bug++; else c.lim++
+                if (!c) { c = { bug: 0, lim: 0, na: 0 }; byCell.set(k, c) }
+                if (m.tag === 'BUG') c.bug++
+                else if (m.tag === 'NOT-APPLICABLE') c.na++
+                else c.lim++
             }
-            const cells = [...byCell.entries()].sort((a, b) => (b[1].bug + b[1].lim) - (a[1].bug + a[1].lim))
+            const total = (c: { bug: number, lim: number, na: number }): number => c.bug + c.lim + c.na
+            const cells = [...byCell.entries()].sort((a, b) => total(b[1]) - total(a[1]))
             const cap = Math.min(cells.length, 40)
             for (const [k, c] of cells.slice(0, cap)) {
-                const parts = [c.bug ? `${c.bug} BUG` : '', c.lim ? `${c.lim} LIMITATION` : ''].filter(Boolean).join(', ')
-                push(`- ${k} — ${c.bug + c.lim} (${parts})`)
+                const parts = [c.bug ? `${c.bug} BUG` : '', c.lim ? `${c.lim} LIMITATION` : '', c.na ? `${c.na} NOT-APPLICABLE` : ''].filter(Boolean).join(', ')
+                push(`- ${k} — ${total(c)} (${parts})`)
             }
             if (cells.length > cap) push(`- …and ${cells.length - cap} more cells`)
             push('_(counts per cell, not by symbol; `--cell-caveats full` shows the markers — narrow with `--coord` first.)_')
             push()
         } else if (scoped.length) {
-            // full = the MARKERS, each prefixed with its cell (one entry = one marker).
+            // full = the MARKERS, each prefixed with its cell (one entry = one marker). The [TAG] keeps the
+            // three categories distinct — `[NOT-APPLICABLE]` is a permanent dialect boundary, not debt.
             push(`## Cell caveats — markers${matrix}`)
             const sorted = [...scoped].sort((a, b) => cellKey(a.cell).localeCompare(cellKey(b.cell)) || a.line - b.line)
             const cap = Math.min(sorted.length, 60)
@@ -596,7 +618,7 @@ export function render(db: QueryDb, name: string, opts: SearchOptions, meta: Met
                 push(`- ${cellKey(m.cell)} · [${m.tag}] ${m.file.split('/').pop()}:${m.line} — ${text}`)
             }
             if (sorted.length > cap) push(`- …and ${sorted.length - cap} more markers`)
-            push('_(caveats apply to the CELL, not your symbol — see test/BUGS.md / test/LIMITATIONS.md.)_')
+            push('_(caveats apply to the CELL, not your symbol. BUG→test/BUGS.md · LIMITATION→test/LIMITATIONS.md · NOT-APPLICABLE = permanent dialect boundary.)_')
             push()
         }
     }

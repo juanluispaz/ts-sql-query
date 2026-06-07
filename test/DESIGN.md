@@ -259,8 +259,23 @@ with the same `test(...)` blocks in the same order.**
   records what that cell actually emits. The SQL divergence is the diff
   signal we want.
 
+The disabled test carries a **first-class reason marker** on the line
+above the `/* */` block. Three categories, one marker each (see
+[`LIMITATIONS.md`](./LIMITATIONS.md) for the full distinction):
+
+- `// NOT-APPLICABLE: <reason>` — a deliberate **dialect boundary**;
+  the test will never run in this cell because the dialect doesn't
+  support the feature. The same test runs live in the cells whose
+  dialect supports it (and often pairs with a `types.negative/`
+  assertion on this dialect).
+- `// TODO[BUG]: <reason>` — the lib has a defect to fix; see
+  [`BUGS.md`](./BUGS.md).
+- `// TODO[LIMITATION]: <reason>` — the lib hasn't covered the path
+  yet, or the environment can't; see
+  [`LIMITATIONS.md`](./LIMITATIONS.md).
+
 ```ts
-// Not applicable on MariaDB: no FULL OUTER JOIN.
+// NOT-APPLICABLE: MariaDB has no FULL OUTER JOIN.
 /*
 test('outer-join-customer-with-order', async () => {
     const result = await ctx.conn.selectFrom(tCustomer)
@@ -496,8 +511,9 @@ uncomment + re-bake mechanical. A stub strips both properties:
 
 The discipline applies in two situations:
 
-1. **Test not applicable on this cell.** The canonical body comes from any
-   cell that DOES support the test (typically the dialect canonical).
+1. **Test not applicable on this cell** (`// NOT-APPLICABLE: <reason>`
+   marker). The canonical body comes from any cell that DOES support
+   the test (typically the dialect canonical).
 2. **Canonical can't compile the body** (e.g. a feature only typed on
    PG/MariaDB/SqlServer being tested from a canonical that lives on
    sqlite). Write the test directly into the canonical as a commented-out
@@ -562,15 +578,20 @@ Two anti-patterns:
   undetected. Cast at the smallest possible spot.
 
 Outside this exact use, `as any` IS NOT permitted in test bodies. If TS
-rejects an API your test wants to call:
+rejects an API your test wants to call, pick the right reason marker
+(see [Symmetry rule](#symmetry-rule) for the three categories):
 
-- The API may have a documented dialect limitation — comment out the test
-  per [Symmetry rule](#symmetry-rule).
-- The lib may have a bug (typer narrower than runtime, runtime narrower
-  than typer) — open an entry in [`BUGS.md`](./BUGS.md) following
+- The dialect doesn't support the feature by design — block-comment the
+  test with `// NOT-APPLICABLE: <reason>`.
+- The lib has not covered this path yet — block-comment with
+  `// TODO[LIMITATION]: see LIMITATIONS.md — <one-line>`.
+- The lib has a bug (typer narrower than runtime, runtime narrower than
+  typer) — open an entry in [`BUGS.md`](./BUGS.md) following
   [`WRITING_TESTS.md` § When a test surfaces a bug in `src/`](./WRITING_TESTS.md#when-a-test-surfaces-a-bug-in-src),
-  block-comment the test with `// TODO[BUG] see test/BUGS.md`, and move on.
-- The API may not exist — `grep -rn` it in `src/` before writing the test.
+  block-comment the test with `// TODO[BUG]: see test/BUGS.md`, and move on.
+- The API may not exist — verify with
+  `bun run tests:where-is --search <name>` before writing the test
+  (see [`CODE_SEARCH.md` § When the symbol is not found](./CODE_SEARCH.md#when-the-symbol-is-not-found)).
 
 ## Public surface only
 

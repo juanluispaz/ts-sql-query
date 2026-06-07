@@ -144,14 +144,14 @@ export const RULE_SEVERITY = {
   'as-any':                 'warn',   // a cast to `any` bypassing the public typed API (backlog to rewrite)
   'any-type':               'warn',   // an `any` type annotation (use a precise type or `unknown`)
   'non-public-api':         'warn',   // a relative import into non-public src or non-admitted test/lib
-  'commented-test-reason':  'warn',   // a commented-out test with no TODO[LIMITATION]/TODO[BUG] reason
+  'commented-test-reason':  'warn',   // a commented-out test with no TODO[BUG]/TODO[LIMITATION]/NOT-APPLICABLE reason
   'focused-test':           'warn',   // a committed `.only` — silently skips the rest of the suite (anchor 0, an early promotion candidate)
   'empty-snapshot':         'warn',   // an un-baked `toMatchInlineSnapshot()` in live code (commented placeholders are AST-exempt)
   'ts-ignore':              'warn',   // `@ts-ignore` / `@ts-nocheck` — silences every error on the line; forbidden everywhere
   'ts-expect-error':        'warn',   // `@ts-expect-error` outside a types.negative cell — a type-error bypass
   'eslint-disable-type':    'warn',   // eslint-disable of a type-soundness lint — the lint twin of as-any/any-type
   'eslint-disable-other':   'warn',   // eslint-disable of any other (non-type) lint — tracked separately
-  'skipped-test-reason':    'warn',   // `test.skip` / `test.todo` with no TODO reason — the .skip twin of commented-test-reason
+  'skipped-test-reason':    'warn',   // `test.skip` / `test.todo` with no TODO[BUG]/TODO[LIMITATION]/NOT-APPLICABLE reason — the .skip twin of commented-test-reason
   'skip-real-db':           'warn',   // `test.skipIf(realDbEnabled)` — a mock-only evasion at the registration level
   'tautology':              'warn',   // a provably-constant assertion (literal-self-compare, same-expression, `.length` ≥ 0)
   'no-assertion-runtime':   'warn',   // a test that runs a query (execute*) but asserts nothing — always green
@@ -564,26 +564,48 @@ A test may be temporarily disabled by commenting it out; the
 [symmetry check](#the-rules) still counts its name (so it cannot be silently
 dropped — it stays commented in every cell). But a bare commented-out test
 reads as "someone gave up here" with no trace of why. Project rule: every
-commented-out test carries a `// TODO[LIMITATION]: <reason>` or
-`// TODO[BUG]: <reason>` (the reason is mandatory).
+commented-out test carries one of **three first-class reason markers** (the
+reason after the colon is mandatory in all three; the markers live in
+[`reasons.ts`](reasons.ts)):
+
+| Marker | Cause | Pending? | Re-enables in THIS cell? | Runs in another cell? | Tracked |
+|---|---|---|---|---|---|
+| `// TODO[BUG]: <reason>` | a defect in `src/` | yes — fix it | when the bug is fixed | normally no | `BUGS.md` |
+| `// TODO[LIMITATION]: <reason>` | the lib doesn't cover it yet / the env can't | yes — could be covered | if the decision/env changes | normally no | `LIMITATIONS.md` |
+| `// NOT-APPLICABLE: <reason>` | a deliberate **dialect boundary** | **no — nothing pending** | **never** | **yes, where the dialect supports it** | symmetry + the dialect's `types.negative/` |
+
+`NOT-APPLICABLE` is its **own** category, **not** a `TODO[NOT-APPLICABLE]`
+sub-tag: the word "TODO" implies pending work, which is exactly wrong for a
+permanent, by-design boundary (`.startWith`/`.connectBy` typed `never` in
+PostgreSQL, `.innerJoin` in a DELETE typed `never` outside MariaDB/MySQL, …),
+and tagging it "TODO" would pollute `LIMITATIONS.md` (actionable debt) with
+boundaries nobody will close and erase the signal "this test is alive in another
+cell". Pick by **future**: a `TODO[*]` means work that could re-enable the test
+*here*; `NOT-APPLICABLE` means it will only ever run *elsewhere*.
 
 Detection is comment-scoped — the TS **scanner** enumerates comments, so a
 string or live code that merely contains `test(` is never mistaken for one. A
 comment whose text holds a `test(…)` / `it(…)` call is a commented-out test; it
-is satisfied when that comment, or a `TODO[LIMITATION]:` / `TODO[BUG]:` comment
-within 3 lines above it (the usual marker line sitting above a `/* … */`
-block), states a reason.
+is satisfied when that comment, or one of the three markers within 3 lines above
+it (the usual marker line sitting above a `/* … */` block), states a reason. The
+markers are uppercase + hyphen so they are deliberate and greppable — prose like
+`// Not applicable on MariaDB: …` does **not** match and stays flagged until
+migrated to the canonical `// NOT-APPLICABLE: …`.
 
-*Distinct from the [Boundary](#boundary) row* on `TODO[BUG]`/`TODO[LIMITATION]`:
-that one is about **cross-referencing** existing markers against
-`BUGS.md`/`LIMITATIONS.md` (the searcher's job). This rule only checks that a
-commented-out test **has** a marker — a structural requirement, no
-cross-reference.
+*Distinct from the [Boundary](#boundary) row* on `TODO[BUG]`/`TODO[LIMITATION]`
+(and now `NOT-APPLICABLE`): that one is about **cross-referencing** existing
+markers against `BUGS.md`/`LIMITATIONS.md` and surfacing them as cell caveats
+(the searcher's / indexer's job, `tests:where-is --cell-caveats`). The audit
+only checks that a disabled test **has** a marker — a structural requirement, no
+cross-reference and no per-category classification (that distinction lives in the
+searcher).
 
-**Status**: **built** (`warn`). Whole matrix: 563 findings — commented-out tests
-that explain themselves in prose (`// Not applicable on MariaDB: …`) but lack
-the standardised marker. The backlog is to convert each prose note into a
-`TODO[LIMITATION]:` / `TODO[BUG]:` line.
+**Status**: **built** (`warn`). Whole matrix: 555 findings — commented-out tests
+that explain themselves in prose (`// Not applicable on MariaDB: …`) but lack a
+standardised marker. The backlog is to convert each prose note into the right
+one of the three markers (a dialect boundary → `// NOT-APPLICABLE:`; a bug →
+`// TODO[BUG]:`; not-covered-yet → `// TODO[LIMITATION]:`). The migration itself
+is suite work, owned by the corrections pass, not the audit tool.
 
 ### `uuid-literal` — a string literal that looks like a UUID but is not valid
 
@@ -668,7 +690,7 @@ inside the `/* … */` opened at line 488). They are un-baked placeholders in
 tests copied verbatim from the canonical cell for cross-cell diff parity and
 then commented out because they don't apply to that dialect — *not* a live
 backlog. They are governed by [`commented-test-reason`](#commented-test-reason--a-commented-out-test-with-no-stated-reason)
-(needs a `TODO[LIMITATION]`/`TODO[BUG]`), and they don't run, so their empty
+(a dialect that doesn't support the feature → `// NOT-APPLICABLE:`), and they don't run, so their empty
 snapshot validates nothing-by-running-nothing — already covered. Flagging them
 would be pure noise and double-count. So the **live-code anchor is 0**, and this
 is a preventive gate — the snapshot twin of `uuid-literal` / `non-public-api`:
@@ -743,9 +765,10 @@ comments; no type checker).
   `test.todo` / `it.todo`, plus the identifier forms `xit` / `xtest` /
   `xdescribe`. A disabled test carries the SAME obligation as a commented-out one
   (the [`commented-test-reason`](#commented-test-reason--a-commented-out-test-with-no-stated-reason)
-  twin, by project decision): it must state why with a `// TODO[LIMITATION]:
-  <reason>` or `// TODO[BUG]: <reason>` within 3 lines above (or on the call's
-  own line). A `.skip` with no stated reason reads as "someone gave up here".
+  twin, by project decision): it must state why with one of the same three
+  first-class markers — `// TODO[BUG]:`, `// TODO[LIMITATION]:`, or
+  `// NOT-APPLICABLE:` `<reason>` — within 3 lines above (or on the call's own
+  line). A `.skip` with no stated reason reads as "someone gave up here".
   **Anchor: 0** — no disabled tests in the matrix today.
 - **`skip-real-db`** — `test.skipIf(ctx.realDbEnabled)` /
   `test.runIf(!ctx.realDbEnabled)` (any `skipIf`/`runIf` whose condition
@@ -951,6 +974,7 @@ test/lib/audit/
 ├── rules.ts          ← RULE_SEVERITY table + the rule registry (CONTENT_RULES)
 ├── types.ts          ← Severity, Finding
 ├── ast.ts            ← lineOf + isInRealBranch (shared `if (ctx.realDbEnabled)` branch detection)
+├── reasons.ts        ← the three disabled-test reason markers (TODO[BUG] / TODO[LIMITATION] / NOT-APPLICABLE) + their semantics, shared by commentedTest + registrationSkip
 ├── walk.ts           ← enumerate cell .test.ts files (the audit's exclusions) + typesNegativeTestFiles (ts-ignore only)
 ├── ignores.ts        ← `tests-audit-disable-*` parsing + matching + meta-findings
 ├── report.ts         ← compiler-style output + exit-code tally
@@ -960,7 +984,7 @@ test/lib/audit/
     ├── uuidLiteral.ts ← `uuid-literal` (malformed-UUID-looking string literals)
     ├── asAny.ts       ← `as-any` (casts to `any`) + `any-type` (`any` annotations)
     ├── nonPublicApi.ts ← `non-public-api` (relative imports past the public surface)
-    ├── commentedTest.ts ← `commented-test-reason` (commented tests need a TODO reason)
+    ├── commentedTest.ts ← `commented-test-reason` (commented tests need a TODO[BUG]/TODO[LIMITATION]/NOT-APPLICABLE reason marker — see reasons.ts)
     ├── focusedTest.ts ← `focused-test` (committed `.only` — skips the rest of the file)
     ├── emptySnapshot.ts ← `empty-snapshot` (un-baked `toMatchInlineSnapshot()` in live code)
     ├── suppressions.ts ← `ts-ignore` / `ts-expect-error` / `eslint-disable-type` / `eslint-disable-other`
@@ -1039,8 +1063,9 @@ EXTERNAL_CAVEATS subsection), update the link here in the same change.
     and `any-type` (~272; pg cell 16 — `any` type annotations, no carve-outs,
     a rewrite backlog: `unknown` / precise type), and `non-public-api` (0 — a
     preventive gate: src imports must be public `exports`, test/lib imports must
-    be admitted helpers), and `commented-test-reason` (563 — commented-out tests
-    that lack a TODO[LIMITATION]/TODO[BUG] reason), and `focused-test` (0 — a
+    be admitted helpers), and `commented-test-reason` (555 — commented-out tests
+    that lack one of the three reason markers TODO[BUG]/TODO[LIMITATION]/NOT-APPLICABLE),
+    and `focused-test` (0 — a
     committed `.only`; a clean preventive gate, early promotion candidate), and
     `empty-snapshot` (0 live — un-baked `toMatchInlineSnapshot()`; the 384
     empty placeholders are all in commented-out tests, AST-exempt), and the four
@@ -1049,7 +1074,7 @@ EXTERNAL_CAVEATS subsection), update the link here in the same change.
     types.negative cell), `eslint-disable-type` (34 — the lint twin of
     as-any/any-type), `eslint-disable-other` (17 — non-type lint suppressions),
     and the two registration-skip rules `skipped-test-reason` (0 — `.skip`/`.todo`
-    needs a TODO reason) and `skip-real-db` (0 — `skipIf(realDbEnabled)`
+    needs a TODO[BUG]/TODO[LIMITATION]/NOT-APPLICABLE reason) and `skip-real-db` (0 — `skipIf(realDbEnabled)`
     registration-level mock-only evasion), and `tautology` (17 — all the
     `expect(rows.length).toBeGreaterThanOrEqual(0)` form; only provably-constant
     shapes flagged, the rest stays the sub-agent's call), and the three

@@ -21,14 +21,14 @@ export const RULE_SEVERITY: Record<string, Severity> = {
     'as-any':                 'warn',   // a cast to `any` bypassing the public typed API (outside exception tests)
     'any-type':               'warn',   // an `any` type annotation (use a precise type or `unknown`)
     'non-public-api':         'warn',   // a relative import into non-public src or non-admitted test/lib
-    'commented-test-reason':  'warn',   // a commented-out test with no TODO[LIMITATION]/TODO[BUG] reason
+    'commented-test-reason':  'warn',   // a commented-out test with no TODO[BUG]/TODO[LIMITATION]/NOT-APPLICABLE reason
     'focused-test':           'warn',   // a committed `.only` — silently skips the rest of the suite (anchor 0; warn for now, an early promotion candidate)
     'empty-snapshot':         'warn',   // an un-baked `toMatchInlineSnapshot()` in live code — pins nothing (anchor 0 live; commented placeholders are AST-exempt)
     'ts-ignore':              'warn',   // `@ts-ignore` / `@ts-nocheck` — silences every error on the line; forbidden everywhere (anchor 0; promotion candidate)
     'ts-expect-error':        'warn',   // `@ts-expect-error` outside a types.negative cell — a type-error bypass
     'eslint-disable-type':    'warn',   // eslint-disable of a type-soundness lint (no-explicit-any / no-unsafe-* / ban-ts-comment) — the lint twin of as-any/any-type
     'eslint-disable-other':   'warn',   // eslint-disable of any other (non-type) lint — tracked separately, lowest priority
-    'skipped-test-reason':    'warn',   // `test.skip` / `test.todo` with no TODO[LIMITATION]/TODO[BUG] reason — the .skip twin of commented-test-reason
+    'skipped-test-reason':    'warn',   // `test.skip` / `test.todo` with no TODO[BUG]/TODO[LIMITATION]/NOT-APPLICABLE reason — the .skip twin of commented-test-reason
     'skip-real-db':           'warn',   // `test.skipIf(realDbEnabled)` — a mock-only evasion at the registration level
     'tautology':              'warn',   // a provably-constant assertion (literal-self-compare, same-expression, `.length` ≥ 0)
     'no-assertion-runtime':   'warn',   // a test that runs a query (execute*) but asserts nothing — always green (anchor 0)
@@ -58,7 +58,7 @@ export const RULE_HINT: Record<string, string> = {
     'any-type':
         'An `any` type annotation defeats type-checking and usually hides a test that is not realistic. Use the precise type; for a caught error or an intentionally-opaque value use `unknown` (`let thrown: unknown`). This is the type annotation, not the `as any` cast (that is `as-any`).',
     'commented-test-reason':
-        'A commented-out test must state why it is off with a `// TODO[LIMITATION]: <reason>` or `// TODO[BUG]: <reason>` (see LIMITATIONS.md / BUGS.md). It still counts for symmetry, so do not delete it — comment it WITH the marker, or re-enable it.',
+        'A commented-out test must state why it is off with one of the three first-class markers: `// TODO[BUG]: <reason>` (a defect in src/ — re-enabled here once fixed; BUGS.md), `// TODO[LIMITATION]: <reason>` (the library does not cover it yet / the env can\'t — could re-enable here; LIMITATIONS.md), or `// NOT-APPLICABLE: <reason>` (a deliberate dialect boundary — this cell NEVER runs it; the test runs in the dialects that support it). Pick by future: a TODO means pending work that could re-enable it HERE; NOT-APPLICABLE is permanent. It still counts for symmetry, so do not delete it — comment it WITH a marker, or re-enable it.',
     'non-public-api':
         'A *.test.ts may import only the public library API (the package.json `exports`, never the __UNSUPPORTED__ escape hatch) and the admitted test/lib helpers (testRunner, assertType, isAllowed). This relative import reaches past that. Build through the public surface; if a real gap exists it belongs in the library, not behind a relative import into internals.',
     'focused-test':
@@ -74,7 +74,7 @@ export const RULE_HINT: Record<string, string> = {
     'eslint-disable-other':
         'An `eslint-disable` directive suppresses a lint rule. Tracked separately from the type-soundness bucket so suppressions stay visible. If the lint is right, fix the code rather than disabling it (e.g. express a deliberately-unused binding without a blanket disable).',
     'skipped-test-reason':
-        'A `test.skip` / `it.skip` / `describe.skip` / `test.todo` disables a test — like a commented-out test (`commented-test-reason`), it must state why with a `// TODO[LIMITATION]: <reason>` or `// TODO[BUG]: <reason>` within 3 lines above. Re-enable it, or comment WITH the marker so the reason is visible.',
+        'A `test.skip` / `it.skip` / `describe.skip` / `test.todo` disables a test — like a commented-out test (`commented-test-reason`), it must state why with one of the three markers within 3 lines above: `// TODO[BUG]: <reason>`, `// TODO[LIMITATION]: <reason>`, or `// NOT-APPLICABLE: <reason>` (a permanent dialect boundary, not a TODO — the test runs in the dialects that support it). Re-enable it, or mark WITH a marker so the reason is visible.',
     'skip-real-db':
         '`test.skipIf(ctx.realDbEnabled)` / `test.runIf(!ctx.realDbEnabled)` gates the whole test on the real-DB flag — a `mock-only` evasion at the registration level (the body-scoped `mock-only` rule cannot see it). The test never runs against the real engine. Assert the value unconditionally so it is validated in both modes instead of skipping a mode.',
     'tautology':

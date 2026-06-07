@@ -87,7 +87,7 @@ allowlist file.
 body replaced by a stub:
 
 ```ts
-// Not supported on this dialect: Values is not typed.
+// NOT-APPLICABLE: Values is not typed on this dialect.
 /*
 test('select-from-values-untyped', async () => {
     // stub
@@ -113,11 +113,12 @@ the dialect / driver constraint that justifies the comment-out. Example in
 
 **Gate today**: partial mechanical coverage. The `commented-test-reason`
 rule of [`tests:audit`](./TESTS_AUDIT.md) fails any commented test that
-lacks a `// TODO[LIMITATION]: <reason>` or `// TODO[BUG]: <reason>` header,
-so the stub-without-reason path is blocked across the whole matrix.
-Distinguishing "body is a stub" from "body is a legitimate one-line test
-wrapped with a real reason header" still requires reading neighbouring
-canonical bodies — that judgement stays with the validation sub-agent
+lacks one of the three first-class reason markers (`// NOT-APPLICABLE`,
+`// TODO[LIMITATION]`, `// TODO[BUG]`), so the stub-without-reason path
+is blocked across the whole matrix. Distinguishing "body is a stub"
+from "body is a legitimate one-line test wrapped with a real reason
+header" still requires reading neighbouring canonical bodies — that
+judgement stays with the validation sub-agent
 ([`QUALITY_GATE.md`](./QUALITY_GATE.md)).
 
 **Gate pending**: a finer audit extension that flags commented blocks whose
@@ -194,24 +195,31 @@ const view = ctx.conn.virtualColumnFromFragment(
 **Rule violated**: [`DESIGN.md` § The `as any` runtime-guard exception](./DESIGN.md#as-any-runtime-guard).
 
 **Why it's wrong**: when TypeScript rejects an API the test wants to call,
-the right answers are exactly three (none of them `as any` in test bodies):
+the right answers are exactly three (none of them `as any` in test bodies),
+each with its own first-class reason marker (see
+[`LIMITATIONS.md`](./LIMITATIONS.md) for the comparison):
 
-1. The API has a documented dialect limitation — comment out the test per
-   the [Symmetry rule](./DESIGN.md#symmetry-rule).
-2. The lib has a bug — open an entry in [`BUGS.md`](./BUGS.md), block-comment
-   the test with the canonical body and `// TODO[BUG] see test/BUGS.md`.
-3. The API doesn't exist — verify with `grep -rn` in `src/` before
-   proposing the test.
+1. The dialect doesn't support the feature by design — block-comment with
+   `// NOT-APPLICABLE: <reason>` per the
+   [Symmetry rule](./DESIGN.md#symmetry-rule). The same test runs live in
+   the cells whose dialect supports it.
+2. The lib hasn't covered the path yet — block-comment with
+   `// TODO[LIMITATION]: see LIMITATIONS.md — <one-line>`.
+3. The lib has a bug — open an entry in [`BUGS.md`](./BUGS.md), block-comment
+   the test with the canonical body and `// TODO[BUG]: see test/BUGS.md`.
+4. The API doesn't exist — verify with `bun run tests:where-is --search <name>`
+   (see [`CODE_SEARCH.md` § When the symbol is not found](./CODE_SEARCH.md#when-the-symbol-is-not-found))
+   before proposing the test.
 
 `as any` to "make TS shut up so the test compiles" silences the typer's
-warning that one of the three is happening. The test then asserts something
+warning that one of the four is happening. The test then asserts something
 the type system says shouldn't be reachable.
 
 **Concrete example**: `BUGS.md` § `virtualColumnFromFragment` callback fails
 TS overload resolution when the fragment template has no `${…}` interpolation.
 The interpolation workaround makes TS accept the call but **hides the bug**;
 the canonical form is `fragment.sql\`'open'\`` and the test should be
-block-commented with `// TODO[BUG] see test/BUGS.md`.
+block-commented with `// TODO[BUG]: see test/BUGS.md`.
 
 **Remedy**: never use `as any` in test bodies except for the sanctioned
 runtime-guard pattern shown in

@@ -166,9 +166,10 @@ to hide it (`--chain none`).
 | `--tests` | none · **summary** · detail · gaps | matrix coverage — `summary` = `newest/total` per db; `detail` = per-test; `gaps` = who's-**missing** per db |
 | `--examples` | none · **summary** · full | legacy `src/examples/` occurrences |
 | `--neg-types` | none · **summary** · full | `@ts-expect-error` negative-type assertions — `summary` = count per db; `full` = each assertion's **rule comment + rejected snippet + file:line** (what you model a new lock on) |
-| `--bugs` | **none** · summary · full | `// TODO[BUG]` markers whose text **names the searched symbol** (the BUG subset of all indexed TODO markers) |
-| `--limitation` | **none** · summary · full | `// TODO[LIMITATION]` markers whose text **names the searched symbol** (the sibling tag) |
-| `--cell-caveats` | **none** · summary · full | **coord-scoped:** `// TODO[BUG]`/`// TODO[LIMITATION]` declared on cells, *not* filtered by the symbol — surfaces a caveat on the target **cell** (a dialect/version limitation) a wave/propagation would hit late. **The level is the view:** `summary` = the per-cell **map** (each cell + its caveat counts); `full` = the **markers** (each line cell-prefixed). `--coord` only **filters which cells** appear — it never changes the view |
+| `--bugs` | **none** · summary · full | `// TODO[BUG]` markers whose text **names the searched symbol** — a **src/ defect** (the library should do this but fails; re-enabled in this cell once fixed) |
+| `--limitation` | **none** · summary · full | `// TODO[LIMITATION]` markers naming the symbol — the library **doesn't cover this yet** (by choice) or the environment can't (could re-enable here if that changes) |
+| `--not-applicable` | **none** · summary · full | `// NOT-APPLICABLE` markers naming the symbol — a **permanent dialect boundary** (this cell *never* runs the test, by design; it runs+validates in the cells whose dialect supports it). A **distinct** category, never merged into limitations: nothing pending, not actionable debt — it explains a deliberate `never` typing |
+| `--cell-caveats` | **none** · summary · full | **coord-scoped:** all three markers (`TODO[BUG]` / `TODO[LIMITATION]` / `NOT-APPLICABLE`) declared on cells, *not* filtered by the symbol — surfaces a caveat on the target **cell** a wave/propagation would hit late. **The level is the view:** `summary` = the per-cell **map** (each cell + counts **per category**); `full` = the **markers** (cell-prefixed + `[TAG]`). `--coord` only **filters which cells** appear |
 | `--name-search` | **none** · full | name-based discovery — every place the name appears, per dimension (high recall) |
 | `--refs` | none · summary · full | **shortcut**, not a section: sets the whole "references by role" family (every `--ref-*` above) to one level at once. An explicit per-role flag still overrides it; `--refs` itself beats a `--for` preset |
 
@@ -186,18 +187,29 @@ to hide it (`--chain none`).
 > `--name-search` answer "where used" too, but as a graph traversal and a flat catch-all — not a single
 > syntactic role.)
 
-> **Caveats: `--bugs` / `--limitation` (name-scoped) vs `--cell-caveats` (coord-scoped).** A `// TODO`
-> caveat can block you for two different reasons, hence two flags:
-> - **`--bugs` / `--limitation`** match markers whose **text names the symbol you searched** —
->   *"is there a known bug/limitation **about what I'm calling**?"* Independent of `--coord`.
-> - **`--cell-caveats`** lists **every** BUG+LIMITATION marker in the **cells `--coord` selects**,
->   named or not — *"is anything declared on the **cell I'm about to write into** that blocks my wave?"*
+> **Caveats — three first-class categories, two scopes.** A disabled test (commented-out or `.skip`) still
+> counts for symmetry, so it carries one of **three distinct markers**, by cause and *future*:
+> - **`// TODO[BUG]: <reason>`** — a **src/ defect**: the library *should* do this but fails today.
+>   Re-enabled in this cell **once the bug is fixed**. (`test/BUGS.md`.)
+> - **`// TODO[LIMITATION]: <reason>`** — the library **doesn't cover this yet** (by choice) or the
+>   environment can't. Could re-enable here **if that decision/env changes**. (`test/LIMITATIONS.md`.)
+> - **`// NOT-APPLICABLE: <reason>`** — a **permanent dialect boundary**: this cell **never** runs the test,
+>   by design (e.g. `START WITH … CONNECT BY` is Oracle-only; `DELETE … USING JOIN` is MariaDB/MySQL-only).
+>   **Nothing pending, nothing to fix or add** — and the same test **runs and validates in the cells whose
+>   dialect supports it** (usually with a `types.negative/` counterpart here). NOT a `TODO` (the word implies
+>   work); its own category, never folded into `--limitation`.
+>
+> Each is its own **name-scoped** section (`--bugs` / `--limitation` / `--not-applicable`) — *"is there a
+> known bug / limitation / dialect-boundary **about the symbol I'm calling**?"* And **`--cell-caveats`** is
+> **coord-scoped**: **every** marker (all three categories, tagged) in the **cells `--coord` selects**, named
+> or not — *"is anything declared on the **cell I'm about to write into** that blocks my wave?"*
 >
 > They diverge when a caveat is about a *dialect/version*, not a method. Searching `oldValues`,
 > `--limitation` finds the markers that literally say `oldValues()`, but **misses** the "MariaDB
 > UPDATE…RETURNING needs 13.0.1+" limitation in the same cells (its text never says `oldValues`) —
 > which `--cell-caveats --coord mariadb/newest` **does** surface. Name-scoped for *my symbol*,
-> coord-scoped for *my cell*.
+> coord-scoped for *my cell*; and `--not-applicable` keeps a *deliberate dialect boundary* from looking
+> like *actionable debt*.
 >
 > Note: every section (incl. `--cell-caveats`) rides a **resolved `--search`** — if the symbol comes
 > back *not found*, the report stops at that verdict and no section renders. Fix the symbol/typo
@@ -241,14 +253,15 @@ default. Explicit flags still override.
 |---|---|
 | `bare` | **every section `none`** — a blank report; add only the section(s) you want instead of typing a dozen `--<section> none`. Explicit flags (and `--refs`) turn things back on: `--for bare --surface own` shows only the surface |
 | `coverage-gap` | classification `full` · chain `full` · ref-return `summary` · tests `gaps` · examples `full` · cell-caveats `summary`→`full` if `--coord` |
-| `type-bug` | declared `full` · signature `full` · ref-type-arg `full` · neg-types `full` · bugs `summary` · limitation `summary` · chain `none` — the TYPE counterpart of `emission-bug`: a type-resolution bug lives in the **signature**, not the call-chain, so it raises every declaration site, the full signature/overloads, the alias's blast radius (where the type is a type argument), and the negative type tests |
-| `emission-bug` | emitted-sql `full` · ref-implements `full` (non-overriders) · version-gates `summary` · bugs `full` · limitation `summary` · chain `none` |
-| `version-work` | version-gates `full` · tests `summary` · bugs `summary` · limitation `summary` · chain `none` |
+| `type-bug` | declared `full` · signature `full` · ref-type-arg `full` · neg-types `full` · bugs `summary` · limitation `summary` · not-applicable `summary` · chain `none` — the TYPE counterpart of `emission-bug`: a type-resolution bug lives in the **signature**, not the call-chain, so it raises every declaration site, the full signature/overloads, the alias's blast radius (where the type is a type argument), the negative type tests, and any dialect-boundary marker (a `never` is often `NOT-APPLICABLE`) |
+| `emission-bug` | emitted-sql `full` · ref-implements `full` (non-overriders) · version-gates `summary` · bugs `full` · limitation `summary` · not-applicable `summary` · chain `none` |
+| `version-work` | version-gates `full` · tests `summary` · bugs `summary` · limitation `summary` · not-applicable `summary` · chain `none` |
 | `post-fix-sync` | emitted-sql `full` · docs `full` · examples `full` · tests `detail` · bugs `summary` · chain `none` |
 | `propagation` | classification `summary` · tests `gaps` · examples `summary` · cell-caveats `summary`→`full` if `--coord` · chain `none` — the COVERAGE_RUNBOOK *Propagation* view (copy the canonical test to the sibling cells) |
 
-The caveat sections split by *scope*: `--bugs`/`--limitation` are **name-scoped** (markers naming the
-symbol) and ride the feature-centric presets; `--cell-caveats` is **coord-scoped** and rides
+The caveat sections split by *scope*: `--bugs`/`--limitation`/`--not-applicable` are **name-scoped**
+(markers naming the symbol) and ride the feature-centric presets (`type-bug`/`emission-bug`/`version-work`
+carry all three — a `never` typing is often a `NOT-APPLICABLE` boundary); `--cell-caveats` is **coord-scoped** and rides
 `coverage-gap` / `propagation` **coord-aware** — `summary` (the per-cell **map**) while you browse
 with no `--coord`, auto-raised to `full` (the **markers**) the moment you scope with a `--coord`. The
 level meaning is fixed (`summary`=map, `full`=markers); the preset just picks the useful one. An

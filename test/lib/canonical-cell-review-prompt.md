@@ -104,18 +104,25 @@ Then read the file. For every test() block in it, check:
 
   4. DESIGN § Symmetry rule + § Full-canonical-body discipline.
      The audit (commented-test-reason rule) blocks any /* */ block
-     without a `// TODO[LIMITATION]: …` or `// TODO[BUG]: …` header
-     above it, so the **missing-reason path is mechanical**. Your
-     unique value here is the call the audit cannot make:
+     without one of the three first-class reason markers above it
+     (`// NOT-APPLICABLE: …`, `// TODO[LIMITATION]: …`,
+     `// TODO[BUG]: …`), so the **missing-reason path is mechanical**.
+     Your unique value here is the call the audit cannot make:
      - **Is the body inside /* */ the FULL canonical, or a stub?**
        (The audit cannot tell — a 3-line legitimate one-liner and a
        3-line "// stub" both look short.) Flag stub-style bodies
        even when the reason header IS present. See
        ANTIPATTERNS § stub-as-commented-test.
-     - **Is the reason header genuine?** "Not applicable on <DB>:"
-       must identify the dialect / engine / driver / BUGS.md
-       entry — generic "Not applicable" passes the audit but should
-       be tightened.
+     - **Is the marker the right category?**
+       `NOT-APPLICABLE` = permanent dialect boundary (test runs in
+       other cells); `TODO[LIMITATION]` = lib hasn't covered yet (in
+       LIMITATIONS.md); `TODO[BUG]` = lib defect (in BUGS.md). Flag
+       cross-category misuses (e.g. `NOT-APPLICABLE` for something
+       that actually has a BUGS.md entry).
+     - **Is the reason genuine?** It must identify the dialect /
+       engine / driver / BUGS.md or LIMITATIONS.md entry — a generic
+       reason that names nothing passes the audit but should be
+       tightened.
 
   5. DESIGN § Principles 10 (Realistic, shared domain):
      - Test scenarios should read like real product code on the

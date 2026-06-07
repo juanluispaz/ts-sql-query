@@ -27,14 +27,22 @@ is the source of truth for what it accepts. Therefore "the lib emits
 SQL my old server rejects" is **never a library bug** — it is either
 a deployment limitation (this file) or a user configuration mistake.
 
-How a limitation differs from a bug:
+How a limitation differs from a bug **and from a dialect boundary**:
 
-|  | Limitation | Bug |
-|---|---|---|
-| Declared by | The project author | Anyone who runs into it |
-| Lives in | This file, plus a one-line `// TODO[LIMITATION]` on affected tests | [`BUGS.md`](./BUGS.md) and a one-line `// TODO[BUG]` |
-| Fix expected | Not on the near-term roadmap | Yes, once an agent picks it up |
-| Test action | Skip or work around — see the entry for the recipe | Mark the assertion and keep the suite green per [`WRITING_TESTS.md`](./WRITING_TESTS.md#when-a-test-surfaces-a-bug-in-src) |
+|  | Limitation | Bug | Dialect boundary |
+|---|---|---|---|
+| Marker | `// TODO[LIMITATION]: <reason>` | `// TODO[BUG]: <reason>` | `// NOT-APPLICABLE: <reason>` |
+| Cause | The library hasn't covered it yet (intentionally, for now) or the environment doesn't allow it | A defect in `src/`: the library *should* do it and currently doesn't | A deliberate dialect frontier — this cell will never run the test |
+| Lives in | This file, plus the marker on the affected tests | [`BUGS.md`](./BUGS.md) plus the marker on the affected tests | Symmetry only, plus (often) a paired compile-time assertion in the dialect's `types.negative/` |
+| Fix expected | Maybe, if the decision or environment changes | Yes, once an agent picks it up | **No — nothing pending** |
+| Reactivates in **this** cell | If the lib covers it, yes | When the bug is fixed, yes | **Never** — the test only runs in the cells where the dialect supports the feature |
+| Test action | Comment out (full canonical body) with the marker, or work around per the entry's recipe | Mark the assertion / block-comment the canonical body per [`WRITING_TESTS.md`](./WRITING_TESTS.md#when-a-test-surfaces-a-bug-in-src) | Block-comment the canonical body with `// NOT-APPLICABLE: <reason>`; the same test runs live in the cells whose dialect supports it |
+
+`NOT-APPLICABLE` is a **first-class category, not a sub-tag of TODO**
+(no `// TODO[NOT-APPLICABLE]` — "TODO" implies pending work, but a dialect
+boundary is permanent and correct by design). The reason should name the
+boundary (which dialect / feature) and, where it exists, point to the
+paired `types.negative/` assertion that locks the compile-time rejection.
 
 To find affected tests:
 

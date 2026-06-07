@@ -92,6 +92,11 @@ check('preset type-bug raises ref-type-arg full', tyb.sections.refTypeArg === 'f
 check('preset type-bug raises neg-types full',   tyb.sections.negTypes === 'full')
 check('preset type-bug drops chain',             tyb.sections.chain === 'none')
 check('preset type-bug leaves emitted-sql off',  tyb.sections.emittedSql === 'none')
+// NOT-APPLICABLE is a first-class section, distinct from --limitation
+check('--not-applicable summary parses',         parseArgs(['--search', 'x', '--not-applicable', 'summary']).sectionOverrides.notApplicable === 'summary')
+check('bare --not-applicable → summary',         parseArgs(['--search', 'x', '--not-applicable']).sectionOverrides.notApplicable === 'summary')
+check('preset type-bug raises not-applicable',   tyb.sections.notApplicable === 'summary')
+check('not-applicable is NOT the same as limitation', (() => { const s = buildOptions(parseArgs(['--search', 'x', '--not-applicable', 'full', '--limitation', 'none'])).sections; return s.notApplicable === 'full' && s.limitation === 'none' })())
 const override = buildOptions(parseArgs(['--search', 'x', '--for', 'coverage-gap', '--chain', 'none']))
 check('explicit flag overrides the preset',      override.sections.chain === 'none')
 check('explicit flag overrides type-bug',        buildOptions(parseArgs(['--search', 'x', '--for', 'type-bug', '--ref-type-arg', 'none'])).sections.refTypeArg === 'none')

@@ -243,7 +243,8 @@ bun run tests:where-is --search <api-symbol> --for coverage-gap
 `classification full · chain full · producers · tests gaps · examples
 full · cell-caveats`, so a single call gives you the public reach of
 the API, every cell **missing** coverage, the legacy examples and the
-declared `// TODO[BUG]` / `// TODO[LIMITATION]` markers on cells.
+declared reason markers on cells (`// NOT-APPLICABLE` /
+`// TODO[BUG]` / `// TODO[LIMITATION]`).
 `--cell-caveats` is **always on** under this preset; the level is the
 **view**: without `--coord` you get the per-cell **map** (each cell +
 its caveat counts), with `--coord` the preset auto-raises to the
@@ -512,21 +513,25 @@ Once the canonical is GREEN/YELLOW, propagate via a small `cp` script (or
    under this preset; the level is the **view**: no `--coord` gives
    the per-cell **map** (each cell + its caveat counts, useful when
    browsing the whole matrix), `--coord` auto-raises to the
-   **markers** themselves (`// TODO[BUG]` / `// TODO[LIMITATION]`
-   declared inside the focused cells, e.g. "MariaDB UPDATE…RETURNING
-   needs 13.0.1+") — `--coord` only narrows which cells appear, it
-   never changes the view. See
+   **markers** themselves (`// NOT-APPLICABLE` / `// TODO[BUG]` /
+   `// TODO[LIMITATION]` declared inside the focused cells, e.g.
+   "NOT-APPLICABLE: MySQL has no RETURNING") — `--coord` only narrows
+   which cells appear, it never changes the view. See
    [`CODE_SEARCH.md`](./CODE_SEARCH.md#the-command-youll-use) for the
-   name-scoped (`--bugs` / `--limitation`) vs coord-scoped
-   (`--cell-caveats`) distinction.
+   name-scoped (`--bugs` / `--limitation` / `--not-applicable`) vs
+   coord-scoped (`--cell-caveats`) distinction.
 
 2. **Copy the canonical** to each active cell. For tests that don't apply
    to a cell (per the [Symmetry rule](./DESIGN.md#symmetry-rule) or per
    the EXTERNAL_CAVEATS sweep), prepare a `/* */` wrap with the canonical
-   body preserved and a one-line reason header. **Never** replace the body
-   with a stub like `// Not supported on this dialect: X is not typed.` —
-   see [`DESIGN.md` § Full-canonical-body discipline](./DESIGN.md#full-canonical-body)
-   and [`ANTIPATTERNS.md` § Stub as commented test](./ANTIPATTERNS.md#2-stub-as-commented-test).
+   body preserved and one of the three first-class reason markers above
+   the block: `// NOT-APPLICABLE:` (dialect boundary by design),
+   `// TODO[LIMITATION]:` (library hasn't covered it yet) or
+   `// TODO[BUG]:` (library defect). **Never** replace the body with a
+   stub — see
+   [`DESIGN.md` § Full-canonical-body discipline](./DESIGN.md#full-canonical-body),
+   [`ANTIPATTERNS.md` § Stub as commented test](./ANTIPATTERNS.md#2-stub-as-commented-test)
+   and [`LIMITATIONS.md`](./LIMITATIONS.md) for the marker comparison.
 
 3. **Bake snapshots per cell**:
    ```bash
@@ -544,12 +549,13 @@ Once the canonical is GREEN/YELLOW, propagate via a small `cp` script (or
    - uuid_str wrap on `sqlite3` + `sqlite-wasm-OO1` for any test
      projecting a `customUuid` column under the default strategy.
 
-5. **For stub-only "not typed on this dialect" cells** (today: mariadb /
-   mysql for the `Values` family, sqlite for `.oldValues()` /
+5. **For "not typed on this dialect" cells** (today: mariadb / mysql
+   for the `Values` family, sqlite for `.oldValues()` /
    `deleteFrom(...).using(...)` / `isolationLevel(...)`): write the FULL
-   canonical body inside `/* */`, not a stub. The reason header on the
-   line above names the dialect limitation and links the supporting cell
-   whose body is being mirrored.
+   canonical body inside `/* */`, not a stub. The reason header is
+   `// NOT-APPLICABLE: <dialect-feature>` (these are deliberate dialect
+   boundaries, not pending work) and points to the supporting cell whose
+   body is being mirrored.
 
 6. **Audit symmetry**:
    ```bash
@@ -564,8 +570,10 @@ Once the canonical is GREEN/YELLOW, propagate via a small `cp` script (or
    ```
    Both must pass. Errors often signal that the cell's connection type
    rejects an API used in the test — re-check whether the right answer is
-   "this dialect doesn't support it" (block-comment with canonical body)
-   or "we hit the lib bug from §4.3" (block-comment with TODO[BUG]).
+   "this dialect doesn't support it" (block-comment with
+   `// NOT-APPLICABLE: <reason>`), "the lib hasn't covered it yet"
+   (`// TODO[LIMITATION]: …`) or "we hit the lib bug from §4.3"
+   (`// TODO[BUG]: …`).
 
 ## Closing the round
 

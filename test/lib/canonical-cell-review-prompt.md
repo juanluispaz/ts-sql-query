@@ -46,32 +46,55 @@ Read these in full before reviewing:
     on certain cells when propagated)
   - test/ANTIPATTERNS.md (the catalogue — every past failure mode the
     suite has shipped before)
+  - test/TESTS_AUDIT.md (the rule list with fix hints — needed to
+    understand which checks below are already enforced mechanically
+    by tests:audit at round close, so you can focus your time where it
+    matters)
+
+Division of work with tests:audit. The mechanical anti-cheat audit
+(tests:audit) will block round close on `mirror-image`,
+`one-sided-guard`, `mock-only`, `skip-real-db`, `as-any`, `any-type`,
+`ts-ignore`, `ts-expect-error`, `commented-test-reason` (and ~15
+others), across the whole matrix. Your highest-value work is what the
+audit cannot do: cross-doc context (BUGS, LIMITATIONS,
+EXTERNAL_CAVEATS), judgement calls (stub body even when the reason
+header is present, realistic vs synthetic queries, achievable values
+across all cells), and the EXTERNAL_CAVEATS sweep for propagation. For
+checks marked [also caught by tests:audit] below, scan the canonical
+quickly and flag obvious instances as feedback to the author so the
+re-bake happens before propagation — do not produce exhaustive
+detail-counts; the audit will list every instance at round close.
 
 Then read the file. For every test() block in it, check:
 
-  1. DESIGN § Real-DB validation + § Principles 1: Is every
-     expect(result).toEqual(...) unconditional?
-     - Flag any "if (!ctx.realDbEnabled) { ... } else { ... }"
-       patterns, especially the form where the mock branch is
-       expect.toEqual(exact) and the real-DB branch is
-       expect.length.toBe(N) / .toBeGreaterThan(0) /
-       Array.isArray(...). That is the MIRROR-IMAGE SMELL — see
-       DESIGN § Mock-only is a smell — Mirror-image form. Should
-       have been fixed by JS sorting or UPDATE-in-withRollback.
-     - Flag any "if (ctx.realDbEnabled) return" without a
-       documented constraint.
+  1. [also caught by tests:audit: mirror-image, one-sided-guard,
+     mock-only, skip-real-db] DESIGN § Real-DB validation + § Principles 1.
+     Quick scan only — flag the canonical fast so the author re-bakes
+     before propagation, then move on. Patterns to watch for:
+     - "if (!ctx.realDbEnabled) { exact } else { shape }" — the
+       MIRROR-IMAGE SMELL (DESIGN § Mock-only is a smell —
+       Mirror-image form). The fix is JS sorting +
+       toEqual OR UPDATE-in-withRollback.
+     - "if (ctx.realDbEnabled) return" without a documented constraint
+       (mock-only).
+     The audit will enumerate every instance across the matrix at
+     round close; you only need to surface that the canonical has a
+     problem so it gets fixed before the 17-cell re-bake.
 
-  2. DESIGN § The "as any" runtime-guard exception + WRITING_TESTS §
-     "Testing a runtime guard":
-     - Flag every "as any" cast in the file. Verify each one is at
-       the narrowest possible spot of a fluent chain AND that the
-       test is dedicated to reaching a runtime guard the typer
-       blocks on purpose. Whole-chain casts, casts to satisfy
-       generic inference, or casts to silence a TS overload
-       rejection on a feature that should be supported — all
-       fail this check. The latter category usually means a
-       BUGS.md entry should be opened and the test block-
-       commented with the canonical bare-literal body.
+  2. [also caught by tests:audit: as-any, any-type, ts-ignore,
+     ts-expect-error] DESIGN § The "as any" runtime-guard exception
+     + WRITING_TESTS § "Testing a runtime guard". The audit blocks
+     stray `as any` / `any` types / `@ts-ignore` / `@ts-expect-error`
+     outside `types.negative/`. Your unique value here is **context the
+     audit cannot read**:
+     - When a cast IS present and the audit's runtime-guard carve-out
+       allows it, verify the test is genuinely dedicated to reaching a
+       runtime guard the typer blocks on purpose, not silencing a TS
+       overload rejection on a feature that should be supported. The
+       latter usually means a BUGS.md entry should be opened and the
+       test block-commented with the canonical bare-literal body.
+     - When a cast is suppressed with `tests-audit-disable-next-line
+       as-any`, check the mandatory reason is genuine (not "had to").
 
   3. TEST_LIB § Mutation safety contract:
      - Side-effecting tests (UPDATEs / INSERTs / DELETEs outside
@@ -79,16 +102,20 @@ Then read the file. For every test() block in it, check:
        ctx.withRollback / ctx.withCommit / ctx.withReseed. Flag
        raw mutations without a wrapper.
 
-  4. DESIGN § Symmetry rule + § Full-canonical-body discipline:
-     - If the test body is inside a /* */ block (canonical
-       can't host it OR the test is non-applicable on this cell),
-       the body must be the FULL canonical the supporting dialect
-       would run — not a stub like "// Not supported on this
-       dialect: X is not typed". Flag stub-style bodies. See
+  4. DESIGN § Symmetry rule + § Full-canonical-body discipline.
+     The audit (commented-test-reason rule) blocks any /* */ block
+     without a `// TODO[LIMITATION]: …` or `// TODO[BUG]: …` header
+     above it, so the **missing-reason path is mechanical**. Your
+     unique value here is the call the audit cannot make:
+     - **Is the body inside /* */ the FULL canonical, or a stub?**
+       (The audit cannot tell — a 3-line legitimate one-liner and a
+       3-line "// stub" both look short.) Flag stub-style bodies
+       even when the reason header IS present. See
        ANTIPATTERNS § stub-as-commented-test.
-     - The line above /* */ must name a specific reason.
-       Generic "Not applicable" without identifying the dialect,
-       the engine, the driver or the BUGS.md entry is not enough.
+     - **Is the reason header genuine?** "Not applicable on <DB>:"
+       must identify the dialect / engine / driver / BUGS.md
+       entry — generic "Not applicable" passes the audit but should
+       be tightened.
 
   5. DESIGN § Principles 10 (Realistic, shared domain):
      - Test scenarios should read like real product code on the
@@ -150,8 +177,13 @@ Then read the file. For every test() block in it, check:
      - Every flagged finding should map to a numbered antipattern
        (#1 mirror-image smell, #2 stub-as-commented-test, #3
        blind-copy-to-bun_sql_postgres, #4 as-any bypass, #5
-       hallucinated API). If a flagged finding doesn't fit any of
-       them, propose it as a candidate new entry.
+       hallucinated API). Tags #1 / #4 / part of #2 are already
+       mechanical in tests:audit (see "Division of work" above);
+       your job is the cross-doc context (BUGS / LIMITATIONS /
+       EXTERNAL_CAVEATS) and the stub-body / connector-symmetry
+       calls that the audit cannot make. If a flagged finding
+       doesn't fit any existing antipattern, propose it as a
+       candidate new entry.
 
 Report format — please use this exact shape:
 
@@ -190,6 +222,13 @@ Specifically:
 - If [`../EXTERNAL_CAVEATS.md`](`../EXTERNAL_CAVEATS.md`) gains a new dialect note (Bun bug, driver
   limitation), add it to the bullet list in check #8 so the sweep is
   mechanical.
+- **If [`../TESTS_AUDIT.md`](../TESTS_AUDIT.md) absorbs a check that the sub-agent was doing
+  by hand** (a new rule lands, an existing one gets promoted to `error`),
+  add the rule name to the "Division of work with tests:audit" paragraph
+  and tag the matching check above with `[also caught by tests:audit:
+  <rule>]`. The sub-agent's time is the scarce resource — every check
+  the audit absorbs should free a paragraph of focus here, not pile up
+  as redundant reading.
 
 Other content changes (rules getting stricter, new failure modes documented)
 get reflected naturally because the sub-agent reads the source docs

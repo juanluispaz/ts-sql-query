@@ -12,6 +12,19 @@ new valid pattern** when you believe a finding is legitimate. The internal desig
 [`lib/audit/AUDIT.md`](lib/audit/AUDIT.md) and you do **not** need it to use the
 tool.
 
+**Scope.** The audit's rules are **universal anti-cheat patterns** —
+semantic shapes a cheat would adopt regardless of which database the cell
+tests. Defences that depend on **which DB/connector the cell uses**
+(Bun#29010 wraps in `bun_sql_postgres`, `sqlite3` BigInt skips, sqlite
+`uuid_str` registration, MySQL no-RETURNING, …) are **out of scope** for
+`tests:audit`. Those live in [`EXTERNAL_CAVEATS.md`](./EXTERNAL_CAVEATS.md)
+(the catalogue), the validation sub-agent's `EXTERNAL_CAVEATS` sweep on
+the canonical ([`QUALITY_GATE.md`](./QUALITY_GATE.md)), and the mechanical
+re-wrap step in
+[`COVERAGE_RUNBOOK.md` § Propagation](./COVERAGE_RUNBOOK.md#propagation)
+on every sibling cell. Do not file a proposal asking the audit to enforce
+a per-connector caveat — it will not move here.
+
 ## Run it
 
 ```bash
@@ -27,7 +40,10 @@ bun run tests:audit --help
 Under `npm run`, put flags behind `--`: `npm run tests:audit -- --only weak-matcher --all`.
 
 Exit code is `0` unless there is an **error**-severity finding. Scope with a coord
-while iterating; run the whole matrix before pushing.
+while iterating; run the whole matrix before pushing. **CI runs the whole-matrix
+form on every push** — an `error`-severity finding (today: `symmetry` and the
+suppression meta-rules; tomorrow: any rule that gets promoted, see § Severities)
+blocks the merge.
 
 ## Read a finding
 
@@ -41,8 +57,18 @@ test/db/postgres/newest/pg/select.distinct.test.ts
 rules: mirror-image 1
 ✖ 1 problem (0 errors, 1 warning)
 ```
-Add `--explain` for the fix hint under each finding. Most rules are `warning`
-today (a backlog you should work down); a few are `error` (they fail the build).
+
+Add `--explain` for a fix hint under each finding:
+
+```
+test/db/postgres/newest/pg/select.distinct.test.ts
+  30  warning  real-DB branch only asserts rows.length; value never validated against an engine  mirror-image
+      └─ Give both branches the same value assertion: sort the unstable dimension in JS,
+         then `toEqual` — see ANTIPATTERNS.md #1 (mirror-image).
+```
+
+Most rules are `warning` today (a backlog you should work down); a few are
+`error` (they fail the build).
 
 ## What each rule catches — and how to fix it
 

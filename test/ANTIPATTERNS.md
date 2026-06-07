@@ -64,14 +64,20 @@ Only after all four genuinely fail (the dialect returns a legitimately
 different value — FP precision, time-zone) split the assertion with a
 comment naming the cause. Length checks alone almost never qualify.
 
-**Gate today**: caught by the validation sub-agent
-([`QUALITY_GATE.md`](./QUALITY_GATE.md)) reading the canonical cell.
+**Gate today**: mechanical via the `mirror-image` rule of
+[`tests:audit`](./TESTS_AUDIT.md) (with `one-sided-guard` for the asymmetric
+variant where only one branch asserts the value). The rule fires across the
+whole matrix, not just the canonical, and it runs at the close of the round
+as the blocking gate. The validation sub-agent
+([`QUALITY_GATE.md`](./QUALITY_GATE.md)) still reads the canonical cell as
+the earlier feedback gate before propagation. Irreducible carve-outs
+(autogen ids the real engine assigns, FP precision) use a mandatory-reason
+`// tests-audit-disable-next-line` — see
+[`TESTS_AUDIT.md` § Suppress a finding](./TESTS_AUDIT.md).
 
-**Gate pending**: a lint script that detects `if (!ctx.realDbEnabled)` whose
-only `expect(...).toEqual(...)` is inside the guard and the `else` branch
-has only `length` / `Array.isArray` predicates. Heuristic; needs care to
-avoid false positives on legitimate skip-real cases (autogen ids,
-engine-specific function support).
+**Gate pending**: none. The rule landed; the rare carve-outs go through the
+suppression syntax (eslint/oxlint style, reason mandatory) instead of an
+allowlist file.
 
 ---
 
@@ -105,13 +111,19 @@ support the test, inside the `/* */` block. The line above the block names
 the dialect / driver constraint that justifies the comment-out. Example in
 [`DESIGN.md` § Full-canonical-body discipline](./DESIGN.md#full-canonical-body).
 
-**Gate today**: caught by the validation sub-agent reading the canonical
-cell during propagation.
+**Gate today**: partial mechanical coverage. The `commented-test-reason`
+rule of [`tests:audit`](./TESTS_AUDIT.md) fails any commented test that
+lacks a `// TODO[LIMITATION]: <reason>` or `// TODO[BUG]: <reason>` header,
+so the stub-without-reason path is blocked across the whole matrix.
+Distinguishing "body is a stub" from "body is a legitimate one-line test
+wrapped with a real reason header" still requires reading neighbouring
+canonical bodies — that judgement stays with the validation sub-agent
+([`QUALITY_GATE.md`](./QUALITY_GATE.md)).
 
-**Gate pending**: an audit extension that flags commented blocks whose body
-is suspiciously short (< N lines) or contains only comments / TODOs. Would
-catch most stubs mechanically; needs to ignore legitimate one-line bodies
-(rare but exist).
+**Gate pending**: a finer audit extension that flags commented blocks whose
+body is suspiciously short (< N lines) or contains only comments / TODOs
+even when the reason header IS present. Tricky because legitimate one-line
+bodies exist (rare).
 
 ---
 
@@ -145,12 +157,26 @@ the existing Bun#29010 wraps already in place across `bun_sql_postgres` cells
 `bun run tests:where-is --search <api> --cell-caveats full --coord 'postgres/*/bun_sql_postgres'`.
 
 **Gate today**: caught by the validation sub-agent's `EXTERNAL_CAVEATS`
-sweep (see [`QUALITY_GATE.md`](./QUALITY_GATE.md)) — but only if it runs
-after propagation.
+sweep (see [`QUALITY_GATE.md`](./QUALITY_GATE.md)) on the canonical
+before propagation, and re-applied mechanically by
+[`COVERAGE_RUNBOOK.md` § Propagation](./COVERAGE_RUNBOOK.md#propagation)
+step 4 (the EXTERNAL_CAVEATS re-wrap pass) on every sibling cell.
+Partial generic coverage from [`tests:audit`](./TESTS_AUDIT.md):
+`non-deterministic-input` flags `new Date()` (no arg) used as a query
+input everywhere (mock or real), and `commented-test-reason` requires
+a `TODO[BUG]: Bun#29010 …` header on any commented wrap. Neither
+catches the specific shape "a live `new Date('<literal>')` in a
+`bun_sql_postgres` cell that should have been wrapped" — the date
+literal is deterministic, so the generic rule sees nothing wrong.
 
-**Gate pending**: a grep gate in `tests:audit` that fails if
-`bun_sql_postgres` cells contain live `new Date(` calls inside test bodies.
-Cheap to implement.
+**Gate pending**: none mechanical. A coord-aware "live `new Date(` in
+`bun_sql_postgres`" check is **out of scope for `tests:audit`** — the
+audit's rules are universal anti-cheat patterns, not per-database /
+per-connector wrappers. DB/connector-specific defences live in
+[`EXTERNAL_CAVEATS.md`](./EXTERNAL_CAVEATS.md) (the catalogue), the
+sub-agent's sweep (canonical, pre-propagation) and the runbook's
+re-wrap step (post-propagation). The user's final inspection is the
+last line.
 
 ---
 
@@ -193,12 +219,19 @@ runtime-guard pattern shown in
 cast at the narrowest fluent step that escapes the type, with a comment
 naming the runtime guard being reached.
 
-**Gate today**: caught by the validation sub-agent. The current suite has
-**zero** `as any` outside the sanctioned form (verified by `grep -rEn '\bas any\b' test/db/`).
+**Gate today**: mechanical via the `as-any` rule of
+[`tests:audit`](./TESTS_AUDIT.md) (complemented by `any-type` for `any`
+type annotations, and `ts-ignore` / `ts-expect-error` outside
+`types.negative/` for the other typer bypasses). The runtime-guard pattern
+in exception tests is tolerated by the rule's semantic carve-out; truly
+irreducible cases use `// tests-audit-disable-next-line as-any -- <reason>`
+with a mandatory justification visible in the diff. The validation
+sub-agent ([`QUALITY_GATE.md`](./QUALITY_GATE.md)) still reads the
+canonical cell as the earlier feedback gate.
 
-**Gate pending**: a declarative `as any` allowlist (`test/.as-any-allowlist`
-mapping `file:line → reason`) checked by `tests:audit`. Cheap; complements
-the runtime-guard recipe.
+**Gate pending**: none. The suppression syntax (eslint/oxlint style,
+reason mandatory) that `tests:audit` enforces handles irreducible cases
+uniformly across the matrix.
 
 ---
 
@@ -233,8 +266,7 @@ the docs are stale. See
 **Gate today**: mechanical via [`tests:where-is`](./CODE_SEARCH.md) — the
 searcher reports `not found` against the indexed `src/` surface and the
 agent pastes the `Classification` block into the wave plan as a
-verifiable artifact (no longer self-policed). COVERAGE_RUNBOOK §4.1
-prescribes the call.
+verifiable artifact. COVERAGE_RUNBOOK §4.1 prescribes the call.
 
 **Gate pending**: none. The check is mechanical and produces a copyable
 artifact; the wave-level discipline gap is closed.

@@ -209,10 +209,20 @@ re-validate" loop benefits the most. Full flag reference in
 9. **Verify**:
 
    ```bash
-   bun run tests:audit         # symmetry ✓
+   bun run tests:audit         # mechanical anti-cheat gate (symmetry + ~24 rules)
    bun run validate:tests      # typecheck ✓ (tsgo)
    bun run tests               # mock matrix ✓
    ```
+
+   `tests:audit` walks `test/db/` statically and reports tests that have
+   been weakened to pass dishonestly: `mirror-image`, `mock-only`,
+   `as-any`, `weak-matcher`, `tautology`, `commented-test-reason`,
+   `non-deterministic-input` and ~18 more
+   ([`TESTS_AUDIT.md`](./TESTS_AUDIT.md) lists them with a fix hint each).
+   Fix findings by making the test validate honestly; never silence them.
+   The rare irreducible case takes a `// tests-audit-disable-next-line
+   <rule> -- <reason>` with the reason mandatory — see
+   [`TESTS_AUDIT.md` § Suppress a finding](./TESTS_AUDIT.md).
 
 ## Negative type tests
 

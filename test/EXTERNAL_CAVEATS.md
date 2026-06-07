@@ -64,23 +64,24 @@ The `viewCount` (`bigint`) and `estimatedHours` (`double`) columns added
 to the shared `issue` domain exercise `AbstractConnection` value
 marshalling. One connector limitation surfaces:
 
-- **BigInt parameter binding** — the `sqlite3` npm driver cannot bind a
-  JS `BigInt` (it sends `NULL`, tripping the NOT NULL on `view_count`).
-  `bun:sqlite`, `better-sqlite3`, `node:sqlite` and `sqlite-wasm-OO1`
-  all bind BigInt correctly. Commented out **only** in
-  `test/db/sqlite/newest/sqlite3/`:
+- **BigInt parameter binding** — the deprecated `sqlite3` npm driver
+  cannot bind a JS `BigInt` (it sends `NULL`, tripping the NOT NULL on
+  `view_count`). `bun:sqlite`, `better-sqlite3`, `node:sqlite` and
+  `sqlite-wasm-OO1` all bind BigInt natively. As a best-effort fallback
+  for this deprecated connector, `Sqlite3QueryRunner.addParam` coerces a
+  `bigint` param to a `number` before binding it (see
+  [`src/queryRunners/Sqlite3QueryRunner.ts`](../src/queryRunners/Sqlite3QueryRunner.ts));
+  the mirror coercion lives in `MockSqlite3QueryRunner` so mock and real
+  modes capture identical params. **Caveat:** this loses precision for
+  integers above `Number.MAX_SAFE_INTEGER`. As a result the BigInt tests
+  run live on `sqlite3` too, with the captured param showing the coerced
+  `number` (`1500`, `100`/`200`) instead of the `bigint` literal:
   - `marshalling/bigint-insert-select-roundtrip`
     (`select.value-marshalling.test.ts`).
   - `aggregate-of-bigint-column-as-array`
     (`select.aggregate-as-array.value-type-coverage.test.ts`).
-  - `aggregate-of-object-with-bigint-uuid-and-double` (same file) — the
-    object includes the `view_count` BigInt, so the whole test stays
-    commented on `sqlite3`; its other branches are covered by the live
-    per-type tests in the same file.
+  - `aggregate-of-object-with-bigint-uuid-and-double` (same file).
 - `marshalling/double-insert-select-roundtrip` stays live in every cell.
-
-When the matrix is next extended, revisit whether `sqlite3` can bind
-BigInt (driver upgrade).
 
 ### MySQL — no INSERT/UPDATE/DELETE RETURNING
 

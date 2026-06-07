@@ -17,7 +17,6 @@
 //             no `uuid_blob` / `uuid_str` helper is needed. (The binary
 //             `'uuid-extension'` emission is pinned mock-only in
 //             config.uuid-strategy.test.ts / select.value-source.uuid-cast.test.ts.)
-// See test/EXTERNAL_CAVEATS.md.
 //
 // Bodies run inside `ctx.withRollback(...)`. The value assertion is
 // identical in both modes: `expected` carries the exact JS values

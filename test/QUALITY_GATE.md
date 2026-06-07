@@ -72,9 +72,8 @@ The sub-agent reports a single verdict — **GREEN**, **YELLOW**, or **RED**
   accept.
 
 The sub-agent also produces an **EXTERNAL_CAVEATS sweep** — a list of
-`(test_name, target_cells)` pairs that need post-propagation re-wrapping
-(Bun#29010, sqlite3 BigInt, sqlite uuid_str, etc.). The propagation step
-applies these mechanically — see
+`(test_name, target_cells)` pairs that need post-propagation re-wrapping. 
+The propagation step applies these mechanically — see
 [`COVERAGE_RUNBOOK.md` § Propagation](./COVERAGE_RUNBOOK.md#propagation).
 Cross-check the cell list the sub-agent returns against
 `bun run tests <wave-coord-glob> --list-cells` to confirm the wraps land

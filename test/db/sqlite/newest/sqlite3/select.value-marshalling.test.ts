@@ -17,7 +17,6 @@
 //             no `uuid_blob` / `uuid_str` helper is needed. (The binary
 //             `'uuid-extension'` emission is pinned mock-only in
 //             config.uuid-strategy.test.ts / select.value-source.uuid-cast.test.ts.)
-// See test/EXTERNAL_CAVEATS.md.
 //
 // Bodies run inside `ctx.withRollback(...)`. The value assertion is
 // identical in both modes: `expected` carries the exact JS values
@@ -34,10 +33,12 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // Not applicable on sqlite3: the `sqlite3` npm driver cannot bind a JS
-    // BigInt parameter (it sends NULL, tripping the NOT NULL on view_count).
-    // See test/EXTERNAL_CAVEATS.md.
-    /*
+    // Best-effort on sqlite3: the deprecated `sqlite3` npm driver cannot bind
+    // a JS BigInt (it sends NULL, tripping the NOT NULL on view_count), so
+    // `Sqlite3QueryRunner.addParam` coerces the BigInt to a `number` before
+    // binding — the captured param is `1500`, not `1500n`. This loses
+    // precision for values above Number.MAX_SAFE_INTEGER; 1500 round-trips
+    // exactly.
     test('marshalling/bigint-insert-select-roundtrip', async () => {
         await ctx.withRollback(async () => {
             ctx.mockNext(501) // mocked new id; real DB assigns its own
@@ -53,7 +54,7 @@ describe(ctx.label, () => {
                 .returningLastInsertedId()
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, view_count) values ($1, $2, $3, $4, $5, $6) returning id"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, view_count) values (?, ?, ?, ?, ?, ?) returning id"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -61,7 +62,7 @@ describe(ctx.label, () => {
                 "Bigint counter",
                 "open",
                 2,
-                1500n,
+                1500,
               ]
             `)
 
@@ -72,7 +73,7 @@ describe(ctx.label, () => {
                 .select({ id: tIssue.id, views: tIssue.viewCount })
                 .executeSelectOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, view_count as views from issue where number = $1"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, view_count as views from issue where number = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 9002,
@@ -82,7 +83,6 @@ describe(ctx.label, () => {
             expect(row).toEqual(expected)
         })
     })
-    */
 
     test('marshalling/double-insert-select-roundtrip', async () => {
         await ctx.withRollback(async () => {

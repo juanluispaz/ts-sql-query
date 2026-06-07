@@ -135,12 +135,12 @@ describe(ctx.label, () => {
         }
     })
 
-    // Not applicable on sqlite3: the `sqlite3` npm driver cannot bind a
-    // JS BigInt parameter (it sends NULL, tripping the NOT NULL on
-    // `view_count`). The UPDATE step above sends `100n`/`200n` and
-    // immediately fails with `SQLITE_CONSTRAINT: NOT NULL constraint
-    // failed: issue.view_count`. See `test/EXTERNAL_CAVEATS.md`.
-    /*
+    // Best-effort on sqlite3: the deprecated `sqlite3` npm driver cannot bind
+    // a JS BigInt (it sends NULL, tripping the NOT NULL on `view_count`), so
+    // `Sqlite3QueryRunner.addParam` coerces the BigInt to a `number` before
+    // binding — the UPDATE step sends `100`/`200` instead of `100n`/`200n`.
+    // This loses precision above Number.MAX_SAFE_INTEGER; these values
+    // round-trip exactly.
     test('aggregate-of-bigint-column-as-array', async () => {
         // Pins the `bigint` case in the SqlServer JSON switch. SqlServer
         // wraps bigint with `convert(nvarchar, ..., 0)` (the value
@@ -172,14 +172,17 @@ describe(ctx.label, () => {
                 .groupBy('projectId')
                 .executeSelectMany()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot()
-            expect(ctx.lastParams).toMatchInlineSnapshot()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, json_group_array(view_count) as views from issue where project_id = ? group by project_id"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
             assertType<Exact<typeof rows, Array<{ projectId: number; views: bigint[] }>>>()
             const sorted = rows.map(r => ({ ...r, views: [...r.views].sort((a, b) => Number(a - b)) }))
             expect(sorted).toEqual([{ projectId: 1, views: [100n, 200n] }])
         })
     })
-    */
 
     test('aggregate-of-optional-double-column-as-array', async () => {
         // Pins the `double` case in the SqlServer JSON switch. Optional
@@ -280,17 +283,15 @@ describe(ctx.label, () => {
         })
     })
 
-    // Not applicable on sqlite3: `view_count` is a `bigint` and the `sqlite3`
-    // driver cannot bind a JS BigInt (it sends NULL, tripping the NOT NULL on
-    // `view_count`) — the same reason `aggregate-of-bigint-column-as-array`
-    // above is commented out. (The `external_ref` uuid property used to be a
-    // second blocker under the old uuid-extension default, but the shared test
-    // connection now defaults to the `'string'` uuid strategy, so uuid no
-    // longer emits `uuid_str(...)`; only the bigint limitation remains.)
-    // Dropping the bigint property would leave uuid + double, both already
-    // covered by the live `aggregate-of-optional-uuid-column-as-array` and
-    // `aggregate-of-optional-double-column-as-array`. See test/EXTERNAL_CAVEATS.md.
-    /*
+    // Best-effort on sqlite3: `view_count` is a `bigint` and the deprecated
+    // `sqlite3` driver cannot bind a JS BigInt (it sends NULL, tripping the
+    // NOT NULL on `view_count`), so `Sqlite3QueryRunner.addParam` coerces the
+    // BigInt to a `number` before binding — the UPDATE steps send `100`/`200`
+    // instead of `100n`/`200n`, the same handling as
+    // `aggregate-of-bigint-column-as-array` above. (The `external_ref` uuid
+    // property round-trips as plain TEXT under the shared test connection's
+    // `'string'` uuid strategy.) This loses precision above
+    // Number.MAX_SAFE_INTEGER; these values round-trip exactly.
     test('aggregate-of-object-with-bigint-uuid-and-double', async () => {
         // Wrapped (object-shape) `aggregateAsArray({...})` mixing
         // `bigint` + optional `uuid` + optional `double`. Pins the
@@ -343,8 +344,12 @@ describe(ctx.label, () => {
                 .groupBy('projectId')
                 .executeSelectMany()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot()
-            expect(ctx.lastParams).toMatchInlineSnapshot()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, json_group_array(json_object('views', view_count, 'externalRef', external_ref, 'estimatedHours', estimated_hours)) as issues from issue where project_id = ? group by project_id"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
             assertType<Exact<typeof rows, Array<{
                 projectId: number
                 issues:    Array<{
@@ -366,7 +371,6 @@ describe(ctx.label, () => {
             }])
         })
     })
-    */
 
     test('aggregate-of-object-with-boolean-and-local-date-time', async () => {
         // Object-shape `aggregateAsArray({...})` mixing a boolean and

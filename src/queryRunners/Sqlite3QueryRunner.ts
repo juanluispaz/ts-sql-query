@@ -85,7 +85,15 @@ export class Sqlite3QueryRunner extends SqlTransactionQueryRunner {
         throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_QUERY' }, "Unsupported executeInsertReturningMultipleLastInsertedId on queries thar doesn't include the returning clause")
     }
     addParam(params: any[], value: any): string {
-        params.push(value)
+        if (typeof value === 'bigint') {
+            // The deprecated sqlite3 driver cannot bind a JS BigInt: it ends up binding NULL instead.
+            // As a best-effort fallback for this connector, coerce the BigInt to a number so the value
+            // still reaches the database. This loses precision for integers outside JavaScript's safe
+            // integer range (Number.MAX_SAFE_INTEGER); use another SQLite runner if you need full int64 fidelity.
+            params.push(Number(value))
+        } else {
+            params.push(value)
+        }
         return '?'
     }
     override getErrorReason(error: unknown): TsSqlErrorReason {

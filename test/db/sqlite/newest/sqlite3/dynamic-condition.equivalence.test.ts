@@ -350,7 +350,7 @@ describe(ctx.label, () => {
         expect(ref.sql).toMatchInlineSnapshot(`"select id as id from issue where view_count > ? order by id"`)
         expect(ref.params).toMatchInlineSnapshot(`
           [
-            10n,
+            10,
           ]
         `)
     })

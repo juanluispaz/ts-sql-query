@@ -11,8 +11,10 @@ import type { Severity } from './types.js'
 export const CONTENT_RULES = ['mock-only', 'mirror-image', 'one-sided-guard', 'uuid-literal', 'as-any', 'any-type', 'non-public-api', 'commented-test-reason', 'focused-test', 'empty-snapshot', 'ts-ignore', 'ts-expect-error', 'eslint-disable-type', 'eslint-disable-other', 'skipped-test-reason', 'skip-real-db', 'tautology', 'no-assertion-runtime', 'empty-catch', 'weak-boolean', 'weak-matcher', 'close-to', 'no-op-expect', 'non-deterministic-input'] as const
 
 export const RULE_SEVERITY: Record<string, Severity> = {
-    // structural — unchanged, always blocking
-    'symmetry':               'error',
+    // structural — whole-matrix cell parity. TEMPORARILY `warn` while the
+    // cross-database backlog (files/tests not yet mirrored to every cell) is
+    // worked down; promote back to `error` once the matrix is clean.
+    'symmetry':               'warn',
     // anti-cheat content rules — start as `warn`, promote to `error`
     'mock-only':              'warn',   // most severe: never executes against the real engine — first to promote
     'mirror-image':           'warn',
@@ -45,6 +47,8 @@ export const RULE_SEVERITY: Record<string, Severity> = {
 }
 
 export const RULE_HINT: Record<string, string> = {
+    'symmetry':
+        'EVERY cell of the WHOLE matrix (all databases × versions × connectors) must declare the same `.test.ts` files with the same test names in the same order. A test that does not apply to a dialect is COMMENTED OUT (kept for symmetry) with a `// NOT-APPLICABLE: <reason>` marker (or a `// TODO[BUG]:` / `// TODO[LIMITATION]:`), never deleted. Exempt files: `config.*` (connection-config-specific), `*.generated.test.ts`, and any whose name embeds a database name as a `.`/`-`-delimited token (e.g. `select.postgres-const-force-type-cast.test.ts`) — those are inherently dialect-specific. (Currently `warn` — a migration backlog; will return to `error` once the matrix is mirrored.)',
     'mock-only':
         'The test must execute against the real engine — skipping it (`if (ctx.realDbEnabled) return`) or swallowing the real error (`catch { if (!ctx.realDbEnabled) throw e }`) lets a real failure pass as green. Drive the case on real: synthesise an off-shape input with `fragmentWithType` / `rawFragment` if the engine cannot produce it naturally; use `toBeCloseTo` for float precision. A genuinely-irreducible case (extremely rare) carries `// tests-audit-disable-next-line mock-only -- <reason>`.',
     'mirror-image':

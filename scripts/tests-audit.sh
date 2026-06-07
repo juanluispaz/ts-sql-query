@@ -15,9 +15,14 @@ Positional <coord> args scope the run, same as the `tests` CLI:
 coord = the whole matrix. A coord matching nothing is an error (exit 2).
 
 Checks:
-  symmetry      every cell of a database declares the same .test.ts files with
-                the same test names in the same order (executed OR commented
-                out). DESIGN § Symmetry. Always blocking.
+  symmetry      EVERY cell of the WHOLE matrix (all databases × versions ×
+                connectors) declares the same .test.ts files with the same test
+                names in the same order (executed OR commented out). Exempt:
+                `config.*` (connection-config-specific), `*.generated.test.ts`,
+                and files whose name embeds a database name as a `.`/`-` token
+                (e.g. select.postgres-…). DESIGN § Symmetry. [warn — temporarily,
+                while the cross-database backlog is worked down; returns to error
+                once clean]
   mock-only        the test never validates against the real engine — either
                    `if (ctx.realDbEnabled) return` (mock-only) or a catch that
                    rethrows only on the mock (swallows the real-DB error). Most

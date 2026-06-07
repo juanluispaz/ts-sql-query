@@ -13,12 +13,18 @@
 //                                  temporary — could re-enable in THIS cell if the
 //                                  decision/env changes. Tracked in LIMITATIONS.md.
 //   - `NOT-APPLICABLE: <reason>`   a deliberate DIALECT BOUNDARY: this cell will
-//                                  NEVER run this test, by design. Permanent —
-//                                  nothing pending, nothing to fix or add. The same
-//                                  test DOES run and validate in the cells whose
-//                                  dialect supports it (and usually has a
-//                                  `types.negative/` counterpart here). It is
-//                                  commented only to keep the tree symmetric.
+//                                  NEVER validate this test against its real engine,
+//                                  by design. Permanent — nothing pending, nothing
+//                                  to fix or add. The same test DOES run and validate
+//                                  in the cells whose dialect supports it (and usually
+//                                  has a `types.negative/` counterpart here). Two
+//                                  shapes: the test is COMMENTED OUT (kept only for
+//                                  symmetry), OR it stays LIVE but mock-only — the SQL
+//                                  is still worth asserting via the mock here. Because
+//                                  it is permanent (not pending work), NOT-APPLICABLE
+//                                  is the ONLY marker that licenses a live mock-only
+//                                  test (`mock-only` / `skip-real-db` carve-out in
+//                                  ast.ts `isNotApplicableTest`); a TODO does not.
 //
 // NOT-APPLICABLE is its OWN category, NOT a `TODO[NOT-APPLICABLE]` sub-tag: the
 // word "TODO" implies pending work, which is exactly wrong for a permanent

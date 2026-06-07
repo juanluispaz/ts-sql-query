@@ -149,14 +149,24 @@ function main(): number {
     let negFiles = typesNegativeTestFiles()
     if (dbFilter) negFiles = negFiles.filter(f => dbFilter.has(f.split('/')[2] ?? ''))
 
-    const symmetry = runSymmetryCheck(dbFilter)
+    // Symmetry is a whole-matrix invariant; it always runs over every cell and
+    // returns `symmetry` Findings that flow through the SAME report + severity
+    // pipeline as the content rules (its severity is RULE_SEVERITY['symmetry']).
+    // We honour `--only` and the coord scope on the REPORTED findings (the canon
+    // is still computed from the whole matrix).
+    let symFindings = runSymmetryCheck()
+    if (args.only && args.only !== 'symmetry') symFindings = []
+    if (args.coords.length > 0) {
+        const scoped = new Set(files)
+        symFindings = symFindings.filter(f => scoped.has(f.file))
+    }
 
     console.log('')
-    console.log('Content audit (anti-cheat)')
-    const findings = runContentChecks(args.only, files, negFiles)
+    console.log('Audit findings (symmetry + anti-cheat)')
+    const findings = [...symFindings, ...runContentChecks(args.only, files, negFiles)]
     const { errors } = reportFindings(findings, args)
 
-    const ok = symmetry.passed && errors === 0
+    const ok = errors === 0
     console.log('')
     console.log(ok ? 'Audit passed.' : 'Audit FAILED.')
     return ok ? 0 : 1

@@ -20,7 +20,14 @@ import ts from 'typescript'
 import type { Finding } from '../types.js'
 import { DISABLED_TEST_REASON } from '../reasons.js'
 
-const TEST_CALL = /\b(?:test|it)\s*(?:\.\s*(?:only|skip|todo|fails|skipIf|runIf|each|concurrent|sequential))?\s*\(\s*['"`]/
+// A commented-out test call: `test('name', …)` / `it.skip('name', …)` etc. The
+// name string's closing quote is matched to its opener (so an embedded other
+// quote does not end it early), and it must be followed by `,` or `)` — a real
+// call passes a callback / closes its args. This last guard stops ordinary
+// comment PROSE that contains `it (…)` (e.g. a markdown code span like
+// "… used to silence it (`isMocked()` skipping …)") from being mistaken for a
+// commented-out test (test/BUGS.md documented that false positive).
+const TEST_CALL = /\b(?:test|it)\s*(?:\.\s*(?:only|skip|todo|fails|skipIf|runIf|each|concurrent|sequential))?\s*\(\s*(['"`])(?:\\.|(?!\1).)*\1\s*[,)]/
 
 interface Cmt { startLine: number, endLine: number, text: string }
 

@@ -63,8 +63,12 @@ The one deliberate, time-boxed exception is the **severity ramp**: a new
 content rule lands as `warn` (reported, exit 0) and is promoted to `error`
 (exit 1) once the tree is clean for it (see [Severity model](#severity-model)).
 The warning phase is informative *with a committed promotion plan*, not a
-permanent state. The pre-existing **symmetry check stays `error`** throughout
-— its behaviour does not change.
+permanent state. The **symmetry check is currently `warn` too** — it was
+recently widened from a per-database check to a **whole-matrix** one (every cell
+of every database must match, per [DESIGN §4](../../DESIGN.md#symmetry-rule)),
+which surfaced a cross-database backlog (files/tests not yet mirrored to every
+cell). It rides the same severity ramp: `warn` while that backlog is worked
+down, back to `error` once the matrix is clean.
 
 ## Boundary
 
@@ -136,7 +140,7 @@ A declarative table in [`rules.ts`](rules.ts):
 
 ```ts
 export const RULE_SEVERITY = {
-  'symmetry':               'error',  // structural — always blocking
+  'symmetry':               'warn',   // structural — whole-matrix cell parity; TEMPORARILY warn while the cross-db backlog is cleared, back to error once clean
   'mock-only':              'warn',   // most severe: the test never validates against the real engine — first to promote
   'mirror-image':           'warn',   // anti-cheat — promote to 'error' once the tree is clean
   'one-sided-guard':        'warn',   // anti-cheat — large DESIGN §1 backlog, stays warn longer
@@ -169,8 +173,10 @@ export const RULE_SEVERITY = {
 ```
 (Every content rule is `warn` today — see [The rules](#the-rules). The split into one rule per suppression **mechanism**, all kept `warn` for now, is deliberate: it lets each be **promoted to `error` independently** later. `focused-test` and `ts-ignore` are the early promotion candidates — their anchor is 0, so the tree is already clean for them.)
 
-- Exit 1 **iff** there is ≥1 finding of severity `error`. The symmetry check
-  is `error` always.
+- Exit 1 **iff** there is ≥1 finding of severity `error`. `symmetry` is folded
+  into the same Findings pipeline (rule id `symmetry`), so its severity is read
+  from this table like any other rule — it is **currently `warn`** (see the note
+  above the table), so a divergence does not block today.
 - Promoting a rule is a one-line `'warn'` → `'error'` edit, recorded in the
   commit + changelog.
 - `--strict` raises every `warn` to `error` (to trial a promotion before
@@ -231,8 +237,11 @@ rules: mirror-image 1  disable-without-reason 1
 ```
 
 A large warning backlog is capped (the first N) unless `--all`. Colour follows
-`NO_COLOR` / TTY. Keep the symmetry check's `$GITHUB_STEP_SUMMARY` emission;
-English output.
+`NO_COLOR` / TTY. `symmetry` findings flow through this same report (grouped by
+the offending cell file). The symmetry check still emits its
+`$GITHUB_STEP_SUMMARY` line, but only the **count/verdict** — the per-divergence
+breakdown is the stdout report's job, not duplicated in the summary. English
+output.
 
 ### Scope (positional coords)
 
@@ -242,9 +251,11 @@ CLI ([`CLI.md` § Coord patterns](../../CLI.md#coord-patterns)):
 several coords unioned. No coord → the whole matrix. A coord matching nothing
 is an error (exit 2).
 
-Coords filter the content-check file set; the symmetry check is scoped to the
-**databases** the coords touch (within a database it still compares all cells —
-symmetry is cross-cell). The matcher is the **shared**
+Coords filter the content-check file set. The symmetry check is a **whole-matrix
+invariant**, so it always runs over every cell (a subset cannot establish the
+cross-cell canon); when coords are given, only the symmetry findings whose file
+falls inside the scope are *reported* (the canon is still computed from the full
+matrix). The matcher is the **shared**
 [`test/lib/coords.ts`](../coords.ts) — the same one the searcher's `--coord`
 uses (`coordMatch` / `cellFromPath`), extracted there so both tools agree on
 coordinate semantics. Scoping is the practical way to triage the
@@ -332,6 +343,25 @@ representation a real driver of that connector would never hand back (a JS
 project decision. Tolerated only when *every* `expect(...)` in the skipped body
 asserts on a `fromDbValue(...)` call; a foreign assertion (SQL snapshot, other
 helper) is not covered. This list is a hole in the rule — keep it minimal.
+
+**NOT-APPLICABLE carve-out** (both forms — skip AND swallow). A **live** test
+marked `// NOT-APPLICABLE: <reason>` (in its body, or within 3 lines above the
+`test(...)` call) is allowed to be mock-only: `NOT-APPLICABLE` means a deliberate
+**dialect boundary** (see [`commented-test-reason`](#commented-test-reason--a-commented-out-test-with-no-stated-reason)),
+so this cell's real engine genuinely cannot validate the case, while the same
+test runs and validates in the dialects that DO support it. This is the in-code,
+greppable, classifiable analogue of a `tests-audit-disable-next-line mock-only`,
+but with the project-semantic meaning attached (and surfaced as a cell caveat by
+the searcher). Keyed on `NOT-APPLICABLE` **specifically** — a `TODO[BUG]` /
+`TODO[LIMITATION]` implies *pending* work and does **not** license a permanently
+mock-only live test (those re-enable here once resolved; a real failure must be
+able to surface meanwhile). Detection is the shared `isNotApplicableTest` /
+`notApplicableMarkerLines` in [`ast.ts`](ast.ts); it scopes to the enclosing
+`test(...)` so a marker on one test never exempts a sibling. The carve-out
+touches only `mock-only` (and its registration-level twin
+[`skip-real-db`](#registration-skip-rules--skipped-test-reason--skip-real-db)) —
+`mirror-image` / `one-sided-guard` describe a test that DOES run in both modes,
+so a `NOT-APPLICABLE` marker does not affect them.
 
 **Verified** (whole matrix): 595 findings — e.g.
 `select.value-source.trig.test.ts` (swallow; fix with `toBeCloseTo`),
@@ -778,8 +808,10 @@ comments; no type checker).
   test is never even registered to run on the real engine. The value must be
   validated in both modes, so the test must run in both. A `skipIf`/`runIf` on
   some *other* condition (a feature flag) is a different concern and is **not**
-  flagged here. **Anchor: 0** — a preventive gate closing the hole before it
-  appears.
+  flagged here. **NOT-APPLICABLE carve-out** (mirrors `mock-only`): a test marked
+  `// NOT-APPLICABLE: <reason>` is exempt — the dialect deliberately cannot
+  validate on a real engine, and the test runs in the dialects that support it.
+  **Anchor: 0** — a preventive gate closing the hole before it appears.
 
 **Status**: **built** (`warn`), in [`checks/registrationSkip.ts`](./checks/registrationSkip.ts).
 Whole-matrix: both 0 — clean preventive gates.
@@ -978,7 +1010,7 @@ test/lib/audit/
 ├── walk.ts           ← enumerate cell .test.ts files (the audit's exclusions) + typesNegativeTestFiles (ts-ignore only)
 ├── ignores.ts        ← `tests-audit-disable-*` parsing + matching + meta-findings
 ├── report.ts         ← compiler-style output + exit-code tally
-├── symmetry.ts       ← the symmetry check (runSymmetryCheck), now a module
+├── symmetry.ts       ← the whole-matrix symmetry check (runSymmetryCheck → `symmetry` Findings; config.* exempt)
 └── checks/
     ├── mirrorImage.ts ← guard rules (mock-only / mirror-image / one-sided-guard)
     ├── uuidLiteral.ts ← `uuid-literal` (malformed-UUID-looking string literals)
@@ -1001,9 +1033,10 @@ Coordinate matching lives in the **shared** [`test/lib/coords.ts`](../coords.ts)
 (`coordMatch` / `cellFromPath`), reused by the searcher's `--coord` — not
 duplicated here.
 
-`main.ts` is the entry `scripts/tests-audit.sh` execs; it calls
-`runSymmetryCheck()` then the content checks. The `$GITHUB_STEP_SUMMARY`
-table is still emitted by `symmetry.ts`. The references in
+`main.ts` is the entry `scripts/tests-audit.sh` execs; it merges the
+`runSymmetryCheck()` Findings with the content-check Findings into one report.
+The `$GITHUB_STEP_SUMMARY` count/verdict line is still emitted by `symmetry.ts`.
+The references in
 [`TEST_LIB.md`](../../TEST_LIB.md), [`README.md`](../../README.md),
 [`CLI.md`](../../CLI.md), [`DESIGN.md`](../../DESIGN.md) and
 [`DOC_CODE_EXTRACTOR.md`](../../DOC_CODE_EXTRACTOR.md) point at this folder.
@@ -1042,7 +1075,8 @@ EXTERNAL_CAVEATS subsection), update the link here in the same change.
 ## Status & roadmap
 
 - **Built**:
-  - the symmetry check (`symmetry.ts`, `error`, sub-second);
+  - the whole-matrix symmetry check (`symmetry.ts`, currently `warn` during the
+    cross-database migration, sub-second);
   - the framework — severity model (`rules.ts`), the `tests-audit-disable`
     suppression + meta-rules (`ignores.ts`), compiler-style output
     (`report.ts`), the orchestrator (`main.ts`); `--explain` / `--strict` /

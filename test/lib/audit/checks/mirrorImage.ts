@@ -65,10 +65,20 @@
 //
 // A flagged case that is a genuine divergence carries
 // `// tests-audit-disable-next-line mirror-image -- <reason>`.
+//
+// NOT-APPLICABLE carve-out (mock-only only): a LIVE test marked
+// `// NOT-APPLICABLE: <reason>` (within its body or 3 lines above) is allowed to
+// be mock-only — the dialect deliberately cannot validate it against the real
+// engine (a dialect boundary), while the same test runs and validates in the
+// dialects that DO support it. Keyed on NOT-APPLICABLE specifically (not the
+// TODO markers, which imply pending work): see `isNotApplicableTest` in ast.ts.
+// It carves out only the `mock-only` forms (skip + swallow); `mirror-image` and
+// `one-sided-guard` describe a test that DOES run in both modes, so they are not
+// affected.
 
 import ts from 'typescript'
 import type { Finding } from '../types.js'
-import { lineOf } from '../ast.js'
+import { lineOf, notApplicableMarkerLines, isNotApplicableTest } from '../ast.js'
 
 const DEEP = new Set(['toEqual', 'toStrictEqual', 'toMatchObject', 'toContainEqual'])
 // `toBeNull` / `toBeUndefined` pin a single exact value (== `toBe(null)`), so
@@ -91,9 +101,10 @@ interface Counts { deep: number, value: number, weak: number }
 export function checkMirrorImage(sf: ts.SourceFile, file: string): Finding[] {
     const out: Finding[] = []
     const throwHelpers = collectThrowHelpers(sf)
+    const naLines = notApplicableMarkerLines(sf)
     const visit = (n: ts.Node): void => {
-        if (ts.isIfStatement(n)) inspectIf(n, sf, file, out, throwHelpers)
-        if (ts.isCatchClause(n)) inspectCatch(n, sf, file, out)
+        if (ts.isIfStatement(n)) inspectIf(n, sf, file, out, throwHelpers, naLines)
+        if (ts.isCatchClause(n)) inspectCatch(n, sf, file, out, naLines)
         ts.forEachChild(n, visit)
     }
     visit(sf)
@@ -103,22 +114,25 @@ export function checkMirrorImage(sf: ts.SourceFile, file: string): Finding[] {
 // `mock-only` (swallow form): a `catch` whose ONLY effect is
 // `if (!ctx.realDbEnabled) throw e` — it rethrows under the mock but SWALLOWS
 // the error on the real DB, so a real-engine failure passes as green.
-function inspectCatch(cc: ts.CatchClause, sf: ts.SourceFile, file: string, out: Finding[]): void {
+function inspectCatch(cc: ts.CatchClause, sf: ts.SourceFile, file: string, out: Finding[], naLines: Set<number>): void {
     const stmts = cc.block.statements
     if (stmts.length !== 1) return
     const s = stmts[0]!
     if (!ts.isIfStatement(s) || s.elseStatement || classify(s.expression) !== 'whenFalse') return
     const thenStmts = stmtsOf(s.thenStatement)
     if (thenStmts.length !== 1 || !ts.isThrowStatement(thenStmts[0]!)) return
+    // NOT-APPLICABLE carve-out: a live test that the dialect deliberately cannot
+    // validate against the real engine is allowed to be mock-only here.
+    if (isNotApplicableTest(cc, sf, naLines)) return
     out.push({
         rule: 'mock-only',
         file,
         line: lineOf(sf, cc),
-        message: 'catch rethrows only under the mock (`if (!ctx.realDbEnabled) throw e`) — a real-DB error is silently swallowed, so a real-engine failure passes as green. Fix: let the real error surface and assert the result on the real engine; if the test is ABOUT the exception, assert it in both modes (`toThrow` / `expect(String(e)).toMatch(...)`) instead of swallowing on real',
+        message: 'catch rethrows only under the mock (`if (!ctx.realDbEnabled) throw e`) — a real-DB error is silently swallowed, so a real-engine failure passes as green. Fix: let the real error surface and assert the result on the real engine; if the test is ABOUT the exception, assert it in both modes (`toThrow` / `expect(String(e)).toMatch(...)`) instead of swallowing on real. If this dialect deliberately cannot run it on a real engine, mark the test `// NOT-APPLICABLE: <reason>` (it runs in the dialects that support it)',
     })
 }
 
-function inspectIf(ifStmt: ts.IfStatement, sf: ts.SourceFile, file: string, out: Finding[], throwHelpers: Set<string>): void {
+function inspectIf(ifStmt: ts.IfStatement, sf: ts.SourceFile, file: string, out: Finding[], throwHelpers: Set<string>, naLines: Set<number>): void {
     const guard = classify(ifStmt.expression)
     if (!guard) return
 
@@ -169,8 +183,8 @@ function inspectIf(ifStmt: ts.IfStatement, sf: ts.SourceFile, file: string, out:
             // Exception-validation carve-out: a skip whose assertions are all about
             // an EXCEPTION (the lib throwing), not a result value, is tolerated
             // mock-only (see `validatesOnlyExceptions`).
-            if (hasAnyAssertion(fall) && !validatesOnlyExceptions(fall, throwHelpers) && !isFileScopedMockOnly(fall, file)) {
-                out.push({ rule: 'mock-only', file, line, message: '`if (ctx.realDbEnabled) return` makes the test mock-only — it never executes against the real engine, so a real failure passes as green. Drive it on real (synthesise an off-shape input with fragmentWithType / rawFragment if the engine cannot produce it naturally) — DESIGN § Real-DB validation' })
+            if (hasAnyAssertion(fall) && !validatesOnlyExceptions(fall, throwHelpers) && !isFileScopedMockOnly(fall, file) && !isNotApplicableTest(ifStmt, sf, naLines)) {
+                out.push({ rule: 'mock-only', file, line, message: '`if (ctx.realDbEnabled) return` makes the test mock-only — it never executes against the real engine, so a real failure passes as green. Drive it on real (synthesise an off-shape input with fragmentWithType / rawFragment if the engine cannot produce it naturally) — DESIGN § Real-DB validation. If this dialect deliberately cannot validate it on a real engine, mark the test `// NOT-APPLICABLE: <reason>` (it runs in the dialects that support it)' })
             }
         } else {
             // `if (!ctx.realDbEnabled) return` — real-only; the mock never validates.

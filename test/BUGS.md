@@ -171,36 +171,6 @@ is the audit's exempt runtime-guard case; this one asserts a value, so the
 
 ---
 
-## TOOLING (audit, not src/): `commented-test-reason` + symmetry false-positive on prose containing `it (`
-
-**Where**: the `tests:audit` engine, NOT the library — fix in
-[`test/lib/audit/checks/commentedTest.ts`](lib/audit/checks/commentedTest.ts)
-(the `TEST_CALL` regex) and the phantom-test-name detection in
-[`test/lib/audit/symmetry.ts`](lib/audit/symmetry.ts). The `TEST_CALL` regex
-matches `test`/`it` followed by `(` and an opening quote-or-backtick — so the
-literal `it (` **inside ordinary comment prose** is mistaken for a commented-out
-`it('…')` test.
-
-**Reproduction**: [`test/db/postgres/newest/pg/docs.transaction.test.ts:209`](db/postgres/newest/pg/docs.transaction.test.ts) — an
-ACTIVE test whose descriptive comment reads
-`… the lenient mock short-circuit that used to silence it (\`isMocked()\` skipping the check) …`.
-The `it (\`` triggers `commented-test-reason` (the comment is read as a
-reason-less commented-out test), and the symmetry checker registers a phantom
-test named `isMocked()` — present in every cell that carries this identical
-prose, so it can't be fixed by editing one cell.
-
-The regex should not treat `it (`/`test (` inside prose (e.g. inside a markdown
-code span, or not shaped like a real `it('name', …)` call) as a test call —
-e.g. require the call to be at a statement-like position with a string-literal
-test name, not a backtick code span.
-
-**Current workaround in the suite**: none — the finding is a false positive on a
-correct, active test; it persists as a warning until the audit regex is
-tightened. (No `tests-audit-disable` is added, because the test is not actually a
-disabled test.)
-
----
-
 ## Common bug shapes (for the fixing agent)
 
 Reference for the agent picking up entries above. The test author

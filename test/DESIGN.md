@@ -304,8 +304,25 @@ the canonical body as documentation. `test.skip(…)` is fine when a test is
 temporarily broken or under investigation — that is an exceptional
 situation, not the non-applicability case.
 
-The symmetry audit (`bun run tests:audit`) enforces this mechanically. See
-[`test/lib/audit/AUDIT.md`](./lib/audit/AUDIT.md).
+The symmetry audit (`bun run tests:audit`) enforces this mechanically over the
+**whole matrix** (every database × version × connector, not just the cells of one
+database). See [`test/lib/audit/AUDIT.md`](./lib/audit/AUDIT.md). It is currently
+reported at `warn` severity while the cross-database backlog (files/tests not yet
+mirrored to every cell) is worked down, and returns to `error` once the matrix is
+clean.
+
+**Exempt: `config.*` connection-configuration tests.** Files named `config.*.test.ts`
+hold tests specific to a connector's / database's connection configuration (e.g.
+sqlite's uuid strategy, datetime formats) that have no analogue in other cells, so
+they are **not** required to exist in every cell and are excluded from the symmetry
+comparison (`config.` prefix in `test/lib/audit/symmetry.ts`).
+
+**Exempt: files whose name embeds a database name.** A file whose name carries a
+database name as a `.`/`-`-delimited token (e.g.
+`select.postgres-const-force-type-cast.test.ts` → `postgres`) is inherently
+dialect-specific and is excluded from symmetry — it need not exist in the other
+cells (`embedsDatabaseName` in `test/lib/audit/symmetry.ts`, matching the real
+database directory names).
 
 **Exempt: the generated documentation tests.** The doc-snippet test cells produced
 by the extractor — a `documentation` connector in each db's `newest` version, plus a

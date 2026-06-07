@@ -41,8 +41,9 @@ Under `npm run`, put flags behind `--`: `npm run tests:audit -- --only weak-matc
 
 Exit code is `0` unless there is an **error**-severity finding. Scope with a coord
 while iterating; run the whole matrix before pushing. **CI runs the whole-matrix
-form on every push** — an `error`-severity finding (today: `symmetry` and the
-suppression meta-rules; tomorrow: any rule that gets promoted, see § Severities)
+form on every push** — an `error`-severity finding (today: only the suppression
+meta-rules `disable-without-reason` / `unknown-rule`; `symmetry` and every content
+rule are `warn` for now; tomorrow: any rule that gets promoted, see § Severities)
 blocks the merge.
 
 ## Read a finding
@@ -78,10 +79,10 @@ SQL + params + result type + result value, against both the mock and (under
 finding. Fix a finding by making the test validate honestly — never by hiding it.
 
 **Real-DB validation (the test must run and check the value in both modes)**
-- `mock-only` — the test never validates against the real engine (`if (ctx.realDbEnabled) return`, or a `catch` that only rethrows on the mock). Drive the case on the real engine; use `fragmentWithType` / `rawFragment` to synthesise an off-shape input the engine can't produce naturally; `toBeCloseTo` for float precision.
+- `mock-only` — the test never validates against the real engine (`if (ctx.realDbEnabled) return`, or a `catch` that only rethrows on the mock). Drive the case on the real engine; use `fragmentWithType` / `rawFragment` to synthesise an off-shape input the engine can't produce naturally; `toBeCloseTo` for float precision. **If this dialect deliberately cannot validate it on a real engine** (a permanent boundary, not a fixable gap), mark the live test `// NOT-APPLICABLE: <reason>` — it then runs mock-only here and validates in the dialects that support it (see "the three reason markers" below).
 - `mirror-image` — a two-sided `ctx.realDbEnabled` guard where one branch checks the value and the other only checks shape (`.length`, `Array.isArray`, `typeof`). Give both branches the same value assertion (sort the unstable dimension in JS, then `toEqual`).
 - `one-sided-guard` — only one mode validates the value. Assert it unconditionally — add `ORDER BY` / JS-sort so one `toEqual` passes in both modes.
-- `skip-real-db` — `test.skipIf(ctx.realDbEnabled)` / `runIf(!ctx.realDbEnabled)`: a registration-level mock-only evasion. Let the test run in both modes.
+- `skip-real-db` — `test.skipIf(ctx.realDbEnabled)` / `runIf(!ctx.realDbEnabled)`: a registration-level mock-only evasion. Let the test run in both modes — or, if it is a permanent dialect boundary, mark it `// NOT-APPLICABLE: <reason>` (same carve-out as `mock-only`).
 - `uuid-literal` — a string that looks like a UUID but isn't valid `8-4-4-4-12` hex. The mock accepts any string but a real engine's `uuid` cast rejects it, so it passes mock-only and fails under `--docker`. Fix the literal (use the shared valid test UUID).
 
 **The test must actually assert something real**
@@ -109,7 +110,19 @@ finding. Fix a finding by making the test validate honestly — never by hiding 
 - `non-deterministic-input` — `new Date()` (no arg), `Date.now()`, `Math.random()` used as a query input make the params non-deterministic. Use a fixed value (`new Date('2024-01-02T03:04:05Z')`). These are allowed only as **mock data** passed to `mockNext`, simulating the database's own `current_date` / `random()`.
 
 **Structure**
-- `symmetry` (always `error`) — every cell of a database must declare the same `.test.ts` files with the same test names in the same order (executed OR commented out). Keep the cells mirror images.
+- `symmetry` — **every cell of the WHOLE matrix** (all databases × versions × connectors) must declare the same `.test.ts` files with the same test names in the same order (executed OR commented out). Keep the cells mirror images across dialects: a test that doesn't apply to a dialect is commented out with a `// NOT-APPLICABLE: <reason>` (or TODO) marker, not dropped. Some files are **excluded** from the comparison (see below). (Currently `warn` — a cross-database migration backlog; returns to `error` once the matrix is mirrored.)
+
+### Files excluded from symmetry
+
+These do **not** have to exist in every cell; everything else must be mirrored across all cells:
+
+| What | Why | Example |
+|---|---|---|
+| `config.*.test.ts` | connection-configuration tests, specific to a connector / database | `config.uuid-strategy.test.ts` |
+| `*.generated.test.ts` | emitted doc-snippet tests, not authored — exempt from **every** audit check | `docs.select.generated.test.ts` |
+| a name that embeds a **database name** as a `.`/`-`-delimited token | inherently dialect-specific | `select.postgres-const-force-type-cast.test.ts` (`postgres`) |
+
+The recognised database names are the real database directories under `test/db/` (`mariadb`, `mysql`, `oracle`, `postgres`, `sqlite`, `sqlserver`) — matched as whole `.`/`-` tokens, so `postgresql` or a substring never triggers the exclusion. Beyond files, the `domain/` and `types.negative/` directories, the `documentation` connector, and the synthetic `general` database are also outside the comparison.
 
 ## Disabling a test — the three reason markers
 
@@ -131,6 +144,16 @@ wrongly implies pending work). The markers are uppercase + hyphen, so prose like
 `// Not applicable on PostgreSQL: …` does **not** satisfy the rule — write the
 canonical `// NOT-APPLICABLE: …`. The reason should name the boundary (which
 dialect/feature) and, where useful, where the test *does* run.
+
+**`NOT-APPLICABLE` also licenses a *live* mock-only test.** When the feature
+*can* be exercised through the API (so the SQL/params are worth asserting via the
+mock here) but this dialect's real engine deliberately cannot validate it, keep
+the test **live** and mark it `// NOT-APPLICABLE: <reason>` (in its body or within
+3 lines above the `test(...)`). It then runs mock-only here without tripping
+`mock-only` / `skip-real-db`, and validates fully in the dialects that support it.
+This is the **only** marker with that power — a `TODO[*]` implies pending work and
+does not license a permanently mock-only live test. The marker is scoped to its
+own test, so it never exempts a neighbour.
 
 ## Suppress a finding — rarely, with a reason
 
@@ -164,9 +187,12 @@ should be *fixed*, not suppressed; a test that doesn't apply to the database is
 
 ## Severities
 
-Today every content rule is `warning` (a backlog); `symmetry` and the
-suppression meta-rules are `error`. Rules get **promoted to `error`** once the
-tree is clean for them — so a rule that is `warning` for you now may be `error`
+Today every content rule is `warning` (a backlog), and so is `symmetry` (it was
+just widened to a whole-matrix check, which surfaced a cross-database backlog —
+it returns to `error` once that is cleared). Only the suppression meta-rules
+(`disable-without-reason` / `unknown-rule`) are `error`. Rules get **promoted to
+`error`** once the tree is clean for them — so a rule that is `warning` for you
+now may be `error`
 later. Treat warnings as real work, not noise. `*.generated.test.ts` files are
 exempt from every check.
 

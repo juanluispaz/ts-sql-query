@@ -11,12 +11,13 @@
 // One value type per test so a connector that can't handle a single type
 // only loses that test (not the others). Connector limitations surfaced:
 //   - bigint: the `sqlite3` driver can't bind a JS BigInt (sends NULL).
-//   - uuid:   the default `uuid-extension` strategy emits uuid_blob/uuid_str,
-//             which `sqlite3` (no user-function API) and `sqlite-wasm-OO1`
-//             (functions not registered; its example uses the 'string'
-//             strategy instead) don't provide.
-// See test/EXTERNAL_CAVEATS.md. bun:sqlite ships the uuid functions
-// built-in; better-sqlite3 / node:sqlite get them registered in runners.ts.
+//   - uuid:   the shared test connection defaults to the `'string'` uuid
+//             strategy (see test/db/sqlite/domain/connection.ts), so uuid
+//             columns round-trip as plain TEXT on every sqlite connector —
+//             no `uuid_blob` / `uuid_str` helper is needed. (The binary
+//             `'uuid-extension'` emission is pinned mock-only in
+//             config.uuid-strategy.test.ts / select.value-source.uuid-cast.test.ts.)
+// See test/EXTERNAL_CAVEATS.md.
 //
 // Bodies run inside `ctx.withRollback(...)`. The value assertion is
 // identical in both modes: `expected` carries the exact JS values
@@ -139,7 +140,7 @@ describe(ctx.label, () => {
                 .returningLastInsertedId()
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, external_ref) values (?, ?, ?, ?, ?, uuid_blob(?)) returning id"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, external_ref) values (?, ?, ?, ?, ?, ?) returning id"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -158,7 +159,7 @@ describe(ctx.label, () => {
                 .select({ id: tIssue.id, ref: tIssue.externalRef })
                 .executeSelectOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, uuid_str(external_ref) as ref from issue where number = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, external_ref as ref from issue where number = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 9004,

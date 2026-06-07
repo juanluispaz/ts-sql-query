@@ -274,13 +274,6 @@ describe(ctx.label, () => {
         ])
     })
 
-    // Not applicable on sqlite-wasm-OO1: `optionalVirtualColumnFromFragment('customUuid', …)`
-    // selects through the default uuid-extension strategy, emitting
-    // `uuid_str(null)`, which sqlite-wasm-OO1 does not register (its
-    // src/examples/Sqlite3WasmOO1Example.ts uses the 'string' uuid strategy;
-    // see test/EXTERNAL_CAVEATS.md). The required-enum sibling above stays
-    // live — it inlines a bare literal, so it needs no uuid function.
-    /*
     test('values-optional-virtual-column-from-fragment-with-custom-type-emits-inline-fragment', async () => {
         // `optionalVirtualColumnFromFragment<T>('customUuid', 'BillingRef', fn)`
         // reaches Values.ts:198-205. Same dispatch branch as the
@@ -303,7 +296,7 @@ describe(ctx.label, () => {
             .orderBy('issueId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with issueBilling(issueId, amount) as (values (?, ?), (?, ?)) select issueId as issueId, uuid_str(null) as billingRef from issueBilling order by issueId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with issueBilling(issueId, amount) as (values (?, ?), (?, ?)) select issueId as issueId, null as billingRef from issueBilling order by issueId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             101,
@@ -318,7 +311,6 @@ describe(ctx.label, () => {
             { issueId: 102 as IssueId },
         ])
     })
-    */
 
         test('values-create-with-empty-list-throws-cannot-be-empty', () => {
         // `Values.create(type, name, [])` reaches the guard at L272-275

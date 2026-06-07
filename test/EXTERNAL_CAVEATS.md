@@ -43,73 +43,29 @@ still works when the index isn't built.
 
 ## Dialect-specific notes (already wired in today's matrix)
 
-### sqlite value-marshalling: BigInt binding and uuid extension functions
+### sqlite value-marshalling: BigInt parameter binding (`sqlite3`)
 
-The `viewCount` (`bigint`), `estimatedHours` (`double`) and
-`externalRef` (`uuid`) columns added to the shared `issue` domain
-exercise `AbstractConnection` value marshalling. Two connector
-limitations surface, isolated into one test per value type in
-`select.value-marshalling.test.ts`:
+The `viewCount` (`bigint`) and `estimatedHours` (`double`) columns added
+to the shared `issue` domain exercise `AbstractConnection` value
+marshalling. One connector limitation surfaces:
 
 - **BigInt parameter binding** — the `sqlite3` npm driver cannot bind a
   JS `BigInt` (it sends `NULL`, tripping the NOT NULL on `view_count`).
   `bun:sqlite`, `better-sqlite3`, `node:sqlite` and `sqlite-wasm-OO1`
-  all bind BigInt correctly.
-  - `marshalling/bigint-insert-select-roundtrip` — commented out in
-    `test/db/sqlite/newest/sqlite3/` only.
-- **uuid extension functions** — the default `uuid-extension` strategy
-  emits `uuid_blob` / `uuid_str`. `bun:sqlite` ships them built-in;
-  `better-sqlite3` and `node:sqlite` get them registered in
-  `runners.ts` (per the connector docs/examples); `sqlite3` has no
-  user-function API and `sqlite-wasm-OO1` does not register them (its
-  `src/examples/Sqlite3WasmOO1Example.ts` uses the `'string'` uuid
-  strategy instead).
-  - `marshalling/uuid-insert-select-roundtrip` — commented out in
-    `test/db/sqlite/newest/sqlite3/` and
-    `test/db/sqlite/newest/sqlite-wasm-OO1/`.
-  - `select.aggregate-as-array.value-type-coverage.test.ts` →
-    `aggregate-of-optional-uuid-column-as-array` (pure uuid) — commented
-    out in `test/db/sqlite/newest/sqlite3/` and
-    `test/db/sqlite/newest/sqlite-wasm-OO1/`; nothing else in the test, so
-    the whole test goes.
-  - `select.aggregate-as-array.value-type-coverage.test.ts` →
-    `aggregate-of-object-with-bigint-uuid-and-double` (mixed
-    `bigint` + `uuid` + `double`) — handled **differently per cell**:
-    - `sqlite-wasm-OO1`: only the `externalRef` (`uuid`) property is
-      commented out (the lines are kept in place with `//` / `/* */` so a
-      fix is an un-comment + snapshot bake); the test stays **live** and
-      keeps real-validating the `bigint` + `double` branches, since
-      sqlite-wasm-OO1 binds BigInt fine.
-    - `sqlite3`: the **whole** test stays commented — the `sqlite3` driver
-      additionally can't bind the `view_count` BigInt (same reason
-      `aggregate-of-bigint-column-as-array` is commented there), so
-      dropping only the uuid property wouldn't make it runnable. The
-      `double` branch is covered by the live
-      `aggregate-of-optional-double-column-as-array`.
-  - `dynamic-condition.equivalence.test.ts` →
-    `equivalence/uuid-as-string-operator-path` — same root cause
-    (`.asString()` on a uuid emits `uuid_str(external_ref)`); commented
-    out in the same two cells (`sqlite3`, `sqlite-wasm-OO1`). The
-    registered `uuid_str` / `uuid_blob` in `runners.ts` are NULL-safe
-    (return NULL on NULL input, mirroring the real extension and
-    `bun:sqlite`) because that query applies `uuid_str` across seeded
-    rows whose `external_ref` is NULL.
-  - `with-values.advanced.test.ts` →
-    `values-optional-virtual-column-from-fragment-with-custom-type-emits-inline-fragment`
-    — same root cause: the `customUuid` virtual column selects through
-    the default uuid-extension strategy, emitting `uuid_str(null)`;
-    commented out in the same two cells (`sqlite3`, `sqlite-wasm-OO1`).
-    The required-enum sibling
-    (`values-virtual-column-from-fragment-with-custom-type-emits-inline-fragment`)
-    stays live everywhere — it inlines a bare literal and needs no uuid
-    function.
+  all bind BigInt correctly. Commented out **only** in
+  `test/db/sqlite/newest/sqlite3/`:
+  - `marshalling/bigint-insert-select-roundtrip`
+    (`select.value-marshalling.test.ts`).
+  - `aggregate-of-bigint-column-as-array`
+    (`select.aggregate-as-array.value-type-coverage.test.ts`).
+  - `aggregate-of-object-with-bigint-uuid-and-double` (same file) — the
+    object includes the `view_count` BigInt, so the whole test stays
+    commented on `sqlite3`; its other branches are covered by the live
+    per-type tests in the same file.
 - `marshalling/double-insert-select-roundtrip` stays live in every cell.
 
 When the matrix is next extended, revisit whether `sqlite3` can bind
-BigInt (driver upgrade), and whether the sqlite domain should adopt the
-`'string'` uuid strategy uniformly (the `withUuidStrategy` helper already
-lets a test pin `'uuid-extension'` where it is supported) so the uuid
-round-trip runs on every sqlite connector.
+BigInt (driver upgrade).
 
 ### MySQL — no INSERT/UPDATE/DELETE RETURNING
 

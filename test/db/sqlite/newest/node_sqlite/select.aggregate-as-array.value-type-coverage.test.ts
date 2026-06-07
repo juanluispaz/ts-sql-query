@@ -259,7 +259,7 @@ describe(ctx.label, () => {
                 .groupBy('projectId')
                 .executeSelectMany()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, json_group_array(uuid_str(external_ref)) as refs from issue where project_id = ? group by project_id"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, json_group_array(external_ref) as refs from issue where project_id = ? group by project_id"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -329,7 +329,7 @@ describe(ctx.label, () => {
                 .groupBy('projectId')
                 .executeSelectMany()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, json_group_array(json_object('views', view_count, 'externalRef', uuid_str(external_ref), 'estimatedHours', estimated_hours)) as issues from issue where project_id = ? group by project_id"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, json_group_array(json_object('views', view_count, 'externalRef', external_ref, 'estimatedHours', estimated_hours)) as issues from issue where project_id = ? group by project_id"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

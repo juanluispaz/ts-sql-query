@@ -25,6 +25,21 @@ export class DBConnection extends SqliteConnection<'DBConnection'> {
         }
     }
 
+    // The shared test connection pins the `'string'` uuid strategy as its
+    // default. The library default for `SqliteConnection` is
+    // `'uuid-extension'`, which wraps every uuid value source in
+    // `uuid_str(...)` / `uuid_blob(...)` — helpers that only some sqlite
+    // connectors expose (bun:sqlite ships them; `sqlite3` has no
+    // user-function API and `sqlite-wasm-OO1` doesn't register them). Using
+    // the binary strategy as the ambient default forced those cells to
+    // deactivate every uuid-touching test. The `'string'` strategy emits
+    // plain TEXT (no helper functions), so the uuid columns run end-to-end
+    // on every sqlite connector. The binary `'uuid-extension'` emission is
+    // still pinned explicitly — and mock-only — by
+    // `config.uuid-strategy.test.ts` and `select.value-source.uuid-cast.test.ts`,
+    // both of which opt in via `ctx.withUuidStrategy('uuid-extension')`.
+    protected override uuidStrategy: 'string' | 'uuid-extension' = 'string'
+
     // The `VIssueBilling` values view in `with-values.advanced.test.ts`
     // declares custom types without a per-column `TypeAdapter`: `IssueId`
     // (customInt), `Money` (customDouble) and `BillingRef` (customUuid).

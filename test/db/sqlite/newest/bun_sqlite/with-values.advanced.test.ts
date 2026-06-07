@@ -296,7 +296,7 @@ describe(ctx.label, () => {
             .orderBy('issueId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with issueBilling(issueId, amount) as (values (?, ?), (?, ?)) select issueId as issueId, uuid_str(null) as billingRef from issueBilling order by issueId"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with issueBilling(issueId, amount) as (values (?, ?), (?, ?)) select issueId as issueId, null as billingRef from issueBilling order by issueId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             101,

@@ -27,19 +27,22 @@ import { MockSqlite3WasmOO1QueryRunner } from '../../lib/mockRunners/MockSqlite3
 import { parse as uuidParse, stringify as uuidStringify, v7 as uuidv7 } from 'uuid'
 import { DBConnection } from './domain/connection.js'
 
-// SQLite's default `uuid-extension` strategy emits uuid_blob / uuid_str /
-// uuid (see docs/configuration/supported-databases/sqlite.md#uuid-strategies).
-// bun:sqlite ships them built-in; better-sqlite3 and node:sqlite need them
-// registered as user functions exactly like the connector docs and
-// src/examples/{BetterSqlite3,NodeSqlite}*Example.ts show. (The `sqlite3`
-// driver has no user-function API, so the one uuid test is commented out in
-// that cell — see test/EXTERNAL_CAVEATS.md.)
+// SQLite's `uuid-extension` strategy emits uuid_blob / uuid_str / uuid
+// (see docs/configuration/supported-databases/sqlite.md#uuid-strategies).
+// The shared test connection now defaults to the `'string'` uuid strategy
+// (test/db/sqlite/domain/connection.ts), so uuid columns round-trip as plain
+// TEXT and need none of these helpers — every uuid test runs on every
+// connector. We still register the helpers for the connectors that can
+// (better-sqlite3, node:sqlite — bun:sqlite ships them built-in), exactly as
+// the connector docs and src/examples/{BetterSqlite3,NodeSqlite}*Example.ts
+// show, so a test that opts back into `'uuid-extension'` via
+// `ctx.withUuidStrategy('uuid-extension')` finds them available. The binary
+// `'uuid-extension'` tests that rely on them are mock-only today (see
+// config.uuid-strategy.test.ts / select.value-source.uuid-cast.test.ts), and
+// the `sqlite3` (no user-function API) / `sqlite-wasm-OO1` connectors simply
+// don't register them — see test/EXTERNAL_CAVEATS.md.
 // uuid_str / uuid_blob are NULL-safe (return NULL on NULL input), mirroring
-// the real uuid extension and bun:sqlite's built-ins. A query that applies
-// `uuid_str(col)` over a table where the optional uuid column is NULL must
-// not throw — only the marshalling round-trip tests pass a real blob; the
-// dynamic-condition equivalence test runs `uuid_str(external_ref)` across
-// seeded rows whose external_ref is NULL.
+// the real uuid extension and bun:sqlite's built-ins.
 function registerBetterSqlite3UuidFunctions(db: import('better-sqlite3').Database): void {
     db.function('uuid', uuidv7 as (_: unknown) => unknown)
     db.function('uuid_str', ((blob: Uint8Array | null) => blob == null ? null : uuidStringify(blob)) as (_: unknown) => unknown)

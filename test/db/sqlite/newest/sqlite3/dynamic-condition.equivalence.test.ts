@@ -381,14 +381,12 @@ describe(ctx.label, () => {
         `)
     })
 
-    // Not applicable on sqlite3: the default uuid-extension strategy emits
-    // `uuid_str(external_ref)`, and the node-sqlite3 driver exposes no
-    // user-function API to register `uuid_str` (see test/EXTERNAL_CAVEATS.md).
-    /*
     test('equivalence/uuid-as-string-operator-path', async () => {
         // For the like/insensitive operator family the builder rewrites a
         // uuid value source through `.asString()` before dispatching
         // (useAsStringInUuid). The reference spells that rewrite out.
+        // Under the test connection's `'string'` uuid strategy `.asString()`
+        // renders as the bare column (no `uuid_str` wrapper).
         const ref = await capture(() => ctx.conn.selectFrom(tIssue)
             .where(tIssue.externalRef.asString().containsInsensitive('abc'))
             .select({ id: tIssue.id }).orderBy('id').executeSelectMany())
@@ -396,14 +394,13 @@ describe(ctx.label, () => {
 
         expect(dynamic.sql).toBe(ref.sql)
         expect(dynamic.params).toEqual(ref.params)
-        expect(ref.sql).toMatchInlineSnapshot(`"select id as id from issue where lower(uuid_str(external_ref)) like lower('%' || ? || '%') escape '\\' order by id"`)
+        expect(ref.sql).toMatchInlineSnapshot(`"select id as id from issue where lower(external_ref) like lower('%' || ? || '%') escape '\\' order by id"`)
         expect(ref.params).toMatchInlineSnapshot(`
           [
             "abc",
           ]
         `)
     })
-    */
 
     test('equivalence/and-combinator', async () => {
         // `{ and: [A, B] }` is the array conjunction — equivalent to the

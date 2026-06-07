@@ -224,10 +224,6 @@ describe(ctx.label, () => {
         })
     })
 
-    // Not applicable on sqlite3: the default uuid-extension strategy emits
-    // `uuid_str(external_ref)`, and the `sqlite3` driver has no user-function
-    // API to register `uuid_str`. See test/EXTERNAL_CAVEATS.md.
-    /*
     test('aggregate-of-optional-uuid-column-as-array', async () => {
         // Pins the `uuid` case in the SqlServer JSON switch.
         // `tIssue.externalRef` is `optionalColumn('uuid')`. On SqlServer
@@ -266,8 +262,12 @@ describe(ctx.label, () => {
                 .groupBy('projectId')
                 .executeSelectMany()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot()
-            expect(ctx.lastParams).toMatchInlineSnapshot()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, json_group_array(external_ref) as refs from issue where project_id = ? group by project_id"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
             assertType<Exact<typeof rows, Array<{ projectId: number; refs: string[] }>>>()
             const sorted = rows.map(r => ({ ...r, refs: [...r.refs].sort() }))
             expect(sorted).toEqual([{
@@ -279,19 +279,16 @@ describe(ctx.label, () => {
             }])
         })
     })
-    */
 
-    // Not applicable on sqlite3: the wrapped-aggregate object hits TWO sqlite3
-    // limitations at once, so unlike sqlite-wasm-OO1 (which drops only the uuid
-    // property) the whole test stays commented here:
-    //   1. `external_ref` expands to `uuid_str(external_ref)` (uuid-extension
-    //      strategy) and the `sqlite3` driver has no user-function API to
-    //      register `uuid_str`;
-    //   2. `view_count` is a `bigint` and the `sqlite3` driver cannot bind a JS
-    //      BigInt (it sends NULL) — same reason `aggregate-of-bigint-column-as-array`
-    //      above is commented out.
-    // Dropping only the uuid property would still leave the unbindable bigint,
-    // and dropping both would leave just `double`, already covered by the live
+    // Not applicable on sqlite3: `view_count` is a `bigint` and the `sqlite3`
+    // driver cannot bind a JS BigInt (it sends NULL, tripping the NOT NULL on
+    // `view_count`) — the same reason `aggregate-of-bigint-column-as-array`
+    // above is commented out. (The `external_ref` uuid property used to be a
+    // second blocker under the old uuid-extension default, but the shared test
+    // connection now defaults to the `'string'` uuid strategy, so uuid no
+    // longer emits `uuid_str(...)`; only the bigint limitation remains.)
+    // Dropping the bigint property would leave uuid + double, both already
+    // covered by the live `aggregate-of-optional-uuid-column-as-array` and
     // `aggregate-of-optional-double-column-as-array`. See test/EXTERNAL_CAVEATS.md.
     /*
     test('aggregate-of-object-with-bigint-uuid-and-double', async () => {

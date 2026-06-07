@@ -37,7 +37,10 @@ describe(ctx.label, () => {
         // Mock-only — see file header.
         if (ctx.realDbEnabled) return
         ctx.mockNext(UUID_VALUE)
-        const connection = ctx.conn
+        // The shared test connection now defaults to the `'string'` uuid
+        // strategy; opt back into `'uuid-extension'` explicitly so this
+        // test keeps asserting the binary `uuid_str(uuid_blob(?))` shape.
+        const connection = ctx.withUuidStrategy('uuid-extension')
         const result = await connection.selectFromNoTable()
             .selectOneColumn(connection.const(UUID_VALUE, 'uuid').asString())
             .executeSelectOne()

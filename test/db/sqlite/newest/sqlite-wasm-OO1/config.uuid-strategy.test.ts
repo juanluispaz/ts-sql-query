@@ -2,7 +2,9 @@
 // supported strategies branch the dialect's emitter for the UUID
 // surface in [SqliteSqlBuilder.ts](../../../../../src/sqlBuilders/SqliteSqlBuilder.ts):
 //
-//   - `'uuid-extension'` (default): assumes the SQLite `uuid_blob` /
+//   - `'uuid-extension'` (the library default for SqliteConnection;
+//     the shared test connection overrides the default to `'string'` —
+//     see test/db/sqlite/domain/connection.ts): assumes the SQLite `uuid_blob` /
 //     `uuid_str` functions are loaded. Inputs are wrapped with
 //     `uuid_blob(?)` in `_appendParam`, outputs at the outermost query
 //     get a `uuid_str(...)` wrapper in `_appendColumnValue`, and

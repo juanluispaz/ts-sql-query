@@ -46,3 +46,44 @@ async function main() {
     connection // ...
 }
 ```
+
+## sqlite-wasm OO1 and UUIDs
+
+To work with [UUIDs in SQLite](../../supported-databases/sqlite.md#uuid-strategies) the default strategy is `uuid-extension`. The [@sqlite.org/sqlite-wasm](https://www.npmjs.com/package/@sqlite.org/sqlite-wasm) build does not bundle SQLite's optional [uuid extension](https://sqlite.org/src/file?name=ext/misc/uuid.c), but you can provide compatible SQL functions with the OO1 API's `createFunction`:
+
+```ts
+import sqlite3InitModule from "@sqlite.org/sqlite-wasm";
+import type { Database } from "@sqlite.org/sqlite-wasm";
+import { parse as uuidParse, stringify as uuidStringify, v7 as uuidv7 } from "uuid";
+
+async function main() {
+    const sqlite3 = await sqlite3InitModule();
+    const db: Database = new sqlite3.oo1.DB();
+
+    // Implement uuid extension functions
+
+    db.createFunction("uuid", (_ctxPtr) => uuidv7());
+    db.createFunction("uuid_str", (_ctxPtr, value) => {
+        if (!(value instanceof Uint8Array)) {
+            throw new TypeError("uuid_str expects a SQLite BLOB");
+        }
+        return uuidStringify(value);
+    });
+    db.createFunction("uuid_blob", (_ctxPtr, value) => {
+        if (typeof value !== "string") {
+            throw new TypeError("uuid_blob expects a UUID string");
+        }
+        return uuidParse(value);
+    });
+
+    // ...
+}
+```
+
+!!! tip "Generating UUIDs"
+
+    The snippet uses **UUID v7** so that, with the canonical byte order produced by `uuidParse`, the 16-byte blob keeps its chronological ordering on the primary-key index.
+
+!!! warning
+
+    The binary representation used in this implementation is not intended to be compatible with SQLite’s optional UUID extension.

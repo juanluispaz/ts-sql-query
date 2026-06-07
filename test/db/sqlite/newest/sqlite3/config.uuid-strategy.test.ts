@@ -21,13 +21,15 @@
 // universally executable, so they run end-to-end in mock and real-DB
 // mode. The `'uuid-extension'` branch tests emit
 // `uuid_str(uuid_blob(?))`, which requires the SQLite `uuid` extension
-// the `sqlite3` (npm) connector doesn't ship. Per
-// [DESIGN.md §1 #18](../../../../DESIGN.md#1-principles) and the
-// "synthetic SQL is the test's whole point" exception, those two
-// tests guard with `if (ctx.realDbEnabled) return` — the assertion of
-// interest is the SqlBuilder shape, not engine execution; the
-// extension dependency is the **documented constraint** that forces
-// the mock-only path.
+// functions. Every other sqlite connector provides them and runs those
+// tests end-to-end (bun:sqlite built-in; better-sqlite3, node:sqlite
+// and sqlite-wasm-OO1 register them in the test harness — see
+// test/db/sqlite/runners.ts), but the `sqlite3` (npm) connector has no
+// user-function API, so it can never provide them. Those two tests are
+// therefore kept mock-only here (guarded by `ctx.realDbEnabled`): the
+// SqlBuilder shape is still asserted in mock, but real execution is
+// not applicable on this connector. Per
+// [DESIGN.md §1 #18](../../../../DESIGN.md#1-principles).
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { ctx } from './setup.js'
@@ -56,12 +58,8 @@ describe(ctx.label, () => {
         `)
     })
 
+    // NOT-APPLICABLE: the `sqlite3` (npm) connector has no user-defined-function API, so the `uuid_str` / `uuid_blob` extension functions can't be registered; the `'uuid-extension'` path runs end-to-end on the connectors that can (bun:sqlite built-in; better-sqlite3 / node:sqlite / sqlite-wasm-OO1 register them — see test/db/sqlite/runners.ts). Kept mock-only here so the SqlBuilder shape is still asserted.
     test('uuid-strategy: uuid-extension wraps asString in uuid_str', async () => {
-        // Mock-only — see file header. The emitted
-        // `uuid_str(uuid_blob(?))` requires the SQLite `uuid`
-        // extension, which the `sqlite3` (npm) connector doesn't load
-        // even though every other sqlite cell does. Skip in real-DB
-        // mode rather than masking the engine error per cell.
         if (ctx.realDbEnabled) return
         const conn = ctx.withUuidStrategy('uuid-extension')
         ctx.mockNext(UUID_VALUE)
@@ -79,12 +77,11 @@ describe(ctx.label, () => {
         `)
     })
 
+    // NOT-APPLICABLE: the `sqlite3` (npm) connector has no user-defined-function API, so the `uuid_str` / `uuid_blob` extension functions can't be registered; the `'uuid-extension'` path runs end-to-end on the connectors that can (bun:sqlite built-in; better-sqlite3 / node:sqlite / sqlite-wasm-OO1 register them — see test/db/sqlite/runners.ts). Kept mock-only here so the SqlBuilder shape is still asserted.
     test('uuid-strategy: outermost-column projection wraps uuid value with uuid_str on uuid-extension', async () => {
-        // Mock-only — see file header. `_appendColumnValue` adds a
-        // `uuid_str(...)` wrapper at the outermost query for any uuid
-        // value source when strategy is `'uuid-extension'`. The
-        // resulting SQL needs the same `uuid` extension as the
-        // previous test.
+        // `_appendColumnValue` adds a `uuid_str(...)` wrapper at the
+        // outermost query for any uuid value source when strategy is
+        // `'uuid-extension'`.
         if (ctx.realDbEnabled) return
         const conn = ctx.withUuidStrategy('uuid-extension')
         ctx.mockNext(UUID_VALUE)

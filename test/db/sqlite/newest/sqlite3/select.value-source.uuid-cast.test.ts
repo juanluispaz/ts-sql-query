@@ -14,14 +14,16 @@
 //   - `raw_to_uuid(hextoraw(:0))`     — oracle default (`built-in`)
 //   - `?`                             — sqlserver (native uniqueidentifier)
 //
-// Per [DESIGN.md §1 #18](../../../../DESIGN.md#1-principles) and the
-// "synthetic SQL is the test's whole point" exception, this test is
-// **mock-only**: real-DB execution requires extensions / engine
-// versions that vary per test connector (sqlite's `uuid` extension,
-// MySQL 8.0+, Oracle 12c+) and the assertion of interest is the
-// SqlBuilder shape, not engine execution. The strategy-switch tests
-// in [config.uuid-strategy.test.ts](./config.uuid-strategy.test.ts)
-// cover the executable `'string'` branch end-to-end.
+// On sqlite this asserts the `uuid_str(uuid_blob(?))` shape and that
+// the value round-trips. The connectors that provide the `uuid`
+// extension functions run it end-to-end (bun:sqlite built-in;
+// better-sqlite3 / node:sqlite / sqlite-wasm-OO1 register them in the
+// test harness — see test/db/sqlite/runners.ts). The `sqlite3` (npm)
+// connector has no user-function API, so it can never provide them:
+// here the test is kept mock-only (guarded by `ctx.realDbEnabled`) —
+// real execution is not applicable on this connector, but the
+// SqlBuilder shape is still asserted in mock. Per
+// [DESIGN.md §1 #18](../../../../DESIGN.md#1-principles).
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { ctx } from './setup.js'
@@ -33,8 +35,8 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
+    // NOT-APPLICABLE: the `sqlite3` (npm) connector has no user-defined-function API, so the `uuid_str` / `uuid_blob` extension functions can't be registered; this round-trip runs end-to-end on the connectors that can (bun:sqlite built-in; better-sqlite3 / node:sqlite / sqlite-wasm-OO1 register them — see test/db/sqlite/runners.ts). Kept mock-only here so the SqlBuilder shape is still asserted.
     test('uuid-asString-on-const', async () => {
-        // Mock-only — see file header.
         if (ctx.realDbEnabled) return
         ctx.mockNext(UUID_VALUE)
         // The shared test connection now defaults to the `'string'` uuid

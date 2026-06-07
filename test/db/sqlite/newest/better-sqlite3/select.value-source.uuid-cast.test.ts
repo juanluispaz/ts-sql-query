@@ -14,14 +14,15 @@
 //   - `raw_to_uuid(hextoraw(:0))`     — oracle default (`built-in`)
 //   - `?`                             — sqlserver (native uniqueidentifier)
 //
-// Per [DESIGN.md §1 #18](../../../../DESIGN.md#1-principles) and the
-// "synthetic SQL is the test's whole point" exception, this test is
-// **mock-only**: real-DB execution requires extensions / engine
-// versions that vary per test connector (sqlite's `uuid` extension,
-// MySQL 8.0+, Oracle 12c+) and the assertion of interest is the
-// SqlBuilder shape, not engine execution. The strategy-switch tests
-// in [config.uuid-strategy.test.ts](./config.uuid-strategy.test.ts)
-// cover the executable `'string'` branch end-to-end.
+// This test asserts the `uuid_str(uuid_blob(?))` shape AND that the
+// value round-trips. On this connector the `uuid` extension functions
+// are available (bun:sqlite ships them built-in; better-sqlite3,
+// node:sqlite and sqlite-wasm-OO1 register them in the test harness —
+// see test/db/sqlite/runners.ts), so it runs end-to-end against the
+// real engine and `result` comes back equal to the input UUID. Only
+// the `sqlite3` (npm) connector — which has no user-function API —
+// keeps this mock-only (guarded by `ctx.realDbEnabled`), per
+// [DESIGN.md §1 #18](../../../../DESIGN.md#1-principles).
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { ctx } from './setup.js'
@@ -34,8 +35,7 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('uuid-asString-on-const', async () => {
-        // Mock-only — see file header.
-        if (ctx.realDbEnabled) return
+        // Runs end-to-end here — see file header.
         ctx.mockNext(UUID_VALUE)
         // The shared test connection now defaults to the `'string'` uuid
         // strategy; opt back into `'uuid-extension'` explicitly so this

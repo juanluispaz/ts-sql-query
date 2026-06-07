@@ -32,15 +32,18 @@ import { DBConnection } from './domain/connection.js'
 // The shared test connection now defaults to the `'string'` uuid strategy
 // (test/db/sqlite/domain/connection.ts), so uuid columns round-trip as plain
 // TEXT and need none of these helpers — every uuid test runs on every
-// connector. We still register the helpers for the connectors that can
-// (better-sqlite3, node:sqlite — bun:sqlite ships them built-in), exactly as
-// the connector docs and src/examples/{BetterSqlite3,NodeSqlite}*Example.ts
-// show, so a test that opts back into `'uuid-extension'` via
-// `ctx.withUuidStrategy('uuid-extension')` finds them available. The binary
-// `'uuid-extension'` tests that rely on them are mock-only today (see
-// config.uuid-strategy.test.ts / select.value-source.uuid-cast.test.ts), and
-// the `sqlite3` (no user-function API) / `sqlite-wasm-OO1` connectors simply
-// don't register them — see test/EXTERNAL_CAVEATS.md.
+// connector. We still register the helpers for the connectors that can, so a
+// test that opts back into `'uuid-extension'` via
+// `ctx.withUuidStrategy('uuid-extension')` finds them available and runs the
+// binary `'uuid-extension'` path END-TO-END against the real engine:
+//   - better-sqlite3, node:sqlite — registered here via `db.function(...)`,
+//     exactly as the connector docs and
+//     src/examples/{BetterSqlite3,NodeSqlite}*Example.ts show.
+//   - sqlite-wasm-OO1 — registered here via `db.createFunction(...)` (the OO1
+//     user-defined-function API), exactly as the connector doc shows.
+//   - bun:sqlite — ships uuid / uuid_str / uuid_blob built-in, nothing to do.
+// Only the `sqlite3` (npm) connector cannot: it has no user-function API, so
+// its `'uuid-extension'` tests stay mock-only (guarded by `ctx.realDbEnabled`).
 // uuid_str / uuid_blob are NULL-safe (return NULL on NULL input), mirroring
 // the real uuid extension and bun:sqlite's built-ins.
 function registerBetterSqlite3UuidFunctions(db: import('better-sqlite3').Database): void {
@@ -57,6 +60,13 @@ function registerNodeSqliteUuidFunctions(db: import('node:sqlite').DatabaseSync)
     fnCapable.function('uuid', () => uuidv7())
     fnCapable.function('uuid_str', (blob: Uint8Array | null) => blob == null ? null : uuidStringify(blob))
     fnCapable.function('uuid_blob', (uuid: string | null) => uuid == null ? null : Buffer.from(uuidParse(uuid)))
+}
+function registerSqlite3WasmOO1UuidFunctions(db: import('@sqlite.org/sqlite-wasm').Database): void {
+    // The OO1 user-defined-function API: `createFunction(name, (ctxPtr, ...args))`.
+    // Returning a `Uint8Array` binds as a BLOB (no `Buffer` needed in WASM).
+    db.createFunction('uuid', () => uuidv7())
+    db.createFunction('uuid_str', (_ctxPtr, blob) => blob == null ? null : uuidStringify(blob as Uint8Array))
+    db.createFunction('uuid_blob', (_ctxPtr, uuid) => uuid == null ? null : uuidParse(uuid as string))
 }
 
 /**
@@ -410,6 +420,7 @@ async function getOrCreateSqliteWasm(): Promise<import('@sqlite.org/sqlite-wasm'
         const sqlite3InitModule = (await import('@sqlite.org/sqlite-wasm')).default
         const sqlite3 = await sqlite3InitModule()
         sqliteWasmSharedDb = new sqlite3.oo1.DB(':memory:', 'c')
+        registerSqlite3WasmOO1UuidFunctions(sqliteWasmSharedDb)
     }
     return sqliteWasmSharedDb
 }

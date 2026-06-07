@@ -42,12 +42,7 @@ describe(ctx.label, () => {
         })
     })
 
-    // PostgreSQL rejects `ON CONFLICT DO UPDATE` without an inference
-    // target (`(col)` or `ON CONSTRAINT name`). The connection now blocks
-    // the bare form at compile time; PG users go through the
-    // `on-conflict-on-columns-do-update` test below. Test body is kept as
-    // commented documentation for cross-cell symmetry with the dialects
-    // that still accept the bare form (MariaDB / MySQL / SQLite).
+    // NOT-APPLICABLE: PostgreSQL rejects `ON CONFLICT DO UPDATE` without an inference target (`(col)` or `ON CONSTRAINT name`), so the connection blocks the bare form at compile time; PG users go through the `on-conflict-on-columns-do-update` test below. Test body is kept as commented documentation for cross-cell symmetry with the dialects that still accept the bare form (MariaDB / MySQL / SQLite).
     /*
     test('on-conflict-do-update', async () => {
         ctx.mockNext(1)
@@ -113,6 +108,7 @@ describe(ctx.label, () => {
         })
     })
 
+    // NOT-APPLICABLE: the bare `.onConflictDoUpdateSet({...})` form is blocked at compile time on PostgreSQL (needs `.onConflictOn(col)` / `.onConflictOnConstraint(name)`); see `test/db/postgres/types.negative/insert.test.ts` and the active `on-conflict-on-columns-do-update` test above.
     /*
     test('on-conflict-do-update-with-expression', async () => {
         // Not applicable on PostgreSQL: the bare `.onConflictDoUpdateSet({...})`
@@ -122,6 +118,7 @@ describe(ctx.label, () => {
     })
     */
 
+    // NOT-APPLICABLE: the bare `.onConflictDoUpdateSet({...})` form is blocked at compile time on PostgreSQL (needs `.onConflictOn(col)` / `.onConflictOnConstraint(name)`); see `test/db/postgres/types.negative/insert.test.ts` and the active `on-conflict-on-columns-do-update` test above.
     /*
     test('on-conflict-do-update-with-inserted-row-ref', async () => {
         // Not applicable on PostgreSQL: the bare `.onConflictDoUpdateSet({...})`

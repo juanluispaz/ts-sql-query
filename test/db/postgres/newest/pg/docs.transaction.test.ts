@@ -106,7 +106,7 @@ describe(ctx.label, () => {
         })
     })
 
-    // Not applicable on SQLite: `connection.isolationLevel(...)` is not defined on SqliteConnection — sqlite has no isolation-level support (its only mode is "serializable" implicit). Body kept verbatim for cross-cell diff parity per the symmetry rule.
+    // NOT-APPLICABLE: `connection.isolationLevel(...)` is not defined on SqliteConnection — sqlite has no isolation-level support (its only mode is "serializable" implicit). Body kept verbatim for cross-cell diff parity per the symmetry rule.
     /*
     test('docs:transaction/isolation-level', async () => {
         // Section "Transaction isolation" — pass an isolation level via

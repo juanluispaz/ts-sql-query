@@ -11,11 +11,6 @@
 // focused on type assignability and `fromRef`'s runtime behaviour.
 
 import { beforeAll, afterAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
-// assertType is not used in this file (the type checks are inline
-// via explicit-type assignments); but we keep the import to mirror
-// the pattern of sibling tests for grep-ability.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { assertType as _assertType } from '../../../../lib/assertType.js'
 import {
     fromRef,
     type TableOrViewOf,
@@ -61,10 +56,12 @@ describe(ctx.label, () => {
         void recovered
     })
 
-    // Smoke test of the full doc-style pattern executed end-to-end:
-    // we keep the inner subquery untyped (cast helper away) so the
-    // SQL emission still gets validated. This guards the runtime
-    // contract while the typing weakness is documented above.
+    // Smoke test of the full doc-style pattern executed end-to-end. The
+    // documented generic helper does not typecheck, so the inner subquery is
+    // built untyped (connection cast to `any`) and only the SQL emission is
+    // validated.
+    // TODO[BUG] (see test/BUGS.md): the documented tables-views-as-parameter
+    // helper fails to compile (subSelectUsing source-tagging).
     test('docs-extra:tables-views-as-parameter/helper-pattern-runtime-sql-emission', async () => {
         ctx.mockNext({ id: 1, name: 'Marketing site', issueCount: 2 })
 
@@ -98,9 +95,7 @@ describe(ctx.label, () => {
             1,
           ]
         `)
-        if (ctx.realDbEnabled) {
-            expect(row.id).toBe(1)
-            expect(row.issueCount).toBe(2)
-        }
+        // project 1 (Marketing site) has issues 1 and 2 → issueCount 2
+        expect(row).toEqual({ id: 1, name: 'Marketing site', issueCount: 2 })
     })
 })

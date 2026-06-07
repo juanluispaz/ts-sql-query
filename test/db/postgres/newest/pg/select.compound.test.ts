@@ -83,9 +83,7 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof result, Array<{ status: string }>>>()
-        if (ctx.realDbEnabled) {
-            expect(result.map(r => r.status).sort()).toEqual(['open'])
-        }
+        expect(result).toEqual(expected)
     })
 
     test('except', async () => {
@@ -108,18 +106,14 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof result, Array<{ status: string }>>>()
-        if (ctx.realDbEnabled) {
-            expect(result.map(r => r.status).sort()).toEqual(['closed'])
-        }
+        expect(result).toEqual(expected)
     })
     test('union-with-insensitive-order-by', async () => {
-        // Compound query (union) followed by `.orderBy(alias, 'asc insensitive')` —
-        // reaches Oracle's `_appendCompoundOrderByColumnAliasInsensitive`
-        // (other dialects use the default branch).
-        //
-        // Older SQLite drivers reject the `order by lower(<alias>)` form
-        // in compound queries, so the runtime is wrapped to still capture
-        // the SQL snapshot per cell.
+        // TODO[BUG]: a union ordered by `.orderBy(alias, 'asc insensitive')`
+        // emits `order by lower(label)`, which PostgreSQL rejects in a
+        // compound ORDER BY ("only result column names can be used"). See
+        // test/BUGS.md. The test pins the emitted SQL; it can't run on the
+        // real engine until the lib emits portable SQL here.
         const expected = [
             { label: 'Document /v2/users' },
             { label: 'Internal tools' },
@@ -131,22 +125,17 @@ describe(ctx.label, () => {
             { label: 'Update hero copy' },
         ]
         ctx.mockNext(expected)
-        try {
-            const projectsQ = ctx.conn.selectFrom(tProject)
-                .select({ label: tProject.name })
-            const issuesQ = ctx.conn.selectFrom(tIssue)
-                .select({ label: tIssue.title })
-            const result = await projectsQ
-                .union(issuesQ)
-                .orderBy('label', 'asc insensitive')
-                .executeSelectMany()
-            assertType<Exact<typeof result, Array<{ label: string }>>>()
-            if (!ctx.realDbEnabled) expect(result).toEqual(expected)
-        } catch (e) {
-            if (!ctx.realDbEnabled) throw e
-        }
+        // tests-audit-disable-next-line mock-only -- TODO[BUG] (see test/BUGS.md): PostgreSQL rejects expressions in a UNION ORDER BY; only the emitted SQL can be validated
+        if (ctx.realDbEnabled) return
+        const result = await ctx.conn.selectFrom(tProject)
+            .select({ label: tProject.name })
+            .union(ctx.conn.selectFrom(tIssue).select({ label: tIssue.title }))
+            .orderBy('label', 'asc insensitive')
+            .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project union select title as label from issue order by lower(label) asc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ label: string }>>>()
+        expect(result).toEqual(expected)
     })
 
 })

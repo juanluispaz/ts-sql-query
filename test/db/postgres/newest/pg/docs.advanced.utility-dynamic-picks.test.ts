@@ -114,6 +114,8 @@ describe(ctx.label, () => {
         ctx.mockNext([
             { id: 1, name: 'Marketing site' },
             { id: 2, name: 'Internal tools' },
+            { id: 3, name: 'Public API' },
+            { id: 4, name: 'Legacy app' },
         ])
         const result = await getProjects(['name'])
 
@@ -121,11 +123,12 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         // Pick<ProjectInformation, 'name' | 'id'> → { id, name }, both required.
         assertType<Extends<typeof result, Array<{ id: number; name: string }>>>()
-        if (!ctx.realDbEnabled) {
-            expect(result).toEqual([
-                { id: 1, name: 'Marketing site' },
-                { id: 2, name: 'Internal tools' },
-            ])
-        }
+        // No WHERE: returns all four seed projects ordered by id.
+        expect(result).toEqual([
+            { id: 1, name: 'Marketing site' },
+            { id: 2, name: 'Internal tools' },
+            { id: 3, name: 'Public API' },
+            { id: 4, name: 'Legacy app' },
+        ])
     })
 })

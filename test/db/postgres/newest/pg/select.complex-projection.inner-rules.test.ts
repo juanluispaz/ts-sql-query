@@ -1,43 +1,10 @@
-// Coverage of the per-rule branches inside
-// [src/internal/DBColumnImpl.ts:161-297](../../../../../src/internal/DBColumnImpl.ts#L161-L297) —
-// `createColumnsFromInnerObject` + `getInnerObjetRuleToApply`. These
-// fire when a SELECT inside a `forUseInQueryAs(...)` CTE has nested
-// object properties in its projection (the constructor of
-// `WithViewImpl` calls `createColumnsFrom`, which recurses into
-// `createColumnsFromInnerObject` for every non-value-source property).
-//
-// The three reachable rules at L177-198 each rewrite the cloned
-// column's `__optionalType` differently, which downstream complex
-// projection logic uses to decide whether a `null` in a group should
-// surface the whole inner object as `undefined` (left-join semantics)
-// or as a leaf `T | undefined`. Without the cases above firing, the
-// shape of nested projections inside a CTE silently collapses to the
-// default — a regression the existing CTE tests would not catch.
-//
-//   - Rule 3 ("there is a required property"): plain SELECT with a
-//     nested object whose columns are `required` columns of the source
-//     table. Each leaf optionalType is rewritten to `optional` (L188-192).
-//   - Rule 2 ("all from the same left join"): nested object whose
-//     columns are all `originallyRequired` AND share the same
-//     left-joined table. Each leaf optionalType becomes
-//     `requiredInOptionalObject` (L183-187) — the marker the
-//     downstream projector reads to make the whole inner group
-//     undefined when any column comes back null.
-//   - Rule 1 ("there is requiredInOptionalObject"): a two-level CTE
-//     chain where the inner CTE already ran Rule 2 (so its nested
-//     columns carry `requiredInOptionalObject`); the outer CTE then
-//     re-projects those into a new nested object, and L178-182
-//     downgrades them to `optional`.
-//
-//   - Rule 4 ("the general rule"): a nested object whose columns
-//     are all `optional` and which contains no required inner
-//     objects. `getInnerObjetRuleToApply` returns 4 and the matching
-//     case at L193-198 rewrites every leaf to `optional` (no-op since
-//     they were already optional). The resulting view-column shape is
-//     observably identical to Rule 3 today — both rule cases produce
-//     the same leaf rewrites — but the rule number cascades up
-//     correctly when an outer recursive call inspects this group via
-//     `=== 3`.
+// Coverage of how nested-object properties projected inside a
+// `forUseInQueryAs(...)` CTE keep their optional/left-join shape:
+//   - required leaves → the inner object is required, leaves optional.
+//   - all-left-join leaves → the whole inner object becomes optional
+//     (undefined when the join misses), leaves required-when-present.
+//   - a two-level CTE chain re-projecting the left-join object.
+//   - all-optional leaves → object dropped only when every leaf is null.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -50,19 +17,15 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('cte-with-nested-object-of-required-columns-applies-rule-3', async () => {
-        // The CTE projects a nested object whose two leaves are
-        // `tProject.id` and `tProject.name` — both `required`. Inside
-        // `getInnerObjetRuleToApply` (L223-237) the for-each switch
-        // hits `case 'required'` for each → `containsRequired = true`,
-        // `contaisOriginallyRequired = false`. The final guard at
-        // L293 returns Rule 3, and the matching case at L188-192
-        // rewrites every leaf to `optional` in the WITH view's typed
-        // surface. Selecting the inner-object property from the CTE
-        // therefore exposes `{ id?: number, name?: string }`.
-        ctx.mockNext([
+        // The CTE projects a nested object whose two leaves are required
+        // columns, so the inner object is required and present on every row.
+        const expected = [
             { pid: 1, project: { id: 1, name: 'Marketing site' } },
             { pid: 2, project: { id: 2, name: 'Internal tools' } },
-        ])
+            { pid: 3, project: { id: 3, name: 'Public API' } },
+            { pid: 4, project: { id: 4, name: 'Legacy app' } },
+        ]
+        ctx.mockNext(expected)
         const connection = ctx.conn
 
         const projectCte = connection.selectFrom(tProject)
@@ -86,36 +49,22 @@ describe(ctx.label, () => {
             pid:     number
             project: { id: number; name: string }
         }>>>()
-        if (!ctx.realDbEnabled) {
-            expect(rows).toEqual([
-                { pid: 1, project: { id: 1, name: 'Marketing site' } },
-                { pid: 2, project: { id: 2, name: 'Internal tools' } },
-            ])
-        }
+        expect(rows).toEqual(expected)
     })
 
     test('cte-with-nested-object-of-only-left-join-columns-applies-rule-2', async () => {
-        // The CTE projects a nested object whose two leaves come from
-        // a `forUseInLeftJoin()` source (`tOrgLeft.id`, `tOrgLeft.name`),
-        // so both are `originallyRequired` on the same table. Inside
-        // `getInnerObjetRuleToApply`:
-        //   - the switch (L223-237) hits `case 'originallyRequired'`
-        //     for each → `contaisOriginallyRequired = true`;
-        //   - `firstRequiredTables` is populated with the single
-        //     left-join table, `alwaysSameRequiredTablesSize` stays
-        //     `true`, `onlyOuterJoin` is `true` → returns 2.
-        // The matching case at L183-187 stamps every leaf with
-        // `requiredInOptionalObject`. Downstream complex projection
-        // therefore turns the whole `org` group into `undefined` when
-        // any of its leaves comes back null — left-join semantics for
-        // an inner group. The TS surface still says `id: number,
-        // name: string` because `requiredInOptionalObject` is a marker
-        // for "required when the group is present", not for "leaf is
-        // optional".
-        ctx.mockNext([
-            { pid: 1, org: { id: 10, name: 'Acme Corp' } },
-            { pid: 2, org: undefined },
-        ])
+        // The CTE projects a nested object whose two leaves both come from
+        // the same left-joined table. The whole `org` group becomes optional:
+        // present with its leaves when the join hits, undefined when it misses.
+        // Every project has an organization, so the left join never misses:
+        // proj 1,2 → org 1 (Acme Corp); proj 3,4 → org 2 (Globex Ltd).
+        const expected = [
+            { pid: 1, org: { id: 1, name: 'Acme Corp' } },
+            { pid: 2, org: { id: 1, name: 'Acme Corp' } },
+            { pid: 3, org: { id: 2, name: 'Globex Ltd' } },
+            { pid: 4, org: { id: 2, name: 'Globex Ltd' } },
+        ]
+        ctx.mockNext(expected)
         const connection = ctx.conn
         const tOrgLeft = tOrganization.forUseInLeftJoin()
 
@@ -141,31 +90,22 @@ describe(ctx.label, () => {
             pid: number
             org?: { id: number | undefined; name: string | undefined }
         }>>>()
-        if (!ctx.realDbEnabled) {
-            expect(rows).toEqual([
-                { pid: 1, org: { id: 10, name: 'Acme Corp' } },
-                { pid: 2 },
-            ])
-        }
+        expect(rows).toEqual(expected)
     })
 
     test('cte-of-cte-nested-object-from-left-join-applies-rule-1', async () => {
-        // Two-level CTE chain. The INNER CTE (`inner_cte`) runs the
-        // Rule-2 case from the previous test, so its `org` group's
-        // columns carry `__optionalType === 'requiredInOptionalObject'`
-        // on the view's typed surface. The OUTER CTE (`outer_cte`)
-        // re-projects those columns inside a new nested object
-        // (`group`). Inside `getInnerObjetRuleToApply` the switch at
-        // L223-237 hits `case 'requiredInOptionalObject'` for the
-        // first leaf and immediately returns 1 (L227-229). The
-        // matching case at L178-182 in `createColumnsFromInnerObject`
-        // downgrades every `originallyRequired` leaf to `optional`.
-        // The outer CTE's `group.orgId` and `group.orgName` are
-        // therefore typed as optional in the final projection.
-        ctx.mockNext([
-            { pid: 1, group: { orgId: 10, orgName: 'Acme Corp' } },
-            { pid: 2, group: { orgId: undefined, orgName: undefined } },
-        ])
+        // Two-level CTE chain: the inner CTE produces the optional left-join
+        // group from the previous test, and the outer CTE re-projects those
+        // columns into a new nested object that stays optional.
+        // Same join re-projected through a second CTE; every project has an
+        // organization (proj 1,2 → org 1; proj 3,4 → org 2).
+        const expected = [
+            { pid: 1, group: { orgId: 1, orgName: 'Acme Corp' } },
+            { pid: 2, group: { orgId: 1, orgName: 'Acme Corp' } },
+            { pid: 3, group: { orgId: 2, orgName: 'Globex Ltd' } },
+            { pid: 4, group: { orgId: 2, orgName: 'Globex Ltd' } },
+        ]
+        ctx.mockNext(expected)
         const connection = ctx.conn
         const tOrgLeft = tOrganization.forUseInLeftJoin()
 
@@ -198,27 +138,23 @@ describe(ctx.label, () => {
             pid:    number
             group?: { orgId: number | undefined; orgName: string | undefined }
         }>>>()
-        if (!ctx.realDbEnabled) {
-            expect(rows).toEqual([
-                { pid: 1, group: { orgId: 10, orgName: 'Acme Corp' } },
-                { pid: 2 },
-            ])
-        }
+        expect(rows).toEqual(expected)
     })
 
     test('cte-with-nested-object-of-only-optional-columns-applies-rule-4', async () => {
-        // A nested object made of two `optional` columns reaches Rule 4
-        // (`return 4` at L297). Inside `getInnerObjetRuleToApply` the
-        // for-each switch (L223-237) hits `default` for each (no flag
-        // updated), the `contaisOriginallyRequired` branch is skipped
-        // (no originallyRequired column), and the final guard at L293
-        // is `false || false` → falls through to `return 4`. The
-        // matching `case 4` at L193-198 rewrites every non-required
-        // leaf to `optional` (no-op since they were already optional).
-        ctx.mockNext([
-            { iid: 1, opt: { body: 'A body', assigneeId: 42 } },
-            { iid: 2, opt: { body: undefined, assigneeId: undefined } },
-        ])
+        // A nested object made of two optional columns: the inner object is
+        // optional and dropped only when every one of its leaves is null.
+        // issue 1: body NULL, assignee 1 → opt present with assigneeId only.
+        // issue 2: body 'Use new tokens', assignee 2 → both present.
+        // issue 3: body NULL, assignee NULL → both leaves null, opt dropped.
+        // issue 4: body 'See ADR-014', assignee 3 → both present.
+        const expected = [
+            { iid: 1, opt: { assigneeId: 1 } },
+            { iid: 2, opt: { body: 'Use new tokens', assigneeId: 2 } },
+            { iid: 3 },
+            { iid: 4, opt: { body: 'See ADR-014', assigneeId: 3 } },
+        ]
+        ctx.mockNext(expected)
         const connection = ctx.conn
 
         const optionalsCte = connection.selectFrom(tIssue)
@@ -242,12 +178,7 @@ describe(ctx.label, () => {
             iid:  number
             opt?: { body: string | undefined; assigneeId: number | undefined }
         }>>>()
-        if (!ctx.realDbEnabled) {
-            expect(rows).toEqual([
-                { iid: 1, opt: { body: 'A body', assigneeId: 42 } },
-                { iid: 2 },
-            ])
-        }
+        expect(rows).toEqual(expected)
     })
 
 })

@@ -67,7 +67,137 @@ of that. Two minutes of triage and one paragraph is the bar.
 
 ---
 
-_No open bugs._
+## Case-insensitive ORDER BY on a compound query emits `lower(<alias>)`, which PostgreSQL rejects
+
+**Where**: compound (UNION/INTERSECT/EXCEPT) ORDER BY emission for the
+`insensitive` modifier in the SQL builders — the default path emits
+`order by lower(<alias>)`. Reachable from `.union(...).orderBy(alias, 'asc insensitive')`.
+
+**Reproduction**: [`test/db/postgres/newest/pg/select.compound.test.ts`](db/postgres/newest/pg/select.compound.test.ts) test
+`union-with-insensitive-order-by`. The lib emits:
+
+```sql
+select name as label from project union select title as label from issue order by lower(label) asc
+```
+
+PostgreSQL rejects it at execution:
+
+> error: invalid UNION/INTERSECT/EXCEPT ORDER BY clause
+> detail: Only result column names can be used, not expressions or functions.
+
+A compound query's ORDER BY may reference only result column names, never an
+expression like `lower(...)`. The lib should emit a portable case-insensitive
+ordering for compound queries (or reject it at build time) instead of SQL the
+engine refuses.
+
+**Current workaround in the suite**: the test is mock-only — it pins the
+emitted SQL and returns before executing on the real engine
+(`if (ctx.realDbEnabled) return`), carrying a
+`// tests-audit-disable-next-line mock-only -- ...` line and a `// TODO[BUG]`
+marker pointing here.
+
+---
+
+## Object-valued column extension rules are accepted at runtime but rejected by the `DynamicFilter` type
+
+**Where**: the dynamic-condition extension typing (`DynamicFilter` /
+`DynamicCondition` / the extension-key modelling in
+`dynamicConditionUsingFilters.ts`). The runtime
+(`DynamicConditionBuilder.processAdditionalColumnFilter`) accepts a column
+extension entry that is an OBJECT of rules (recursing to any depth) and emits
+correct SQL; the type only models extension entries that are FUNCTIONS
+(`DynamicConditionRule`), so the matching filter shape doesn't typecheck.
+
+**Reproduction**: [`test/db/postgres/newest/pg/dynamic-condition.nested-extension.test.ts`](db/postgres/newest/pg/dynamic-condition.nested-extension.test.ts)
+tests `column-level-object-extension-rule-*`. An extension
+`{ idRules: { above: (v) => tIssue.id.greaterThan(v) } }` plus a filter
+`{ id: { idRules: { above: 10 } } }` runs and emits `where id > $1` correctly,
+but the filter literal only compiles via `as any` — `DynamicFilter` rejects the
+nested-object shape.
+
+**Current workaround in the suite**: the filter is `... as any`, with a
+`// TODO[BUG]` marker. (These tests assert SQL/params, so the cast is not the
+audit's exempt runtime-guard case — the `as-any` warning stays until the type
+models object-valued column extension rules.)
+
+---
+
+## The documented `tables-views-as-parameter` helper does not typecheck
+
+**Where**: the source-tagging chain behind `subSelectUsing` / `fromRef` /
+`TableOrViewOf` — a generic ref's source can't be reconciled with the
+connection's, so the helper pattern shown on the docs page
+`docs/advanced/tables-views-as-parameter.md` fails to compile.
+
+**Reproduction**: building the documented generic helper
+(`buildIssueCountSubquery<PROJECT extends TableOrViewOf<typeof tProject, 'project'>>(...)`)
+exactly as the docs page shows it produces source-tagging errors
+(`Argument of type 'TIssue' is not assignable to … OfSameDB<…>`, ending in
+`Property 'valueWhenNull' does not exist on type 'never'`). Covered by the
+smoke test in [`test/db/postgres/newest/pg/docs.advanced.tables-views-as-parameter.test.ts`](db/postgres/newest/pg/docs.advanced.tables-views-as-parameter.test.ts)
+(`helper-pattern-runtime-sql-emission`). Either the docs page is wrong or the
+generic source-tag inference through `subSelectUsing(fromRef(...))` is too
+strict — check both.
+
+**Current workaround in the suite**: the smoke test casts the connection to
+`any` (`const conn: any = ctx.conn`) so the SQL emission is still validated,
+with `eslint-disable` on the `no-explicit-any` lines and a `// TODO[BUG]`
+marker. The `any-type` / `eslint-disable-type` warnings stay until the helper
+typechecks.
+
+---
+
+## `executeUpdateNoneOrOne` / `executeUpdateOne` are not exposed on a bare `dynamicSet()` — bug or design?
+
+**Where**: the `dynamicSet()` builder type (`DynamicExecutableUpdateExpression`)
+exposes only `executeUpdate` (the affected-count path); `executeUpdateNoneOrOne`
+/ `executeUpdateOne` are not on it. The runtime empty-set short-circuit
+(`dynamicSet()` with no columns) does resolve sensibly on those paths
+(`executeUpdateNoneOrOne` → `null`; `executeUpdateOne` → throws NO_COLUMN_SETS),
+but they can only be reached past the type.
+
+**Reproduction**: [`test/db/postgres/newest/pg/update.execute-variants.test.ts`](db/postgres/newest/pg/update.execute-variants.test.ts)
+test `execute-update-none-or-one-with-no-sets-resolves-null` casts the builder
+to `any` to call `executeUpdateNoneOrOne()` and assert `null`. **Needs a design
+call**: if exposing those methods on `dynamicSet()` is intended, this is a
+typing gap to fix; if a no-set update is deliberately restricted to the
+count-only `executeUpdate`, the test exercises an unreachable path and should be
+removed (or made a `types.negative/` assertion) rather than cast through `any`.
+
+**Current workaround in the suite**: `... as any` + `// TODO[BUG]` marker. (The
+sibling `execute-update-one-...-throws` asserts only the exception, so its cast
+is the audit's exempt runtime-guard case; this one asserts a value, so the
+`as-any` warning stays pending the decision.)
+
+---
+
+## TOOLING (audit, not src/): `commented-test-reason` + symmetry false-positive on prose containing `it (`
+
+**Where**: the `tests:audit` engine, NOT the library — fix in
+[`test/lib/audit/checks/commentedTest.ts`](lib/audit/checks/commentedTest.ts)
+(the `TEST_CALL` regex) and the phantom-test-name detection in
+[`test/lib/audit/symmetry.ts`](lib/audit/symmetry.ts). The `TEST_CALL` regex
+matches `test`/`it` followed by `(` and an opening quote-or-backtick — so the
+literal `it (` **inside ordinary comment prose** is mistaken for a commented-out
+`it('…')` test.
+
+**Reproduction**: [`test/db/postgres/newest/pg/docs.transaction.test.ts:209`](db/postgres/newest/pg/docs.transaction.test.ts) — an
+ACTIVE test whose descriptive comment reads
+`… the lenient mock short-circuit that used to silence it (\`isMocked()\` skipping the check) …`.
+The `it (\`` triggers `commented-test-reason` (the comment is read as a
+reason-less commented-out test), and the symmetry checker registers a phantom
+test named `isMocked()` — present in every cell that carries this identical
+prose, so it can't be fixed by editing one cell.
+
+The regex should not treat `it (`/`test (` inside prose (e.g. inside a markdown
+code span, or not shaped like a real `it('name', …)` call) as a test call —
+e.g. require the call to be at a statement-like position with a string-literal
+test name, not a backtick code span.
+
+**Current workaround in the suite**: none — the finding is a false positive on a
+correct, active test; it persists as a warning until the audit regex is
+tightened. (No `tests-audit-disable` is added, because the test is not actually a
+disabled test.)
 
 ---
 

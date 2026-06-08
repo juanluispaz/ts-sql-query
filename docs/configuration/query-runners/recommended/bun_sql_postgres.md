@@ -31,7 +31,7 @@ This page explains how to use `ts-sql-query` with the [Bun SQL](https://bun.com/
 
     The upstream report [oven-sh/bun#29010](https://github.com/oven-sh/bun/issues/29010) documents the same root cause — `Date#toString()` instead of ISO. Note that the issue's scope description excludes `Bun.SQL#unsafe(query, params)`, but in practice that path is also affected (verified empirically against Bun 1.3.14): `BunSqlPostgresQueryRunner` uses `unsafe(...)`, so every `Date` value bound from `ts-sql-query` through the bun adapter hits the same serialisation. The fix will most likely land in the shared serialiser and resolve both paths at once.
 
-    Workaround: pass dates as ISO strings (`date.toISOString()` for `timestamp`, `date.toISOString().slice(0, 10)` for `date`), or install a `TypeAdapter` that converts `Date` operands before they reach the driver.
+    **Workaround (already applied):** `BunSqlPostgresQueryRunner` handles this for you — it serialises every `Date` parameter to an ISO 8601 string (`date.toISOString()`) before binding it, so `localDate` / `localDateTime` values are accepted by PostgreSQL. This is a best-effort workaround built into the runner; it **may change without backwards compatibility** once [oven-sh/bun#29010](https://github.com/oven-sh/bun/issues/29010) is fixed upstream. If you need different behaviour, install a `TypeAdapter` that converts `Date` operands before they reach the driver.
 
 ## Using a connection pool
 

@@ -45,7 +45,18 @@ export class PgLiteQueryRunner extends SqlTransactionQueryRunner {
         return this.connection.query(query, params).then((result) => result.affectedRows || 0)
     }
     addParam(params: any[], value: any): string {
-        params.push(value)
+        if (value instanceof Date) {
+            // PGlite's in-process parameter serializer cannot bind a JS `Date`: for a
+            // parameter whose type it infers as text (a placeholder without a `::cast`)
+            // it rejects it with `Invalid input for string type`. As a best-effort
+            // workaround this runner serializes the `Date` to an ISO 8601 string before
+            // binding it, mirroring what the wire-protocol drivers (`pg`, `postgres`)
+            // send. This is an opinionated workaround that may change without backwards
+            // compatibility once https://github.com/electric-sql/pglite/issues/1021 is fixed.
+            params.push(value.toISOString())
+        } else {
+            params.push(value)
+        }
         return '$' + params.length
     }
     override nestedTransactionsSupported(): boolean {

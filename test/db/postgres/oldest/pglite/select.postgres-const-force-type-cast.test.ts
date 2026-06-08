@@ -109,7 +109,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::date as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            2024-01-15T00:00:00.000Z,
+            "2024-01-15T00:00:00.000Z",
           ]
         `)
     })
@@ -139,7 +139,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::timestamp as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            2024-01-15T12:34:56.000Z,
+            "2024-01-15T12:34:56.000Z",
           ]
         `)
     })
@@ -237,17 +237,14 @@ describe(ctx.label, () => {
         `)
     })
 
-    // Not applicable on pglite: the placeholder is emitted bare (no cast),
-    // so postgres infers it as text/unknown and pglite's in-process serializer
-    // is handed a JS `Date` for a string-typed param, which it rejects with
-    // `Invalid input for string type`. The wire-protocol postgres drivers
-    // (`pg`, `postgres`) stringify a `Date` before sending, so they don't hit
-    // this; pglite's serializer does not. The library deliberately emits no
-    // cast here (that's what this test pins), so there's nothing to fix in
-    // `src/` — it's a pglite serializer constraint. Body kept verbatim from the
-    // canonical pg cell so a fix is a `/* */` removal and a snapshot bake. See
-    // test/EXTERNAL_CAVEATS.md.
-    /*
+    // This placeholder is emitted bare (no cast), so postgres infers it as
+    // text/unknown and pglite's in-process serializer is handed the parameter
+    // for a string-typed slot — a raw JS `Date` would be rejected with
+    // `Invalid input for string type` (pglite#1021). `PgLiteQueryRunner.addParam`
+    // works around it by serialising the `Date` to an ISO 8601 string before
+    // binding, so even this bare-placeholder case binds — the captured param is
+    // that ISO string. Best-effort workaround that may change without backwards
+    // compatibility once pglite#1021 is fixed. See test/EXTERNAL_CAVEATS.md.
     test('const-custom-localdate-falls-through-without-cast', async () => {
         // PostgreSqlConnection.ts:140. A `customLocalDate` carries a
         // Date object; `typeof` is `object` so the number/bigint ladder
@@ -262,9 +259,8 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            2024-02-20T00:00:00.000Z,
+            "2024-02-20T00:00:00.000Z",
           ]
         `)
     })
-    */
 })

@@ -29,6 +29,8 @@ import {
 } from '../../lib/containerLifecycle.js'
 import { createTestContext, type TestContext } from '../../lib/testContext.js'
 import type { QueryRunner } from '../../../src/queryRunners/QueryRunner.js'
+import { MockPgLiteQueryRunner } from '../../lib/mockRunners/MockPgLiteQueryRunner.js'
+import { MockBunSqlPostgresQueryRunner } from '../../lib/mockRunners/MockBunSqlPostgresQueryRunner.js'
 import { DBConnection } from './domain/connection.js'
 
 
@@ -428,6 +430,7 @@ export function createPgLiteTestContext(spec: PgLiteTestSpec): PostgresTestConte
         compatibilityVersion: spec.compatibilityVersion,
         database: 'postgreSql',
         realDbEnabled,
+        mockRunnerClass: MockPgLiteQueryRunner,
         timeoutMs: 30_000,
         async createRealRunner() {
             const { PgLiteQueryRunner } = await import('../../../src/queryRunners/PgLiteQueryRunner.js')
@@ -473,6 +476,7 @@ export function createBunSqlPostgresTestContext(spec: PgTestSpec): PostgresTestC
         compatibilityVersion: spec.compatibilityVersion,
         database: 'postgreSql',
         realDbEnabled,
+        mockRunnerClass: MockBunSqlPostgresQueryRunner,
         async createRealRunner() {
             const container = await acquireContainer()
             workerUri = await bootstrapWorkerDbSchemaAndSeed(container.getConnectionUri())

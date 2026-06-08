@@ -225,23 +225,24 @@ upstream: <https://github.com/oven-sh/bun/issues/29010>.
 Date)` ships a bare `'HH:MM:SS'` string, not a `Date`. Numeric and
 text parameters are unaffected for the same reason.
 
-Tests commented out in `test/db/postgres/newest/bun_sql_postgres/`
-**and** `test/db/postgres/oldest/bun_sql_postgres/` until the bug is
-fixed upstream — the canonical body is preserved inside `/* */` so
-a fix is one comment removal plus a snapshot bake:
+**Workaround now built into the runner:**
+`BunSqlPostgresQueryRunner.addParam` serialises every `Date` to an ISO
+8601 string (`date.toISOString()`) before binding it, so the affected
+tests run again (mock + real). The captured param is therefore the ISO
+string, not a `Date` — `MockBunSqlPostgresQueryRunner` mirrors the same
+coercion so mock and real modes agree. Re-enabled in
+`test/db/postgres/{newest,oldest}/bun_sql_postgres/`:
 
 - `select.postgres-const-force-type-cast.test.ts` →
   `const-localdate-forces-date-cast`,
   `const-localdatetime-forces-timestamp-cast`,
   `const-custom-localdate-falls-through-without-cast`.
 
-Coverage-driven test generation **must** consult this section before
-copying any test that constructs a `new Date(...)` parameter from the
-`pg`/`postgres`/`pglite` canonical to `bun_sql_postgres` — the bug
-applies to every `localDate` / `localDateTime` `Date` parameter,
-not just the three names already commented out. The right move is to
-copy AND immediately re-wrap the affected tests in `/* */` with this
-section linked from the reason header.
+This is a best-effort workaround that may change without backwards
+compatibility once the upstream bug is fixed; coverage-driven test
+generation can now copy `new Date(...)` parameter tests to
+`bun_sql_postgres` as-is, expecting the ISO string in the param
+snapshot.
 
 ### `pglite` — `Date` parameter bound to an uncast (text-inferred) placeholder
 
@@ -251,20 +252,21 @@ in-process serializer is then handed a JS `Date` for a string-typed
 param and rejects it with `Invalid input for string type`. The
 wire-protocol postgres drivers (`pg`, `postgres`) stringify a `Date`
 before it reaches the server, so they round-trip fine; pglite's
-serializer does not. This is a pglite constraint, **not** a library
-bug — the cast is deliberately omitted (the test pins exactly that),
-so there's nothing to change in `src/`.
+serializer does not. Open upstream:
+<https://github.com/electric-sql/pglite/issues/1021>.
 
-Commented out in `test/db/postgres/newest/pglite/` **and**
-`test/db/postgres/oldest/pglite/`:
-
-- `select.postgres-const-force-type-cast.test.ts` →
-  `const-custom-localdate-falls-through-without-cast`. The enumerated
-  `'localDate'` / `'localDateTime'` cases are unaffected because they
-  route to `::date` / `::timestamp`, giving the serializer a typed
-  target. Only the `customLocalDate` fall-through (bare placeholder)
-  trips it. Body kept verbatim so a future pglite fix is a `/* */`
-  removal plus a snapshot bake.
+**Workaround now built into the runner:**
+`PgLiteQueryRunner.addParam` serialises every `Date` to an ISO 8601
+string (`date.toISOString()`) before binding it — mirroring what `pg` /
+`postgres` send — so even the bare-placeholder case binds. The captured
+param is therefore the ISO string, not a `Date`;
+`MockPgLiteQueryRunner` mirrors the same coercion so mock and real modes
+agree. This made the previously-commented test runnable again
+(`select.postgres-const-force-type-cast.test.ts` →
+`const-custom-localdate-falls-through-without-cast`; the enumerated
+`'localDate'` / `'localDateTime'` cases always bound thanks to their
+`::date` / `::timestamp` cast). Best-effort workaround that may change
+without backwards compatibility once the upstream bug is fixed.
 
 ## Connectors not in the matrix today
 

@@ -109,11 +109,10 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
     test('union-with-insensitive-order-by', async () => {
-        // TODO[BUG]: a union ordered by `.orderBy(alias, 'asc insensitive')`
-        // emits `order by lower(label)`, which PostgreSQL rejects in a
-        // compound ORDER BY ("only result column names can be used"). See
-        // test/BUGS.md. The test pins the emitted SQL; it can't run on the
-        // real engine until the lib emits portable SQL here.
+        // Compound (union) ordered case-insensitively. PostgreSQL's compound
+        // ORDER BY may reference only result-column names / ordinal positions
+        // (no expressions), so the builder wraps the whole compound in
+        // `select * from (...)` and applies `lower(...)` on the plain wrapper.
         const expected = [
             { label: 'Document /v2/users' },
             { label: 'Internal tools' },
@@ -125,14 +124,12 @@ describe(ctx.label, () => {
             { label: 'Update hero copy' },
         ]
         ctx.mockNext(expected)
-        // tests-audit-disable-next-line mock-only -- TODO[BUG] (see test/BUGS.md): PostgreSQL rejects expressions in a UNION ORDER BY; only the emitted SQL can be validated
-        if (ctx.realDbEnabled) return
         const result = await ctx.conn.selectFrom(tProject)
             .select({ label: tProject.name })
             .union(ctx.conn.selectFrom(tIssue).select({ label: tIssue.title }))
             .orderBy('label', 'asc insensitive')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project union select title as label from issue order by lower(label) asc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select name as label from project union select title as label from issue) as o_1_ order by lower(label) asc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{ label: string }>>>()
         expect(result).toEqual(expected)

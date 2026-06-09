@@ -67,37 +67,6 @@ of that. Two minutes of triage and one paragraph is the bar.
 
 ---
 
-## Case-insensitive ORDER BY on a compound query emits `lower(<alias>)`, which PostgreSQL rejects
-
-**Where**: compound (UNION/INTERSECT/EXCEPT) ORDER BY emission for the
-`insensitive` modifier in the SQL builders — the default path emits
-`order by lower(<alias>)`. Reachable from `.union(...).orderBy(alias, 'asc insensitive')`.
-
-**Reproduction**: [`test/db/postgres/newest/pg/select.compound.test.ts`](db/postgres/newest/pg/select.compound.test.ts) test
-`union-with-insensitive-order-by`. The lib emits:
-
-```sql
-select name as label from project union select title as label from issue order by lower(label) asc
-```
-
-PostgreSQL rejects it at execution:
-
-> error: invalid UNION/INTERSECT/EXCEPT ORDER BY clause
-> detail: Only result column names can be used, not expressions or functions.
-
-A compound query's ORDER BY may reference only result column names, never an
-expression like `lower(...)`. The lib should emit a portable case-insensitive
-ordering for compound queries (or reject it at build time) instead of SQL the
-engine refuses.
-
-**Current workaround in the suite**: the test is mock-only — it pins the
-emitted SQL and returns before executing on the real engine
-(`if (ctx.realDbEnabled) return`), carrying a
-`// tests-audit-disable-next-line mock-only -- ...` line and a `// TODO[BUG]`
-marker pointing here.
-
----
-
 ## Object-valued column extension rules are accepted at runtime but rejected by the `DynamicFilter` type
 
 **Where**: the dynamic-condition extension typing (`DynamicFilter` /

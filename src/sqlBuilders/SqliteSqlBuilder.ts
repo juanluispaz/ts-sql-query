@@ -64,6 +64,13 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         }
         return result
     }
+    // SQLite accepts `col collate <name>` as a compound ORDER BY term (COLLATE
+    // is a modifier on the result column) but rejects `lower(col)` (a function
+    // call doesn't match a result column). So the collation form orders inline;
+    // the `lower()` default still needs the `select * from (...)` wrapper.
+    override _supportCollateInCompoundOrderBy(): boolean {
+        return true
+    }
     override _buildSelectOrderBy(query: SelectData, params: any[]): string {
         if (this._connectionConfiguration.compatibilityVersion >= 3_030_000) {
             return super._buildSelectOrderBy(query, params)

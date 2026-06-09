@@ -23,6 +23,15 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
     override _forceAsIdentifier(identifier: string): string {
         return '`' + identifier + '`'
     }
+    // MySQL / MariaDB accept both `lower(col)` and `col collate <name>` as
+    // ORDER BY terms of a compound query, so the insensitive ordering is
+    // emitted inline and never needs the `select * from (...)` wrapper.
+    override _supportFunctionInCompoundOrderBy(): boolean {
+        return true
+    }
+    override _supportCollateInCompoundOrderBy(): boolean {
+        return true
+    }
     override _buildSelectOrderBy(query: SelectData, params: any[]): string {
         const orderBy = query.__orderBy
         if (!orderBy) {

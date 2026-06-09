@@ -781,15 +781,34 @@ export class AbstractSqlBuilder implements SqlBuilder {
             }
 
             selectQuery += this._buildWith(query, params)
-            selectQuery += this._buildSelectWithColumnsInfoForCompound(query.__firstQuery, params, columnsForInsert, isOutermostQuery)
-            selectQuery += this._appendCompoundOperator(query.__compoundOperator, params)
-            selectQuery += this._buildSelectWithColumnsInfoForCompound(query.__secondQuery, params, columnsForInsert, isOutermostQuery)
 
-            if (!query.__asInlineAggregatedArrayValue || !this._supportOrderByWhenAggregateArray || this._isAggregateArrayWrapped(params)) {
+            const emitOrderBy = !query.__asInlineAggregatedArrayValue || !this._supportOrderByWhenAggregateArray || this._isAggregateArrayWrapped(params)
+            // A case-insensitive ordering on the strict engines can't live in
+            // the compound ORDER BY itself; wrap the whole compound in a plain
+            // `select * from (...)` and order there. The inner compound is
+            // emitted verbatim so its set semantics and collations survive.
+            const wrapInsensitiveOrderBy = emitOrderBy && this._needsCompoundInsensitiveOrderByWrap(query)
+
+            let compoundCore = ''
+            compoundCore += this._buildSelectWithColumnsInfoForCompound(query.__firstQuery, params, columnsForInsert, isOutermostQuery)
+            compoundCore += this._appendCompoundOperator(query.__compoundOperator, params)
+            compoundCore += this._buildSelectWithColumnsInfoForCompound(query.__secondQuery, params, columnsForInsert, isOutermostQuery)
+
+            if (wrapInsensitiveOrderBy) {
+                selectQuery += 'select * from (' + compoundCore + ')'
+                selectQuery += this._supportTableAliasWithAs ? ' as o_' + this._generateUnique() + '_' : ' o_' + this._generateUnique() + '_'
                 const oldSafeTableOrViewInOrderBy = this._getSafeTableOrView(params)
                 this._setSafeTableOrView(params, undefined)
-                selectQuery += this._buildSelectOrderBy(query, params)
+                selectQuery += this._buildSelectOrderByForWrapper(query, params)
                 this._setSafeTableOrView(params, oldSafeTableOrViewInOrderBy)
+            } else {
+                selectQuery += compoundCore
+                if (emitOrderBy) {
+                    const oldSafeTableOrViewInOrderBy = this._getSafeTableOrView(params)
+                    this._setSafeTableOrView(params, undefined)
+                    selectQuery += this._buildSelectOrderBy(query, params)
+                    this._setSafeTableOrView(params, oldSafeTableOrViewInOrderBy)
+                }
             }
             if (!query.__asInlineAggregatedArrayValue || !this._supportLimitWhenAggregateArray || this._isAggregateArrayWrapped(params)) {
                 selectQuery += this._buildSelectLimitOffset(query, params)
@@ -1133,6 +1152,84 @@ export class AbstractSqlBuilder implements SqlBuilder {
         } else {
             return false
         }
+    }
+    /**
+     * Whether this dialect accepts a function call (e.g. `lower(col)`) as an
+     * ORDER BY term of a compound query (`UNION` / `INTERSECT` / `EXCEPT`).
+     * The SQL standard restricts a compound ORDER BY to result-column names
+     * and ordinal positions; only the lenient engines (MySQL / MariaDB) also
+     * accept expressions there. When `false`, a case-insensitive ordering
+     * that renders as `lower(col)` cannot be emitted inline and is applied on
+     * a wrapping `select * from (<compound>)` instead — see
+     * `_needsCompoundInsensitiveOrderByWrap`.
+     */
+    _supportFunctionInCompoundOrderBy(): boolean {
+        return false
+    }
+    /**
+     * Whether this dialect accepts a `<col> collate <name>` term as an ORDER
+     * BY term of a compound query. SQLite accepts it (COLLATE is a modifier on
+     * the result column, not a free expression) together with MySQL / MariaDB;
+     * PostgreSQL / SQL Server / Oracle reject any expression there. When
+     * `false`, a collation-based case-insensitive ordering is applied on a
+     * wrapping select instead — see `_needsCompoundInsensitiveOrderByWrap`.
+     */
+    _supportCollateInCompoundOrderBy(): boolean {
+        return false
+    }
+    /**
+     * A compound query's ORDER BY may reference only result-column names /
+     * ordinal positions on the strict engines, so a case-insensitive ordering
+     * that renders as `lower(col)` (no `insensitiveCollation` configured) or
+     * `col collate <name>` (configured) is illegal inline there. This reports
+     * whether such an entry is present and this dialect can't render it inline,
+     * in which case the compound is wrapped as `select * from (<compound>)` and
+     * the ordering is applied on the (plain) wrapper, where it is legal. The
+     * inner compound is emitted untouched so its set semantics (UNION DISTINCT
+     * dedup, INTERSECT / EXCEPT matching) and column collations are preserved.
+     */
+    _needsCompoundInsensitiveOrderByWrap(query: SelectData): boolean {
+        if (query.__type !== 'compound') {
+            return false
+        }
+        const orderBy = query.__orderBy
+        if (!orderBy) {
+            return false
+        }
+        const collation = this._connectionConfiguration.insensitiveCollation
+        if (collation === '') {
+            return false // the insensitive term is ignored entirely, nothing renders as an expression
+        }
+        for (const entry of orderBy) {
+            const order = entry.order
+            if (!order || order.indexOf('insensitive') < 0) {
+                continue
+            }
+            if (!this._isStringOrderByColumn(entry, query)) {
+                continue // the insensitive term is ignored for non-string columns, renders as a plain alias
+            }
+            if (collation) {
+                if (!this._supportCollateInCompoundOrderBy()) {
+                    return true
+                }
+            } else if (!this._supportFunctionInCompoundOrderBy()) {
+                return true
+            }
+        }
+        return false
+    }
+    /**
+     * Render the ORDER BY for the outer `select * from (<compound>)` wrapper
+     * emitted when `_needsCompoundInsensitiveOrderByWrap` is `true`. The
+     * wrapper is a plain (non-compound) select, so the case-insensitive term
+     * (`lower(col)` / `col collate <name>`) is legal here even on the dialects
+     * that reject it inside a compound ORDER BY. Defaults to the normal
+     * order-by builder; Oracle overrides it because its `_buildSelectOrderBy`
+     * switches compound queries to ordinal positions, which is not what the
+     * plain wrapper needs.
+     */
+    _buildSelectOrderByForWrapper(query: SelectData, params: any[]): string {
+        return this._buildSelectOrderBy(query, params)
     }
     _buildSelectLimitOffset(query: SelectData, params: any[]): string {
         let result = ''

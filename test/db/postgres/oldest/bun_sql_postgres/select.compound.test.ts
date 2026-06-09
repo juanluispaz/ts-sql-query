@@ -113,13 +113,12 @@ describe(ctx.label, () => {
         }
     })
     test('union-with-insensitive-order-by', async () => {
-        // Compound query (union) followed by `.orderBy(alias, 'asc insensitive')` —
-        // reaches Oracle's `_appendCompoundOrderByColumnAliasInsensitive`
-        // (other dialects use the default branch).
-        //
-        // Older SQLite drivers reject the `order by lower(<alias>)` form
-        // in compound queries, so the runtime is wrapped to still capture
-        // the SQL snapshot per cell.
+        // Compound (union) ordered case-insensitively. A compound ORDER BY may
+        // reference only result-column names / ordinal positions on the strict
+        // engines (PostgreSQL, SQL Server, Oracle — and SQLite for the `lower()`
+        // form), so the builder wraps the whole compound in `select * from (...)`
+        // and orders on the plain wrapper; MySQL/MariaDB (and SQLite for
+        // `collate`) order inline.
         const expected = [
             { label: 'Document /v2/users' },
             { label: 'Internal tools' },
@@ -131,21 +130,17 @@ describe(ctx.label, () => {
             { label: 'Update hero copy' },
         ]
         ctx.mockNext(expected)
-        try {
-            const projectsQ = ctx.conn.selectFrom(tProject)
-                .select({ label: tProject.name })
-            const issuesQ = ctx.conn.selectFrom(tIssue)
-                .select({ label: tIssue.title })
-            const result = await projectsQ
-                .union(issuesQ)
-                .orderBy('label', 'asc insensitive')
-                .executeSelectMany()
-            assertType<Exact<typeof result, Array<{ label: string }>>>()
-            if (!ctx.realDbEnabled) expect(result).toEqual(expected)
-        } catch (e) {
-            if (!ctx.realDbEnabled) throw e
-        }
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project union select title as label from issue order by lower(label) asc"`)
+        const projectsQ = ctx.conn.selectFrom(tProject)
+            .select({ label: tProject.name })
+        const issuesQ = ctx.conn.selectFrom(tIssue)
+            .select({ label: tIssue.title })
+        const result = await projectsQ
+            .union(issuesQ)
+            .orderBy('label', 'asc insensitive')
+            .executeSelectMany()
+        assertType<Exact<typeof result, Array<{ label: string }>>>()
+        expect(result).toEqual(expected)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select name as label from project union select title as label from issue) as o_1_ order by lower(label) asc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
     })
 

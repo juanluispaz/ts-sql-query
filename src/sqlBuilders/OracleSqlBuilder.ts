@@ -450,6 +450,13 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         }
         return result
     }
+    override _buildSelectOrderByForWrapper(query: SelectData, params: any[]): string {
+        // The wrapper is a plain `select * from (<compound>)`, so order it the
+        // plain way (`lower("col")` / `"col" collate <name>`). The override of
+        // `_buildSelectOrderBy` below would otherwise switch a compound query
+        // to ordinal positions, which can't carry the case-insensitive term.
+        return super._buildSelectOrderBy(query, params)
+    }
     override _buildSelectOrderBy(query: SelectData, params: any[]): string {
         if (query.__type === 'plain') {
             return super._buildSelectOrderBy(query, params)

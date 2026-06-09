@@ -16,7 +16,14 @@ export type AliasedTableOrView<T extends ITableOrView<any>, ALIAS extends string
 export type AsForUseInLeftJoin<T extends ITableOrView<any>> = ColumnsForLeftJoin<NAsLeftJoin<T[typeof source]>, T> & ForUseInLeftJoin<NAsLeftJoin<T[typeof source]>>
 export type AsAliasedForUseInLeftJoin<T extends ITableOrView<any>, ALIAS extends string> = ColumnsForLeftJoin<NAlias<NAsLeftJoin<T[typeof source]>, ALIAS>, T> & ForUseInLeftJoin<NAlias<NAsLeftJoin<T[typeof source]>, ALIAS>>
 
-export type FromRef<T extends ITableOrView<any>, REF extends HasSource<any>> = { [K in ValueSourcesKeyOf<T>]: RemapValueSourceType<REF[typeof source], T[K]> } & REF
+// `fromRef` infers the source as its own string type-param `S` at the call site
+// (value-level inference resolves it through the ref's constraint), instead of
+// reading `REF[source]` — a lazy indexed access on a generic ref that downstream
+// db extraction (`NGetDBFrom` over a generic type variable) can't resolve. That
+// indexed access is what made the documented "table/view as a parameter" helper
+// fail to typecheck; see docs/advanced/tables-views-as-parameter.md.
+export type FromRefBySource<T extends ITableOrView<any>, S extends NSource> = { [K in ValueSourcesKeyOf<T>]: RemapValueSourceType<S, T[K]> } & ITableOrView<S>
+export type FromRefBySourceLeftJoin<T extends ITableOrView<any>, S extends NSource> = { [K in ValueSourcesKeyOf<T>]: RemapValueSourceType<S, T[K]> } & ForUseInLeftJoin<S>
 
 type AddAliasMethods<T extends ITableOrView<any>> = T & {
     as<ALIAS extends string>(as: ALIAS): AliasedTableOrView<T, ALIAS>

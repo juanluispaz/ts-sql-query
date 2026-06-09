@@ -67,31 +67,6 @@ of that. Two minutes of triage and one paragraph is the bar.
 
 ---
 
-## The documented `tables-views-as-parameter` helper does not typecheck
-
-**Where**: the source-tagging chain behind `subSelectUsing` / `fromRef` /
-`TableOrViewOf` — a generic ref's source can't be reconciled with the
-connection's, so the helper pattern shown on the docs page
-`docs/advanced/tables-views-as-parameter.md` fails to compile.
-
-**Reproduction**: building the documented generic helper
-(`buildIssueCountSubquery<PROJECT extends TableOrViewOf<typeof tProject, 'project'>>(...)`)
-exactly as the docs page shows it produces source-tagging errors
-(`Argument of type 'TIssue' is not assignable to … OfSameDB<…>`, ending in
-`Property 'valueWhenNull' does not exist on type 'never'`). Covered by the
-smoke test in [`test/db/postgres/newest/pg/docs.advanced.tables-views-as-parameter.test.ts`](db/postgres/newest/pg/docs.advanced.tables-views-as-parameter.test.ts)
-(`helper-pattern-runtime-sql-emission`). Either the docs page is wrong or the
-generic source-tag inference through `subSelectUsing(fromRef(...))` is too
-strict — check both.
-
-**Current workaround in the suite**: the smoke test casts the connection to
-`any` (`const conn: any = ctx.conn`) so the SQL emission is still validated,
-with `eslint-disable` on the `no-explicit-any` lines and a `// TODO[BUG]`
-marker. The `any-type` / `eslint-disable-type` warnings stay until the helper
-typechecks.
-
----
-
 ## `executeUpdateNoneOrOne` / `executeUpdateOne` are not exposed on a bare `dynamicSet()` — bug or design?
 
 **Where**: the `dynamicSet()` builder type (`DynamicExecutableUpdateExpression`)

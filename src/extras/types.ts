@@ -3,7 +3,7 @@ import type { UpdateValues, UpdateShape, UpdateSetsContent } from '../expression
 import type { ForUseInLeftJoin, HasSource, ITable, ITableOrView } from '../utils/ITableOrView.js'
 import type { WritableDBColumn, WritableDBColumnWithDefaultValue, WritableDBPrimaryKeyColumn, WritableDBPrimaryKeyColumnWithoutDefaultValue } from '../utils/Column.js'
 import type { AnyValueSource } from '../expressions/values.js'
-import type { FromRef, ResolveShape } from '../utils/tableOrViewUtils.js'
+import type { FromRefBySource, FromRefBySourceLeftJoin, ResolveShape } from '../utils/tableOrViewUtils.js'
 import type { source } from '../utils/symbols.js'
 import type { NAlias, NAsLeftJoin, NMaybyAliased, NNoTableOrViewRequiredFrom, NSource } from '../utils/sourceName.js'
 import type { DataToProjectOfAny } from '../complexProjections/dataToProject.js'
@@ -95,7 +95,9 @@ export type TableOrViewLeftJoinOf<T extends ITableOrView<any>, ALIAS extends str
     ? ForUseInLeftJoin<NMaybyAliased<NAsLeftJoin<T[typeof source]>>>
     : ForUseInLeftJoin<NAlias<NAsLeftJoin<T[typeof source]>, ALIAS>>
 
-export function fromRef<T extends ITableOrView<any>, REF extends ITableOrView<any> | ForUseInLeftJoin<any>>(_tableOrView: T | (new (...params: any[]) => T), ref: REF): FromRef<T, REF> {
+export function fromRef<T extends ITableOrView<any>, S extends NSource>(_tableOrView: T | (new (...params: any[]) => T), ref: ITableOrView<S>): FromRefBySource<T, S>
+export function fromRef<T extends ITableOrView<any>, S extends NSource>(_tableOrView: T | (new (...params: any[]) => T), ref: ForUseInLeftJoin<S>): FromRefBySourceLeftJoin<T, S>
+export function fromRef(_tableOrView: any, ref: any): any {
     return ref as any
 }
 

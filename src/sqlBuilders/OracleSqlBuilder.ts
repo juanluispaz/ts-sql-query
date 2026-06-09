@@ -244,6 +244,20 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         return null
     }
     override _buildWithValues(withValues: WithValuesData, params: any[]): string {
+        // Mark that we're emitting a multi-row VALUES table constructor so
+        // `_appendValueForColumn` casts the NULL cells of numeric/date columns
+        // (see that override for the ORA-01790 rationale). The flag is scoped to
+        // this build and restored afterwards so a nested VALUES — or any later
+        // placeholder in the same query — keeps its own context.
+        const previousInValuesConstructor = this._isInValuesConstructor(params)
+        this._setInValuesConstructor(params, true)
+        try {
+            return this._buildWithValuesUntracked(withValues, params)
+        } finally {
+            this._setInValuesConstructor(params, previousInValuesConstructor)
+        }
+    }
+    private _buildWithValuesUntracked(withValues: WithValuesData, params: any[]): string {
         if (this._connectionConfiguration.compatibilityVersion >= 23_004_000) {
             return super._buildWithValues(withValues, params)
         }
@@ -285,6 +299,71 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         }
 
         return withValues.__name + '(' + columns + ') as (' + valuesSql + ')'
+    }
+    override _appendValueForColumn(column: DBColumn, value: any, params: any[], forceTypeCast: boolean): string {
+        // A multi-row VALUES tuple is a union of row constructors, and Oracle
+        // requires every column to share one datatype across all rows. The
+        // `oracledb` driver binds a JS `null` as a non-numeric/non-date type, so
+        // a nullable numeric or date/timestamp column that mixes a value in one
+        // row with a `null` in another row is rejected with
+        // `ORA-01790: expression must have same datatype as corresponding
+        // expression`. Casting the NULL placeholder to the column's Oracle type
+        // pins the datatype; the non-null cells stay bare because `oracledb`
+        // already infers their type correctly. This is the mirror image of
+        // `PostgreSqlSqlBuilder`, which casts the non-null cells and leaves the
+        // NULL bare (PostgreSQL infers the NULL's type from the column).
+        //
+        // TODO: this belongs in an `OracleConnection.transformPlaceholder`
+        // override (as `PostgreSqlConnection` does), but `transformPlaceholder`
+        // only receives the type *name* and the runtime value — for a
+        // custom-typed NULL (e.g. `optionalColumn<Money>('customDouble',
+        // 'Money')`) it sees `type = 'Money'` and `value = null`, with no way to
+        // tell it's numeric. The `ValueType` category that disambiguates it
+        // (`'customDouble'`) only exists here in the SqlBuilder. Move this to the
+        // connection once the `TypeAdapter.transformPlaceholder` signature is
+        // redefined to carry the `ValueType` category.
+        if ((value === null || value === undefined) && this._isInValuesConstructor(params)) {
+            const castType = this._oracleNullCastTypeForValuesConstructor(__getColumnPrivate(column).__valueType)
+            if (castType) {
+                return 'cast(' + super._appendValueForColumn(column, value, params, forceTypeCast) + ' as ' + castType + ')'
+            }
+        }
+        return super._appendValueForColumn(column, value, params, forceTypeCast)
+    }
+    private _oracleNullCastTypeForValuesConstructor(valueType: ValueType): string | null {
+        switch (valueType) {
+            case 'int':
+            case 'bigint':
+            case 'customInt':
+            case 'double':
+            case 'customDouble':
+                return 'number'
+            case 'localDate':
+            case 'customLocalDate':
+                return 'date'
+            case 'localDateTime':
+            case 'customLocalDateTime':
+                return 'timestamp'
+            default:
+                // `localTime`/`string`/`uuid`/`enum`/`custom`/… are sent as
+                // strings (or otherwise varchar-compatible), so a bare NULL bind
+                // shares the varchar datatype across rows and never raises
+                // ORA-01790. `boolean` is left out on purpose to avoid touching
+                // the `CustomBooleanTypeAdapter` remap path in
+                // `_appendValueForColumn`.
+                return null
+        }
+    }
+    _isInValuesConstructor(params: any[]): boolean {
+        return !!(params as any)._isInValuesConstructor
+    }
+    _setInValuesConstructor(params: any[], value: boolean): void {
+        Object.defineProperty(params, '_isInValuesConstructor', {
+            value: value,
+            writable: true,
+            enumerable: false,
+            configurable: true
+        })
     }
     override _appendWithColumns(withData: WithSelectData, params: any[]): string {
         if (withData.__selectData.__type === 'plain') {

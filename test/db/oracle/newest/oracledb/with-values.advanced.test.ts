@@ -192,29 +192,24 @@ describe(ctx.label, () => {
         }
     })
 
-    // Disabled on oracle: the nullable `amount` (customDouble) column mixes
-    // a NUMBER (row 1 = 19.99) with an untyped NULL (row 2) in the same
-    // multi-row VALUES tuple. Oracle has no `transformPlaceholder` cast (unlike
-    // PostgreSQL's `::float8`), so the `oracledb` driver binds the NULL as a
-    // non-numeric type and Oracle rejects the row with
-    // `ORA-01790: expression must have same datatype as corresponding expression`.
-    // This is a general Oracle limitation for any nullable numeric/date column
-    // in a multi-row VALUES — see test/EXTERNAL_CAVEATS.md. The proper fix is an
-    // `OracleConnection.transformPlaceholder` that casts VALUES placeholders;
-    // deferred to a dedicated session. The non-null custom-typed path is still
-    // real-validated on oracle via the two virtual-column tests below.
-    /*
     test('values-with-custom-typed-columns-emits-customint-customdouble-casts', async () => {
         // `column<T>('customInt', 'IssueId')` and
         // `optionalColumn<T>('customDouble', 'Money')` on the
         // `VIssueBilling` view above route through the
         // `typeof adapter === 'string'` branch of Values.ts:94-99 /
         // 128-133 — the only branch reached when the user passes a
-        // typeName. The emitted VALUES tuple still casts placeholders
-        // (`customInt` and `customDouble` are not enumerated in the
-        // postgres switch, so the fallback in
-        // `PostgreSqlConnection.transformPlaceholder` picks the cast
-        // from `typeof valueSentToDB` — `int4` / `float8`).
+        // typeName.
+        //
+        // The nullable `amount` (customDouble) column mixes a NUMBER
+        // (row 1 = 19.99) with a NULL (row 2) in the same multi-row VALUES
+        // tuple. `oracledb` binds a JS NULL as a non-numeric type, so without
+        // a cast Oracle would reject the row with `ORA-01790: expression must
+        // have same datatype as corresponding expression`.
+        // `OracleSqlBuilder._appendValueForColumn` casts the NULL cell of the
+        // numeric column to `number` (`cast(:3 as number)`); the non-null
+        // cells stay bare because `oracledb` infers their type correctly. This
+        // is the mirror image of PostgreSQL, which casts the non-null cells
+        // and leaves the NULL bare.
         ctx.mockNext([
             { issueId: 101 as IssueId, amount: 19.99 as Money },
             { issueId: 102 as IssueId, amount: undefined        },
@@ -232,7 +227,7 @@ describe(ctx.label, () => {
             .orderBy('issueId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with issueBilling(issueId, amount) as (values (:0, :1), (:2, :3)) select issueId as "issueId", amount as "amount" from issueBilling order by "issueId""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with issueBilling(issueId, amount) as (values (:0, :1), (:2, cast(:3 as number))) select issueId as "issueId", amount as "amount" from issueBilling order by "issueId""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             101,
@@ -247,7 +242,6 @@ describe(ctx.label, () => {
             { issueId: 102 as IssueId },
         ])
     })
-    */
 
     test('values-virtual-column-from-fragment-with-custom-type-emits-inline-fragment', async () => {
         // `virtualColumnFromFragment<T>('enum', 'OrderState', fn)` reaches
@@ -271,7 +265,7 @@ describe(ctx.label, () => {
             .orderBy('issueId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with issueBilling(issueId, amount) as (values (:0, :1), (:2, :3)) select issueId as "issueId", 'open' as "state" from issueBilling order by "issueId""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with issueBilling(issueId, amount) as (values (:0, :1), (:2, cast(:3 as number))) select issueId as "issueId", 'open' as "state" from issueBilling order by "issueId""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             101,
@@ -309,7 +303,7 @@ describe(ctx.label, () => {
             .orderBy('issueId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with issueBilling(issueId, amount) as (values (:0, :1), (:2, :3)) select issueId as "issueId", raw_to_uuid(null) as "billingRef" from issueBilling order by "issueId""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with issueBilling(issueId, amount) as (values (:0, :1), (:2, cast(:3 as number))) select issueId as "issueId", raw_to_uuid(null) as "billingRef" from issueBilling order by "issueId""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             101,

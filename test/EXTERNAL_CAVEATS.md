@@ -137,28 +137,6 @@ commented out in `test/db/oracle/newest/oracledb/docs.transaction.test.ts`.
 When adding a new Oracle cell, either keep the test commented or write
 a single-arg Oracle-friendly variant.
 
-### Oracle — nullable numeric column in a multi-row VALUES
-
-A multi-row `VALUES` tuple is a union of row constructors, and every
-engine requires each column to share one datatype across all rows.
-`OracleConnection` has no `transformPlaceholder` override (unlike
-`PostgreSqlConnection`, which casts VALUES placeholders — `$2::float8`
-etc.), so Oracle emits bare placeholders and the `oracledb` driver
-binds a JS `null` as a non-numeric type. When a numeric column mixes a
-value and a `null` across rows (e.g. `amount` = `19.99` in row 1,
-`null` in row 2), Oracle rejects it with `ORA-01790: expression must
-have same datatype as corresponding expression`. This is a general
-Oracle limitation for any nullable numeric/date column in a multi-row
-VALUES, not specific to custom types.
-
-- `with-values.advanced.test.ts` →
-  `values-with-custom-typed-columns-emits-customint-customdouble-casts`
-  — commented out in `test/db/oracle/newest/oracledb/` only. The
-  non-null custom-typed path stays real-validated on oracle via the two
-  `values-*-virtual-column-from-fragment-*` tests. The proper fix is an
-  `OracleConnection.transformPlaceholder` that casts VALUES placeholders
-  (including the NULL); deferred to a dedicated session.
-
 ### SQL Server — no INSERT ... ON CONFLICT
 
 Same list of commented tests as Oracle in `test/db/sqlserver/newest/mssql/docs.insert.test.ts`:

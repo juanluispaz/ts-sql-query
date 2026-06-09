@@ -67,27 +67,7 @@ of that. Two minutes of triage and one paragraph is the bar.
 
 ---
 
-## `executeUpdateNoneOrOne` / `executeUpdateOne` are not exposed on a bare `dynamicSet()` — bug or design?
-
-**Where**: the `dynamicSet()` builder type (`DynamicExecutableUpdateExpression`)
-exposes only `executeUpdate` (the affected-count path); `executeUpdateNoneOrOne`
-/ `executeUpdateOne` are not on it. The runtime empty-set short-circuit
-(`dynamicSet()` with no columns) does resolve sensibly on those paths
-(`executeUpdateNoneOrOne` → `null`; `executeUpdateOne` → throws NO_COLUMN_SETS),
-but they can only be reached past the type.
-
-**Reproduction**: [`test/db/postgres/newest/pg/update.execute-variants.test.ts`](db/postgres/newest/pg/update.execute-variants.test.ts)
-test `execute-update-none-or-one-with-no-sets-resolves-null` casts the builder
-to `any` to call `executeUpdateNoneOrOne()` and assert `null`. **Needs a design
-call**: if exposing those methods on `dynamicSet()` is intended, this is a
-typing gap to fix; if a no-set update is deliberately restricted to the
-count-only `executeUpdate`, the test exercises an unreachable path and should be
-removed (or made a `types.negative/` assertion) rather than cast through `any`.
-
-**Current workaround in the suite**: `... as any` + `// TODO[BUG]` marker. (The
-sibling `execute-update-one-...-throws` asserts only the exception, so its cast
-is the audit's exempt runtime-guard case; this one asserts a value, so the
-`as-any` warning stays pending the decision.)
+_No open bugs._
 
 ---
 

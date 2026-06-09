@@ -202,10 +202,8 @@ describe(ctx.label, () => {
                 above: (v: number) => tIssue.id.greaterThan(v),
             },
         }
-        // TODO[BUG] (see test/BUGS.md): object-valued column extension rules
-        // run at runtime but DynamicFilter doesn't model them, so the filter
-        // literal needs a cast.
-        const filter = { id: { idRules: { above: 10 } } } as any
+        const filter: DynamicCondition<{ id: 'int' }, { idRules: { above: (v: number) => BooleanResult } }>
+            = { id: { idRules: { above: 10 } } }
         await connection.selectFrom(tIssue)
             .where(connection.dynamicConditionFor(selectFields, extension).withValues(filter))
             .select({ id: tIssue.id })
@@ -233,10 +231,8 @@ describe(ctx.label, () => {
                 },
             },
         }
-        // TODO[BUG] (see test/BUGS.md): object-valued column extension rules
-        // run at runtime but DynamicFilter doesn't model them, so the filter
-        // literal needs a cast.
-        const filter = { id: { idRules: { grp: { above: 10 } } } } as any
+        const filter: DynamicCondition<{ id: 'int' }, { idRules: { grp: { above: (v: number) => BooleanResult } } }>
+            = { id: { idRules: { grp: { above: 10 } } } }
         await connection.selectFrom(tIssue)
             .where(connection.dynamicConditionFor(selectFields, extension).withValues(filter))
             .select({ id: tIssue.id })

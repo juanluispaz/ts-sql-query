@@ -279,7 +279,7 @@ interface Connection {
     /**
      * Allows to create a condition where the criteria is provided by an external system
      */
-    dynamicConditionFor(definition: { [key: string ]: AnyValueSource }): DynamicConditionExpression
+    dynamicConditionFor(definition: Filterable, extension?: DinamicConditionExtension): DynamicConditionExpression
 
     /*
      * The fn function will receive as first argument the table name as ValueSource,

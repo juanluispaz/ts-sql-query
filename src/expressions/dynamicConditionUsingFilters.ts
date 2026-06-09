@@ -159,24 +159,12 @@ export type DynamicCondition<DEFINITION extends DynamicDefinition, EXTENSION ext
     and?: Array<DynamicCondition<DEFINITION, EXTENSION> | undefined>
     or?: Array<DynamicCondition<DEFINITION, EXTENSION> | undefined>
 } & {
-    [KEY in NonReplacedField<DEFINITION, EXTENSION>]?: 
-        KEY extends keyof EXTENSION 
-        ? (
-            DEFINITION[KEY] extends DynamicColumnType<any> 
-            ? ExtendDefinition<FilterTypeOf<DEFINITION[KEY]>, EXTENSION[KEY]> : DEFINITION[KEY] extends AnyValueSource 
-            ? ExtendDefinition<FilterTypeOf<DEFINITION[KEY]>, EXTENSION[KEY]> : DEFINITION[KEY] extends DynamicDefinition 
-            ? ( 
-                EXTENSION[KEY] extends DinamicConditionExtension
-                ? DynamicCondition<DEFINITION[KEY], EXTENSION[KEY]>
-                : DynamicCondition<DEFINITION[KEY], never>
-            ) : never
-        ) : (
-            DEFINITION[KEY] extends DynamicColumnType<any> 
-            ? FilterTypeOf<DEFINITION[KEY]> : DEFINITION[KEY] extends AnyValueSource 
-            ? FilterTypeOf<DEFINITION[KEY]> : DEFINITION[KEY] extends DynamicDefinition 
-            ? DynamicCondition<DEFINITION[KEY], never>
-            : never
-        )
+    [KEY in NonReplacedField<DEFINITION, EXTENSION>]?:
+        DEFINITION[KEY] extends DynamicColumnType<any>
+        ? ColumnFilterWithExtension<FilterTypeOf<DEFINITION[KEY]>, EXTENSION> : DEFINITION[KEY] extends AnyValueSource
+        ? ColumnFilterWithExtension<FilterTypeOf<DEFINITION[KEY]>, EXTENSION> : DEFINITION[KEY] extends DynamicDefinition
+        ? DynamicCondition<DEFINITION[KEY], KEY extends keyof EXTENSION ? (EXTENSION[KEY] extends DinamicConditionExtension ? EXTENSION[KEY] : never) : never>
+        : never
 } & {
     [KEY in DynamicConditionExtensionKeys<EXTENSION>]?: EXTENSION[KEY] extends DynamicConditionRule<infer TYPE> ? TYPE : never
 }
@@ -212,9 +200,26 @@ export type DynamicConditionRule<T> = (rule: T) => IAnyBooleanValueSource<any, a
 type NonReplacedField<DEFINITION, EXTENSION> = Exclude<UsableKeyOf<DEFINITION>, DynamicConditionExtensionKeys<EXTENSION>> 
 type DynamicConditionExtensionKeys<EXTENSION> = {[K in keyof EXTENSION]: EXTENSION[K] extends DynamicConditionRule<any> ? K : never }[keyof EXTENSION]
 
-type ExtendDefinition<T, EXTENSION> = Omit<T, DynamicConditionExtensionKeys<EXTENSION>> & {
-    [KEY in DynamicConditionExtensionKeys<EXTENSION>]?: EXTENSION[KEY] extends DynamicConditionRule<infer TYPE> ? TYPE : never
+// The extension rules as usable inside a column's filter. The runtime forwards
+// the *whole* extension to every value-source column (see
+// `DynamicConditionBuilder.processColumnFilter` /
+// `processAdditionalColumnFilter`), so any extension key can be applied under
+// any column: a function rule maps to its argument type, and a nested object of
+// rules recurses to the same shape (to any depth).
+type DynamicConditionColumnExtension<EXTENSION> = {
+    [KEY in keyof EXTENSION]?:
+        EXTENSION[KEY] extends DynamicConditionRule<infer TYPE> ? TYPE
+        : EXTENSION[KEY] extends DinamicConditionExtension ? DynamicConditionColumnExtension<EXTENSION[KEY]>
+        : never
 }
+
+// A column filter (its built-in operators) widened with the column-scoped
+// extension rules. An extension key shadows a same-named built-in operator,
+// mirroring the runtime which checks the extension before the operators. With
+// no extension (`never`) the column keeps exactly its built-in operators.
+type ColumnFilterWithExtension<COLUMN_FILTER, EXTENSION> =
+    [EXTENSION] extends [never] ? COLUMN_FILTER
+    : Omit<COLUMN_FILTER, keyof EXTENSION> & DynamicConditionColumnExtension<EXTENSION>
 
 // RESCURSIVE type
 export type DynamicFilter<DEFINITION extends Filterable> = {

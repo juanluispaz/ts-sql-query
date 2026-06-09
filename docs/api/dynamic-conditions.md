@@ -146,7 +146,7 @@ const extension = {
     myCondition: (value: string /* your custom rule input */) => {
         // return a BooleanValueSource based on the value
         // ...
-    }
+    },
     myGroup: {
         myGroupCondition: (value: number /* it can be your own type*/) => { 
             // return a BooleanValueSource based on the value
@@ -154,5 +154,5 @@ const extension = {
         }
     }
 }
-const dynamicCondition = connection.dynamicConditionFor(selectFields).withValues(filter, extension)
+const dynamicCondition = connection.dynamicConditionFor(selectFields, extension).withValues(filter)
 ```

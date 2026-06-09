@@ -67,30 +67,6 @@ of that. Two minutes of triage and one paragraph is the bar.
 
 ---
 
-## Object-valued column extension rules are accepted at runtime but rejected by the `DynamicFilter` type
-
-**Where**: the dynamic-condition extension typing (`DynamicFilter` /
-`DynamicCondition` / the extension-key modelling in
-`dynamicConditionUsingFilters.ts`). The runtime
-(`DynamicConditionBuilder.processAdditionalColumnFilter`) accepts a column
-extension entry that is an OBJECT of rules (recursing to any depth) and emits
-correct SQL; the type only models extension entries that are FUNCTIONS
-(`DynamicConditionRule`), so the matching filter shape doesn't typecheck.
-
-**Reproduction**: [`test/db/postgres/newest/pg/dynamic-condition.nested-extension.test.ts`](db/postgres/newest/pg/dynamic-condition.nested-extension.test.ts)
-tests `column-level-object-extension-rule-*`. An extension
-`{ idRules: { above: (v) => tIssue.id.greaterThan(v) } }` plus a filter
-`{ id: { idRules: { above: 10 } } }` runs and emits `where id > $1` correctly,
-but the filter literal only compiles via `as any` — `DynamicFilter` rejects the
-nested-object shape.
-
-**Current workaround in the suite**: the filter is `... as any`, with a
-`// TODO[BUG]` marker. (These tests assert SQL/params, so the cast is not the
-audit's exempt runtime-guard case — the `as-any` warning stays until the type
-models object-valued column extension rules.)
-
----
-
 ## The documented `tables-views-as-parameter` helper does not typecheck
 
 **Where**: the source-tagging chain behind `subSelectUsing` / `fromRef` /

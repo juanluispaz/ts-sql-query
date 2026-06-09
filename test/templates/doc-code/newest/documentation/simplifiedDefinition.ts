@@ -23,6 +23,8 @@ type QueryRunner = any
 type OuterJoinSource = any
 type Argument<_T, _TYPE_NAME> = any
 type DynamicFilter = any
+type Filterable = any
+type DinamicConditionExtension = any
 type RawFragment = any
 type CustomizedTableOrView = any
 type AnyValueSource = ValueSource<any, any>
@@ -37,6 +39,8 @@ void function (
     _ojs: OuterJoinSource,
     _a: Argument<any, any>,
     _df: DynamicFilter,
+    _f: Filterable,
+    _dce: DinamicConditionExtension,
     _rf: RawFragment,
     _ctv: CustomizedTableOrView,
     _avs: AnyValueSource,

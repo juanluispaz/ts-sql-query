@@ -624,6 +624,11 @@ Concretely, the imports the suite uses (`src/Table.ts`,
 enumerated in `exports`. If you have to write a path that does not appear
 there, stop and reconsider.
 
+One forward-looking exception: `src/experimental/*` is a staging area for
+surface that is already meant for tests to consume but is not yet in the
+`exports` map (e.g. `src/experimental/types.ts`). Tests may import it
+directly.
+
 One documented exception exists: query introspection via `__isAllowed` has
 no public API yet, and the test suite reaches it through a single seam at
 [`test/lib/isAllowed.ts`](./lib/isAllowed.ts). See

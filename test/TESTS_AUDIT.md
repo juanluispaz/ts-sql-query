@@ -101,7 +101,7 @@ finding. Fix a finding by making the test validate honestly — never by hiding 
 - `ts-ignore` — `@ts-ignore` / `@ts-nocheck`: forbidden everywhere. A negative-type assertion uses `@ts-expect-error` inside a `types.negative/` cell.
 - `ts-expect-error` — outside a `types.negative/` cell. Build through the public API; a real negative-type assertion belongs in `types.negative/`.
 - `eslint-disable-type` / `eslint-disable-other` — an `eslint-disable` of a type-soundness lint (`no-explicit-any` …) / any other lint. Fix the code instead.
-- `non-public-api` — a relative import past the public surface (into `src/` internals, or a non-admitted `test/lib/` helper). Import only the public library API and the admitted helpers.
+- `non-public-api` — a relative import past the public surface (into `src/` internals, or a non-admitted `test/lib/` helper). Import only the public library API and the admitted helpers (`src/experimental/*` is allowed as a tests-only staging area).
 
 **Don't disable or fake tests silently**
 - `commented-test-reason` — a commented-out test with no reason. Add one of the three first-class markers (see below), or re-enable it.

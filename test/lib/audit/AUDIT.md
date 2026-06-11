@@ -576,7 +576,10 @@ AST-only so comment links to internal files don't count):
   mapped to its src module path, minus `./package.json` and the
   `./__UNSUPPORTED__/*` escape-hatch wildcard. The public set is *derived from
   `package.json`* so it never drifts from what ships; a reach into anything else
-  (`internal`, `queryBuilders`, `sqlBuilders`, `expressions`, …) is flagged.
+  (`internal`, `queryBuilders`, `sqlBuilders`, `expressions`, …) is flagged. The
+  one exception is `src/experimental/*` — a staging area for surface not yet in
+  the `exports` map but already meant for tests to consume, so a relative reach
+  into it is allowed.
 - **non-admitted `test/lib/`** — a `*.test.ts` may import only the admitted
   helpers (`testRunner`, `assertType`, `isAllowed`); the rest of `test/lib/` is
   infra (the audit, searcher/indexer, backends, container lifecycle) and is
@@ -584,8 +587,8 @@ AST-only so comment links to internal files don't count):
   they are fine.
 
 **Status**: **built** (`warn`). Whole matrix: 0 findings today (every src import
-is a public export, every test/lib import is admitted) — a clean preventive
-gate. (`documentation` / `*.generated` cells, which import a mock-runner, are
+is a public export or under the allowed `src/experimental/*`, every test/lib
+import is admitted) — a clean preventive gate. (`documentation` / `*.generated` cells, which import a mock-runner, are
 outside the walked set, so they don't count.)
 
 ### `commented-test-reason` — a commented-out test with no stated reason

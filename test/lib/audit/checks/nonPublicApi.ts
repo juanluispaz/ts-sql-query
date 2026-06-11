@@ -15,7 +15,9 @@
 //     `queryBuilders`, `sqlBuilders`, `expressions`, …) is forbidden even
 //     though it *is* a relative import (the cheat the rule name calls out). The
 //     public set is derived from `package.json` so it never drifts from what
-//     actually ships.
+//     actually ships. The one exception is `src/experimental/*`: a staging area
+//     for surface not yet in the `exports` map but already meant for tests to
+//     consume, so a relative reach into it is allowed.
 //   - **non-admitted `test/lib/`** — tests may use only a few sanctioned
 //     helpers; everything else in `test/lib/` is infra (the audit itself, the
 //     searcher/indexer, container lifecycle, backends, …) and must not be
@@ -89,6 +91,9 @@ function classify(spec: string, file: string): string | undefined {
     const src = abs.match(/\/src\/(.+)$/)
     if (src) {
         const mod = src[1]!.replace(/\.js$/, '')
+        // `src/experimental/*` is an intentionally-public-for-tests staging area
+        // (not yet in the `exports` map): tests may import it directly.
+        if (mod === 'experimental' || mod.startsWith('experimental/')) return undefined
         if (!PUBLIC_SRC.has(mod)) {
             return `imports \`src/${mod}\`, not a public export (package.json \`exports\`) — it is implementation detail reachable for consumers only via __UNSUPPORTED__. Build through the public API; if it is genuinely impossible, the gap belongs in the library, not behind a relative import`
         }

@@ -136,4 +136,69 @@ describe(ctx.label, () => {
         }
         expect(String(caught)).toMatch(/INVALID_ORDER_BY_ORDERING|Unknow ordering clause/)
     })
+
+    // ---- orderByFromStringArray / orderByFromStringArrayIfValue ----
+    // The array forms process each element through the same per-clause
+    // builder path as `orderByFromString` (no intermediate joined string),
+    // so each case is asserted as an equivalence against the comma-joined
+    // string form — the from-string cases above already pin the per-dialect
+    // SQL, so no new snapshot is needed here.
+
+    test('order-by-from-string-array-matches-the-comma-joined-string', async () => {
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .select({ id: tIssue.id, priority: tIssue.priority })
+            .orderByFromStringArray(['priority asc nulls first', 'id desc nulls last'])
+            .executeSelectMany()
+        const arraySql = ctx.lastSql
+        const arrayParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .select({ id: tIssue.id, priority: tIssue.priority })
+            .orderByFromString('priority asc nulls first, id desc nulls last')
+            .executeSelectMany()
+
+        expect(arraySql).toBe(ctx.lastSql)
+        expect(arrayParams).toEqual(ctx.lastParams)
+    })
+
+    test('order-by-from-string-array-ifvalue-drops-empty-entries', async () => {
+        // null / undefined / '' entries are filtered out (via the same
+        // `__isValue` gate every IfValue method uses) before joining; the
+        // surviving clauses behave exactly like the from-string form.
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .select({ id: tIssue.id, priority: tIssue.priority })
+            .orderByFromStringArrayIfValue([null, 'priority desc', undefined, ''])
+            .executeSelectMany()
+        const arraySql = ctx.lastSql
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .select({ id: tIssue.id, priority: tIssue.priority })
+            .orderByFromString('priority desc')
+            .executeSelectMany()
+
+        expect(arraySql).toBe(ctx.lastSql)
+    })
+
+    test('order-by-from-string-array-ifvalue-all-empty-is-noop', async () => {
+        // When every entry is filtered out (or the array is absent), no
+        // ORDER BY is emitted — the same no-op as `orderByFromStringIfValue(null)`.
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .select({ id: tIssue.id })
+            .orderByFromStringArrayIfValue([null, undefined, ''])
+            .executeSelectMany()
+        const emptySql = ctx.lastSql
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .select({ id: tIssue.id })
+            .orderByFromStringIfValue(null)
+            .executeSelectMany()
+
+        expect(emptySql).toBe(ctx.lastSql)
+    })
 })

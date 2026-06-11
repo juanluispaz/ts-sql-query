@@ -259,52 +259,7 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, Has
 
         const split = orderBy.trim().toLowerCase().replace(/\s+/g, ' ').split(/\s*,\s*/)
         for (let i = 0, length = split.length; i < length; i++) {
-            const clause = split[i]!
-            const separatorIndex = clause.indexOf(' ')
-            let column
-            let ordering
-            if (separatorIndex < 0) {
-                column = clause
-                ordering = null
-            } else {
-                column = clause.substring(0, separatorIndex)
-                ordering = clause.substring(separatorIndex + 1)
-            }
-            const realColumnName = this.__getColumnNameFromColumnsObjectLowerCase(column)
-            if (!realColumnName) {
-                throw new TsSqlProcessingError({ reason: 'ORDER_BY_COLUMN_NOT_IN_SELECT', column }, 'The column "' + column + '" is not part of the select clause')
-            }
-            if (ordering === 'asc') {
-                this.__addOrderBy(realColumnName, 'asc')
-            } else if (ordering === 'desc') {
-                this.__addOrderBy(realColumnName, 'desc')
-            } else if (ordering === 'asc nulls first') {
-                this.__addOrderBy(realColumnName, 'asc nulls first')
-            } else if (ordering === 'desc nulls first') {
-                this.__addOrderBy(realColumnName, 'desc nulls first')
-            } else if (ordering === 'asc nulls last') {
-                this.__addOrderBy(realColumnName, 'asc nulls last')
-            } else if (ordering === 'desc nulls last') {
-                this.__addOrderBy(realColumnName, 'desc nulls last')
-            } else if (ordering === 'insensitive') {
-                this.__addOrderBy(realColumnName, 'insensitive')
-            } else if (ordering === 'asc insensitive') {
-                this.__addOrderBy(realColumnName, 'asc insensitive')
-            } else if (ordering === 'desc insensitive') {
-                this.__addOrderBy(realColumnName, 'desc insensitive')
-            } else if (ordering === 'asc nulls first insensitive') {
-                this.__addOrderBy(realColumnName, 'asc nulls first insensitive')
-            } else if (ordering === 'desc nulls first insensitive') {
-                this.__addOrderBy(realColumnName, 'desc nulls first insensitive')
-            } else if (ordering === 'asc nulls last insensitive') {
-                this.__addOrderBy(realColumnName, 'asc nulls last insensitive')
-            } else if (ordering === 'desc nulls last insensitive') {
-                this.__addOrderBy(realColumnName, 'desc nulls last insensitive')
-            } else if (!ordering) {
-                this.__addOrderBy(realColumnName)
-            } else {
-                throw new TsSqlProcessingError({ reason: 'INVALID_ORDER_BY_ORDERING', column, ordering }, 'Unknow ordering clause "' + ordering + '" in the order by related to the column "' + column + '"')
-            }
+            this.__addOrderByClauseFromString(split[i]!)
         }
         return this
     }
@@ -315,6 +270,76 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, Has
             this.__finishJoinHaving()
             this.__query = ''
             return this
+        }
+    }
+    orderByFromStringArray(orderBy: readonly string[]): any {
+        this.__finishJoinHaving()
+        this.__query = ''
+
+        for (let i = 0, length = orderBy.length; i < length; i++) {
+            this.__addOrderByClauseFromString(orderBy[i]!.trim().toLowerCase().replace(/\s+/g, ' '))
+        }
+        return this
+    }
+    orderByFromStringArrayIfValue(orderBy: ReadonlyArray<string | null | undefined> | null | undefined): any {
+        this.__finishJoinHaving()
+        this.__query = ''
+
+        if (orderBy) {
+            for (let i = 0, length = orderBy.length; i < length; i++) {
+                const clause = orderBy[i]
+                if (this.__isValue(clause)) {
+                    this.__addOrderByClauseFromString(clause.trim().toLowerCase().replace(/\s+/g, ' '))
+                }
+            }
+        }
+        return this
+    }
+    __addOrderByClauseFromString(clause: string): void {
+        const separatorIndex = clause.indexOf(' ')
+        let column
+        let ordering
+        if (separatorIndex < 0) {
+            column = clause
+            ordering = null
+        } else {
+            column = clause.substring(0, separatorIndex)
+            ordering = clause.substring(separatorIndex + 1)
+        }
+        const realColumnName = this.__getColumnNameFromColumnsObjectLowerCase(column)
+        if (!realColumnName) {
+            throw new TsSqlProcessingError({ reason: 'ORDER_BY_COLUMN_NOT_IN_SELECT', column }, 'The column "' + column + '" is not part of the select clause')
+        }
+        if (ordering === 'asc') {
+            this.__addOrderBy(realColumnName, 'asc')
+        } else if (ordering === 'desc') {
+            this.__addOrderBy(realColumnName, 'desc')
+        } else if (ordering === 'asc nulls first') {
+            this.__addOrderBy(realColumnName, 'asc nulls first')
+        } else if (ordering === 'desc nulls first') {
+            this.__addOrderBy(realColumnName, 'desc nulls first')
+        } else if (ordering === 'asc nulls last') {
+            this.__addOrderBy(realColumnName, 'asc nulls last')
+        } else if (ordering === 'desc nulls last') {
+            this.__addOrderBy(realColumnName, 'desc nulls last')
+        } else if (ordering === 'insensitive') {
+            this.__addOrderBy(realColumnName, 'insensitive')
+        } else if (ordering === 'asc insensitive') {
+            this.__addOrderBy(realColumnName, 'asc insensitive')
+        } else if (ordering === 'desc insensitive') {
+            this.__addOrderBy(realColumnName, 'desc insensitive')
+        } else if (ordering === 'asc nulls first insensitive') {
+            this.__addOrderBy(realColumnName, 'asc nulls first insensitive')
+        } else if (ordering === 'desc nulls first insensitive') {
+            this.__addOrderBy(realColumnName, 'desc nulls first insensitive')
+        } else if (ordering === 'asc nulls last insensitive') {
+            this.__addOrderBy(realColumnName, 'asc nulls last insensitive')
+        } else if (ordering === 'desc nulls last insensitive') {
+            this.__addOrderBy(realColumnName, 'desc nulls last insensitive')
+        } else if (!ordering) {
+            this.__addOrderBy(realColumnName)
+        } else {
+            throw new TsSqlProcessingError({ reason: 'INVALID_ORDER_BY_ORDERING', column, ordering }, 'Unknow ordering clause "' + ordering + '" in the order by related to the column "' + column + '"')
         }
     }
     orderingSiblingsOnly(): any {

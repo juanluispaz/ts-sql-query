@@ -21,8 +21,8 @@ This page explains how to write **dynamic SQL queries** using `ts-sql-query` whi
 **When you realize a select, you can**:
 
 - specify in your order by clause that the order must be case insensitive when the column type is string (ignored otherwise). To do it, add `insensitive` at the end of the ordering criteria/mode
-- add a dynamic `order by` provided by the user without risk of SQL injection and without exposing the internal structure of the database. To build a dynamic `order by` use the method `orderByFromString` with the usual order by syntax (and with the possibility to use the insensitive extension), but using as column's name the name of the property in the resulting object
-- You can apply `order by`, `limit` and `offset` optionally calling `orderByFromStringIfValue`, `limitIfValue` and `offsetIfValue`
+- add a dynamic `order by` provided by the user without risk of SQL injection and without exposing the internal structure of the database. To build a dynamic `order by` use the method `orderByFromString` with the usual order by syntax (and with the possibility to use the insensitive extension), but using as column's name the name of the property in the resulting object. If you already have the order by criteria split as an array of clauses, use `orderByFromStringArray` instead (each element is one clause; they are joined for you)
+- You can apply `order by`, `limit` and `offset` optionally calling `orderByFromStringIfValue`, `orderByFromStringArrayIfValue`, `limitIfValue` and `offsetIfValue`
 
 **Additionally, you can**:
 
@@ -53,6 +53,7 @@ const firstNameContains = 'ohn';
 const lastNameContains = null;
 const birthdayIs = null;
 const searchOrderBy = 'name insensitive, birthday asc nulls last';
+// const searchOrderBy = ['name insensitive', 'birthday asc nulls last']; // order by as string array
 
 const searchedCustomers = connection.selectFrom(tCustomer)
     .where(
@@ -67,6 +68,7 @@ const searchedCustomers = connection.selectFrom(tCustomer)
         birthday: tCustomer.birthday
     })
     .orderByFromString(searchOrderBy)
+    // .orderByFromStringArray(searchOrderBy) // If you use searchOrderBy as string array
     .executeSelectMany();
 ```
 

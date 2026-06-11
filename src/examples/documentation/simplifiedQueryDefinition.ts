@@ -2066,6 +2066,9 @@ interface SelectExpression {
     /** Allows to specify an order by dynamically, it is parsed from the provided string */
     orderByFromString(orderBy: string): this
     orderByFromStringIfValue(orderBy: string | null | undefined): this
+    /** Allows to specify an order by dynamically, it is parsed from the provided array of clauses joined with commas */
+    orderByFromStringArray(orderBy: readonly string[]): this
+    orderByFromStringArrayIfValue(orderBy: ReadonlyArray<string | null | undefined> | null | undefined): this
 
     /** Allows to specify the maximum number of rows that will be returned by the query */
     limit(limit: number): this

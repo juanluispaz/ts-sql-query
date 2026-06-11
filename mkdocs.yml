@@ -59,6 +59,8 @@ markdown_extensions:
       anchor_linenums: true
       pygments_lang_class: true
       extend_pygments_lang:
+        - name: typescriptreact
+          lang: tsx
         - name: mariadb
           lang: mysql
         - name: mysql

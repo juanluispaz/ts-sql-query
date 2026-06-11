@@ -164,6 +164,7 @@ nav:
     - Extract columns from an object: advanced/columns-from-object.md
     - Utility types: advanced/utility-types.md
     - Utility for dynamic picks: advanced/utility-dynamic-picks.md
+    - Deep utilities: advanced/deep-utilities.md
     - Passing tables and views as parameter: advanced/tables-views-as-parameter.md
     - Query execution metadata: advanced/query-execution-metadata.md
   - Keywords:

@@ -76,3 +76,6 @@ export {
 } from './extras/utils.js'
 
 export { sync } from './extras/sync.js'
+
+export { deepPick, deepOmit } from './extras/deepUtilities.js' // or 'ts-sql-query/extras/deepUtilities'
+export type { DeepPick, DeepOmit, DeepPickPaths } from './extras/deepUtilities.js' // or 'ts-sql-query/extras/deepUtilities'

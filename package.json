@@ -189,6 +189,10 @@
             "types": "./queryRunners/Sqlite3WasmOO1QueryRunner.d.ts",
             "default": "./queryRunners/Sqlite3WasmOO1QueryRunner.js"
         },
+        "./extras/deepUtilities": {
+            "types": "./extras/deepUtilities.d.ts",
+            "default": "./extras/deepUtilities.js"
+        },
         "./extras/IDEncrypter": {
             "types": "./extras/IDEncrypter.d.ts",
             "default": "./extras/IDEncrypter.js"

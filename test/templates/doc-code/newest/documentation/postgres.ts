@@ -68,6 +68,7 @@ import {
     type PickValuesPathWitAllProperties,
     type DynamicCondition
 } from '../../../../../src/dynamicCondition.js'
+import { deepPick, deepOmit, type DeepPick, type DeepOmit, type DeepPickPaths } from '../../../../../src/extras/deepUtilities.js'
 
 import { fromRef, type TableOrViewLeftJoinOf, type TableOrViewOf } from '../../../../../src/extras/types.js'
 import { type DefaultTypeAdapter, type TypeAdapter } from '../../../../../src/TypeAdapter.js'
@@ -285,6 +286,9 @@ void dynamicPickPaths,
 void fromRef
 void availableFields
 void expandTypeFromDynamicPickPaths
+void deepPick
+void deepOmit
+void function(_dp: DeepPick<any, string>, _do: DeepOmit<any, string>, _dpp: DeepPickPaths<any>) {}
 
 void function(
     _qt: QueryType,

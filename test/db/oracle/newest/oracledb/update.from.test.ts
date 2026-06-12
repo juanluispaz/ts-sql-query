@@ -45,9 +45,10 @@ describe(ctx.label, () => {
                     .select({ id: tProject.id, name: tProject.name })
                     .orderBy('id')
                     .executeSelectMany()
-                for (const p of projects) {
-                    expect(p.name).toContain('Acme Corp')
-                }
+                expect(projects).toEqual([
+                    { id: 1, name: 'Marketing site / Acme Corp' },
+                    { id: 2, name: 'Internal tools / Acme Corp' },
+                ])
             } else {
                 expect(affected).toBe(2)
             }

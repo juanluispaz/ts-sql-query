@@ -27,17 +27,28 @@ describe(ctx.label, () => {
 
     test('insert default values', async () => {
         ctx.mockNext(99)
+        let id: number | undefined
+        let thrownError: unknown
         try {
-            await (ctx.conn.insertInto(tDefaultsOnly) as any)
+            // SQL Server still resolves a required column here, so
+            // `.defaultValues()` types as `never`; the cast keeps the
+            // runtime DEFAULT VALUES emission exercised.
+            // tests-audit-disable-next-line as-any -- runtime-guard exception: .defaultValues() types as never on SQL Server (DESIGN §as-any)
+            id = await (ctx.conn.insertInto(tDefaultsOnly) as any)
                 .defaultValues()
                 .returningLastInsertedId()
                 .executeInsert()
-        } catch {
-            // expected on real DB — the local table doesn't exist in
-            // the seed; the SQL builder still emits the DEFAULT VALUES
-            // form that this test checks.
+        } catch (e) {
+            // The table is absent from the schema, so the real INSERT
+            // fails referencing the missing relation.
+            thrownError = e
         }
         expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into defaults_only_table_only_for_sql_test output inserted.id default values"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        if (ctx.realDbEnabled) {
+            expect((thrownError as Error).message).toMatch(/defaults_only_table_only_for_sql_test|Invalid object name|does not exist/)
+        } else {
+            expect(id).toBe(99)
+        }
     })
 })

@@ -148,7 +148,7 @@ describe(ctx.label, () => {
                     status:    'open',
                     priority:  2,
                 })
-                .setIfHasValueIfValue({ title: 'Triaged', body: 'will-skip', priority: '' as any })
+                .setIfHasValueIfValue({ title: 'Triaged', body: 'will-skip', priority: undefined })
                 .setIfHasNoValueIfValue({ body: 'Backfilled', title: '' })
                 .executeInsert()
 
@@ -279,7 +279,7 @@ describe(ctx.label, () => {
             await ctx.conn.insertInto(tIssue)
                 .values([
                     { projectId: 1, number: 200, title: 'A', body: 'present', status: 'open', priority: 1 },
-                    { projectId: 1, number: 201, title: 'B',                  status: 'open', priority: 1 } as any,
+                    { projectId: 1, number: 201, title: 'B',                  status: 'open', priority: 1 },
                 ])
                 .setForAllIfSet({ body: 'in-progress' })
                 .setForAllIfNotSet({ body: 'triage' })
@@ -315,7 +315,7 @@ describe(ctx.label, () => {
             await ctx.conn.insertInto(tIssue)
                 .values([
                     { projectId: 1, number: 202, title: 'A', body: 'present', status: 'open', priority: 1 },
-                    { projectId: 1, number: 203, title: 'B',                  status: 'open', priority: 1 } as any,
+                    { projectId: 1, number: 203, title: 'B',                  status: 'open', priority: 1 },
                 ])
                 .setForAllIfSetIfValue({ body: undefined })
                 .setForAllIfNotSetIfValue({ body: 'staged-only' })

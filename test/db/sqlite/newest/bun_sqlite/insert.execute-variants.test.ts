@@ -160,15 +160,10 @@ describe(ctx.label, () => {
         // null.
         ctx.mockNext(500)
         await ctx.withRollback(async () => {
-            let result: number | null = null
-            try {
-                result = await ctx.conn.insertInto(tOrganization)
-                    .values({ name: 'Umbrella Corp', plan: 'pro' })
-                    .returningOneColumn(tOrganization.id)
-                    .executeInsertNoneOrOne()
-            } catch (e) {
-                if (!ctx.realDbEnabled) throw e
-            }
+            const result = await ctx.conn.insertInto(tOrganization)
+                .values({ name: 'Umbrella Corp', plan: 'pro' })
+                .returningOneColumn(tOrganization.id)
+                .executeInsertNoneOrOne()
             expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?, ?) returning id as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
@@ -176,29 +171,36 @@ describe(ctx.label, () => {
                 "pro",
               ]
             `)
-            if (!ctx.realDbEnabled) expect(result).toBe(500)
+            // Real DB writes the row and returns its engine-assigned id;
+            // the mock pre-shapes it to 500.
+            if (ctx.realDbEnabled) expect(typeof result).toBe('number')
+            else expect(result).toBe(500)
         })
     })
 
     test('execute-insert-none-or-one-with-returning-one-column-empty-result', async () => {
         // The `__oneColumn` branch coerces missing to `null` (see
         // [InsertQueryBuilder.ts:205](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L205)).
-        // Mock-only: real INSERT always writes the row.
-        if (ctx.realDbEnabled) return
-        ctx.mockNext(undefined)
-        const result = await ctx.conn.insertInto(tOrganization)
-            .values({ name: 'Oscorp', plan: 'free' })
-            .returningOneColumn(tOrganization.id)
-            .executeInsertNoneOrOne()
+        // The empty-result coercion is only reachable through the mock
+        // (`mockNext(undefined)`); a real INSERT always writes the row and
+        // returns its id, so real mode asserts a number instead.
+        await ctx.withRollback(async () => {
+            ctx.mockNext(undefined)
+            const result = await ctx.conn.insertInto(tOrganization)
+                .values({ name: 'Oscorp', plan: 'free' })
+                .returningOneColumn(tOrganization.id)
+                .executeInsertNoneOrOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?, ?) returning id as result"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            "Oscorp",
-            "free",
-          ]
-        `)
-        expect(result).toBeNull()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?, ?) returning id as result"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Oscorp",
+                "free",
+              ]
+            `)
+            if (ctx.realDbEnabled) expect(typeof result).toBe('number')
+            else expect(result).toBeNull()
+        })
     })
 
     test('execute-insert-one-with-returning-one-column', async () => {
@@ -208,15 +210,10 @@ describe(ctx.label, () => {
         // value branch.
         ctx.mockNext(777)
         await ctx.withRollback(async () => {
-            let result: number | null = null
-            try {
-                result = await ctx.conn.insertInto(tOrganization)
-                    .values({ name: 'LexCorp', plan: 'pro' })
-                    .returningOneColumn(tOrganization.id)
-                    .executeInsertOne()
-            } catch (e) {
-                if (!ctx.realDbEnabled) throw e
-            }
+            const result = await ctx.conn.insertInto(tOrganization)
+                .values({ name: 'LexCorp', plan: 'pro' })
+                .returningOneColumn(tOrganization.id)
+                .executeInsertOne()
             expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?, ?) returning id as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
@@ -224,7 +221,10 @@ describe(ctx.label, () => {
                 "pro",
               ]
             `)
-            if (!ctx.realDbEnabled) expect(result).toBe(777)
+            // Real DB writes the row and returns its engine-assigned id;
+            // the mock pre-shapes it to 777.
+            if (ctx.realDbEnabled) expect(typeof result).toBe('number')
+            else expect(result).toBe(777)
         })
     })
 

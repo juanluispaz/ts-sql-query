@@ -134,19 +134,10 @@ describe(ctx.label, () => {
 
     test('customize-compound-hook-interpolates-bound-param', async () => {
         // The `beforeQuery` hook interpolates a runtime value via
-        // `${connection.const(...)}` — exercises the path where a
-        // compound's customization fragment binds its own param into
-        // the surrounding query (locks the param-order story for
-        // hook-params relative to compound-body params: hook param
-        // FIRST, body params after).
-        //
-        // Mock-only: the placeholder is emitted inside a `/* ... */`
-        // SQL comment, and several drivers (incl. bun:sqlite) strip
-        // comments before counting placeholders and reject the extra
-        // param at execution. DESIGN.md §1 #18 names "synthetic SQL
-        // that is the test's whole point" as the documented exception
-        // for the guard — mirrors the same guard on
-        // `customize-select-hook-fragment-with-bound-param`.
+        // `${connection.const(...)}`, locking the param-order story
+        // for hook-params relative to compound-body params: hook param
+        // FIRST, body params after.
+        // tests-audit-disable-next-line mock-only -- hook param lands inside a /* */ comment; mariadb strips the comment then rejects the extra ? against the compound body's own placeholder (DESIGN §1 #18)
         if (ctx.realDbEnabled) return
         const connection = ctx.conn
         const projectsQ = connection.selectFrom(tProject)

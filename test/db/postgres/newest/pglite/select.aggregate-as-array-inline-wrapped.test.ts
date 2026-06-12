@@ -1,23 +1,8 @@
-// Coverage of `_appendAggragateArrayWrappedColumns` — reached when an
+// Coverage of the inline-aggregate wrapped path — reached when an
 // inline aggregate subquery (`forUseAsInlineAggregatedArrayValue()`)
-// also carries `group by`, `having`, a compound operator, or — on
-// engines that don't support `order by` / `limit` inside the aggregate
-// function — those clauses too. `_needAgggregateArrayWrapper` returns
-// true and the builder wraps the inner select with the dialect's
-// "select aggregate from (subquery)" form.
-//
-// The existing docs.aggregate-as-object-array tests exercise the
-// non-wrapped path. Adding the wrapped path here lights up:
-//   - AbstractMySqlMariaBDSqlBuilder._appendAggragateArrayWrappedColumns
-//     (MariaDB falls through to it; MySQL overrides)
-//   - the wrapped branch in every other dialect's override
-//
-// Like other inline-aggregate tests, the JSON returned from the real
-// DB is a string that has to be re-parsed by the type adapter — we
-// gate the value assertion to mock mode and capture the SQL snapshot
-// per dialect. The runner is wrapped in try/catch because some
-// dialects reject the unusual compound-inside-aggregate form at
-// execution time.
+// also carries `group by`, `having`, or a compound operator, forcing the
+// builder to wrap the inner select with the "select aggregate from
+// (subquery)" form.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -34,13 +19,8 @@ describe(ctx.label, () => {
         // wrap (`group by` ≠ identity over the subquery), so the builder
         // wraps the grouped select with the dialect's aggregate-over-
         // subquery form.
-        const expected = {
-            id: 1, name: 'Acme Corp',
-            projectStats: [
-                { id: 1, count: 2 },
-                { id: 2, count: 1 },
-            ],
-        }
+        // org 1 owns projects 1 (issues 1,2 → count 2) and 2 (issue 3 → count 1).
+        // The inner json_agg has no order by, so sort by id before comparing.
         ctx.mockNext({
             id: 1, name: 'Acme Corp',
             projectStats: JSON.stringify([
@@ -48,34 +28,36 @@ describe(ctx.label, () => {
                 { id: 2, count: 1 },
             ]),
         })
-        try {
-            const projectStats = ctx.conn.subSelectUsing(tOrganization).from(tProject)
-                .innerJoin(tIssue).on(tIssue.projectId.equals(tProject.id))
-                .where(tProject.organizationId.equals(tOrganization.id))
-                .select({
-                    id:    tProject.id,
-                    count: ctx.conn.count(tIssue.id),
-                })
-                .groupBy('id')
-                .forUseAsInlineAggregatedArrayValue()
+        const projectStats = ctx.conn.subSelectUsing(tOrganization).from(tProject)
+            .innerJoin(tIssue).on(tIssue.projectId.equals(tProject.id))
+            .where(tProject.organizationId.equals(tOrganization.id))
+            .select({
+                id:    tProject.id,
+                count: ctx.conn.count(tIssue.id),
+            })
+            .groupBy('id')
+            .forUseAsInlineAggregatedArrayValue()
 
-            const row = await ctx.conn.selectFrom(tOrganization)
-                .where(tOrganization.id.equals(1))
-                .select({
-                    id:           tOrganization.id,
-                    name:         tOrganization.name,
-                    projectStats,
-                })
-                .executeSelectOne()
-            assertType<Exact<typeof row, {
-                id:           number
-                name:         string
-                projectStats: Array<{ id: number; count: number }>
-            }>>()
-            if (!ctx.realDbEnabled) expect(row).toEqual(expected)
-        } catch (e) {
-            if (!ctx.realDbEnabled) throw e
-        }
+        const row = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.id.equals(1))
+            .select({
+                id:           tOrganization.id,
+                name:         tOrganization.name,
+                projectStats,
+            })
+            .executeSelectOne()
+        assertType<Exact<typeof row, {
+            id:           number
+            name:         string
+            projectStats: Array<{ id: number; count: number }>
+        }>>()
+        expect({ ...row, projectStats: [...row.projectStats].sort((a, b) => a.id - b.id) }).toEqual({
+            id: 1, name: 'Acme Corp',
+            projectStats: [
+                { id: 1, count: 2 },
+                { id: 2, count: 1 },
+            ],
+        })
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, (select json_agg(json_build_object('id', a_1_.id, 'count', a_1_.count)) from (select project.id as id, count(issue.id) as count from project inner join issue on issue.project_id = project.id where project.organization_id = organization.id group by project.id) as a_1_) as "projectStats" from organization where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
@@ -88,43 +70,40 @@ describe(ctx.label, () => {
         // `having` is one of the wrap triggers in
         // `_needAgggregateArrayWrapper`. A `group by` is required before
         // a `having` clause, so the query carries both.
-        const expected = {
-            id: 1, name: 'Acme Corp',
-            busyProjects: [{ id: 1, count: 2 }],
-        }
+        // Only project 1 has more than one issue (count 2), so having count>1
+        // leaves a single grouped row.
         ctx.mockNext({
             id: 1, name: 'Acme Corp',
             busyProjects: JSON.stringify([{ id: 1, count: 2 }]),
         })
-        try {
-            const busyProjects = ctx.conn.subSelectUsing(tOrganization).from(tProject)
-                .innerJoin(tIssue).on(tIssue.projectId.equals(tProject.id))
-                .where(tProject.organizationId.equals(tOrganization.id))
-                .select({
-                    id:    tProject.id,
-                    count: ctx.conn.count(tIssue.id),
-                })
-                .groupBy('id')
-                .having(ctx.conn.count(tIssue.id).greaterThan(1))
-                .forUseAsInlineAggregatedArrayValue()
+        const busyProjects = ctx.conn.subSelectUsing(tOrganization).from(tProject)
+            .innerJoin(tIssue).on(tIssue.projectId.equals(tProject.id))
+            .where(tProject.organizationId.equals(tOrganization.id))
+            .select({
+                id:    tProject.id,
+                count: ctx.conn.count(tIssue.id),
+            })
+            .groupBy('id')
+            .having(ctx.conn.count(tIssue.id).greaterThan(1))
+            .forUseAsInlineAggregatedArrayValue()
 
-            const row = await ctx.conn.selectFrom(tOrganization)
-                .where(tOrganization.id.equals(1))
-                .select({
-                    id:           tOrganization.id,
-                    name:         tOrganization.name,
-                    busyProjects,
-                })
-                .executeSelectOne()
-            assertType<Exact<typeof row, {
-                id:           number
-                name:         string
-                busyProjects: Array<{ id: number; count: number }>
-            }>>()
-            if (!ctx.realDbEnabled) expect(row).toEqual(expected)
-        } catch (e) {
-            if (!ctx.realDbEnabled) throw e
-        }
+        const row = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.id.equals(1))
+            .select({
+                id:           tOrganization.id,
+                name:         tOrganization.name,
+                busyProjects,
+            })
+            .executeSelectOne()
+        assertType<Exact<typeof row, {
+            id:           number
+            name:         string
+            busyProjects: Array<{ id: number; count: number }>
+        }>>()
+        expect(row).toEqual({
+            id: 1, name: 'Acme Corp',
+            busyProjects: [{ id: 1, count: 2 }],
+        })
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, (select json_agg(json_build_object('id', a_1_.id, 'count', a_1_.count)) from (select project.id as id, count(issue.id) as count from project inner join issue on issue.project_id = project.id where project.organization_id = organization.id group by project.id having count(issue.id) > $1) as a_1_) as "busyProjects" from organization where id = $2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
@@ -132,49 +111,6 @@ describe(ctx.label, () => {
             1,
           ]
         `)
-    })
-
-    test('inline-aggregate-as-required-in-optional-object', async () => {
-        // `asRequiredInOptionalObject()` on the inline-aggregate value
-        // source (ValueSourceImpl.ts:2145 —
-        // AggregateSelectValueSource.asRequiredInOptionalObject) makes the
-        // subquery the gate of an optional inner object. If the subquery
-        // aggregates no rows, json_agg returns NULL and the inner
-        // `meta` object is dropped from the row.
-        ctx.mockNext([
-            { pid: 3, 'meta.issues': [{ id: 4, title: 'Document /v2/users' }] },
-            { pid: 4, 'meta.issues': null },
-        ])
-        const projectIssues = ctx.conn.subSelectUsing(tProject).from(tIssue)
-            .where(tIssue.projectId.equals(tProject.id))
-            .select({ id: tIssue.id, title: tIssue.title })
-            .orderBy('id')
-            .forUseAsInlineAggregatedArrayValue()
-            .asRequiredInOptionalObject()
-
-        const rows = await ctx.conn.selectFrom(tProject)
-            .where(tProject.organizationId.equals(2))
-            .select({
-                pid: tProject.id,
-                meta: { issues: projectIssues },
-            })
-            .orderBy('pid')
-            .executeSelectMany()
-
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, (select json_agg(json_build_object('id', a_1_.id, 'title', a_1_.title)) from (select id as id, title as title from issue where project_id = project.id order by id) as a_1_) as "meta.issues" from project where organization_id = $1 order by pid"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            2,
-          ]
-        `)
-        assertType<Exact<typeof rows, Array<{
-            pid:   number
-            meta?: { issues: Array<{ id: number; title: string }> }
-        }>>>()
-        expect(rows).toEqual([
-            { pid: 3, meta: { issues: [{ id: 4, title: 'Document /v2/users' }] } },
-            { pid: 4 },
-        ])
     })
 
     test('inline-aggregate-use-empty-array-for-no-value-explicit', async () => {
@@ -439,6 +375,49 @@ describe(ctx.label, () => {
         expect(row).toEqual({ id: 1, name: 'Acme Corp' })
     })
 
+    test('inline-aggregate-as-required-in-optional-object', async () => {
+        // `asRequiredInOptionalObject()` on the inline-aggregate value
+        // source (ValueSourceImpl.ts:2145 —
+        // AggregateSelectValueSource.asRequiredInOptionalObject) makes the
+        // subquery the gate of an optional inner object. If the subquery
+        // aggregates no rows, json_agg returns NULL and the inner
+        // `meta` object is dropped from the row.
+        ctx.mockNext([
+            { pid: 3, 'meta.issues': [{ id: 4, title: 'Document /v2/users' }] },
+            { pid: 4, 'meta.issues': null },
+        ])
+        const projectIssues = ctx.conn.subSelectUsing(tProject).from(tIssue)
+            .where(tIssue.projectId.equals(tProject.id))
+            .select({ id: tIssue.id, title: tIssue.title })
+            .orderBy('id')
+            .forUseAsInlineAggregatedArrayValue()
+            .asRequiredInOptionalObject()
+
+        const rows = await ctx.conn.selectFrom(tProject)
+            .where(tProject.organizationId.equals(2))
+            .select({
+                pid: tProject.id,
+                meta: { issues: projectIssues },
+            })
+            .orderBy('pid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, (select json_agg(json_build_object('id', a_1_.id, 'title', a_1_.title)) from (select id as id, title as title from issue where project_id = project.id order by id) as a_1_) as "meta.issues" from project where organization_id = $1 order by pid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            pid:   number
+            meta?: { issues: Array<{ id: number; title: string }> }
+        }>>>()
+        expect(rows).toEqual([
+            { pid: 3, meta: { issues: [{ id: 4, title: 'Document /v2/users' }] } },
+            { pid: 4 },
+        ])
+    })
+
     test('null-inline-aggregate-as-required-in-optional-object', async () => {
         // The Null variant — chaining `onlyWhenOrNull(false)` swaps in
         // `NullAggregateSelectValueSource`; chaining
@@ -480,11 +459,7 @@ describe(ctx.label, () => {
         }>>>()
         expect(rows).toEqual([{ pid: 3 }, { pid: 4 }])
     })
-    // Not applicable: only MariaDB supports ORDER BY inside `json_arrayagg(...)`
-    // for inline aggregated arrays (`_supportOrderByWhenAggregateArray = true`
-    // in MariaDBSqlBuilder; every other dialect wraps the subquery, so the
-    // order-by lives there instead). Bodies copied verbatim from the
-    // canonical mariadb cell for cross-cell diff parity.
+    // NOT-APPLICABLE: only MariaDB supports ORDER BY inside `json_arrayagg(...)` for inline aggregated arrays; every other dialect (PostgreSQL included) wraps the subquery, so the order-by lives there instead. Bodies copied verbatim from the canonical mariadb cell for cross-cell diff parity.
     /*
     test('inline-aggregate-mariadb-order-by-asc-nulls-last-emits-is-null-then-asc', async () => {
         ctx.mockNext({

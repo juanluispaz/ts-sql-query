@@ -20,7 +20,7 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // Not applicable on SQL Server: `.startWith` / `.connectBy` / `.connectByNoCycle` are typed `never` (Oracle-only `START WITH … CONNECT BY` syntax); equivalent shape on SQL Server is a recursive CTE — see `cte.recursive-union-variants.test.ts`.
+    // NOT-APPLICABLE: SQL Server has no `START WITH … CONNECT BY` (Oracle-only); `.startWith` / `.connectBy` / `.connectByNoCycle` are typed `never` here. Equivalent shape is a recursive CTE — see `cte.recursive-union-variants.test.ts`.
     /*
     test('start-with-connect-by-prior-walks-tree-from-roots', async () => {
         // Tree shape after seeding: 3 ← 2 ← 1, plus 4 (root standalone).
@@ -68,7 +68,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // Not applicable on SQL Server: `.startWith` / `.connectBy` / `.connectByNoCycle` are typed `never` (Oracle-only `START WITH … CONNECT BY` syntax); equivalent shape on SQL Server is a recursive CTE — see `cte.recursive-union-variants.test.ts`.
+    // NOT-APPLICABLE: SQL Server has no `START WITH … CONNECT BY` (Oracle-only); `.startWith` / `.connectBy` / `.connectByNoCycle` are typed `never` here. Equivalent shape is a recursive CTE — see `cte.recursive-union-variants.test.ts`.
     /*
     test('connect-by-nocycle-emits-nocycle-keyword', async () => {
         // `connectByNoCycle` is the cycle-safe variant — Oracle stops
@@ -110,7 +110,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // Not applicable on SQL Server: `.startWith` / `.connectBy` / `.connectByNoCycle` are typed `never` (Oracle-only `START WITH … CONNECT BY` syntax); equivalent shape on SQL Server is a recursive CTE — see `cte.recursive-union-variants.test.ts`.
+    // NOT-APPLICABLE: SQL Server has no `START WITH … CONNECT BY` (Oracle-only); `.startWith` / `.connectBy` / `.connectByNoCycle` are typed `never` here. Equivalent shape is a recursive CTE — see `cte.recursive-union-variants.test.ts`.
     /*
     test('start-with-where-and-connect-by-combine', async () => {
         // WHERE narrows the hierarchical result post-walk. START WITH
@@ -168,7 +168,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // Not applicable on SQL Server: `.startWith` / `.connectBy` / `.connectByNoCycle` are typed `never` (Oracle-only `START WITH … CONNECT BY` syntax); equivalent shape on SQL Server is a recursive CTE — see `cte.recursive-union-variants.test.ts`.
+    // NOT-APPLICABLE: SQL Server has no `START WITH … CONNECT BY` (Oracle-only); `.startWith` / `.connectBy` / `.connectByNoCycle` are typed `never` here. Equivalent shape is a recursive CTE — see `cte.recursive-union-variants.test.ts`.
     /*
     test('connect-by-ordering-siblings-only-emits-order-siblings-by', async () => {
         // `.orderingSiblingsOnly()` swaps the trailing `order by` for

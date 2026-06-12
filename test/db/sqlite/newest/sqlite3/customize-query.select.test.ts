@@ -142,13 +142,11 @@ describe(ctx.label, () => {
     })
 
     test('customize-select-hook-fragment-with-bound-param', async () => {
-        // A fragment passed to a hook can interpolate a value source -
-        // here a bound integer via `connection.const(...)`. The
-        // placeholder ends up inside the comment in the snapshot,
-        // proving the fragment routes through `_appendRawFragment` and
-        // not as a string splice. Mock-only because some drivers
-        // strip comments before counting placeholders and would
-        // reject the extra param at execution.
+        // A fragment passed to a hook can interpolate a value source —
+        // here a bound integer via `connection.const(...)`. The placeholder
+        // ends up inside the comment in the snapshot, proving the fragment
+        // routes as a bound param, not a string splice.
+        // tests-audit-disable-next-line mock-only -- sqlite3's driver strips /* */ comments before counting placeholders and rejects the extra bound param on the real engine (DESIGN §1 #18)
         if (ctx.realDbEnabled) return
         ctx.mockNext([{ id: 1 }])
         const connection = ctx.conn

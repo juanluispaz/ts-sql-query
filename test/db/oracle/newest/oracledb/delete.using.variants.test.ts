@@ -88,17 +88,41 @@ describe(ctx.label, () => {
         })
     })
 
-    // Not applicable on Oracle: the server rejects the
-    // `WITH cte AS (...) DELETE FROM a USING cte ...` form with
-    // ORA-00928 "SELECT keyword missing". Oracle accepts WITH only as
-    // a prefix to SELECT; the inline-subquery rewrite (`DELETE FROM
-    // (SELECT ... FROM tgt JOIN cte ...) WHERE ...`) would be needed
-    // instead. The library emits the WITH-prefix form here. See other
-    // cells for the canonical body.
+    // Oracle rejects the `WITH cte AS (...) DELETE FROM a USING cte ...`
+    // form with ORA-00928 "SELECT keyword missing": Oracle accepts WITH
+    // only as a prefix to SELECT; the inline-subquery rewrite (`DELETE
+    // FROM (SELECT ... FROM tgt JOIN cte ...) WHERE ...`) would be needed
+    // instead. The library emits the WITH-prefix form here. Body kept
+    // verbatim from the postgres cell for cross-cell diff parity.
+    // NOT-APPLICABLE: Oracle accepts WITH only as a prefix to SELECT, so DELETE … USING <CTE> (ORA-00928) is not emittable
     /*
     test('delete-using-cte-source', async () => {
-        // ... see other cells for the full body — pins
-        // `with active_projects as (...) delete from issue using ...`.
+        // USING target is a `.forUseInQueryAs(...)` view (a CTE). The
+        // emitted SQL must lead with `with active_projects as (...)`
+        // bubbled up from the USING clause through `__addWiths`.
+        ctx.mockNext(0)
+        await ctx.withRollback(async () => {
+            const activeProjects = ctx.conn.selectFrom(tProject)
+                .where(tProject.archivedAt.isNull())
+                .select({ id: tProject.id })
+                .forUseInQueryAs('active_projects')
+
+            const affected = await ctx.conn.deleteFrom(tIssue)
+                .using(activeProjects)
+                .where(tIssue.projectId.equals(activeProjects.id))
+                .and(tIssue.id.equals(99999))
+                .executeDelete()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"with active_projects as (select id as id from project where archived_at is null) delete from issue using active_projects where issue.project_id = active_projects.id and issue.id = $1"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                99999,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            if (!ctx.realDbEnabled) expect(affected).toBe(0)
+            else expect(typeof affected).toBe('number')
+        })
     })
     */
 

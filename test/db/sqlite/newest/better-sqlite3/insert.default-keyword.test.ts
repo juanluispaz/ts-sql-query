@@ -26,6 +26,9 @@ describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
     afterAll(() => ctx.down(), ctx.timeoutMs)
 
+    // NOT-APPLICABLE: SqliteConnection does not expose default(); SQLite rejects
+    // DEFAULT as a value expression in INSERT VALUES / UPDATE SET. Kept commented
+    // for cross-cell symmetry (compile-time negative lives in types.negative/).
     /*
     import { assertType, type Exact } from '../../../../lib/assertType.js'
     import { tOrganization, tProject } from '../../domain/connection.js'
@@ -111,6 +114,35 @@ describe(ctx.label, () => {
 
             expect(ctx.lastSql).toMatchInlineSnapshot()
             expect(ctx.lastParams).toMatchInlineSnapshot()
+        })
+    })
+
+    test('default-on-custom-boolean-column', async () => {
+        // Regression: `verified` carries a `CustomBooleanTypeAdapter`,
+        // so `_appendCustomBooleanRemapForColumnIfRequired` used to
+        // wrap `connection.default()` in
+        // `case when default then 'Y' else 'N' end` — invalid SQL. The
+        // builder now detects the `Default` sentinel and short-circuits
+        // the remap, emitting the bare `default` keyword (the DDL
+        // default `'N'` wins at runtime).
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const connection = ctx.conn
+            await connection.insertInto(tOrganization)
+                .values({
+                    name:     'CustomBoolDefault',
+                    plan:     'free',
+                    verified: connection.default(),
+                })
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, plan, verified) values (?, ?, default)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "CustomBoolDefault",
+                "free",
+              ]
+            `)
         })
     })
     */

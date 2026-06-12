@@ -135,7 +135,8 @@ describe(ctx.label, () => {
             4,
           ]
         `)
-        if (!ctx.realDbEnabled) expect(rows).toEqual([{ r: 7 }])
+        // 3 + 4 = 7 on the real engine and the primed mock alike.
+        expect(rows).toEqual([{ r: 7 }])
     })
 
     test('build-fragment-with-maybe-optional-args-tracks-optional-on-undefined', async () => {
@@ -162,9 +163,7 @@ describe(ctx.label, () => {
         // mock-row's `null` is either passed through or dropped
         // depending on the optionals-as-null vs optionals-as-undefined
         // projector, so the assertion only requires the row exists.
-        if (!ctx.realDbEnabled) {
-            expect(rows).toHaveLength(1)
-            expect(rows[0]!.r ?? null).toBeNull()
-        }
+        expect(rows).toHaveLength(1)
+        expect(rows[0]!.r ?? null).toBeNull()
     })
 })

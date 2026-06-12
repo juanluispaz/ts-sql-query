@@ -35,19 +35,18 @@ describe(ctx.label, () => {
               ]
             `)
             assertType<Exact<typeof affected, number>>()
+            // Acme Corp is the only `pro` org; its projects are 1 and 2.
+            expect(affected).toBe(2)
             if (ctx.realDbEnabled) {
-                expect(typeof affected).toBe('number')
-                // Acme Corp is the only `pro` org; its projects are 1 and 2.
                 const projects = await ctx.conn.selectFrom(tProject)
                     .where(tProject.organizationId.equals(1))
                     .select({ id: tProject.id, name: tProject.name })
                     .orderBy('id')
                     .executeSelectMany()
-                for (const p of projects) {
-                    expect(p.name).toContain('Acme Corp')
-                }
-            } else {
-                expect(affected).toBe(2)
+                expect(projects).toEqual([
+                    { id: 1, name: 'Marketing site / Acme Corp' },
+                    { id: 2, name: 'Internal tools / Acme Corp' },
+                ])
             }
         })
     })

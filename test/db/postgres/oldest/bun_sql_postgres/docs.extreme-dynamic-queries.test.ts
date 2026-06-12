@@ -17,6 +17,10 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('docs:extreme-dynamic-queries/dynamic-condition-for', async () => {
+        ctx.mockNext([
+            { id: 1, name: 'Marketing site', slug: 'mktg-site' },
+            { id: 2, name: 'Internal tools', slug: 'tools' },
+        ])
         const connection = ctx.conn
 
         // doc-start
@@ -60,12 +64,20 @@ describe(ctx.label, () => {
             name: string
             slug: string
         }>>>()
-        if (ctx.realDbEnabled) {
-            expect(rows.map(r => r.id).sort()).toEqual([1, 2])
-        }
+        // name ilike '%tools%' → Internal tools (2); slug ilike 'mktg%' → mktg-site (1)
+        expect(rows).toEqual([
+            { id: 1, name: 'Marketing site', slug: 'mktg-site' },
+            { id: 2, name: 'Internal tools', slug: 'tools' },
+        ])
     })
 
     test('docs:extreme-dynamic-queries/dynamic-pick', async () => {
+        ctx.mockNext([
+            { name: 'Marketing site', id: 1 },
+            { name: 'Internal tools', id: 2 },
+            { name: 'Public API', id: 3 },
+            { name: 'Legacy app', id: 4 },
+        ])
         const connection = ctx.conn
 
         // doc-start
@@ -96,12 +108,13 @@ describe(ctx.label, () => {
             name?: string
             slug?: string
         }>>>()
-        if (ctx.realDbEnabled) {
-            for (const r of rows) {
-                expect(typeof r.name).toBe('string')
-                expect(r.slug).toBeUndefined()
-            }
-        }
+        // Only `name` (and the explicit `id`) are selected; `slug` is unpicked.
+        expect(rows).toEqual([
+            { id: 1, name: 'Marketing site' },
+            { id: 2, name: 'Internal tools' },
+            { id: 3, name: 'Public API' },
+            { id: 4, name: 'Legacy app' },
+        ])
     })
 
     test('docs:extreme-dynamic-queries/dynamic-pick-paths', async () => {
@@ -307,6 +320,9 @@ describe(ctx.label, () => {
     })
 
     test('docs:extreme-dynamic-queries/dynamic-condition-nested-projection', async () => {
+        ctx.mockNext([
+            { id: 1, title: 'Update hero copy', 'assignee.id': 1, 'assignee.fullName': 'Ada Lovelace' },
+        ])
         const connection = ctx.conn
 
         // doc-start: dynamicConditionFor handles nested projection shapes —
@@ -357,11 +373,10 @@ describe(ctx.label, () => {
             title: string
             assignee?: { id: number; fullName: string }
         }>>>()
-        if (ctx.realDbEnabled) {
-            for (const r of rows) {
-                expect(r.assignee?.fullName).toContain('Ada')
-            }
-        }
+        // Only issue 1's assignee (Ada Lovelace) matches the ilike '%Ada%' filter.
+        expect(rows).toEqual([
+            { id: 1, title: 'Update hero copy', assignee: { id: 1, fullName: 'Ada Lovelace' } },
+        ])
     })
 
     test('docs-extra:extreme-dynamic-queries/dynamic-condition-nested-and-or', async () => {

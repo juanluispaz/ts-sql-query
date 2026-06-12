@@ -11,6 +11,7 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
+    // NOT-APPLICABLE: MySQL has no RETURNING on DELETE.
     /*
     test('delete-returning-one-row', async () => {
         // See sqlite/postgres/mariadb/sqlserver/oracle cells for the active body.

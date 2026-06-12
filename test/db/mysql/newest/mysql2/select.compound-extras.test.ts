@@ -25,6 +25,7 @@ describe(ctx.label, () => {
     // fluent API encodes that by narrowing `intersectAll`,
     // `exceptAll`, `minus` and `minusAll` to `never` for `mysql`. See
     // the postgres / mariadb cells for the active bodies.
+    // NOT-APPLICABLE: MySQL has no INTERSECT/EXCEPT
     /*
     test('intersect-all-emits-intersect-all-syntax', async () => {})
     test('except-all-emits-except-all-syntax', async () => {})

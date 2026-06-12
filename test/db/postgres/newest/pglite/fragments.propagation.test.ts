@@ -25,7 +25,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { isQueryAllowed } from '../../../../lib/isAllowed.js'
-import { tProject } from '../../domain/connection.js'
+import { tOrganization, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -33,9 +33,7 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // Not applicable on this cell: pglite bundles PostgreSQL 17 but `compatibilityVersion = Number.POSITIVE_INFINITY` makes the builder emit PG18+ `OLD.col` syntax that PG17 rejects with `column "old" does not exist`. The PG17-shaped emission is exercised in `postgres/oldest/pglite/` instead.
-    /*
-test('fragment-with-old-values-column-bubbles-up-in-update-returning', async () => {
+    test('fragment-with-old-values-column-bubbles-up-in-update-returning', async () => {
         // A typed fragment that interpolates `oldProject.name` is the
         // sole `result` column of an UPDATE…returningOneColumn. The
         // build path at
@@ -73,7 +71,6 @@ test('fragment-with-old-values-column-bubbles-up-in-update-returning', async () 
             }
         })
     })
-    */
 
     test('fragment-with-values-for-insert-column-bubbles-up-in-on-conflict-do-update-set', async () => {
         // ON CONFLICT … DO UPDATE … SET <col> = <fragment(excluded.col)>
@@ -115,9 +112,7 @@ test('fragment-with-old-values-column-bubbles-up-in-update-returning', async () 
         })
     })
 
-    // Not applicable on this cell: same PG17/compatibilityVersion=Infinity mismatch as above (OLD.col in RETURNING).
-    /*
-test('fragment-from-joined-table-registers-required-column-in-update-from-old-values', async () => {
+    test('fragment-from-joined-table-registers-required-column-in-update-from-old-values', async () => {
         // UPDATE … FROM … RETURNING with `oldValues()` and a typed
         // fragment referencing a joined-in table column. The fragment
         // sits inside RETURNING and references `tOrganization.name`
@@ -172,22 +167,14 @@ test('fragment-from-joined-table-registers-required-column-in-update-from-old-va
                 newName: string
                 stamp:   string
             }>>()
-            if (!ctx.realDbEnabled) {
-                expect(row).toEqual({
-                    id:      1,
-                    oldName: 'Marketing site',
-                    newName: 'Marketing site / Acme Corp',
-                    stamp:   'Marketing site (was) vs Acme Corp',
-                })
-            } else {
-                expect(row.id).toBe(1)
-                expect(row.oldName).toBe('Marketing site')
-                expect(row.newName).toContain('Acme Corp')
-                expect(row.stamp).toContain('(was)')
-            }
+            expect(row).toEqual({
+                id:      1,
+                oldName: 'Marketing site',
+                newName: 'Marketing site / Acme Corp',
+                stamp:   'Marketing site (was) vs Acme Corp',
+            })
         })
     })
-    */
 
     test('fragment-with-disallowed-interpolated-column-throws-on-build', async () => {
         // The throw comes from the leaf `AllowWhenValueSource.__toSql`

@@ -135,12 +135,6 @@ describe(ctx.label, () => {
         }
     })
 
-    // Best-effort on sqlite3: the deprecated `sqlite3` npm driver cannot bind
-    // a JS BigInt (it sends NULL, tripping the NOT NULL on `view_count`), so
-    // `Sqlite3QueryRunner.addParam` coerces the BigInt to a `number` before
-    // binding — the UPDATE step sends `100`/`200` instead of `100n`/`200n`.
-    // This loses precision above Number.MAX_SAFE_INTEGER; these values
-    // round-trip exactly.
     test('aggregate-of-bigint-column-as-array', async () => {
         // Pins the `bigint` case in the SqlServer JSON switch. SqlServer
         // wraps bigint with `convert(nvarchar, ..., 0)` (the value
@@ -283,15 +277,6 @@ describe(ctx.label, () => {
         })
     })
 
-    // Best-effort on sqlite3: `view_count` is a `bigint` and the deprecated
-    // `sqlite3` driver cannot bind a JS BigInt (it sends NULL, tripping the
-    // NOT NULL on `view_count`), so `Sqlite3QueryRunner.addParam` coerces the
-    // BigInt to a `number` before binding — the UPDATE steps send `100`/`200`
-    // instead of `100n`/`200n`, the same handling as
-    // `aggregate-of-bigint-column-as-array` above. (The `external_ref` uuid
-    // property round-trips as plain TEXT under the shared test connection's
-    // `'string'` uuid strategy.) This loses precision above
-    // Number.MAX_SAFE_INTEGER; these values round-trip exactly.
     test('aggregate-of-object-with-bigint-uuid-and-double', async () => {
         // Wrapped (object-shape) `aggregateAsArray({...})` mixing
         // `bigint` + optional `uuid` + optional `double`. Pins the

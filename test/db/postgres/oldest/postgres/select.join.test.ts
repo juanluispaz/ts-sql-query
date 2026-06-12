@@ -96,9 +96,9 @@ describe(ctx.label, () => {
     })
 
     test('join-with-alias', async () => {
-        const expected = [
-            { id: 1, child: 'Redesign navbar' },
-        ]
+        // Self-join on parent_id. No seeded issue has a parent_id, so the
+        // inner join matches nothing.
+        const expected: Array<{ id: number; child: string }> = []
         ctx.mockNext(expected)
         const parent = tIssue.as('parent')
         const child  = tIssue.as('child')
@@ -115,6 +115,6 @@ describe(ctx.label, () => {
             id:    number
             child: string
         }>>>()
-        if (!ctx.realDbEnabled) expect(result).toEqual(expected)
+        expect(result).toEqual(expected)
     })
 })

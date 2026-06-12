@@ -27,7 +27,7 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // Not applicable on SQLite: `tTable.oldValues()` is typed `never` on `SqliteConnection` ([Table.ts:60-61](../../../../../src/Table.ts#L60-L61) — pending https://sqlite.org/forum/forumpost/2d49770b89 to enable native pre/post column references); audit-style RETURNING with old/new must be emulated via a separate SELECT before the UPDATE.
+    // NOT-APPLICABLE: SQLite has no native pre/post column references, so `tTable.oldValues()` is typed `never` on `SqliteConnection` (pending https://sqlite.org/forum/forumpost/2d49770b89); audit-style RETURNING with old/new must be emulated via a separate SELECT before the UPDATE.
     /*
     test('returning-old-and-new-single-column-via-oldValues', async () => {
         // Update project 1's name; return both the previous and the
@@ -64,7 +64,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // Not applicable on SQLite: `tTable.oldValues()` is typed `never` on `SqliteConnection` ([Table.ts:60-61](../../../../../src/Table.ts#L60-L61) — pending https://sqlite.org/forum/forumpost/2d49770b89 to enable native pre/post column references); audit-style RETURNING with old/new must be emulated via a separate SELECT before the UPDATE.
+    // NOT-APPLICABLE: SQLite has no native pre/post column references, so `tTable.oldValues()` is typed `never` on `SqliteConnection` (pending https://sqlite.org/forum/forumpost/2d49770b89); audit-style RETURNING with old/new must be emulated via a separate SELECT before the UPDATE.
     /*
     test('returning-old-and-new-two-columns-via-oldValues', async () => {
         // Two-column audit projection: pre/post name and pre/post

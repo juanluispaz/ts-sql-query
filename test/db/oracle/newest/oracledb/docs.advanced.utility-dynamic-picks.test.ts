@@ -114,6 +114,7 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         // Pick<ProjectInformation, 'name' | 'id'> → { id, name }, both required.
         assertType<Extends<typeof result, Array<{ id: number; name: string }>>>()
+        // tests-audit-disable-next-line one-sided-guard -- query has no WHERE, so the real DB returns all 4 seeded projects while the mock primes only 2
         if (!ctx.realDbEnabled) {
             expect(result).toEqual([
                 { id: 1, name: 'Marketing site' },

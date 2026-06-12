@@ -19,7 +19,9 @@
 // Active in postgres + sqlserver + mariadb cells; commented out in
 // sqlite/mysql/oracle (typed `never`).
 
-import { afterAll, beforeAll, beforeEach, describe } from '../../../../lib/testRunner.js'
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
+import { assertType, type Exact } from '../../../../lib/assertType.js'
+import { tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -27,8 +29,6 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // Not applicable on this cell: pglite bundles PostgreSQL 17, but `compatibilityVersion = Number.POSITIVE_INFINITY` makes the builder emit PG18+ syntax (`returning old.col`) that PG17 rejects with `column "old" does not exist`. The setup.ts for this cell explicitly notes this: comment out 18-only feature tests here. The PG17-shaped emission is exercised in `postgres/oldest/pglite/` instead.
-    /*
     test('returning-old-and-new-single-column-via-oldValues', async () => {
         // Update project 1's name; return both the previous and the
         // new name in one round-trip. Seed: project 1 is 'Marketing
@@ -62,10 +62,7 @@ describe(ctx.label, () => {
             }
         })
     })
-    */
 
-    // Not applicable on this cell: pglite bundles PostgreSQL 17, but `compatibilityVersion = Number.POSITIVE_INFINITY` makes the builder emit PG18+ syntax (`returning old.col`) that PG17 rejects with `column "old" does not exist`. The setup.ts for this cell explicitly notes this: comment out 18-only feature tests here. The PG17-shaped emission is exercised in `postgres/oldest/pglite/` instead.
-    /*
     test('returning-old-and-new-two-columns-via-oldValues', async () => {
         // Two-column audit projection: pre/post name and pre/post
         // slug. The emission must reference `_old_.name`, `_old_.slug`
@@ -125,5 +122,4 @@ describe(ctx.label, () => {
             }
         })
     })
-    */
 })

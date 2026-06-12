@@ -27,7 +27,7 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // Not applicable on Oracle: `tTable.oldValues()` is typed `never` on `OracleConnection` ([Table.ts:56-62](../../../../../src/Table.ts#L56-L62)); Oracle's `RETURNING INTO` returns post-update values only — pre-update values must be captured via a separate SELECT.
+    // NOT-APPLICABLE: Oracle has no RETURNING OLD values (`tTable.oldValues()` is typed `never`); RETURNING INTO returns post-update values only, so pre-update values need a separate SELECT
     /*
     test('returning-old-and-new-single-column-via-oldValues', async () => {
         // Update project 1's name; return both the previous and the
@@ -64,7 +64,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // Not applicable on Oracle: `tTable.oldValues()` is typed `never` on `OracleConnection` ([Table.ts:56-62](../../../../../src/Table.ts#L56-L62)); Oracle's `RETURNING INTO` returns post-update values only — pre-update values must be captured via a separate SELECT.
+    // NOT-APPLICABLE: Oracle has no RETURNING OLD values (`tTable.oldValues()` is typed `never`); RETURNING INTO returns post-update values only, so pre-update values need a separate SELECT
     /*
     test('returning-old-and-new-two-columns-via-oldValues', async () => {
         // Two-column audit projection: pre/post name and pre/post

@@ -208,6 +208,7 @@ describe(ctx.label, () => {
     // kept commented out for cross-cell symmetry. Documented workaround
     // for users:
     // `subSelectUsing(...).distinct().select(...).forUseAsInlineAggregatedArrayValue()`.
+    // NOT-APPLICABLE: MySQL's JSON_ARRAYAGG does not accept DISTINCT, so aggregateAsArrayOfOneColumnDistinct is not declared on MySqlConnection
     /*
     test('docs:aggregate-as-object-array/aggregate-as-array-distinct', async () => {
         ctx.mockNext({

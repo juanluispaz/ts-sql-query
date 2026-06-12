@@ -112,9 +112,9 @@ describe(ctx.label, () => {
         })
     })
 
-    // Not applicable on MySQL: no RETURNING clause on UPDATE — the
-    // library does not type `.returning(...)` on the MySQL
-    // `UpdateExpression`. See other cells for the canonical body.
+    // NOT-APPLICABLE: MySQL has no RETURNING — `.returning(...)` is not
+    // typed on the MySQL `UpdateExpression`. See other cells for the
+    // canonical body.
     /*
     test('update-from-with-returning-one-row', async () => {
         // ... see other cells for the full body — uses `.returning({...})`

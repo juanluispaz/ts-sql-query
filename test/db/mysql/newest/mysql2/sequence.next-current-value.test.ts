@@ -18,6 +18,7 @@ describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
     afterAll(() => ctx.down(), ctx.timeoutMs)
 
+    // NOT-APPLICABLE: MySQL has no sequences; `connection.sequence(...)` is not typed on MySqlConnection.
     /*
     import { test, expect, beforeEach } from '../../../../lib/testRunner.js'
     beforeEach(() => { ctx.reset() })

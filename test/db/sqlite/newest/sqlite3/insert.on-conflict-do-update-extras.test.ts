@@ -51,17 +51,16 @@ describe(ctx.label, () => {
         // string by default). Here `name` is defined and `slug` is
         // an empty string → the SET list emits only `name = ?`. The
         // empty-string-as-elide pattern matches the existing
-        // `insert.conditional-sets.test.ts` usage (`exactOptionalPropertyTypes`
-        // forbids assigning `undefined` to a non-`| undefined`
-        // optional field, so the `as any` cast preserves the runtime
-        // semantics while satisfying the typer).
+        // `insert.conditional-sets.test.ts` usage; `''` is a legal string
+        // value, and the IfValue runtime gate drops it because
+        // `_isValue('')` is false.
         ctx.mockNext(1)
         await ctx.withRollback(async () => {
             const newName: string | undefined = 'Marketing site v2'
             const affected = await ctx.conn.insertInto(tProject)
                 .values({ organizationId: 1, slug: 'mktg-site', name: 'ignored' })
                 .onConflictOn(tProject.organizationId, tProject.slug)
-                .doUpdateSetIfValue({ name: newName, slug: '' as any })
+                .doUpdateSetIfValue({ name: newName, slug: '' })
                 .executeInsert()
 
             expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) do update set name = ?"`)
@@ -85,15 +84,15 @@ describe(ctx.label, () => {
         // not a value (per `_isValue`). Pins the `setIfValue` branch
         // in the on-conflict context (distinct from the non-conflict
         // INSERT setIfValue chain covered by
-        // `insert.conditional-sets`). The empty-string-as-elide cast
-        // is the same pattern as test 1.
+        // `insert.conditional-sets`). The empty-string-as-elide is the
+        // same pattern as test 1.
         ctx.mockNext(1)
         await ctx.withRollback(async () => {
             const affected = await ctx.conn.insertInto(tProject)
                 .values({ organizationId: 1, slug: 'mktg-site', name: 'ignored' })
                 .onConflictOn(tProject.organizationId, tProject.slug)
                 .doUpdateSet({ name: 'Marketing site v3' })
-                .setIfValue({ slug: '' as any })
+                .setIfValue({ slug: '' })
                 .executeInsert()
 
             expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) do update set name = ?"`)

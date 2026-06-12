@@ -36,28 +36,66 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // Not applicable on MySQL / Oracle / SQL Server: their
-    // `JSON_ARRAYAGG` / `LISTAGG` aggregates reject the DISTINCT
-    // quantifier, so the connection class does not expose
-    // `aggregateAsArrayDistinct`. The commented body documents the
-    // intent — when the dialect ever supports it, uncomment and bake
-    // per-cell snapshots.
+    // NOT-APPLICABLE: Oracle's JSON_ARRAYAGG rejects the DISTINCT quantifier, so `aggregateAsArrayDistinct` is not exposed on the connection
     /*
     test('aggregateAsArrayDistinct-on-object-shape', async () => {
+        // org 2 has projects 3 and 4; project 4 is archived. Distinct
+        // aggregate so the test is robust to row duplication from the
+        // join even though the seed has none here. Returns the two
+        // distinct {id, name} objects.
+        //
+        // On PostgreSQL the emission is
+        // `json_agg(distinct jsonb_build_object(...))` — building each
+        // row with `jsonb_build_object` gives DISTINCT an equality
+        // operator (PG's `json` type has no equality on any version, so
+        // the abstract `json_agg(distinct json_build_object(...))`
+        // rejects with "could not identify an equality operator for
+        // type json"). `json_agg` accepts any element type and keeps
+        // the result as `json`, matching the non-distinct sibling and
+        // the value-typed contract.
+        const expected = {
+            id: 2, name: 'Globex Ltd',
+            projects: [
+                { id: 3, name: 'Public API' },
+                { id: 4, name: 'Legacy app' },
+            ],
+        }
+        ctx.mockNext({
+            id: 2, name: 'Globex Ltd',
+            projects: JSON.stringify([
+                { id: 3, name: 'Public API' },
+                { id: 4, name: 'Legacy app' },
+            ]),
+        })
+        const connection = ctx.conn
         const tProjectLeftJoin = tProject.forUseInLeftJoin()
-        await ctx.conn.selectFrom(tOrganization)
+        const row = await connection.selectFrom(tOrganization)
             .leftJoin(tProjectLeftJoin).on(tProjectLeftJoin.organizationId.equals(tOrganization.id))
             .where(tOrganization.id.equals(2))
             .select({
                 id:       tOrganization.id,
                 name:     tOrganization.name,
-                projects: ctx.conn.aggregateAsArrayDistinct({
+                projects: connection.aggregateAsArrayDistinct({
                     id:   tProjectLeftJoin.id,
                     name: tProjectLeftJoin.name,
                 }),
             })
             .groupBy('id', 'name')
             .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization.id as id, organization.name as name, json_agg(distinct jsonb_build_object('id', project.id, 'name', project.name)) as projects from organization left join project on project.organization_id = organization.id where organization.id = $1 group by organization.id, organization.name"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            id:       number
+            name:     string
+            projects: Array<{ id: number; name: string }>
+        }>>()
+        const projectsSorted = [...(row?.projects ?? [])].sort((a, b) => a.id - b.id)
+        expect({ id: row?.id, name: row?.name, projects: projectsSorted }).toEqual(expected)
     })
     */
 
@@ -131,22 +169,37 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-    // Not applicable on MySQL / Oracle / SQL Server: see header
-    // above — `aggregateAsArrayOfOneColumnDistinct` shares the same
-    // unsupported-on-this-dialect restriction.
+    // NOT-APPLICABLE: Oracle's JSON_ARRAYAGG rejects DISTINCT, so `aggregateAsArrayOfOneColumnDistinct` is not exposed on the connection
     /*
     test('useEmptyArrayForNoValue-with-distinct-one-column', async () => {
+        // Combined modifiers: distinct + useEmptyArrayForNoValue. The
+        // SQL keeps the `distinct` quantifier; the JS-level coercion
+        // applies post-execution. Same impossible filter as above so
+        // the runtime returns NULL → [].
+        const expected = { id: 1, priorities: [] as number[] }
+        ctx.mockNext({ id: 1, priorities: null })
+        const connection = ctx.conn
         const tIssueLeftJoin = tIssue.forUseInLeftJoin()
-        await ctx.conn.selectFrom(tProject)
+        const row = await connection.selectFrom(tProject)
             .leftJoin(tIssueLeftJoin).on(tIssueLeftJoin.projectId.equals(tProject.id)
                 .and(tIssueLeftJoin.priority.equals(99)))
             .where(tProject.id.equals(1))
             .select({
                 id:         tProject.id,
-                priorities: ctx.conn.aggregateAsArrayOfOneColumnDistinct(tIssueLeftJoin.priority).useEmptyArrayForNoValue(),
+                priorities: connection.aggregateAsArrayOfOneColumnDistinct(tIssueLeftJoin.priority).useEmptyArrayForNoValue(),
             })
             .groupBy('id')
             .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, json_agg(distinct issue.priority) as priorities from project left join issue on issue.project_id = project.id and issue.priority = $1 where project.id = $2 group by project.id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            99,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; priorities: number[] }>>()
+        expect(row).toEqual(expected)
     })
     */
 })

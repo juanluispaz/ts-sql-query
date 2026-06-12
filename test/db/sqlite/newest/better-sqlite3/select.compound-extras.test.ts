@@ -26,9 +26,8 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     // TODO[LIMITATION]: see LIMITATIONS.md — SQLite does not accept
-    // `INTERSECT ALL`; the fluent API encodes this by narrowing
-    // `intersectAll` to `never` for `sqlite`. See the postgres / mariadb
-    // cells for the active body.
+    // `INTERSECT ALL`; `intersectAll` is narrowed to `never` for `sqlite`.
+    // See the postgres / mariadb cells for the active body.
     /*
     test('intersect-all-emits-intersect-all-syntax', async () => {})
     */
@@ -42,7 +41,8 @@ describe(ctx.label, () => {
     test('minus-routes-through-the-dialect-alias', async () => {
         // `.minus(...)` is typed on `sqlite`; the default
         // `_appendCompoundOperator` rewrites it to ` except ` so the
-        // engine accepts the emitted SQL.
+        // engine accepts the emitted SQL. id<=2 → {open, in_progress};
+        // all → {open, in_progress, open, closed}; minus → {closed}.
         const expected = [{ status: 'closed' }]
         ctx.mockNext(expected)
         const all = ctx.conn.selectFrom(tIssue)
@@ -50,17 +50,14 @@ describe(ctx.label, () => {
         const small = ctx.conn.selectFrom(tIssue)
             .where(tIssue.id.lessOrEqual(2))
             .select({ status: tIssue.status })
-        try {
-            await all.minus(small).executeSelectMany()
-        } catch (e) {
-            if (!ctx.realDbEnabled) throw e
-        }
+        const result = await all.minus(small).executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status from issue except select status as status from issue where id <= ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
           ]
         `)
+        expect(result.map(r => r.status).sort()).toEqual(['closed'])
     })
 
     // TODO[LIMITATION]: see LIMITATIONS.md — SQLite does not accept

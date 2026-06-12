@@ -12,35 +12,35 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // Not applicable on MySQL: no RETURNING on DELETE.
+    // NOT-APPLICABLE: MySQL has no RETURNING on DELETE.
     /*
     test('delete-returning-none-or-one-row-shape', async () => {
         // ... see other cells for the full body.
     })
     */
 
-    // Not applicable on MySQL: no RETURNING on DELETE.
+    // NOT-APPLICABLE: MySQL has no RETURNING on DELETE.
     /*
     test('delete-returning-one-column-with-execute-one-non-empty', async () => {
         // ... see other cells for the full body.
     })
     */
 
-    // Not applicable on MySQL: no RETURNING on DELETE.
+    // NOT-APPLICABLE: MySQL has no RETURNING on DELETE.
     /*
     test('delete-returning-row-shape-throws-no-result-on-empty', async () => {
         // ... see other cells for the full body.
     })
     */
 
-    // Not applicable on MySQL: no RETURNING on DELETE.
+    // NOT-APPLICABLE: MySQL has no RETURNING on DELETE.
     /*
     test('delete-returning-one-column-many-result', async () => {
         // ... see other cells for the full body.
     })
     */
 
-    // Not applicable on MySQL: no RETURNING on DELETE.
+    // NOT-APPLICABLE: MySQL has no RETURNING on DELETE.
     /*
     test('delete-cte-in-where-in-subquery-with-returning', async () => {
         // ... see other cells for the full body.

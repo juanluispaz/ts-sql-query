@@ -25,18 +25,20 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // `.recursiveUnionOn` is typed as `never` on SQL Server - `UNION` is not
-    // allowed in the recursive arm of a `WITH RECURSIVE` ("Incorrect syntax near UNION").
     // Kept commented for symmetry; the recursive-children variant uses
     // `.recursiveUnionAllOn` from the docs page.
+    // NOT-APPLICABLE: SQL Server rejects `UNION` (only `UNION ALL`) in the
+    // recursive arm of a `WITH` ("Incorrect syntax near UNION"), so
+    // `.recursiveUnionOn` is typed as `never`.
     /*
     test('recursive-union-on-dedup-variant', async () => {
         // ... see canonical body in sqlite/newest/bun_sqlite for the full block.
     })
     */
 
-    // `.recursiveUnion` is typed as `never` on SQL Server - same reason as
-    // above. Kept commented for symmetry; use `.recursiveUnionAll`.
+    // NOT-APPLICABLE: SQL Server rejects `UNION` in the recursive arm (same
+    // reason as above), so `.recursiveUnion` is typed as `never`. Kept
+    // commented for symmetry; use `.recursiveUnionAll`.
     /*
     test('recursive-union-fn-variant-with-explicit-join', async () => {
         // ... see canonical body in sqlite/newest/bun_sqlite for the full block.

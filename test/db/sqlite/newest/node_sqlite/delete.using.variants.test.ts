@@ -13,28 +13,28 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // Not applicable on SQLite: no DELETE...USING in the dialect.
+    // NOT-APPLICABLE: SQLite has no DELETE...USING; the library type-excludes it for sqlite connections.
     /*
     test('delete-using-with-extra-filter-on-using', async () => {
         // ... see other cells for the full body.
     })
     */
 
-    // Not applicable on SQLite: no DELETE...USING in the dialect.
+    // NOT-APPLICABLE: SQLite has no DELETE...USING; the library type-excludes it for sqlite connections.
     /*
     test('delete-using-multiple-source-tables', async () => {
         // ... see other cells for the full body.
     })
     */
 
-    // Not applicable on SQLite: no DELETE...USING in the dialect.
+    // NOT-APPLICABLE: SQLite has no DELETE...USING; the library type-excludes it for sqlite connections.
     /*
     test('delete-using-cte-source', async () => {
         // ... see other cells for the full body.
     })
     */
 
-    // Not applicable on SQLite: no DELETE...USING in the dialect.
+    // NOT-APPLICABLE: SQLite has no DELETE...USING; the library type-excludes it for sqlite connections.
     /*
     test('delete-using-with-returning-none-or-one-row', async () => {
         // ... see other cells for the full body.

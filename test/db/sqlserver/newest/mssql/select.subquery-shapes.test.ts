@@ -69,7 +69,7 @@ describe(ctx.label, () => {
         else expect(rows).toEqual(expected)
     })
 
-    // Not applicable on SQL Server: subqueries are not permitted in the GROUP BY clause (Msg 144).
+    // NOT-APPLICABLE: SQL Server does not permit subqueries in the GROUP BY clause (Msg 144)
     /*
     test('scalar-correlated-subquery-in-group-by', async () => {
         // Group issues by their project's organization id (derived via

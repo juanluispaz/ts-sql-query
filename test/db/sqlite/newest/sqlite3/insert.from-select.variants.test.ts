@@ -64,7 +64,11 @@ describe(ctx.label, () => {
     test('insert-from-select-returning-full-row', async () => {
         // Multi-column RETURNING on a from-select. Pins the projection
         // shape coming out of `_buildInsertReturning` when paired with
-        // `__from`.
+        // `__from`. Project 3 has exactly one seeded issue (id=4,
+        // 'Document /v2/users', number=1, priority=2), cloned with
+        // status='draft' onto project 4 — every column except the
+        // engine-assigned `id` is deterministic, so the unconditional
+        // assertion checks those and just types `id` as a number.
         const expectedMock = [
             { id: 100, projectId: 4, number: 1, title: 'Document /v2/users', status: 'draft' as string, priority: 2 },
         ]
@@ -109,8 +113,10 @@ describe(ctx.label, () => {
                 status:    string
                 priority:  number
             }>>>()
-            if (!ctx.realDbEnabled) expect(inserted).toEqual(expectedMock)
-            else expect(Array.isArray(inserted)).toBe(true)
+            expect(inserted).toHaveLength(1)
+            const { id, ...rest } = inserted[0]!
+            expect(typeof id).toBe('number')
+            expect(rest).toEqual({ projectId: 4, number: 1, title: 'Document /v2/users', status: 'draft', priority: 2 })
         })
     })
 

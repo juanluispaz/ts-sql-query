@@ -69,7 +69,7 @@ describe(ctx.label, () => {
         else expect(rows).toEqual(expected)
     })
 
-    // Not applicable on MySQL: `only_full_group_by` mode rejects grouping by a subquery whose body references a column not in the explicit GROUP BY list (ER_WRONG_FIELD_WITH_GROUP), even when the subquery deterministically maps each outer row to a single value.
+    // NOT-APPLICABLE: MySQL's `only_full_group_by` mode rejects grouping by a subquery whose body references a column not in the explicit GROUP BY list (ER_WRONG_FIELD_WITH_GROUP), even when the subquery deterministically maps each outer row to a single value.
     /*
     test('scalar-correlated-subquery-in-group-by', async () => {
         // Group issues by their project's organization id (derived via

@@ -44,7 +44,8 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ r: number }>>>()
         if (ctx.realDbEnabled) {
-            expect(typeof rows[0]!.r).toBe('number')
+            expect(rows[0]!.r).toBeGreaterThanOrEqual(0)
+            expect(rows[0]!.r).toBeLessThan(1)
         } else {
             expect(rows).toEqual(expected)
         }

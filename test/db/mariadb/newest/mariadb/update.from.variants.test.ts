@@ -81,28 +81,87 @@ describe(ctx.label, () => {
         })
     })
 
-    // Not applicable on MariaDB: the server rejects the
-    // `WITH cte AS (...) UPDATE a, cte SET a.col = cte.col WHERE ...`
-    // form the library emits — MariaDB accepts WITH as a prefix for a
-    // SELECT but not in a multi-table UPDATE statement. See other
-    // cells for the canonical body.
+    // MariaDB rejects the `WITH cte AS (...) UPDATE a, cte SET a.col =
+    // cte.col WHERE ...` form the library emits — MariaDB accepts WITH
+    // as a prefix for a SELECT but not in a multi-table UPDATE statement.
+    // TODO[LIMITATION]: see LIMITATIONS.md — MariaDB has no WITH-prefixed multi-table UPDATE
     /*
     test('update-from-cte-source', async () => {
-        // ... see other cells for the full body — pins the bubbled
-        // `with verified_orgs as (...) update project, verified_orgs ...`.
+        // FROM target is a `.forUseInQueryAs(...)` view (a CTE). The
+        // emitted SQL must lead with `with verified_orgs as (...)`
+        // bubbled up from the FROM clause through `__addWiths`.
+        ctx.mockNext(0)
+        await ctx.withRollback(async () => {
+            const verifiedOrgs = ctx.conn.selectFrom(tOrganization)
+                .where(tOrganization.verified.equals(true))
+                .select({ id: tOrganization.id, name: tOrganization.name })
+                .forUseInQueryAs('verified_orgs')
+
+            const affected = await ctx.conn.update(tProject)
+                .from(verifiedOrgs)
+                .set({ name: verifiedOrgs.name })
+                .where(tProject.organizationId.equals(verifiedOrgs.id))
+                .and(tProject.id.equals(99999))
+                .executeUpdate()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"with verified_orgs as (select id as id, name as name from organization where (verified = 'Y') = ?) update project, verified_orgs set project.name = verified_orgs.name where project.organization_id = verified_orgs.id and project.id = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                true,
+                99999,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            if (!ctx.realDbEnabled) expect(affected).toBe(0)
+            else expect(typeof affected).toBe('number')
+        })
     })
     */
 
-    // Not applicable on MariaDB: RETURNING is supported only on
-    // single-table UPDATE in MariaDB, not on a multi-table UPDATE
-    // (UPDATE ... FROM). The server rejects the emitted
-    // `update project, organization SET ... RETURNING ...` form with
-    // a parse error at `returning`. See other cells for the canonical
-    // body.
+    // MariaDB supports RETURNING only on a single-table UPDATE, not on a
+    // multi-table UPDATE (UPDATE ... FROM): the server rejects the
+    // emitted `update project, organization set ... returning ...` form
+    // with a parse error at `returning`. (UPDATE…RETURNING itself also
+    // needs MariaDB 13.0.1+; the test image still ships 12.x.)
+    // TODO[LIMITATION]: see LIMITATIONS.md — MariaDB has no RETURNING on multi-table UPDATE
     /*
     test('update-from-with-returning-one-row', async () => {
-        // ... see other cells for the full body — combines FROM and
-        // RETURNING on a single UPDATE.
+        // RETURNING combined with FROM. Pins `_buildUpdateReturning` on
+        // top of a multi-table UPDATE. The projection only references
+        // columns from the *target* table.
+        const expectedMock = { id: 1, newName: 'Acme Corp', slug: 'mktg-site' }
+        ctx.mockNext(expectedMock)
+        await ctx.withRollback(async () => {
+            const row = await ctx.conn.update(tProject)
+                .from(tOrganization)
+                .set({ name: tOrganization.name })
+                .where(tProject.id.equals(1))
+                .and(tProject.organizationId.equals(tOrganization.id))
+                .returning({
+                    id:      tProject.id,
+                    newName: tProject.name,
+                    slug:    tProject.slug,
+                })
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project, organization set project.name = organization.name where project.id = ? and project.organization_id = organization.id returning project.id as id, project.name as newName, project.slug as slug"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof row, {
+                id:      number
+                newName: string
+                slug:    string
+            }>>()
+            if (!ctx.realDbEnabled) expect(row).toEqual(expectedMock)
+            else {
+                expect(row.id).toBe(1)
+                expect(row.slug).toBe('mktg-site')
+                expect(row.newName).toBe('Acme Corp')
+            }
+        })
     })
     */
 })

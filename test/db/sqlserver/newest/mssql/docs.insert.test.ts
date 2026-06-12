@@ -272,7 +272,7 @@ describe(ctx.label, () => {
         })
     })
 
-    // Not applicable on SQL Server: SQL Server does not support insert on conflict.
+    // NOT-APPLICABLE: SQL Server has no INSERT…ON CONFLICT (uses MERGE)
     /*
     test('docs:insert/insert-on-conflict-do-nothing', async () => {
         // Section "Insert on conflict do nothing" — postgres/sqlite/mariadb/mysql
@@ -311,7 +311,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // Not applicable on SQL Server: SQL Server does not support insert on conflict.
+    // NOT-APPLICABLE: SQL Server has no INSERT…ON CONFLICT (uses MERGE)
     /*
     test('docs:insert/insert-on-conflict-do-update', async () => {
         // Section "Insert on conflict do update" — postgres/sqlite require
@@ -354,7 +354,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // Not applicable on SQL Server: SQL Server does not support insert ... on conflict do update.
+    // NOT-APPLICABLE: SQL Server has no INSERT…ON CONFLICT (uses MERGE)
     /*
     test('docs-extra:insert/insert-on-conflict-do-update-bare', async () => {
         // MariaDB/MySQL variant of upsert — `.onConflictDoUpdateSet({...})`
@@ -393,7 +393,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // Not applicable on SQL Server: SQL Server does not support insert on conflict.
+    // NOT-APPLICABLE: SQL Server has no INSERT…ON CONFLICT (uses MERGE)
     /*
     test('docs-extra:insert/values-for-insert-in-update', async () => {
         // Section trailing block: `valuesForInsert()` gives access to the

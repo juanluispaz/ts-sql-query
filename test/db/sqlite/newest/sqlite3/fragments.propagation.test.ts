@@ -33,7 +33,7 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // Not applicable on SQLite: `tTable.oldValues()` is typed `never` on this dialect.
+    // NOT-APPLICABLE: `tTable.oldValues()` is typed `never` on this dialect.
     /*
 test('fragment-with-old-values-column-bubbles-up-in-update-returning', async () => {
         // A typed fragment that interpolates `oldProject.name` is the
@@ -115,7 +115,7 @@ test('fragment-with-old-values-column-bubbles-up-in-update-returning', async () 
         })
     })
 
-    // Not applicable on SQLite: `tTable.oldValues()` is typed `never` on this dialect.
+    // NOT-APPLICABLE: `tTable.oldValues()` is typed `never` on this dialect.
     /*
 test('fragment-from-joined-table-registers-required-column-in-update-from-old-values', async () => {
         // UPDATE … FROM … RETURNING with `oldValues()` and a typed

@@ -9,9 +9,8 @@
 // `.intersectAll`/`.exceptAll`/`.minusAll` are narrowed to `never`
 // because the engine doesn't accept the `ALL` flavour of these
 // operators. Those three tests are commented out with
-// `TODO[LIMITATION]: see LIMITATIONS.md` to keep the test count
-// symmetric with the postgres/mariadb cells while honouring the
-// type-system narrowing.
+// `NOT-APPLICABLE` markers to keep the test count symmetric with the
+// postgres/mariadb cells while honouring the type-system narrowing.
 //
 // Note: `_appendCompoundOperator` rewrites `.minus(...)` to ` except `
 // for SqlServer (SqlServer supports `EXCEPT` natively but not `MINUS`).
@@ -25,16 +24,15 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — SqlServer does not accept
-    // `INTERSECT ALL`; the fluent API encodes this by narrowing
-    // `intersectAll` to `never` for `sqlServer`. See the postgres / mariadb
-    // cells for the active body.
+    // NOT-APPLICABLE: SQL Server does not accept `INTERSECT ALL`; the
+    // fluent API narrows `intersectAll` to `never` for `sqlServer`. See
+    // the postgres / mariadb cells for the active body.
     /*
     test('intersect-all-emits-intersect-all-syntax', async () => {})
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — SqlServer does not accept
-    // `EXCEPT ALL`; `exceptAll` is narrowed to `never` for `sqlServer`.
+    // NOT-APPLICABLE: SQL Server does not accept `EXCEPT ALL`;
+    // `exceptAll` is narrowed to `never` for `sqlServer`.
     /*
     test('except-all-emits-except-all-syntax', async () => {})
     */
@@ -50,11 +48,8 @@ describe(ctx.label, () => {
         const small = ctx.conn.selectFrom(tIssue)
             .where(tIssue.id.lessOrEqual(2))
             .select({ status: tIssue.status })
-        try {
-            await all.minus(small).executeSelectMany()
-        } catch (e) {
-            if (!ctx.realDbEnabled) throw e
-        }
+        const rows = await all.minus(small).executeSelectMany()
+        expect(rows).toEqual(expected)
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status from issue except select status as status from issue where id <= @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
@@ -63,9 +58,9 @@ describe(ctx.label, () => {
         `)
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — SqlServer does not accept
-    // `MINUS ALL` (nor its `EXCEPT ALL` rewrite); `minusAll` is
-    // narrowed to `never` for `sqlServer`.
+    // NOT-APPLICABLE: SQL Server does not accept `MINUS ALL` (nor its
+    // `EXCEPT ALL` rewrite); `minusAll` is narrowed to `never` for
+    // `sqlServer`.
     /*
     test('minus-all-routes-through-the-dialect-alias', async () => {})
     */

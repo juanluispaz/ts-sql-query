@@ -59,9 +59,12 @@ describe(ctx.label, () => {
         // rewrites every leaf to `optional` in the WITH view's typed
         // surface. Selecting the inner-object property from the CTE
         // therefore exposes `{ id?: number, name?: string }`.
+        // No WHERE clause — all four seeded projects come back ordered by pid.
         ctx.mockNext([
             { pid: 1, project: { id: 1, name: 'Marketing site' } },
             { pid: 2, project: { id: 2, name: 'Internal tools' } },
+            { pid: 3, project: { id: 3, name: 'Public API' } },
+            { pid: 4, project: { id: 4, name: 'Legacy app' } },
         ])
         const connection = ctx.conn
 
@@ -86,12 +89,12 @@ describe(ctx.label, () => {
             pid:     number
             project: { id: number; name: string }
         }>>>()
-        if (!ctx.realDbEnabled) {
-            expect(rows).toEqual([
-                { pid: 1, project: { id: 1, name: 'Marketing site' } },
-                { pid: 2, project: { id: 2, name: 'Internal tools' } },
-            ])
-        }
+        expect(rows).toEqual([
+            { pid: 1, project: { id: 1, name: 'Marketing site' } },
+            { pid: 2, project: { id: 2, name: 'Internal tools' } },
+            { pid: 3, project: { id: 3, name: 'Public API' } },
+            { pid: 4, project: { id: 4, name: 'Legacy app' } },
+        ])
     })
 
     test('cte-with-nested-object-of-only-left-join-columns-applies-rule-2', async () => {
@@ -112,9 +115,13 @@ describe(ctx.label, () => {
         // name: string` because `requiredInOptionalObject` is a marker
         // for "required when the group is present", not for "leaf is
         // optional".
+        // No WHERE clause — all four projects come back; every project has a
+        // matching organization (1,2 → Acme Corp; 3,4 → Globex Ltd).
         ctx.mockNext([
-            { pid: 1, org: { id: 10, name: 'Acme Corp' } },
-            { pid: 2, org: undefined },
+            { pid: 1, org: { id: 1, name: 'Acme Corp' } },
+            { pid: 2, org: { id: 1, name: 'Acme Corp' } },
+            { pid: 3, org: { id: 2, name: 'Globex Ltd' } },
+            { pid: 4, org: { id: 2, name: 'Globex Ltd' } },
         ])
         const connection = ctx.conn
         const tOrgLeft = tOrganization.forUseInLeftJoin()
@@ -141,12 +148,12 @@ describe(ctx.label, () => {
             pid: number
             org?: { id: number | undefined; name: string | undefined }
         }>>>()
-        if (!ctx.realDbEnabled) {
-            expect(rows).toEqual([
-                { pid: 1, org: { id: 10, name: 'Acme Corp' } },
-                { pid: 2 },
-            ])
-        }
+        expect(rows).toEqual([
+            { pid: 1, org: { id: 1, name: 'Acme Corp' } },
+            { pid: 2, org: { id: 1, name: 'Acme Corp' } },
+            { pid: 3, org: { id: 2, name: 'Globex Ltd' } },
+            { pid: 4, org: { id: 2, name: 'Globex Ltd' } },
+        ])
     })
 
     test('cte-of-cte-nested-object-from-left-join-applies-rule-1', async () => {
@@ -162,9 +169,13 @@ describe(ctx.label, () => {
         // downgrades every `originallyRequired` leaf to `optional`.
         // The outer CTE's `group.orgId` and `group.orgName` are
         // therefore typed as optional in the final projection.
+        // No WHERE clause — all four projects come back; every project has a
+        // matching organization (1,2 → Acme Corp; 3,4 → Globex Ltd).
         ctx.mockNext([
-            { pid: 1, group: { orgId: 10, orgName: 'Acme Corp' } },
-            { pid: 2, group: { orgId: undefined, orgName: undefined } },
+            { pid: 1, group: { orgId: 1, orgName: 'Acme Corp' } },
+            { pid: 2, group: { orgId: 1, orgName: 'Acme Corp' } },
+            { pid: 3, group: { orgId: 2, orgName: 'Globex Ltd' } },
+            { pid: 4, group: { orgId: 2, orgName: 'Globex Ltd' } },
         ])
         const connection = ctx.conn
         const tOrgLeft = tOrganization.forUseInLeftJoin()
@@ -198,12 +209,12 @@ describe(ctx.label, () => {
             pid:    number
             group?: { orgId: number | undefined; orgName: string | undefined }
         }>>>()
-        if (!ctx.realDbEnabled) {
-            expect(rows).toEqual([
-                { pid: 1, group: { orgId: 10, orgName: 'Acme Corp' } },
-                { pid: 2 },
-            ])
-        }
+        expect(rows).toEqual([
+            { pid: 1, group: { orgId: 1, orgName: 'Acme Corp' } },
+            { pid: 2, group: { orgId: 1, orgName: 'Acme Corp' } },
+            { pid: 3, group: { orgId: 2, orgName: 'Globex Ltd' } },
+            { pid: 4, group: { orgId: 2, orgName: 'Globex Ltd' } },
+        ])
     })
 
     test('cte-with-nested-object-of-only-optional-columns-applies-rule-4', async () => {
@@ -215,9 +226,14 @@ describe(ctx.label, () => {
         // is `false || false` → falls through to `return 4`. The
         // matching `case 4` at L193-198 rewrites every non-required
         // leaf to `optional` (no-op since they were already optional).
+        // No WHERE clause — all four seeded issues come back ordered by iid.
+        // Issue 1 has a null body but assignee 1; issue 3 has both null (so
+        // its whole `opt` group is dropped); issues 2 and 4 carry both.
         ctx.mockNext([
-            { iid: 1, opt: { body: 'A body', assigneeId: 42 } },
-            { iid: 2, opt: { body: undefined, assigneeId: undefined } },
+            { iid: 1, opt: { assigneeId: 1 } },
+            { iid: 2, opt: { body: 'Use new tokens', assigneeId: 2 } },
+            { iid: 3, opt: { body: undefined, assigneeId: undefined } },
+            { iid: 4, opt: { body: 'See ADR-014', assigneeId: 3 } },
         ])
         const connection = ctx.conn
 
@@ -242,11 +258,11 @@ describe(ctx.label, () => {
             iid:  number
             opt?: { body: string | undefined; assigneeId: number | undefined }
         }>>>()
-        if (!ctx.realDbEnabled) {
-            expect(rows).toEqual([
-                { iid: 1, opt: { body: 'A body', assigneeId: 42 } },
-                { iid: 2 },
-            ])
-        }
+        expect(rows).toEqual([
+            { iid: 1, opt: { assigneeId: 1 } },
+            { iid: 2, opt: { body: 'Use new tokens', assigneeId: 2 } },
+            { iid: 3 },
+            { iid: 4, opt: { body: 'See ADR-014', assigneeId: 3 } },
+        ])
     })
 })

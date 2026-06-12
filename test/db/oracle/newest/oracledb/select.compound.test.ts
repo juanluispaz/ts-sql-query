@@ -83,9 +83,8 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof result, Array<{ status: string }>>>()
-        if (ctx.realDbEnabled) {
-            expect(result.map(r => r.status).sort()).toEqual(['open'])
-        }
+        const sortedIntersect = [...result].sort((a, b) => a.status.localeCompare(b.status))
+        expect(sortedIntersect).toEqual(expected)
     })
 
     test('except', async () => {
@@ -108,9 +107,8 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof result, Array<{ status: string }>>>()
-        if (ctx.realDbEnabled) {
-            expect(result.map(r => r.status).sort()).toEqual(['closed'])
-        }
+        const sortedExcept = [...result].sort((a, b) => a.status.localeCompare(b.status))
+        expect(sortedExcept).toEqual(expected)
     })
     test('union-with-insensitive-order-by', async () => {
         // Compound (union) ordered case-insensitively. A compound ORDER BY may

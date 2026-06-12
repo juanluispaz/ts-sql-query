@@ -69,7 +69,7 @@ describe(ctx.label, () => {
         else expect(rows).toEqual(expected)
     })
 
-    // Not applicable on Oracle: grouping by an opaque scalar subquery expression hits ORA-22818 (subquery expressions not allowed in GROUP BY).
+    // NOT-APPLICABLE: Oracle rejects grouping by a scalar subquery expression (ORA-22818: subquery expressions not allowed in GROUP BY)
     /*
     test('scalar-correlated-subquery-in-group-by', async () => {
         // Group issues by their project's organization id (derived via

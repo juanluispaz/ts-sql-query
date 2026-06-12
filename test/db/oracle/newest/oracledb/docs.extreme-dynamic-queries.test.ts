@@ -18,6 +18,11 @@ describe(ctx.label, () => {
 
     test('docs:extreme-dynamic-queries/dynamic-condition-for', async () => {
         const connection = ctx.conn
+        const expected = [
+            { id: 1, name: 'Marketing site', slug: 'mktg-site' },
+            { id: 2, name: 'Internal tools', slug: 'tools' },
+        ]
+        ctx.mockNext(expected)
 
         // doc-start
         const selectFields = {
@@ -60,13 +65,18 @@ describe(ctx.label, () => {
             name: string
             slug: string
         }>>>()
-        if (ctx.realDbEnabled) {
-            expect(rows.map(r => r.id).sort()).toEqual([1, 2])
-        }
+        expect(rows).toEqual(expected)
     })
 
     test('docs:extreme-dynamic-queries/dynamic-pick', async () => {
         const connection = ctx.conn
+        const expected = [
+            { id: 1, name: 'Marketing site' },
+            { id: 2, name: 'Internal tools' },
+            { id: 3, name: 'Public API' },
+            { id: 4, name: 'Legacy app' },
+        ]
+        ctx.mockNext(expected)
 
         // doc-start
         const availableFields = {
@@ -96,12 +106,7 @@ describe(ctx.label, () => {
             name?: string
             slug?: string
         }>>>()
-        if (ctx.realDbEnabled) {
-            for (const r of rows) {
-                expect(typeof r.name).toBe('string')
-                expect(r.slug).toBeUndefined()
-            }
-        }
+        expect(rows).toEqual(expected)
     })
 
     test('docs:extreme-dynamic-queries/dynamic-pick-paths', async () => {
@@ -307,6 +312,9 @@ describe(ctx.label, () => {
     })
 
     test('docs:extreme-dynamic-queries/dynamic-condition-nested-projection', async () => {
+        ctx.mockNext([
+            { id: 1, title: 'Update hero copy', 'assignee.id': 1, 'assignee.fullName': 'Ada Lovelace' },
+        ])
         const connection = ctx.conn
 
         // doc-start: dynamicConditionFor handles nested projection shapes —
@@ -357,11 +365,10 @@ describe(ctx.label, () => {
             title: string
             assignee?: { id: number; fullName: string }
         }>>>()
-        if (ctx.realDbEnabled) {
-            for (const r of rows) {
-                expect(r.assignee?.fullName).toContain('Ada')
-            }
-        }
+        // Only issue 1's assignee (Ada Lovelace) matches the '%Ada%' filter.
+        expect(rows).toEqual([
+            { id: 1, title: 'Update hero copy', assignee: { id: 1, fullName: 'Ada Lovelace' } },
+        ])
     })
 
     test('docs-extra:extreme-dynamic-queries/dynamic-condition-nested-and-or', async () => {

@@ -25,21 +25,91 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // `.recursiveUnionOn` is typed as `never` on Oracle - `UNION` is not
-    // allowed in the recursive arm of a `WITH RECURSIVE` (ORA-32040).
-    // Kept commented for symmetry; the recursive-children variant uses
-    // `.recursiveUnionAllOn` from the docs page.
+    // `.recursiveUnionOn` is typed as `never` on Oracle; the recursive-
+    // children variant uses `.recursiveUnionAllOn` from the docs page.
+    // Body kept verbatim from the sqlite cell for cross-cell diff parity.
+    // NOT-APPLICABLE: Oracle rejects UNION in the recursive arm of WITH RECURSIVE (ORA-32040), so .recursiveUnionOn is typed never
     /*
     test('recursive-union-on-dedup-variant', async () => {
-        // ... see canonical body in sqlite/newest/bun_sqlite for the full block.
+        // `.recursiveUnionOn(...)` emits the `UNION` (deduplicating)
+        // operator between the anchor and recursive members. The
+        // shortcut accepts a join-on predicate; the recursive arm is
+        // synthesised against the anchor table.
+        const expected = [
+            { id: 1, title: 'Root', parentId: undefined },
+        ]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        const result = await connection.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id:       tIssue.id,
+                title:    tIssue.title,
+                parentId: tIssue.parentId,
+            })
+            .recursiveUnionOn((parent) =>
+                tIssue.id.equals(parent.parentId),
+            )
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, title as title, parent_id as parentId from issue where id = ? union select issue.id as id, issue.title as title, issue.parent_id as parentId from issue join recursive_select_1 on issue.id = recursive_select_1.parentId) select id as id, title as title, parentId as parentId from recursive_select_1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{
+            id:        number
+            title:     string
+            parentId?: number
+        }>>>()
     })
     */
 
     // `.recursiveUnion` is typed as `never` on Oracle - same reason as
-    // above. Kept commented for symmetry; use `.recursiveUnionAll`.
+    // above; use `.recursiveUnionAll`. Body kept verbatim from the sqlite
+    // cell for cross-cell diff parity.
+    // NOT-APPLICABLE: Oracle rejects UNION in the recursive arm of WITH RECURSIVE (ORA-32040), so .recursiveUnion is typed never
     /*
     test('recursive-union-fn-variant-with-explicit-join', async () => {
-        // ... see canonical body in sqlite/newest/bun_sqlite for the full block.
+        // `.recursiveUnion(fn)` (full-form) lets the caller write the
+        // recursive arm as `connection.selectFrom(tIssue).join(view).on(...).select({...})`
+        // instead of the shortcut. Same UNION operator as the
+        // shortcut, just with the join made explicit.
+        const expected = [{ id: 2, title: 'Redesign navbar', parentId: undefined }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        const result = await connection.selectFrom(tIssue)
+            .where(tIssue.id.equals(2))
+            .select({
+                id:       tIssue.id,
+                title:    tIssue.title,
+                parentId: tIssue.parentId,
+            })
+            .recursiveUnion((child) => {
+                return connection.selectFrom(tIssue)
+                    .join(child).on(child.parentId.equals(tIssue.id))
+                    .select({
+                        id:       tIssue.id,
+                        title:    tIssue.title,
+                        parentId: tIssue.parentId,
+                    })
+            })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, title as title, parent_id as parentId from issue where id = ? union select issue.id as id, issue.title as title, issue.parent_id as parentId from issue join recursive_select_1 on recursive_select_1.parentId = issue.id) select id as id, title as title, parentId as parentId from recursive_select_1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{
+            id:        number
+            title:     string
+            parentId?: number
+        }>>>()
     })
     */
 

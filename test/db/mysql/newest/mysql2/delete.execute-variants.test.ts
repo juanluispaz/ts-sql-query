@@ -78,10 +78,8 @@ describe(ctx.label, () => {
         })
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — MySQL has no DELETE …
-    // RETURNING in any released version. The fluent API encodes this
-    // by narrowing `returningOneColumn` / `returning` to `never` for
-    // `mysql`, so the test body would not even type-check here.
+    // NOT-APPLICABLE: MySQL has no DELETE … RETURNING; the fluent API narrows
+    // `returningOneColumn` / `returning` to `never` on MySqlConnection.
     /*
     test('execute-delete-none-or-one-with-returning-one-column', async () => {
         // See sqlite / postgres cells for the active body.

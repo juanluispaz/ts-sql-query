@@ -64,7 +64,7 @@ describe(ctx.label, () => {
         })
     })
 
-    // mysql does not support the RETURNING clause; the library narrows
+    // NOT-APPLICABLE: MySQL has no RETURNING — the library narrows
     // multi-row + .returningLastInsertedId() to `never`. Kept here
     // commented for symmetry.
     /*
@@ -94,6 +94,7 @@ describe(ctx.label, () => {
     })
     */
 
+    // NOT-APPLICABLE: MySQL has no RETURNING — multi-row .returningLastInsertedId() narrows to `never`.
     /*
     test('execute-insert-multi-row-throws-when-too-few-ids', async () => {
         // Same multi-row path; insert 3 rows but require min = 4 so
@@ -119,6 +120,7 @@ describe(ctx.label, () => {
     })
     */
 
+    // NOT-APPLICABLE: MySQL has no RETURNING — multi-row .returningLastInsertedId() narrows to `never`.
     /*
     test('execute-insert-multi-row-throws-when-too-many-ids', async () => {
         // Same multi-row path; insert 3 rows with max = 1 so real DB
@@ -143,7 +145,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // mysql narrows .returningOneColumn(...) to never. Kept commented
+    // NOT-APPLICABLE: MySQL has no RETURNING — .returningOneColumn(...) narrows to `never`. Kept commented
     // for symmetry.
     /*
     test('execute-insert-none-or-one-with-returning-one-column', async () => {
@@ -152,6 +154,7 @@ describe(ctx.label, () => {
     })
     */
 
+    // NOT-APPLICABLE: MySQL has no RETURNING — .returningOneColumn(...) narrows to `never`.
     /*
     test('execute-insert-none-or-one-with-returning-one-column-empty-result', async () => {
         if (ctx.realDbEnabled) return
@@ -160,6 +163,7 @@ describe(ctx.label, () => {
     })
     */
 
+    // NOT-APPLICABLE: MySQL has no RETURNING — .returningOneColumn(...) narrows to `never`.
     /*
     test('execute-insert-one-with-returning-one-column', async () => {
         ctx.mockNext(777)
@@ -167,7 +171,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // mysql narrows .returning({...}) to never. Kept commented for
+    // NOT-APPLICABLE: MySQL has no RETURNING — .returning({...}) narrows to `never`. Kept commented for
     // symmetry.
     /*
     test('execute-insert-one-throws-no-result-when-row-missing', async () => {
@@ -177,6 +181,7 @@ describe(ctx.label, () => {
     })
     */
 
+    // NOT-APPLICABLE: MySQL has no RETURNING — .returningOneColumn(...) narrows to `never`.
     /*
     test('execute-insert-many-with-returning-one-column', async () => {
         // `executeInsertMany()` + `returningOneColumn(col)` lands on
@@ -204,6 +209,7 @@ describe(ctx.label, () => {
     })
     */
 
+    // NOT-APPLICABLE: MySQL has no RETURNING — .returning({...}) narrows to `never`.
     /*
     test('execute-insert-many-with-min-throws-when-empty', async () => {
         // `executeInsertMany(min, max)` checks `rows.length` after
@@ -229,6 +235,7 @@ describe(ctx.label, () => {
     })
     */
 
+    // NOT-APPLICABLE: MySQL has no RETURNING — .returning({...}) narrows to `never`.
     /*
     test('execute-insert-many-with-max-throws-when-over-limit', async () => {
         // Same guard but on the max side: insert 3 rows with

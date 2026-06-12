@@ -167,19 +167,12 @@ describe(ctx.label, () => {
                 newName: string
                 stamp:   string
             }>>()
-            if (!ctx.realDbEnabled) {
-                expect(row).toEqual({
-                    id:      1,
-                    oldName: 'Marketing site',
-                    newName: 'Marketing site / Acme Corp',
-                    stamp:   'Marketing site (was) vs Acme Corp',
-                })
-            } else {
-                expect(row.id).toBe(1)
-                expect(row.oldName).toBe('Marketing site')
-                expect(row.newName).toContain('Acme Corp')
-                expect(row.stamp).toContain('(was)')
-            }
+            expect(row).toEqual({
+                id:      1,
+                oldName: 'Marketing site',
+                newName: 'Marketing site / Acme Corp',
+                stamp:   'Marketing site (was) vs Acme Corp',
+            })
         })
     })
 

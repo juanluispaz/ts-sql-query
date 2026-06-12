@@ -82,28 +82,22 @@ describe(ctx.label, () => {
     test('execute-delete-none-or-one-with-returning-one-column', async () => {
         // `executeDeleteNoneOrOne()` + `returningOneColumn(col)` lands
         // on the `__oneColumn` branch and returns the single value or
-        // null. Engines that don't support DELETE … RETURNING (MariaDB
-        // ≤ 12) reject the SQL but the interceptor still captures the
-        // dialect-specific emission; engines that don't support it at
-        // all (MySQL) comment the test out in their cell.
+        // null. SQL Server supports DELETE … OUTPUT, so this runs
+        // end-to-end on the real DB too.
         ctx.mockNext('open')
         await ctx.withRollback(async () => {
-            let result: string | null = null
-            try {
-                result = await ctx.conn.deleteFrom(tIssue)
-                    .where(tIssue.id.equals(1))
-                    .returningOneColumn(tIssue.status)
-                    .executeDeleteNoneOrOne()
-            } catch (e) {
-                if (!ctx.realDbEnabled) throw e
-            }
+            const result = await ctx.conn.deleteFrom(tIssue)
+                .where(tIssue.id.equals(1))
+                .returningOneColumn(tIssue.status)
+                .executeDeleteNoneOrOne()
+
             expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue output deleted.status as [result] where id = @0"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
               ]
             `)
-            if (!ctx.realDbEnabled) expect(result).toBe('open')
+            expect(result).toBe('open')
         })
     })
 

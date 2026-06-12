@@ -23,10 +23,8 @@
 //     with `returning({...})` — covers both `__oneColumn` and row-shape
 //     branches of the many-returning path.
 //
-// Mock-only for the throw cases and for the multi-row last-inserted-id
-// path (the latter because the mock can pre-shape the id array while
-// real DBs hand back engine-assigned ids — the assertion then checks
-// the SQL/params only).
+// The empty-result coercion case is mock-only — a real INSERT always
+// writes the row, so the missing-value path never fires.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -156,19 +154,16 @@ describe(ctx.label, () => {
 
     test('execute-insert-none-or-one-with-returning-one-column', async () => {
         // `executeInsertNoneOrOne()` + `returningOneColumn(col)` lands
-        // on the `__oneColumn` branch and returns the single value or
-        // null.
+        // on the `__oneColumn` branch and returns the single value.
+        // The inserted row always exists, so the result is the
+        // engine-assigned id (never null on the real DB).
         ctx.mockNext(500)
         await ctx.withRollback(async () => {
-            let result: number | null = null
-            try {
-                result = await ctx.conn.insertInto(tOrganization)
-                    .values({ name: 'Umbrella Corp', plan: 'pro' })
-                    .returningOneColumn(tOrganization.id)
-                    .executeInsertNoneOrOne()
-            } catch (e) {
-                if (!ctx.realDbEnabled) throw e
-            }
+            const result = await ctx.conn.insertInto(tOrganization)
+                .values({ name: 'Umbrella Corp', plan: 'pro' })
+                .returningOneColumn(tOrganization.id)
+                .executeInsertNoneOrOne()
+
             expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, plan) values ($1, $2) returning id as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
@@ -176,14 +171,15 @@ describe(ctx.label, () => {
                 "pro",
               ]
             `)
-            if (!ctx.realDbEnabled) expect(result).toBe(500)
+            assertType<Exact<typeof result, number | null>>()
+            if (ctx.realDbEnabled) expect(typeof result).toBe('number')
+            else expect(result).toBe(500)
         })
     })
 
     test('execute-insert-none-or-one-with-returning-one-column-empty-result', async () => {
-        // The `__oneColumn` branch coerces missing to `null` (see
-        // [InsertQueryBuilder.ts:205](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L205)).
-        // Mock-only: real INSERT always writes the row.
+        // The `__oneColumn` branch coerces a missing value to `null`.
+        // tests-audit-disable-next-line mock-only -- a real INSERT always writes the row, so the empty-result coercion never fires on the real engine
         if (ctx.realDbEnabled) return
         ctx.mockNext(undefined)
         const result = await ctx.conn.insertInto(tOrganization)
@@ -202,21 +198,16 @@ describe(ctx.label, () => {
     })
 
     test('execute-insert-one-with-returning-one-column', async () => {
-        // `executeInsertOne()` + `returningOneColumn(col)` lands on the
-        // same `__oneColumn` shape but throws `NO_RESULT` when the
-        // engine returns undefined. The happy-path test covers the
-        // value branch.
+        // `executeInsertOne()` + `returningOneColumn(col)` covers the
+        // value branch of the `__oneColumn` shape. The inserted row
+        // always exists, so the result is the engine-assigned id.
         ctx.mockNext(777)
         await ctx.withRollback(async () => {
-            let result: number | null = null
-            try {
-                result = await ctx.conn.insertInto(tOrganization)
-                    .values({ name: 'LexCorp', plan: 'pro' })
-                    .returningOneColumn(tOrganization.id)
-                    .executeInsertOne()
-            } catch (e) {
-                if (!ctx.realDbEnabled) throw e
-            }
+            const result = await ctx.conn.insertInto(tOrganization)
+                .values({ name: 'LexCorp', plan: 'pro' })
+                .returningOneColumn(tOrganization.id)
+                .executeInsertOne()
+
             expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, plan) values ($1, $2) returning id as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
@@ -224,7 +215,9 @@ describe(ctx.label, () => {
                 "pro",
               ]
             `)
-            if (!ctx.realDbEnabled) expect(result).toBe(777)
+            assertType<Exact<typeof result, number>>()
+            if (ctx.realDbEnabled) expect(typeof result).toBe('number')
+            else expect(result).toBe(777)
         })
     })
 

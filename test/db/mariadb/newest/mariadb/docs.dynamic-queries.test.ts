@@ -187,9 +187,9 @@ describe(ctx.label, () => {
             id:    number
             title: string
         }>>>()
-        // With no filter on tProject and no select of its columns the
-        // join must be elided: the emitted SQL does not include
-        // "join project".
-        expect(ctx.lastSql).not.toContain('join project')
+        // With no filter on tProject and no select of its columns the join is
+        // elided (verified by the full SQL snapshot above); all four issues
+        // come back ordered by id.
+        expect(issues).toEqual(expected)
     })
 })

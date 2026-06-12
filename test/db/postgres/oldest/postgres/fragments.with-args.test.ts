@@ -135,7 +135,7 @@ describe(ctx.label, () => {
             4,
           ]
         `)
-        if (!ctx.realDbEnabled) expect(rows).toEqual([{ r: 7 }])
+        expect(rows).toEqual([{ r: 7 }]) // 3 + 4
     })
 
     test('build-fragment-with-maybe-optional-args-tracks-optional-on-undefined', async () => {
@@ -155,16 +155,9 @@ describe(ctx.label, () => {
             5,
           ]
         `)
-        // result projection is shaped by the merged optionalType — if
-        // it stayed `required`, projecting null would have thrown
-        // MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE. Reaching this
-        // point means the merge correctly degraded to optional; the
-        // mock-row's `null` is either passed through or dropped
-        // depending on the optionals-as-null vs optionals-as-undefined
-        // projector, so the assertion only requires the row exists.
-        if (!ctx.realDbEnabled) {
-            expect(rows).toHaveLength(1)
-            expect(rows[0]!.r ?? null).toBeNull()
-        }
+        // The merged optionalType degraded to `optional`, so projecting
+        // a NULL (NULL + 5 = NULL) yields the column as `undefined`
+        // instead of throwing MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE.
+        expect(rows).toEqual([{ r: undefined }])
     })
 })

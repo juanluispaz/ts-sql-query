@@ -147,6 +147,7 @@ describe(ctx.label, () => {
         // that is the test's whole point" as the documented exception
         // for the guard — mirrors the same guard on
         // `customize-select-hook-fragment-with-bound-param`.
+        // tests-audit-disable-next-line mock-only -- bound param lands inside a /* */ comment; several drivers strip the comment then reject the unused placeholder at execution
         if (ctx.realDbEnabled) return
         const connection = ctx.conn
         const projectsQ = connection.selectFrom(tProject)

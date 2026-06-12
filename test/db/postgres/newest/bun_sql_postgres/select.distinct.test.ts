@@ -1,7 +1,5 @@
-// Coverage of `SELECT DISTINCT` — `selectDistinctFrom(...)` path and
-// `subSelectDistinctUsing(...)` (distinct subquery used as a CTE). The
-// distinct keyword is emitted in `AbstractSqlBuilder._buildSelect` and
-// dialect overrides that need to inject it before the column list.
+// Coverage of `SELECT DISTINCT` — `selectDistinctFrom(...)` and
+// `subSelectDistinctUsing(...)` (a distinct correlated subquery).
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -14,9 +12,10 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('select-distinct-from-table', async () => {
-        // Distinct list of issue statuses across the whole table.
-        const expectedMock = [{ status: 'closed' }, { status: 'in_progress' }, { status: 'open' }]
-        ctx.mockNext(expectedMock)
+        // Distinct issue statuses across the table: open, in_progress, open,
+        // closed → three distinct values, ordered alphabetically.
+        const expected = [{ status: 'closed' }, { status: 'in_progress' }, { status: 'open' }]
+        ctx.mockNext(expected)
 
         const rows = await ctx.conn.selectDistinctFrom(tIssue)
             .select({ status: tIssue.status })
@@ -26,16 +25,14 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select distinct status as status from issue order by status"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ status: string }>>>()
-        if (!ctx.realDbEnabled) expect(rows).toEqual(expectedMock)
-        else expect(rows.length).toBeGreaterThanOrEqual(1)
+        expect(rows).toEqual(expected)
     })
 
     test('select-distinct-with-join-and-where', async () => {
-        // Distinct list of organizations that have an open issue. Joins
-        // are present so the distinct keyword has to be emitted with a
-        // FROM that carries a JOIN clause.
-        const expectedMock = [{ orgId: 1 }]
-        ctx.mockNext(expectedMock)
+        // Distinct organizations with an open issue: open issues 1 and 3
+        // belong to projects 1 and 2, both owned by org 1 → just [1].
+        const expected = [{ orgId: 1 }]
+        ctx.mockNext(expected)
 
         const rows = await ctx.conn.selectDistinctFrom(tProject)
             .innerJoin(tIssue).on(tIssue.projectId.equals(tProject.id))
@@ -51,18 +48,13 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{ orgId: number }>>>()
-        if (!ctx.realDbEnabled) expect(rows).toEqual(expectedMock)
+        expect(rows).toEqual(expected)
     })
 
     test('subselect-distinct-using-in-correlated-exists', async () => {
-        // `subSelectDistinctUsing(...)` builds a correlated `select
-        // distinct` subquery; used inside `exists(...)` it selects the
-        // projects that have at least one issue. The DISTINCT is what
-        // this test exercises (the connection's `subSelectDistinctUsing`
-        // entry point); it is redundant under EXISTS but valid on every
-        // engine. Projects 1/2/3 have issues; project 4 has none. This
-        // shape stays type-simple — the aggregated-array form tripped a
-        // tsgo/tsc inference divergence on the MariaDB connection types.
+        // `subSelectDistinctUsing(...)` builds a correlated `select distinct`
+        // subquery; inside `exists(...)` it keeps the projects that have at
+        // least one issue. Projects 1/2/3 have issues; project 4 has none.
         const expected = [
             { id: 1, name: 'Marketing site' },
             { id: 2, name: 'Internal tools' },

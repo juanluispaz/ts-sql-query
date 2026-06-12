@@ -230,6 +230,9 @@ describe(ctx.label, () => {
             name:       string
             priorities: number[]
         }>>()
-        expect(row?.priorities).toEqual(expect.arrayContaining([1, 2]))
+        // Project 1 has issues with priority 2 (issue 1) and 1 (issue 2);
+        // distinct → [1, 2]. Sort in JS since json_group_array order isn't
+        // guaranteed.
+        expect([...(row?.priorities ?? [])].sort()).toEqual([1, 2])
     })
 })

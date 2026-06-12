@@ -1,10 +1,8 @@
-// Coverage of `_inlineSelectAsValueForCondition` — reached when an
-// inline subquery wrapped via `forUseAsInlineQueryValue()` is itself
-// used as a boolean condition (in `.where(...)`, `.and(...)`, etc.).
-// The AbstractSqlBuilder default at L640 is hit by Postgres/MySQL/
-// MariaDB/SQLite, and Oracle/SqlServer have a dedicated override that
-// emits `((<select>) = 1)` for boolean one-column selects to coerce
-// their bit/number storage back to a SQL condition.
+// Coverage of an inline subquery wrapped via `forUseAsInlineQueryValue()`
+// that is itself used as a boolean condition (in `.where(...)`,
+// `.and(...)`, etc.). On SQL Server a boolean one-column select is
+// wrapped as `((<select>) = 1)` to coerce its bit storage back to a SQL
+// condition.
 //
 // The schema's boolean columns all carry a CustomBooleanTypeAdapter
 // (Y/N or t/f), so the value coming out of the real DB doesn't match
@@ -24,27 +22,23 @@ describe(ctx.label, () => {
     test('boolean-inline-subquery-as-condition', async () => {
         const expected = [{ id: 1 }, { id: 2 }, { id: 3 }]
         ctx.mockNext(expected)
-        try {
-            const result = await ctx.conn.selectFrom(tProject)
-                .where(
-                    ctx.conn.selectFrom(tProject)
-                        .where(tProject.id.equals(1))
-                        .selectOneColumn(tProject.published)
-                        .forUseAsInlineQueryValue()
-                )
-                .select({ id: tProject.id })
-                .orderBy('id')
-                .executeSelectMany()
-            assertType<Exact<typeof result, Array<{ id: number }>>>()
-            if (!ctx.realDbEnabled) {
-                expect(result).toEqual(expected)
-            }
-        } catch (e) {
-            if (!ctx.realDbEnabled) throw e
-            // The emitted SQL is dialect-specific and some real DBs
-            // reject coercing a custom-adapted boolean column back to
-            // 0/1; the snapshot is still captured by the builder.
-        }
+        // TODO[BUG]: see test/BUGS.md — SQL Server double-wraps the
+        // boolean inline-subquery condition as `((...) = 1) = 1`, which
+        // the engine rejects with "Incorrect syntax near '='".
+        // tests-audit-disable-next-line mock-only -- SQL Server rejects the `((...) = 1) = 1` double bit-coercion; see test/BUGS.md
+        if (ctx.realDbEnabled) return
+        const result = await ctx.conn.selectFrom(tProject)
+            .where(
+                ctx.conn.selectFrom(tProject)
+                    .where(tProject.id.equals(1))
+                    .selectOneColumn(tProject.published)
+                    .forUseAsInlineQueryValue()
+            )
+            .select({ id: tProject.id })
+            .orderBy('id')
+            .executeSelectMany()
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+        expect(result).toEqual(expected)
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project where (((select cast(case when published = 't' then 1 else 0 end as bit) as [result] from project where id = @0) = 1) = 1) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
@@ -54,30 +48,28 @@ describe(ctx.label, () => {
     })
 
     test('negated-boolean-inline-subquery-as-condition', async () => {
-        // Reaches `_inlineSelectAsValueForCondition` via `_negate(...)`
-        // — `.negate()` calls `_appendConditionSql` on the wrapped
-        // inline-select value source.
+        // `.negate()` on the wrapped inline-select value source emits a
+        // leading `not (...)` around the same coerced condition.
         const expected = [{ id: 4 }]
         ctx.mockNext(expected)
-        try {
-            const result = await ctx.conn.selectFrom(tProject)
-                .where(
-                    ctx.conn.selectFrom(tProject)
-                        .where(tProject.id.equals(1))
-                        .selectOneColumn(tProject.published)
-                        .forUseAsInlineQueryValue()
-                        .negate()
-                )
-                .select({ id: tProject.id })
-                .orderBy('id')
-                .executeSelectMany()
-            assertType<Exact<typeof result, Array<{ id: number }>>>()
-            if (!ctx.realDbEnabled) {
-                expect(result).toEqual(expected)
-            }
-        } catch (e) {
-            if (!ctx.realDbEnabled) throw e
-        }
+        // TODO[BUG]: see test/BUGS.md — same `((...) = 1) = 1` double
+        // bit-coercion the non-negated case hits; SQL Server rejects it
+        // with "Incorrect syntax near '='".
+        // tests-audit-disable-next-line mock-only -- SQL Server rejects the `((...) = 1) = 1` double bit-coercion; see test/BUGS.md
+        if (ctx.realDbEnabled) return
+        const result = await ctx.conn.selectFrom(tProject)
+            .where(
+                ctx.conn.selectFrom(tProject)
+                    .where(tProject.id.equals(1))
+                    .selectOneColumn(tProject.published)
+                    .forUseAsInlineQueryValue()
+                    .negate()
+            )
+            .select({ id: tProject.id })
+            .orderBy('id')
+            .executeSelectMany()
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+        expect(result).toEqual(expected)
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project where not (((select cast(case when published = 't' then 1 else 0 end as bit) as [result] from project where id = @0) = 1) = 1) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [

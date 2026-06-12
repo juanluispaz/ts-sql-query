@@ -19,6 +19,13 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../.
 import { tIssue, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
+// The disallow rules throw a `TsSqlProcessingError` (an `Error`) onto which
+// the InsertQueryBuilder attaches the runtime-only `disallowedProperty` /
+// `disallowedIndex` fields (set via direct assignment in src, not part of the
+// public typed surface). This shape narrows the caught `unknown` so the
+// assertions read those fields without an `any` local.
+type DisallowError = Error & { disallowedProperty?: unknown; disallowedIndex?: unknown }
+
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
     afterAll(() => ctx.down(), ctx.timeoutMs)
@@ -98,7 +105,7 @@ describe(ctx.label, () => {
         // ([InsertQueryBuilder.ts:1178-1193](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L1178-L1193)).
         // Row 0 omits `body`; row 1 stages it. The throw must carry
         // `disallowedProperty: 'body'` AND `disallowedIndex: 1`.
-        let thrown: any
+        let thrown: unknown
         try {
             ctx.conn.insertInto(tIssue)
                 .values([
@@ -108,9 +115,10 @@ describe(ctx.label, () => {
                 .disallowIfSet('body must never be staged from the API', 'body')
         } catch (e) { thrown = e }
         expect(thrown).toBeInstanceOf(Error)
-        expect(thrown.message).toContain('body must never be staged from the API')
-        expect(thrown.disallowedProperty).toBe('body')
-        expect(thrown.disallowedIndex).toBe(1)
+        const err = thrown as DisallowError
+        expect(err.message).toContain('body must never be staged from the API')
+        expect(err.disallowedProperty).toBe('body')
+        expect(err.disallowedIndex).toBe(1)
     })
 
     test('disallow-if-not-set-throws-when-row-is-missing-required-key', () => {
@@ -118,7 +126,7 @@ describe(ctx.label, () => {
         // ([InsertQueryBuilder.ts:1217-1232](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L1217-L1232)).
         // Row 0 has `title`; row 1 omits it. The first missing key on
         // the second row triggers the throw, carrying `disallowedIndex: 1`.
-        let thrown: any
+        let thrown: unknown
         try {
             ctx.conn.insertInto(tIssue)
                 .values([
@@ -128,9 +136,10 @@ describe(ctx.label, () => {
                 .disallowIfNotSet('title is mandatory in bulk import', 'title')
         } catch (e) { thrown = e }
         expect(thrown).toBeInstanceOf(Error)
-        expect(thrown.message).toContain('title is mandatory in bulk import')
-        expect(thrown.disallowedProperty).toBe('title')
-        expect(thrown.disallowedIndex).toBe(1)
+        const err = thrown as DisallowError
+        expect(err.message).toContain('title is mandatory in bulk import')
+        expect(err.disallowedProperty).toBe('title')
+        expect(err.disallowedIndex).toBe(1)
     })
 
     test('disallow-if-value-throws-when-any-row-passes-the-value-gate', () => {
@@ -138,7 +147,7 @@ describe(ctx.label, () => {
         // ([InsertQueryBuilder.ts:1256-1271](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L1256-L1271)).
         // Row 0 has `body: null` (fails `_isValue`); row 1 has
         // `body: 'real'` (passes) → the throw fires on row 1.
-        let thrown: any
+        let thrown: unknown
         try {
             ctx.conn.insertInto(tIssue)
                 .values([
@@ -148,9 +157,10 @@ describe(ctx.label, () => {
                 .disallowIfValue('body must be staged by the workflow', 'body')
         } catch (e) { thrown = e }
         expect(thrown).toBeInstanceOf(Error)
-        expect(thrown.message).toContain('body must be staged by the workflow')
-        expect(thrown.disallowedProperty).toBe('body')
-        expect(thrown.disallowedIndex).toBe(1)
+        const err = thrown as DisallowError
+        expect(err.message).toContain('body must be staged by the workflow')
+        expect(err.disallowedProperty).toBe('body')
+        expect(err.disallowedIndex).toBe(1)
     })
 
     test('disallow-if-no-value-throws-when-any-row-fails-the-value-gate', () => {
@@ -158,7 +168,7 @@ describe(ctx.label, () => {
         // ([InsertQueryBuilder.ts:1295-1310](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L1295-L1310)).
         // Row 0 has `body: 'present'` (passes); row 1 has `body: null`
         // (fails) → the throw fires on row 1.
-        let thrown: any
+        let thrown: unknown
         try {
             ctx.conn.insertInto(tIssue)
                 .values([
@@ -168,9 +178,10 @@ describe(ctx.label, () => {
                 .disallowIfNoValue('body is required for every row', 'body')
         } catch (e) { thrown = e }
         expect(thrown).toBeInstanceOf(Error)
-        expect(thrown.message).toContain('body is required for every row')
-        expect(thrown.disallowedProperty).toBe('body')
-        expect(thrown.disallowedIndex).toBe(1)
+        const err = thrown as DisallowError
+        expect(err.message).toContain('body is required for every row')
+        expect(err.disallowedProperty).toBe('body')
+        expect(err.disallowedIndex).toBe(1)
     })
 
     test('disallow-any-other-set-throws-on-row-with-extra-column', () => {
@@ -179,7 +190,7 @@ describe(ctx.label, () => {
         // Row 0 only stages allowed columns; row 1 sneaks in `body`,
         // which is not in the allow-list → throws with
         // `disallowedProperty: 'body'`, `disallowedIndex: 1`.
-        let thrown: any
+        let thrown: unknown
         try {
             ctx.conn.insertInto(tProject)
                 .values([
@@ -192,9 +203,10 @@ describe(ctx.label, () => {
                 )
         } catch (e) { thrown = e }
         expect(thrown).toBeInstanceOf(Error)
-        expect(thrown.message).toContain('only org/name/slug may be bulk-imported')
-        expect(thrown.disallowedProperty).toBe('published')
-        expect(thrown.disallowedIndex).toBe(1)
+        const err = thrown as DisallowError
+        expect(err.message).toContain('only org/name/slug may be bulk-imported')
+        expect(err.disallowedProperty).toBe('published')
+        expect(err.disallowedIndex).toBe(1)
     })
 
     test('disallow-any-other-set-permits-rows-when-every-set-is-allowed', async () => {

@@ -81,17 +81,37 @@ describe(ctx.label, () => {
         })
     })
 
-    // Not applicable on Oracle: the server rejects the
-    // `WITH cte AS (...) UPDATE ... FROM cte ...` form with
-    // ORA-00928 "SELECT keyword missing". Oracle accepts WITH only as
-    // a prefix to SELECT; the inline-subquery rewrite (`UPDATE (SELECT
-    // ... FROM tgt JOIN cte ...) SET ...`) would be needed instead.
-    // The library emits the WITH-prefix form here. See other cells for
-    // the canonical body.
+    // NOT-APPLICABLE: Oracle rejects the `WITH cte AS (...) UPDATE … FROM cte …` form (ORA-00928); WITH is only a SELECT prefix on Oracle
     /*
     test('update-from-cte-source', async () => {
-        // ... see other cells for the full body — pins
-        // `with verified_orgs as (...) update project ... from verified_orgs ...`.
+        // FROM target is a `.forUseInQueryAs(...)` view (a CTE). The
+        // emitted SQL must lead with `with verified_orgs as (...)`
+        // bubbled up from the FROM clause through `__addWiths`.
+        ctx.mockNext(0)
+        await ctx.withRollback(async () => {
+            const verifiedOrgs = ctx.conn.selectFrom(tOrganization)
+                .where(tOrganization.verified.equals(true))
+                .select({ id: tOrganization.id, name: tOrganization.name })
+                .forUseInQueryAs('verified_orgs')
+
+            const affected = await ctx.conn.update(tProject)
+                .from(verifiedOrgs)
+                .set({ name: verifiedOrgs.name })
+                .where(tProject.organizationId.equals(verifiedOrgs.id))
+                .and(tProject.id.equals(99999))
+                .executeUpdate()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"with verified_orgs as (select id as id, name as name from organization where (verified = 'Y') = $1) update project set name = verified_orgs.name from verified_orgs where project.organization_id = verified_orgs.id and project.id = $2"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                true,
+                99999,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            if (!ctx.realDbEnabled) expect(affected).toBe(0)
+            else expect(typeof affected).toBe('number')
+        })
     })
     */
 

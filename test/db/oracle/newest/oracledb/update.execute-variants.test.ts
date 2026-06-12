@@ -42,7 +42,7 @@ describe(ctx.label, () => {
               ]
             `)
             assertType<Exact<typeof affected, number>>()
-            if (!ctx.realDbEnabled) expect(affected).toBe(4)
+            expect(affected).toBe(4)
         })
     })
 
@@ -86,22 +86,16 @@ describe(ctx.label, () => {
     test('execute-update-none-or-one-with-returning-one-column', async () => {
         // `executeUpdateNoneOrOne()` + `returningOneColumn(col)` lands
         // on the `__oneColumn` branch and returns the single value or
-        // null. Engines that don't support UPDATE … RETURNING (MariaDB
-        // ≤ 12) reject the SQL but the interceptor still captures the
-        // dialect-specific emission; engines that don't support it at
-        // all (MySQL) comment the test out in their cell.
+        // null. Oracle supports UPDATE … RETURNING, so this runs on the
+        // real DB too; engines that don't support it at all (MySQL)
+        // comment the test out in their cell.
         ctx.mockNext('reviewed')
         await ctx.withRollback(async () => {
-            let result: string | null = null
-            try {
-                result = await ctx.conn.update(tIssue)
-                    .set({ status: 'reviewed' })
-                    .where(tIssue.id.equals(1))
-                    .returningOneColumn(tIssue.status)
-                    .executeUpdateNoneOrOne()
-            } catch (e) {
-                if (!ctx.realDbEnabled) throw e
-            }
+            const result = await ctx.conn.update(tIssue)
+                .set({ status: 'reviewed' })
+                .where(tIssue.id.equals(1))
+                .returningOneColumn(tIssue.status)
+                .executeUpdateNoneOrOne()
             expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = :0 where id = :1 returning status into :2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
@@ -113,7 +107,8 @@ describe(ctx.label, () => {
                 },
               ]
             `)
-            if (!ctx.realDbEnabled) expect(result).toBe('reviewed')
+            // Seed issue id=1 is updated to 'reviewed'; RETURNING gives it back in both modes.
+            expect(result).toBe('reviewed')
         })
     })
 
@@ -206,15 +201,18 @@ describe(ctx.label, () => {
     })
 
     test('execute-update-none-or-one-with-no-sets-resolves-null', async () => {
-        // Same empty-`__sets` short-circuit on the none-or-one path
-        // (UpdateQueryBuilder.ts:85): resolves null, no query emitted.
-        // `executeUpdateNoneOrOne` is not on the bare `dynamicSet()`
-        // type (only `executeUpdate` is), so cast to reach the runtime
-        // short-circuit — same pattern errors.processing.test.ts uses.
-        const builder = ctx.conn.update(tIssue)
+        // Same empty-set short-circuit on the none-or-one path: with no
+        // columns set, the executor resolves null and emits no query. By
+        // design `executeUpdateNoneOrOne` is a RETURNING executor (it returns
+        // the projected value), so it is reached through `returningOneColumn`;
+        // the empty-set short-circuit fires before the projection matters, so
+        // null still comes back without touching the database.
+        const result = await ctx.conn.update(tIssue)
             .dynamicSet()
-            .where(tIssue.id.equals(1)) as any
-        const result = await builder.executeUpdateNoneOrOne()
+            .where(tIssue.id.equals(1))
+            .returningOneColumn(tIssue.status)
+            .executeUpdateNoneOrOne()
+        assertType<Exact<typeof result, string | null>>()
         expect(result).toBeNull()
     })
 

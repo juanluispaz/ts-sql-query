@@ -146,10 +146,7 @@ describe(ctx.label, () => {
         // here a bound integer via `connection.const(...)`. The
         // placeholder ends up inside the comment in the snapshot,
         // proving the fragment routes through `_appendRawFragment` and
-        // not as a string splice. Mock-only because some drivers
-        // strip comments before counting placeholders and would
-        // reject the extra param at execution.
-        if (ctx.realDbEnabled) return
+        // not as a string splice.
         ctx.mockNext([{ id: 1 }])
         const connection = ctx.conn
         const result = await connection.selectFrom(tProject)

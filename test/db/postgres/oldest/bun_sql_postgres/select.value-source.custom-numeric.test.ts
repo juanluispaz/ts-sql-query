@@ -1,30 +1,15 @@
-// Coverage of the bigint / customInt / customDouble TYPE-DISPATCH arms in
-// ValueSourceImpl's numeric methods. The existing select.numeric-ops /
-// select.value-source.trig files exercise these methods only on plain
-// `int`/`double` operands (`tIssue.priority`), which take the `else`
-// branch of each method; the bigint and custom* arms (e.g.
-// `ceil()` over a bigint, `sqrt()` over a customDouble) were never
-// reached. The emitted SQL is identical to the non-custom version — what
-// the custom arm changes is the result's carried value-type — so the
-// branch is exercised purely by feeding a differently-typed operand.
+// Coverage of the bigint / customInt / customDouble type-dispatch arms of
+// the numeric value-source methods. The other numeric tests exercise these
+// methods only on plain int/double operands; the bigint and custom* arms
+// (e.g. ceil() over a bigint, sqrt() over a customDouble) are reached by
+// feeding a differently-typed operand. The emitted SQL is the same — what
+// the custom arm changes is the carried result type.
 //
-// Operand sources, chosen to avoid binding a JS BigInt (the sqlite3
-// driver can't bind one): bigint coverage comes from the read-only
-// `viewCount` column (seed default 0); customInt/customDouble come from
-// `const(v, 'customInt'|'customDouble', 'TypeName')`, which bind a plain
-// number. The shared arithmetic dispatch
-// (createSqlOperation1ofOverloadedNumber) routes double, bigint AND
-// custom operands through ONE branch, so `double-arithmetic` (a typed
-// `priority.asDouble()` operand, which stays resolvable on every real DB)
-// covers that branch for all of them — a const-built custom operand would
-// emit two untyped params that postgres rejects as `unknown <op> unknown`.
-//
-// SQLite has no trig functions (acos…tan raise at runtime) and computes
-// exp/ln/log10 with platform precision; a custom type also carries no
-// marshalling (transformValueFromDB falls through to `return value`, so
-// the driver's raw representation leaks). Those tests therefore pin the
-// emitted SQL always and assert the value only under the mock — the same
-// accommodation select.numeric-ops/.trig already use.
+// bigint coverage comes from the read-only viewCount column (seed default
+// 0); customInt/customDouble come from const(v, 'customInt'|'customDouble',
+// 'TypeName'). bigint is marshalled, so its results come back typed; custom
+// types are NOT marshalled, so their `::numeric`-cast results leak the
+// driver's raw representation (a string on the postgres drivers).
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -62,13 +47,10 @@ describe(ctx.label, () => {
 
     test('custom-numeric/customint-rounding-and-abs', async () => {
         // customInt operand keeps the customInt result type through
-        // ceil/floor/round (the customInt||customDouble arm) and abs.
-        // The SQL runs on every real DB; the VALUE is asserted only under
-        // the mock because a custom type carries NO marshalling
-        // (transformValueFromDB falls to `default: return value`), so the
-        // round result — wrapped in `::numeric` — comes back as the
-        // driver's raw representation (a string on the postgres drivers),
-        // not a canonical number the library re-types.
+        // ceil/floor/round and abs. A custom type carries no marshalling,
+        // so the `round(...::numeric)` result leaks the driver's raw
+        // representation: a string ('7') on the postgres drivers, while
+        // ceil/floor/abs come back as numbers.
         const score = ctx.conn.const(7, 'customInt', 'Score')
         const expected = [{ id: 1, c: 7, f: 7, r: 7, a: 7 }]
         ctx.mockNext(expected)
@@ -93,7 +75,11 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof result, Array<{ id: number; c: number; f: number; r: number; a: number }>>>()
-        if (!ctx.realDbEnabled) expect(result).toEqual(expected)
+        if (ctx.realDbEnabled) {
+            expect(result).toEqual([{ id: 1, c: 7, f: 7, r: '7', a: 7 }])
+        } else {
+            expect(result).toEqual(expected)
+        }
     })
 
     test('custom-numeric/double-arithmetic', async () => {
@@ -131,8 +117,8 @@ describe(ctx.label, () => {
 
     test('custom-numeric/customdouble-math', async () => {
         // sqrt/cbrt/exp/ln/log10 over a customDouble operand keep the
-        // customDouble type. exp/ln/log10 are platform-precision, so the
-        // value is asserted only under the mock; SQL is pinned always.
+        // customDouble type. The real results are floats, so the real-DB
+        // branch asserts with toBeCloseTo.
         const m = ctx.conn.const(4, 'customDouble', 'Meters')
         const expected = [{
             id: 1,
@@ -166,13 +152,22 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof result, Array<{ id: number; sq: number; cb: number; e: number; l: number; l10: number }>>>()
-        if (!ctx.realDbEnabled) expect(result).toEqual(expected)
+        if (ctx.realDbEnabled) {
+            expect(result[0]!.id).toBe(1)
+            expect(result[0]!.sq).toBeCloseTo(2, 5)
+            expect(result[0]!.cb).toBeCloseTo(Math.cbrt(4), 5)
+            expect(result[0]!.e).toBeCloseTo(Math.exp(4), 5)
+            expect(result[0]!.l).toBeCloseTo(Math.log(4), 5)
+            expect(result[0]!.l10).toBeCloseTo(Math.log10(4), 5)
+        } else {
+            expect(result).toEqual(expected)
+        }
     })
 
     test('custom-numeric/customdouble-trig', async () => {
         // The 7 trig methods over a customDouble operand keep the
-        // customDouble type. SQLite has no trig functions, so execution
-        // throws after the SQL is captured; the value is mock-only.
+        // customDouble type. The real results are floats, so the real-DB
+        // branch asserts with toBeCloseTo.
         const r = ctx.conn.const(0.5, 'customDouble', 'Ratio')
         const expected = [{
             id: 1,
@@ -180,23 +175,14 @@ describe(ctx.label, () => {
             co: Math.cos(0.5), ct: 1 / Math.tan(0.5), si: Math.sin(0.5), ta: Math.tan(0.5),
         }]
         ctx.mockNext(expected)
-        try {
-            const result = await ctx.conn.selectFrom(tIssue)
-                .where(tIssue.id.equals(1))
-                .select({
-                    id: tIssue.id,
-                    ac: r.acos(), as: r.asin(), at: r.atan(),
-                    co: r.cos(), ct: r.cot(), si: r.sin(), ta: r.tan(),
-                })
-                .executeSelectMany()
-            assertType<Exact<typeof result, Array<{
-                id: number; ac: number; as: number; at: number
-                co: number; ct: number; si: number; ta: number
-            }>>>()
-            if (!ctx.realDbEnabled) expect(result).toEqual(expected)
-        } catch (e) {
-            if (!ctx.realDbEnabled) throw e
-        }
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                ac: r.acos(), as: r.asin(), at: r.atan(),
+                co: r.cos(), ct: r.cot(), si: r.sin(), ta: r.tan(),
+            })
+            .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, acos($1) as ac, asin($2) as "as", atan($3) as at, cos($4) as co, cot($5) as ct, sin($6) as si, tan($7) as ta from issue where id = $8"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
@@ -210,39 +196,57 @@ describe(ctx.label, () => {
             1,
           ]
         `)
+        assertType<Exact<typeof result, Array<{
+            id: number; ac: number; as: number; at: number
+            co: number; ct: number; si: number; ta: number
+        }>>>()
+        if (ctx.realDbEnabled) {
+            expect(result[0]!.id).toBe(1)
+            expect(result[0]!.ac).toBeCloseTo(Math.acos(0.5), 5)
+            expect(result[0]!.as).toBeCloseTo(Math.asin(0.5), 5)
+            expect(result[0]!.at).toBeCloseTo(Math.atan(0.5), 5)
+            expect(result[0]!.co).toBeCloseTo(Math.cos(0.5), 5)
+            expect(result[0]!.ct).toBeCloseTo(1 / Math.tan(0.5), 5)
+            expect(result[0]!.si).toBeCloseTo(Math.sin(0.5), 5)
+            expect(result[0]!.ta).toBeCloseTo(Math.tan(0.5), 5)
+        } else {
+            expect(result).toEqual(expected)
+        }
     })
 
     test('custom-numeric/customdouble-operation1-math', async () => {
-        // The 5 `SqlOperation1` customDouble arms — `power`, `logn`,
-        // `roundn`, `divide`, `atan2` — at ValueSourceImpl.ts:614 / 635
-        // / 642 / 649 / 678. `customdouble-math` covers the
-        // `SqlOperation0` arms (sqrt/cbrt/exp/ln/log10); these take an
-        // additional operand and route through a different dispatch
-        // arm. SQLite has no `logn` / `atan2` / `roundn`, so execution
-        // throws after the SQL is captured; value is mock-only as in
-        // the `customdouble-math` / `customdouble-trig` siblings.
+        // The 5 SqlOperation1 customDouble arms — power, logn, roundn,
+        // divide, atan2. A custom type carries no marshalling, so the
+        // `::numeric`-cast results (logn, roundn) leak the driver's raw
+        // representation: strings ('3.0000000000000000', '8.00') on the
+        // postgres drivers, while power/divide/atan2 come back as numbers.
         const v = ctx.conn.const(8, 'customDouble', 'Score')
         const o = ctx.conn.const(2, 'customDouble', 'Score')
         const expected = [{ id: 1, p: 64, ln: 3, rn: 8, di: 4, at2: Math.atan2(8, 2) }]
         ctx.mockNext(expected)
-        try {
-            const result = await ctx.conn.selectFrom(tIssue)
-                .where(tIssue.id.equals(1))
-                .select({
-                    id:  tIssue.id,
-                    p:   v.power(2),
-                    ln:  v.logn(o),
-                    rn:  v.roundn(2),
-                    di:  v.divide(o),
-                    at2: v.atan2(o),
-                })
-                .executeSelectMany()
-            assertType<Exact<typeof result, Array<{
-                id: number; p: number; ln: number; rn: number; di: number; at2: number
-            }>>>()
-            if (!ctx.realDbEnabled) expect(result).toEqual(expected)
-        } catch (e) {
-            if (!ctx.realDbEnabled) throw e
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id:  tIssue.id,
+                p:   v.power(2),
+                ln:  v.logn(o),
+                rn:  v.roundn(2),
+                di:  v.divide(o),
+                at2: v.atan2(o),
+            })
+            .executeSelectMany()
+        assertType<Exact<typeof result, Array<{
+            id: number; p: number; ln: number; rn: number; di: number; at2: number
+        }>>>()
+        if (ctx.realDbEnabled) {
+            expect(result[0]!.id).toBe(1)
+            expect(result[0]!.p).toBeCloseTo(64, 5)
+            expect(result[0]!.ln).toBe('3.0000000000000000')
+            expect(result[0]!.rn).toBe('8.00')
+            expect(result[0]!.di).toBeCloseTo(4, 5)
+            expect(result[0]!.at2).toBeCloseTo(Math.atan2(8, 2), 5)
+        } else {
+            expect(result).toEqual(expected)
         }
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, power($1, $2) as "p", log(($3)::numeric, ($4)::numeric) as ln, round(($5)::numeric, $6) as rn, $7::float / $8::float as di, atan2($9, $10) as at2 from issue where id = $11"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`

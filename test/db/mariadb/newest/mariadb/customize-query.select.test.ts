@@ -144,11 +144,10 @@ describe(ctx.label, () => {
     test('customize-select-hook-fragment-with-bound-param', async () => {
         // A fragment passed to a hook can interpolate a value source -
         // here a bound integer via `connection.const(...)`. The
-        // placeholder ends up inside the comment in the snapshot,
-        // proving the fragment routes through `_appendRawFragment` and
-        // not as a string splice. Mock-only because some drivers
-        // strip comments before counting placeholders and would
-        // reject the extra param at execution.
+        // placeholder ends up inside the `/* ... */` comment, so the
+        // mariadb driver strips the comment and then rejects the extra
+        // param at execution — genuinely mock-only.
+        // tests-audit-disable-next-line mock-only -- bound param lands inside a /* */ comment; mariadb strips the comment then rejects the unused ?
         if (ctx.realDbEnabled) return
         ctx.mockNext([{ id: 1 }])
         const connection = ctx.conn

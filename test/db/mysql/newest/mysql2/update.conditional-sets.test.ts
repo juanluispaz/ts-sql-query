@@ -124,16 +124,17 @@ describe(ctx.label, () => {
         // `setIfHasValueIfValue` updates only when BOTH the staged value
         // and the incoming value pass `_isValue`. Staged `body` is null
         // → skipped despite a valid new value; staged `title` is set and
-        // the incoming title is valid → updated. Empty-string incoming
-        // is rejected for `priority`.
+        // the incoming title is valid → updated. The `undefined` incoming
+        // value is rejected for `assigneeId` (the staged assignee has a
+        // value, so only the incoming gate fails here).
         ctx.mockNext(1)
         await ctx.conn.update(tIssue)
-            .set({ title: 'Triage', body: null, priority: 2 })
-            .setIfHasValueIfValue({ title: 'Triaged', body: 'will-skip', priority: '' as any })
+            .set({ title: 'Triage', body: null, assigneeId: 2 })
+            .setIfHasValueIfValue({ title: 'Triaged', body: 'will-skip', assigneeId: undefined })
             .where(tIssue.id.equals(1))
             .executeUpdate()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = ?, body = ?, priority = ? where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = ?, body = ?, assignee_id = ? where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "Triaged",
@@ -146,17 +147,18 @@ describe(ctx.label, () => {
 
     test('set-if-has-no-value-if-value-fills-only-empty-with-real-value', async () => {
         // Mirror of the above: only writes when the staged value FAILS
-        // `_isValue` AND the incoming value PASSES `_isValue`. Empty
-        // incoming string for `body` is rejected; non-empty `title`
-        // fills the (null) slot.
+        // `_isValue` AND the incoming value PASSES `_isValue`. Both `body`
+        // and `assigneeId` are staged null (fail the staged gate). The
+        // non-empty incoming `body` fills its slot; the `undefined`
+        // incoming `assigneeId` is rejected by the incoming gate.
         ctx.mockNext(1)
         await ctx.conn.update(tIssue)
-            .set({ title: null as any, body: null })
-            .setIfHasNoValueIfValue({ title: 'Filled', body: '' })
+            .set({ body: null, assigneeId: null })
+            .setIfHasNoValueIfValue({ body: 'Filled', assigneeId: undefined })
             .where(tIssue.id.equals(1))
             .executeUpdate()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = ?, body = ? where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set body = ?, assignee_id = ? where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "Filled",

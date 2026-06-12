@@ -157,10 +157,12 @@ describe(ctx.label, () => {
     test('lessThanIfValue-and-greaterThanIfValue-mixed', async () => {
         // Combines two IfValue predicates AND-joined. One is elided
         // (undefined), one fires (concrete value). The emitted WHERE
-        // contains only the fired predicate.
+        // contains only the fired predicate (priority > 1), matching
+        // issues 1 (prio 2), 3 (prio 3) and 4 (prio 2).
         const expected = [
-            { id: 2 },
+            { id: 1 },
             { id: 3 },
+            { id: 4 },
         ]
         ctx.mockNext(expected)
 
@@ -180,8 +182,7 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
-        if (!ctx.realDbEnabled) expect(rows).toEqual(expected)
-        else expect(rows.length).toBeGreaterThanOrEqual(0)
+        expect(rows).toEqual(expected)
     })
 
     test('inIfValue-with-empty-array-elides-predicate', async () => {

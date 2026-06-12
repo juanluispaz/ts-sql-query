@@ -42,7 +42,7 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // Not applicable on MySQL: `onConflictOn(...)` is not typed on MySqlConnection (the `ON DUPLICATE KEY UPDATE` grammar takes no column list); see `test/db/mysql/types.negative/insert.test.ts` for the compile-time negative.
+    // NOT-APPLICABLE: MySQL uses the bare onConflictDoUpdateSet form (`onConflictOn(...)` is not typed on MySqlConnection; the `ON DUPLICATE KEY UPDATE` grammar takes no column list).
     /*
     test('on-conflict-do-update-set-if-value-fires-defined-fields', async () => {
         // `doUpdateSetIfValue` is the IfValue twin of `doUpdateSet`.
@@ -80,7 +80,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // Not applicable on MySQL: `onConflictOn(...)` is not typed on MySqlConnection (the `ON DUPLICATE KEY UPDATE` grammar takes no column list); see `test/db/mysql/types.negative/insert.test.ts` for the compile-time negative.
+    // NOT-APPLICABLE: MySQL uses the bare onConflictDoUpdateSet form (`onConflictOn(...)` is not typed on MySqlConnection; the `ON DUPLICATE KEY UPDATE` grammar takes no column list).
     /*
     test('on-conflict-do-update-set-then-set-if-value-chain', async () => {
         // Chain `setIfValue` after `doUpdateSet`. Both contribute to
@@ -115,7 +115,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // Not applicable on MySQL: `onConflictOn(...)` is not typed on MySqlConnection (the `ON DUPLICATE KEY UPDATE` grammar takes no column list); see `test/db/mysql/types.negative/insert.test.ts` for the compile-time negative.
+    // NOT-APPLICABLE: MySQL uses the bare onConflictDoUpdateSet form (`onConflictOn(...)` is not typed on MySqlConnection; the `ON DUPLICATE KEY UPDATE` grammar takes no column list).
     /*
     test('on-conflict-do-update-set-with-where-clause', async () => {
         // Partial UPDATE on conflict: the SET clause only fires when
@@ -151,7 +151,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // Not applicable on MySQL: `onConflictOn(...)` is not typed on MySqlConnection (the `ON DUPLICATE KEY UPDATE` grammar takes no column list); see `test/db/mysql/types.negative/insert.test.ts` for the compile-time negative.
+    // NOT-APPLICABLE: MySQL uses the bare onConflictDoUpdateSet form (`onConflictOn(...)` is not typed on MySqlConnection; the `ON DUPLICATE KEY UPDATE` grammar takes no column list).
     /*
     test('on-conflict-on-columns-with-where-do-update', async () => {
         // Partial INDEX target: `onConflictOn(cols).where(cond)` is
@@ -186,7 +186,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // Not applicable on MySQL: `onConflictOn(...)` is not typed on MySqlConnection (the `ON DUPLICATE KEY UPDATE` grammar takes no column list); see `test/db/mysql/types.negative/insert.test.ts` for the compile-time negative.
+    // NOT-APPLICABLE: MySQL uses the bare onConflictDoUpdateSet form (`onConflictOn(...)` is not typed on MySqlConnection; the `ON DUPLICATE KEY UPDATE` grammar takes no column list).
     /*
     test('on-conflict-on-columns-do-nothing-explicit', async () => {
         // `onConflictOn(cols).doNothing()` — the explicit-target

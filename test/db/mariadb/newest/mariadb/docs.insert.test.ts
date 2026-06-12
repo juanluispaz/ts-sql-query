@@ -308,7 +308,7 @@ describe(ctx.label, () => {
         })
     })
 
-    // Not applicable on MariaDB: MariaDB uses the bare .onConflictDoUpdateSet({...}) form — the targeted .onConflictOn(col).doUpdateSet({...}) is the PostgreSQL/SQLite form.
+    // NOT-APPLICABLE: MariaDB uses the bare onConflictDoUpdateSet form — the targeted .onConflictOn(col).doUpdateSet({...}) is the PostgreSQL/SQLite form, not typed on MariaDBConnection.
     /*
     test('docs:insert/insert-on-conflict-do-update', async () => {
         // Section "Insert on conflict do update" — postgres/sqlite require
@@ -387,7 +387,7 @@ describe(ctx.label, () => {
         })
     })
 
-    // Not applicable on MariaDB: MariaDB uses the bare .onConflictDoUpdateSet({...}) form — the targeted .onConflictOn(col).doUpdateSet({...}) is the PostgreSQL/SQLite form.
+    // NOT-APPLICABLE: MariaDB uses the bare onConflictDoUpdateSet form — the targeted .onConflictOn(col).doUpdateSet({...}) is the PostgreSQL/SQLite form, not typed on MariaDBConnection.
     /*
     test('docs-extra:insert/values-for-insert-in-update', async () => {
         // Section trailing block: `valuesForInsert()` gives access to the

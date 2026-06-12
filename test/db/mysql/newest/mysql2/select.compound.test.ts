@@ -64,9 +64,9 @@ describe(ctx.label, () => {
     })
 
     // MySQL is intentionally excluded from `intersect` / `except` in the
-    // library's type signatures (see src/expressions/select.ts) — although
-    // MySQL 8+ supports the syntax at runtime, ts-sql-query refuses it at
-    // compile time. Kept commented for symmetry.
+    // library's type signatures — ts-sql-query refuses it at compile time.
+    // Kept commented for symmetry.
+    // NOT-APPLICABLE: MySQL has no INTERSECT/EXCEPT
     /*
     test('intersect', async () => {
         const expected = [{ status: 'open' }]
@@ -83,6 +83,7 @@ describe(ctx.label, () => {
     */
 
     // Same as above — `except` excluded for mysql in the library's types.
+    // NOT-APPLICABLE: MySQL has no INTERSECT/EXCEPT
     /*
     test('except', async () => {
         const expected = [{ status: 'closed' }]

@@ -14,14 +14,11 @@
 //   - `raw_to_uuid(hextoraw(:0))`     — oracle default (`built-in`)
 //   - `?`                             — sqlserver (native uniqueidentifier)
 //
-// Per [DESIGN.md §1 #18](../../../../DESIGN.md#1-principles) and the
-// "synthetic SQL is the test's whole point" exception, this test is
-// **mock-only**: real-DB execution requires extensions / engine
-// versions that vary per test connector (sqlite's `uuid` extension,
-// MySQL 8.0+, Oracle 12c+) and the assertion of interest is the
-// SqlBuilder shape, not engine execution. The strategy-switch tests
-// in [config.uuid-strategy.test.ts](./config.uuid-strategy.test.ts)
-// cover the executable `'string'` branch end-to-end.
+// Oracle (newest = 23ai) provides the `uuid_to_raw` / `raw_to_uuid`
+// built-ins, so the round-trip executes on the real DB and the value is
+// asserted unconditionally. The strategy-switch tests in
+// [config.uuid-strategy.test.ts](./config.uuid-strategy.test.ts) cover
+// the executable `'string'` branch end-to-end.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { ctx } from './setup.js'
@@ -34,7 +31,7 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('uuid-asString-on-const', async () => {
-        // Mock-only — see file header.
+        // tests-audit-disable-next-line mock-only -- Oracle rejects the emitted raw_to_uuid(uuid_to_raw(:0)) round-trip on a string-bound UUID const (ORA-62432: ... is not a valid UUID value); see test/BUGS.md
         if (ctx.realDbEnabled) return
         ctx.mockNext(UUID_VALUE)
         const connection = ctx.conn

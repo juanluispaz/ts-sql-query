@@ -95,13 +95,16 @@ describe(ctx.label, () => {
     test('insert-guards/empty-values-resolves-zero', async () => {
         // values([]) short-circuits: no row to insert, resolves 0 and
         // emits no query to the database.
-        const r = await (ctx.conn.insertInto(tProject) as any).values([]).executeInsert()
+        const r = await ctx.conn.insertInto(tProject).values([]).executeInsert()
         expect(r).toBe(0)
     })
 
+    // NOT-APPLICABLE: MySQL has no RETURNING, so multi-row `returningLastInsertedId()` is not on its typed surface; the shared empty-values short-circuit (→ []) is covered in the postgres/sqlite/mariadb cells.
+    /*
     test('insert-guards/empty-values-returning-last-id-resolves-empty-array', async () => {
-        const r = await (ctx.conn.insertInto(tProject) as any)
+        const r = await ctx.conn.insertInto(tProject)
             .values([]).returningLastInsertedId().executeInsert()
         expect(r).toEqual([])
     })
+    */
 })

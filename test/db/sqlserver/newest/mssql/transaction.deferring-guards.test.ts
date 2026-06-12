@@ -112,6 +112,7 @@ describe(ctx.label, () => {
     // This test pins the push/pop hook-stack behaviour that is only
     // exercised when nesting is allowed.
     test('nested-transaction-preserves-and-restores-outer-after-commit-hook', async () => {
+        // tests-audit-disable-next-line mock-only -- the matrix runners construct the connection without allowNestedTransactions, so a real nested transaction throws NESTED_TRANSACTION_NOT_SUPPORTED; only the mock runner reports nestedTransactionsSupported() (DESIGN §1)
         if (ctx.realDbEnabled) return
         const connection = ctx.conn
         const events: string[] = []

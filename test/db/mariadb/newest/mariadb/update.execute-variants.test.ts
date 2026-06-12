@@ -93,6 +93,7 @@ describe(ctx.label, () => {
         ctx.mockNext('reviewed')
         await ctx.withRollback(async () => {
             let result: string | null = null
+            let caught: unknown
             try {
                 result = await ctx.conn.update(tIssue)
                     .set({ status: 'reviewed' })
@@ -100,7 +101,7 @@ describe(ctx.label, () => {
                     .returningOneColumn(tIssue.status)
                     .executeUpdateNoneOrOne()
             } catch (e) {
-                if (!ctx.realDbEnabled) throw e
+                caught = e
             }
             expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ? where id = ? returning status as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -109,7 +110,14 @@ describe(ctx.label, () => {
                 1,
               ]
             `)
-            if (!ctx.realDbEnabled) expect(result).toBe('reviewed')
+            if (ctx.realDbEnabled) {
+                // The mariadb:latest docker image still ships MariaDB 12.x,
+                // which rejects UPDATE ... RETURNING (only on 13.0.1+).
+                expect(caught).toBeInstanceOf(Error)
+            } else {
+                expect(caught).toBeUndefined()
+                expect(result).toBe('reviewed')
+            }
         })
     })
 
@@ -207,30 +215,33 @@ describe(ctx.label, () => {
     })
 
     test('execute-update-none-or-one-with-no-sets-resolves-null', async () => {
-        // Same empty-`__sets` short-circuit on the none-or-one path
-        // (UpdateQueryBuilder.ts:85): resolves null, no query emitted.
-        // `executeUpdateNoneOrOne` is not on the bare `dynamicSet()`
-        // type (only `executeUpdate` is), so cast to reach the runtime
-        // short-circuit — same pattern errors.processing.test.ts uses.
-        const builder = ctx.conn.update(tIssue)
+        // Same empty-set short-circuit on the none-or-one path: with no
+        // columns set, the executor resolves null and emits no query. By
+        // design `executeUpdateNoneOrOne` is a RETURNING executor (it returns
+        // the projected value), so it is reached through `returningOneColumn`;
+        // the empty-set short-circuit fires before the projection matters, so
+        // null still comes back without touching the database.
+        const result = await ctx.conn.update(tIssue)
             .dynamicSet()
-            .where(tIssue.id.equals(1)) as any
-        const result = await builder.executeUpdateNoneOrOne()
+            .where(tIssue.id.equals(1))
+            .returningOneColumn(tIssue.status)
+            .executeUpdateNoneOrOne()
+        assertType<Exact<typeof result, string | null>>()
         expect(result).toBeNull()
     })
 
     test('execute-update-one-with-no-sets-throws-no-column-sets', async () => {
         // The one-row path cannot resolve "no row" as success, so the
-        // empty-`__sets` short-circuit throws NO_COLUMN_SETS instead
-        // (UpdateQueryBuilder.ts:126-130).
+        // empty-set short-circuit throws NO_COLUMN_SETS instead — again
+        // reached through the RETURNING path (`executeUpdateOne` is a
+        // returning executor), with the short-circuit firing first.
         let caught: unknown
         try {
-            // Cast as above: `executeUpdateOne` is not on the dynamicSet
-            // type; the runtime guard is what we are exercising.
-            const builder = ctx.conn.update(tIssue)
+            await ctx.conn.update(tIssue)
                 .dynamicSet()
-                .where(tIssue.id.equals(1)) as any
-            await builder.executeUpdateOne()
+                .where(tIssue.id.equals(1))
+                .returningOneColumn(tIssue.status)
+                .executeUpdateOne()
         } catch (e) {
             caught = e
         }

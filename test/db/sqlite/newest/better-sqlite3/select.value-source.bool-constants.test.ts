@@ -36,7 +36,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select 1 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
-        if (!ctx.realDbEnabled) expect(row).toBe(true)
+        expect(row).toBe(true)
     })
 
     test('connection.false-in-projection', async () => {
@@ -48,7 +48,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select 0 as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
-        if (!ctx.realDbEnabled) expect(row).toBe(false)
+        expect(row).toBe(false)
     })
 
     test('connection.true-in-where', async () => {
@@ -64,7 +64,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where 1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
-        if (!ctx.realDbEnabled) expect(rows.map(r => r.id)).toEqual([1, 2])
+        expect(rows.map(r => r.id)).toEqual([1, 2])
     })
 
     test('connection.false-in-where', async () => {

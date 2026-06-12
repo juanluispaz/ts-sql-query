@@ -39,7 +39,7 @@ describe(ctx.label, () => {
         })
     })
 
-    // Not applicable on MySQL: MySQL does not support insert/update/delete RETURNING.
+    // NOT-APPLICABLE: MySQL has no RETURNING
     /*
     test('docs:insert/insert-many-values', async () => {
         ctx.mockNext([{ id: 50 }, { id: 51 }])
@@ -149,7 +149,7 @@ describe(ctx.label, () => {
         })
     })
 
-    // Not applicable on MySQL: MySQL does not support insert/update/delete RETURNING.
+    // NOT-APPLICABLE: MySQL has no RETURNING
     /*
     test('docs:insert/insert-returning', async () => {
         // Section "Insert returning" — `returning({...})` returns columns
@@ -231,7 +231,7 @@ describe(ctx.label, () => {
         })
     })
 
-    // Not applicable on MySQL: MySQL does not support insert/update/delete RETURNING.
+    // NOT-APPLICABLE: MySQL has no RETURNING
     /*
     test('docs:insert/insert-multiple-with-shape', async () => {
         // Section "Insert multiple with value's shape" — combine
@@ -281,7 +281,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // Not applicable on MySQL: MySQL does not support insert/update/delete RETURNING.
+    // NOT-APPLICABLE: MySQL has no RETURNING
     /*
     test('docs:insert/insert-on-conflict-do-nothing', async () => {
         // Section "Insert on conflict do nothing" — postgres/sqlite/mariadb/mysql
@@ -320,7 +320,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // Not applicable on MySQL: MySQL does not support insert/update/delete RETURNING.
+    // NOT-APPLICABLE: MySQL has no RETURNING
     /*
     test('docs:insert/insert-on-conflict-do-update', async () => {
         // Section "Insert on conflict do update" — postgres/sqlite require
@@ -363,7 +363,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // Not applicable on MySQL: MySQL does not support insert RETURNING.
+    // NOT-APPLICABLE: MySQL has no RETURNING
     /*
     test('docs-extra:insert/insert-on-conflict-do-update-bare', async () => {
         // MariaDB/MySQL variant of upsert — `.onConflictDoUpdateSet({...})`
@@ -402,7 +402,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // Not applicable on MySQL: MySQL does not support insert/update/delete RETURNING.
+    // NOT-APPLICABLE: MySQL has no RETURNING
     /*
     test('docs-extra:insert/values-for-insert-in-update', async () => {
         // Section trailing block: `valuesForInsert()` gives access to the
@@ -496,7 +496,7 @@ describe(ctx.label, () => {
         })
     })
 
-    // Not applicable on MySQL: MySQL does not support insert/update/delete RETURNING.
+    // NOT-APPLICABLE: MySQL has no RETURNING
     /*
     test('docs-extra:insert/insert-returning-one-column', async () => {
         // "Insert returning" prose: `returningOneColumn(column)` returns
@@ -781,7 +781,7 @@ describe(ctx.label, () => {
         })
     })
 
-    // Not applicable on MySQL: MySQL does not support insert/update/delete RETURNING.
+    // NOT-APPLICABLE: MySQL has no RETURNING
     /*
     test('docs-extra:insert/set-for-all-if-value-multi', async () => {
         // "Manipulating values to insert (multiple)" prose:

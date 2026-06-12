@@ -104,27 +104,35 @@ describe(ctx.label, () => {
         expect(reasonsInChain(caught)).toContain('NOT_IN_TRANSACTION')
     })
 
-    // Mock-only: nested `transaction(...)` requires the runner to report
+    // Nested `transaction(...)` requires the runner to report
     // `nestedTransactionsSupported() === true`. The MockQueryRunner does;
     // among real connectors only pg/pglite do, and only when constructed
-    // with `allowNestedTransactions` (the matrix runners don't set it), so
-    // a real nested transaction would throw NESTED_TRANSACTION_NOT_SUPPORTED.
-    // This test pins the push/pop hook-stack behaviour that is only
-    // exercised when nesting is allowed.
+    // with `allowNestedTransactions` (the matrix runners don't set it). The
+    // bun:sqlite runner does NOT, so a real nested transaction throws
+    // NESTED_TRANSACTION_NOT_SUPPORTED — asserted here in real mode. In mock
+    // mode the same body pins the push/pop hook-stack ordering.
     test('nested-transaction-preserves-and-restores-outer-after-commit-hook', async () => {
-        if (ctx.realDbEnabled) return
         const connection = ctx.conn
         const events: string[] = []
+        let caught: unknown
         await ctx.withReseed(async () => {
-            await connection.transaction(async () => {
-                connection.executeAfterNextCommit(() => { events.push('outer-after-commit') })
+            try {
                 await connection.transaction(async () => {
-                    connection.executeAfterNextCommit(() => { events.push('inner-after-commit') })
+                    connection.executeAfterNextCommit(() => { events.push('outer-after-commit') })
+                    await connection.transaction(async () => {
+                        connection.executeAfterNextCommit(() => { events.push('inner-after-commit') })
+                    })
                 })
-            })
+            } catch (e) { caught = e }
         })
-        // Inner commit fires its hook first; the outer hook, saved on the
-        // stack across the nested transaction, fires after the outer commit.
-        expect(events).toEqual(['inner-after-commit', 'outer-after-commit'])
+        if (ctx.realDbEnabled) {
+            // The real bun:sqlite runner rejects the nested transaction.
+            expect(reasonsInChain(caught)).toContain('NESTED_TRANSACTION_NOT_SUPPORTED')
+        } else {
+            // Inner commit fires its hook first; the outer hook, saved on the
+            // stack across the nested transaction, fires after the outer commit.
+            expect(caught).toBeUndefined()
+            expect(events).toEqual(['inner-after-commit', 'outer-after-commit'])
+        }
     })
 })

@@ -46,10 +46,8 @@ describe(ctx.label, () => {
 
     test('customize-update-hook-fragment-with-bound-param', async () => {
         // A fragment whose template interpolates `connection.const(...)`
-        // produces a placeholder inside the hook output. Mock-only:
-        // most drivers strip comments before counting placeholders,
-        // so the bound `?` inside `/* ... */` looks like a stray
-        // parameter at execution time. SQL is the assertion.
+        // produces a placeholder inside the comment.
+        // tests-audit-disable-next-line mock-only -- bound param lands inside a /* */ comment; pg strips the comment then rejects the unused $1 (DESIGN §1 #18)
         if (ctx.realDbEnabled) return
         ctx.mockNext(1)
         const connection = ctx.conn

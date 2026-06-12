@@ -49,16 +49,22 @@ describe(ctx.label, () => {
             const patch = Values.create(VProjectPatch, 'projectPatch', [
                 { id: 1, name: 'renamed' },
             ])
+            let caught: unknown
             try {
                 await ctx.conn.update(tProject)
                     .from(patch)
                     .set({ name: patch.name })
                     .where(tProject.id.equals(patch.id))
                     .executeUpdate()
-            } catch {
-                // some real-DB engines reject this exact form; the SQL
-                // builder still emits it and that is what we capture.
+            } catch (e) {
+                caught = e
             }
+            // The SQL builder emits the `UPDATE … FROM` + WITH-VALUES form,
+            // which Oracle has no syntax for, so the real engine rejects it
+            // at execution; the mock resolves 0. Either way the interceptor
+            // captured the emitted SQL, which is what this test pins.
+            if (ctx.realDbEnabled) expect(caught).toBeInstanceOf(Error)
+            else expect(caught).toBeUndefined()
             expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectPatch(id, name) as (values (:0, :1)) update project set project.name = projectPatch.name from projectPatch where project.id = projectPatch.id"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [

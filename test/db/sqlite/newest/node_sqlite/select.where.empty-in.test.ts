@@ -35,9 +35,7 @@ describe(ctx.label, () => {
             .select({ id: tIssue.id })
             .orderBy('id')
             .executeSelectMany()
-        if (!ctx.realDbEnabled) {
-            expect(rows).toEqual(expected)
-        }
+        expect(rows).toEqual(expected)
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where 1 order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
     })

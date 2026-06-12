@@ -124,12 +124,12 @@ describe(ctx.label, () => {
         // `setIfHasValueIfValue` updates only when BOTH the staged value
         // and the incoming value pass `_isValue`. Staged `body` is null
         // → skipped despite a valid new value; staged `title` is set and
-        // the incoming title is valid → updated. Empty-string incoming
-        // is rejected for `priority`.
+        // the incoming title is valid → updated. `priority` was set in
+        // the initial `.set` and is left untouched here.
         ctx.mockNext(1)
         await ctx.conn.update(tIssue)
             .set({ title: 'Triage', body: null, priority: 2 })
-            .setIfHasValueIfValue({ title: 'Triaged', body: 'will-skip', priority: '' as any })
+            .setIfHasValueIfValue({ title: 'Triaged', body: 'will-skip' })
             .where(tIssue.id.equals(1))
             .executeUpdate()
 
@@ -146,21 +146,22 @@ describe(ctx.label, () => {
 
     test('set-if-has-no-value-if-value-fills-only-empty-with-real-value', async () => {
         // Mirror of the above: only writes when the staged value FAILS
-        // `_isValue` AND the incoming value PASSES `_isValue`. Empty
-        // incoming string for `body` is rejected; non-empty `title`
-        // fills the (null) slot.
+        // `_isValue` AND the incoming value PASSES `_isValue`. `title`
+        // is never staged (so it has no value) → filled; `body` is
+        // staged null (has no value) but the empty-string incoming is
+        // rejected → it stays null.
         ctx.mockNext(1)
         await ctx.conn.update(tIssue)
-            .set({ title: null as any, body: null })
+            .set({ body: null })
             .setIfHasNoValueIfValue({ title: 'Filled', body: '' })
             .where(tIssue.id.equals(1))
             .executeUpdate()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = @0, body = @1 where id = @2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set body = @0, title = @1 where id = @2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "Filled",
             null,
+            "Filled",
             1,
           ]
         `)

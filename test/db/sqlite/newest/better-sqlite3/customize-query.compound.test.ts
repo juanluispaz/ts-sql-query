@@ -139,14 +139,7 @@ describe(ctx.label, () => {
         // the surrounding query (locks the param-order story for
         // hook-params relative to compound-body params: hook param
         // FIRST, body params after).
-        //
-        // Mock-only: the placeholder is emitted inside a `/* ... */`
-        // SQL comment, and several drivers (incl. bun:sqlite) strip
-        // comments before counting placeholders and reject the extra
-        // param at execution. DESIGN.md §1 #18 names "synthetic SQL
-        // that is the test's whole point" as the documented exception
-        // for the guard — mirrors the same guard on
-        // `customize-select-hook-fragment-with-bound-param`.
+        // tests-audit-disable-next-line mock-only -- bound param lands inside a leading /* */ comment; bun:sqlite strips the comment then rejects the extra ? against the compound body's own placeholder ("expected 1 values, received 2") (DESIGN §1 #18)
         if (ctx.realDbEnabled) return
         const connection = ctx.conn
         const projectsQ = connection.selectFrom(tProject)

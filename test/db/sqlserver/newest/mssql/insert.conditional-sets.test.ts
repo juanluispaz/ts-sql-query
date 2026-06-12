@@ -133,10 +133,13 @@ describe(ctx.label, () => {
 
     test('set-if-has-value-if-value-and-has-no-value-if-value-cover-both-gates', async () => {
         // The `*IfHasValueIfValue` / `*IfHasNoValueIfValue` variants
-        // need BOTH gates to flip in the same direction. Exercises the
-        // composed branch in
-        // [InsertQueryBuilder.ts:706](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L706)
-        // and the mirror at line 771.
+        // need BOTH gates to flip in the same direction:
+        //   - `title` is staged with a value and the incoming value is
+        //     non-empty → overwritten.
+        //   - `body` is staged null → `setIfHasValueIfValue` skips it,
+        //     then `setIfHasNoValueIfValue` backfills it.
+        //   - the empty-string incoming `title: ''` is rejected by the
+        //     incoming-value gate, so the backfill leaves `title` intact.
         ctx.mockNext(1)
         await ctx.withRollback(async () => {
             await ctx.conn.insertInto(tIssue)
@@ -148,7 +151,7 @@ describe(ctx.label, () => {
                     status:    'open',
                     priority:  2,
                 })
-                .setIfHasValueIfValue({ title: 'Triaged', body: 'will-skip', priority: '' as any })
+                .setIfHasValueIfValue({ title: 'Triaged', body: 'will-skip' })
                 .setIfHasNoValueIfValue({ body: 'Backfilled', title: '' })
                 .executeInsert()
 
@@ -279,7 +282,7 @@ describe(ctx.label, () => {
             await ctx.conn.insertInto(tIssue)
                 .values([
                     { projectId: 1, number: 200, title: 'A', body: 'present', status: 'open', priority: 1 },
-                    { projectId: 1, number: 201, title: 'B',                  status: 'open', priority: 1 } as any,
+                    { projectId: 1, number: 201, title: 'B',                  status: 'open', priority: 1 },
                 ])
                 .setForAllIfSet({ body: 'in-progress' })
                 .setForAllIfNotSet({ body: 'triage' })
@@ -315,7 +318,7 @@ describe(ctx.label, () => {
             await ctx.conn.insertInto(tIssue)
                 .values([
                     { projectId: 1, number: 202, title: 'A', body: 'present', status: 'open', priority: 1 },
-                    { projectId: 1, number: 203, title: 'B',                  status: 'open', priority: 1 } as any,
+                    { projectId: 1, number: 203, title: 'B',                  status: 'open', priority: 1 },
                 ])
                 .setForAllIfSetIfValue({ body: undefined })
                 .setForAllIfNotSetIfValue({ body: 'staged-only' })

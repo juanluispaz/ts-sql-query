@@ -155,10 +155,13 @@ describe(ctx.label, () => {
         const extension = {
             broken: ((_v: string) => 'not-a-value-source') as any,
         }
-        type Filter = DynamicCondition<{ id: 'int' }, { broken: (v: string) => any }>
+        // The declared return type is a boolean value source (what a
+        // well-formed rule must produce); the runtime callback above
+        // deliberately returns a non-value-source to drive the error path.
+        type Filter = DynamicCondition<{ id: 'int' }, { broken: (v: string) => ReturnType<typeof tIssue.id.equals> }>
         const filter: Filter = { broken: 'whatever' }
 
-        let thrown: any
+        let thrown: unknown
         try {
             await connection.selectFrom(tIssue)
                 .where(connection.dynamicConditionFor(selectFields, extension).withValues(filter) as any)
@@ -167,10 +170,11 @@ describe(ctx.label, () => {
         } catch (e) { thrown = e }
 
         expect(thrown).toBeInstanceOf(Error)
-        expect(String(thrown.message)).toContain('Expected a boolean value source')
-        expect(thrown.extensionResult).toBe('not-a-value-source')
-        expect(thrown.processedValue).toBe('whatever')
-        expect(thrown.key).toBe('broken')
+        const err = thrown as Error & { extensionResult: unknown; processedValue: unknown; key: unknown }
+        expect(err.message).toContain('Expected a boolean value source')
+        expect(err.extensionResult).toBe('not-a-value-source')
+        expect(err.processedValue).toBe('whatever')
+        expect(err.key).toBe('broken')
     })
 
     test('extension-callback-returning-non-boolean-value-source-throws-with-type-name', async () => {
@@ -183,10 +187,12 @@ describe(ctx.label, () => {
         const extension = {
             stringified: ((_v: string) => tIssue.title) as any,
         }
-        type Filter = DynamicCondition<{ id: 'int' }, { stringified: (v: string) => any }>
+        // Declared return is a boolean value source; the runtime callback
+        // returns a string value source to drive the type-mismatch path.
+        type Filter = DynamicCondition<{ id: 'int' }, { stringified: (v: string) => ReturnType<typeof tIssue.id.equals> }>
         const filter: Filter = { stringified: 'whatever' }
 
-        let thrown: any
+        let thrown: unknown
         try {
             await connection.selectFrom(tIssue)
                 .where(connection.dynamicConditionFor(selectFields, extension).withValues(filter) as any)
@@ -195,10 +201,11 @@ describe(ctx.label, () => {
         } catch (e) { thrown = e }
 
         expect(thrown).toBeInstanceOf(Error)
-        expect(String(thrown.message)).toContain('found a value source with type')
-        expect(String(thrown.message)).toContain('string')
-        expect(thrown.processedValue).toBe('whatever')
-        expect(thrown.key).toBe('stringified')
+        const err = thrown as Error & { processedValue: unknown; key: unknown }
+        expect(err.message).toContain('found a value source with type')
+        expect(err.message).toContain('string')
+        expect(err.processedValue).toBe('whatever')
+        expect(err.key).toBe('stringified')
     })
 
     test('column-level-object-valued-extension-rule-dispatches-nested', async () => {
@@ -217,7 +224,10 @@ describe(ctx.label, () => {
                 above: (v: number) => tIssue.id.greaterThan(v),
             },
         }
-        const filter = { id: { idRules: { above: 10 } } } as any
+        type Filter = DynamicCondition<{ id: 'int' }, {
+            idRules: { above: (v: number) => ReturnType<typeof tIssue.id.greaterThan> },
+        }>
+        const filter: Filter = { id: { idRules: { above: 10 } } }
         await connection.selectFrom(tIssue)
             .where(connection.dynamicConditionFor(selectFields, extension).withValues(filter))
             .select({ id: tIssue.id })
@@ -247,9 +257,12 @@ describe(ctx.label, () => {
                 },
             },
         }
-        const filter = { id: { idRules: { grp: { above: 10 } } } } as any
+        type Filter = DynamicCondition<{ id: 'int' }, {
+            idRules: { grp: { above: (v: number) => ReturnType<typeof tIssue.id.greaterThan> } },
+        }>
+        const filter: Filter = { id: { idRules: { grp: { above: 10 } } } }
         await connection.selectFrom(tIssue)
-            .where(connection.dynamicConditionFor(selectFields, extension).withValues(filter) as any)
+            .where(connection.dynamicConditionFor(selectFields, extension).withValues(filter))
             .select({ id: tIssue.id })
             .orderBy('id')
             .executeSelectMany()
@@ -276,7 +289,7 @@ describe(ctx.label, () => {
         }
         const filter = { id: { idRules: { stringify: 5 } } } as any
 
-        let thrown: any
+        let thrown: unknown
         try {
             await connection.selectFrom(tIssue)
                 .where(connection.dynamicConditionFor(selectFields, extension).withValues(filter) as any)
@@ -285,7 +298,8 @@ describe(ctx.label, () => {
         } catch (e) { thrown = e }
 
         expect(thrown).toBeInstanceOf(Error)
-        expect(String(thrown.message)).toContain('found a value source with type')
-        expect(String(thrown.message)).toContain('string')
+        const err = thrown as Error
+        expect(err.message).toContain('found a value source with type')
+        expect(err.message).toContain('string')
     })
 })

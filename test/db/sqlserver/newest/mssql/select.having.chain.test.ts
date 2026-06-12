@@ -32,8 +32,10 @@ describe(ctx.label, () => {
         // `.having(c1).and(c2).or(c3)` — the `.and()` and `.or()`
         // calls land on `__inHaving` dispatch, not on `__where`. The
         // emitted SQL composes the three predicates with standard
-        // precedence: `((c1 AND c2) OR c3)`.
+        // precedence: `((c1 AND c2) OR c3)`. Seeded groups all have a
+        // count in (0, 10), so every group survives the HAVING.
         const expected = [
+            { status: 'closed',      total: 1 },
             { status: 'in_progress', total: 1 },
             { status: 'open',        total: 2 },
         ]
@@ -60,8 +62,7 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof result, Array<{ status: string; total: number }>>>()
-        if (!ctx.realDbEnabled) expect(result).toEqual(expected)
-        else expect(result.length).toBeGreaterThan(0)
+        expect(result).toEqual(expected)
     })
 
     test('dynamic-having-then-and-emits-having-clause', async () => {

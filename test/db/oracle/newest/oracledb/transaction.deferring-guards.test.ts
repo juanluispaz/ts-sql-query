@@ -112,6 +112,7 @@ describe(ctx.label, () => {
     // This test pins the push/pop hook-stack behaviour that is only
     // exercised when nesting is allowed.
     test('nested-transaction-preserves-and-restores-outer-after-commit-hook', async () => {
+        // tests-audit-disable-next-line mock-only -- nested transaction needs a runner with allowNestedTransactions; the matrix Oracle runner doesn't set it, so a real nested transaction throws NESTED_TRANSACTION_NOT_SUPPORTED
         if (ctx.realDbEnabled) return
         const connection = ctx.conn
         const events: string[] = []

@@ -45,10 +45,8 @@ describe(ctx.label, () => {
     test('customize-delete-hook-fragment-with-bound-param', async () => {
         // A fragment interpolating `connection.const(...)` -
         // placeholder ends up inside the comment, proving the hook
-        // routes through `_appendRawFragment`. Mock-only: most
-        // drivers strip comments before counting placeholders, so
-        // the bound `?` inside `/* ... */` looks like a stray
-        // parameter at execution time. SQL is the assertion.
+        // routes through `_appendRawFragment`.
+        // tests-audit-disable-next-line mock-only -- bound param lands inside a /* */ comment; drivers strip the comment on the mutation path then reject the extra ? ("expected 1 values, received 2") (DESIGN §1 #18)
         if (ctx.realDbEnabled) return
         ctx.mockNext(0)
         const connection = ctx.conn

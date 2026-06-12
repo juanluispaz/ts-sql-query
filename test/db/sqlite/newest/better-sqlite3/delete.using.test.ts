@@ -10,8 +10,7 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // SQLite does not support DELETE … USING; the library type-excludes
-    // it for sqlite connections. Kept commented for symmetry.
+    // NOT-APPLICABLE: SQLite does not support DELETE … USING; the library type-excludes it for sqlite connections.
     /*
     test('delete-using-other-table', async () => {
         // See postgres/mariadb/mysql/sqlserver cells for the active body.

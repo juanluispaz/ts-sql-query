@@ -34,6 +34,7 @@ describe(ctx.label, () => {
 
         // doc-start
         let id: number | undefined
+        let caught: unknown
         try {
             id = await ctx.conn.insertInto(tFlag).set({
                     name:   'demo',
@@ -41,8 +42,9 @@ describe(ctx.label, () => {
                 })
                 .returningLastInsertedId()
                 .executeInsert()
-        } catch {
+        } catch (e) {
             // expected on real DB — the test-only table doesn't exist.
+            caught = e
         }
         // doc-end
 
@@ -58,7 +60,12 @@ describe(ctx.label, () => {
             },
           ]
         `)
-        if (!ctx.realDbEnabled) {
+        if (ctx.realDbEnabled) {
+            // The test-only table doesn't exist on the real DB, so the
+            // insert throws (ORA-00942) — the SQL above was still captured.
+            expect(caught).toBeInstanceOf(Error)
+            expect((caught as Error).message).toContain('does not exist')
+        } else {
             expect(id).toBe(99)
         }
     })
@@ -67,8 +74,10 @@ describe(ctx.label, () => {
         ctx.mockNext([{ id: 1, name: 'demo', active: true }])
 
         // doc-start
+        let rows: Array<{ id: number; name: string; active: boolean }> | undefined
+        let caught: unknown
         try {
-            const rows = await ctx.conn.selectFrom(tFlag)
+            rows = await ctx.conn.selectFrom(tFlag)
                 .where(tFlag.active)
                 .select({
                     id:     tFlag.id,
@@ -76,13 +85,20 @@ describe(ctx.label, () => {
                     active: tFlag.active,
                 })
                 .executeSelectMany()
-            if (!ctx.realDbEnabled) {
-                expect(rows).toEqual([{ id: 1, name: 'demo', active: true }])
-            }
-        } catch {
-            // expected on real DB
+        } catch (e) {
+            // expected on real DB — the test-only table doesn't exist.
+            caught = e
         }
         // doc-end
+
+        // tests-audit-disable-next-line mirror-image -- the test-only table doesn't exist on the real DB, so the value path can only be validated under the mock; the real-DB branch asserts the expected ORA-00942 instead
+        if (ctx.realDbEnabled) {
+            // The test-only table doesn't exist on the real DB (ORA-00942).
+            expect(caught).toBeInstanceOf(Error)
+            expect((caught as Error).message).toContain('does not exist')
+        } else {
+            expect(rows).toEqual([{ id: 1, name: 'demo', active: true }])
+        }
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", name as "name", case when active = 'Y' then 1 else 0 end as "active" from flag_table_only_for_sql_test where (active = 'Y')"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)

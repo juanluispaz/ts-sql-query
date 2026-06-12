@@ -27,9 +27,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by id desc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{ id: number }>>>()
-        if (ctx.realDbEnabled) {
-            expect(result.map(r => r.id)).toEqual([4, 3, 2, 1])
-        }
+        expect(result).toEqual(expected)
     })
 
     test('order-by-nulls-last', async () => {
@@ -37,7 +35,7 @@ describe(ctx.label, () => {
             { id: 1, assigneeId: 1 },
             { id: 2, assigneeId: 2 },
             { id: 4, assigneeId: 3 },
-            { id: 3, assigneeId: null },
+            { id: 3, assigneeId: undefined },
         ]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssue)
@@ -50,18 +48,15 @@ describe(ctx.label, () => {
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, assignee_id as "assigneeId" from issue order by "assigneeId" asc nulls last, id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
-        if (ctx.realDbEnabled) {
-            // Issue 3 (assignee_id null) goes last.
-            expect(result[result.length - 1]?.id).toBe(3)
-        }
+        expect(result).toEqual(expected)
     })
 
     test('order-by-from-string', async () => {
         const expected = [
+            { id: 3, priority: 3 },
             { id: 4, priority: 2 },
             { id: 1, priority: 2 },
             { id: 2, priority: 1 },
-            { id: 3, priority: 3 },
         ]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssue)
@@ -73,11 +68,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority as priority from issue order by priority desc, id desc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
-        if (ctx.realDbEnabled) {
-            // priority desc, id desc → 3 first (prio=3), then prio=2 desc id, then prio=1
-            expect(result[0]?.id).toBe(3)
-            expect(result.at(-1)?.id).toBe(2)
-        }
+        expect(result).toEqual(expected)
     })
 
     test('limit-offset', async () => {
@@ -96,15 +87,9 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof result, Array<{ id: number }>>>()
-        if (ctx.realDbEnabled) {
-            expect(result).toEqual([{ id: 2 }, { id: 3 }])
-        }
+        expect(result).toEqual(expected)
     })
-    // Not applicable: the synthetic ORDER BY when `limit/offset` is used
-    // without `.orderBy(...)` is SqlServer-only (SqlServerSqlBuilder.ts:256-271).
-    // Every other dialect accepts limit/offset on an unordered query and
-    // emits the clause directly; no fake ORDER BY is needed. Body copied
-    // verbatim from the canonical mssql cell for cross-cell diff parity.
+    // NOT-APPLICABLE: the synthetic ORDER BY when `limit/offset` is used without `.orderBy(...)` is SqlServer-only. Every other dialect (PostgreSQL included) accepts limit/offset on an unordered query and emits the clause directly; no fake ORDER BY is needed. Body copied verbatim from the canonical mssql cell for cross-cell diff parity.
     /*
     test('limit-offset-without-order-by-pk-not-first-emits-synthetic-pk-position', async () => {
         const expected = [{ status: 'in_progress', id: 2 }]
@@ -139,13 +124,8 @@ describe(ctx.label, () => {
     */
 
     test('offset-without-limit', async () => {
-        // `.offset(n)` without a preceding `.limit(n)` exercises the
-        // dialect-specific workaround in the SQL builder:
-        //   - sqlite / mariadb / mysql emit `limit 2147483647 offset N`
-        //     because their grammar requires `LIMIT` before `OFFSET`.
-        //   - postgres accepts a bare `offset N`.
-        //   - sqlserver uses `OFFSET N ROWS` (FETCH is optional in TS).
-        //   - oracle uses `OFFSET N ROWS`.
+        // `.offset(n)` with the limit elided (limitIfValue(undefined)):
+        // PostgreSQL emits a bare `offset`.
         const expected = [{ id: 2 }, { id: 3 }, { id: 4 }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssue)
@@ -161,8 +141,6 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof result, Array<{ id: number }>>>()
-        if (ctx.realDbEnabled) {
-            expect(result).toEqual([{ id: 2 }, { id: 3 }, { id: 4 }])
-        }
+        expect(result).toEqual(expected)
     })
 })

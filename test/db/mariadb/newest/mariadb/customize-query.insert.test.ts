@@ -47,12 +47,8 @@ describe(ctx.label, () => {
 
     test('customize-insert-hook-fragment-with-bound-param', async () => {
         // A fragment whose template interpolates `connection.const(...)`
-        // produces a placeholder inside the comment, proving the hook
-        // routes through `_appendRawFragment` and registers the param.
-        // Mock-only: most drivers strip comments before counting
-        // placeholders, so the bound `?` inside a `/* ... */` block
-        // looks like a stray parameter at execution time. The SQL the
-        // lib emits is still the assertion of interest.
+        // produces a placeholder inside the comment.
+        // tests-audit-disable-next-line mock-only -- bound param lands inside a /* */ comment; mariadb strips the comment then rejects the unused ? (DESIGN §1 #18)
         if (ctx.realDbEnabled) return
         ctx.mockNext(1)
         const connection = ctx.conn

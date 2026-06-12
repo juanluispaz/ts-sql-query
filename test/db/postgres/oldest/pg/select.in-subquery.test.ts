@@ -1,9 +1,6 @@
-// Coverage of `.in(select)` / `.notIn(select)` — the subquery overload
-// of `IN` / `NOT IN`. Different code path from `.in([array])` (which is
-// covered in select.where.empty-in.test.ts and select.where.operators.test.ts):
-// `_inSelect` / `_notInSelect` emit `col in (select ...)` instead of a
-// `col in (?, ?, ?)` placeholder list, so dialect-specific subquery
-// rendering is exercised.
+// Coverage of `.in(select)` / `.notIn(select)` — the subquery overload of
+// `IN` / `NOT IN`, emitting `col in (select ...)` rather than a placeholder
+// list (the `.in([array])` form is covered elsewhere).
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -16,9 +13,10 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('in-subquery', async () => {
-        // Issues whose project is in the published-projects subquery.
-        const expectedMock = [{ id: 1 }, { id: 2 }, { id: 4 }]
-        ctx.mockNext(expectedMock)
+        // Published projects are 1 and 3; their issues are 1, 2 (proj 1) and
+        // 4 (proj 3). Issue 3 belongs to unpublished proj 2.
+        const expected = [{ id: 1 }, { id: 2 }, { id: 4 }]
+        ctx.mockNext(expected)
 
         const publishedProjectIds = ctx.conn.selectFrom(tProject)
             .where(tProject.published.equals(true))
@@ -37,13 +35,14 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
-        if (!ctx.realDbEnabled) expect(rows).toEqual(expectedMock)
+        expect(rows).toEqual(expected)
     })
 
     test('not-in-subquery', async () => {
-        // Issues whose project is NOT in the unpublished-projects subquery.
-        const expectedMock = [{ id: 1 }, { id: 2 }, { id: 4 }]
-        ctx.mockNext(expectedMock)
+        // Unpublished projects are 2 and 4. Issues NOT in those projects are
+        // 1, 2 (proj 1) and 4 (proj 3); issue 3 (proj 2) is excluded.
+        const expected = [{ id: 1 }, { id: 2 }, { id: 4 }]
+        ctx.mockNext(expected)
 
         const unpublishedProjectIds = ctx.conn.selectFrom(tProject)
             .where(tProject.published.equals(false))
@@ -62,6 +61,6 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
-        if (!ctx.realDbEnabled) expect(rows).toEqual(expectedMock)
+        expect(rows).toEqual(expected)
     })
 })

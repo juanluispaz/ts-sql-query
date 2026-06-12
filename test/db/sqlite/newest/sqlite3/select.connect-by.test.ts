@@ -20,7 +20,7 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // Not applicable on SQLite: `.startWith` / `.connectBy` / `.connectByNoCycle` are typed `never` (Oracle-only `START WITH … CONNECT BY` syntax); equivalent shape on SQLite is a recursive CTE — see `cte.recursive-union-variants.test.ts`.
+    // NOT-APPLICABLE: CONNECT BY is Oracle-only hierarchical query syntax; `.startWith` / `.connectBy` / `.connectByNoCycle` are typed `never` on SQLite. Equivalent shape on SQLite is a recursive CTE — see `cte.recursive-union-variants.test.ts`.
     /*
     test('start-with-connect-by-prior-walks-tree-from-roots', async () => {
         // Tree shape after seeding: 3 ← 2 ← 1, plus 4 (root standalone).
@@ -68,7 +68,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // Not applicable on SQLite: `.startWith` / `.connectBy` / `.connectByNoCycle` are typed `never` (Oracle-only `START WITH … CONNECT BY` syntax); equivalent shape on SQLite is a recursive CTE — see `cte.recursive-union-variants.test.ts`.
+    // NOT-APPLICABLE: CONNECT BY is Oracle-only hierarchical query syntax; `.startWith` / `.connectBy` / `.connectByNoCycle` are typed `never` on SQLite. Equivalent shape on SQLite is a recursive CTE — see `cte.recursive-union-variants.test.ts`.
     /*
     test('connect-by-nocycle-emits-nocycle-keyword', async () => {
         // `connectByNoCycle` is the cycle-safe variant — Oracle stops
@@ -110,7 +110,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // Not applicable on SQLite: `.startWith` / `.connectBy` / `.connectByNoCycle` are typed `never` (Oracle-only `START WITH … CONNECT BY` syntax); equivalent shape on SQLite is a recursive CTE — see `cte.recursive-union-variants.test.ts`.
+    // NOT-APPLICABLE: CONNECT BY is Oracle-only hierarchical query syntax; `.startWith` / `.connectBy` / `.connectByNoCycle` are typed `never` on SQLite. Equivalent shape on SQLite is a recursive CTE — see `cte.recursive-union-variants.test.ts`.
     /*
     test('start-with-where-and-connect-by-combine', async () => {
         // WHERE narrows the hierarchical result post-walk. START WITH
@@ -168,7 +168,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // Not applicable on SQLite: `.startWith` / `.connectBy` / `.connectByNoCycle` are typed `never` (Oracle-only `START WITH … CONNECT BY` syntax); equivalent shape on SQLite is a recursive CTE — see `cte.recursive-union-variants.test.ts`.
+    // NOT-APPLICABLE: CONNECT BY is Oracle-only hierarchical query syntax; `.startWith` / `.connectBy` / `.connectByNoCycle` are typed `never` on SQLite. Equivalent shape on SQLite is a recursive CTE — see `cte.recursive-union-variants.test.ts`.
     /*
     test('connect-by-ordering-siblings-only-emits-order-siblings-by', async () => {
         // `.orderingSiblingsOnly()` swaps the trailing `order by` for

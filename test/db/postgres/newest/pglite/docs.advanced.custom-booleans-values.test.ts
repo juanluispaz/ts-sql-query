@@ -32,6 +32,7 @@ describe(ctx.label, () => {
     test('docs:custom-booleans-values/insert-maps-true-false-to-Y-N', async () => {
         ctx.mockNext(99)
 
+        let insertError: unknown
         // doc-start
         let id: number | undefined
         try {
@@ -41,8 +42,10 @@ describe(ctx.label, () => {
                 })
                 .returningLastInsertedId()
                 .executeInsert()
-        } catch {
-            // expected on real DB — the test-only table doesn't exist.
+        } catch (e) {
+            // On the real DB the test-only table doesn't exist, so the
+            // INSERT throws; the snapshot below still pins the SQL.
+            insertError = e
         }
         // doc-end
 
@@ -55,7 +58,11 @@ describe(ctx.label, () => {
             true,
           ]
         `)
-        if (!ctx.realDbEnabled) {
+        if (ctx.realDbEnabled) {
+            // The table is a TS-only description, so the real INSERT
+            // fails referencing the missing relation.
+            expect((insertError as Error).message).toMatch(/flag_table_only_for_sql_test|does not exist|relation/)
+        } else {
             expect(id).toBe(99)
         }
     })
@@ -63,9 +70,11 @@ describe(ctx.label, () => {
     test('docs:custom-booleans-values/select-maps-Y-N-to-true-false', async () => {
         ctx.mockNext([{ id: 1, name: 'demo', active: true }])
 
+        let selectError: unknown
         // doc-start
+        let rows: { id: number, name: string, active: boolean }[] | undefined
         try {
-            const rows = await ctx.conn.selectFrom(tFlag)
+            rows = await ctx.conn.selectFrom(tFlag)
                 .where(tFlag.active)
                 .select({
                     id:     tFlag.id,
@@ -73,15 +82,19 @@ describe(ctx.label, () => {
                     active: tFlag.active,
                 })
                 .executeSelectMany()
-            if (!ctx.realDbEnabled) {
-                expect(rows).toEqual([{ id: 1, name: 'demo', active: true }])
-            }
-        } catch {
-            // expected on real DB
+        } catch (e) {
+            // On the real DB the test-only table doesn't exist, so the
+            // SELECT throws; the snapshot below still pins the SQL.
+            selectError = e
         }
         // doc-end
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, (active = 'Y') as active from flag_table_only_for_sql_test where active = 'Y'"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        if (ctx.realDbEnabled) {
+            expect((selectError as Error).message).toMatch(/flag_table_only_for_sql_test|does not exist|relation/)
+        } else {
+            expect(rows).toEqual([{ id: 1, name: 'demo', active: true }])
+        }
     })
 })

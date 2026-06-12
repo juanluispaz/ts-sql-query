@@ -19,8 +19,9 @@
 //      `delete.using.variants.test.ts` test 3 which puts the CTE in
 //      USING; here the CTE lives in a WHERE-in-subquery).
 //
-// MySQL has no RETURNING; all five tests are commented out in its cell
-// for symmetry.
+// MariaDB supports DELETE ... RETURNING; only the WITH-prefixed DELETE
+// (test 5) is commented out — MariaDB rejects WITH as a prefix for a
+// DELETE statement (see the marker on that block).
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -119,10 +120,10 @@ describe(ctx.label, () => {
 
     test('delete-returning-one-column-many-result', async () => {
         // `returningOneColumn(col)` + `executeDeleteMany()` — pins
-        // the one-column-many path of `executeDeleteMany`. The mock
-        // returns an array of values; the real DB returns [] because
-        // the WHERE matches no rows.
-        ctx.mockNext(['open', 'in_progress'])
+        // the one-column-many path of `executeDeleteMany`. The WHERE
+        // matches no rows (id=99999), so both the mock and the real DB
+        // yield an empty array — deterministic on both sides.
+        ctx.mockNext([])
         await ctx.withRollback(async () => {
             const statuses = await ctx.conn.deleteFrom(tIssue)
                 .where(tIssue.id.equals(99999))
@@ -136,21 +137,46 @@ describe(ctx.label, () => {
               ]
             `)
             assertType<Exact<typeof statuses, string[]>>()
-            if (!ctx.realDbEnabled) expect(statuses).toEqual(['open', 'in_progress'])
-            else expect(Array.isArray(statuses)).toBe(true)
+            expect(statuses).toEqual([])
         })
     })
 
-    // Not applicable on MariaDB: the server rejects the
-    // `WITH cte AS (...) DELETE FROM ... WHERE x IN (SELECT ... FROM
-    // cte) ...` form — MariaDB accepts WITH as a prefix for a SELECT
-    // but not for a DELETE statement. See other cells for the
-    // canonical body.
+    // MariaDB rejects the `WITH cte AS (...) DELETE FROM ... WHERE x IN
+    // (SELECT ... FROM cte) ...` form: it accepts WITH as a prefix for a
+    // SELECT but not for a DELETE statement.
+    // TODO[LIMITATION]: see LIMITATIONS.md — MariaDB has no WITH-prefixed DELETE
     /*
     test('delete-cte-in-where-in-subquery-with-returning', async () => {
-        // ... see other cells for the full body — pins
-        // `with archived_projects as (...) delete from issue where ...
-        // returning ...`.
+        // The DELETE consumes a `.forUseInQueryAs(...)` CTE inside a
+        // WHERE-in-subquery (not in USING — that case is exercised by
+        // `delete.using.variants.test.ts` test 3). The CTE must bubble
+        // up through `__addWiths` on the subquery's source and emerge
+        // as a top-level `with ... delete from ... returning ...`.
+        ctx.mockNext([])
+        await ctx.withRollback(async () => {
+            const archivedProjects = ctx.conn.selectFrom(tProject)
+                .where(tProject.archivedAt.isNotNull())
+                .select({ id: tProject.id })
+                .forUseInQueryAs('archived_projects')
+
+            const removed = await ctx.conn.deleteFrom(tIssue)
+                .where(tIssue.projectId.in(
+                    ctx.conn.selectFrom(archivedProjects).selectOneColumn(archivedProjects.id),
+                ))
+                .and(tIssue.id.equals(99999))
+                .returning({ id: tIssue.id })
+                .executeDeleteMany()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"with archived_projects as (select id as id from project where archived_at is not null) delete from issue where project_id in (select id as result from archived_projects) and id = ? returning id as id"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                99999,
+              ]
+            `)
+            assertType<Exact<typeof removed, Array<{ id: number }>>>()
+            if (!ctx.realDbEnabled) expect(removed).toEqual([])
+            else expect(removed).toEqual([])
+        })
     })
     */
 })

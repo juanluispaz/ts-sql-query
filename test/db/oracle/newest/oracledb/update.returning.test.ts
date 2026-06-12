@@ -58,13 +58,9 @@ describe(ctx.label, () => {
                 priority: number
             }>>()
 
-            if (ctx.realDbEnabled) {
-                expect(row.id).toBe(1)
-                expect(row.title).toBe('Patched')
-                expect(row.priority).toBe(5)
-            } else {
-                expect(row).toEqual(expectedMock)
-            }
+            // The update sets title/priority deterministically and
+            // RETURNING gives the row back, so both modes match the mock.
+            expect(row).toEqual(expectedMock)
         })
     })
 
@@ -91,19 +87,20 @@ describe(ctx.label, () => {
             `)
             assertType<Exact<typeof newName, string>>()
 
-            if (!ctx.realDbEnabled) expect(newName).toBe('Renamed Acme')
-            else expect(newName).toBe('Renamed Acme')
+            expect(newName).toBe('Renamed Acme')
         })
     })
 
     test('update-returning-many', async () => {
         // Update every issue with priority 1 and return one row per
-        // touched record. Exercises `executeUpdateMany`.
-        const expectedMock = [
-            { id: 1, title: 'Bumped 1' },
-            { id: 2, title: 'Bumped 2' },
+        // touched record. Exercises `executeUpdateMany`. Only seed issue
+        // id=2 ('Redesign navbar') has priority 1, so RETURNING yields
+        // exactly that row; the mock primes the same so one toEqual holds
+        // in both modes (titles are unchanged — only priority is set).
+        const expected = [
+            { id: 2, title: 'Redesign navbar' },
         ]
-        ctx.mockNext(expectedMock)
+        ctx.mockNext(expected)
 
         await ctx.withRollback(async () => {
             const rows = await ctx.conn.update(tIssue)
@@ -132,8 +129,7 @@ describe(ctx.label, () => {
             `)
             assertType<Exact<typeof rows, Array<{ id: number; title: string }>>>()
 
-            if (!ctx.realDbEnabled) expect(rows).toEqual(expectedMock)
-            else expect(Array.isArray(rows)).toBe(true)
+            expect(rows.slice().sort((a, b) => a.id - b.id)).toEqual(expected)
         })
     })
 })

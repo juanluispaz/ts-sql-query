@@ -158,9 +158,12 @@ describe(ctx.label, () => {
         // Combines two IfValue predicates AND-joined. One is elided
         // (undefined), one fires (concrete value). The emitted WHERE
         // contains only the fired predicate.
+        // `priority > 1` matches the seeded issues with priority 2 or 3:
+        // id 1 (p2), id 3 (p3), id 4 (p2). id 2 (p1) is excluded.
         const expected = [
-            { id: 2 },
+            { id: 1 },
             { id: 3 },
+            { id: 4 },
         ]
         ctx.mockNext(expected)
 
@@ -180,8 +183,7 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
-        if (!ctx.realDbEnabled) expect(rows).toEqual(expected)
-        else expect(rows.length).toBeGreaterThanOrEqual(0)
+        expect(rows).toEqual(expected)
     })
 
     test('inIfValue-with-empty-array-elides-predicate', async () => {

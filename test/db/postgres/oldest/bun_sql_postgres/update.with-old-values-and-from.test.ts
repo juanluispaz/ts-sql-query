@@ -28,14 +28,9 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('returning-old-and-new-with-from-table-projects-required-columns-in-old-subquery', async () => {
-        // Update tProject.name from organization.name; RETURNING the
+        // Update project.name from organization.name; RETURNING the
         // PRE-update project.name AND the organization.name pulled in
-        // via FROM. On PG ≥ 18 the FROM-subquery is replaced by native
-        // `OLD.col`; on PG < 18 (and sqlserver / mariadb) the
-        // `_extractAdditionalRequiredColumnsForUpdate` branch fires and
-        // the synthesised `_old_` subquery must pre-project the
-        // organization column as `organization__name` so it's
-        // reachable in the RETURNING clause.
+        // via FROM. project 1 → org 1 (Acme Corp).
         ctx.mockNext({
             id:      1,
             oldName: 'Marketing site',
@@ -73,19 +68,12 @@ describe(ctx.label, () => {
                 newName: string
                 orgName: string
             }>>()
-            if (!ctx.realDbEnabled) {
-                expect(row).toEqual({
-                    id:      1,
-                    oldName: 'Marketing site',
-                    newName: 'Marketing site / Acme Corp',
-                    orgName: 'Acme Corp',
-                })
-            } else {
-                expect(row.id).toBe(1)
-                expect(row.orgName).toBe('Acme Corp')
-                expect(row.oldName).toBe('Marketing site')
-                expect(row.newName).toContain('Acme Corp')
-            }
+            expect(row).toEqual({
+                id:      1,
+                oldName: 'Marketing site',
+                newName: 'Marketing site / Acme Corp',
+                orgName: 'Acme Corp',
+            })
         })
     })
 

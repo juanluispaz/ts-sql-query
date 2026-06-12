@@ -49,10 +49,7 @@ describe(ctx.label, () => {
         // A fragment whose template interpolates `connection.const(...)`
         // produces a placeholder inside the comment, proving the hook
         // routes through `_appendRawFragment` and registers the param.
-        // Mock-only: most drivers strip comments before counting
-        // placeholders, so the bound `?` inside a `/* ... */` block
-        // looks like a stray parameter at execution time. The SQL the
-        // lib emits is still the assertion of interest.
+        // tests-audit-disable-next-line mock-only -- bound param lands inside a /* */ comment; drivers strip the comment on the mutation path then reject the extra ? ("expected 3 values, received 4") (DESIGN §1 #18)
         if (ctx.realDbEnabled) return
         ctx.mockNext(1)
         const connection = ctx.conn

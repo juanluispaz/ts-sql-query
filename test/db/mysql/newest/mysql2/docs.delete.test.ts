@@ -60,7 +60,7 @@ describe(ctx.label, () => {
         })
     })
 
-    // Not applicable on MySQL: MySQL does not support insert/update/delete RETURNING.
+    // NOT-APPLICABLE: MySQL has no RETURNING
     /*
     test('docs:delete/delete-returning', async () => {
         ctx.mockNext({ id: 4, title: 'Document /v2/users' })
@@ -120,7 +120,7 @@ describe(ctx.label, () => {
         })
     })
 
-    // Not applicable on MySQL: MySQL does not support insert/update/delete RETURNING.
+    // NOT-APPLICABLE: MySQL has no RETURNING
     /*
     test('docs-extra:delete/returning-one-column', async () => {
         // "Delete returning" prose: `returningOneColumn(col)` is the

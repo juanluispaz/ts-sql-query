@@ -17,6 +17,11 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('docs:extreme-dynamic-queries/dynamic-condition-for', async () => {
+        const expected = [
+            { id: 1, name: 'Marketing site', slug: 'mktg-site' },
+            { id: 2, name: 'Internal tools', slug: 'tools' },
+        ]
+        ctx.mockNext(expected)
         const connection = ctx.conn
 
         // doc-start
@@ -60,12 +65,19 @@ describe(ctx.label, () => {
             name: string
             slug: string
         }>>>()
-        if (ctx.realDbEnabled) {
-            expect(rows.map(r => r.id).sort()).toEqual([1, 2])
-        }
+        expect(rows).toEqual(expected)
     })
 
     test('docs:extreme-dynamic-queries/dynamic-pick', async () => {
+        // Only `name` was picked (+id always); `slug` is absent. All four
+        // projects, ordered by id.
+        const expected = [
+            { id: 1, name: 'Marketing site' },
+            { id: 2, name: 'Internal tools' },
+            { id: 3, name: 'Public API' },
+            { id: 4, name: 'Legacy app' },
+        ]
+        ctx.mockNext(expected)
         const connection = ctx.conn
 
         // doc-start
@@ -96,12 +108,7 @@ describe(ctx.label, () => {
             name?: string
             slug?: string
         }>>>()
-        if (ctx.realDbEnabled) {
-            for (const r of rows) {
-                expect(typeof r.name).toBe('string')
-                expect(r.slug).toBeUndefined()
-            }
-        }
+        expect(rows).toEqual(expected)
     })
 
     test('docs:extreme-dynamic-queries/dynamic-pick-paths', async () => {
@@ -307,6 +314,16 @@ describe(ctx.label, () => {
     })
 
     test('docs:extreme-dynamic-queries/dynamic-condition-nested-projection', async () => {
+        // Filter keeps issues whose assignee.fullName contains 'Ada' — only
+        // Ada Lovelace (user 1), assigned to issue 1.
+        const expected = [
+            { id: 1, title: 'Update hero copy',
+              assignee: { id: 1, fullName: 'Ada Lovelace' } },
+        ]
+        ctx.mockNext([
+            { id: 1, title: 'Update hero copy',
+              'assignee.id': 1, 'assignee.fullName': 'Ada Lovelace' },
+        ])
         const connection = ctx.conn
 
         // doc-start: dynamicConditionFor handles nested projection shapes —
@@ -357,11 +374,7 @@ describe(ctx.label, () => {
             title: string
             assignee?: { id: number; fullName: string }
         }>>>()
-        if (ctx.realDbEnabled) {
-            for (const r of rows) {
-                expect(r.assignee?.fullName).toContain('Ada')
-            }
-        }
+        expect(rows).toEqual(expected)
     })
 
     test('docs-extra:extreme-dynamic-queries/dynamic-condition-nested-and-or', async () => {

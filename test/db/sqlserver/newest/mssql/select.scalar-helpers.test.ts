@@ -43,11 +43,10 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select rand() as [r]"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ r: number }>>>()
-        if (ctx.realDbEnabled) {
-            expect(typeof rows[0]!.r).toBe('number')
-        } else {
-            expect(rows).toEqual(expected)
-        }
+        // rand() is non-deterministic, so the value can't be pinned; assert
+        // the column comes back as a number in both mock and real modes.
+        expect(rows.length).toBe(1)
+        expect(typeof rows[0]!.r).toBe('number')
     })
 
     test('currentTime', async () => {

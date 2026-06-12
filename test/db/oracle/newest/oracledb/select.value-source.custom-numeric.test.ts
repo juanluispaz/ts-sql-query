@@ -63,12 +63,8 @@ describe(ctx.label, () => {
     test('custom-numeric/customint-rounding-and-abs', async () => {
         // customInt operand keeps the customInt result type through
         // ceil/floor/round (the customInt||customDouble arm) and abs.
-        // The SQL runs on every real DB; the VALUE is asserted only under
-        // the mock because a custom type carries NO marshalling
-        // (transformValueFromDB falls to `default: return value`), so the
-        // round result — wrapped in `::numeric` — comes back as the
-        // driver's raw representation (a string on the postgres drivers),
-        // not a canonical number the library re-types.
+        // The integer results are exact, so the VALUE is asserted in
+        // both modes.
         const score = ctx.conn.const(7, 'customInt', 'Score')
         const expected = [{ id: 1, c: 7, f: 7, r: 7, a: 7 }]
         ctx.mockNext(expected)
@@ -93,7 +89,7 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof result, Array<{ id: number; c: number; f: number; r: number; a: number }>>>()
-        if (!ctx.realDbEnabled) expect(result).toEqual(expected)
+        expect(result).toEqual(expected)
     })
 
     test('custom-numeric/double-arithmetic', async () => {
@@ -167,13 +163,17 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof result, Array<{ id: number; sq: number; cb: number; e: number; l: number; l10: number }>>>()
+        // tests-audit-disable-next-line one-sided-guard -- expected carries exact JS Math.* values (exp/ln/log10/cbrt); Oracle's results differ in float precision
         if (!ctx.realDbEnabled) expect(result).toEqual(expected)
     })
 
     test('custom-numeric/customdouble-trig', async () => {
         // The 7 trig methods over a customDouble operand keep the
-        // customDouble type. SQLite has no trig functions, so execution
-        // throws after the SQL is captured; the value is mock-only.
+        // customDouble type. Oracle supports the rest natively, but has
+        // no COT() function, so the whole query (which emits cot(:4))
+        // is rejected at execution with ORA-00904.
+        // tests-audit-disable-next-line mock-only -- Oracle has no COT() function (ORA-00904: "COT": invalid identifier); the query emits cot(:4); see test/BUGS.md
+        if (ctx.realDbEnabled) return
         const r = ctx.conn.const(0.5, 'customDouble', 'Ratio')
         const expected = [{
             id: 1,
@@ -181,23 +181,19 @@ describe(ctx.label, () => {
             co: Math.cos(0.5), ct: 1 / Math.tan(0.5), si: Math.sin(0.5), ta: Math.tan(0.5),
         }]
         ctx.mockNext(expected)
-        try {
-            const result = await ctx.conn.selectFrom(tIssue)
-                .where(tIssue.id.equals(1))
-                .select({
-                    id: tIssue.id,
-                    ac: r.acos(), as: r.asin(), at: r.atan(),
-                    co: r.cos(), ct: r.cot(), si: r.sin(), ta: r.tan(),
-                })
-                .executeSelectMany()
-            assertType<Exact<typeof result, Array<{
-                id: number; ac: number; as: number; at: number
-                co: number; ct: number; si: number; ta: number
-            }>>>()
-            if (!ctx.realDbEnabled) expect(result).toEqual(expected)
-        } catch (e) {
-            if (!ctx.realDbEnabled) throw e
-        }
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                ac: r.acos(), as: r.asin(), at: r.atan(),
+                co: r.cos(), ct: r.cot(), si: r.sin(), ta: r.tan(),
+            })
+            .executeSelectMany()
+        assertType<Exact<typeof result, Array<{
+            id: number; ac: number; as: number; at: number
+            co: number; ct: number; si: number; ta: number
+        }>>>()
+        expect(result).toEqual(expected)
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", acos(:0) as "ac", asin(:1) as "as", atan(:2) as "at", cos(:3) as "co", cot(:4) as "ct", sin(:5) as "si", tan(:6) as "ta" from issue where id = :7"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
@@ -219,32 +215,28 @@ describe(ctx.label, () => {
         // / 642 / 649 / 678. `customdouble-math` covers the
         // `SqlOperation0` arms (sqrt/cbrt/exp/ln/log10); these take an
         // additional operand and route through a different dispatch
-        // arm. SQLite has no `logn` / `atan2` / `roundn`, so execution
-        // throws after the SQL is captured; value is mock-only as in
-        // the `customdouble-math` / `customdouble-trig` siblings.
+        // arm. Oracle supports `power` / `log` / `round` / `atan2`
+        // natively.
         const v = ctx.conn.const(8, 'customDouble', 'Score')
         const o = ctx.conn.const(2, 'customDouble', 'Score')
         const expected = [{ id: 1, p: 64, ln: 3, rn: 8, di: 4, at2: Math.atan2(8, 2) }]
         ctx.mockNext(expected)
-        try {
-            const result = await ctx.conn.selectFrom(tIssue)
-                .where(tIssue.id.equals(1))
-                .select({
-                    id:  tIssue.id,
-                    p:   v.power(2),
-                    ln:  v.logn(o),
-                    rn:  v.roundn(2),
-                    di:  v.divide(o),
-                    at2: v.atan2(o),
-                })
-                .executeSelectMany()
-            assertType<Exact<typeof result, Array<{
-                id: number; p: number; ln: number; rn: number; di: number; at2: number
-            }>>>()
-            if (!ctx.realDbEnabled) expect(result).toEqual(expected)
-        } catch (e) {
-            if (!ctx.realDbEnabled) throw e
-        }
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id:  tIssue.id,
+                p:   v.power(2),
+                ln:  v.logn(o),
+                rn:  v.roundn(2),
+                di:  v.divide(o),
+                at2: v.atan2(o),
+            })
+            .executeSelectMany()
+        assertType<Exact<typeof result, Array<{
+            id: number; p: number; ln: number; rn: number; di: number; at2: number
+        }>>>()
+        // tests-audit-disable-next-line one-sided-guard -- expected.at2 carries an exact JS Math.atan2 value; Oracle's result differs in float precision
+        if (!ctx.realDbEnabled) expect(result).toEqual(expected)
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", power(:0, :1) as "p", log(:2, :3) as "ln", round(:4, :5) as "rn", :6 / :7 as "di", atan2(:8, :9) as "at2" from issue where id = :10"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [

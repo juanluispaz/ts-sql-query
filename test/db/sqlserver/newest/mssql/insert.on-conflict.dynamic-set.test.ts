@@ -24,7 +24,7 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // Not applicable: this dialect has no INSERT ... ON CONFLICT / ON DUPLICATE KEY UPDATE.
+    // NOT-APPLICABLE: SQL Server has no INSERT…ON CONFLICT (uses MERGE)
     /*
     test('do-update-dynamic-set-then-set-builds-incremental-update', async () => {
         // `doUpdateDynamicSet()` opens an empty update-set, then two
@@ -48,7 +48,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // Not applicable: this dialect has no INSERT ... ON CONFLICT / ON DUPLICATE KEY UPDATE.
+    // NOT-APPLICABLE: SQL Server has no INSERT…ON CONFLICT (uses MERGE)
     /*
     test('do-update-dynamic-set-then-set-if-value-skips-undefined-incremental', async () => {
         // `doUpdateDynamicSet()` (no-arg form) opens an empty update-set;
@@ -71,7 +71,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // Not applicable: this dialect has no INSERT ... ON CONFLICT / ON DUPLICATE KEY UPDATE.
+    // NOT-APPLICABLE: SQL Server has no INSERT…ON CONFLICT (uses MERGE)
     /*
     test('do-update-dynamic-set-with-initial-columns-then-set-if-value', async () => {
         ctx.mockNext(1)
@@ -89,7 +89,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // Not applicable: this dialect has no INSERT ... ON CONFLICT / ON DUPLICATE KEY UPDATE.
+    // NOT-APPLICABLE: SQL Server has no INSERT…ON CONFLICT (uses MERGE)
     /*
     test('do-update-set-if-value-keeps-only-properties-passing-value-gate', async () => {
         // One-shot `doUpdateSetIfValue({...})` at

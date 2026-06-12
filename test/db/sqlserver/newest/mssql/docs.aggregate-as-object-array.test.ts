@@ -197,16 +197,12 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-    // `aggregateAsArrayOfOneColumnDistinct` is not exposed on
-    // `SqlServerConnection` — T-SQL's STRING_AGG and JSON_ARRAYAGG don't
-    // accept the DISTINCT quantifier in any version and the same-query
-    // emulation is not portable (it would require restructuring the
-    // outer SELECT). The method is therefore only declared on
-    // PostgreSqlConnection, MariaDBConnection, SqliteConnection and
-    // NoopDBConnection, so calling it on a SqlServerConnection is a
-    // TypeScript compile error. The test body is kept commented out for
-    // cross-cell symmetry. Documented workaround for users:
+    // T-SQL's STRING_AGG and JSON_ARRAYAGG don't accept the DISTINCT
+    // quantifier in any version, so `aggregateAsArrayOfOneColumnDistinct`
+    // is not exposed on `SqlServerConnection` (calling it is a TypeScript
+    // compile error). Documented workaround for users:
     // `subSelectUsing(...).distinct().select(...).forUseAsInlineAggregatedArrayValue()`.
+    // NOT-APPLICABLE: SQL Server's STRING_AGG/JSON_ARRAYAGG have no DISTINCT quantifier, so aggregateAsArrayOfOneColumnDistinct is not declared on SqlServerConnection
     /*
     test('docs:aggregate-as-object-array/aggregate-as-array-distinct', async () => {
         ctx.mockNext({

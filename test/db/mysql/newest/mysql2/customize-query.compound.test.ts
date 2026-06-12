@@ -61,10 +61,11 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ label: string }>>>()
     })
 
-    // Not applicable on MySQL: the library does not expose `.intersect`
-    // (or `.except`) on MySqlConnection because MySQL has no native
-    // INTERSECT / EXCEPT — `select.compound.test.ts` makes the same
-    // exclusion. See other cells for the canonical body.
+    // The library does not expose `.intersect` (or `.except`) on
+    // MySqlConnection because MySQL has no native INTERSECT / EXCEPT —
+    // `select.compound.test.ts` makes the same exclusion. See other
+    // cells for the canonical body.
+    // NOT-APPLICABLE: MySQL has no INTERSECT (.intersect is not typed on MySqlConnection)
     /*
     test('customize-compound-with-query-hooks-wrap-cte', async () => {
         // ... see other cells for the full body — uses `.intersect(...)`
@@ -72,7 +73,8 @@ describe(ctx.label, () => {
     })
     */
 
-    // Not applicable on MySQL: `.except` not exposed (see above).
+    // `.except` not exposed (see above).
+    // NOT-APPLICABLE: MySQL has no EXCEPT (.except is not typed on MySqlConnection)
     /*
     test('customize-compound-all-hooks-combined-on-except', async () => {
         // ... see other cells for the full body — uses `.except(...)`
@@ -89,12 +91,13 @@ describe(ctx.label, () => {
         // FIRST, body params after).
         //
         // Mock-only: the placeholder is emitted inside a `/* ... */`
-        // SQL comment, and several drivers (incl. bun:sqlite) strip
-        // comments before counting placeholders and reject the extra
-        // param at execution. DESIGN.md §1 #18 names "synthetic SQL
-        // that is the test's whole point" as the documented exception
-        // for the guard — mirrors the same guard on
+        // SQL comment, and several drivers strip comments before
+        // counting placeholders and reject the extra param at
+        // execution. DESIGN.md §1 #18 names "synthetic SQL that is the
+        // test's whole point" as the documented exception for the
+        // guard — mirrors the same guard on
         // `customize-select-hook-fragment-with-bound-param`.
+        // tests-audit-disable-next-line mock-only -- bound param lands inside a leading /* */ comment; drivers strip the comment then reject the extra ? against the compound body's own placeholder ("expected 1 values, received 2") (DESIGN §1 #18)
         if (ctx.realDbEnabled) return
         const connection = ctx.conn
         const projectsQ = connection.selectFrom(tProject)

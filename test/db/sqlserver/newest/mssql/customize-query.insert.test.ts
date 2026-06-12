@@ -48,11 +48,11 @@ describe(ctx.label, () => {
     test('customize-insert-hook-fragment-with-bound-param', async () => {
         // A fragment whose template interpolates `connection.const(...)`
         // produces a placeholder inside the comment, proving the hook
-        // routes through `_appendRawFragment` and registers the param.
-        // Mock-only: most drivers strip comments before counting
-        // placeholders, so the bound `?` inside a `/* ... */` block
-        // looks like a stray parameter at execution time. The SQL the
-        // lib emits is still the assertion of interest.
+        // registers the param. Mock-only: the bound param lands inside a
+        // `/* ... */` comment, and SQL Server strips the comment before
+        // binding, leaving @0 referenced but never substituted. The SQL
+        // the lib emits is the assertion of interest.
+        // tests-audit-disable-next-line mock-only -- bound param lands inside a /* */ comment; SQL Server strips the comment then rejects the unused @0 (DESIGN §1)
         if (ctx.realDbEnabled) return
         ctx.mockNext(1)
         const connection = ctx.conn

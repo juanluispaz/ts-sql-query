@@ -7,17 +7,11 @@
 // "select aggregate from (subquery)" form.
 //
 // The existing docs.aggregate-as-object-array tests exercise the
-// non-wrapped path. Adding the wrapped path here lights up:
-//   - AbstractMySqlMariaBDSqlBuilder._appendAggragateArrayWrappedColumns
-//     (MariaDB falls through to it; MySQL overrides)
-//   - the wrapped branch in every other dialect's override
-//
-// Like other inline-aggregate tests, the JSON returned from the real
-// DB is a string that has to be re-parsed by the type adapter — we
-// gate the value assertion to mock mode and capture the SQL snapshot
-// per dialect. The runner is wrapped in try/catch because some
-// dialects reject the unusual compound-inside-aggregate form at
-// execution time.
+// non-wrapped path. Adding the wrapped path here lights up the wrapped
+// branch in the SQL Server builder: a `for json path` subquery whose
+// inner select carries `group by` / `having`. The JSON the real DB
+// returns is re-parsed by the type adapter into the same shape the mock
+// supplies.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -48,34 +42,30 @@ describe(ctx.label, () => {
                 { id: 2, count: 1 },
             ]),
         })
-        try {
-            const projectStats = ctx.conn.subSelectUsing(tOrganization).from(tProject)
-                .innerJoin(tIssue).on(tIssue.projectId.equals(tProject.id))
-                .where(tProject.organizationId.equals(tOrganization.id))
-                .select({
-                    id:    tProject.id,
-                    count: ctx.conn.count(tIssue.id),
-                })
-                .groupBy('id')
-                .forUseAsInlineAggregatedArrayValue()
+        const projectStats = ctx.conn.subSelectUsing(tOrganization).from(tProject)
+            .innerJoin(tIssue).on(tIssue.projectId.equals(tProject.id))
+            .where(tProject.organizationId.equals(tOrganization.id))
+            .select({
+                id:    tProject.id,
+                count: ctx.conn.count(tIssue.id),
+            })
+            .groupBy('id')
+            .forUseAsInlineAggregatedArrayValue()
 
-            const row = await ctx.conn.selectFrom(tOrganization)
-                .where(tOrganization.id.equals(1))
-                .select({
-                    id:           tOrganization.id,
-                    name:         tOrganization.name,
-                    projectStats,
-                })
-                .executeSelectOne()
-            assertType<Exact<typeof row, {
-                id:           number
-                name:         string
-                projectStats: Array<{ id: number; count: number }>
-            }>>()
-            if (!ctx.realDbEnabled) expect(row).toEqual(expected)
-        } catch (e) {
-            if (!ctx.realDbEnabled) throw e
-        }
+        const row = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.id.equals(1))
+            .select({
+                id:           tOrganization.id,
+                name:         tOrganization.name,
+                projectStats,
+            })
+            .executeSelectOne()
+        assertType<Exact<typeof row, {
+            id:           number
+            name:         string
+            projectStats: Array<{ id: number; count: number }>
+        }>>()
+        expect(row).toEqual(expected)
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, (select project.id as id, count(issue.id) as [count] from project inner join issue on issue.project_id = project.id where project.organization_id = organization.id group by project.id for json path) as projectStats from organization where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
@@ -96,35 +86,31 @@ describe(ctx.label, () => {
             id: 1, name: 'Acme Corp',
             busyProjects: JSON.stringify([{ id: 1, count: 2 }]),
         })
-        try {
-            const busyProjects = ctx.conn.subSelectUsing(tOrganization).from(tProject)
-                .innerJoin(tIssue).on(tIssue.projectId.equals(tProject.id))
-                .where(tProject.organizationId.equals(tOrganization.id))
-                .select({
-                    id:    tProject.id,
-                    count: ctx.conn.count(tIssue.id),
-                })
-                .groupBy('id')
-                .having(ctx.conn.count(tIssue.id).greaterThan(1))
-                .forUseAsInlineAggregatedArrayValue()
+        const busyProjects = ctx.conn.subSelectUsing(tOrganization).from(tProject)
+            .innerJoin(tIssue).on(tIssue.projectId.equals(tProject.id))
+            .where(tProject.organizationId.equals(tOrganization.id))
+            .select({
+                id:    tProject.id,
+                count: ctx.conn.count(tIssue.id),
+            })
+            .groupBy('id')
+            .having(ctx.conn.count(tIssue.id).greaterThan(1))
+            .forUseAsInlineAggregatedArrayValue()
 
-            const row = await ctx.conn.selectFrom(tOrganization)
-                .where(tOrganization.id.equals(1))
-                .select({
-                    id:           tOrganization.id,
-                    name:         tOrganization.name,
-                    busyProjects,
-                })
-                .executeSelectOne()
-            assertType<Exact<typeof row, {
-                id:           number
-                name:         string
-                busyProjects: Array<{ id: number; count: number }>
-            }>>()
-            if (!ctx.realDbEnabled) expect(row).toEqual(expected)
-        } catch (e) {
-            if (!ctx.realDbEnabled) throw e
-        }
+        const row = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.id.equals(1))
+            .select({
+                id:           tOrganization.id,
+                name:         tOrganization.name,
+                busyProjects,
+            })
+            .executeSelectOne()
+        assertType<Exact<typeof row, {
+            id:           number
+            name:         string
+            busyProjects: Array<{ id: number; count: number }>
+        }>>()
+        expect(row).toEqual(expected)
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, (select project.id as id, count(issue.id) as [count] from project inner join issue on issue.project_id = project.id where project.organization_id = organization.id group by project.id having count(issue.id) > @0 for json path) as busyProjects from organization where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
@@ -480,11 +466,11 @@ describe(ctx.label, () => {
         expect(rows).toEqual([{ pid: 3 }, { pid: 4 }])
     })
 
-    // Not applicable: only MariaDB supports ORDER BY inside `json_arrayagg(...)`
-    // for inline aggregated arrays (`_supportOrderByWhenAggregateArray = true`
-    // in MariaDBSqlBuilder; every other dialect wraps the subquery, so the
-    // order-by lives there instead). Bodies copied verbatim from the
-    // canonical mariadb cell for cross-cell diff parity.
+    // SQL Server wraps the inline aggregated-array subquery, so the
+    // order-by lives in the wrapper, not inside the aggregate function
+    // (only MariaDB keeps ORDER BY inside `json_arrayagg(...)`). Bodies
+    // copied verbatim from the canonical mariadb cell for parity.
+    // NOT-APPLICABLE: SQL Server has no ORDER BY inside the inline aggregated-array function
     /*
     test('inline-aggregate-mariadb-order-by-asc-nulls-last-emits-is-null-then-asc', async () => {
         ctx.mockNext({

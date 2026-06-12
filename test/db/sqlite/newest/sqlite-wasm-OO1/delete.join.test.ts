@@ -27,7 +27,7 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // Not applicable on SQLite: `.innerJoin` / `.leftJoin` on DELETE are typed `never` for sqlite (SQLite does not support multi-table DELETE); on SQLite use `DELETE FROM t WHERE id IN (SELECT …)` — see `delete.where-in-subquery.test.ts`.
+    // NOT-APPLICABLE: SQLite does not support multi-table DELETE; `.innerJoin` / `.leftJoin` on DELETE are typed `never` for sqlite. On SQLite use `DELETE FROM t WHERE id IN (SELECT …)` — see `delete.where-in-subquery.test.ts`.
     /*
     test('delete-with-inner-join-on-condition', async () => {
         // Delete issues whose project is archived. The JOIN condition
@@ -54,7 +54,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // Not applicable on SQLite: `.innerJoin` / `.leftJoin` on DELETE are typed `never` for sqlite (SQLite does not support multi-table DELETE); on SQLite use `DELETE FROM t WHERE id IN (SELECT …)` — see `delete.where-in-subquery.test.ts`.
+    // NOT-APPLICABLE: SQLite does not support multi-table DELETE; `.innerJoin` / `.leftJoin` on DELETE are typed `never` for sqlite. On SQLite use `DELETE FROM t WHERE id IN (SELECT …)` — see `delete.where-in-subquery.test.ts`.
     /*
     test('delete-with-inner-join-targets-rows-by-joined-column', async () => {
         // Delete issues belonging to a project with a specific slug.
@@ -87,7 +87,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // Not applicable on SQLite: `.innerJoin` / `.leftJoin` on DELETE are typed `never` for sqlite (SQLite does not support multi-table DELETE); on SQLite use `DELETE FROM t WHERE id IN (SELECT …)` — see `delete.where-in-subquery.test.ts`.
+    // NOT-APPLICABLE: SQLite does not support multi-table DELETE; `.innerJoin` / `.leftJoin` on DELETE are typed `never` for sqlite. On SQLite use `DELETE FROM t WHERE id IN (SELECT …)` — see `delete.where-in-subquery.test.ts`.
     /*
     test('delete-with-multi-condition-on-clause-via-and', async () => {
         // The `on(...)` chain followed by `.and(...)` accumulates into

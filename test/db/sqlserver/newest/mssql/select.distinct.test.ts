@@ -26,8 +26,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select distinct status as status from issue order by status"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ status: string }>>>()
-        if (!ctx.realDbEnabled) expect(rows).toEqual(expectedMock)
-        else expect(rows.length).toBeGreaterThanOrEqual(1)
+        expect(rows).toEqual(expectedMock)
     })
 
     test('select-distinct-with-join-and-where', async () => {
@@ -51,7 +50,7 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{ orgId: number }>>>()
-        if (!ctx.realDbEnabled) expect(rows).toEqual(expectedMock)
+        expect(rows).toEqual(expectedMock)
     })
 
     test('subselect-distinct-using-in-correlated-exists', async () => {

@@ -230,6 +230,9 @@ describe(ctx.label, () => {
             name:       string
             priorities: number[]
         }>>()
-        expect(row?.priorities).toEqual(expect.arrayContaining([1, 2]))
+        // project 1's issues have priorities 1 and 2; distinct, order not guaranteed.
+        expect(row?.id).toBe(1)
+        expect(row?.name).toBe('Marketing site')
+        expect(row?.priorities.slice().sort((a, b) => a - b)).toEqual([1, 2])
     })
 })

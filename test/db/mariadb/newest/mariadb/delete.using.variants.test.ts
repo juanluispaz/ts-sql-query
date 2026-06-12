@@ -88,28 +88,81 @@ describe(ctx.label, () => {
         })
     })
 
-    // Not applicable on MariaDB: the server rejects the
-    // `WITH cte AS (...) DELETE FROM a USING a, cte WHERE ...` form
-    // the library emits — MariaDB accepts WITH as a prefix for a
-    // SELECT but not in a multi-table DELETE. See other cells for the
-    // canonical body.
+    // MariaDB rejects the `WITH cte AS (...) DELETE FROM a USING a, cte
+    // WHERE ...` form the library emits — MariaDB accepts WITH as a
+    // prefix for a SELECT but not in a multi-table DELETE.
+    // TODO[LIMITATION]: see LIMITATIONS.md — MariaDB has no WITH-prefixed multi-table DELETE
     /*
     test('delete-using-cte-source', async () => {
-        // ... see other cells for the full body — pins the bubbled
-        // `with active_projects as (...) delete from issue using ...`.
+        // USING target is a `.forUseInQueryAs(...)` view (a CTE). The
+        // emitted SQL must lead with `with active_projects as (...)`
+        // bubbled up from the USING clause through `__addWiths`.
+        ctx.mockNext(0)
+        await ctx.withRollback(async () => {
+            const activeProjects = ctx.conn.selectFrom(tProject)
+                .where(tProject.archivedAt.isNull())
+                .select({ id: tProject.id })
+                .forUseInQueryAs('active_projects')
+
+            const affected = await ctx.conn.deleteFrom(tIssue)
+                .using(activeProjects)
+                .where(tIssue.projectId.equals(activeProjects.id))
+                .and(tIssue.id.equals(99999))
+                .executeDelete()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"with active_projects as (select id as id from project where archived_at is null) delete from issue using issue, active_projects where issue.project_id = active_projects.id and issue.id = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                99999,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            if (!ctx.realDbEnabled) expect(affected).toBe(0)
+            else expect(typeof affected).toBe('number')
+        })
     })
     */
 
-    // Not applicable on MariaDB: RETURNING is supported only on
-    // single-table DELETE in MariaDB, not on a multi-table DELETE
-    // (DELETE ... USING). The server rejects the emitted
-    // `delete from issue using issue, project ... RETURNING ...` form
-    // with a parse error at `returning`. See other cells for the
-    // canonical body.
+    // MariaDB supports RETURNING only on a single-table DELETE, not on a
+    // multi-table DELETE (DELETE ... USING). The server rejects the
+    // emitted `delete from issue using issue, project ... RETURNING ...`
+    // form with a parse error at `returning`.
+    // TODO[LIMITATION]: see LIMITATIONS.md — MariaDB has no RETURNING on multi-table DELETE
     /*
     test('delete-using-with-returning-none-or-one-row', async () => {
-        // ... see other cells for the full body — combines USING and
-        // RETURNING on a single DELETE.
+        // RETURNING combined with USING. Uses `executeDeleteNoneOrOne`
+        // (not `executeDeleteOne`) so the real-DB path returns `null`
+        // instead of throwing NO_RESULT when no rows match — the
+        // snapshot assertions then run unconditionally. Projects only
+        // columns from the *target* table so the snapshot is portable
+        // across dialects. The `where` filters by an impossible id so the
+        // test does not delete seed rows under real DB.
+        const expectedMock = { id: -1, title: 'X' }
+        ctx.mockNext(expectedMock)
+        await ctx.withRollback(async () => {
+            const row = await ctx.conn.deleteFrom(tIssue)
+                .using(tProject)
+                .where(tIssue.projectId.equals(tProject.id))
+                .and(tIssue.id.equals(99999))
+                .returning({
+                    id:    tIssue.id,
+                    title: tIssue.title,
+                })
+                .executeDeleteNoneOrOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using issue, project where issue.project_id = project.id and issue.id = ? returning issue.id as id, issue.title as title"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                99999,
+              ]
+            `)
+            assertType<Exact<typeof row, {
+                id:    number
+                title: string
+            } | null>>()
+            if (!ctx.realDbEnabled) expect(row).toEqual(expectedMock)
+            else expect(row).toBeNull()
+        })
     })
     */
 })

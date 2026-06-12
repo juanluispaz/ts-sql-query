@@ -25,13 +25,15 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { ctx } from './setup.js'
 
-async function runReadOnlyTransaction(isolation: unknown): Promise<number | null> {
+type IsolationOpts = ReturnType<typeof ctx.conn.isolationLevel>
+
+async function runReadOnlyTransaction(isolation: IsolationOpts): Promise<number | null> {
     const connection = ctx.conn
     return await connection.transaction(async () => {
         return await connection.selectFromNoTable()
             .selectOneColumn(connection.const(1, 'int'))
             .executeSelectOne()
-    }, isolation as any)
+    }, isolation)
 }
 
 describe(ctx.label, () => {
@@ -41,16 +43,16 @@ describe(ctx.label, () => {
 
     test('isolation-level-only-builds-level-opts', async () => {
         // `isolationLevel('serializable')` → opts `['serializable']`
-        // (OracleConnection.ts:56, the level-only branch).
+        // (the level-only form).
         ctx.mockNext(1)
         const result = await runReadOnlyTransaction(ctx.conn.isolationLevel('serializable'))
         expect(ctx.lastTransactionOpts).toEqual(['serializable'])
         expect(result).toBe(1)
     })
 
-    // Not applicable on Oracle: `isolationLevel` has no level+accessMode
-    // overload — Oracle cannot set both in one `SET TRANSACTION`. Body
-    // kept verbatim (from the pg/mysql cells) for cross-cell diff parity.
+    // Body kept verbatim (from the pg/mysql cells) for cross-cell diff parity.
+    // NOT-APPLICABLE: Oracle takes an isolation level OR an access mode, not
+    // both — `isolationLevel` has no level+accessMode overload.
     /*
     test('isolation-level-with-access-mode-builds-pair-opts', async () => {
         ctx.mockNext(1)
@@ -61,11 +63,8 @@ describe(ctx.label, () => {
     */
 
     test('isolation-access-mode-only-builds-access-mode-opts', async () => {
-        // The single-arg access-mode overload (OracleConnection.ts:54)
-        // — opts `[undefined, 'read only']`. Runs on real Oracle now
-        // that `DelegatedSetTransactionQueryRunner.createSetTransactionQuery`
-        // emits `set transaction read only` without the previous
-        // spurious comma.
+        // The single-arg access-mode form — opts `[undefined, 'read only']`,
+        // emitting `set transaction read only` on real Oracle.
         ctx.mockNext(1)
         const result = await runReadOnlyTransaction(ctx.conn.isolationLevel('read only'))
         expect(ctx.lastTransactionOpts).toEqual([undefined, 'read only'])

@@ -117,9 +117,8 @@ describe(ctx.label, () => {
         })
     })
 
-    // Not applicable on MySQL: no RETURNING clause on DELETE — the
-    // library does not type `.returning(...)` on the MySQL delete
-    // surface. See other cells for the canonical body.
+    // NOT-APPLICABLE: MySQL has no RETURNING on DELETE; `.returning(...)` is
+    // not typed on the MySQL delete surface.
     /*
     test('delete-using-with-returning-none-or-one-row', async () => {
         // RETURNING combined with USING. Uses `executeDeleteNoneOrOne`

@@ -27,16 +27,21 @@ describe(ctx.label, () => {
 
     test('insert default values', async () => {
         ctx.mockNext(99)
+        let caught: unknown
         try {
             await (ctx.conn.insertInto(tDefaultsOnly) as any)
                 .defaultValues()
                 .returningLastInsertedId()
                 .executeInsert()
-        } catch {
-            // expected on real DB — the local table doesn't exist in
-            // the seed; the SQL builder still emits the DEFAULT VALUES
-            // form that this test checks.
+        } catch (e) {
+            caught = e
         }
+        // The local table only exists for this SQL-emission check; it is
+        // not in the seed, so the real engine rejects the INSERT at
+        // execution while the mock resolves the primed id. Either way the
+        // interceptor captured the DEFAULT VALUES form this test pins.
+        if (ctx.realDbEnabled) expect(caught).toBeInstanceOf(Error)
+        else expect(caught).toBeUndefined()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into defaults_only_table_only_for_sql_test (id) values (default) returning id into :0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [

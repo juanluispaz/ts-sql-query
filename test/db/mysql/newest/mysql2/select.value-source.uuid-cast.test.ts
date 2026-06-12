@@ -14,14 +14,12 @@
 //   - `raw_to_uuid(hextoraw(:0))`     — oracle default (`built-in`)
 //   - `?`                             — sqlserver (native uniqueidentifier)
 //
-// Per [DESIGN.md §1 #18](../../../../DESIGN.md#1-principles) and the
-// "synthetic SQL is the test's whole point" exception, this test is
-// **mock-only**: real-DB execution requires extensions / engine
-// versions that vary per test connector (sqlite's `uuid` extension,
-// MySQL 8.0+, Oracle 12c+) and the assertion of interest is the
-// SqlBuilder shape, not engine execution. The strategy-switch tests
-// in [config.uuid-strategy.test.ts](./config.uuid-strategy.test.ts)
-// cover the executable `'string'` branch end-to-end.
+// This test asserts the `bin_to_uuid(uuid_to_bin(?))` shape AND that
+// the value round-trips. MySQL 8.0+ provides `bin_to_uuid`/`uuid_to_bin`
+// natively, so it runs end-to-end against the real engine and `result`
+// comes back equal to the input UUID. The strategy-switch tests in
+// [config.uuid-strategy.test.ts](./config.uuid-strategy.test.ts) cover
+// the executable `'string'` branch end-to-end.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { ctx } from './setup.js'
@@ -34,10 +32,11 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('uuid-asString-on-const', async () => {
-        // Mock-only — see file header.
-        if (ctx.realDbEnabled) return
+        // Runs end-to-end here — see file header.
         ctx.mockNext(UUID_VALUE)
-        const connection = ctx.conn
+        // Opt into the `'binary'` uuid strategy explicitly so this test
+        // keeps asserting the `bin_to_uuid(uuid_to_bin(?))` shape.
+        const connection = ctx.withUuidStrategy('binary')
         const result = await connection.selectFromNoTable()
             .selectOneColumn(connection.const(UUID_VALUE, 'uuid').asString())
             .executeSelectOne()

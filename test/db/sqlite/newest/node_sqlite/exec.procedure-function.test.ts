@@ -23,11 +23,9 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite has no DDL for
-    // stored procedures or user-defined SQL functions; the seed
-    // schema cannot ship the bodies these tests would invoke against
-    // a real engine. See the postgres / mariadb / mysql / oracle /
-    // sqlserver cells for the active bodies.
+    // See the postgres / mariadb / mysql / oracle / sqlserver cells for
+    // the active bodies.
+    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
     /*
     test('execute-procedure-with-no-args', async () => {})
     test('execute-procedure-with-args', async () => {})

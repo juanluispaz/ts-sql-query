@@ -63,8 +63,7 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number; owner: number }>>>()
-        if (!ctx.realDbEnabled) expect(rows).toEqual(expected)
-        else expect(rows).toEqual(expected)
+        expect(rows).toEqual(expected)
     })
 
     test('valueWhenNull-with-column-as-default', async () => {
@@ -91,8 +90,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", nvl(assignee_id, id) as "owner" from issue order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number; owner: number }>>>()
-        if (!ctx.realDbEnabled) expect(rows).toEqual(expected)
-        else expect(rows).toEqual(expected)
+        expect(rows).toEqual(expected)
     })
 
     test('nullIfValue-numeric', async () => {
@@ -123,8 +121,7 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number; priorityOrNull?: number }>>>()
-        if (!ctx.realDbEnabled) expect(rows).toEqual(expected)
-        else expect(rows).toEqual(expected)
+        expect(rows).toEqual(expected)
     })
 
     test('equalsIfValue-skips-on-undefined', async () => {
@@ -150,17 +147,20 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
-        if (!ctx.realDbEnabled) expect(rows).toEqual(expected)
-        else expect(rows).toEqual(expected)
+        expect(rows).toEqual(expected)
     })
 
     test('lessThanIfValue-and-greaterThanIfValue-mixed', async () => {
         // Combines two IfValue predicates AND-joined. One is elided
         // (undefined), one fires (concrete value). The emitted WHERE
         // contains only the fired predicate.
+        // Only the greaterThanIfValue fires: WHERE priority > 1.
+        // Seed priorities are issue1=2, issue2=1, issue3=3, issue4=2,
+        // so ids 1, 3 and 4 survive (issue2 has priority 1, excluded).
         const expected = [
-            { id: 2 },
+            { id: 1 },
             { id: 3 },
+            { id: 4 },
         ]
         ctx.mockNext(expected)
 
@@ -180,8 +180,7 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
-        if (!ctx.realDbEnabled) expect(rows).toEqual(expected)
-        else expect(rows.length).toBeGreaterThanOrEqual(0)
+        expect(rows).toEqual(expected)
     })
 
     test('inIfValue-with-empty-array-elides-predicate', async () => {
@@ -209,7 +208,6 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
-        if (!ctx.realDbEnabled) expect(rows).toEqual(expected)
-        else expect(rows).toEqual(expected)
+        expect(rows).toEqual(expected)
     })
 })

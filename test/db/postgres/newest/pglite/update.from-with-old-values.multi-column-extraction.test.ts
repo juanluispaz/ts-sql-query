@@ -1,22 +1,15 @@
 // `UPDATE … FROM …` combined with `oldValues()` and a RETURNING
 // projection that references **multiple** columns of the joined-in
-// table forces the sort comparator inside `_buildOldValuesForUpdate`
-// to actually fire. That comparator at
-// [src/sqlBuilders/AbstractSqlBuilder.ts:2205-2228](../../../../../src/sqlBuilders/AbstractSqlBuilder.ts#L2205-L2228)
-// orders the synthesised `_old_` subquery's additional column list by
-// `(tableName, columnName)` so the emitted SQL is deterministic across
-// runs — irrelevant when only one extra column is extracted, but
-// load-bearing as soon as two or more land in the same subquery.
-//
-// The sibling `update.with-old-values-and-from.test.ts` only projects
-// ONE additional column (`organization.name`) so the sort never runs.
-// This file adds a second extracted column from the same joined-in
-// table to exercise the `t1Name === t2Name` tiebreak branch
-// (L2221-2226), plus a third column from a SECOND joined-in table to
-// also exercise the `t1Name !== t2Name` table-comparison branch
-// (L2215-2220).
+// table forces the synthesised `old.` subquery to order its extra
+// column list by `(tableName, columnName)` so the emitted SQL is
+// deterministic. With only one extra column the ordering never matters;
+// this file extracts two columns from the same FROM table (exercising
+// the column-name tiebreak) and one from a second FROM table
+// (exercising the table-name comparison).
 
-import { afterAll, beforeAll, beforeEach, describe } from '../../../../lib/testRunner.js'
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
+import { assertType, type Exact } from '../../../../lib/assertType.js'
+import { tAppUser, tIssue, tOrganization, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -24,21 +17,20 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // Not applicable on this cell: pglite bundles PostgreSQL 17 but `compatibilityVersion = Number.POSITIVE_INFINITY` makes the builder emit PG18+ `OLD.col` syntax that PG17 rejects with `column "old" does not exist`. The PG17-shaped emission is exercised in `postgres/oldest/pglite/` instead.
-    /*
-test('update-from-old-values-with-two-columns-from-same-from-table-sorts-by-column-name', async () => {
+    test('update-from-old-values-with-two-columns-from-same-from-table-sorts-by-column-name', async () => {
         // RETURNING references both `organization.name` and
-        // `organization.plan`. Both come from the same FROM table, so
-        // the `t1Name === t2Name` tiebreak branch (L2221-2226) of the
-        // comparator fires. Lexicographic by column name puts `name`
-        // before `plan` in the projection.
-        ctx.mockNext({
+        // `organization.plan` from the same FROM table; the synthesised
+        // `old.` subquery orders extra columns by column name, so `name`
+        // precedes `plan` in the emitted SQL.
+        // project 1 → org 1 (Acme Corp, plan='pro' per seed).
+        const expectedRow = {
             id:      1,
             oldName: 'Marketing site',
             newName: 'Marketing site / Acme',
             orgName: 'Acme Corp',
-            orgPlan: 'enterprise',
-        })
+            orgPlan: 'pro',
+        }
+        ctx.mockNext(expectedRow)
 
         await ctx.withRollback(async () => {
             const oldProject = tProject.oldValues()
@@ -72,29 +64,25 @@ test('update-from-old-values-with-two-columns-from-same-from-table-sorts-by-colu
                 orgName: string
                 orgPlan: string
             }>>()
-            if (!ctx.realDbEnabled) {
-                expect(row.orgName).toBe('Acme Corp')
-                expect(row.orgPlan).toBe('enterprise')
-            }
+            expect(row).toEqual(expectedRow)
         })
     })
-    */
 
-    // Not applicable on this cell: pglite bundles PostgreSQL 17 but `compatibilityVersion = Number.POSITIVE_INFINITY` makes the builder emit PG18+ `OLD.col` syntax that PG17 rejects with `column "old" does not exist`. The PG17-shaped emission is exercised in `postgres/oldest/pglite/` instead.
-    /*
-test('update-from-old-values-with-columns-from-two-from-tables-sorts-by-table-then-column', async () => {
+    test('update-from-old-values-with-columns-from-two-from-tables-sorts-by-table-then-column', async () => {
         // RETURNING references columns from TWO joined-in tables —
-        // `organization.name` and `app_user.full_name`. The comparator
-        // must order by table name first (L2215-2220): `app_user`
-        // sorts before `organization`. Within each table block, the
-        // column-name tiebreak (L2221-2226) handles ordering.
-        ctx.mockNext({
+        // `organization.name` and `app_user.full_name`. Extra columns
+        // are ordered by table name first (`app_user` before
+        // `organization`), then by column name within each table.
+        // issue 1: title='Update hero copy', assignee 1 (Ada Lovelace),
+        // project 1 → org 1 (Acme Corp).
+        const expectedRow = {
             id:        1,
             oldTitle:  'Update hero copy',
-            newTitle:  'Hero copy / Ada @ Acme',
+            newTitle:  'Update hero copy / Ada @ Acme',
             assignee:  'Ada Lovelace',
             orgName:   'Acme Corp',
-        })
+        }
+        ctx.mockNext(expectedRow)
 
         await ctx.withRollback(async () => {
             const oldIssue = tIssue.oldValues()
@@ -132,11 +120,7 @@ test('update-from-old-values-with-columns-from-two-from-tables-sorts-by-table-th
                 assignee: string
                 orgName:  string
             }>>()
-            if (!ctx.realDbEnabled) {
-                expect(row.assignee).toBe('Ada Lovelace')
-                expect(row.orgName).toBe('Acme Corp')
-            }
+            expect(row).toEqual(expectedRow)
         })
     })
-    */
 })

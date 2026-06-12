@@ -36,12 +36,9 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // Not applicable on MySQL / Oracle / SQL Server: their
-    // `JSON_ARRAYAGG` / `LISTAGG` aggregates reject the DISTINCT
-    // quantifier, so the connection class does not expose
-    // `aggregateAsArrayDistinct`. The commented body documents the
-    // intent — when the dialect ever supports it, uncomment and bake
-    // per-cell snapshots.
+    // NOT-APPLICABLE: SQL Server's `for json path` aggregation has no
+    // DISTINCT quantifier, so the connection class does not expose
+    // `aggregateAsArrayDistinct`.
     /*
     test('aggregateAsArrayDistinct-on-object-shape', async () => {
         const tProjectLeftJoin = tProject.forUseInLeftJoin()
@@ -131,9 +128,9 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-    // Not applicable on MySQL / Oracle / SQL Server: see header
-    // above — `aggregateAsArrayOfOneColumnDistinct` shares the same
-    // unsupported-on-this-dialect restriction.
+    // NOT-APPLICABLE: see above — SQL Server's `for json path`
+    // aggregation has no DISTINCT quantifier, so
+    // `aggregateAsArrayOfOneColumnDistinct` is not exposed.
     /*
     test('useEmptyArrayForNoValue-with-distinct-one-column', async () => {
         const tIssueLeftJoin = tIssue.forUseInLeftJoin()

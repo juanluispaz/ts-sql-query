@@ -179,58 +179,55 @@ describe(ctx.label, () => {
     })
 
     test('transaction-body-throws-custom-error-class-propagates-raw-unwrapped', async () => {
-        // Real-DB only: the test framework's `MockQueryRunner`
-        // override at `testContext.ts:196` (`(e) => !(e instanceof
-        // RollbackSignal)`) classifies every non-`RollbackSignal`
-        // error as a SQL error so most mocked tests behave like a
-        // SQL-error flow. The real-driver runners' own `isSqlError`
-        // only recognises their own driver shapes plus `TsSqlError`,
-        // so a user-defined error class crosses
-        // `connection.transaction(...)` unchanged — same instance
-        // caught outside.
-        if (!ctx.realDbEnabled) return
+        // A user-defined error class is not recognised as a SQL error by
+        // the real-driver runners, so it crosses `transaction(...)` raw —
+        // the same instance is caught outside. The mock runner classifies
+        // every non-RollbackSignal error as a SQL error, so it wraps the
+        // thrown error in a TsSqlQueryExecutionError (cause === thrown).
         class AppDomainError extends Error {}
         const thrown = new AppDomainError('boom-custom')
         let caught: unknown
-        try {
-            await ctx.conn.transaction(async () => {
-                throw thrown
-            })
-        } catch (e) {
-            caught = e
+        await ctx.withReseed(async () => {
+            try {
+                await ctx.conn.transaction(async () => {
+                    throw thrown
+                })
+            } catch (e) {
+                caught = e
+            }
+        })
+        if (ctx.realDbEnabled) {
+            expect(caught).toBe(thrown)
+        } else {
+            expect(caught).toBeInstanceOf(TsSqlQueryExecutionError)
+            expect((caught as TsSqlQueryExecutionError).cause).toBe(thrown)
         }
-        expect(caught).toBe(thrown)
     })
 
     test('transaction-body-throws-plain-error-propagates-raw-unwrapped', async () => {
-        // Same contract for a bare `new Error(...)`. Real-DB only —
-        // see reason on the previous test.
-        if (!ctx.realDbEnabled) return
+        // Same contract for a bare `new Error(...)` — see the previous test.
         const thrown = new Error('boom-plain')
         let caught: unknown
-        try {
-            await ctx.conn.transaction(async () => {
-                throw thrown
-            })
-        } catch (e) {
-            caught = e
+        await ctx.withReseed(async () => {
+            try {
+                await ctx.conn.transaction(async () => {
+                    throw thrown
+                })
+            } catch (e) {
+                caught = e
+            }
+        })
+        if (ctx.realDbEnabled) {
+            expect(caught).toBe(thrown)
+        } else {
+            expect(caught).toBeInstanceOf(TsSqlQueryExecutionError)
+            expect((caught as TsSqlQueryExecutionError).cause).toBe(thrown)
         }
-        expect(caught).toBe(thrown)
     })
 
-    // Not applicable in any cell: `attachRollbackError` (L449-463 of
-    // `TsSqlError.ts`) is wired by `ManagedTransactionQueryRunner.executeInTransaction`
-    // (L13-22 of `ManagedTransactionQueryRunner.ts`) when the body's
-    // error AND the subsequent rollback both throw. The mock-mode
-    // `MockQueryRunner.executeInTransaction` (L517-533 of
-    // `MockQueryRunner.ts`) deliberately swallows the rollback error
-    // without chaining, so the attach helper is unreachable through
-    // the mock — and the real driver runners (`PgQueryRunner`,
-    // `PostgresQueryRunner`, etc.) have no injection hook that would
-    // let us force a rollback failure without breaking the underlying
-    // connection. Left as a documented gap; the helper is still
-    // exercised through real-driver integration tests outside this
-    // matrix.
+    // TODO[LIMITATION]: `attachRollbackError` needs both the body error and the
+    // rollback to throw; the mock swallows the rollback error and the real
+    // runners can't force one, so this path isn't drivable in this matrix.
     /*
     test('rollback-driver-failure-attaches-rollback-error', async () => {
         // would force `e instanceof TsSqlQueryExecutionError` body

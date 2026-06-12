@@ -32,9 +32,7 @@ describe(ctx.label, () => {
     })
 
     test('random', async () => {
-        // Non-deterministic; only the SQL/params are pinned and the
-        // real-DB assertion just verifies the column comes back as
-        // a number.
+        // Non-deterministic but bounded to [0, 1).
         const expected = [{ r: 0.5 }]
         ctx.mockNext(expected)
         const rows = await ctx.conn.selectFromNoTable()
@@ -44,7 +42,8 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ r: number }>>>()
         if (ctx.realDbEnabled) {
-            expect(typeof rows[0]!.r).toBe('number')
+            expect(rows[0]!.r).toBeGreaterThanOrEqual(0)
+            expect(rows[0]!.r).toBeLessThan(1)
         } else {
             expect(rows).toEqual(expected)
         }

@@ -86,22 +86,15 @@ describe(ctx.label, () => {
     test('execute-update-none-or-one-with-returning-one-column', async () => {
         // `executeUpdateNoneOrOne()` + `returningOneColumn(col)` lands
         // on the `__oneColumn` branch and returns the single value or
-        // null. Engines that don't support UPDATE … RETURNING (MariaDB
-        // ≤ 12) reject the SQL but the interceptor still captures the
-        // dialect-specific emission; engines that don't support it at
-        // all (MySQL) comment the test out in their cell.
+        // null. SQL Server supports UPDATE … OUTPUT, so the emission
+        // runs unconditionally.
         ctx.mockNext('reviewed')
         await ctx.withRollback(async () => {
-            let result: string | null = null
-            try {
-                result = await ctx.conn.update(tIssue)
-                    .set({ status: 'reviewed' })
-                    .where(tIssue.id.equals(1))
-                    .returningOneColumn(tIssue.status)
-                    .executeUpdateNoneOrOne()
-            } catch (e) {
-                if (!ctx.realDbEnabled) throw e
-            }
+            const result = await ctx.conn.update(tIssue)
+                .set({ status: 'reviewed' })
+                .where(tIssue.id.equals(1))
+                .returningOneColumn(tIssue.status)
+                .executeUpdateNoneOrOne()
             expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = @0 output inserted.status as [result] where id = @1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
@@ -109,7 +102,7 @@ describe(ctx.label, () => {
                 1,
               ]
             `)
-            if (!ctx.realDbEnabled) expect(result).toBe('reviewed')
+            expect(result).toBe('reviewed')
         })
     })
 
@@ -198,11 +191,11 @@ describe(ctx.label, () => {
     })
 
     test('execute-update-none-or-one-with-no-sets-resolves-null', async () => {
-        // Same empty-`__sets` short-circuit on the none-or-one path
-        // (UpdateQueryBuilder.ts:85): resolves null, no query emitted.
-        // `executeUpdateNoneOrOne` is not on the bare `dynamicSet()`
-        // type (only `executeUpdate` is), so cast to reach the runtime
-        // short-circuit — same pattern errors.processing.test.ts uses.
+        // Empty-set short-circuit on the none-or-one path: resolves null,
+        // no query emitted. `executeUpdateNoneOrOne` is not on the bare
+        // `dynamicSet()` type (only `executeUpdate` is), so cast to reach
+        // the runtime short-circuit.
+        // tests-audit-disable-next-line as-any -- runtime-guard exception (DESIGN §as-any)
         const builder = ctx.conn.update(tIssue)
             .dynamicSet()
             .where(tIssue.id.equals(1)) as any
@@ -212,8 +205,7 @@ describe(ctx.label, () => {
 
     test('execute-update-one-with-no-sets-throws-no-column-sets', async () => {
         // The one-row path cannot resolve "no row" as success, so the
-        // empty-`__sets` short-circuit throws NO_COLUMN_SETS instead
-        // (UpdateQueryBuilder.ts:126-130).
+        // empty-set short-circuit throws NO_COLUMN_SETS instead.
         let caught: unknown
         try {
             // Cast as above: `executeUpdateOne` is not on the dynamicSet

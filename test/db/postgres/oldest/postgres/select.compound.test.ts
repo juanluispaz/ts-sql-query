@@ -83,9 +83,7 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof result, Array<{ status: string }>>>()
-        if (ctx.realDbEnabled) {
-            expect(result.map(r => r.status).sort()).toEqual(['open'])
-        }
+        expect(result).toEqual(expected)
     })
 
     test('except', async () => {
@@ -108,17 +106,13 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof result, Array<{ status: string }>>>()
-        if (ctx.realDbEnabled) {
-            expect(result.map(r => r.status).sort()).toEqual(['closed'])
-        }
+        expect(result).toEqual(expected)
     })
     test('union-with-insensitive-order-by', async () => {
-        // Compound (union) ordered case-insensitively. A compound ORDER BY may
-        // reference only result-column names / ordinal positions on the strict
-        // engines (PostgreSQL, SQL Server, Oracle — and SQLite for the `lower()`
-        // form), so the builder wraps the whole compound in `select * from (...)`
-        // and orders on the plain wrapper; MySQL/MariaDB (and SQLite for
-        // `collate`) order inline.
+        // Compound (union) ordered case-insensitively. PostgreSQL's compound
+        // ORDER BY may reference only result-column names / ordinal positions
+        // (no expressions), so the builder wraps the whole compound in
+        // `select * from (...)` and applies `lower(...)` on the plain wrapper.
         const expected = [
             { label: 'Document /v2/users' },
             { label: 'Internal tools' },
@@ -130,18 +124,15 @@ describe(ctx.label, () => {
             { label: 'Update hero copy' },
         ]
         ctx.mockNext(expected)
-        const projectsQ = ctx.conn.selectFrom(tProject)
+        const result = await ctx.conn.selectFrom(tProject)
             .select({ label: tProject.name })
-        const issuesQ = ctx.conn.selectFrom(tIssue)
-            .select({ label: tIssue.title })
-        const result = await projectsQ
-            .union(issuesQ)
+            .union(ctx.conn.selectFrom(tIssue).select({ label: tIssue.title }))
             .orderBy('label', 'asc insensitive')
             .executeSelectMany()
-        assertType<Exact<typeof result, Array<{ label: string }>>>()
-        expect(result).toEqual(expected)
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select name as label from project union select title as label from issue) as o_1_ order by lower(label) asc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ label: string }>>>()
+        expect(result).toEqual(expected)
     })
 
 })

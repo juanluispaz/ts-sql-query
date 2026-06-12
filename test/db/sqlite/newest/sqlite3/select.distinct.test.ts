@@ -26,8 +26,8 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select distinct status as status from issue order by status"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ status: string }>>>()
-        if (!ctx.realDbEnabled) expect(rows).toEqual(expectedMock)
-        else expect(rows.length).toBeGreaterThanOrEqual(1)
+        // Three distinct statuses across the seed, ordered by status.
+        expect(rows).toEqual([{ status: 'closed' }, { status: 'in_progress' }, { status: 'open' }])
     })
 
     test('select-distinct-with-join-and-where', async () => {
@@ -51,7 +51,8 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{ orgId: number }>>>()
-        if (!ctx.realDbEnabled) expect(rows).toEqual(expectedMock)
+        // Open issues belong to projects 1 and 3, both under org 1 → one distinct orgId.
+        expect(rows).toEqual([{ orgId: 1 }])
     })
 
     test('subselect-distinct-using-in-correlated-exists', async () => {

@@ -27,7 +27,7 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // Not applicable on PostgreSQL: `.innerJoin` / `.leftJoin` on DELETE are typed `never` for postgres (the `DELETE … USING` JOIN grammar in `OnExpressionFnType` is gated to `'mariaDB' | 'mySql'`); on PostgreSQL use `.using(table).where(...)` — see `delete.using.test.ts`.
+    // NOT-APPLICABLE: `.innerJoin` / `.leftJoin` on DELETE are typed `never` for postgres (the `DELETE … USING` JOIN grammar is gated to MariaDB/MySQL); on PostgreSQL use `.using(table).where(...)` — see `delete.using.test.ts`.
     /*
     test('delete-with-inner-join-on-condition', async () => {
         // Delete issues whose project is archived. The JOIN condition
@@ -54,7 +54,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // Not applicable on PostgreSQL: `.innerJoin` / `.leftJoin` on DELETE are typed `never` for postgres (the `DELETE … USING` JOIN grammar in `OnExpressionFnType` is gated to `'mariaDB' | 'mySql'`); on PostgreSQL use `.using(table).where(...)` — see `delete.using.test.ts`.
+    // NOT-APPLICABLE: `.innerJoin` / `.leftJoin` on DELETE are typed `never` for postgres (the `DELETE … USING` JOIN grammar is gated to MariaDB/MySQL); on PostgreSQL use `.using(table).where(...)` — see `delete.using.test.ts`.
     /*
     test('delete-with-inner-join-targets-rows-by-joined-column', async () => {
         // Delete issues belonging to a project with a specific slug.
@@ -87,7 +87,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // Not applicable on PostgreSQL: `.innerJoin` / `.leftJoin` on DELETE are typed `never` for postgres (the `DELETE … USING` JOIN grammar in `OnExpressionFnType` is gated to `'mariaDB' | 'mySql'`); on PostgreSQL use `.using(table).where(...)` — see `delete.using.test.ts`.
+    // NOT-APPLICABLE: `.innerJoin` / `.leftJoin` on DELETE are typed `never` for postgres (the `DELETE … USING` JOIN grammar is gated to MariaDB/MySQL); on PostgreSQL use `.using(table).where(...)` — see `delete.using.test.ts`.
     /*
     test('delete-with-multi-condition-on-clause-via-and', async () => {
         // The `on(...)` chain followed by `.and(...)` accumulates into

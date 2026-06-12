@@ -33,7 +33,11 @@ describe(ctx.label, () => {
         // calls land on `__inHaving` dispatch, not on `__where`. The
         // emitted SQL composes the three predicates with standard
         // precedence: `((c1 AND c2) OR c3)`.
+        // HAVING `(count > 0 AND count < 10) OR max(priority) = 3` passes
+        // every group: closed (1 row), in_progress (1 row), open (2 rows).
+        // Ordered by status.
         const expected = [
+            { status: 'closed',      total: 1 },
             { status: 'in_progress', total: 1 },
             { status: 'open',        total: 2 },
         ]
@@ -60,8 +64,7 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof result, Array<{ status: string; total: number }>>>()
-        if (!ctx.realDbEnabled) expect(result).toEqual(expected)
-        else expect(result.length).toBeGreaterThan(0)
+        expect(result).toEqual(expected)
     })
 
     test('dynamic-having-then-and-emits-having-clause', async () => {

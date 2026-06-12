@@ -208,6 +208,7 @@ describe(ctx.label, () => {
     // kept commented out for cross-cell symmetry. Documented workaround
     // for users:
     // `subSelectUsing(...).distinct().select(...).forUseAsInlineAggregatedArrayValue()`.
+    // NOT-APPLICABLE: `aggregateAsArrayOfOneColumnDistinct` is not exposed on OracleConnection — Oracle rejects `JSON_ARRAYAGG(DISTINCT …)` (ORA-30482) so the method is a TypeScript compile error here
     /*
     test('docs:aggregate-as-object-array/aggregate-as-array-distinct', async () => {
         ctx.mockNext({

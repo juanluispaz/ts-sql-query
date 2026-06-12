@@ -24,7 +24,9 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // Not applicable: `tTable.oldValues()` is typed `never` on this dialect.
+    // NOT-APPLICABLE: SQLite does not support UPDATE … FROM with old values;
+    // `tTable.oldValues()` is typed `never` on this dialect, so the body
+    // cannot compile or run. Kept for cross-cell symmetry.
     /*
 test('update-from-old-values-with-two-columns-from-same-from-table-sorts-by-column-name', async () => {
         // RETURNING references both `organization.name` and
@@ -80,7 +82,9 @@ test('update-from-old-values-with-two-columns-from-same-from-table-sorts-by-colu
     })
     */
 
-    // Not applicable: `tTable.oldValues()` is typed `never` on this dialect.
+    // NOT-APPLICABLE: SQLite does not support UPDATE … FROM with old values;
+    // `tTable.oldValues()` is typed `never` on this dialect, so the body
+    // cannot compile or run. Kept for cross-cell symmetry.
     /*
 test('update-from-old-values-with-columns-from-two-from-tables-sorts-by-table-then-column', async () => {
         // RETURNING references columns from TWO joined-in tables —

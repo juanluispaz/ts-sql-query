@@ -27,9 +27,7 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof result, Array<{ id: number }>>>()
-        if (ctx.realDbEnabled) {
-            expect(result).toEqual([{ id: 1 }])
-        }
+        expect(result).toEqual([{ id: 1 }])
     })
 
     test('or', async () => {
@@ -47,9 +45,7 @@ describe(ctx.label, () => {
             "closed",
           ]
         `)
-        if (ctx.realDbEnabled) {
-            expect(result).toEqual([{ id: 2 }, { id: 4 }])
-        }
+        expect(result).toEqual([{ id: 2 }, { id: 4 }])
     })
 
     test('negate-not', async () => {
@@ -67,9 +63,7 @@ describe(ctx.label, () => {
             "open",
           ]
         `)
-        if (ctx.realDbEnabled) {
-            expect(result).toEqual([{ id: 2 }, { id: 4 }])
-        }
+        expect(result).toEqual([{ id: 2 }, { id: 4 }])
     })
 
     test('and-or-complex', async () => {
@@ -93,8 +87,6 @@ describe(ctx.label, () => {
             "closed",
           ]
         `)
-        if (ctx.realDbEnabled) {
-            expect(result).toEqual([{ id: 1 }, { id: 4 }])
-        }
+        expect(result).toEqual([{ id: 1 }, { id: 4 }])
     })
 })

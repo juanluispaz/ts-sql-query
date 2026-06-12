@@ -24,13 +24,15 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { ctx } from './setup.js'
 
-async function runReadOnlyTransaction(isolation: unknown): Promise<number | null> {
+type IsolationOpts = ReturnType<typeof ctx.conn.isolationLevel>
+
+async function runReadOnlyTransaction(isolation: IsolationOpts): Promise<number | null> {
     const connection = ctx.conn
     return await connection.transaction(async () => {
         return await connection.selectFromNoTable()
             .selectOneColumn(connection.const(1, 'int'))
             .executeSelectOne()
-    }, isolation as any)
+    }, isolation)
 }
 
 describe(ctx.label, () => {

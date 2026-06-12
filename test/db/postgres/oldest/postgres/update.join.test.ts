@@ -26,7 +26,7 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // Not applicable here: `.innerJoin` / `.leftJoin` / `.leftOuterJoin` on UPDATE are typed `never` on this dialect (only MariaDB / MySQL narrow `OnExpressionFnType` to enable these — see [src/expressions/update.ts:368-447](../../../../../src/expressions/update.ts#L368-L447)); the equivalent pattern is `.update(t).from(j).set(...).where(...)`.
+    // NOT-APPLICABLE: `.innerJoin` / `.leftJoin` / `.leftOuterJoin` on UPDATE are typed `never` on PostgreSQL (only MariaDB / MySQL enable the JOIN-on-UPDATE grammar); the equivalent pattern is `.update(t).from(j).set(...).where(...)`.
     /*
     test('update-with-inner-join-on-condition', async () => {
         // Bump priority of every issue whose project is archived.
@@ -57,7 +57,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // Not applicable here: `.innerJoin` / `.leftJoin` / `.leftOuterJoin` on UPDATE are typed `never` on this dialect (only MariaDB / MySQL narrow `OnExpressionFnType` to enable these — see [src/expressions/update.ts:368-447](../../../../../src/expressions/update.ts#L368-L447)); the equivalent pattern is `.update(t).from(j).set(...).where(...)`.
+    // NOT-APPLICABLE: `.innerJoin` / `.leftJoin` / `.leftOuterJoin` on UPDATE are typed `never` on PostgreSQL (only MariaDB / MySQL enable the JOIN-on-UPDATE grammar); the equivalent pattern is `.update(t).from(j).set(...).where(...)`.
     /*
     test('update-with-inner-join-targets-rows-by-joined-column', async () => {
         // Update issues belonging to a project with a specific slug.
@@ -92,7 +92,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // Not applicable here: `.innerJoin` / `.leftJoin` / `.leftOuterJoin` on UPDATE are typed `never` on this dialect (only MariaDB / MySQL narrow `OnExpressionFnType` to enable these — see [src/expressions/update.ts:368-447](../../../../../src/expressions/update.ts#L368-L447)); the equivalent pattern is `.update(t).from(j).set(...).where(...)`.
+    // NOT-APPLICABLE: `.innerJoin` / `.leftJoin` / `.leftOuterJoin` on UPDATE are typed `never` on PostgreSQL (only MariaDB / MySQL enable the JOIN-on-UPDATE grammar); the equivalent pattern is `.update(t).from(j).set(...).where(...)`.
     /*
     test('update-with-multi-condition-on-clause-via-and', async () => {
         // The `on(...)` chain followed by `.and(...)` accumulates into

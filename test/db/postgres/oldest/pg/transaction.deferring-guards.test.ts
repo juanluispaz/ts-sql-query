@@ -104,14 +104,12 @@ describe(ctx.label, () => {
         expect(reasonsInChain(caught)).toContain('NOT_IN_TRANSACTION')
     })
 
-    // Mock-only: nested `transaction(...)` requires the runner to report
-    // `nestedTransactionsSupported() === true`. The MockQueryRunner does;
-    // among real connectors only pg/pglite do, and only when constructed
-    // with `allowNestedTransactions` (the matrix runners don't set it), so
-    // a real nested transaction would throw NESTED_TRANSACTION_NOT_SUPPORTED.
-    // This test pins the push/pop hook-stack behaviour that is only
-    // exercised when nesting is allowed.
+    // Pins the nested-transaction hook-stack behaviour (outer hooks
+    // saved and restored across the inner transaction). The matrix `pg`
+    // runner is built without `allowNestedTransactions`, so a real
+    // nested transaction throws NESTED_TRANSACTION_NOT_SUPPORTED.
     test('nested-transaction-preserves-and-restores-outer-after-commit-hook', async () => {
+        // tests-audit-disable-next-line mock-only -- nesting requires allowNestedTransactions, which the matrix pg runner does not enable; real nesting throws NESTED_TRANSACTION_NOT_SUPPORTED
         if (ctx.realDbEnabled) return
         const connection = ctx.conn
         const events: string[] = []

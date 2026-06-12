@@ -1,25 +1,8 @@
-// Trigonometric `SqlOperation0` paths on `ValueSourceImpl`:
-// `.acos()`, `.asin()`, `.atan()`, `.cos()`, `.cot()`, `.sin()`,
-// `.tan()` — each forwards to the corresponding `_acos`/`_asin`/…
-// emitter on [AbstractSqlBuilder.ts:L2688-L2708](../../../../../src/sqlBuilders/AbstractSqlBuilder.ts#L2688).
-// `.atan2(other)` (the 2-arg variant) is already covered by
-// `select.numeric-ops.test.ts`, so this file pins only the 1-arg
-// trig family.
-//
-// SQLite has no built-in trig functions — `acos(x)` raises
-// "no such function: acos" at runtime — so on the SQLite cells the
-// `executeSelectMany` call throws after the builder has already
-// emitted the SQL into the interceptor. The body wraps the
-// execution in a try/catch so the SQL/params snapshot still pins
-// what the builder produced (the assertion-of-interest), and the
-// value assertion runs only in mock mode. Postgres/MySQL/MariaDB/
-// Oracle/SQL Server all expose `acos`/`asin`/… natively so their
-// cells execute end-to-end against the real DB.
-//
-// The scalar values pulled from `tIssue.priority` (range 1..3) are
-// inside the legal domain for every trig function exercised here
-// (acos/asin require |x| <= 1; we use `divide(10)` to land in
-// [0.1, 0.3]).
+// Trigonometric functions on numeric columns: acos, asin, atan, cos,
+// cot, sin, tan (the 1-arg family; atan2 is covered in
+// select.numeric-ops.test.ts). acos/asin need |x| <= 1, so priority
+// (issue 1 = 2) is divided by 10 to land in [0.1, 0.3]. Real results
+// are floats, so the real-DB branch asserts with toBeCloseTo.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -34,19 +17,13 @@ describe(ctx.label, () => {
     test('acos', async () => {
         const expected = [{ id: 1, v: Math.acos(0.2) }]
         ctx.mockNext(expected)
-        try {
-            const result = await ctx.conn.selectFrom(tIssue)
-                .where(tIssue.id.equals(1))
-                .select({
-                    id: tIssue.id,
-                    v:  tIssue.priority.divide(10).acos(),
-                })
-                .executeSelectMany()
-            assertType<Exact<typeof result, Array<{ id: number; v: number }>>>()
-            if (!ctx.realDbEnabled) expect(result).toEqual(expected)
-        } catch (e) {
-            if (!ctx.realDbEnabled) throw e
-        }
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                v:  tIssue.priority.divide(10).acos(),
+            })
+            .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, acos(priority::float / $1::float) as "v" from issue where id = $2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
@@ -54,24 +31,25 @@ describe(ctx.label, () => {
             1,
           ]
         `)
+        assertType<Exact<typeof result, Array<{ id: number; v: number }>>>()
+        if (ctx.realDbEnabled) {
+            expect(result[0]!.id).toBe(1)
+            expect(result[0]!.v).toBeCloseTo(Math.acos(0.2), 5)
+        } else {
+            expect(result).toEqual(expected)
+        }
     })
 
     test('asin', async () => {
         const expected = [{ id: 1, v: Math.asin(0.2) }]
         ctx.mockNext(expected)
-        try {
-            const result = await ctx.conn.selectFrom(tIssue)
-                .where(tIssue.id.equals(1))
-                .select({
-                    id: tIssue.id,
-                    v:  tIssue.priority.divide(10).asin(),
-                })
-                .executeSelectMany()
-            assertType<Exact<typeof result, Array<{ id: number; v: number }>>>()
-            if (!ctx.realDbEnabled) expect(result).toEqual(expected)
-        } catch (e) {
-            if (!ctx.realDbEnabled) throw e
-        }
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                v:  tIssue.priority.divide(10).asin(),
+            })
+            .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, asin(priority::float / $1::float) as "v" from issue where id = $2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
@@ -79,125 +57,137 @@ describe(ctx.label, () => {
             1,
           ]
         `)
+        assertType<Exact<typeof result, Array<{ id: number; v: number }>>>()
+        if (ctx.realDbEnabled) {
+            expect(result[0]!.id).toBe(1)
+            expect(result[0]!.v).toBeCloseTo(Math.asin(0.2), 5)
+        } else {
+            expect(result).toEqual(expected)
+        }
     })
 
     test('atan', async () => {
         const expected = [{ id: 1, v: Math.atan(2) }]
         ctx.mockNext(expected)
-        try {
-            const result = await ctx.conn.selectFrom(tIssue)
-                .where(tIssue.id.equals(1))
-                .select({
-                    id: tIssue.id,
-                    v:  tIssue.priority.atan(),
-                })
-                .executeSelectMany()
-            assertType<Exact<typeof result, Array<{ id: number; v: number }>>>()
-            if (!ctx.realDbEnabled) expect(result).toEqual(expected)
-        } catch (e) {
-            if (!ctx.realDbEnabled) throw e
-        }
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                v:  tIssue.priority.atan(),
+            })
+            .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, atan(priority) as "v" from issue where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
           ]
         `)
+        assertType<Exact<typeof result, Array<{ id: number; v: number }>>>()
+        if (ctx.realDbEnabled) {
+            expect(result[0]!.id).toBe(1)
+            expect(result[0]!.v).toBeCloseTo(Math.atan(2), 5)
+        } else {
+            expect(result).toEqual(expected)
+        }
     })
 
     test('cos', async () => {
         const expected = [{ id: 1, v: Math.cos(2) }]
         ctx.mockNext(expected)
-        try {
-            const result = await ctx.conn.selectFrom(tIssue)
-                .where(tIssue.id.equals(1))
-                .select({
-                    id: tIssue.id,
-                    v:  tIssue.priority.cos(),
-                })
-                .executeSelectMany()
-            assertType<Exact<typeof result, Array<{ id: number; v: number }>>>()
-            if (!ctx.realDbEnabled) expect(result).toEqual(expected)
-        } catch (e) {
-            if (!ctx.realDbEnabled) throw e
-        }
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                v:  tIssue.priority.cos(),
+            })
+            .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cos(priority) as "v" from issue where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
           ]
         `)
+        assertType<Exact<typeof result, Array<{ id: number; v: number }>>>()
+        if (ctx.realDbEnabled) {
+            expect(result[0]!.id).toBe(1)
+            expect(result[0]!.v).toBeCloseTo(Math.cos(2), 5)
+        } else {
+            expect(result).toEqual(expected)
+        }
     })
 
     test('cot', async () => {
         const expected = [{ id: 1, v: 1 / Math.tan(2) }]
         ctx.mockNext(expected)
-        try {
-            const result = await ctx.conn.selectFrom(tIssue)
-                .where(tIssue.id.equals(1))
-                .select({
-                    id: tIssue.id,
-                    v:  tIssue.priority.cot(),
-                })
-                .executeSelectMany()
-            assertType<Exact<typeof result, Array<{ id: number; v: number }>>>()
-            if (!ctx.realDbEnabled) expect(result).toEqual(expected)
-        } catch (e) {
-            if (!ctx.realDbEnabled) throw e
-        }
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                v:  tIssue.priority.cot(),
+            })
+            .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cot(priority) as "v" from issue where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
           ]
         `)
+        assertType<Exact<typeof result, Array<{ id: number; v: number }>>>()
+        if (ctx.realDbEnabled) {
+            expect(result[0]!.id).toBe(1)
+            expect(result[0]!.v).toBeCloseTo(1 / Math.tan(2), 5)
+        } else {
+            expect(result).toEqual(expected)
+        }
     })
 
     test('sin', async () => {
         const expected = [{ id: 1, v: Math.sin(2) }]
         ctx.mockNext(expected)
-        try {
-            const result = await ctx.conn.selectFrom(tIssue)
-                .where(tIssue.id.equals(1))
-                .select({
-                    id: tIssue.id,
-                    v:  tIssue.priority.sin(),
-                })
-                .executeSelectMany()
-            assertType<Exact<typeof result, Array<{ id: number; v: number }>>>()
-            if (!ctx.realDbEnabled) expect(result).toEqual(expected)
-        } catch (e) {
-            if (!ctx.realDbEnabled) throw e
-        }
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                v:  tIssue.priority.sin(),
+            })
+            .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, sin(priority) as "v" from issue where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
           ]
         `)
+        assertType<Exact<typeof result, Array<{ id: number; v: number }>>>()
+        if (ctx.realDbEnabled) {
+            expect(result[0]!.id).toBe(1)
+            expect(result[0]!.v).toBeCloseTo(Math.sin(2), 5)
+        } else {
+            expect(result).toEqual(expected)
+        }
     })
 
     test('tan', async () => {
         const expected = [{ id: 1, v: Math.tan(2) }]
         ctx.mockNext(expected)
-        try {
-            const result = await ctx.conn.selectFrom(tIssue)
-                .where(tIssue.id.equals(1))
-                .select({
-                    id: tIssue.id,
-                    v:  tIssue.priority.tan(),
-                })
-                .executeSelectMany()
-            assertType<Exact<typeof result, Array<{ id: number; v: number }>>>()
-            if (!ctx.realDbEnabled) expect(result).toEqual(expected)
-        } catch (e) {
-            if (!ctx.realDbEnabled) throw e
-        }
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                v:  tIssue.priority.tan(),
+            })
+            .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, tan(priority) as "v" from issue where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
           ]
         `)
+        assertType<Exact<typeof result, Array<{ id: number; v: number }>>>()
+        if (ctx.realDbEnabled) {
+            expect(result[0]!.id).toBe(1)
+            expect(result[0]!.v).toBeCloseTo(Math.tan(2), 5)
+        } else {
+            expect(result).toEqual(expected)
+        }
     })
 })

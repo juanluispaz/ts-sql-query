@@ -64,9 +64,7 @@ describe(ctx.label, () => {
             1,
           ]
         `)
-        if (ctx.realDbEnabled) {
-            expect(rows).toEqual(expected)
-        }
+        expect(rows).toEqual(expected)
     })
 
     test('concat-chain-conditional-skip-undefined', async () => {
@@ -96,9 +94,7 @@ describe(ctx.label, () => {
             1,
           ]
         `)
-        if (ctx.realDbEnabled) {
-            expect(rows).toEqual(expected)
-        }
+        expect(rows).toEqual(expected)
     })
 
     test('contains', async () => {
@@ -220,7 +216,10 @@ describe(ctx.label, () => {
     })
 
     test('trim-left-right', async () => {
-        const expected = [{ id: 1, l: 'Ada', r: 'Ada' }]
+        // ltrim/rtrim with no trim-set argument strip only whitespace,
+        // and 'Ada Lovelace' has no leading/trailing whitespace, so both
+        // columns come back unchanged.
+        const expected = [{ id: 1, l: 'Ada Lovelace', r: 'Ada Lovelace' }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tAppUser)
             .where(tAppUser.id.equals(1))
@@ -239,9 +238,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{
             id: number; l: string; r: string
         }>>>()
-        if (!ctx.realDbEnabled) {
-            expect(result).toEqual(expected)
-        }
+        expect(result).toEqual(expected)
     })
 
     test('replace-all', async () => {
@@ -267,30 +264,24 @@ describe(ctx.label, () => {
     })
 
     test('reverse', async () => {
-        // Mock the result; not every dialect natively supports REVERSE.
+        // Oracle supports REVERSE natively.
         const expected = [{ id: 1, t: 'tset.emca@ada' }]
         ctx.mockNext(expected)
-        try {
-            const result = await ctx.conn.selectFrom(tAppUser)
-                .where(tAppUser.id.equals(1))
-                .select({
-                    id: tAppUser.id,
-                    t:  tAppUser.email.reverse(),
-                })
-                .executeSelectMany()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", reverse(email) as "t" from app_user where id = :0"`)
-            expect(ctx.lastParams).toMatchInlineSnapshot(`
-              [
-                1,
-              ]
-            `)
-            assertType<Exact<typeof result, Array<{ id: number; t: string }>>>()
-            if (!ctx.realDbEnabled) expect(result).toEqual(expected)
-        } catch {
-            // real DB may not provide a REVERSE function; the SQL was
-            // captured before the runner ran.
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, reverse(email) as "t" from app_user where id = ?"`)
-        }
+        const result = await ctx.conn.selectFrom(tAppUser)
+            .where(tAppUser.id.equals(1))
+            .select({
+                id: tAppUser.id,
+                t:  tAppUser.email.reverse(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", reverse(email) as "t" from app_user where id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; t: string }>>>()
+        expect(result).toEqual(expected)
     })
 
     test('substring', async () => {
@@ -312,9 +303,7 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof result, Array<{ id: number; sub: string }>>>()
-        // We don't pin the value to a real string; the test fixes only
-        // SQL/params/types and the mock-mode value round-trip.
-        if (!ctx.realDbEnabled) expect(result).toEqual(expected)
+        expect(result).toEqual(expected)
     })
     test('substring-to-end', async () => {
         // `.substringToEnd(start)` reaches the `_substringToEnd` branch
@@ -339,7 +328,7 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof result, Array<{ id: number; sub: string }>>>()
-        if (!ctx.realDbEnabled) expect(result).toEqual(expected)
+        expect(result).toEqual(expected)
     })
 
     test('substr-to-end', async () => {
@@ -364,7 +353,7 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof result, Array<{ id: number; sub: string }>>>()
-        if (!ctx.realDbEnabled) expect(result).toEqual(expected)
+        expect(result).toEqual(expected)
     })
 
     test('substring-with-value-source-start', async () => {
@@ -374,25 +363,22 @@ describe(ctx.label, () => {
         // pass `start` through the same path so the snapshot is just
         // recorded for documentation.
         //
-        // The runtime result depends on column values and dialect
-        // semantics (length may be 0 → null on some engines), so the
-        // value assertion is mock-only and the runner is wrapped to
-        // still capture the SQL on real-DB failure.
+        // The runtime substring is computed from the `priority` column,
+        // so the projected value is data-dependent; `expected.sub` is a
+        // synthetic placeholder, not the value Oracle returns. The value
+        // assertion is therefore mock-only by design.
         const expected = [{ id: 1, sub: 'X' }]
         ctx.mockNext(expected)
-        try {
-            const result = await ctx.conn.selectFrom(tIssue)
-                .where(tIssue.id.equals(1))
-                .select({
-                    id:  tIssue.id,
-                    sub: tIssue.title.substring(tIssue.priority, 5),
-                })
-                .executeSelectMany()
-            assertType<Exact<typeof result, Array<{ id: number; sub: string }>>>()
-            if (!ctx.realDbEnabled) expect(result).toEqual(expected)
-        } catch (e) {
-            if (!ctx.realDbEnabled) throw e
-        }
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id:  tIssue.id,
+                sub: tIssue.title.substring(tIssue.priority, 5),
+            })
+            .executeSelectMany()
+        assertType<Exact<typeof result, Array<{ id: number; sub: string }>>>()
+        // tests-audit-disable-next-line one-sided-guard -- expected.sub is a synthetic placeholder; the real value is computed from the priority column
+        if (!ctx.realDbEnabled) expect(result).toEqual(expected)
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", substr(title, priority + 1, :0 - priority) as "sub" from issue where id = :1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
@@ -427,7 +413,7 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof result, Array<{ id: number; sub: string }>>>()
-        if (!ctx.realDbEnabled) expect(result).toEqual(expected)
+        expect(result).toEqual(expected)
     })
 
     test('substring-numeric-start-value-source-end', async () => {
@@ -435,23 +421,21 @@ describe(ctx.label, () => {
         // end is a column ref. Reaches the base `_substring` arm where
         // `value` is numeric but `value2` is not (the count becomes
         // `value2 - value`), a branch the existing substring tests skip.
-        // Runtime value depends on column data, so it is mock-only and the
-        // execution is wrapped to still capture the SQL on real-DB failure.
+        // Runtime value depends on the `priority` column, so `expected.sub`
+        // is a synthetic placeholder, not the value Oracle returns. The
+        // value assertion is therefore mock-only by design.
         const expected = [{ id: 1, sub: 'Up' }]
         ctx.mockNext(expected)
-        try {
-            const result = await ctx.conn.selectFrom(tIssue)
-                .where(tIssue.id.equals(1))
-                .select({
-                    id:  tIssue.id,
-                    sub: tIssue.title.substring(0, tIssue.priority),
-                })
-                .executeSelectMany()
-            assertType<Exact<typeof result, Array<{ id: number; sub: string }>>>()
-            if (!ctx.realDbEnabled) expect(result).toEqual(expected)
-        } catch (e) {
-            if (!ctx.realDbEnabled) throw e
-        }
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id:  tIssue.id,
+                sub: tIssue.title.substring(0, tIssue.priority),
+            })
+            .executeSelectMany()
+        assertType<Exact<typeof result, Array<{ id: number; sub: string }>>>()
+        // tests-audit-disable-next-line one-sided-guard -- expected.sub is a synthetic placeholder; the real value is computed from the priority column
+        if (!ctx.realDbEnabled) expect(result).toEqual(expected)
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", substr(title, :0, priority - :1) as "sub" from issue where id = :2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [

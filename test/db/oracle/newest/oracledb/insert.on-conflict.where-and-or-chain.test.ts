@@ -26,7 +26,7 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // Not applicable on Oracle: no `ON CONFLICT` syntax (Oracle uses `MERGE`).
+    // NOT-APPLICABLE: Oracle has no INSERT…ON CONFLICT (uses MERGE)
     /*
     test('do-update-set-where-then-and-or-builds-compound-update-predicate', async () => {
         // `onConflictOn(cols).doUpdateSet(...).where(c1).and(c2).or(c3)`
@@ -64,7 +64,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // Not applicable on Oracle: no `ON CONFLICT` syntax (Oracle uses `MERGE`).
+    // NOT-APPLICABLE: Oracle has no INSERT…ON CONFLICT (uses MERGE)
     /*
     test('on-columns-where-then-and-or-builds-compound-partial-index-predicate', async () => {
         // `onConflictOn(cols).where(c1).and(c2).or(c3).doUpdateSet(...)`

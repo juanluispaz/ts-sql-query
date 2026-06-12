@@ -188,6 +188,7 @@ describe(ctx.label, () => {
         // so a user-defined error class crosses
         // `connection.transaction(...)` unchanged — same instance
         // caught outside.
+        // tests-audit-disable-next-line one-sided-guard -- mock wraps non-RollbackSignal errors as SQL errors; raw same-instance propagation only holds on a real engine (DESIGN §1)
         if (!ctx.realDbEnabled) return
         class AppDomainError extends Error {}
         const thrown = new AppDomainError('boom-custom')
@@ -205,6 +206,7 @@ describe(ctx.label, () => {
     test('transaction-body-throws-plain-error-propagates-raw-unwrapped', async () => {
         // Same contract for a bare `new Error(...)`. Real-DB only —
         // see reason on the previous test.
+        // tests-audit-disable-next-line one-sided-guard -- mock wraps non-RollbackSignal errors as SQL errors; raw same-instance propagation only holds on a real engine (DESIGN §1)
         if (!ctx.realDbEnabled) return
         const thrown = new Error('boom-plain')
         let caught: unknown
@@ -231,6 +233,7 @@ describe(ctx.label, () => {
     // connection. Left as a documented gap; the helper is still
     // exercised through real-driver integration tests outside this
     // matrix.
+    // TODO[LIMITATION]: see LIMITATIONS.md — `attachRollbackError` needs both the body error and the rollback to throw; the mock swallows the rollback error and the real runners can't force one, so this path isn't drivable in this matrix.
     /*
     test('rollback-driver-failure-attaches-rollback-error', async () => {
         // would force `e instanceof TsSqlQueryExecutionError` body

@@ -65,7 +65,7 @@ describe(ctx.label, () => {
         })
     })
 
-    // Not applicable on MySQL: MySQL does not support insert/update/delete RETURNING.
+    // NOT-APPLICABLE: MySQL has no RETURNING
     /*
     test('docs:update/update-returning', async () => {
         ctx.mockNext({ id: 1, name: 'Marketing site (v2)', slug: 'mktg-site' })
@@ -102,7 +102,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // Not applicable on SQLite: `tTable.oldValues()` is only typed on PostgreSqlConnection, MariaDBConnection and SqlServerConnection — sqlite, mysql and oracle don't support `update returning old values`. Body kept verbatim for cross-cell diff parity per the symmetry rule.
+    // NOT-APPLICABLE: `tTable.oldValues()` is only typed on PostgreSqlConnection, MariaDBConnection and SqlServerConnection — sqlite, mysql and oracle don't support `update returning old values`. Body kept verbatim for cross-cell diff parity per the symmetry rule.
     /*
     test('docs:update/update-returning-old-values', async () => {
         // Section "Update returning old values" — `tTable.oldValues()`
@@ -209,7 +209,7 @@ describe(ctx.label, () => {
         })
     })
 
-    // Not applicable on MySQL: MySQL does not support insert/update/delete RETURNING.
+    // NOT-APPLICABLE: MySQL has no RETURNING
     /*
     test('docs-extra:update/returning-one-column', async () => {
         // "Update returning" prose: `returningOneColumn(col)` is the

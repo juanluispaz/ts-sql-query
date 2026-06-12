@@ -90,7 +90,7 @@ describe(ctx.label, () => {
         })
     })
 
-    // Not applicable on SQLite: `deleteFrom(...).using(...)` is only typed on PostgreSqlConnection, SqlServerConnection, MariaDBConnection, MySqlConnection and OracleConnection (23ai+). SQLite does not support it. Body kept verbatim for cross-cell diff parity per the symmetry rule.
+    // NOT-APPLICABLE: SQLite does not support `deleteFrom(...).using(...)`; it is only typed on PostgreSqlConnection, SqlServerConnection, MariaDBConnection, MySqlConnection and OracleConnection (23ai+). Body kept verbatim for cross-cell diff parity per the symmetry rule.
     /*
     test('docs:delete/delete-using', async () => {
         // Section "Delete using other tables or views" — `.using(other)`

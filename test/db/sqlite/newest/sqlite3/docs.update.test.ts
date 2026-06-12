@@ -99,7 +99,7 @@ describe(ctx.label, () => {
         })
     })
 
-    // Not applicable on SQLite: `tTable.oldValues()` is only typed on PostgreSqlConnection, MariaDBConnection and SqlServerConnection — sqlite, mysql and oracle don't support `update returning old values`. Body kept verbatim for cross-cell diff parity per the symmetry rule.
+    // NOT-APPLICABLE: `tTable.oldValues()` is only typed on PostgreSqlConnection, MariaDBConnection and SqlServerConnection — sqlite, mysql and oracle don't support `update returning old values`. Body kept verbatim for cross-cell diff parity per the symmetry rule.
     /*
     test('docs:update/update-returning-old-values', async () => {
         // Section "Update returning old values" — `tTable.oldValues()`

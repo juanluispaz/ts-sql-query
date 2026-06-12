@@ -18,8 +18,10 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('delete-returning-one-row', async () => {
-        const expectedMock = { id: 1, title: 'Bug A', priority: 1 }
-        ctx.mockNext(expectedMock)
+        // Seed issue id=1 is { title: 'Update hero copy', priority: 2 };
+        // the mock primes that same row so one toEqual holds in both modes.
+        const expected = { id: 1, title: 'Update hero copy', priority: 2 }
+        ctx.mockNext(expected)
 
         await ctx.withRollback(async () => {
             const removed = await ctx.conn.deleteFrom(tIssue)
@@ -55,8 +57,7 @@ describe(ctx.label, () => {
                 priority: number
             }>>()
 
-            if (!ctx.realDbEnabled) expect(removed).toEqual(expectedMock)
-            else expect(removed.id).toBe(1)
+            expect(removed).toEqual(expected)
         })
     })
 
@@ -65,11 +66,14 @@ describe(ctx.label, () => {
         // per issue. Targeting `tIssue` (a leaf table — nothing FKs into
         // it) keeps the test FK-safe on engines that enforce referential
         // integrity at delete time.
-        const expectedMock = [
+        // Project 1 owns seed issues 1 and 2; the mock primes those same
+        // rows so one toEqual holds in both modes (sorted by id, since
+        // RETURNING order is not guaranteed).
+        const expected = [
             { id: 1, title: 'Update hero copy' },
             { id: 2, title: 'Redesign navbar' },
         ]
-        ctx.mockNext(expectedMock)
+        ctx.mockNext(expected)
 
         await ctx.withRollback(async () => {
             const removed = await ctx.conn.deleteFrom(tIssue)
@@ -96,8 +100,7 @@ describe(ctx.label, () => {
             `)
             assertType<Exact<typeof removed, Array<{ id: number; title: string }>>>()
 
-            if (!ctx.realDbEnabled) expect(removed).toEqual(expectedMock)
-            else expect(removed.length).toBe(2)
+            expect(removed.slice().sort((a, b) => a.id - b.id)).toEqual(expected)
         })
     })
 })

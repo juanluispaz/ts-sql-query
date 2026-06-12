@@ -41,7 +41,7 @@ describe(ctx.label, () => {
               ]
             `)
             assertType<Exact<typeof affected, number>>()
-            if (!ctx.realDbEnabled) expect(affected).toBe(4)
+            expect(affected).toBe(4)
         })
     })
 
@@ -82,21 +82,15 @@ describe(ctx.label, () => {
     test('execute-delete-none-or-one-with-returning-one-column', async () => {
         // `executeDeleteNoneOrOne()` + `returningOneColumn(col)` lands
         // on the `__oneColumn` branch and returns the single value or
-        // null. Engines that don't support DELETE … RETURNING (MariaDB
-        // ≤ 12) reject the SQL but the interceptor still captures the
-        // dialect-specific emission; engines that don't support it at
-        // all (MySQL) comment the test out in their cell.
+        // null. Oracle supports DELETE … RETURNING, so this runs on the
+        // real DB too; engines that don't support it at all (MySQL)
+        // comment the test out in their cell.
         ctx.mockNext('open')
         await ctx.withRollback(async () => {
-            let result: string | null = null
-            try {
-                result = await ctx.conn.deleteFrom(tIssue)
-                    .where(tIssue.id.equals(1))
-                    .returningOneColumn(tIssue.status)
-                    .executeDeleteNoneOrOne()
-            } catch (e) {
-                if (!ctx.realDbEnabled) throw e
-            }
+            const result = await ctx.conn.deleteFrom(tIssue)
+                .where(tIssue.id.equals(1))
+                .returningOneColumn(tIssue.status)
+                .executeDeleteNoneOrOne()
             expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where id = :0 returning status into :1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
@@ -107,7 +101,8 @@ describe(ctx.label, () => {
                 },
               ]
             `)
-            if (!ctx.realDbEnabled) expect(result).toBe('open')
+            // Seed issue id=1 has status 'open'; Oracle DELETE … RETURNING gives it back.
+            expect(result).toBe('open')
         })
     })
 

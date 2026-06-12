@@ -59,6 +59,13 @@ describe(ctx.label, () => {
     test('forUseAsInlineQueryValue/scalar', async () => {
         const connection = ctx.conn
 
+        // Seed: Acme Corp is org 1; its projects are 1 (Marketing site)
+        // and 2 (Internal tools), ordered by id.
+        ctx.mockNext([
+            { id: 1, name: 'Marketing site' },
+            { id: 2, name: 'Internal tools' },
+        ])
+
         // doc-start
         const acmeId = connection.selectFrom(tOrganization)
             .where(tOrganization.name.equals('Acme Corp'))
@@ -79,13 +86,23 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number; name: string }>>>()
-        if (ctx.realDbEnabled) {
-            expect(rows.map(r => r.id).sort()).toEqual([1, 2])
-        }
+        expect(rows).toEqual([
+            { id: 1, name: 'Marketing site' },
+            { id: 2, name: 'Internal tools' },
+        ])
     })
 
     test('subSelectUsing/forUseAsInlineQueryValue/correlated', async () => {
         const connection = ctx.conn
+
+        // Seeded issue counts per project, ordered by id: 1 → 2 issues,
+        // 2 → 1, 3 → 1, 4 → 0.
+        ctx.mockNext([
+            { id: 1, name: 'Marketing site', count: 2 },
+            { id: 2, name: 'Internal tools', count: 1 },
+            { id: 3, name: 'Public API',     count: 1 },
+            { id: 4, name: 'Legacy app',     count: 0 },
+        ])
 
         // doc-start: correlated count of issues per project, inlined.
         const issueCount = connection.subSelectUsing(tProject)
@@ -111,13 +128,11 @@ describe(ctx.label, () => {
             name:  string
             count: number
         }>>>()
-        if (ctx.realDbEnabled) {
-            // Seeded: project 1 → 2 issues, project 2 → 1, project 3 → 1, project 4 → 0
-            const byId = new Map(rows.map(r => [r.id, r.count]))
-            expect(byId.get(1)).toBe(2)
-            expect(byId.get(2)).toBe(1)
-            expect(byId.get(3)).toBe(1)
-            expect(byId.get(4)).toBe(0)
-        }
+        expect(rows).toEqual([
+            { id: 1, name: 'Marketing site', count: 2 },
+            { id: 2, name: 'Internal tools', count: 1 },
+            { id: 3, name: 'Public API',     count: 1 },
+            { id: 4, name: 'Legacy app',     count: 0 },
+        ])
     })
 })

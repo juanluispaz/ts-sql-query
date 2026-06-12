@@ -156,8 +156,12 @@ describe(ctx.label, () => {
             const ids = rows.map(r => r.id).sort()
             expect(ids).toEqual([1, 3, 4])
         } else {
-            // Mock returns a subset proxy — just check we got rows.
-            expect(rows.length).toBeGreaterThan(0)
+            // The mock returns exactly what `mockNext(...)` queued
+            // (parentId null is stripped from the optional column).
+            expect(rows).toEqual([
+                { id: 1, parentId: 2 },
+                { id: 4 },
+            ])
         }
     })
 

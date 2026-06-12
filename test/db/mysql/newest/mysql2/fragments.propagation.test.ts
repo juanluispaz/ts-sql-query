@@ -33,7 +33,7 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // Not applicable on MySQL: `tTable.oldValues()` is typed `never` on this dialect (no `RETURNING OLD.col` equivalent).
+    // NOT-APPLICABLE: MySQL has no RETURNING — `tTable.oldValues()` is typed `never` on this dialect (no `RETURNING OLD.col` equivalent).
     /*
 test('fragment-with-old-values-column-bubbles-up-in-update-returning', async () => {
         // A typed fragment that interpolates `oldProject.name` is the
@@ -75,7 +75,7 @@ test('fragment-with-old-values-column-bubbles-up-in-update-returning', async () 
     })
     */
 
-    // Not applicable on MySQL: `onConflictOn(cols).doUpdateSet({...})` requires column-explicit conflict targeting — MySQL's `ON DUPLICATE KEY UPDATE` grammar takes no column list.
+    // NOT-APPLICABLE: MySQL uses the bare onConflictDoUpdateSet form — `onConflictOn(cols).doUpdateSet({...})` requires column-explicit conflict targeting, but MySQL's `ON DUPLICATE KEY UPDATE` grammar takes no column list.
     /*
 test('fragment-with-values-for-insert-column-bubbles-up-in-on-conflict-do-update-set', async () => {
         // ON CONFLICT … DO UPDATE … SET <col> = <fragment(excluded.col)>
@@ -118,7 +118,7 @@ test('fragment-with-values-for-insert-column-bubbles-up-in-on-conflict-do-update
     })
     */
 
-    // Not applicable on MySQL: `tTable.oldValues()` is typed `never` on this dialect (no `RETURNING OLD.col` equivalent).
+    // NOT-APPLICABLE: MySQL has no RETURNING — `tTable.oldValues()` is typed `never` on this dialect (no `RETURNING OLD.col` equivalent).
     /*
 test('fragment-from-joined-table-registers-required-column-in-update-from-old-values', async () => {
         // UPDATE … FROM … RETURNING with `oldValues()` and a typed

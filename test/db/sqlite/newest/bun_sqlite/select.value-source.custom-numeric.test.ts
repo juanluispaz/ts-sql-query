@@ -63,12 +63,8 @@ describe(ctx.label, () => {
     test('custom-numeric/customint-rounding-and-abs', async () => {
         // customInt operand keeps the customInt result type through
         // ceil/floor/round (the customInt||customDouble arm) and abs.
-        // The SQL runs on every real DB; the VALUE is asserted only under
-        // the mock because a custom type carries NO marshalling
-        // (transformValueFromDB falls to `default: return value`), so the
-        // round result — wrapped in `::numeric` — comes back as the
-        // driver's raw representation (a string on the postgres drivers),
-        // not a canonical number the library re-types.
+        // bun's SQLite returns ceil/floor/round/abs of an integer as a
+        // plain integer, so the value round-trips in both modes.
         const score = ctx.conn.const(7, 'customInt', 'Score')
         const expected = [{ id: 1, c: 7, f: 7, r: 7, a: 7 }]
         ctx.mockNext(expected)
@@ -93,7 +89,7 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof result, Array<{ id: number; c: number; f: number; r: number; a: number }>>>()
-        if (!ctx.realDbEnabled) expect(result).toEqual(expected)
+        expect(result).toEqual(expected)
     })
 
     test('custom-numeric/double-arithmetic', async () => {
@@ -167,13 +163,23 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof result, Array<{ id: number; sq: number; cb: number; e: number; l: number; l10: number }>>>()
-        if (!ctx.realDbEnabled) expect(result).toEqual(expected)
+        if (ctx.realDbEnabled) {
+            const row = result[0]!
+            expect(row.sq).toBeCloseTo(2, 5)
+            expect(row.cb).toBeCloseTo(Math.cbrt(4), 5)
+            expect(row.e).toBeCloseTo(Math.exp(4), 5)
+            expect(row.l).toBeCloseTo(Math.log(4), 5)
+            expect(row.l10).toBeCloseTo(Math.log10(4), 5)
+        } else {
+            expect(result).toEqual(expected)
+        }
     })
 
+    // NOT-APPLICABLE: bun's SQLite build has no `cot()` function (the rest
+    // of the trig family — acos/asin/atan/cos/sin/tan — exists), so the
+    // whole query throws "no such function: cot".
+    /*
     test('custom-numeric/customdouble-trig', async () => {
-        // The 7 trig methods over a customDouble operand keep the
-        // customDouble type. SQLite has no trig functions, so execution
-        // throws after the SQL is captured; the value is mock-only.
         const r = ctx.conn.const(0.5, 'customDouble', 'Ratio')
         const expected = [{
             id: 1,
@@ -181,23 +187,19 @@ describe(ctx.label, () => {
             co: Math.cos(0.5), ct: 1 / Math.tan(0.5), si: Math.sin(0.5), ta: Math.tan(0.5),
         }]
         ctx.mockNext(expected)
-        try {
-            const result = await ctx.conn.selectFrom(tIssue)
-                .where(tIssue.id.equals(1))
-                .select({
-                    id: tIssue.id,
-                    ac: r.acos(), as: r.asin(), at: r.atan(),
-                    co: r.cos(), ct: r.cot(), si: r.sin(), ta: r.tan(),
-                })
-                .executeSelectMany()
-            assertType<Exact<typeof result, Array<{
-                id: number; ac: number; as: number; at: number
-                co: number; ct: number; si: number; ta: number
-            }>>>()
-            if (!ctx.realDbEnabled) expect(result).toEqual(expected)
-        } catch (e) {
-            if (!ctx.realDbEnabled) throw e
-        }
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                ac: r.acos(), as: r.asin(), at: r.atan(),
+                co: r.cos(), ct: r.cot(), si: r.sin(), ta: r.tan(),
+            })
+            .executeSelectMany()
+        assertType<Exact<typeof result, Array<{
+            id: number; ac: number; as: number; at: number
+            co: number; ct: number; si: number; ta: number
+        }>>>()
+        expect(result).toEqual(expected)
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, acos(?) as ac, asin(?) as "as", atan(?) as at, cos(?) as co, cot(?) as ct, sin(?) as si, tan(?) as ta from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
@@ -212,38 +214,44 @@ describe(ctx.label, () => {
           ]
         `)
     })
+    */
 
     test('custom-numeric/customdouble-operation1-math', async () => {
         // The 5 `SqlOperation1` customDouble arms — `power`, `logn`,
         // `roundn`, `divide`, `atan2` — at ValueSourceImpl.ts:614 / 635
         // / 642 / 649 / 678. `customdouble-math` covers the
         // `SqlOperation0` arms (sqrt/cbrt/exp/ln/log10); these take an
-        // additional operand and route through a different dispatch
-        // arm. SQLite has no `logn` / `atan2` / `roundn`, so execution
-        // throws after the SQL is captured; value is mock-only as in
-        // the `customdouble-math` / `customdouble-trig` siblings.
+        // additional operand and route through a different dispatch arm.
+        // bun's SQLite build provides log(b,x)/atan2/round(x,n), so the
+        // query runs; at2 is floating-point, the others come back exact.
         const v = ctx.conn.const(8, 'customDouble', 'Score')
         const o = ctx.conn.const(2, 'customDouble', 'Score')
         const expected = [{ id: 1, p: 64, ln: 3, rn: 8, di: 4, at2: Math.atan2(8, 2) }]
         ctx.mockNext(expected)
-        try {
-            const result = await ctx.conn.selectFrom(tIssue)
-                .where(tIssue.id.equals(1))
-                .select({
-                    id:  tIssue.id,
-                    p:   v.power(2),
-                    ln:  v.logn(o),
-                    rn:  v.roundn(2),
-                    di:  v.divide(o),
-                    at2: v.atan2(o),
-                })
-                .executeSelectMany()
-            assertType<Exact<typeof result, Array<{
-                id: number; p: number; ln: number; rn: number; di: number; at2: number
-            }>>>()
-            if (!ctx.realDbEnabled) expect(result).toEqual(expected)
-        } catch (e) {
-            if (!ctx.realDbEnabled) throw e
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id:  tIssue.id,
+                p:   v.power(2),
+                ln:  v.logn(o),
+                rn:  v.roundn(2),
+                di:  v.divide(o),
+                at2: v.atan2(o),
+            })
+            .executeSelectMany()
+        assertType<Exact<typeof result, Array<{
+            id: number; p: number; ln: number; rn: number; di: number; at2: number
+        }>>>()
+        if (ctx.realDbEnabled) {
+            const row = result[0]!
+            expect(row.id).toBe(1)
+            expect(row.p).toBe(64)
+            expect(row.ln).toBe(3)
+            expect(row.rn).toBe(8)
+            expect(row.di).toBe(4)
+            expect(row.at2).toBeCloseTo(Math.atan2(8, 2), 5)
+        } else {
+            expect(result).toEqual(expected)
         }
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, power(?, ?) as "p", log(?, ?) as ln, round(?, ?) as rn, cast(? as real) / cast(? as real) as di, atan2(?, ?) as at2 from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`

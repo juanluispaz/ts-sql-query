@@ -37,7 +37,7 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
-        if (!ctx.realDbEnabled) expect(rows).toEqual(expectedMock)
+        expect(rows).toEqual(expectedMock)
     })
 
     test('not-in-subquery', async () => {
@@ -62,6 +62,6 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
-        if (!ctx.realDbEnabled) expect(rows).toEqual(expectedMock)
+        expect(rows).toEqual(expectedMock)
     })
 })

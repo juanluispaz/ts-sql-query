@@ -51,6 +51,7 @@ describe(ctx.label, () => {
             title:     string
             parentId?: number
         }>>>()
+        // tests-audit-disable-next-line one-sided-guard -- seed has no parent_id chain, so the real DB returns only the starting issue (id=2) while the mock primes a multi-ancestor shape (DESIGN §1)
         if (!ctx.realDbEnabled) expect(ancestors).toEqual(expected)
     })
 
@@ -96,6 +97,7 @@ describe(ctx.label, () => {
             title:     string
             parentId?: number
         }>>>()
+        // tests-audit-disable-next-line one-sided-guard -- seed has no parent_id chain, so the real DB returns only the starting issue (id=2) while the mock primes a multi-ancestor shape (DESIGN §1)
         if (!ctx.realDbEnabled) expect(ancestors).toEqual(expected)
     })
 

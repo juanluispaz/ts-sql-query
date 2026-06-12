@@ -34,11 +34,9 @@ describe(ctx.label, () => {
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select string_agg(full_name, ',') as [result] from app_user"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
-        if (ctx.realDbEnabled) {
-            expect(row).not.toBeNull()
-            const parts = row!.split(',').sort()
-            expect(parts).toEqual(['Ada Lovelace', 'Alan Turing', 'Grace Hopper'])
-        }
+        expect(row).not.toBeNull()
+        const parts = row!.split(',').sort()
+        expect(parts).toEqual(['Ada Lovelace', 'Alan Turing', 'Grace Hopper'])
     })
 
     test('string-concat-empty-separator', async () => {
@@ -60,12 +58,62 @@ describe(ctx.label, () => {
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select string_agg(full_name, ' | ') as [result] from app_user"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(row).not.toBeNull()
+        const parts = row!.split(' | ').sort()
+        expect(parts).toEqual(['Ada Lovelace', 'Alan Turing', 'Grace Hopper'])
+    })
+
+    // NOT-APPLICABLE: SQL Server has no string_agg DISTINCT
+    /*
+    test('string-concat-distinct-no-separator', async () => {
+        // Issue statuses in the seed: open, in_progress, open, closed —
+        // three distinct values.
+        ctx.mockNext('open,in_progress,closed')
+        const row = await ctx.conn.selectFrom(tIssue)
+            .selectOneColumn(ctx.conn.stringConcatDistinct(tIssue.status))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select group_concat(distinct status) as result from issue"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(row).not.toBeNull()
+        const parts = row!.split(',').sort()
+        expect(parts).toEqual(['closed', 'in_progress', 'open'])
+    })
+    */
+
+    // NOT-APPLICABLE: SQL Server has no string_agg DISTINCT
+    /*
+    test('string-concat-distinct-string-separator', async () => {
+        ctx.mockNext('open|in_progress|closed')
+        const row = await ctx.conn.selectFrom(tIssue)
+            .selectOneColumn(ctx.conn.stringConcatDistinct(tIssue.status, '|'))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select group_concat(distinct status separator ?) as result from issue"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "|",
+          ]
+        `)
+        expect(row).not.toBeNull()
+        const parts = row!.split('|').sort()
+        expect(parts).toEqual(['closed', 'in_progress', 'open'])
+    })
+    */
+
+    // NOT-APPLICABLE: SQL Server has no string_agg DISTINCT
+    /*
+    test('string-concat-distinct-empty-separator', async () => {
+        // Edge case for the third separator branch of _stringConcatDistinct.
+        ctx.mockNext('openin_progressclosed')
+        const row = await ctx.conn.selectFrom(tIssue)
+            .selectOneColumn(ctx.conn.stringConcatDistinct(tIssue.status, ''))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select group_concat(distinct status separator '') as result from issue"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         if (ctx.realDbEnabled) {
-            expect(row).not.toBeNull()
-            const parts = row!.split(' | ').sort()
-            expect(parts).toEqual(['Ada Lovelace', 'Alan Turing', 'Grace Hopper'])
+            expect(typeof row).toBe('string')
         }
     })
+    */
 
     // Not applicable on SQL Server: SQL Server's STRING_AGG does not accept
     // the DISTINCT quantifier (parser fails with `Msg 102: Incorrect syntax

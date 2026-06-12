@@ -51,6 +51,14 @@ describe(ctx.label, () => {
     })
 
     test('docs:complex-projections/inner-join-required-object', async () => {
+        const expected = [
+            { id: 1, name: 'Marketing site',
+              organization: { id: 1, name: 'Acme Corp' } },
+        ]
+        ctx.mockNext([
+            { id: 1, name: 'Marketing site',
+              'organization.id': 1, 'organization.name': 'Acme Corp' },
+        ])
         const connection = ctx.conn
 
         // doc-start: nested object backed by an inner join → the inner
@@ -80,15 +88,17 @@ describe(ctx.label, () => {
             name: string
             organization: { id: number; name: string }
         }>>>()
-        if (ctx.realDbEnabled) {
-            expect(rows).toEqual([
-                { id: 1, name: 'Marketing site',
-                  organization: { id: 1, name: 'Acme Corp' } },
-            ])
-        }
+        expect(rows).toEqual(expected)
     })
 
     test('docs:complex-projections/multi-level-left-join', async () => {
+        // Issue 1 has no parent, so the `parent` object is absent.
+        const expected = [{ id: 1, title: 'Update hero copy' }]
+        ctx.mockNext([
+            { id: 1, title: 'Update hero copy',
+              'parent.id': null, 'parent.title': null,
+              'parent.parent.id': null, 'parent.parent.title': null },
+        ])
         const connection = ctx.conn
 
         // doc-start: tree of issues — issue → parent → parent's parent, all
@@ -125,13 +135,20 @@ describe(ctx.label, () => {
         // The lib's exact emitted shape for nested left-join projections
         // is structurally intricate; at minimum the row has id+title.
         assertType<Extends<typeof rows, Array<{ id: number }>>>()
-        if (ctx.realDbEnabled) {
-            // Issue 1 has no parent, so the `parent` object is absent.
-            expect(rows).toEqual([{ id: 1, title: 'Update hero copy' }])
-        }
+        expect(rows).toEqual(expected)
     })
 
     test('docs:complex-projections/as-required-in-optional-object', async () => {
+        // Issue 1 (project 1): body=null            → meta absent
+        // Issue 2 (project 1): body='Use new tokens', assigneeId=2 → meta full
+        const expected = [
+            { id: 1 /* meta absent: body is null */ },
+            { id: 2, meta: { body: 'Use new tokens', assigneeId: 2 } },
+        ]
+        ctx.mockNext([
+            { id: 1, 'meta.body': null, 'meta.assigneeId': null },
+            { id: 2, 'meta.body': 'Use new tokens', 'meta.assigneeId': 2 },
+        ])
         const connection = ctx.conn
 
         // doc-start: both `body` and `priority` (priority remapped optional
@@ -161,14 +178,7 @@ describe(ctx.label, () => {
         // differs by lib version. The runtime check below catches the
         // important contract: `meta` is present only when `body` is.
         assertType<Extends<typeof rows, Array<{ id: number }>>>()
-        if (ctx.realDbEnabled) {
-            // Issue 1 (project 1): body=null      → meta absent
-            // Issue 2 (project 1): body='Use new tokens', assigneeId=2 → meta full
-            expect(rows).toEqual([
-                { id: 1 /* meta absent: body is null */ },
-                { id: 2, meta: { body: 'Use new tokens', assigneeId: 2 } },
-            ])
-        }
+        expect(rows).toEqual(expected)
     })
 
     test('docs:complex-projections/optional-object-left-join', async () => {

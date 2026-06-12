@@ -94,6 +94,7 @@ describe(ctx.label, () => {
             issues: Array<{ issue?: { id: number; title: string } | null }>
             pid:    number
         }>>>()
+        // tests-audit-disable-next-line one-sided-guard -- the mock deliberately pairs ids with swapped titles to show order independence; the real DB pairs id 1 with 'Update hero copy', so the contents legitimately differ
         if (!ctx.realDbEnabled) {
             expect(rows).toEqual([{
                 pid: 1,
@@ -137,6 +138,7 @@ describe(ctx.label, () => {
             pid:    number
             bumped: Array<number>
         }>>>()
+        // tests-audit-disable-next-line one-sided-guard -- the mock primes three bumped priorities; project 1 actually has two issues, so the real DB returns two values and the contents legitimately differ
         if (!ctx.realDbEnabled) {
             expect(rows).toEqual([{ pid: 1, bumped: [3, 5, 6] }])
         }
@@ -175,9 +177,9 @@ describe(ctx.label, () => {
             pid:    number
             issues?: Array<{ id: number; title: string }>
         }>>>()
-        if (!ctx.realDbEnabled) {
-            expect(rows).toEqual([{ pid: 1 }])
-        }
+        // The Null variant emits literal `null`, so `issues` is absent in both
+        // modes regardless of the seed.
+        expect(rows).toEqual([{ pid: 1 }])
     })
 
     test('aggregate-as-array-with-ignore-when-as-null-true-also-uses-null-variant', async () => {
@@ -213,8 +215,8 @@ describe(ctx.label, () => {
             pid:    number
             issues?: Array<{ id: number; title: string }>
         }>>>()
-        if (!ctx.realDbEnabled) {
-            expect(rows).toEqual([{ pid: 1 }])
-        }
+        // The Null variant emits literal `null`, so `issues` is absent in both
+        // modes regardless of the seed.
+        expect(rows).toEqual([{ pid: 1 }])
     })
 })

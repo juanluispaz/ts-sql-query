@@ -44,21 +44,21 @@ describe(ctx.label, () => {
     })
 
     test('values in update-from', async () => {
+        // SQLite (>= 3.33) supports `UPDATE … FROM (values-CTE)`; the row
+        // for project 1 is renamed to 'renamed'. Seed: project 1 starts
+        // as 'Marketing site'.
+        const renamedProject = { id: 1, name: 'renamed' }
+        ctx.mockNext(1)              // affected rows from the UPDATE
+        ctx.mockNext(renamedProject) // row from the verification SELECT
         await ctx.withRollback(async () => {
-            ctx.mockNext(0)
             const patch = Values.create(VProjectPatch, 'projectPatch', [
                 { id: 1, name: 'renamed' },
             ])
-            try {
-                await ctx.conn.update(tProject)
-                    .from(patch)
-                    .set({ name: patch.name })
-                    .where(tProject.id.equals(patch.id))
-                    .executeUpdate()
-            } catch {
-                // some real-DB engines reject this exact form; the SQL
-                // builder still emits it and that is what we capture.
-            }
+            const affected = await ctx.conn.update(tProject)
+                .from(patch)
+                .set({ name: patch.name })
+                .where(tProject.id.equals(patch.id))
+                .executeUpdate()
             expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectPatch(id, name) as (values (?, ?)) update project set name = projectPatch.name from projectPatch where project.id = projectPatch.id"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
@@ -66,6 +66,13 @@ describe(ctx.label, () => {
                 "renamed",
               ]
             `)
+            expect(affected).toBe(1)
+
+            const row = await ctx.conn.selectFrom(tProject)
+                .where(tProject.id.equals(1))
+                .select({ id: tProject.id, name: tProject.name })
+                .executeSelectOne()
+            expect(row).toEqual(renamedProject)
         })
     })
 })

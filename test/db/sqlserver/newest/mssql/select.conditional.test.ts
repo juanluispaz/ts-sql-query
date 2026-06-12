@@ -62,9 +62,7 @@ describe(ctx.label, () => {
             id:     number
             status?: string
         }>>>()
-        if (ctx.realDbEnabled) {
-            expect(result[0]?.status).toBe('open')
-        }
+        expect(result[0]?.status).toBe('open')
     })
 
     test('greaterThanIfValue/with-value', async () => {
@@ -83,9 +81,7 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof result, Array<{ id: number }>>>()
-        if (ctx.realDbEnabled) {
-            expect(result).toEqual([{ id: 3 }])
-        }
+        expect(result).toEqual([{ id: 3 }])
     })
 
     test('greaterThanIfValue/null-skips-the-predicate', async () => {

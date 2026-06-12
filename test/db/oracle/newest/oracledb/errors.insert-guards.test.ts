@@ -59,9 +59,8 @@ describe(ctx.label, () => {
     })
 
     test('insert-guards/double-on-conflict-do-update-set-throws-internal', () => {
-        // `as any` from the start: ON CONFLICT is typed `never` on
-        // dialects without it (SQL Server / Oracle), but the guard lives
-        // in the shared InsertQueryBuilder, so we reach it dynamically.
+        // Reaching the duplicate-clause guard requires misusing the
+        // builder past its type guard, hence the `as any`.
         let caught: unknown
         try {
             const b = ctx.conn.insertInto(tProject).set(baseSet) as any
@@ -82,9 +81,8 @@ describe(ctx.label, () => {
     test('insert-guards/extend-shape-override-throws-invalid-shape-override', () => {
         let caught: unknown
         try {
-            // `as any`: on SQL Server the post-`set` builder types
-            // `extendShape` as `never`; the runtime override guard is what
-            // we are exercising, so reach it dynamically.
+            // `as any`: the override guard is reached by misusing the
+            // post-`set` builder past its type guard.
             const builder = ctx.conn.insertInto(tProject)
                 .shapedAs({ name: 'name' }).set({ name: 'x' }) as any
             builder.extendShape({ name: 'slug' })
@@ -95,12 +93,12 @@ describe(ctx.label, () => {
     test('insert-guards/empty-values-resolves-zero', async () => {
         // values([]) short-circuits: no row to insert, resolves 0 and
         // emits no query to the database.
-        const r = await (ctx.conn.insertInto(tProject) as any).values([]).executeInsert()
+        const r = await ctx.conn.insertInto(tProject).values([]).executeInsert()
         expect(r).toBe(0)
     })
 
     test('insert-guards/empty-values-returning-last-id-resolves-empty-array', async () => {
-        const r = await (ctx.conn.insertInto(tProject) as any)
+        const r = await ctx.conn.insertInto(tProject)
             .values([]).returningLastInsertedId().executeInsert()
         expect(r).toEqual([])
     })

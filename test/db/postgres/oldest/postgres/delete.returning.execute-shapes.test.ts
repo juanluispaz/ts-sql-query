@@ -119,10 +119,9 @@ describe(ctx.label, () => {
 
     test('delete-returning-one-column-many-result', async () => {
         // `returningOneColumn(col)` + `executeDeleteMany()` — pins
-        // the one-column-many path of `executeDeleteMany`. The mock
-        // returns an array of values; the real DB returns [] because
-        // the WHERE matches no rows.
-        ctx.mockNext(['open', 'in_progress'])
+        // the one-column-many path. WHERE id=99999 matches no rows, so
+        // the RETURNING result is empty.
+        ctx.mockNext([])
         await ctx.withRollback(async () => {
             const statuses = await ctx.conn.deleteFrom(tIssue)
                 .where(tIssue.id.equals(99999))
@@ -136,8 +135,7 @@ describe(ctx.label, () => {
               ]
             `)
             assertType<Exact<typeof statuses, string[]>>()
-            if (!ctx.realDbEnabled) expect(statuses).toEqual(['open', 'in_progress'])
-            else expect(Array.isArray(statuses)).toBe(true)
+            expect(statuses).toEqual([])
         })
     })
 

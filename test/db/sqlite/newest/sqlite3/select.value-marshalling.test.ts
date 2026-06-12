@@ -33,12 +33,6 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // Best-effort on sqlite3: the deprecated `sqlite3` npm driver cannot bind
-    // a JS BigInt (it sends NULL, tripping the NOT NULL on view_count), so
-    // `Sqlite3QueryRunner.addParam` coerces the BigInt to a `number` before
-    // binding — the captured param is `1500`, not `1500n`. This loses
-    // precision for values above Number.MAX_SAFE_INTEGER; 1500 round-trips
-    // exactly.
     test('marshalling/bigint-insert-select-roundtrip', async () => {
         await ctx.withRollback(async () => {
             ctx.mockNext(501) // mocked new id; real DB assigns its own

@@ -14,14 +14,10 @@
 //   - `raw_to_uuid(hextoraw(:0))`     — oracle default (`built-in`)
 //   - `?`                             — sqlserver (native uniqueidentifier)
 //
-// Per [DESIGN.md §1 #18](../../../../DESIGN.md#1-principles) and the
-// "synthetic SQL is the test's whole point" exception, this test is
-// **mock-only**: real-DB execution requires extensions / engine
-// versions that vary per test connector (sqlite's `uuid` extension,
-// MySQL 8.0+, Oracle 12c+) and the assertion of interest is the
-// SqlBuilder shape, not engine execution. The strategy-switch tests
-// in [config.uuid-strategy.test.ts](./config.uuid-strategy.test.ts)
-// cover the executable `'string'` branch end-to-end.
+// On MariaDB the default `uuidStrategy` is the native UUID type, so the
+// cast is a no-op that renders as a bare `?` placeholder and runs
+// against the real engine without any extension — the param binds and
+// comes back as its canonical string.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { ctx } from './setup.js'
@@ -34,8 +30,6 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('uuid-asString-on-const', async () => {
-        // Mock-only — see file header.
-        if (ctx.realDbEnabled) return
         ctx.mockNext(UUID_VALUE)
         const connection = ctx.conn
         const result = await connection.selectFromNoTable()

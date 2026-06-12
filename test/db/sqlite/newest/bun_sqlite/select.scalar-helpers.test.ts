@@ -33,21 +33,17 @@ describe(ctx.label, () => {
 
     test('random', async () => {
         // Non-deterministic; only the SQL/params are pinned and the
-        // real-DB assertion just verifies the column comes back as
-        // a number.
-        const expected = [{ r: 0.5 }]
-        ctx.mockNext(expected)
+        // assertion just verifies the column comes back as a number.
+        ctx.mockNext([{ r: 0.5 }])
         const rows = await ctx.conn.selectFromNoTable()
             .select({ r: ctx.conn.random() })
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select (random() / 18446744073709551616.0 + 0.5) as "r""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ r: number }>>>()
-        if (ctx.realDbEnabled) {
-            expect(typeof rows[0]!.r).toBe('number')
-        } else {
-            expect(rows).toEqual(expected)
-        }
+        // Non-deterministic value in both modes — assert only that the
+        // column comes back as a number.
+        expect(typeof rows[0]!.r).toBe('number')
     })
 
     test('currentTime', async () => {

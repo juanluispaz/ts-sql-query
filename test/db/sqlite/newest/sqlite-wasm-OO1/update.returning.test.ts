@@ -82,12 +82,12 @@ describe(ctx.label, () => {
 
     test('update-returning-many', async () => {
         // Update every issue with priority 1 and return one row per
-        // touched record. Exercises `executeUpdateMany`.
-        const expectedMock = [
-            { id: 1, title: 'Bumped 1' },
-            { id: 2, title: 'Bumped 2' },
+        // touched record. Exercises `executeUpdateMany`. Seed: only
+        // issue 2 ('Redesign navbar') has priority 1.
+        const expected = [
+            { id: 2, title: 'Redesign navbar' },
         ]
-        ctx.mockNext(expectedMock)
+        ctx.mockNext(expected)
 
         await ctx.withRollback(async () => {
             const rows = await ctx.conn.update(tIssue)
@@ -108,8 +108,8 @@ describe(ctx.label, () => {
             `)
             assertType<Exact<typeof rows, Array<{ id: number; title: string }>>>()
 
-            if (!ctx.realDbEnabled) expect(rows).toEqual(expectedMock)
-            else expect(Array.isArray(rows)).toBe(true)
+            const sorted = [...rows].sort((a, b) => a.id - b.id)
+            expect(sorted).toEqual(expected)
         })
     })
 })

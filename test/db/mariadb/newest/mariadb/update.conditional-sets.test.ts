@@ -129,7 +129,7 @@ describe(ctx.label, () => {
         ctx.mockNext(1)
         await ctx.conn.update(tIssue)
             .set({ title: 'Triage', body: null, priority: 2 })
-            .setIfHasValueIfValue({ title: 'Triaged', body: 'will-skip', priority: '' as any })
+            .setIfHasValueIfValue({ title: 'Triaged', body: 'will-skip', priority: undefined })
             .where(tIssue.id.equals(1))
             .executeUpdate()
 
@@ -148,10 +148,10 @@ describe(ctx.label, () => {
         // Mirror of the above: only writes when the staged value FAILS
         // `_isValue` AND the incoming value PASSES `_isValue`. Empty
         // incoming string for `body` is rejected; non-empty `title`
-        // fills the (null) slot.
+        // fills the empty-staged slot.
         ctx.mockNext(1)
         await ctx.conn.update(tIssue)
-            .set({ title: null as any, body: null })
+            .set({ title: '', body: null })
             .setIfHasNoValueIfValue({ title: 'Filled', body: '' })
             .where(tIssue.id.equals(1))
             .executeUpdate()

@@ -81,9 +81,32 @@ describe(ctx.label, () => {
         })
     })
 
+    // NOT-APPLICABLE: Oracle has no INSERT…ON CONFLICT (uses MERGE)
     /*
     test('on-conflict-do-update-with-default-keyword', async () => {
-        // Not supported by Oracle.
+        // The `default()` literal also survives through the
+        // ON CONFLICT … DO UPDATE SET arm. Same dispatch as plain
+        // update set, just stitched after the conflict glue.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const connection = ctx.conn
+            await connection.insertInto(tProject)
+                .values({ organizationId: 1, slug: 'mktg-site', name: 'Marketing site' })
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doUpdateSet({
+                    createdAt: connection.default(),
+                })
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values ($1, $2, $3) on conflict (organization_id, slug) do update set created_at = default"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "mktg-site",
+                "Marketing site",
+              ]
+            `)
+        })
     })
     */
 

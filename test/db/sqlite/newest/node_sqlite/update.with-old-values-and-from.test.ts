@@ -25,7 +25,7 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // Not applicable: `oldValues()` is typed `never` on this dialect's connection (sqlite / mysql / oracle have no `OLD`/`OLD_VALUE`/`OUTPUT deleted` equivalent for returning pre-update column snapshots from a single UPDATE).
+    // NOT-APPLICABLE: SQLite has no `OLD`/`OLD_VALUE`/`OUTPUT deleted` equivalent for returning pre-update column snapshots from a single UPDATE, so `oldValues()` is typed `never` on `SqliteConnection`; audit-style RETURNING with old/new must be emulated via a separate SELECT before the UPDATE.
     /*
     test('returning-old-and-new-with-from-table-projects-required-columns-in-old-subquery', async () => {
         // Update tProject.name from organization.name; RETURNING the
@@ -85,7 +85,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // Not applicable: `oldValues()` is typed `never` on this dialect's connection (sqlite / mysql / oracle have no `OLD`/`OLD_VALUE`/`OUTPUT deleted` equivalent for returning pre-update column snapshots from a single UPDATE).
+    // NOT-APPLICABLE: SQLite has no `OLD`/`OLD_VALUE`/`OUTPUT deleted` equivalent for returning pre-update column snapshots from a single UPDATE, so `oldValues()` is typed `never` on `SqliteConnection`; audit-style RETURNING with old/new must be emulated via a separate SELECT before the UPDATE.
     /*
     test('returning-old-values-with-primary-key-in-set-uses-for-update-of', async () => {
         // Including a PRIMARY KEY column in `.set()` flips the builder's

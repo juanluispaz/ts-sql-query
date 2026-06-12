@@ -62,9 +62,7 @@ describe(ctx.label, () => {
             id:     number
             status?: string
         }>>>()
-        if (ctx.realDbEnabled) {
-            expect(result[0]?.status).toBe('open')
-        }
+        expect(result).toEqual(expected)
     })
 
     test('greaterThanIfValue/with-value', async () => {
@@ -83,9 +81,7 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof result, Array<{ id: number }>>>()
-        if (ctx.realDbEnabled) {
-            expect(result).toEqual([{ id: 3 }])
-        }
+        expect(result).toEqual([{ id: 3 }])
     })
 
     test('greaterThanIfValue/null-skips-the-predicate', async () => {
@@ -102,8 +98,6 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{ id: number }>>>()
-        if (ctx.realDbEnabled) {
-            expect(result.length).toBe(4)
-        }
+        expect(result).toEqual([{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }])
     })
 })

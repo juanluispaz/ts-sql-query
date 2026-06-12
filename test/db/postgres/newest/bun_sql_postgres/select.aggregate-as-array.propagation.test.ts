@@ -1,47 +1,10 @@
-// Coverage of the `__*Of` propagation methods on the two
-// "value-as-array" aggregate classes that walk nested column maps:
+// Coverage of the column-map propagation walk in the value-as-array
+// aggregates that the other aggregate-as-array tests miss: a deeply-nested
+// column map, a non-leaf expression operand, and the two factory paths
+// into the NULL variant (onlyWhenOrNull(false) / ignoreWhenAsNull(true)).
 //
-//   - `AggregateValueAsArrayValueSource` (L2356-2502): the regular
-//     `aggregateAsArray({...})` / `aggregateAsArrayOfOneColumn(value)`
-//     return. Its `__addWithsOf` / `__registerTableOrViewOf` /
-//     `__registerRequiredColumnOf` / `__getOldValuesOf` /
-//     `__getValuesForInsertOf` / `__isAllowedOf` recurse over the
-//     stored `__aggregatedArrayColumns` — three branches each:
-//     `null` (no-op), value source (case 2), nested column map
-//     (case 3, iterates `for (let prop in …)`).
-//   - `NullAggregateValueAsArrayValueSource` (L2560-2651): the
-//     `onlyWhenOrNull(false)` / `ignoreWhenAsNull(true)` siblings —
-//     same three-branch shape, separate class so its own methods need
-//     hitting too.
-//
-// Existing aggregate-as-array tests only flatten the column map one
-// level and never wrap the aggregate in a Null* variant, so the
-// recursive case-3 arms and the entire Null* class's propagation
-// methods stay uncovered. Each test below picks one of those gaps:
-//
-//   1. `aggregate-as-array-with-deeply-nested-map-recurses-propagation` —
-//      `aggregateAsArray({ outer: { inner: col } })` forces the case-3
-//      arm to recurse into its inner sub-object before reaching the
-//      leaf value source.
-//   2. `aggregate-as-array-of-one-column-with-expression-fires-case-2` —
-//      `aggregateAsArrayOfOneColumn(tIssue.priority.plus(1))` passes a
-//      non-leaf value source (an expression) directly, hitting case 2
-//      of the methods and the value-source path through
-//      `SqlOperation1ValueSource.__*`.
-//   3. `aggregate-as-array-with-only-when-or-null-false-uses-null-variant` —
-//      `aggregateAsArray({...}).onlyWhenOrNull(false)` replaces the
-//      regular class with `NullAggregateValueAsArrayValueSource`. The
-//      SELECT still builds, and every `__*Of` method on the Null
-//      class fires during build, exercising the duplicated propagation
-//      block at L2560-2651.
-//   4. `aggregate-as-array-with-ignore-when-as-null-true-also-uses-null-variant` —
-//      same Null class via the sibling constructor (`ignoreWhenAsNull(true)`),
-//      pinning the alternate factory path at L2525-2531.
-//
-// Nested object inside `aggregateAsArray({...})` is portable across
-// every dialect (JSON-aggregate SQL differs only in function name
-// per cell), so all four tests run everywhere; the snapshots track
-// the per-dialect emission.
+// json_agg has no ORDER BY, so the array order is not deterministic on the
+// real engine — value assertions sort the array before comparing.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -54,20 +17,14 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('aggregate-as-array-with-deeply-nested-map-recurses-propagation', async () => {
-        // `aggregateAsArray({ issue: { id, title } })` lands a nested
-        // column map. During query build, every propagation method on
-        // `AggregateValueAsArrayValueSource` calls its own `__*Of`
-        // helper at the root, which hits the case-3 arm (`for (let
-        // prop in aggregatedArrayColumns)`), recurses on `issue`, hits
-        // case 3 again, then recurses on each leaf and finally hits
-        // case 2 (value source). The two-level depth makes the
-        // recursive iteration observable; flat shapes only hit case 3
-        // → case 2 once.
+        // `aggregateAsArray({ issue: { id, title } })` lands a two-level
+        // nested column map, so the propagation walk recurses before
+        // reaching the leaf columns.
         ctx.mockNext([{
             pid: 1,
             issues: [
-                { issue: { id: 1, title: 'Redesign navbar' } },
-                { issue: { id: 2, title: 'Update hero copy' } },
+                { issue: { id: 1, title: 'Update hero copy' } },
+                { issue: { id: 2, title: 'Redesign navbar' } },
             ],
         }])
 
@@ -94,26 +51,23 @@ describe(ctx.label, () => {
             issues: Array<{ issue?: { id: number; title: string } | null }>
             pid:    number
         }>>>()
-        if (!ctx.realDbEnabled) {
-            expect(rows).toEqual([{
-                pid: 1,
-                issues: [
-                    { issue: { id: 1, title: 'Redesign navbar' } },
-                    { issue: { id: 2, title: 'Update hero copy' } },
-                ],
-            }])
-        }
+        expect(rows.map(r => ({
+            pid: r.pid,
+            issues: [...r.issues].sort((a, b) => a.issue!.id - b.issue!.id),
+        }))).toEqual([{
+            pid: 1,
+            issues: [
+                { issue: { id: 1, title: 'Update hero copy' } },
+                { issue: { id: 2, title: 'Redesign navbar' } },
+            ],
+        }])
     })
 
     test('aggregate-as-array-of-one-column-with-expression-fires-case-2', async () => {
-        // `aggregateAsArrayOfOneColumn(tIssue.priority.plus(1))` passes
-        // a non-leaf value source (an expression wrapping the column).
-        // The `__*Of` methods hit case 2 (`isValueSource(...)`) at the
-        // root — the value source IS a `SqlOperation1ValueSource`
-        // whose own propagation walks its child column. This pins
-        // L2421-2423 / L2436-2438 / L2451-2453 / L2470-2472 /
-        // L2489-2491 of `AggregateValueAsArrayValueSource`.
-        ctx.mockNext([{ pid: 1, bumped: [3, 5, 6] }])
+        // `aggregateAsArrayOfOneColumn(tIssue.priority.add(1))` passes a
+        // non-leaf value source (an expression) instead of a bare column.
+        // project 1 issues: priority 2 and 1 → bumped 3 and 2.
+        ctx.mockNext([{ pid: 1, bumped: [3, 2] }])
 
         const tIssueLeft = tIssue.forUseInLeftJoin()
         const rows = await ctx.conn.selectFrom(tProject)
@@ -137,18 +91,13 @@ describe(ctx.label, () => {
             pid:    number
             bumped: Array<number>
         }>>>()
-        if (!ctx.realDbEnabled) {
-            expect(rows).toEqual([{ pid: 1, bumped: [3, 5, 6] }])
-        }
+        expect(rows.map(r => ({ pid: r.pid, bumped: [...r.bumped].sort((a, b) => a - b) })))
+            .toEqual([{ pid: 1, bumped: [2, 3] }])
     })
 
     test('aggregate-as-array-with-only-when-or-null-false-uses-null-variant', async () => {
-        // `aggregateAsArray({...}).onlyWhenOrNull(false)` replaces the
-        // regular class instance with a `NullAggregateValueAsArrayValueSource`
-        // — same `__aggregatedArrayColumns`, separate class with its
-        // own duplicated `__*Of` methods at L2560-2651. The SELECT
-        // build calls every propagation method on the Null instance,
-        // covering the parallel block.
+        // `onlyWhenOrNull(false)` swaps in the NULL variant, so the
+        // column emits literal `null` and the projected object is absent.
         ctx.mockNext([{ pid: 1, issues: null }])
 
         const tIssueLeft = tIssue.forUseInLeftJoin()
@@ -175,18 +124,12 @@ describe(ctx.label, () => {
             pid:    number
             issues?: Array<{ id: number; title: string }>
         }>>>()
-        if (!ctx.realDbEnabled) {
-            expect(rows).toEqual([{ pid: 1 }])
-        }
+        expect(rows).toEqual([{ pid: 1 }])
     })
 
     test('aggregate-as-array-with-ignore-when-as-null-true-also-uses-null-variant', async () => {
-        // `aggregateAsArray({...}).ignoreWhenAsNull(true)` is the
-        // sibling of `onlyWhenOrNull(false)` — same target class
-        // (`NullAggregateValueAsArrayValueSource`), different factory
-        // path at L2525-2531. This pins the alternate constructor
-        // entry while still exercising the Null class's propagation
-        // through SELECT build.
+        // `ignoreWhenAsNull(true)` is the sibling factory for the NULL
+        // variant; same emitted `null as issues`.
         ctx.mockNext([{ pid: 1, issues: null }])
 
         const tIssueLeft = tIssue.forUseInLeftJoin()
@@ -213,8 +156,6 @@ describe(ctx.label, () => {
             pid:    number
             issues?: Array<{ id: number; title: string }>
         }>>>()
-        if (!ctx.realDbEnabled) {
-            expect(rows).toEqual([{ pid: 1 }])
-        }
+        expect(rows).toEqual([{ pid: 1 }])
     })
 })

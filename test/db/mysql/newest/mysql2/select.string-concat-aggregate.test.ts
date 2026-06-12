@@ -34,11 +34,9 @@ describe(ctx.label, () => {
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select group_concat(full_name) as result from app_user"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
-        if (ctx.realDbEnabled) {
-            expect(row).not.toBeNull()
-            const parts = row!.split(',').sort()
-            expect(parts).toEqual(['Ada Lovelace', 'Alan Turing', 'Grace Hopper'])
-        }
+        expect(row).not.toBeNull()
+        const parts = row!.split(',').sort()
+        expect(parts).toEqual(['Ada Lovelace', 'Alan Turing', 'Grace Hopper'])
     })
 
     test('string-concat-empty-separator', async () => {
@@ -64,11 +62,9 @@ describe(ctx.label, () => {
             " | ",
           ]
         `)
-        if (ctx.realDbEnabled) {
-            expect(row).not.toBeNull()
-            const parts = row!.split(' | ').sort()
-            expect(parts).toEqual(['Ada Lovelace', 'Alan Turing', 'Grace Hopper'])
-        }
+        expect(row).not.toBeNull()
+        const parts = row!.split(' | ').sort()
+        expect(parts).toEqual(['Ada Lovelace', 'Alan Turing', 'Grace Hopper'])
     })
 
     test('string-concat-distinct-no-separator', async () => {
@@ -80,11 +76,9 @@ describe(ctx.label, () => {
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select group_concat(distinct \`status\`) as result from issue"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
-        if (ctx.realDbEnabled) {
-            expect(row).not.toBeNull()
-            const parts = row!.split(',').sort()
-            expect(parts).toEqual(['closed', 'in_progress', 'open'])
-        }
+        expect(row).not.toBeNull()
+        const parts = row!.split(',').sort()
+        expect(parts).toEqual(['closed', 'in_progress', 'open'])
     })
 
     test('string-concat-distinct-string-separator', async () => {
@@ -98,11 +92,9 @@ describe(ctx.label, () => {
             "|",
           ]
         `)
-        if (ctx.realDbEnabled) {
-            expect(row).not.toBeNull()
-            const parts = row!.split('|').sort()
-            expect(parts).toEqual(['closed', 'in_progress', 'open'])
-        }
+        expect(row).not.toBeNull()
+        const parts = row!.split('|').sort()
+        expect(parts).toEqual(['closed', 'in_progress', 'open'])
     })
 
     test('string-concat-distinct-empty-separator', async () => {

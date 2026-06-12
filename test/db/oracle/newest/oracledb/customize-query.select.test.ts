@@ -149,6 +149,7 @@ describe(ctx.label, () => {
         // not as a string splice. Mock-only because some drivers
         // strip comments before counting placeholders and would
         // reject the extra param at execution.
+        // tests-audit-disable-next-line mock-only -- bound param lands inside a /* */ comment; several drivers strip the comment then reject the unused placeholder at execution
         if (ctx.realDbEnabled) return
         ctx.mockNext([{ id: 1 }])
         const connection = ctx.conn

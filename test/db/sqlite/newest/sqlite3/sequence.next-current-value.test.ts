@@ -17,6 +17,8 @@ describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
     afterAll(() => ctx.down(), ctx.timeoutMs)
 
+    // NOT-APPLICABLE: SQLite has no CREATE SEQUENCE DDL and SqliteConnection
+    // does not expose `connection.sequence(...)`, so these bodies cannot run.
     /*
     import { test, expect, beforeEach } from '../../../../lib/testRunner.js'
     beforeEach(() => { ctx.reset() })

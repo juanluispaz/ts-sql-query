@@ -21,6 +21,11 @@ import type { DynamicCondition } from '../../../../../src/dynamic/condition.js'
 import { tIssue } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
+// A real boolean value source type, so the rule callbacks satisfy the
+// `DynamicConditionRule` constraint at the type level while the test
+// returns a deliberately-wrong value at runtime (cast at the body).
+type BooleanResult = ReturnType<typeof tIssue.id.equals>
+
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
     afterAll(() => ctx.down(), ctx.timeoutMs)
@@ -36,12 +41,12 @@ describe(ctx.label, () => {
         const connection = ctx.conn
         const selectFields = { id: tIssue.id }
         const extension = {
-            withinRange: ((_v: number) => 'not-a-value-source') as any,
+            withinRange: (_v: number): BooleanResult => 'not-a-value-source' as any,
         }
-        type Filter = DynamicCondition<{ id: 'int' }, { withinRange: (v: number) => any }>
+        type Filter = DynamicCondition<{ id: 'int' }, { withinRange: (v: number) => BooleanResult }>
         const filter: Filter = { id: { withinRange: 5 } as any }
 
-        let thrown: any
+        let thrown: unknown
         try {
             await connection.selectFrom(tIssue)
                 .where(connection.dynamicConditionFor(selectFields, extension).withValues(filter) as any)
@@ -50,11 +55,12 @@ describe(ctx.label, () => {
         } catch (e) { thrown = e }
 
         expect(thrown).toBeInstanceOf(Error)
-        expect(String(thrown.message)).toContain('Expected a boolean value source')
-        expect(thrown.extensionResult).toBe('not-a-value-source')
-        expect(thrown.processedValue).toBe(5)
-        expect(thrown.rule).toBe('withinRange')
-        expect(thrown.path).toBe('id')
+        const err = thrown as Error & { extensionResult: unknown, processedValue: unknown, rule: unknown, path: unknown }
+        expect(String(err.message)).toContain('Expected a boolean value source')
+        expect(err.extensionResult).toBe('not-a-value-source')
+        expect(err.processedValue).toBe(5)
+        expect(err.rule).toBe('withinRange')
+        expect(err.path).toBe('id')
     })
 
     test('column-rule-extension-returning-non-boolean-value-source-throws-with-type-name', async () => {
@@ -65,12 +71,12 @@ describe(ctx.label, () => {
         const connection = ctx.conn
         const selectFields = { id: tIssue.id }
         const extension = {
-            stringifyId: ((_v: number) => tIssue.title) as any,
+            stringifyId: (_v: number): BooleanResult => tIssue.title as any,
         }
-        type Filter = DynamicCondition<{ id: 'int' }, { stringifyId: (v: number) => any }>
+        type Filter = DynamicCondition<{ id: 'int' }, { stringifyId: (v: number) => BooleanResult }>
         const filter: Filter = { id: { stringifyId: 7 } as any }
 
-        let thrown: any
+        let thrown: unknown
         try {
             await connection.selectFrom(tIssue)
                 .where(connection.dynamicConditionFor(selectFields, extension).withValues(filter) as any)
@@ -79,10 +85,11 @@ describe(ctx.label, () => {
         } catch (e) { thrown = e }
 
         expect(thrown).toBeInstanceOf(Error)
-        expect(String(thrown.message)).toContain('found a value source with type')
-        expect(String(thrown.message)).toContain('string')
-        expect(thrown.processedValue).toBe(7)
-        expect(thrown.rule).toBe('stringifyId')
-        expect(thrown.path).toBe('id')
+        const err = thrown as Error & { processedValue: unknown, rule: unknown, path: unknown }
+        expect(String(err.message)).toContain('found a value source with type')
+        expect(String(err.message)).toContain('string')
+        expect(err.processedValue).toBe(7)
+        expect(err.rule).toBe('stringifyId')
+        expect(err.path).toBe('id')
     })
 })

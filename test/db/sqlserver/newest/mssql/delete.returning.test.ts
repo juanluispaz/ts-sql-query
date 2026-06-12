@@ -76,8 +76,9 @@ describe(ctx.label, () => {
             `)
             assertType<Exact<typeof removed, Array<{ id: number; title: string }>>>()
 
-            if (!ctx.realDbEnabled) expect(removed).toEqual(expectedMock)
-            else expect(removed.length).toBe(2)
+            // OUTPUT has no ORDER BY, so sort by id before comparing.
+            const sorted = [...removed].sort((a, b) => a.id - b.id)
+            expect(sorted).toEqual(expectedMock)
         })
     })
 })

@@ -27,7 +27,7 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // Not applicable on Oracle: `.innerJoin` / `.leftJoin` on DELETE are typed `never` for OracleDB (the `DELETE … USING` JOIN grammar in `OnExpressionFnType` is gated to `'mariaDB' | 'mySql'`); on Oracle use `DELETE … WHERE id IN (SELECT …)` instead.
+    // NOT-APPLICABLE: Oracle has no DELETE/UPDATE … JOIN grammar (use WHERE id IN (SELECT …) / UPDATE … FROM)
     /*
     test('delete-with-inner-join-on-condition', async () => {
         // Delete issues whose project is archived. The JOIN condition
@@ -54,7 +54,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // Not applicable on Oracle: `.innerJoin` / `.leftJoin` on DELETE are typed `never` for OracleDB (the `DELETE … USING` JOIN grammar in `OnExpressionFnType` is gated to `'mariaDB' | 'mySql'`); on Oracle use `DELETE … WHERE id IN (SELECT …)` instead.
+    // NOT-APPLICABLE: Oracle has no DELETE/UPDATE … JOIN grammar (use WHERE id IN (SELECT …) / UPDATE … FROM)
     /*
     test('delete-with-inner-join-targets-rows-by-joined-column', async () => {
         // Delete issues belonging to a project with a specific slug.
@@ -87,7 +87,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // Not applicable on Oracle: `.innerJoin` / `.leftJoin` on DELETE are typed `never` for OracleDB (the `DELETE … USING` JOIN grammar in `OnExpressionFnType` is gated to `'mariaDB' | 'mySql'`); on Oracle use `DELETE … WHERE id IN (SELECT …)` instead.
+    // NOT-APPLICABLE: Oracle has no DELETE/UPDATE … JOIN grammar (use WHERE id IN (SELECT …) / UPDATE … FROM)
     /*
     test('delete-with-multi-condition-on-clause-via-and', async () => {
         // The `on(...)` chain followed by `.and(...)` accumulates into

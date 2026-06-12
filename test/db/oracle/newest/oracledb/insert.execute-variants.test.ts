@@ -166,15 +166,10 @@ describe(ctx.label, () => {
         // null.
         ctx.mockNext(500)
         await ctx.withRollback(async () => {
-            let result: number | null = null
-            try {
-                result = await ctx.conn.insertInto(tOrganization)
-                    .values({ name: 'Umbrella Corp', plan: 'pro' })
-                    .returningOneColumn(tOrganization.id)
-                    .executeInsertNoneOrOne()
-            } catch (e) {
-                if (!ctx.realDbEnabled) throw e
-            }
+            const result = await ctx.conn.insertInto(tOrganization)
+                .values({ name: 'Umbrella Corp', plan: 'pro' })
+                .returningOneColumn(tOrganization.id)
+                .executeInsertNoneOrOne()
             expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into "organization" (name, "plan") values (:0, :1) returning id into :2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
@@ -186,7 +181,10 @@ describe(ctx.label, () => {
                 },
               ]
             `)
+            // Real DB returns the engine-assigned id (non-deterministic);
+            // the mock pins the exact value. Both modes still validate.
             if (!ctx.realDbEnabled) expect(result).toBe(500)
+            else expect(typeof result).toBe('number')
         })
     })
 
@@ -194,6 +192,7 @@ describe(ctx.label, () => {
         // The `__oneColumn` branch coerces missing to `null` (see
         // [InsertQueryBuilder.ts:205](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L205)).
         // Mock-only: real INSERT always writes the row.
+        // tests-audit-disable-next-line mock-only -- the empty-result→null coercion is unreachable on a real engine, where INSERT always returns the written row's id
         if (ctx.realDbEnabled) return
         ctx.mockNext(undefined)
         const result = await ctx.conn.insertInto(tOrganization)
@@ -222,15 +221,10 @@ describe(ctx.label, () => {
         // value branch.
         ctx.mockNext(777)
         await ctx.withRollback(async () => {
-            let result: number | null = null
-            try {
-                result = await ctx.conn.insertInto(tOrganization)
-                    .values({ name: 'LexCorp', plan: 'pro' })
-                    .returningOneColumn(tOrganization.id)
-                    .executeInsertOne()
-            } catch (e) {
-                if (!ctx.realDbEnabled) throw e
-            }
+            const result = await ctx.conn.insertInto(tOrganization)
+                .values({ name: 'LexCorp', plan: 'pro' })
+                .returningOneColumn(tOrganization.id)
+                .executeInsertOne()
             expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into "organization" (name, "plan") values (:0, :1) returning id into :2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
@@ -242,7 +236,10 @@ describe(ctx.label, () => {
                 },
               ]
             `)
+            // Real DB returns the engine-assigned id (non-deterministic);
+            // the mock pins the exact value. Both modes still validate.
             if (!ctx.realDbEnabled) expect(result).toBe(777)
+            else expect(typeof result).toBe('number')
         })
     })
 

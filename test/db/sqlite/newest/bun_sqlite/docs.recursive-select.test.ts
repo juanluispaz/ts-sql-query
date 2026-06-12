@@ -15,13 +15,13 @@ describe(ctx.label, () => {
 
     test('docs:recursive/parents-chain', async () => {
         // Seed has no parent_id set, so against a real DB this returns
-        // only the starting issue (id=2). The mock primes the value
-        // shape we'd expect when the chain has multiple ancestors.
+        // only the starting issue (id=2); its `parentId` is NULL and so
+        // projects to `undefined` (the key is absent). This cell always
+        // runs real sqlite, so the result is asserted directly.
         // Note: `parentId` MUST be projected so the recursive view exposes
         // it for the JOIN ON to reference.
         const expected = [
             { id: 2, title: 'Redesign navbar' },
-            { id: 1, title: 'Update hero copy' },
         ]
         ctx.mockNext(expected)
         const connection = ctx.conn
@@ -51,16 +51,17 @@ describe(ctx.label, () => {
             title:     string
             parentId?: number
         }>>>()
-        if (!ctx.realDbEnabled) expect(ancestors).toEqual(expected)
+        expect(ancestors).toEqual(expected)
     })
 
     test('docs:recursive/parents-chain-full-inner', async () => {
         // Section "Recursive select looking for parents" — first snippet,
         // where the recursive arm is spelled out as a full `selectFrom(...).join(child).on(...).select({...})`
-        // instead of the shortcut `recursiveUnionAllOn`.
+        // instead of the shortcut `recursiveUnionAllOn`. Seed has no
+        // parent_id set, so the real-DB result is only the starting
+        // issue (id=2); this cell always runs real sqlite.
         const expected = [
             { id: 2, title: 'Redesign navbar' },
-            { id: 1, title: 'Update hero copy' },
         ]
         ctx.mockNext(expected)
         const connection = ctx.conn
@@ -96,7 +97,7 @@ describe(ctx.label, () => {
             title:     string
             parentId?: number
         }>>>()
-        if (!ctx.realDbEnabled) expect(ancestors).toEqual(expected)
+        expect(ancestors).toEqual(expected)
     })
 
     test('docs:recursive/children-tree', async () => {

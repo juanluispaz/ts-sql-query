@@ -348,7 +348,7 @@ describe(ctx.label, () => {
         })
     })
 
-    // Not applicable on PostgreSQL: PostgreSQL requires onConflictOn(col).doUpdateSet({...}) or onConflictOnConstraint(name).doUpdateSet({...}). The bare-form onConflictDoUpdateSet is typed only on MariaDB / MySQL / SQLite; see test/db/postgres/types.negative/insert.test.ts for the compile-time negative.
+    // NOT-APPLICABLE: PostgreSQL requires onConflictOn(col).doUpdateSet({...}) or onConflictOnConstraint(name).doUpdateSet({...}). The bare-form onConflictDoUpdateSet is typed only on MariaDB / MySQL / SQLite; see test/db/postgres/types.negative/insert.test.ts for the compile-time negative.
     /*
     test('docs-extra:insert/insert-on-conflict-do-update-bare', async () => {
         // MariaDB/MySQL variant of upsert — `.onConflictDoUpdateSet({...})`

@@ -53,6 +53,7 @@ describe(ctx.label, () => {
         // placeholders, so the bound `?` inside a `/* ... */` block
         // looks like a stray parameter at execution time. The SQL the
         // lib emits is still the assertion of interest.
+        // tests-audit-disable-next-line mock-only -- bound param lands inside a /* */ comment; several drivers strip the comment then reject the unused placeholder at execution
         if (ctx.realDbEnabled) return
         ctx.mockNext(1)
         const connection = ctx.conn

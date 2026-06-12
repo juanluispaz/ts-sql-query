@@ -1,15 +1,7 @@
-// Coverage of `_inlineSelectAsValueForCondition` — reached when an
-// inline subquery wrapped via `forUseAsInlineQueryValue()` is itself
-// used as a boolean condition (in `.where(...)`, `.and(...)`, etc.).
-// The AbstractSqlBuilder default at L640 is hit by Postgres/MySQL/
-// MariaDB/SQLite, and Oracle/SqlServer have a dedicated override that
-// emits `((<select>) = 1)` for boolean one-column selects to coerce
-// their bit/number storage back to a SQL condition.
-//
-// The schema's boolean columns all carry a CustomBooleanTypeAdapter
-// (Y/N or t/f), so the value coming out of the real DB doesn't match
-// what `((...) = 1)` expects on every dialect — the real-DB assertion
-// is gated to mock mode and snapshot/SQL is the primary contract.
+// Coverage of an inline subquery wrapped via `forUseAsInlineQueryValue()`
+// used directly as a boolean condition (in `.where(...)`), including its
+// negation. MariaDB takes the AbstractSqlBuilder default, emitting the
+// `(published = 't')` adapter shape inline.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -22,29 +14,22 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('boolean-inline-subquery-as-condition', async () => {
-        const expected = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        // The subquery yields project 1's published flag (true), so the
+        // condition is constant true → every project is returned.
+        const expected = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]
         ctx.mockNext(expected)
-        try {
-            const result = await ctx.conn.selectFrom(tProject)
-                .where(
-                    ctx.conn.selectFrom(tProject)
-                        .where(tProject.id.equals(1))
-                        .selectOneColumn(tProject.published)
-                        .forUseAsInlineQueryValue()
-                )
-                .select({ id: tProject.id })
-                .orderBy('id')
-                .executeSelectMany()
-            assertType<Exact<typeof result, Array<{ id: number }>>>()
-            if (!ctx.realDbEnabled) {
-                expect(result).toEqual(expected)
-            }
-        } catch (e) {
-            if (!ctx.realDbEnabled) throw e
-            // The emitted SQL is dialect-specific and some real DBs
-            // reject coercing a custom-adapted boolean column back to
-            // 0/1; the snapshot is still captured by the builder.
-        }
+        const result = await ctx.conn.selectFrom(tProject)
+            .where(
+                ctx.conn.selectFrom(tProject)
+                    .where(tProject.id.equals(1))
+                    .selectOneColumn(tProject.published)
+                    .forUseAsInlineQueryValue()
+            )
+            .select({ id: tProject.id })
+            .orderBy('id')
+            .executeSelectMany()
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+        expect(result).toEqual(expected)
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project where (select (published = 't') as result from project where id = ?) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
@@ -56,28 +41,23 @@ describe(ctx.label, () => {
     test('negated-boolean-inline-subquery-as-condition', async () => {
         // Reaches `_inlineSelectAsValueForCondition` via `_negate(...)`
         // — `.negate()` calls `_appendConditionSql` on the wrapped
-        // inline-select value source.
-        const expected = [{ id: 4 }]
+        // inline-select value source. Project 1 is published (true), so
+        // `not true` is constant false → no rows.
+        const expected: Array<{ id: number }> = []
         ctx.mockNext(expected)
-        try {
-            const result = await ctx.conn.selectFrom(tProject)
-                .where(
-                    ctx.conn.selectFrom(tProject)
-                        .where(tProject.id.equals(1))
-                        .selectOneColumn(tProject.published)
-                        .forUseAsInlineQueryValue()
-                        .negate()
-                )
-                .select({ id: tProject.id })
-                .orderBy('id')
-                .executeSelectMany()
-            assertType<Exact<typeof result, Array<{ id: number }>>>()
-            if (!ctx.realDbEnabled) {
-                expect(result).toEqual(expected)
-            }
-        } catch (e) {
-            if (!ctx.realDbEnabled) throw e
-        }
+        const result = await ctx.conn.selectFrom(tProject)
+            .where(
+                ctx.conn.selectFrom(tProject)
+                    .where(tProject.id.equals(1))
+                    .selectOneColumn(tProject.published)
+                    .forUseAsInlineQueryValue()
+                    .negate()
+            )
+            .select({ id: tProject.id })
+            .orderBy('id')
+            .executeSelectMany()
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+        expect(result).toEqual(expected)
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project where not (select (published = 't') as result from project where id = ?) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [

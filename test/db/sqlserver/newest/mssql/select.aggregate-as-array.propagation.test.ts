@@ -66,8 +66,8 @@ describe(ctx.label, () => {
         ctx.mockNext([{
             pid: 1,
             issues: [
-                { issue: { id: 1, title: 'Redesign navbar' } },
-                { issue: { id: 2, title: 'Update hero copy' } },
+                { issue: { id: 1, title: 'Update hero copy' } },
+                { issue: { id: 2, title: 'Redesign navbar' } },
             ],
         }])
 
@@ -94,15 +94,19 @@ describe(ctx.label, () => {
             issues: Array<{ issue?: { id: number; title: string } | null }>
             pid:    number
         }>>>()
-        if (!ctx.realDbEnabled) {
-            expect(rows).toEqual([{
-                pid: 1,
-                issues: [
-                    { issue: { id: 1, title: 'Redesign navbar' } },
-                    { issue: { id: 2, title: 'Update hero copy' } },
-                ],
-            }])
-        }
+        // Project 1 has issues 1 ('Update hero copy') and 2 ('Redesign
+        // navbar'); the aggregate is unordered, so sort by issue id in JS.
+        const sorted = rows.map(r => ({
+            ...r,
+            issues: [...r.issues].sort((a, b) => (a.issue?.id ?? 0) - (b.issue?.id ?? 0)),
+        }))
+        expect(sorted).toEqual([{
+            pid: 1,
+            issues: [
+                { issue: { id: 1, title: 'Update hero copy' } },
+                { issue: { id: 2, title: 'Redesign navbar' } },
+            ],
+        }])
     })
 
     test('aggregate-as-array-of-one-column-with-expression-fires-case-2', async () => {
@@ -113,7 +117,7 @@ describe(ctx.label, () => {
         // whose own propagation walks its child column. This pins
         // L2421-2423 / L2436-2438 / L2451-2453 / L2470-2472 /
         // L2489-2491 of `AggregateValueAsArrayValueSource`.
-        ctx.mockNext([{ pid: 1, bumped: [3, 5, 6] }])
+        ctx.mockNext([{ pid: 1, bumped: [2, 3] }])
 
         const tIssueLeft = tIssue.forUseInLeftJoin()
         const rows = await ctx.conn.selectFrom(tProject)
@@ -137,9 +141,10 @@ describe(ctx.label, () => {
             pid:    number
             bumped: Array<number>
         }>>>()
-        if (!ctx.realDbEnabled) {
-            expect(rows).toEqual([{ pid: 1, bumped: [3, 5, 6] }])
-        }
+        // Project 1 has issues 1 (priority 2) and 2 (priority 1); +1 each
+        // -> {3, 2}. The aggregate is unordered, so sort in JS.
+        const sorted = rows.map(r => ({ ...r, bumped: [...r.bumped].sort((a, b) => a - b) }))
+        expect(sorted).toEqual([{ pid: 1, bumped: [2, 3] }])
     })
 
     test('aggregate-as-array-with-only-when-or-null-false-uses-null-variant', async () => {
@@ -175,9 +180,7 @@ describe(ctx.label, () => {
             pid:    number
             issues?: Array<{ id: number; title: string }>
         }>>>()
-        if (!ctx.realDbEnabled) {
-            expect(rows).toEqual([{ pid: 1 }])
-        }
+        expect(rows).toEqual([{ pid: 1 }])
     })
 
     test('aggregate-as-array-with-ignore-when-as-null-true-also-uses-null-variant', async () => {
@@ -213,8 +216,6 @@ describe(ctx.label, () => {
             pid:    number
             issues?: Array<{ id: number; title: string }>
         }>>>()
-        if (!ctx.realDbEnabled) {
-            expect(rows).toEqual([{ pid: 1 }])
-        }
+        expect(rows).toEqual([{ pid: 1 }])
     })
 })

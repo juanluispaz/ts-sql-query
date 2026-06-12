@@ -61,12 +61,12 @@ describe(ctx.label, () => {
         })
     })
 
-    // Not applicable on MySQL: no RETURNING clause on INSERT —
     // `insertInto(t).from(source)` does not expose `.returning(...)`
     // here. The library mirrors that by not typing the method on the
     // mysql `CustomizableExecutableInsertFromSelect` surface, so the
     // canonical body would not compile. See the canonical cell for the
     // full body.
+    // NOT-APPLICABLE: MySQL has no RETURNING — the from-select insert surface does not type `.returning(...)`.
     /*
     test('insert-from-select-returning-full-row', async () => {
         // ... see other cells for the full body — uses `.returning({...})`
@@ -74,11 +74,9 @@ describe(ctx.label, () => {
     })
     */
 
-    // Not applicable on MySQL: the server rejects the
-    // `WITH cte AS (...) INSERT INTO ... SELECT ...` form the library
-    // emits here (parse error at `insert`). MySQL accepts CTEs inside a
-    // SELECT but not as the prefix of an INSERT statement. See other
-    // cells for the canonical body.
+    // MySQL accepts CTEs inside a SELECT but not as the prefix of an
+    // INSERT statement. See other cells for the canonical body.
+    // NOT-APPLICABLE: MySQL rejects the `WITH cte AS (...) INSERT INTO ... SELECT ...` form (parse error at `insert`).
     /*
     test('insert-from-select-source-with-cte', async () => {
         // ... see other cells for the full body — pins the bubbled

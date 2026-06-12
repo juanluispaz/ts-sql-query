@@ -37,7 +37,7 @@ describe(ctx.label, () => {
             oldName: 'Marketing site',
             newName: 'Marketing site / Acme',
             orgName: 'Acme Corp',
-            orgPlan: 'enterprise',
+            orgPlan: 'pro',
         })
 
         await ctx.withRollback(async () => {
@@ -72,10 +72,8 @@ describe(ctx.label, () => {
                 orgName: string
                 orgPlan: string
             }>>()
-            if (!ctx.realDbEnabled) {
-                expect(row.orgName).toBe('Acme Corp')
-                expect(row.orgPlan).toBe('enterprise')
-            }
+            expect(row.orgName).toBe('Acme Corp')
+            expect(row.orgPlan).toBe('pro')
         })
     })
 
@@ -129,10 +127,8 @@ describe(ctx.label, () => {
                 assignee: string
                 orgName:  string
             }>>()
-            if (!ctx.realDbEnabled) {
-                expect(row.assignee).toBe('Ada Lovelace')
-                expect(row.orgName).toBe('Acme Corp')
-            }
+            expect(row.assignee).toBe('Ada Lovelace')
+            expect(row.orgName).toBe('Acme Corp')
         })
     })
 })

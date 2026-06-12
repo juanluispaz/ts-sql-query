@@ -17,7 +17,11 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('insert-from-select-with-returning', async () => {
-        const expectedMock = [{ id: 100 }, { id: 101 }]
+        // Project 3 has exactly one seeded issue (id=4, 'Document /v2/users'),
+        // so the from-select clones a single row — a deterministic count the
+        // mock matches. The engine-assigned id itself is non-deterministic,
+        // so the unconditional assertion checks length + numeric shape.
+        const expectedMock = [{ id: 100 }]
         ctx.mockNext(expectedMock)
 
         await ctx.withRollback(async () => {
@@ -49,8 +53,8 @@ describe(ctx.label, () => {
             `)
             assertType<Exact<typeof newIds, Array<{ id: number }>>>()
 
-            if (!ctx.realDbEnabled) expect(newIds).toEqual(expectedMock)
-            else expect(Array.isArray(newIds)).toBe(true)
+            expect(newIds).toHaveLength(1)
+            expect(typeof newIds[0]!.id).toBe('number')
         })
     })
 })

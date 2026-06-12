@@ -46,10 +46,11 @@ describe(ctx.label, () => {
 
     test('customize-update-hook-fragment-with-bound-param', async () => {
         // A fragment whose template interpolates `connection.const(...)`
-        // produces a placeholder inside the hook output. Mock-only:
-        // most drivers strip comments before counting placeholders,
-        // so the bound `?` inside `/* ... */` looks like a stray
-        // parameter at execution time. SQL is the assertion.
+        // produces a placeholder inside a SQL comment. The mssql driver
+        // strips comments before binding, so the `@0` inside `/* ... */`
+        // becomes an unbound parameter the engine rejects — the emitted
+        // SQL shape is the whole point of the test.
+        // tests-audit-disable-next-line mock-only -- bound placeholder lives inside a SQL comment; mssql driver rejects it at execution, SQL shape is the assertion
         if (ctx.realDbEnabled) return
         ctx.mockNext(1)
         const connection = ctx.conn

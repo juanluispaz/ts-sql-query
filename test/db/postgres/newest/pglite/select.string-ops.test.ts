@@ -34,12 +34,8 @@ describe(ctx.label, () => {
     })
 
     test('concat-chain-with-conditional-flattens', async () => {
-        // Chains `.concat(...)` and `.concatIfValue(...)` together. With
-        // every ifValue argument present, all segments are included.
-        // MySQL/MariaDB's `_appendMaybeInnerConcat` collapses the chain
-        // into a single `concat(a, b, c, …)` call instead of nesting,
-        // taking the `SqlOperation1ValueSourceIfValueOrIgnore` branch.
-        // SQLite / PostgreSQL emit the chain through `||`.
+        // Chains `.concat(...)` and `.concatIfValue(...)` with every ifValue
+        // argument present, so all segments are included.
         const expected = [{ label: 'ada@acme.test (verified) [main]' }]
         ctx.mockNext(expected)
         const tag: string | undefined = 'verified'
@@ -64,15 +60,11 @@ describe(ctx.label, () => {
             1,
           ]
         `)
-        if (ctx.realDbEnabled) {
-            expect(rows).toEqual(expected)
-        }
+        expect(rows).toEqual(expected)
     })
 
     test('concat-chain-conditional-skip-undefined', async () => {
-        // `.concatIfValue(undefined)` drops the segment, so the chain
-        // collapses to `email || ' (' || ')'`. The flatten branch in
-        // MySQL/MariaDB skips the optional segment as well.
+        // `.concatIfValue(undefined)` drops that segment from the chain.
         const expected = [{ label: 'ada@acme.test (verified)' }]
         ctx.mockNext(expected)
         const tag: string | undefined = 'verified'
@@ -96,9 +88,7 @@ describe(ctx.label, () => {
             1,
           ]
         `)
-        if (ctx.realDbEnabled) {
-            expect(rows).toEqual(expected)
-        }
+        expect(rows).toEqual(expected)
     })
 
     test('contains', async () => {
@@ -220,7 +210,8 @@ describe(ctx.label, () => {
     })
 
     test('trim-left-right', async () => {
-        const expected = [{ id: 1, l: 'Ada', r: 'Ada' }]
+        // full_name has no surrounding whitespace → ltrim/rtrim are no-ops.
+        const expected = [{ id: 1, l: 'Ada Lovelace', r: 'Ada Lovelace' }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tAppUser)
             .where(tAppUser.id.equals(1))
@@ -239,9 +230,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{
             id: number; l: string; r: string
         }>>>()
-        if (!ctx.realDbEnabled) {
-            expect(result).toEqual(expected)
-        }
+        expect(result).toEqual(expected)
     })
 
     test('replace-all', async () => {
@@ -267,30 +256,23 @@ describe(ctx.label, () => {
     })
 
     test('reverse', async () => {
-        // Mock the result; not every dialect natively supports REVERSE.
         const expected = [{ id: 1, t: 'tset.emca@ada' }]
         ctx.mockNext(expected)
-        try {
-            const result = await ctx.conn.selectFrom(tAppUser)
-                .where(tAppUser.id.equals(1))
-                .select({
-                    id: tAppUser.id,
-                    t:  tAppUser.email.reverse(),
-                })
-                .executeSelectMany()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, reverse(email) as "t" from app_user where id = $1"`)
-            expect(ctx.lastParams).toMatchInlineSnapshot(`
-              [
-                1,
-              ]
-            `)
-            assertType<Exact<typeof result, Array<{ id: number; t: string }>>>()
-            if (!ctx.realDbEnabled) expect(result).toEqual(expected)
-        } catch {
-            // real DB may not provide a REVERSE function; the SQL was
-            // captured before the runner ran.
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, reverse(email) as "t" from app_user where id = ?"`)
-        }
+        const result = await ctx.conn.selectFrom(tAppUser)
+            .where(tAppUser.id.equals(1))
+            .select({
+                id: tAppUser.id,
+                t:  tAppUser.email.reverse(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, reverse(email) as "t" from app_user where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; t: string }>>>()
+        expect(result).toEqual(expected)
     })
 
     test('substring', async () => {
@@ -312,16 +294,10 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof result, Array<{ id: number; sub: string }>>>()
-        // We don't pin the value to a real string; the test fixes only
-        // SQL/params/types and the mock-mode value round-trip.
-        if (!ctx.realDbEnabled) expect(result).toEqual(expected)
+        expect(result).toEqual(expected)
     })
     test('substring-to-end', async () => {
-        // `.substringToEnd(start)` reaches the `_substringToEnd` branch
-        // (no length argument). Each builder picks a slightly different
-        // SQL — SQLite/Oracle drop the length argument from `substr`,
-        // PostgreSQL uses `substring(x from start+1)`, SqlServer uses
-        // `substring(x, start+1, len(x))`.
+        // `.substringToEnd(start)` omits the length argument.
         const expected = [{ id: 1, sub: 'ate hero copy' }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssue)
@@ -339,14 +315,11 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof result, Array<{ id: number; sub: string }>>>()
-        if (!ctx.realDbEnabled) expect(result).toEqual(expected)
+        expect(result).toEqual(expected)
     })
 
     test('substr-to-end', async () => {
-        // `.substrToEnd(start)` — the JS-style sibling of
-        // substringToEnd(start). The emitted SQL is identical on
-        // most dialects (both fall back to `substr(x, start+1)` on
-        // SQLite/Oracle); the test still pins the param shape per cell.
+        // `.substrToEnd(start)` — JS-style sibling of `.substringToEnd(start)`.
         const expected = [{ id: 1, sub: 'ate hero copy' }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssue)
@@ -364,35 +337,21 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof result, Array<{ id: number; sub: string }>>>()
-        if (!ctx.realDbEnabled) expect(result).toEqual(expected)
+        expect(result).toEqual(expected)
     })
 
     test('substring-with-value-source-start', async () => {
-        // `.substring(valueSource, end)` — `start` is a column ref
-        // rather than a number literal. Reaches SqlServer's non-numeric
-        // branch in `_substr` (the `else` arm). Other dialects already
-        // pass `start` through the same path so the snapshot is just
-        // recorded for documentation.
-        //
-        // The runtime result depends on column values and dialect
-        // semantics (length may be 0 → null on some engines), so the
-        // value assertion is mock-only and the runner is wrapped to
-        // still capture the SQL on real-DB failure.
-        const expected = [{ id: 1, sub: 'X' }]
+        // `.substring(valueSource, end)` — start is a column ref, not a literal.
+        // issue 1: title='Update hero copy', priority=2 → substring(2, 5) = 'dat'.
+        const expected = [{ id: 1, sub: 'dat' }]
         ctx.mockNext(expected)
-        try {
-            const result = await ctx.conn.selectFrom(tIssue)
-                .where(tIssue.id.equals(1))
-                .select({
-                    id:  tIssue.id,
-                    sub: tIssue.title.substring(tIssue.priority, 5),
-                })
-                .executeSelectMany()
-            assertType<Exact<typeof result, Array<{ id: number; sub: string }>>>()
-            if (!ctx.realDbEnabled) expect(result).toEqual(expected)
-        } catch (e) {
-            if (!ctx.realDbEnabled) throw e
-        }
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id:  tIssue.id,
+                sub: tIssue.title.substring(tIssue.priority, 5),
+            })
+            .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, substr(title, priority + 1, $1 - priority) as sub from issue where id = $2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
@@ -400,15 +359,13 @@ describe(ctx.label, () => {
             1,
           ]
         `)
+        assertType<Exact<typeof result, Array<{ id: number; sub: string }>>>()
+        expect(result).toEqual(expected)
     })
 
     test('substr-two-arg', async () => {
-        // `.substr(start, count)` — the JS-style two-argument form
-        // (start + count), distinct from `.substring(start, end)`. It is
-        // not exercised anywhere else in the suite, so it is the only
-        // caller of the base `_substr` two-argument branch on the
-        // dialects that inherit it (MySQL/MariaDB/SQLite/Oracle/Postgres
-        // emit `substr(...)`; SqlServer overrides to `substring(...)`).
+        // `.substr(start, count)` — JS-style two-argument form (start + count),
+        // distinct from `.substring(start, end)`.
         const expected = [{ id: 1, sub: 'Upd' }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssue)
@@ -427,31 +384,22 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof result, Array<{ id: number; sub: string }>>>()
-        if (!ctx.realDbEnabled) expect(result).toEqual(expected)
+        expect(result).toEqual(expected)
     })
 
     test('substring-numeric-start-value-source-end', async () => {
         // `.substring(numericStart, valueSourceEnd)` — start is a literal,
-        // end is a column ref. Reaches the base `_substring` arm where
-        // `value` is numeric but `value2` is not (the count becomes
-        // `value2 - value`), a branch the existing substring tests skip.
-        // Runtime value depends on column data, so it is mock-only and the
-        // execution is wrapped to still capture the SQL on real-DB failure.
+        // end is a column ref.
+        // issue 1: title='Update hero copy', priority=2 → substring(0, 2) = 'Up'.
         const expected = [{ id: 1, sub: 'Up' }]
         ctx.mockNext(expected)
-        try {
-            const result = await ctx.conn.selectFrom(tIssue)
-                .where(tIssue.id.equals(1))
-                .select({
-                    id:  tIssue.id,
-                    sub: tIssue.title.substring(0, tIssue.priority),
-                })
-                .executeSelectMany()
-            assertType<Exact<typeof result, Array<{ id: number; sub: string }>>>()
-            if (!ctx.realDbEnabled) expect(result).toEqual(expected)
-        } catch (e) {
-            if (!ctx.realDbEnabled) throw e
-        }
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id:  tIssue.id,
+                sub: tIssue.title.substring(0, tIssue.priority),
+            })
+            .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, substr(title, $1, priority - $2) as sub from issue where id = $3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
@@ -460,6 +408,8 @@ describe(ctx.label, () => {
             1,
           ]
         `)
+        assertType<Exact<typeof result, Array<{ id: number; sub: string }>>>()
+        expect(result).toEqual(expected)
     })
 
 })

@@ -146,9 +146,11 @@ describe(ctx.label, () => {
         // here a bound integer via `connection.const(...)`. The
         // placeholder ends up inside the comment in the snapshot,
         // proving the fragment routes through `_appendRawFragment` and
-        // not as a string splice. Mock-only because some drivers
-        // strip comments before counting placeholders and would
-        // reject the extra param at execution.
+        // not as a string splice. Mock-only because the bound param
+        // lives inside a SQL comment, so the driver binds a parameter
+        // the parsed statement never references and rejects it at
+        // execution.
+        // tests-audit-disable-next-line mock-only -- bound param emitted inside a SQL comment; real drivers reject the unreferenced parameter (DESIGN §1)
         if (ctx.realDbEnabled) return
         ctx.mockNext([{ id: 1 }])
         const connection = ctx.conn

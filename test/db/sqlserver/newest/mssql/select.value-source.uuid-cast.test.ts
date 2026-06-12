@@ -14,14 +14,10 @@
 //   - `raw_to_uuid(hextoraw(:0))`     — oracle default (`built-in`)
 //   - `?`                             — sqlserver (native uniqueidentifier)
 //
-// Per [DESIGN.md §1 #18](../../../../DESIGN.md#1-principles) and the
-// "synthetic SQL is the test's whole point" exception, this test is
-// **mock-only**: real-DB execution requires extensions / engine
-// versions that vary per test connector (sqlite's `uuid` extension,
-// MySQL 8.0+, Oracle 12c+) and the assertion of interest is the
-// SqlBuilder shape, not engine execution. The strategy-switch tests
-// in [config.uuid-strategy.test.ts](./config.uuid-strategy.test.ts)
-// cover the executable `'string'` branch end-to-end.
+// On SQL Server the emitter is a no-op bare parameter, so this test
+// runs against the real DB. The strategy-switch tests in
+// [config.uuid-strategy.test.ts](./config.uuid-strategy.test.ts) cover
+// the executable `'string'` branch end-to-end.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { ctx } from './setup.js'
@@ -34,8 +30,9 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('uuid-asString-on-const', async () => {
-        // Mock-only — see file header.
-        if (ctx.realDbEnabled) return
+        // On SQL Server the UUID const + `.asString()` emits a bare
+        // parameter (`@0`) — native `uniqueidentifier`, no helper needed
+        // — so it runs end-to-end on the real DB.
         ctx.mockNext(UUID_VALUE)
         const connection = ctx.conn
         const result = await connection.selectFromNoTable()
@@ -47,6 +44,9 @@ describe(ctx.label, () => {
             "123e4567-e89b-12d3-a456-426614174000",
           ]
         `)
-        expect(result).toBe(UUID_VALUE)
+        // SQL Server's native `uniqueidentifier` round-trips the value
+        // upper-cased; the mock echoes the lower-case input verbatim.
+        if (ctx.realDbEnabled) expect(result).toBe(UUID_VALUE.toUpperCase())
+        else expect(result).toBe(UUID_VALUE)
     })
 })

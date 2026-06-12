@@ -26,7 +26,7 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // Not applicable on MySQL: `.onConflictOn(...)` is not typed on `MySqlConnection` (MySQL's `ON DUPLICATE KEY UPDATE` grammar takes no column list and no WHERE clause); see `test/db/mysql/types.negative/insert.test.ts`.
+    // NOT-APPLICABLE: MySQL uses the bare onConflictDoUpdateSet form (`.onConflictOn(...)` is not typed on `MySqlConnection`; the `ON DUPLICATE KEY UPDATE` grammar takes no column list and no WHERE clause).
     /*
     test('do-update-set-where-then-and-or-builds-compound-update-predicate', async () => {
         // `onConflictOn(cols).doUpdateSet(...).where(c1).and(c2).or(c3)`
@@ -64,7 +64,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // Not applicable on MySQL: `.onConflictOn(...)` is not typed on `MySqlConnection` (MySQL's `ON DUPLICATE KEY UPDATE` grammar takes no column list and no WHERE clause); see `test/db/mysql/types.negative/insert.test.ts`.
+    // NOT-APPLICABLE: MySQL uses the bare onConflictDoUpdateSet form (`.onConflictOn(...)` is not typed on `MySqlConnection`; the `ON DUPLICATE KEY UPDATE` grammar takes no column list and no WHERE clause).
     /*
     test('on-columns-where-then-and-or-builds-compound-partial-index-predicate', async () => {
         // `onConflictOn(cols).where(c1).and(c2).or(c3).doUpdateSet(...)`

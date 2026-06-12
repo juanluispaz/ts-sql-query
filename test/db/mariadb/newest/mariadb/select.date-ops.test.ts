@@ -210,8 +210,6 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where created_at <= current_timestamp order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
-        if (ctx.realDbEnabled) {
-            expect(rows.map(r => r.id).sort()).toEqual([1, 2])
-        }
+        expect(rows.map(r => r.id).sort()).toEqual([1, 2])
     })
 })

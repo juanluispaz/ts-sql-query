@@ -33,7 +33,7 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // Not applicable on Oracle: `tTable.oldValues()` is typed `never` on this dialect (no `RETURNING OLD.col`).
+    // NOT-APPLICABLE: Oracle has no RETURNING OLD values (`tTable.oldValues()` is typed `never`)
     /*
 test('fragment-with-old-values-column-bubbles-up-in-update-returning', async () => {
         // A typed fragment that interpolates `oldProject.name` is the
@@ -75,7 +75,7 @@ test('fragment-with-old-values-column-bubbles-up-in-update-returning', async () 
     })
     */
 
-    // Not applicable on Oracle: this dialect has no INSERT ... ON CONFLICT / ON DUPLICATE KEY UPDATE (Oracle uses MERGE).
+    // NOT-APPLICABLE: Oracle has no INSERT…ON CONFLICT (uses MERGE)
     /*
 test('fragment-with-values-for-insert-column-bubbles-up-in-on-conflict-do-update-set', async () => {
         // ON CONFLICT … DO UPDATE … SET <col> = <fragment(excluded.col)>
@@ -118,7 +118,7 @@ test('fragment-with-values-for-insert-column-bubbles-up-in-on-conflict-do-update
     })
     */
 
-    // Not applicable on Oracle: `tTable.oldValues()` is typed `never` on this dialect (no `RETURNING OLD.col`).
+    // NOT-APPLICABLE: Oracle has no RETURNING OLD values (`tTable.oldValues()` is typed `never`)
     /*
 test('fragment-from-joined-table-registers-required-column-in-update-from-old-values', async () => {
         // UPDATE … FROM … RETURNING with `oldValues()` and a typed

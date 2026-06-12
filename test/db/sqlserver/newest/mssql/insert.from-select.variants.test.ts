@@ -109,8 +109,12 @@ describe(ctx.label, () => {
                 status:    string
                 priority:  number
             }>>>()
-            if (!ctx.realDbEnabled) expect(inserted).toEqual(expectedMock)
-            else expect(Array.isArray(inserted)).toBe(true)
+            // `id` is database-generated, so compare the stable
+            // columns and assert the id is a number separately.
+            expect(inserted.map(({ id, ...rest }) => rest)).toEqual(
+                expectedMock.map(({ id, ...rest }) => rest),
+            )
+            expect(typeof inserted[0]!.id).toBe('number')
         })
     })
 
@@ -155,10 +159,8 @@ describe(ctx.label, () => {
         })
     })
 
-    // Not applicable on SQL Server: no `ON CONFLICT` clause in the
-    // dialect. SQL Server's equivalent is `MERGE` (or `IF NOT EXISTS`
-    // shapes), exposed through a different API. The library does not
-    // type `.onConflictDoNothing` on the from-select insert for
+    // NOT-APPLICABLE: SQL Server has no INSERT…ON CONFLICT (uses MERGE);
+    // `.onConflictDoNothing` is not typed on the from-select insert for
     // SqlServerConnection. See the canonical cell for the full body.
     /*
     test('insert-from-select-with-on-conflict-do-nothing', async () => {

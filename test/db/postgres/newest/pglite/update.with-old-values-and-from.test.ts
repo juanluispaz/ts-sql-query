@@ -17,7 +17,9 @@
 // body in TODO[LIMITATION] until the docker image upgrades past 12.x);
 // commented out in sqlite/mysql/oracle (oldValues typed `never`).
 
-import { afterAll, beforeAll, beforeEach, describe } from '../../../../lib/testRunner.js'
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
+import { assertType, type Exact } from '../../../../lib/assertType.js'
+import { tOrganization, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -25,9 +27,10 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // Not applicable on this cell: pglite bundles PostgreSQL 17, but `compatibilityVersion = Number.POSITIVE_INFINITY` makes the builder emit PG18+ syntax (`returning old.col`) that PG17 rejects with `column "old" does not exist`. The setup.ts for this cell explicitly notes this: comment out 18-only feature tests here. The PG17-shaped emission is exercised in `postgres/oldest/pglite/` instead.
-    /*
     test('returning-old-and-new-with-from-table-projects-required-columns-in-old-subquery', async () => {
+        // Update project.name from organization.name; RETURNING the
+        // PRE-update project.name AND the organization.name pulled in
+        // via FROM. project 1 → org 1 (Acme Corp).
         ctx.mockNext({
             id:      1,
             oldName: 'Marketing site',
@@ -52,28 +55,28 @@ describe(ctx.label, () => {
                 })
                 .executeUpdateOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot()
-            expect(ctx.lastParams).toMatchInlineSnapshot()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = project.name || $1 || organization.name from organization where project.id = $2 and project.organization_id = organization.id returning project.id as id, old.name as "oldName", project.name as "newName", organization.name as "orgName""`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                " / ",
+                1,
+              ]
+            `)
             assertType<Exact<typeof row, {
                 id:      number
                 oldName: string
                 newName: string
                 orgName: string
             }>>()
-            if (!ctx.realDbEnabled) {
-                expect(row).toEqual({
-                    id:      1,
-                    oldName: 'Marketing site',
-                    newName: 'Marketing site / Acme Corp',
-                    orgName: 'Acme Corp',
-                })
-            }
+            expect(row).toEqual({
+                id:      1,
+                oldName: 'Marketing site',
+                newName: 'Marketing site / Acme Corp',
+                orgName: 'Acme Corp',
+            })
         })
     })
-    */
 
-// Not applicable on this cell: pglite bundles PostgreSQL 17, but `compatibilityVersion = Number.POSITIVE_INFINITY` makes the builder emit PG18+ syntax (`returning old.col`) that PG17 rejects. The PG17-shaped emission is exercised in `postgres/oldest/pglite/` instead.
-    /*
     test('returning-old-values-with-primary-key-in-set-uses-for-update-of', async () => {
         // Including a PRIMARY KEY column in `.set()` flips the builder's
         // `updatePrimaryKey` flag, so the synthesised `_old_` subquery
@@ -103,8 +106,14 @@ describe(ctx.label, () => {
                 })
                 .executeUpdateOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot()
-            expect(ctx.lastParams).toMatchInlineSnapshot()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set id = $1, name = name || $2 where id = $3 returning id as id, old.name as "oldName", name as "newName""`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "!",
+                1,
+              ]
+            `)
             assertType<Exact<typeof row, {
                 id:      number
                 oldName: string
@@ -119,5 +128,5 @@ describe(ctx.label, () => {
             }
         })
     })
-    */
+
 })

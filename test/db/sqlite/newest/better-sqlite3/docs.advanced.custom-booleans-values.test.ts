@@ -34,6 +34,7 @@ describe(ctx.label, () => {
 
         // doc-start
         let id: number | undefined
+        let caught: unknown = null
         try {
             id = await ctx.conn.insertInto(tFlag).set({
                     name:   'demo',
@@ -41,8 +42,11 @@ describe(ctx.label, () => {
                 })
                 .returningLastInsertedId()
                 .executeInsert()
-        } catch {
-            // expected on real DB — the test-only table doesn't exist.
+        } catch (e) {
+            // The test-only table doesn't exist in the real DB, so the
+            // insert fails there. The SQL was already captured by the
+            // interceptor before the runner sent it.
+            caught = e
         }
         // doc-end
 
@@ -58,7 +62,12 @@ describe(ctx.label, () => {
             1,
           ]
         `)
-        if (!ctx.realDbEnabled) {
+        if (ctx.realDbEnabled) {
+            // Real DB: no such table → the execution threw.
+            expect(caught).not.toBeNull()
+            expect(String(caught)).toMatch(/flag_table_only_for_sql_test|no such table/)
+        } else {
+            expect(caught).toBeNull()
             expect(id).toBe(99)
         }
     })
@@ -67,8 +76,10 @@ describe(ctx.label, () => {
         ctx.mockNext([{ id: 1, name: 'demo', active: true }])
 
         // doc-start
+        let rows: Array<{ id: number; name: string; active: boolean }> | undefined
+        let caught: unknown = null
         try {
-            const rows = await ctx.conn.selectFrom(tFlag)
+            rows = await ctx.conn.selectFrom(tFlag)
                 .where(tFlag.active)
                 .select({
                     id:     tFlag.id,
@@ -76,15 +87,21 @@ describe(ctx.label, () => {
                     active: tFlag.active,
                 })
                 .executeSelectMany()
-            if (!ctx.realDbEnabled) {
-                expect(rows).toEqual([{ id: 1, name: 'demo', active: true }])
-            }
-        } catch {
-            // expected on real DB
+        } catch (e) {
+            // The test-only table doesn't exist in the real DB.
+            caught = e
         }
         // doc-end
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, (active = 'Y') as active from flag_table_only_for_sql_test where active = 'Y'"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        if (ctx.realDbEnabled) {
+            // Real DB: no such table → the execution threw.
+            expect(caught).not.toBeNull()
+            expect(String(caught)).toMatch(/flag_table_only_for_sql_test|no such table/)
+        } else {
+            expect(caught).toBeNull()
+            expect(rows).toEqual([{ id: 1, name: 'demo', active: true }])
+        }
     })
 })

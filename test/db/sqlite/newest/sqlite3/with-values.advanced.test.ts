@@ -146,12 +146,10 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{ pid: number; newName?: string }>>>()
-        if (!ctx.realDbEnabled) {
-            expect(rows).toEqual([
-                { pid: 1, newName: 'one' },
-                { pid: 2 },
-            ])
-        }
+        expect(rows).toEqual([
+            { pid: 1, newName: 'one' },
+            { pid: 2 },
+        ])
     })
 
     test('values-optional-column-allows-undefined-per-row', async () => {
@@ -184,12 +182,10 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number; newName?: string }>>>()
-        if (!ctx.realDbEnabled) {
-            expect(rows).toEqual([
-                { id: 1, newName: 'one' },
-                { id: 2 },
-            ])
-        }
+        expect(rows).toEqual([
+            { id: 1, newName: 'one' },
+            { id: 2 },
+        ])
     })
 
     test('values-with-custom-typed-columns-emits-customint-customdouble-casts', async () => {
@@ -312,7 +308,7 @@ describe(ctx.label, () => {
         ])
     })
 
-        test('values-create-with-empty-list-throws-cannot-be-empty', () => {
+    test('values-create-with-empty-list-throws-cannot-be-empty', () => {
         // `Values.create(type, name, [])` reaches the guard at L272-275
         // and throws a `TsSqlProcessingError` with reason
         // `CONSTANT_VALUES_VIEW_CANNOT_BE_EMPTY`. Pure compile-time

@@ -37,7 +37,7 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
     })
 
-    test('table-customization: aliased wrapper emits table name + alias (no "as", Oracle-style)', async () => {
+    test('table-customization: aliased wrapper emits table name + "as <alias>"', async () => {
         const tOrgAliased = tOrganization.as('o')
         const tOrgCustom = ctx.conn.withSqlHint(tOrgAliased, 'tOrgCustomAliased')
         ctx.mockNext([])

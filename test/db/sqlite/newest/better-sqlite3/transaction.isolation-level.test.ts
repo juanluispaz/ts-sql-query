@@ -18,6 +18,9 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
+    // NOT-APPLICABLE: SqliteConnection does not define `isolationLevel(...)`
+    // (single implicit serializable mode, no SET TRANSACTION access-mode
+    // support), so these bodies cannot run.
     /*
     test('isolation-level-only-builds-level-opts', async () => {
         ctx.mockNext(1)

@@ -12,12 +12,14 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
+    // NOT-APPLICABLE: MySQL has no Values (`WITH name AS (VALUES …)`) — the library type-excludes it on MySqlConnection.
     /*
     test('values in select-from', async () => {
         // Not supported by MySQL.
     })
     */
 
+    // NOT-APPLICABLE: MySQL has no Values (`WITH name AS (VALUES …)`) — the library type-excludes it on MySqlConnection.
     /*
     test('values in update-from', async () => {
         // Not supported by MySQL.

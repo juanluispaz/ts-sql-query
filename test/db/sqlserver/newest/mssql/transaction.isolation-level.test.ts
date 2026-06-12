@@ -19,15 +19,16 @@
 // Docs: docs/queries/transaction.md (section "Transaction isolation").
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
+import type { TransactionIsolationLevel } from '../../../../../src/Connection.js'
 import { ctx } from './setup.js'
 
-async function runReadOnlyTransaction(isolation: unknown): Promise<number | null> {
+async function runReadOnlyTransaction(isolation: TransactionIsolationLevel): Promise<number | null> {
     const connection = ctx.conn
     return await connection.transaction(async () => {
         return await connection.selectFromNoTable()
             .selectOneColumn(connection.const(1, 'int'))
             .executeSelectOne()
-    }, isolation as any)
+    }, isolation)
 }
 
 describe(ctx.label, () => {
@@ -44,10 +45,8 @@ describe(ctx.label, () => {
         expect(result).toBe(1)
     })
 
-    // Not applicable on SQL Server: `isolationLevel` takes no access
-    // mode, so neither the level+accessMode form nor the access-mode-only
-    // form exists. Bodies kept verbatim (from the pg/mysql cells) for
-    // cross-cell diff parity.
+    // Bodies kept verbatim (from the pg/mysql cells) for cross-cell diff parity.
+    // NOT-APPLICABLE: SQL Server's `isolationLevel` takes only a level, no access mode, so neither the level+accessMode form nor the access-mode-only form exists.
     /*
     test('isolation-level-with-access-mode-builds-pair-opts', async () => {
         ctx.mockNext(1)

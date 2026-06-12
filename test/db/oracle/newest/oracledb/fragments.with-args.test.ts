@@ -136,6 +136,7 @@ describe(ctx.label, () => {
           ]
         `)
         if (!ctx.realDbEnabled) expect(rows).toEqual([{ r: 7 }])
+        else expect(rows[0]!.r).toBe(7)
     })
 
     test('build-fragment-with-maybe-optional-args-tracks-optional-on-undefined', async () => {
@@ -162,9 +163,8 @@ describe(ctx.label, () => {
         // mock-row's `null` is either passed through or dropped
         // depending on the optionals-as-null vs optionals-as-undefined
         // projector, so the assertion only requires the row exists.
-        if (!ctx.realDbEnabled) {
-            expect(rows).toHaveLength(1)
-            expect(rows[0]!.r ?? null).toBeNull()
-        }
+        // Oracle: `null + 5` evaluates to NULL, matching the mocked row.
+        expect(rows).toHaveLength(1)
+        expect(rows[0]!.r ?? null).toBeNull()
     })
 })

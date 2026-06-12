@@ -86,11 +86,10 @@ describe(ctx.label, () => {
         })
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — MySQL has no UPDATE …
-    // RETURNING in any released version (no WL has shipped yet). The
-    // fluent API encodes this by narrowing `returningOneColumn` to
-    // `never` for `mysql`, so the test body would not even type-check
-    // here. Re-enable if/when MySQL adds the syntax.
+    // MySQL has no UPDATE … RETURNING in any released version, so the
+    // fluent API narrows `returningOneColumn`/`returning` to `never` for
+    // `mysql` and these bodies would not even type-check here.
+    // TODO[LIMITATION]: see LIMITATIONS.md — re-enable if/when MySQL adds UPDATE … RETURNING.
     /*
     test('execute-update-none-or-one-with-returning-one-column', async () => {
         // See sqlite / postgres cells for the active body.
@@ -176,18 +175,23 @@ describe(ctx.label, () => {
         expect(affected).toBe(0)
     })
 
+    // NOT-APPLICABLE: `executeUpdateNoneOrOne` is a RETURNING executor reached through `returningOneColumn`, which narrows to `never` on MySQL (no UPDATE … RETURNING); the shared empty-set short-circuit (→ null) is covered in the postgres/sqlite/mariadb cells.
+    /*
     test('execute-update-none-or-one-with-no-sets-resolves-null', async () => {
-        // Same empty-`__sets` short-circuit on the none-or-one path
-        // (UpdateQueryBuilder.ts:85): resolves null, no query emitted.
-        // `executeUpdateNoneOrOne` is not on the bare `dynamicSet()`
-        // type (only `executeUpdate` is), so cast to reach the runtime
-        // short-circuit — same pattern errors.processing.test.ts uses.
-        const builder = ctx.conn.update(tIssue)
+        // Same empty-set short-circuit on the none-or-one path: with no
+        // columns set, the executor resolves null and emits no query.
+        // `executeUpdateNoneOrOne` is a RETURNING executor reached through
+        // `returningOneColumn`; the short-circuit fires before the projection
+        // matters, so null still comes back without touching the database.
+        const result = await ctx.conn.update(tIssue)
             .dynamicSet()
-            .where(tIssue.id.equals(1)) as any
-        const result = await builder.executeUpdateNoneOrOne()
+            .where(tIssue.id.equals(1))
+            .returningOneColumn(tIssue.status)
+            .executeUpdateNoneOrOne()
+        assertType<Exact<typeof result, string | null>>()
         expect(result).toBeNull()
     })
+    */
 
     test('execute-update-one-with-no-sets-throws-no-column-sets', async () => {
         // The one-row path cannot resolve "no row" as success, so the
@@ -208,10 +212,10 @@ describe(ctx.label, () => {
     })
 
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — MySQL has no UPDATE …
-    // RETURNING, so `.returning(...)` narrows to `never` and the body
-    // would not type-check. The short-circuit it exercises is
-    // dialect-independent and covered by the other cells.
+    // MySQL has no UPDATE … RETURNING, so `.returning(...)` narrows to
+    // `never` and the body would not type-check. The short-circuit it
+    // exercises is dialect-independent and covered by the other cells.
+    // TODO[LIMITATION]: see LIMITATIONS.md — re-enable if/when MySQL adds UPDATE … RETURNING.
     /*
     test('execute-update-many-with-no-sets-resolves-empty-array', async () => {
         // See sqlite / postgres cells for the active body.

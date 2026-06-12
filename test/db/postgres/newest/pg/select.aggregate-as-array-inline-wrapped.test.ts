@@ -113,49 +113,6 @@ describe(ctx.label, () => {
         `)
     })
 
-    test('inline-aggregate-as-required-in-optional-object', async () => {
-        // `asRequiredInOptionalObject()` on the inline-aggregate value
-        // source (ValueSourceImpl.ts:2145 —
-        // AggregateSelectValueSource.asRequiredInOptionalObject) makes the
-        // subquery the gate of an optional inner object. If the subquery
-        // aggregates no rows, json_agg returns NULL and the inner
-        // `meta` object is dropped from the row.
-        ctx.mockNext([
-            { pid: 3, 'meta.issues': [{ id: 4, title: 'Document /v2/users' }] },
-            { pid: 4, 'meta.issues': null },
-        ])
-        const projectIssues = ctx.conn.subSelectUsing(tProject).from(tIssue)
-            .where(tIssue.projectId.equals(tProject.id))
-            .select({ id: tIssue.id, title: tIssue.title })
-            .orderBy('id')
-            .forUseAsInlineAggregatedArrayValue()
-            .asRequiredInOptionalObject()
-
-        const rows = await ctx.conn.selectFrom(tProject)
-            .where(tProject.organizationId.equals(2))
-            .select({
-                pid: tProject.id,
-                meta: { issues: projectIssues },
-            })
-            .orderBy('pid')
-            .executeSelectMany()
-
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, (select json_agg(json_build_object('id', a_1_.id, 'title', a_1_.title)) from (select id as id, title as title from issue where project_id = project.id order by id) as a_1_) as "meta.issues" from project where organization_id = $1 order by pid"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            2,
-          ]
-        `)
-        assertType<Exact<typeof rows, Array<{
-            pid:   number
-            meta?: { issues: Array<{ id: number; title: string }> }
-        }>>>()
-        expect(rows).toEqual([
-            { pid: 3, meta: { issues: [{ id: 4, title: 'Document /v2/users' }] } },
-            { pid: 4 },
-        ])
-    })
-
     test('inline-aggregate-use-empty-array-for-no-value-explicit', async () => {
         // `forUseAsInlineAggregatedArrayValue()` already defaults to a
         // required array; `useEmptyArrayForNoValue()` on the inline value
@@ -416,6 +373,49 @@ describe(ctx.label, () => {
             projects?: Array<{ id: number; name: string }>
         }>>()
         expect(row).toEqual({ id: 1, name: 'Acme Corp' })
+    })
+
+    test('inline-aggregate-as-required-in-optional-object', async () => {
+        // `asRequiredInOptionalObject()` on the inline-aggregate value
+        // source (ValueSourceImpl.ts:2145 —
+        // AggregateSelectValueSource.asRequiredInOptionalObject) makes the
+        // subquery the gate of an optional inner object. If the subquery
+        // aggregates no rows, json_agg returns NULL and the inner
+        // `meta` object is dropped from the row.
+        ctx.mockNext([
+            { pid: 3, 'meta.issues': [{ id: 4, title: 'Document /v2/users' }] },
+            { pid: 4, 'meta.issues': null },
+        ])
+        const projectIssues = ctx.conn.subSelectUsing(tProject).from(tIssue)
+            .where(tIssue.projectId.equals(tProject.id))
+            .select({ id: tIssue.id, title: tIssue.title })
+            .orderBy('id')
+            .forUseAsInlineAggregatedArrayValue()
+            .asRequiredInOptionalObject()
+
+        const rows = await ctx.conn.selectFrom(tProject)
+            .where(tProject.organizationId.equals(2))
+            .select({
+                pid: tProject.id,
+                meta: { issues: projectIssues },
+            })
+            .orderBy('pid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, (select json_agg(json_build_object('id', a_1_.id, 'title', a_1_.title)) from (select id as id, title as title from issue where project_id = project.id order by id) as a_1_) as "meta.issues" from project where organization_id = $1 order by pid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            pid:   number
+            meta?: { issues: Array<{ id: number; title: string }> }
+        }>>>()
+        expect(rows).toEqual([
+            { pid: 3, meta: { issues: [{ id: 4, title: 'Document /v2/users' }] } },
+            { pid: 4 },
+        ])
     })
 
     test('null-inline-aggregate-as-required-in-optional-object', async () => {

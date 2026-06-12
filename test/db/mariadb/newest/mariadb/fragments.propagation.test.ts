@@ -75,7 +75,7 @@ test('fragment-with-old-values-column-bubbles-up-in-update-returning', async () 
     })
     */
 
-    // Not applicable on MariaDB: `onConflictOn(cols).doUpdateSet({...})` requires column-explicit conflict targeting — MariaDB's `ON DUPLICATE KEY UPDATE` grammar takes no column list; the test would not type-check on this connection.
+    // NOT-APPLICABLE: MariaDB uses the bare onConflictDoUpdateSet form — `onConflictOn(cols).doUpdateSet({...})` requires column-explicit conflict targeting; MariaDB's `ON DUPLICATE KEY UPDATE` grammar takes no column list, so the test would not type-check on this connection.
     /*
 test('fragment-with-values-for-insert-column-bubbles-up-in-on-conflict-do-update-set', async () => {
         // ON CONFLICT … DO UPDATE … SET <col> = <fragment(excluded.col)>

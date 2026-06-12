@@ -27,7 +27,7 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // Not applicable on MySQL: `tTable.oldValues()` is typed `never` on `MySqlConnection` ([Table.ts:56-62](../../../../../src/Table.ts#L56-L62)); MySQL's UPDATE has no RETURNING and no equivalent OUTPUT clause — audit-style pre/post reads need an explicit SELECT before the UPDATE.
+    // NOT-APPLICABLE: MySQL has no RETURNING (and no OUTPUT equivalent), so `tTable.oldValues()` is typed `never` on `MySqlConnection`; audit-style pre/post reads need an explicit SELECT before the UPDATE.
     /*
     test('returning-old-and-new-single-column-via-oldValues', async () => {
         // Update project 1's name; return both the previous and the
@@ -64,7 +64,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // Not applicable on MySQL: `tTable.oldValues()` is typed `never` on `MySqlConnection` ([Table.ts:56-62](../../../../../src/Table.ts#L56-L62)); MySQL's UPDATE has no RETURNING and no equivalent OUTPUT clause — audit-style pre/post reads need an explicit SELECT before the UPDATE.
+    // NOT-APPLICABLE: MySQL has no RETURNING (and no OUTPUT equivalent), so `tTable.oldValues()` is typed `never` on `MySqlConnection`; audit-style pre/post reads need an explicit SELECT before the UPDATE.
     /*
     test('returning-old-and-new-two-columns-via-oldValues', async () => {
         // Two-column audit projection: pre/post name and pre/post

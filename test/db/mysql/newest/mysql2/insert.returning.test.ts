@@ -54,6 +54,7 @@ describe(ctx.label, () => {
     // mysql does not support the RETURNING clause; the library refuses
     // `.returning({...}).executeInsertOne()` at compile time. Kept here
     // commented for symmetry.
+    // NOT-APPLICABLE: MySQL has no RETURNING
     /*
     test('insert-project-returning-row', async () => {
         const expectedMock = { id: 100, name: 'Mobile app', slug: 'mobile' }
@@ -71,6 +72,7 @@ describe(ctx.label, () => {
     // mysql does not support the RETURNING clause; the library refuses
     // `.returning({...}).executeInsertMany()` at compile time. Kept here
     // commented for symmetry.
+    // NOT-APPLICABLE: MySQL has no RETURNING
     /*
     test('insert-many-organizations', async () => {
         const expectedMock = [{ id: 100 }, { id: 101 }]

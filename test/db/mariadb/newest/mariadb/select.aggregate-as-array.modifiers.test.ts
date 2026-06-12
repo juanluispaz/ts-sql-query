@@ -13,10 +13,10 @@
 // These land on AggregateSelectValueSource / NullAggregateSelectValueSource
 // in src/internal/ValueSourceImpl.ts.
 //
-// `json_agg` has no ORDER BY here, so the real engine's array order is not
-// deterministic; the value assertion is therefore mock-only (the SQL +
-// params + type assertions still run in both modes), mirroring the
-// existing aggregate-as-array tests.
+// `json_arrayagg` has no ORDER BY here, so the real engine's array order
+// is not deterministic; the value assertions run in both modes but sort the
+// aggregated array in JS before comparing (the SQL + params + type
+// assertions run unconditionally).
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -49,13 +49,14 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{ pid: number; titles: string[] }>>>()
-        if (!ctx.realDbEnabled) {
-            expect(rows).toEqual([{ pid: 1, titles: ['Update hero copy', 'Redesign navbar'] }])
-        }
+        // json_arrayagg order isn't guaranteed; sort titles before comparing.
+        rows[0]!.titles.sort()
+        expect(rows).toEqual([{ pid: 1, titles: ['Redesign navbar', 'Update hero copy'] }])
     })
 
     test('aggregate-as-array-as-optional-non-empty-array', async () => {
-        ctx.mockNext([{ pid: 1, titles: ['Update hero copy'] }])
+        // Project 1 has two issues, so the aggregate yields both titles.
+        ctx.mockNext([{ pid: 1, titles: ['Update hero copy', 'Redesign navbar'] }])
         const tIssueLeft = tIssue.forUseInLeftJoin()
         const rows = await ctx.conn.selectFrom(tProject)
             .leftJoin(tIssueLeft).on(tIssueLeft.projectId.equals(tProject.id))
@@ -74,15 +75,15 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{ pid: number; titles?: string[] }>>>()
-        if (!ctx.realDbEnabled) {
-            expect(rows).toEqual([{ pid: 1, titles: ['Update hero copy'] }])
-        }
+        rows[0]!.titles!.sort()
+        expect(rows).toEqual([{ pid: 1, titles: ['Redesign navbar', 'Update hero copy'] }])
     })
 
     test('aggregate-as-array-only-when-or-null-true-is-passthrough', async () => {
         // `onlyWhenOrNull(true)` returns the same regular value source —
-        // no Null variant, so the array stays required.
-        ctx.mockNext([{ pid: 1, titles: ['Update hero copy'] }])
+        // no Null variant, so the array stays required. Project 1 has two
+        // issues, so the aggregate yields both titles.
+        ctx.mockNext([{ pid: 1, titles: ['Update hero copy', 'Redesign navbar'] }])
         const tIssueLeft = tIssue.forUseInLeftJoin()
         const rows = await ctx.conn.selectFrom(tProject)
             .leftJoin(tIssueLeft).on(tIssueLeft.projectId.equals(tProject.id))
@@ -101,14 +102,14 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{ pid: number; titles?: string[] }>>>()
-        if (!ctx.realDbEnabled) {
-            expect(rows).toEqual([{ pid: 1, titles: ['Update hero copy'] }])
-        }
+        rows[0]!.titles!.sort()
+        expect(rows).toEqual([{ pid: 1, titles: ['Redesign navbar', 'Update hero copy'] }])
     })
 
     test('aggregate-as-array-ignore-when-as-null-false-is-passthrough', async () => {
         // `ignoreWhenAsNull(false)` returns the same regular value source.
-        ctx.mockNext([{ pid: 1, titles: ['Update hero copy'] }])
+        // Project 1 has two issues, so the aggregate yields both titles.
+        ctx.mockNext([{ pid: 1, titles: ['Update hero copy', 'Redesign navbar'] }])
         const tIssueLeft = tIssue.forUseInLeftJoin()
         const rows = await ctx.conn.selectFrom(tProject)
             .leftJoin(tIssueLeft).on(tIssueLeft.projectId.equals(tProject.id))
@@ -127,9 +128,8 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{ pid: number; titles?: string[] }>>>()
-        if (!ctx.realDbEnabled) {
-            expect(rows).toEqual([{ pid: 1, titles: ['Update hero copy'] }])
-        }
+        rows[0]!.titles!.sort()
+        expect(rows).toEqual([{ pid: 1, titles: ['Redesign navbar', 'Update hero copy'] }])
     })
 
     test('aggregate-as-array-disallow-when-true-throws-on-build', async () => {
@@ -214,9 +214,10 @@ describe(ctx.label, () => {
             pid:    number
             issues: Array<{ id: number; body: string | null }>
         }>>>()
-        if (!ctx.realDbEnabled) {
-            expect(rows).toEqual([{ pid: 1, issues: [{ id: 1, body: null }, { id: 2, body: 'Use new tokens' }] }])
-        }
+        // json_arrayagg order isn't guaranteed; sort issues by id. Issue 1
+        // has a NULL body (→ null), issue 2 has 'Use new tokens'.
+        rows[0]!.issues.sort((a, b) => a.id - b.id)
+        expect(rows).toEqual([{ pid: 1, issues: [{ id: 1, body: null }, { id: 2, body: 'Use new tokens' }] }])
     })
 
     test('null-aggregate-as-array-then-use-empty-array-for-no-value', async () => {
@@ -245,9 +246,9 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{ pid: number; titles: string[] }>>>()
-        if (!ctx.realDbEnabled) {
-            expect(rows).toEqual([{ pid: 1, titles: [] }])
-        }
+        // The projection emits literal `null as titles` (no aggregation), so
+        // `useEmptyArrayForNoValue()` yields a deterministic empty array.
+        expect(rows).toEqual([{ pid: 1, titles: [] }])
     })
     test('aggregate-as-array-as-required-in-optional-object', async () => {
         // `asRequiredInOptionalObject()` on an aggregate (ValueSourceImpl.ts:2515

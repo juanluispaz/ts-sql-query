@@ -67,8 +67,9 @@ describe(ctx.label, () => {
                 id:     number
                 status: string
             } | null>>()
-            if (!ctx.realDbEnabled) expect(row).toEqual(expectedMock)
-            else expect(row).toBeNull()
+            // No-match id: the real DB deletes nothing and RETURNING is
+            // empty (null); the mock primes a synthetic row.
+            expect(row).toEqual(ctx.realDbEnabled ? null : expectedMock)
         })
     })
 
@@ -96,8 +97,8 @@ describe(ctx.label, () => {
               ]
             `)
             assertType<Exact<typeof status, string>>()
-            if (!ctx.realDbEnabled) expect(status).toBe('open')
-            else expect(typeof status).toBe('string')
+            // Seed issue id=1 has status 'open'; both modes return it.
+            expect(status).toBe('open')
         })
     })
 
@@ -160,21 +161,50 @@ describe(ctx.label, () => {
               ]
             `)
             assertType<Exact<typeof statuses, string[]>>()
-            if (!ctx.realDbEnabled) expect(statuses).toEqual(['open', 'in_progress'])
-            else expect(Array.isArray(statuses)).toBe(true)
+            // No-match id: the real DB deletes nothing and returns [];
+            // the mock primes a synthetic two-value array.
+            expect(statuses).toEqual(ctx.realDbEnabled ? [] : ['open', 'in_progress'])
         })
     })
 
-    // Not applicable on Oracle: the server rejects the
-    // `WITH cte AS (...) DELETE FROM ... WHERE x IN (SELECT ... FROM
-    // cte) ...` form with ORA-00928 "SELECT keyword missing". Oracle
-    // accepts WITH only as a prefix to SELECT; the library emits the
-    // WITH-prefix form here. See other cells for the canonical body.
+    // Oracle rejects the `WITH cte AS (...) DELETE FROM ... WHERE x IN
+    // (SELECT ... FROM cte) ...` form with ORA-00928 "SELECT keyword
+    // missing": Oracle accepts WITH only as a prefix to SELECT; the
+    // library emits the WITH-prefix form here. Body kept verbatim from
+    // the postgres cell for cross-cell diff parity.
+    // NOT-APPLICABLE: Oracle accepts WITH only as a prefix to SELECT, so WITH … DELETE (ORA-00928) is not emittable
     /*
     test('delete-cte-in-where-in-subquery-with-returning', async () => {
-        // ... see other cells for the full body — pins
-        // `with archived_projects as (...) delete from issue where ...
-        // returning ...`.
+        // The DELETE consumes a `.forUseInQueryAs(...)` CTE inside a
+        // WHERE-in-subquery (not in USING — that case is exercised by
+        // `delete.using.variants.test.ts` test 3). The CTE must bubble
+        // up through `__addWiths` on the subquery's source and emerge
+        // as a top-level `with ... delete from ... returning ...`.
+        ctx.mockNext([])
+        await ctx.withRollback(async () => {
+            const archivedProjects = ctx.conn.selectFrom(tProject)
+                .where(tProject.archivedAt.isNotNull())
+                .select({ id: tProject.id })
+                .forUseInQueryAs('archived_projects')
+
+            const removed = await ctx.conn.deleteFrom(tIssue)
+                .where(tIssue.projectId.in(
+                    ctx.conn.selectFrom(archivedProjects).selectOneColumn(archivedProjects.id),
+                ))
+                .and(tIssue.id.equals(99999))
+                .returning({ id: tIssue.id })
+                .executeDeleteMany()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"with archived_projects as (select id as id from project where archived_at is not null) delete from issue where project_id in (select id as result from archived_projects) and id = $1 returning id as id"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                99999,
+              ]
+            `)
+            assertType<Exact<typeof removed, Array<{ id: number }>>>()
+            if (!ctx.realDbEnabled) expect(removed).toEqual([])
+            else expect(removed).toEqual([])
+        })
     })
     */
 })

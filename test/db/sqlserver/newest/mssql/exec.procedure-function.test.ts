@@ -14,9 +14,7 @@
 // here through thin domain wrappers on `DBConnection`
 // (`callRefreshStats`, `callArchiveProject`, `callCountOpenIssues`,
 // `callProjectName`, `callProjectNameOrNull`) — that's the
-// documented user-facing pattern. The procedures / functions don't
-// exist in the seed schema, so the runtime is wrapped in `try/catch`
-// for real-DB cells while the snapshot assertion stays authoritative.
+// documented user-facing pattern.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { ctx } from './setup.js'
@@ -27,13 +25,9 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('execute-procedure-with-no-args', async () => {
-        // Procedure call with no arguments. Each dialect emits its
-        // own paren / `exec` / `begin … end` wrapper.
-        try {
-            await ctx.conn.callRefreshStats()
-        } catch (e) {
-            if (!ctx.realDbEnabled) throw e
-        }
+        // Procedure call with no arguments. SQL Server emits the
+        // `exec <name>` wrapper.
+        await ctx.conn.callRefreshStats()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"exec refresh_stats"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
     })
@@ -63,37 +57,39 @@ describe(ctx.label, () => {
         // Function call returning an int. The default path emits
         // `select <name>(...)`; Oracle wraps with `from dual`.
         ctx.mockNext(1)
-        let count: number | null = null
-        try {
-            count = await ctx.conn.callCountOpenIssues(1)
-        } catch (e) {
-            if (!ctx.realDbEnabled) throw e
-        }
+        // TODO[BUG]: see test/BUGS.md — SQL Server requires a two-part
+        // name (`dbo.count_open_issues`) to invoke a scalar UDF; the lib
+        // emits the bare name and the engine rejects it with
+        // "'count_open_issues' is not a recognized built-in function name".
+        // tests-audit-disable-next-line mock-only -- SQL Server scalar UDF call lacks the `dbo.` schema prefix; see test/BUGS.md
+        if (ctx.realDbEnabled) return
+        const count = await ctx.conn.callCountOpenIssues(1)
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select count_open_issues(@0)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
           ]
         `)
-        if (!ctx.realDbEnabled) expect(count).toBe(1)
+        expect(count).toBe(1)
     })
 
     test('execute-function-returning-string', async () => {
         // Function call returning a string.
         ctx.mockNext('Marketing site')
-        let name: string | null = null
-        try {
-            name = await ctx.conn.callProjectName(1)
-        } catch (e) {
-            if (!ctx.realDbEnabled) throw e
-        }
+        // TODO[BUG]: see test/BUGS.md — SQL Server requires the `dbo.`
+        // schema prefix to invoke a scalar UDF; the lib emits the bare
+        // name and the engine rejects `project_name` as not a recognized
+        // built-in function.
+        // tests-audit-disable-next-line mock-only -- SQL Server scalar UDF call lacks the `dbo.` schema prefix; see test/BUGS.md
+        if (ctx.realDbEnabled) return
+        const name = await ctx.conn.callProjectName(1)
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_name(@0)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
           ]
         `)
-        if (!ctx.realDbEnabled) expect(name).toBe('Marketing site')
+        expect(name).toBe('Marketing site')
     })
 
     test('execute-function-optional-accepts-null-result', async () => {
@@ -103,19 +99,19 @@ describe(ctx.label, () => {
         // `undefined` branch is reserved for "the driver returned no
         // row at all" and always raises `NO_RESULT` regardless.
         ctx.mockNext(null)
-        let name: string | null = 'sentinel'
-        try {
-            name = await ctx.conn.callProjectNameOrNull(999)
-        } catch (e) {
-            if (!ctx.realDbEnabled) throw e
-        }
+        // TODO[BUG]: see test/BUGS.md — SQL Server requires the `dbo.`
+        // schema prefix to invoke a scalar UDF; the lib emits the bare
+        // `project_name` and the engine rejects it.
+        // tests-audit-disable-next-line mock-only -- SQL Server scalar UDF call lacks the `dbo.` schema prefix; see test/BUGS.md
+        if (ctx.realDbEnabled) return
+        const name = await ctx.conn.callProjectNameOrNull(999)
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_name(@0)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             999,
           ]
         `)
-        if (!ctx.realDbEnabled) expect(name).toBeNull()
+        expect(name).toBeNull()
     })
     test('execute-function-required-throws-mandatory-when-driver-returns-null', async () => {
         // Required-typed function call where the driver hands back

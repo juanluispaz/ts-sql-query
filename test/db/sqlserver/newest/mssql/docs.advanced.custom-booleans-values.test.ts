@@ -34,6 +34,7 @@ describe(ctx.label, () => {
 
         // doc-start
         let id: number | undefined
+        let caught: unknown
         try {
             id = await ctx.conn.insertInto(tFlag).set({
                     name:   'demo',
@@ -41,8 +42,10 @@ describe(ctx.label, () => {
                 })
                 .returningLastInsertedId()
                 .executeInsert()
-        } catch {
-            // expected on real DB — the test-only table doesn't exist.
+        } catch (e) {
+            // The test-only table doesn't exist in the schema, so a real
+            // DB rejects the statement; the SQL is still captured.
+            caught = e
         }
         // doc-end
 
@@ -55,7 +58,10 @@ describe(ctx.label, () => {
             true,
           ]
         `)
-        if (!ctx.realDbEnabled) {
+        if (ctx.realDbEnabled) {
+            expect((caught as Error).message).toMatch(/flag_table_only_for_sql_test|Invalid object name/)
+        } else {
+            expect(caught).toBeUndefined()
             expect(id).toBe(99)
         }
     })
@@ -64,8 +70,10 @@ describe(ctx.label, () => {
         ctx.mockNext([{ id: 1, name: 'demo', active: true }])
 
         // doc-start
+        let rows: Array<{ id: number; name: string; active: boolean }> = []
+        let caught: unknown
         try {
-            const rows = await ctx.conn.selectFrom(tFlag)
+            rows = await ctx.conn.selectFrom(tFlag)
                 .where(tFlag.active)
                 .select({
                     id:     tFlag.id,
@@ -73,15 +81,20 @@ describe(ctx.label, () => {
                     active: tFlag.active,
                 })
                 .executeSelectMany()
-            if (!ctx.realDbEnabled) {
-                expect(rows).toEqual([{ id: 1, name: 'demo', active: true }])
-            }
-        } catch {
-            // expected on real DB
+        } catch (e) {
+            // The test-only table doesn't exist in the schema, so a real
+            // DB rejects the statement; the SQL is still captured.
+            caught = e
         }
         // doc-end
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, cast(case when active = 'Y' then 1 else 0 end as bit) as active from flag_table_only_for_sql_test where (active = 'Y')"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        if (ctx.realDbEnabled) {
+            expect((caught as Error).message).toMatch(/flag_table_only_for_sql_test|Invalid object name/)
+        } else {
+            expect(caught).toBeUndefined()
+            expect(rows).toEqual([{ id: 1, name: 'demo', active: true }])
+        }
     })
 })

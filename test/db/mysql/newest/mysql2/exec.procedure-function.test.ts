@@ -14,9 +14,9 @@
 // here through thin domain wrappers on `DBConnection`
 // (`callRefreshStats`, `callArchiveProject`, `callCountOpenIssues`,
 // `callProjectName`, `callProjectNameOrNull`) — that's the
-// documented user-facing pattern. The procedures / functions don't
-// exist in the seed schema, so the runtime is wrapped in `try/catch`
-// for real-DB cells while the snapshot assertion stays authoritative.
+// documented user-facing pattern. The procedures / functions are
+// defined in the MySQL domain schema, so these run against the real
+// engine.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { ctx } from './setup.js'
@@ -27,13 +27,8 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('execute-procedure-with-no-args', async () => {
-        // Procedure call with no arguments. Each dialect emits its
-        // own paren / `exec` / `begin … end` wrapper.
-        try {
-            await ctx.conn.callRefreshStats()
-        } catch (e) {
-            if (!ctx.realDbEnabled) throw e
-        }
+        // Procedure call with no arguments (refresh_stats is a no-op).
+        await ctx.conn.callRefreshStats()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"call refresh_stats()"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
     })
@@ -60,62 +55,44 @@ describe(ctx.label, () => {
     })
 
     test('execute-function-returning-int', async () => {
-        // Function call returning an int. The default path emits
-        // `select <name>(...)`; Oracle wraps with `from dual`.
+        // Function call returning an int. count_open_issues(1) counts the
+        // open issues of project 1 → 1 (issue 1; issue 2 is in_progress).
         ctx.mockNext(1)
-        let count: number | null = null
-        try {
-            count = await ctx.conn.callCountOpenIssues(1)
-        } catch (e) {
-            if (!ctx.realDbEnabled) throw e
-        }
+        const count = await ctx.conn.callCountOpenIssues(1)
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select count_open_issues(?)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
           ]
         `)
-        if (!ctx.realDbEnabled) expect(count).toBe(1)
+        expect(count).toBe(1)
     })
 
     test('execute-function-returning-string', async () => {
-        // Function call returning a string.
+        // Function call returning a string. project_name(1) → 'Marketing site'.
         ctx.mockNext('Marketing site')
-        let name: string | null = null
-        try {
-            name = await ctx.conn.callProjectName(1)
-        } catch (e) {
-            if (!ctx.realDbEnabled) throw e
-        }
+        const name = await ctx.conn.callProjectName(1)
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_name(?)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
           ]
         `)
-        if (!ctx.realDbEnabled) expect(name).toBe('Marketing site')
+        expect(name).toBe('Marketing site')
     })
 
     test('execute-function-optional-accepts-null-result', async () => {
-        // The `'optional'` overload allows a `null` driver result
-        // without throwing `MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE`
-        // (which the `'required'` flavour would have raised). The
-        // `undefined` branch is reserved for "the driver returned no
-        // row at all" and always raises `NO_RESULT` regardless.
+        // The 'optional' overload allows a null result without throwing.
+        // project_name(999) finds no project → null.
         ctx.mockNext(null)
-        let name: string | null = 'sentinel'
-        try {
-            name = await ctx.conn.callProjectNameOrNull(999)
-        } catch (e) {
-            if (!ctx.realDbEnabled) throw e
-        }
+        const name = await ctx.conn.callProjectNameOrNull(999)
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_name(?)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             999,
           ]
         `)
-        if (!ctx.realDbEnabled) expect(name).toBeNull()
+        expect(name).toBeNull()
     })
     test('execute-function-required-throws-mandatory-when-driver-returns-null', async () => {
         // Required-typed function call where the driver hands back

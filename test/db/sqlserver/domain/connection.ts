@@ -73,18 +73,26 @@ export class DBConnection extends SqlServerConnection<'DBConnection'> {
             this.const(reason, 'string'),
         ])
     }
+    // SQL Server requires a scalar UDF invoked inside a `SELECT` to be
+    // referenced by at least its two-part (schema-qualified) name —
+    // `dbo.count_open_issues`, not the bare `count_open_issues`, which
+    // the engine would treat as a built-in and reject with "is not a
+    // recognized built-in function name". (Stored procedures called via
+    // `EXEC` resolve unqualified, so the procedure wrappers above stay
+    // bare.) `executeFunction` passes the name straight through, so the
+    // `dbo.` prefix is just part of the name string.
     callCountOpenIssues(projectId: number): Promise<number> {
-        return this.executeFunction('count_open_issues', [
+        return this.executeFunction('dbo.count_open_issues', [
             this.const(projectId, 'int'),
         ], 'int', 'required')
     }
     callProjectName(id: number): Promise<string> {
-        return this.executeFunction('project_name', [
+        return this.executeFunction('dbo.project_name', [
             this.const(id, 'int'),
         ], 'string', 'required')
     }
     callProjectNameOrNull(id: number): Promise<string | null> {
-        return this.executeFunction('project_name', [
+        return this.executeFunction('dbo.project_name', [
             this.const(id, 'int'),
         ], 'string', 'optional')
     }

@@ -3,23 +3,6 @@
 // existing `select.value-source.casts.test.ts` notes UUID is not in
 // the seed schema and explicitly skips this surface; the per-dialect
 // `_asString` paths are therefore unreached by the rest of the suite.
-//
-// Each dialect picks its own default `uuidStrategy` and emits a
-// helper that the user's deployment is expected to provide:
-//
-//   - `uuid_str(uuid_blob(?))`        — sqlite default (`uuid-extension`)
-//   - `($1)::text`                    — postgres (native uuid, no strategy)
-//   - `bin_to_uuid(uuid_to_bin(?))`   — mysql default (`binary`)
-//   - `?`                             — mariadb default (native UUID, no-op)
-//   - `raw_to_uuid(hextoraw(:0))`     — oracle default (`built-in`)
-//   - `?`                             — sqlserver (native uniqueidentifier)
-//
-// This test asserts the `bin_to_uuid(uuid_to_bin(?))` shape AND that
-// the value round-trips. MySQL 8.0+ provides `bin_to_uuid`/`uuid_to_bin`
-// natively, so it runs end-to-end against the real engine and `result`
-// comes back equal to the input UUID. The strategy-switch tests in
-// [config.uuid-strategy.test.ts](./config.uuid-strategy.test.ts) cover
-// the executable `'string'` branch end-to-end.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { ctx } from './setup.js'

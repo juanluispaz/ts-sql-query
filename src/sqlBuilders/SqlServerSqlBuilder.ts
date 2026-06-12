@@ -159,20 +159,13 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
 
         return this._appendRawColumnName(column, params)
     }
-    override _inlineSelectAsValueForCondition(query: SelectData, params: any[]): string {
-        if (query.__oneColumn) {
-            const columns = query.__columns
-            for (const prop in columns) {
-                const column = columns[prop]
-                if (isValueSource(column) && __isBooleanValueSource(__getValueSourcePrivate(column))) {
-                    return '((' + this._buildInlineSelect(query, params) + ') = 1)'
-                } else {
-                    return this._buildInlineSelect(query, params)
-                }
-            }
-        }
-        return this._buildInlineSelect(query, params)
-    }
+    // No `_inlineSelectAsValueForCondition` override: a boolean one-column
+    // inline select is a `bit`, and the `... = 1` bit-to-condition coercion is
+    // added exactly once by `_appendConditionSql` (the path every boolean value
+    // used as a condition flows through). Coercing here too produced
+    // `((<select>) = 1) = 1`, which SQL Server rejects (`Incorrect syntax near
+    // '='`, error 102), so we inherit the abstract emitter's parenthesised
+    // `(<select>)` and let `_appendConditionSql` apply the single coercion.
     override _appendWithKeyword(_recursive: boolean): string {
         // Sql Server doesn't uses the recursive keyword
         return 'with'

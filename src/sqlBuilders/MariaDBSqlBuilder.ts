@@ -1,9 +1,8 @@
 import type { AnyValueSource, __AggregatedArrayColumns } from '../expressions/values.js'
 import { isValueSource } from '../expressions/values.js'
 import { AbstractMySqlMariaDBSqlBuilder } from './AbstractMySqlMariaBDSqlBuilder.js'
-import type { CompoundOperator, FlatQueryColumns, InsertData, SelectData } from './SqlBuilder.js'
+import type { FlatQueryColumns, InsertData, SelectData } from './SqlBuilder.js'
 import { flattenQueryColumns } from './SqlBuilder.js'
-import { TsSqlProcessingError } from '../TsSqlError.js'
 import type { DBColumn } from '../utils/Column.js'
 import { __getColumnPrivate } from '../utils/Column.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
@@ -13,28 +12,12 @@ export class MariaDBSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
     override _isReservedKeyword(word: string): boolean {
         return word.toUpperCase() in reservedWords
     }
-    override _appendCompoundOperator(compoundOperator: CompoundOperator, _params: any[]): string {
-        switch(compoundOperator) {
-            case 'union':
-                return ' union '
-            case 'unionAll':
-                return ' union all '
-            case 'intersect':
-                return ' intersect '
-            case 'intersectAll':
-                return ' intersect all '
-            case 'except':
-                return ' except '
-            case 'exceptAll':
-                return ' except all '
-            case 'minus':
-                return ' minus '
-            case 'minusAll':
-                return ' minus all '
-            default:
-                throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'invalid compound operator', operator: compoundOperator }, 'Invalid compound operator: ' + compoundOperator)
-        }   
-    }
+    // No `_appendCompoundOperator` override: MariaDB renders `.minus(...)` /
+    // `.minusAll(...)` as the abstract builder's `EXCEPT` / `EXCEPT ALL`
+    // (the same form PostgreSQL and MySQL emit). MariaDB's `MINUS` keyword
+    // only exists under `SET SQL_MODE=ORACLE` — which ts-sql-query does not
+    // set — so in the default mode every connection uses, `MINUS` is a parse
+    // error on every version while `EXCEPT` (since 10.3.0) always works.
     override _supportOrderByWhenAggregateArray = true
     override _supportLimitWhenAggregateArray = true
     override _appendRawColumnNameForValuesForInsert(column: DBColumn, _params: any[]): string {

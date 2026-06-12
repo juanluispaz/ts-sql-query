@@ -169,11 +169,9 @@ describe(ctx.label, () => {
 
     test('custom-numeric/customdouble-trig', async () => {
         // The 7 trig methods over a customDouble operand keep the
-        // customDouble type. Oracle supports the rest natively, but has
-        // no COT() function, so the whole query (which emits cot(:4))
-        // is rejected at execution with ORA-00904.
-        // tests-audit-disable-next-line mock-only -- Oracle has no COT() function (ORA-00904: "COT": invalid identifier); the query emits cot(:4); see test/BUGS.md
-        if (ctx.realDbEnabled) return
+        // customDouble type. Oracle supports the rest natively; it has no
+        // COT() function, so `.cot()` emits `1 / tan(:4)`, which runs
+        // end-to-end like the rest.
         const r = ctx.conn.const(0.5, 'customDouble', 'Ratio')
         const expected = [{
             id: 1,
@@ -193,8 +191,23 @@ describe(ctx.label, () => {
             id: number; ac: number; as: number; at: number
             co: number; ct: number; si: number; ta: number
         }>>>()
-        expect(result).toEqual(expected)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", acos(:0) as "ac", asin(:1) as "as", atan(:2) as "at", cos(:3) as "co", cot(:4) as "ct", sin(:5) as "si", tan(:6) as "ta" from issue where id = :7"`)
+        if (ctx.realDbEnabled) {
+            // Oracle returns these to its own float precision; assert close
+            // rather than exact (the same approach the trig.test.ts cells use).
+            const row = result[0]!
+            const e = expected[0]!
+            expect(row.id).toBe(e.id)
+            expect(row.ac).toBeCloseTo(e.ac, 5)
+            expect(row.as).toBeCloseTo(e.as, 5)
+            expect(row.at).toBeCloseTo(e.at, 5)
+            expect(row.co).toBeCloseTo(e.co, 5)
+            expect(row.ct).toBeCloseTo(e.ct, 5)
+            expect(row.si).toBeCloseTo(e.si, 5)
+            expect(row.ta).toBeCloseTo(e.ta, 5)
+        } else {
+            expect(result).toEqual(expected)
+        }
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", acos(:0) as "ac", asin(:1) as "as", atan(:2) as "at", cos(:3) as "co", 1 / tan(:4) as "ct", sin(:5) as "si", tan(:6) as "ta" from issue where id = :7"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0.5,

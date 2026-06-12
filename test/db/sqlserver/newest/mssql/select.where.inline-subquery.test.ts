@@ -22,11 +22,6 @@ describe(ctx.label, () => {
     test('boolean-inline-subquery-as-condition', async () => {
         const expected = [{ id: 1 }, { id: 2 }, { id: 3 }]
         ctx.mockNext(expected)
-        // TODO[BUG]: see test/BUGS.md — SQL Server double-wraps the
-        // boolean inline-subquery condition as `((...) = 1) = 1`, which
-        // the engine rejects with "Incorrect syntax near '='".
-        // tests-audit-disable-next-line mock-only -- SQL Server rejects the `((...) = 1) = 1` double bit-coercion; see test/BUGS.md
-        if (ctx.realDbEnabled) return
         const result = await ctx.conn.selectFrom(tProject)
             .where(
                 ctx.conn.selectFrom(tProject)
@@ -38,8 +33,9 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
         assertType<Exact<typeof result, Array<{ id: number }>>>()
-        expect(result).toEqual(expected)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project where (((select cast(case when published = 't' then 1 else 0 end as bit) as [result] from project where id = @0) = 1) = 1) order by id"`)
+        // tests-audit-disable-next-line one-sided-guard -- expected rows depend on seed data; the real-DB contract here is that the query executes (no error), the value is asserted under the mock
+        if (!ctx.realDbEnabled) expect(result).toEqual(expected)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project where ((select cast(case when published = 't' then 1 else 0 end as bit) as [result] from project where id = @0) = 1) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -52,11 +48,6 @@ describe(ctx.label, () => {
         // leading `not (...)` around the same coerced condition.
         const expected = [{ id: 4 }]
         ctx.mockNext(expected)
-        // TODO[BUG]: see test/BUGS.md — same `((...) = 1) = 1` double
-        // bit-coercion the non-negated case hits; SQL Server rejects it
-        // with "Incorrect syntax near '='".
-        // tests-audit-disable-next-line mock-only -- SQL Server rejects the `((...) = 1) = 1` double bit-coercion; see test/BUGS.md
-        if (ctx.realDbEnabled) return
         const result = await ctx.conn.selectFrom(tProject)
             .where(
                 ctx.conn.selectFrom(tProject)
@@ -69,8 +60,9 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
         assertType<Exact<typeof result, Array<{ id: number }>>>()
-        expect(result).toEqual(expected)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project where not (((select cast(case when published = 't' then 1 else 0 end as bit) as [result] from project where id = @0) = 1) = 1) order by id"`)
+        // tests-audit-disable-next-line one-sided-guard -- expected rows depend on seed data; the real-DB contract here is that the query executes (no error), the value is asserted under the mock
+        if (!ctx.realDbEnabled) expect(result).toEqual(expected)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project where not ((select cast(case when published = 't' then 1 else 0 end as bit) as [result] from project where id = @0) = 1) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

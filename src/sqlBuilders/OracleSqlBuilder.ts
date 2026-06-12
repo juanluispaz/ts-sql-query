@@ -20,6 +20,19 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         this._operationsThatNeedParenthesis._getMonth = true
         this._operationsThatNeedParenthesis._getDay = true
         this._operationsThatNeedParenthesis._negate = true
+        // _cot is emitted as the compound expression `1 / tan(x)` (Oracle
+        // has no native COT function), so it must be parenthesised when used
+        // as an operand of another operation.
+        this._operationsThatNeedParenthesis._cot = true
+    }
+
+    override _cot(params: any[], valueSource: ToSql): string {
+        // Oracle has no COT function (ORA-00904: "COT": invalid identifier).
+        // Cotangent is the reciprocal of the tangent; emit 1 / tan(x), which
+        // evaluates the argument once (no parameter duplication). Nesting is
+        // handled via `_operationsThatNeedParenthesis._cot` set in the
+        // constructor.
+        return '1 / tan(' + this._appendSql(valueSource, params, false) + ')'
     }
 
     // Oracle is strict ANSI about GROUP BY: every non-aggregated SELECT

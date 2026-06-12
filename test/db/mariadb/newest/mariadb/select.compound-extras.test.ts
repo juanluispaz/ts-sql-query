@@ -1,10 +1,13 @@
 // Coverage of the compound-operator variants
 // [select.compound.test.ts](./select.compound.test.ts) leaves on the
-// table: `intersectAll`, `exceptAll`, `minus`, `minusAll`. MariaDB
-// accepts all four natively (it preserves `minus` / `minus all` rather
-// than rewriting them to `except`), so each runs against the real
-// engine and asserts the result multiset (compound order is
-// engine-defined).
+// table: `intersectAll`, `exceptAll`, `minus`, `minusAll`. MariaDB's
+// `MINUS` keyword only exists under `SET SQL_MODE=ORACLE` (which
+// ts-sql-query never sets), so in the default mode every connection
+// uses, `MINUS` is a parse error and `EXCEPT` is the portable form.
+// The builder therefore renders `.minus(...)` / `.minusAll(...)` as
+// `except` / `except all` (the same form PostgreSQL and MySQL emit),
+// and each runs against the real engine asserting the result multiset
+// (compound order is engine-defined).
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { tIssue } from '../../domain/connection.js'
@@ -61,9 +64,9 @@ describe(ctx.label, () => {
     })
 
     test('minus-routes-through-the-dialect-alias', async () => {
-        // MariaDB has no MINUS keyword (it uses EXCEPT), but the builder emits
-        // ` minus `, which the engine rejects (ER_PARSE_ERROR). Distinct left
-        // statuses {open, in_progress, closed} minus right (id <= 2)
+        // `.minus(...)` renders as ` except ` on MariaDB (its MINUS keyword
+        // is Oracle-mode only). Distinct left statuses
+        // {open, in_progress, closed} minus right (id <= 2)
         // {open, in_progress} leaves {closed}.
         const expected = [{ status: 'closed' }]
         ctx.mockNext(expected)
@@ -72,10 +75,8 @@ describe(ctx.label, () => {
         const small = ctx.conn.selectFrom(tIssue)
             .where(tIssue.id.lessOrEqual(2))
             .select({ status: tIssue.status })
-        // tests-audit-disable-next-line mock-only -- MariaDB rejects the emitted MINUS keyword (ER_PARSE_ERROR); the builder should emit EXCEPT — see test/BUGS.md
-        if (ctx.realDbEnabled) return
         const result = await all.minus(small).executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status from issue minus select status as status from issue where id <= ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status from issue except select status as status from issue where id <= ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -85,10 +86,10 @@ describe(ctx.label, () => {
     })
 
     test('minus-all-routes-through-the-dialect-alias', async () => {
-        // The `*All` flavour emits ` minus all `, which MariaDB also rejects
-        // (no MINUS keyword). left = all statuses (open, in_progress, open,
-        // closed); right (id <= 2) = open, in_progress. Subtracting one of
-        // each leaves open, closed.
+        // The `*All` flavour renders as ` except all ` (MINUS ALL is
+        // Oracle-mode only on MariaDB). left = all statuses
+        // (open, in_progress, open, closed); right (id <= 2) =
+        // open, in_progress. Subtracting one of each leaves open, closed.
         const expected = [{ status: 'closed' }, { status: 'open' }]
         ctx.mockNext(expected)
         const all = ctx.conn.selectFrom(tIssue)
@@ -96,10 +97,8 @@ describe(ctx.label, () => {
         const small = ctx.conn.selectFrom(tIssue)
             .where(tIssue.id.lessOrEqual(2))
             .select({ status: tIssue.status })
-        // tests-audit-disable-next-line mock-only -- MariaDB rejects the emitted MINUS ALL keyword (ER_PARSE_ERROR); the builder should emit EXCEPT ALL — see test/BUGS.md
-        if (ctx.realDbEnabled) return
         const result = await all.minusAll(small).executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status from issue minus all select status as status from issue where id <= ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status from issue except all select status as status from issue where id <= ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,

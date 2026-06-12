@@ -4,26 +4,16 @@
 // the seed schema and explicitly skips this surface; the per-dialect
 // `_asString` paths are therefore unreached by the rest of the suite.
 //
-// Each dialect picks its own default `uuidStrategy` and emits a
-// helper that the user's deployment is expected to provide:
-//
-//   - `uuid_str(uuid_blob(?))`        — sqlite default (`uuid-extension`)
-//   - `($1)::text`                    — postgres (native uuid, no strategy)
-//   - `bin_to_uuid(uuid_to_bin(?))`   — mysql default (`binary`)
-//   - `?`                             — mariadb default (native UUID, no-op)
-//   - `raw_to_uuid(hextoraw(:0))`     — oracle default (`built-in`)
-//   - `?`                             — sqlserver (native uniqueidentifier)
-//
-// Oracle (newest = 23ai) provides the `uuid_to_raw` / `raw_to_uuid`
-// built-ins, so the round-trip executes on the real DB and the value is
-// asserted unconditionally. The strategy-switch tests in
-// [config.uuid-strategy.test.ts](./config.uuid-strategy.test.ts) cover
-// the executable `'string'` branch end-to-end.
+// Oracle's default `'built-in'` uuidStrategy emits
+// `raw_to_uuid(uuid_to_raw(:0))`, which runs against the real DB. The
+// constant must be a v4 UUID: Oracle's built-in `UUID_TO_RAW` accepts
+// only version 4 (it rejects v1/v7 with `ORA-62432`), so other versions
+// need the `'custom-functions'` strategy.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { ctx } from './setup.js'
 
-const UUID_VALUE = '123e4567-e89b-12d3-a456-426614174000'
+const UUID_VALUE = 'f47ac10b-58cc-4372-a567-0e02b2c3d479'
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -31,8 +21,6 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('uuid-asString-on-const', async () => {
-        // tests-audit-disable-next-line mock-only -- Oracle rejects the emitted raw_to_uuid(uuid_to_raw(:0)) round-trip on a string-bound UUID const (ORA-62432: ... is not a valid UUID value); see test/BUGS.md
-        if (ctx.realDbEnabled) return
         ctx.mockNext(UUID_VALUE)
         const connection = ctx.conn
         const result = await connection.selectFromNoTable()
@@ -41,7 +29,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select raw_to_uuid(uuid_to_raw(:0)) as "result" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "123e4567-e89b-12d3-a456-426614174000",
+            "f47ac10b-58cc-4372-a567-0e02b2c3d479",
           ]
         `)
         expect(result).toBe(UUID_VALUE)

@@ -7,7 +7,9 @@
 // trig family.
 //
 // Oracle exposes `acos`/`asin`/… natively, so each cell executes
-// end-to-end against the real DB.
+// end-to-end against the real DB. The one exception is `.cot()`: Oracle
+// has no `COT` function, so the builder emits `1 / tan(x)` instead, which
+// runs end-to-end just the same.
 //
 // The scalar values pulled from `tIssue.priority` (range 1..3) are
 // inside the legal domain for every trig function exercised here
@@ -117,8 +119,7 @@ describe(ctx.label, () => {
     })
 
     test('cot', async () => {
-        // tests-audit-disable-next-line mock-only -- Oracle has no COT() function (ORA-00904: "COT": invalid identifier); see test/BUGS.md
-        if (ctx.realDbEnabled) return
+        // Oracle has no COT function; the builder emits 1 / tan(x).
         const expected = [{ id: 1, v: 1 / Math.tan(2) }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssue)
@@ -129,8 +130,13 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
         assertType<Exact<typeof result, Array<{ id: number; v: number }>>>()
-        expect(result).toEqual(expected)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", cot(priority) as "v" from issue where id = :0"`)
+        if (ctx.realDbEnabled) {
+            expect(result[0]!.id).toBe(1)
+            expect(result[0]!.v).toBeCloseTo(1 / Math.tan(2), 5)
+        } else {
+            expect(result).toEqual(expected)
+        }
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", 1 / tan(priority) as "v" from issue where id = :0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

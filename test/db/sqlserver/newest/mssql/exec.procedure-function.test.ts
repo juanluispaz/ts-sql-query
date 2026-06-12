@@ -55,16 +55,12 @@ describe(ctx.label, () => {
 
     test('execute-function-returning-int', async () => {
         // Function call returning an int. The default path emits
-        // `select <name>(...)`; Oracle wraps with `from dual`.
+        // `select <name>(...)`; Oracle wraps with `from dual`. SQL Server
+        // scalar UDFs must be called with their two-part name, so the
+        // domain wrapper passes `dbo.count_open_issues`.
         ctx.mockNext(1)
-        // TODO[BUG]: see test/BUGS.md — SQL Server requires a two-part
-        // name (`dbo.count_open_issues`) to invoke a scalar UDF; the lib
-        // emits the bare name and the engine rejects it with
-        // "'count_open_issues' is not a recognized built-in function name".
-        // tests-audit-disable-next-line mock-only -- SQL Server scalar UDF call lacks the `dbo.` schema prefix; see test/BUGS.md
-        if (ctx.realDbEnabled) return
         const count = await ctx.conn.callCountOpenIssues(1)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count_open_issues(@0)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select dbo.count_open_issues(@0)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -74,16 +70,10 @@ describe(ctx.label, () => {
     })
 
     test('execute-function-returning-string', async () => {
-        // Function call returning a string.
+        // Function call returning a string (two-part name, as above).
         ctx.mockNext('Marketing site')
-        // TODO[BUG]: see test/BUGS.md — SQL Server requires the `dbo.`
-        // schema prefix to invoke a scalar UDF; the lib emits the bare
-        // name and the engine rejects `project_name` as not a recognized
-        // built-in function.
-        // tests-audit-disable-next-line mock-only -- SQL Server scalar UDF call lacks the `dbo.` schema prefix; see test/BUGS.md
-        if (ctx.realDbEnabled) return
         const name = await ctx.conn.callProjectName(1)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_name(@0)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select dbo.project_name(@0)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -99,13 +89,8 @@ describe(ctx.label, () => {
         // `undefined` branch is reserved for "the driver returned no
         // row at all" and always raises `NO_RESULT` regardless.
         ctx.mockNext(null)
-        // TODO[BUG]: see test/BUGS.md — SQL Server requires the `dbo.`
-        // schema prefix to invoke a scalar UDF; the lib emits the bare
-        // `project_name` and the engine rejects it.
-        // tests-audit-disable-next-line mock-only -- SQL Server scalar UDF call lacks the `dbo.` schema prefix; see test/BUGS.md
-        if (ctx.realDbEnabled) return
         const name = await ctx.conn.callProjectNameOrNull(999)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_name(@0)"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select dbo.project_name(@0)"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             999,

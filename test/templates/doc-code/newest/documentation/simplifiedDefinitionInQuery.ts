@@ -1,5 +1,5 @@
 import { describe, test } from '../../../../lib/testRunner.js'
-import type { DynamicCondition } from "../../../../../src/dynamicCondition.js"
+import type { DynamicCondition } from "../../../../../src/dynamic/condition.js"
 
 /******************** 
  * Generated code

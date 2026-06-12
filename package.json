@@ -45,6 +45,18 @@
             "types": "./dynamicCondition.d.ts",
             "default": "./dynamicCondition.js"
         },
+        "./dynamic/condition": {
+            "types": "./dynamic/condition.d.ts",
+            "default": "./dynamic/condition.js"
+        },
+        "./dynamic/pick": {
+            "types": "./dynamic/pick.d.ts",
+            "default": "./dynamic/pick.js"
+        },
+        "./dynamic/orderBy": {
+            "types": "./dynamic/orderBy.d.ts",
+            "default": "./dynamic/orderBy.js"
+        },
         "./connections/MariaDBConnection": {
             "types": "./connections/MariaDBConnection.d.ts",
             "default": "./connections/MariaDBConnection.js"

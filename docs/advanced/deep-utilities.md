@@ -6,7 +6,7 @@ search:
 
 The `ts-sql-query/extras/deepUtilities` module (also re-exported from the root `ts-sql-query`) provides the **deep (nested) analogues** of the built-in `Pick<Type, Keys>`, `Omit<Type, Keys>` and `keyof Type`, working over **dotted paths** (`'company.name'`) instead of top-level keys.
 
-They are useful whenever you manipulate a nested plain object — most notably to type a generic [dynamic pick](utility-dynamic-picks.md) helper against your own nested business model without a cast, but they are general-purpose utilities you can use on any plain object.
+They are useful whenever you manipulate a nested plain object — most notably to type a generic [dynamic pick](../dynamic/utilities/picks.md) helper against your own nested business model without a cast, but they are general-purpose utilities you can use on any plain object.
 
 | Built-in (flat) | Deep analogue (dotted paths) |
 |-----------------|------------------------------|
@@ -95,7 +95,7 @@ type TrimmedCustomer = DeepOmit<CustomerWithCompany, 'lastName' | 'company.id'>;
 
 **Function**: `deepPick(obj, paths)`
 
-Returns a new object keeping only the properties of `obj` selected by `paths` (dotted paths into nested objects). It is the runtime companion of the `DeepPick` type — the deep analogue of how [`dynamicPickPaths`](utility-dynamic-picks.md#dynamicpickpaths) relates to `PickValuesPath`.
+Returns a new object keeping only the properties of `obj` selected by `paths` (dotted paths into nested objects). It is the runtime companion of the `DeepPick` type — the deep analogue of how [`dynamicPickPaths`](../dynamic/utilities/picks.md#dynamicpickpaths) relates to `PickValuesPath`.
 
 Intermediate objects are created as needed; a path whose intermediate value is `null`/`undefined` is skipped.
 
@@ -116,7 +116,7 @@ const picked = deepPick(customer, ['id', 'firstName', 'company.name']);
 
 !!! note "Forcing fields into a dynamic selection"
 
-    Unlike [`dynamicPickPaths`](utility-dynamic-picks.md#dynamicpickpaths), `deepPick` has no `alwaysIncluded` argument: it is a plain `Pick` analogue. When you need some paths always present regardless of a caller-provided selection, add them to the `paths` array yourself (e.g. `deepPick(obj, ['id', ...fields])`). The mandatory-field ergonomics live in the dynamic-query helpers (`dynamicPickPaths` / `expandTypeFromDynamicPickPaths`).
+    Unlike [`dynamicPickPaths`](../dynamic/utilities/picks.md#dynamicpickpaths), `deepPick` has no `alwaysIncluded` argument: it is a plain `Pick` analogue. When you need some paths always present regardless of a caller-provided selection, add them to the `paths` array yourself (e.g. `deepPick(obj, ['id', ...fields])`). The mandatory-field ergonomics live in the dynamic-query helpers (`dynamicPickPaths` / `expandTypeFromDynamicPickPaths`).
 
 ### deepOmit
 
@@ -149,7 +149,7 @@ The one shape that cannot be detected at the type level is a **plain custom obje
 
 These utilities are the recommended way to type a generic dynamic-pick helper against your **own nested business model**. When the picked fields are top-level keys, the built-in `Pick` / `keyof` are enough; when you pick fields inside nested objects through dotted paths, use `DeepPick` / `DeepPickPaths` instead.
 
-See [Utility for dynamic picks → Creating definitions based on your nested business types](utility-dynamic-picks.md#creating-definitions-based-on-your-nested-business-types) for a complete example that pipes a `dynamicPickPaths(...)` selection through `expandTypeFromDynamicPickPaths(...)` and returns a value typed as `DeepPick<Model, FIELDS | 'id'>` without a cast.
+See [Utility for dynamic picks → Creating definitions based on your nested business types](../dynamic/utilities/picks.md#creating-definitions-based-on-your-nested-business-types) for a complete example that pipes a `dynamicPickPaths(...)` selection through `expandTypeFromDynamicPickPaths(...)` and returns a value typed as `DeepPick<Model, FIELDS | 'id'>` without a cast.
 
 !!! note "Why a plain path-driven type"
 

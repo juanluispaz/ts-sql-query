@@ -21,9 +21,8 @@ export {
     dynamicPickPaths,
     expandTypeFromDynamicPickPaths,
     expandTypeProjectedAsNullableFromDynamicPickPaths
-} from './dynamicCondition.js'
+} from './dynamic/pick.js'
 export type {
-    DynamicCondition,
     Pickable,
     DynamicPick,
     DynamicPickPaths,
@@ -31,7 +30,16 @@ export type {
     PickValuesPathWitAllProperties,
     PickValuesPathProjectedAsNullable,
     PickValuesPathWitAllPropertiesProjectedAsNullable
-} from './dynamicCondition.js'
+} from './dynamic/pick.js'
+export type {
+    DynamicCondition,
+    DynamicConditionForModel,
+    DynamicDefinitionForModel
+} from './dynamic/condition.js'
+export type {
+    OrderByForModel,
+    OrderByMode
+} from './dynamic/orderBy.js'
 
 export { fromRef } from './extras/types.js'
 export type {

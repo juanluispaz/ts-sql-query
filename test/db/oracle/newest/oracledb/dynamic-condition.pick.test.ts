@@ -16,7 +16,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { dynamicPick, dynamicPickPaths, expandTypeProjectedAsNullableFromDynamicPickPaths } from '../../../../../src/dynamicCondition.js'
+import { dynamicPick, dynamicPickPaths, expandTypeProjectedAsNullableFromDynamicPickPaths } from '../../../../../src/dynamic/pick.js'
 import { tIssue } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 

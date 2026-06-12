@@ -34,7 +34,7 @@ By default, when you specify that you want to perform an insensitive operation (
 
 Providing the collation allows you to perform more advanced insensitive operations like case insensitive and accent insensitive, or even more in some languages (like manage some letter composition alternatives). Some databases offer general collations that are case insensitive and accent insensitive. But it is expected you want to use a collation specific to the language used by the user.
 
-```ttypescriptreact
+```typescriptreact
 import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
 
 class DBConnection extends PostgreSqlConnection<'DBConnection'> { 

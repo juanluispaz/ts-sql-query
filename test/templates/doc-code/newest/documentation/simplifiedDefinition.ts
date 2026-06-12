@@ -1,5 +1,6 @@
 import { describe, test } from '../../../../lib/testRunner.js'
-import type { DynamicCondition } from "../../../../../src/dynamicCondition.js"
+import type { DynamicCondition, DynamicConditionForModel, DynamicDefinitionForModel } from "../../../../../src/dynamic/condition.js"
+import type { OrderByForModel, OrderByMode } from "../../../../../src/dynamic/orderBy.js"
 
 /******************** 
  * Generated code
@@ -67,7 +68,11 @@ type CompoundableSubquery = SelectExpression
 void function(
     _s: Subquery,
     _cs: CompoundableSubquery,
-    _dc: DynamicCondition<any>
+    _dc: DynamicCondition<any>,
+    _dcfm: DynamicConditionForModel<any>,
+    _ddfm: DynamicDefinitionForModel<any>,
+    _obfm: OrderByForModel<any>,
+    _obm: OrderByMode
 ) {}
 
 type MyEnumType = any

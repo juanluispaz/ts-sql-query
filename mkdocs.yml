@@ -157,13 +157,21 @@ nav:
         - PostgreSQL: api/error-management/native-mappings/postgresql.md
         - SQLite: api/error-management/native-mappings/sqlite.md
         - SQL Server: api/error-management/native-mappings/sql-server.md
-  - Advanced: 
+  - Dynamic:
+    - Dynamic query building blocks: dynamic/building-blocks.md
+    - Booleans and three-valued logic: dynamic/three-valued-booleans.md
+    - Dynamic queries from a business model: dynamic/from-business-model.md
+    - Dynamic queries from the database types: dynamic/from-database-types.md
+    - Utilities:
+      - Dynamic conditions: dynamic/utilities/conditions.md
+      - Dynamic picks: dynamic/utilities/picks.md
+      - Dynamic order by: dynamic/utilities/order-by.md
+  - Advanced:
     - Custom booleans values: advanced/custom-booleans-values.md
     - Synchronous query runners: advanced/synchronous-query-runners.md
     - ID manipulation: advanced/id-manipulation.md
     - Extract columns from an object: advanced/columns-from-object.md
     - Utility types: advanced/utility-types.md
-    - Utility for dynamic picks: advanced/utility-dynamic-picks.md
     - Deep utilities: advanced/deep-utilities.md
     - Passing tables and views as parameter: advanced/tables-views-as-parameter.md
     - Query execution metadata: advanced/query-execution-metadata.md

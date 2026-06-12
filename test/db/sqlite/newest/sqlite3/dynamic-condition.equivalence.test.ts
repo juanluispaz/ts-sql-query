@@ -36,7 +36,7 @@
 // the `{ id }` projection lives in the operators / deep-and-or files.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
-import type { DynamicCondition } from '../../../../../src/dynamicCondition.js'
+import type { DynamicCondition } from '../../../../../src/dynamic/condition.js'
 import { tIssue, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 

@@ -13,7 +13,7 @@
 //     naming the returned type.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
-import type { DynamicCondition } from '../../../../../src/dynamicCondition.js'
+import type { DynamicCondition } from '../../../../../src/dynamic/condition.js'
 import { tAppUser, tIssue, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 

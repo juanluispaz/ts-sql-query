@@ -16,7 +16,7 @@ A dynamic condition allows you to create a condition whose structure is defined 
 const dynamicCondition = connection.dynamicConditionFor(selectFields).withValues(filter)
 ```
 
-The utility type `DynamicCondition` from `ts-sql-query/dynamicCondition` allows you to create a type definition for the dynamic criteria. This object receives a map with the name for the field and as value the name of the type or the value source to extract the type.
+The utility type `DynamicCondition` from `ts-sql-query/dynamic/condition` allows you to create a type definition for the dynamic criteria. This object receives a map with the name for the field and as value the name of the type or the value source to extract the type.
 
 For the filter definition:
 
@@ -61,6 +61,10 @@ type FilterType = {
 !!! note
 
     For convenience, `uuid` type is treated as a string, automatically applying the `asString()` method in all methods defined in the `StringFilter` interface.
+
+!!! tip "Deriving the filter type from a business model"
+
+    Besides a value-source map or a descriptor map, you can derive the filter type directly from a plain **business model** with `DynamicConditionForModel<Model>` — keeping the model as the single source of truth and not leaking any value-source type into your public signatures. See [Typing dynamic queries from a business model](../dynamic/from-business-model.md) for the full reference, including the model-to-filter mapping, the limitations, and the matching `OrderByForModel` order-by type.
 
 You can use the properties `and`, `or` and `not` to perform the logical operations. If you specify multiple elements to the `FilterType`, all of them will be joined using the and operator. The same happens with the elements specified in the **`and`** array. In contrast, elements in the **`or`** array will be joined using the OR operator.
 

@@ -21,7 +21,7 @@
 // universally executable, so they run end-to-end in mock and real-DB
 // mode. The `'uuid-extension'` branch tests emit
 // `uuid_str(uuid_blob(?))`, which requires the SQLite `uuid` extension
-// functions. This connector provides them (bun:sqlite ships them
+// functions. This connector provides them (node:sqlite ships them
 // built-in; better-sqlite3, node:sqlite and sqlite-wasm-OO1 register
 // them in the test harness — see test/db/sqlite/runners.ts), so those
 // tests also run end-to-end against the real engine. Only the `sqlite3`

@@ -6,7 +6,7 @@
 // `select.numeric-ops.test.ts`, so this file pins only the 1-arg
 // trig family.
 //
-// bun:sqlite exposes the standard SQL trig functions
+// node:sqlite exposes the standard SQL trig functions
 // `acos`/`asin`/`atan`/`cos`/`sin`/`tan` natively, so those cells run
 // end-to-end against the real DB and the runtime value is asserted with
 // `toBeCloseTo`. The one exception is `cot`, which this SQLite build does

@@ -163,8 +163,20 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof result, Array<{ id: number; sq: number; cb: number; e: number; l: number; l10: number }>>>()
-        // tests-audit-disable-next-line one-sided-guard -- expected carries exact JS Math.* values (exp/ln/log10/cbrt); Oracle's results differ in float precision
-        if (!ctx.realDbEnabled) expect(result).toEqual(expected)
+        if (ctx.realDbEnabled) {
+            // Oracle returns exp/ln/log10/cbrt to its own float precision;
+            // assert close rather than exact (as customdouble-trig does).
+            const row = result[0]!
+            const e = expected[0]!
+            expect(row.id).toBe(e.id)
+            expect(row.sq).toBeCloseTo(e.sq, 5)
+            expect(row.cb).toBeCloseTo(e.cb, 5)
+            expect(row.e).toBeCloseTo(e.e, 5)
+            expect(row.l).toBeCloseTo(e.l, 5)
+            expect(row.l10).toBeCloseTo(e.l10, 5)
+        } else {
+            expect(result).toEqual(expected)
+        }
     })
 
     test('custom-numeric/customdouble-trig', async () => {
@@ -248,8 +260,19 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{
             id: number; p: number; ln: number; rn: number; di: number; at2: number
         }>>>()
-        // tests-audit-disable-next-line one-sided-guard -- expected.at2 carries an exact JS Math.atan2 value; Oracle's result differs in float precision
-        if (!ctx.realDbEnabled) expect(result).toEqual(expected)
+        if (ctx.realDbEnabled) {
+            // Oracle's atan2 (and the rest) return to its own float precision.
+            const row = result[0]!
+            const e = expected[0]!
+            expect(row.id).toBe(e.id)
+            expect(row.p).toBeCloseTo(e.p, 5)
+            expect(row.ln).toBeCloseTo(e.ln, 5)
+            expect(row.rn).toBeCloseTo(e.rn, 5)
+            expect(row.di).toBeCloseTo(e.di, 5)
+            expect(row.at2).toBeCloseTo(e.at2, 5)
+        } else {
+            expect(result).toEqual(expected)
+        }
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", power(:0, :1) as "p", log(:2, :3) as "ln", round(:4, :5) as "rn", :6 / :7 as "di", atan2(:8, :9) as "at2" from issue where id = :10"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [

@@ -104,12 +104,14 @@ describe(ctx.label, () => {
         expect(reasonsInChain(caught)).toContain('NOT_IN_TRANSACTION')
     })
 
-    // Pins the nested-transaction hook-stack behaviour (outer hooks
-    // saved and restored across the inner transaction). MariaDB does not
-    // support nested transactions, so a real nested transaction throws
-    // NESTED_TRANSACTION_NOT_SUPPORTED.
+    // Pins the nested-transaction hook-stack behaviour (outer hooks saved
+    // and restored across the inner transaction). The library does not
+    // implement nested transactions for MariaDB — there is no savepoint
+    // emulation; only pg/pglite report nestedTransactionsSupported() (and
+    // only when constructed with allowNestedTransactions). So a real nested
+    // transaction throws NESTED_TRANSACTION_NOT_SUPPORTED here.
     test('nested-transaction-preserves-and-restores-outer-after-commit-hook', async () => {
-        // tests-audit-disable-next-line mock-only -- MariaDB does not support nested transactions; real nesting throws NESTED_TRANSACTION_NOT_SUPPORTED
+        // tests-audit-disable-next-line mock-only -- the library does not implement nested transactions for MariaDB (no savepoint emulation; nestedTransactionsSupported() is false); only pg/pglite support them via allowNestedTransactions, so real nesting throws NESTED_TRANSACTION_NOT_SUPPORTED
         if (ctx.realDbEnabled) return
         const connection = ctx.conn
         const events: string[] = []

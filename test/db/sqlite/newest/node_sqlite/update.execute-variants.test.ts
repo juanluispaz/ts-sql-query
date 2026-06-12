@@ -86,7 +86,7 @@ describe(ctx.label, () => {
     test('execute-update-none-or-one-with-returning-one-column', async () => {
         // `executeUpdateNoneOrOne()` + `returningOneColumn(col)` lands
         // on the `__oneColumn` branch and returns the single value or
-        // null. bun:sqlite supports UPDATE … RETURNING, so this runs
+        // null. node:sqlite supports UPDATE … RETURNING, so this runs
         // end-to-end and returns issue 1's new status.
         ctx.mockNext('reviewed')
         await ctx.withRollback(async () => {

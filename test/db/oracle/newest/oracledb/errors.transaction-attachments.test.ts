@@ -44,7 +44,7 @@
 // baseline regardless of whether the inner transaction committed,
 // rolled back, or threw.
 
-import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
+import { afterAll, ApplicationError, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { QueryExecutionSource, TsSqlQueryExecutionError } from '../../../../../src/TsSqlError.js'
 
 // Body errors are thrown as `TsSqlQueryExecutionError` directly so
@@ -179,19 +179,14 @@ describe(ctx.label, () => {
     })
 
     test('transaction-body-throws-custom-error-class-propagates-raw-unwrapped', async () => {
-        // Real-DB only: the test framework's `MockQueryRunner`
-        // override at `testContext.ts:196` (`(e) => !(e instanceof
-        // RollbackSignal)`) classifies every non-`RollbackSignal`
-        // error as a SQL error so most mocked tests behave like a
-        // SQL-error flow. The real-driver runners' own `isSqlError`
-        // only recognises their own driver shapes plus `TsSqlError`,
-        // so a user-defined error class crosses
-        // `connection.transaction(...)` unchanged — same instance
-        // caught outside.
-        // tests-audit-disable-next-line one-sided-guard -- the mock's isSqlError classifies every non-RollbackSignal error as a SQL error, so the raw-unwrapped-propagation contract only holds against a real driver
-        if (!ctx.realDbEnabled) return
-        class AppDomainError extends Error {}
-        const thrown = new AppDomainError('boom-custom')
+        // A user error class crosses `connection.transaction(...)` unchanged —
+        // the same instance is caught outside, in BOTH mock and real modes. The
+        // harness models a user error with `ApplicationError` (a subclass here);
+        // the mock's `isSqlError` treats it as NOT a SQL error — exactly as a
+        // real driver does for any non-driver error — so the connection's
+        // `else { throw e }` branch surfaces the same instance, unwrapped.
+        class CustomAppError extends ApplicationError {}
+        const thrown = new CustomAppError('boom-custom')
         let caught: unknown
         try {
             await ctx.conn.transaction(async () => {
@@ -204,11 +199,9 @@ describe(ctx.label, () => {
     })
 
     test('transaction-body-throws-plain-error-propagates-raw-unwrapped', async () => {
-        // Same contract for a bare `new Error(...)`. Real-DB only —
-        // see reason on the previous test.
-        // tests-audit-disable-next-line one-sided-guard -- the mock's isSqlError classifies every non-RollbackSignal error as a SQL error, so the raw-unwrapped-propagation contract only holds against a real driver
-        if (!ctx.realDbEnabled) return
-        const thrown = new Error('boom-plain')
+        // Same contract for an `ApplicationError` thrown directly — a non-SQL
+        // user error propagates raw, same instance, in both modes.
+        const thrown = new ApplicationError('boom-plain')
         let caught: unknown
         try {
             await ctx.conn.transaction(async () => {

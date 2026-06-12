@@ -28,6 +28,12 @@ export {
     afterEach,
 } from '#test-runtime'
 
+// A user/application error sentinel for transaction-body tests. Defined at the
+// mock level (testContext) so the MockQueryRunner's `isSqlError` can recognise
+// it as NOT a SQL error; re-exported here because `*.test.ts` files may import
+// only the admitted test/lib helpers.
+export { ApplicationError } from './testContext.js'
+
 declare global {
     // eslint-disable-next-line no-var
     var Bun: { version: string } | undefined

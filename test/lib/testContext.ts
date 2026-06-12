@@ -178,6 +178,17 @@ class RollbackSignal extends Error {
     constructor() { super('rollback') }
 }
 
+// A user/application error thrown from a transaction body — NOT a SQL/driver
+// error. A real driver's `isSqlError` returns false for it (it only recognises
+// its own error type), so `connection.transaction(...)` propagates the SAME
+// instance raw, unwrapped. The mock is told the same in `isSqlError` below, so
+// the raw-propagation tests validate this contract in BOTH mock and real modes
+// instead of being skipped under the mock. Re-exported from `testRunner.ts` so
+// `*.test.ts` files (which may only import the admitted helpers) can throw it.
+export class ApplicationError extends Error {
+    override readonly name = 'ApplicationError'
+}
+
 const NON_CONSUMING_TYPES = new Set<string>([
     'beginTransaction', 'commit', 'rollback',
     'executeProcedure', 'executeDatabaseSchemaModification',
@@ -201,11 +212,16 @@ export function createTestContext<CONN>(opts: TestContextOptions<CONN>): TestCon
         return mockQueue.shift()
     }, {
         database: opts.database,
-        // RollbackSignal is a deliberate test-side sentinel — not a SQL
-        // error. Returning false here makes the connection propagate it as
-        // a plain exception, so `withRollback`'s try/catch can handle it
-        // identically in mock and real modes.
-        isSqlError: (e) => !(e instanceof RollbackSignal),
+        // RollbackSignal (test-side rollback sentinel) and ApplicationError
+        // (a user error thrown from a transaction body) are deliberately NOT
+        // SQL errors: returning false here makes the connection propagate them
+        // raw — the same instance a real driver's `isSqlError` would let
+        // through. Everything else is treated as a SQL error so the wrapping
+        // tests (which throw `TsSqlQueryExecutionError`) still wrap under the
+        // mock. This mirrors a real driver, where only its own error type is a
+        // SQL error, closely enough that both the rollback path and the
+        // raw-propagation path behave identically in mock and real modes.
+        isSqlError: (e) => !(e instanceof RollbackSignal || e instanceof ApplicationError),
     })
 
     let shutdownReal: (() => Promise<void>) | null = null

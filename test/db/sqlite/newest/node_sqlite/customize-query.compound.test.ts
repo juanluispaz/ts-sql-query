@@ -139,7 +139,7 @@ describe(ctx.label, () => {
         // the surrounding query (locks the param-order story for
         // hook-params relative to compound-body params: hook param
         // FIRST, body params after).
-        // tests-audit-disable-next-line mock-only -- bound param lands inside a leading /* */ comment; bun:sqlite strips the comment then rejects the extra ? against the compound body's own placeholder ("expected 1 values, received 2") (DESIGN §1 #18)
+        // tests-audit-disable-next-line mock-only -- bound param lands inside a leading /* */ comment; node:sqlite strips the comment then rejects the extra ? against the compound body's own placeholder ("expected 1 values, received 2") (DESIGN §1 #18)
         if (ctx.realDbEnabled) return
         const connection = ctx.conn
         const projectsQ = connection.selectFrom(tProject)

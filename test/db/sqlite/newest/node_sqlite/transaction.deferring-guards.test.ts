@@ -108,7 +108,7 @@ describe(ctx.label, () => {
     // `nestedTransactionsSupported() === true`. The MockQueryRunner does;
     // among real connectors only pg/pglite do, and only when constructed
     // with `allowNestedTransactions` (the matrix runners don't set it). The
-    // bun:sqlite runner does NOT, so a real nested transaction throws
+    // node:sqlite runner does NOT, so a real nested transaction throws
     // NESTED_TRANSACTION_NOT_SUPPORTED — asserted here in real mode. In mock
     // mode the same body pins the push/pop hook-stack ordering.
     test('nested-transaction-preserves-and-restores-outer-after-commit-hook', async () => {
@@ -126,7 +126,7 @@ describe(ctx.label, () => {
             } catch (e) { caught = e }
         })
         if (ctx.realDbEnabled) {
-            // The real bun:sqlite runner rejects the nested transaction.
+            // The real node:sqlite runner rejects the nested transaction.
             expect(reasonsInChain(caught)).toContain('NESTED_TRANSACTION_NOT_SUPPORTED')
         } else {
             // Inner commit fires its hook first; the outer hook, saved on the

@@ -44,7 +44,7 @@
 // baseline regardless of whether the inner transaction committed,
 // rolled back, or threw.
 
-import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
+import { afterAll, ApplicationError, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { QueryExecutionSource, TsSqlQueryExecutionError } from '../../../../../src/TsSqlError.js'
 
 // Body errors are thrown as `TsSqlQueryExecutionError` directly so
@@ -179,16 +179,14 @@ describe(ctx.label, () => {
     })
 
     test('transaction-body-throws-custom-error-class-propagates-raw-unwrapped', async () => {
-        // The real-driver runners' `isSqlError` only recognises their
-        // own driver shapes plus `TsSqlError`, so a user-defined error
-        // class crosses `connection.transaction(...)` unchanged — same
-        // instance caught outside. The test mock's `isSqlError` (in
-        // `testContext.ts`) classifies every non-`RollbackSignal` error
-        // as a SQL error, so under mock the same throw is WRAPPED in a
-        // `TsSqlQueryExecutionError` carrying the original as `.cause`.
-        // Assert both modes so neither side is left unvalidated.
-        class AppDomainError extends Error {}
-        const thrown = new AppDomainError('boom-custom')
+        // A user error class crosses `connection.transaction(...)` unchanged —
+        // the same instance is caught outside, in BOTH mock and real modes. The
+        // harness models a user error with `ApplicationError` (a subclass here);
+        // the mock's `isSqlError` treats it as NOT a SQL error — exactly as a
+        // real driver does for any non-driver error — so the connection's
+        // `else { throw e }` branch surfaces the same instance, unwrapped.
+        class CustomAppError extends ApplicationError {}
+        const thrown = new CustomAppError('boom-custom')
         let caught: unknown
         try {
             await ctx.conn.transaction(async () => {
@@ -197,18 +195,13 @@ describe(ctx.label, () => {
         } catch (e) {
             caught = e
         }
-        if (ctx.realDbEnabled) {
-            expect(caught).toBe(thrown)
-        } else {
-            expect(caught).toBeInstanceOf(TsSqlQueryExecutionError)
-            expect((caught as { cause?: unknown }).cause).toBe(thrown)
-        }
+        expect(caught).toBe(thrown)
     })
 
     test('transaction-body-throws-plain-error-propagates-raw-unwrapped', async () => {
-        // Same contract for a bare `new Error(...)` — see the previous
-        // test for why mock and real diverge.
-        const thrown = new Error('boom-plain')
+        // Same contract for an `ApplicationError` thrown directly — a non-SQL
+        // user error propagates raw, same instance, in both modes.
+        const thrown = new ApplicationError('boom-plain')
         let caught: unknown
         try {
             await ctx.conn.transaction(async () => {
@@ -217,12 +210,7 @@ describe(ctx.label, () => {
         } catch (e) {
             caught = e
         }
-        if (ctx.realDbEnabled) {
-            expect(caught).toBe(thrown)
-        } else {
-            expect(caught).toBeInstanceOf(TsSqlQueryExecutionError)
-            expect((caught as { cause?: unknown }).cause).toBe(thrown)
-        }
+        expect(caught).toBe(thrown)
     })
 
     // `attachRollbackError` is wired by the managed transaction runner

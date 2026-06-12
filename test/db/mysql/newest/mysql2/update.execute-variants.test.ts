@@ -193,23 +193,26 @@ describe(ctx.label, () => {
     })
     */
 
+    // NOT-APPLICABLE: `executeUpdateOne` is a RETURNING executor reached through `returningOneColumn`, which narrows to `never` on MySQL (no UPDATE … RETURNING); the shared empty-set short-circuit (→ NO_COLUMN_SETS on the one-row path) is covered in the postgres/sqlite/mariadb cells.
+    /*
     test('execute-update-one-with-no-sets-throws-no-column-sets', async () => {
         // The one-row path cannot resolve "no row" as success, so the
-        // empty-`__sets` short-circuit throws NO_COLUMN_SETS instead
-        // (UpdateQueryBuilder.ts:126-130).
+        // empty-`__sets` short-circuit throws NO_COLUMN_SETS instead —
+        // reached through the RETURNING path (`executeUpdateOne` is a
+        // returning executor), with the short-circuit firing first.
         let caught: unknown
         try {
-            // Cast as above: `executeUpdateOne` is not on the dynamicSet
-            // type; the runtime guard is what we are exercising.
-            const builder = ctx.conn.update(tIssue)
+            await ctx.conn.update(tIssue)
                 .dynamicSet()
-                .where(tIssue.id.equals(1)) as any
-            await builder.executeUpdateOne()
+                .where(tIssue.id.equals(1))
+                .returningOneColumn(tIssue.status)
+                .executeUpdateOne()
         } catch (e) {
             caught = e
         }
         expect(String(caught)).toMatch(/NO_COLUMN_SETS|No values to update/)
     })
+    */
 
 
     // MySQL has no UPDATE … RETURNING, so `.returning(...)` narrows to

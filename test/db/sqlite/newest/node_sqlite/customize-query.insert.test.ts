@@ -49,7 +49,7 @@ describe(ctx.label, () => {
         // A fragment whose template interpolates `connection.const(...)`
         // produces a placeholder inside the comment, proving the hook
         // routes through `_appendRawFragment` and registers the param.
-        // tests-audit-disable-next-line mock-only -- bound param lands inside a /* */ comment; bun:sqlite strips the comment on the mutation path then rejects the extra ? ("expected 3 values, received 4") (DESIGN §1 #18)
+        // tests-audit-disable-next-line mock-only -- bound param lands inside a /* */ comment; node:sqlite strips the comment on the mutation path then rejects the extra ? ("expected 3 values, received 4") (DESIGN §1 #18)
         if (ctx.realDbEnabled) return
         ctx.mockNext(1)
         const connection = ctx.conn

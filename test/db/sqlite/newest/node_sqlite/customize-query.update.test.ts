@@ -47,7 +47,7 @@ describe(ctx.label, () => {
     test('customize-update-hook-fragment-with-bound-param', async () => {
         // A fragment whose template interpolates `connection.const(...)`
         // produces a placeholder inside the hook output.
-        // tests-audit-disable-next-line mock-only -- bound param lands inside a /* */ comment; bun:sqlite strips the comment on the mutation path then rejects the extra ? ("expected 2 values, received 3") (DESIGN §1 #18)
+        // tests-audit-disable-next-line mock-only -- bound param lands inside a /* */ comment; node:sqlite strips the comment on the mutation path then rejects the extra ? ("expected 2 values, received 3") (DESIGN §1 #18)
         if (ctx.realDbEnabled) return
         ctx.mockNext(1)
         const connection = ctx.conn

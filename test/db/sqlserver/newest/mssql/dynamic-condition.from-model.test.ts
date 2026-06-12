@@ -165,17 +165,8 @@ describe(ctx.label, () => {
         const ok5: Clause = 'author.name'          // nested scalar leaf
         const ok6: Clause = 'author.id desc'
         expect([ok1, ok2, ok3, ok4, ok5, ok6]).toHaveLength(6)
-        // @ts-expect-error 'author' is the object itself; order by 'author.name' instead
-        const bad1: Clause = 'author'
-        // @ts-expect-error 'tags' is an array, not orderable
-        const bad2: Clause = 'tags'
-        // @ts-expect-error unknown field
-        const bad3: Clause = 'unknown'
-        // @ts-expect-error unknown nested leaf
-        const bad4: Clause = 'author.unknown'
-        // @ts-expect-error invalid ordering mode
-        const bad5: Clause = 'title sideways'
-        void bad1; void bad2; void bad3; void bad4; void bad5
+        // Negative-type assertions (the rejected clauses) live in
+        // types.negative/dynamic-condition.from-model.test.ts.
     })
 
     test('from-model/order-by-string-feeds-orderByFromString', async () => {
@@ -233,12 +224,8 @@ describe(ctx.label, () => {
         expect(check('name')).toBe('name')
         expect(check('organization.name asc nulls last, name desc')).toBe('organization.name asc nulls last, name desc')
         expect(check('id, name asc, organization.id desc')).toBe('id, name asc, organization.id desc')
-        // @ts-expect-error invalid ordering mode in the second clause
-        check('name asc, id foo')
-        // @ts-expect-error ordering by the object itself
-        check('organization')
-        // @ts-expect-error unknown leaf in a later clause
-        check('name asc, organization.unknown')
+        // Negative-type assertions (the rejected strings) live in
+        // types.negative/dynamic-condition.from-model.test.ts.
     })
 
     test('from-model/dynamic-order-by-validated-string-feeds-orderByFromString', async () => {

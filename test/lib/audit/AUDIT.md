@@ -516,9 +516,12 @@ for a human, it does not bless the cast). Tolerated:
    that throws. Two forms (reusing the
    [mock-only exception machinery](#mock-only--the-test-never-validates-against-the-real-engine-most-severe)):
    the enclosing `test(...)` validates ONLY exceptions (`errors.*`,
-   `dynamic-condition.errors`), OR the cast sits inside a **throw-helper**
-   function — one whose `catch` surfaces the error (`reasonOf`, the marshalling
-   `toDbReason` / `fromDbReason`). The throw IS the assertion.
+   `dynamic-condition.errors`), OR the cast sits inside an **error-handling
+   helper** — one whose `catch` surfaces the error (the marshalling `toDbReason` /
+   `fromDbReason`), OR one that RECEIVES the error as a parameter and inspects it
+   (`reasonOf(e: unknown)`, `reasonsInChain(e: unknown)` — recognised by an
+   `unknown` error-named param, see `hasErrorParam`). The throw / the error
+   inspection IS the assertion.
 2. **allow-when gating** — tolerated ONLY when the enclosing test asserts
    `isQueryAllowed(...)`. The cast hides that the test should arguably be
    disabled on unsupported DBs, but `isQueryAllowed` pins the gate semantics and
@@ -619,37 +622,49 @@ decision), so the rule reuses the cast carve-outs plus the idiomatic / API-manda
 uses (see `isExemptMeaninglessType`): an exception test / throw-helper / `fromDbValue`
 / `TODO[BUG]`; a caught-error variable or `unknown` error PARAMETER (`reasonOf(e:
 unknown)`, recognised by the error-ish name like `weak-matcher`'s diagnostic
-context); a type-test arg (`assertType<…, never>`); what a public API requires —
-a `TypeAdapter` override (`transformValueToDB`/`transformValueFromDB`) or a
-`getQueryExecutionMetadata` result; `null` in a union with a real member; `void`
-as a function return. What stays flagged: a standalone meaningless annotation, and
-`unknown` **plumbing** that only makes a test less readable / realistic (a generic
-`capture(run: () => Promise<unknown>)`, `Set<unknown>`, `Array<{ value: unknown }>`).
+context); a type-test arg (`assertType<…, never>`); inside an `Error & { … }`
+shape — the extra-property types of an error-inspection alias
+(`type DisallowError = Error & { x?: unknown }`, see `isInErrorShapeType`); what a
+public API requires — a `TypeAdapter` override (`transformValueToDB`/`transformValueFromDB`)
+or a `getQueryExecutionMetadata` result; `null` in a union with a real member;
+`void` as a function return. What stays flagged: a standalone meaningless
+annotation, and `unknown` **plumbing** that only makes a test less readable /
+realistic (a generic `capture(run: () => Promise<unknown>)`, `Set<unknown>`).
 
 **Status**: **built** (`warn`), in [`checks/asAny.ts`](./checks/asAny.ts). Whole
-matrix: 167 — the generic-plumbing backlog above (use a precise type). (The earlier
-"full mirror" count of 3466 was almost entirely legitimate `unknown`: caught
-errors, the public `TypeAdapter` API, type-test args — now carved out.)
+matrix: **0** today — after the carve-outs (the error-shape alias was the last)
+and the suite cleanup. (The earlier "full mirror" count of 3466 was almost
+entirely legitimate `unknown`: caught errors, the public `TypeAdapter` API,
+type-test args, error-inspection aliases — now carved out.)
 
 ### `type-cast` — any other type assertion (`x as T` / `<T>x`)
 
 The catch-all for type assertions the more specific cast rules (`as-any`,
-`as-unknown-as`, `meaningless-cast`) did NOT already claim — a `1 as IssueId`,
-`{ … } as SomeRow`, `rows as Project[]`, `<Foo>x`. A type assertion forces the
-checker to accept a shape it did not infer, so it is often hiding a typing
-problem, or marks a spot where the value should be **built** so it genuinely has
-type `T`, or checked with **`satisfies T`** (which validates instead of
-overriding). `as const` (a const assertion, not a type override) is **exempt**;
-otherwise the **same sanctioned contexts as `meaningless-cast`** apply
-(`castSanctioned`: exception test, throw-helper, allow-when, file-scoped
-`fromDbValue`, `// TODO[BUG]:`). It composes with the other cast rules without
-double-flagging (each cast node is owned by exactly one).
+`as-unknown-as`, `meaningless-cast`) did NOT already claim — a `{ … } as SomeRow`,
+`rows as Project[]`, `undefined as string | undefined`, `<Foo>x`. A type assertion
+forces the checker to accept a shape it did not infer, so it is often hiding a
+typing problem, or marks a spot where the value should be **built** so it
+genuinely has type `T`, or checked with **`satisfies T`** (which validates instead
+of overriding). **Exempt**: `as const` (a const assertion, not a type override)
+and a **branded-type construction** — a primitive literal (or `new …()`) cast to a
+bare type-reference identifier (`19.99 as Money`, `42 as IssueId`,
+`new Date(…) as SettlementDate`): a nominal type can *only* be produced with such a
+cast, and the literal operand distinguishes it from a structural assertion
+(`rows as Project[]`, `{ … } as Foo`, which stay flagged — see `isBrandedCast`).
+Also exempt: an **error-narrowing cast** — a cast to an error type (`Error`,
+`*Error`, or an intersection `Error & { … }`), i.e. narrowing a caught error to
+read its properties (`(thrownError as Error).message`,
+`thrown as Error & { … }`); see `isErrorNarrowingCast`. Otherwise the **same
+sanctioned contexts as `meaningless-cast`** apply (`castSanctioned`: exception
+test, throw-helper / error-handling helper, allow-when, file-scoped `fromDbValue`,
+`// TODO[BUG]:`). It composes with the other cast rules without double-flagging
+(each cast node is owned by exactly one).
 
 **Status**: **built** (`warn`), in [`checks/asAny.ts`](./checks/asAny.ts). Whole
-matrix: 688 — a broad review backlog (pg: 47, mostly branded-type casts like
-`as IssueId` / `as Money` / `as OrderState`, plus a few `as T[]` / union casts).
-A `warn` rule whose residue is the quality-gate sub-agent's judgement (is the cast
-necessary, or should it be `satisfies` / a properly-built value?).
+matrix: **0** today — after the branded + error-narrowing carve-outs and the suite
+cleanup, nothing remains. A `warn` rule whose residue is the quality-gate
+sub-agent's judgement (is the cast necessary, or should it be `satisfies` / a
+properly-built value?).
 
 ### `non-public-api` — a relative import past the supported surface
 

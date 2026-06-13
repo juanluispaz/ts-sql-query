@@ -194,8 +194,10 @@ function castSanctioned(n: ts.Node, sf: ts.SourceFile, file: string, throwHelper
 // already catch. A type assertion forces the checker to accept a shape it did not
 // infer: it is often hiding a typing problem, or marks a spot where the value
 // should be BUILT so it genuinely has type `T` — or checked with `satisfies T`
-// (which validates instead of overriding). `as const` (a const assertion, not a
-// type override) is exempt; otherwise the same sanctioned contexts as
+// (which validates instead of overriding). Exempt: `as const` (a const assertion,
+// not a type override) and a BRANDED-type construction (a literal cast to a
+// nominal type — `19.99 as Money`, `42 as IssueId` — which can only be made with a
+// cast, see `isBrandedCast`); otherwise the same sanctioned contexts as
 // `meaningless-cast` apply. A `warn` review backlog.
 export function checkTypeCast(sf: ts.SourceFile, file: string): Finding[] {
     const out: Finding[] = []
@@ -204,13 +206,13 @@ export function checkTypeCast(sf: ts.SourceFile, file: string): Finding[] {
     const visit = (n: ts.Node): void => {
         if ((ts.isAsExpression(n) || ts.isTypeAssertionExpression(n))
             && !isAsAny(n) && !isAsUnknownAs(n) && !isLaunderingInnerUnknown(n)
-            && !isMeaninglessCast(n) && !isAsConst(n)
+            && !isMeaninglessCast(n) && !isAsConst(n) && !isBrandedCast(n) && !isErrorNarrowingCast(n)
             && !castSanctioned(n, sf, file, throwHelpers, bugLines)) {
             out.push({
                 rule: 'type-cast',
                 file,
                 line: lineOf(sf, n),
-                message: 'a type assertion (`x as T` / `<T>x`) forces the checker to accept a type it did not infer — it may be hiding a typing problem, or a place where the value should be BUILT so it genuinely has type `T`, or checked with `satisfies T` (which validates the shape instead of overriding it). Review whether the cast is necessary. (`as any`, `as unknown as`, and `as unknown`/`null`/… are the more specific cast rules; `as const` is exempt.)',
+                message: 'a type assertion (`x as T` / `<T>x`) forces the checker to accept a type it did not infer — it may be hiding a typing problem, or a place where the value should be BUILT so it genuinely has type `T`, or checked with `satisfies T` (which validates the shape instead of overriding it). Review whether the cast is necessary. (`as any`, `as unknown as`, and `as unknown`/`null`/… are the more specific cast rules; `as const` and a branded-type construction like `19.99 as Money` are exempt.)',
             })
         }
         ts.forEachChild(n, visit)
@@ -224,6 +226,57 @@ function isAsConst(n: ts.Node): boolean {
     if (!ts.isAsExpression(n) && !ts.isTypeAssertionExpression(n)) return false
     const t = n.type
     return ts.isTypeReferenceNode(t) && ts.isIdentifier(t.typeName) && t.typeName.text === 'const'
+}
+
+// A branded-type construction: a PRIMITIVE literal (or a `new …()`, e.g.
+// `new Date(...)`) cast to a bare type-reference identifier — `19.99 as Money`,
+// `42 as IssueId`, `'open' as OrderState`, `new Date(...) as SettlementDate`. A
+// nominal/branded type can ONLY be produced with such a cast, so it is permitted.
+// The literal operand is the signal: it distinguishes branding a scalar from a
+// structural assertion (`rows as Project[]`, `{ … } as Foo`), which stays flagged.
+function isBrandedCast(n: ts.Node): boolean {
+    if (!ts.isAsExpression(n) && !ts.isTypeAssertionExpression(n)) return false
+    const t = n.type
+    if (!ts.isTypeReferenceNode(t) || !ts.isIdentifier(t.typeName) || t.typeArguments) return false
+    let op: ts.Expression = n.expression
+    while (ts.isParenthesizedExpression(op)) op = op.expression
+    return isPrimitiveLiteralValue(op) || ts.isNewExpression(op)
+}
+
+function isPrimitiveLiteralValue(e: ts.Expression): boolean {
+    return ts.isNumericLiteral(e) || ts.isStringLiteral(e) || ts.isNoSubstitutionTemplateLiteral(e)
+        || ts.isBigIntLiteral(e)
+        || e.kind === ts.SyntaxKind.TrueKeyword || e.kind === ts.SyntaxKind.FalseKeyword
+        || (ts.isPrefixUnaryExpression(e) && ts.isNumericLiteral(e.operand)) // -1, +1
+}
+
+// An error type: a type reference whose name ends in `Error` (`Error`,
+// `TsSqlError`, …), or an intersection that includes one (`Error & { … }`).
+function isErrorTypeRef(t: ts.TypeNode): boolean {
+    return ts.isTypeReferenceNode(t) && ts.isIdentifier(t.typeName) && /Error$/.test(t.typeName.text)
+}
+function isErrorShapeType(t: ts.TypeNode): boolean {
+    return isErrorTypeRef(t) || (ts.isIntersectionTypeNode(t) && t.types.some(isErrorTypeRef))
+}
+
+// A cast to an error type — narrowing a caught error to read its properties
+// (`(thrownError as Error).message`, `thrown as Error & { … }`). Error handling,
+// not a forced type. Used by `type-cast`.
+function isErrorNarrowingCast(n: ts.Node): boolean {
+    return (ts.isAsExpression(n) || ts.isTypeAssertionExpression(n)) && isErrorShapeType(n.type)
+}
+
+// The node sits inside the shape part of an `Error & { … }` type — e.g. the
+// `unknown` extra-property types of an error-inspection alias
+// (`type DisallowError = Error & { disallowedProperty?: unknown }`). Error
+// handling, not a meaningless annotation. Used by `meaningless-type`.
+function isInErrorShapeType(n: ts.Node): boolean {
+    let p: ts.Node | undefined = n.parent
+    while (p) {
+        if (ts.isIntersectionTypeNode(p) && p.types.some(isErrorTypeRef)) return true
+        p = p.parent
+    }
+    return false
 }
 
 // Rule `any-type` — the `any` TYPE annotation (`x: any`, `(v: any) => …`,
@@ -345,6 +398,9 @@ function isExemptMeaninglessType(n: ts.Node, sf: ts.SourceFile, file: string, th
         && ts.isIdentifier(n.parent.name) && ERROR_PARAM_NAME.test(n.parent.name.text)) return true
     // Inside a `assertType<…>` / `expectTypeOf<…>` type argument (a type-level assertion).
     if (isInTypeTestTypeArgs(n)) return true
+    // Inside an `Error & { … }` shape — the extra-property types of an
+    // error-inspection alias (`type DisallowError = Error & { x?: unknown }`).
+    if (isInErrorShapeType(n)) return true
     // What a public API requires: a TypeAdapter override, or a public-API result type.
     if (inTypeAdapterMethod(n) || fromPublicApiResult(n)) return true
     // `void` as a function return type, or `Promise<void>`.
@@ -434,17 +490,29 @@ function inExceptionTest(node: ts.Node, throwHelpers: Set<string>): boolean {
     return validatesOnlyExceptions(stmts, throwHelpers)
 }
 
-// Carve-out 1 (helper form): the cast sits inside a function that surfaces a
-// caught error (a throw-helper like `toDbReason` / `fromDbReason` / `reasonOf`)
-// — the cast is the invalid input the helper exists to catch.
+// Carve-out 1 (helper form): the node sits inside an ERROR-HANDLING function —
+// either one whose `catch` surfaces the error (`toDbReason` / `fromDbReason`),
+// or one that RECEIVES the error as a parameter and inspects it (`reasonOf(e:
+// unknown)`, `reasonsInChain(e: unknown)` walking the cause chain). Both are error
+// machinery, so the casts / `unknown` plumbing inside them are tolerated.
 function inThrowHelper(node: ts.Node): boolean {
     let p: ts.Node | undefined = node.parent
     while (p) {
-        if ((ts.isFunctionDeclaration(p) || ts.isFunctionExpression(p) || ts.isArrowFunction(p))
-            && p.body && functionSurfacesError(p.body)) return true
+        if (ts.isFunctionDeclaration(p) || ts.isFunctionExpression(p) || ts.isArrowFunction(p)) {
+            if ((p.body && functionSurfacesError(p.body)) || hasErrorParam(p)) return true
+        }
         p = p.parent
     }
     return false
+}
+
+// A function that receives a caught error: a parameter typed `unknown` named like
+// an error (`e` / `err` / `error` / …). Marks `reasonOf` / `reasonsInChain` etc.
+// as error-handling helpers even though they have no internal `catch`.
+function hasErrorParam(fn: ts.FunctionDeclaration | ts.FunctionExpression | ts.ArrowFunction): boolean {
+    return fn.parameters.some(param =>
+        param.type?.kind === ts.SyntaxKind.UnknownKeyword
+        && ts.isIdentifier(param.name) && ERROR_PARAM_NAME.test(param.name.text))
 }
 
 // Carve-out 2: the enclosing test asserts `isQueryAllowed(...)` — an allow-when

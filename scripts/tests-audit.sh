@@ -56,8 +56,10 @@ Checks:
                    same contexts as `as any` + what a public API requires
                    (TypeAdapter, getQueryExecution*). [warn]
   type-cast        any OTHER `x as T` / `<T>x` assertion not caught above — may be
-                   forcing the type or wanting `satisfies`. `as const` exempt; same
-                   sanctioned contexts as meaningless-cast. [warn]
+                   forcing the type or wanting `satisfies`. Exempt: `as const`,
+                   branded casts (`19.99 as Money`), error-narrowing casts
+                   (`(thrownError as Error).message`); same sanctioned contexts as
+                   meaningless-cast. [warn]
   non-public-api   a relative import past the supported surface: into a src
                    module that is not a package.json export, or into a
                    non-admitted test/lib file. [warn]

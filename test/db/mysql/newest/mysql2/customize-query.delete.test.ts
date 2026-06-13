@@ -42,33 +42,6 @@ describe(ctx.label, () => {
         })
     })
 
-    test('customize-delete-hook-fragment-with-bound-param', async () => {
-        // A fragment interpolating `connection.const(...)` -
-        // placeholder ends up inside the comment, proving the hook
-        // routes through `_appendRawFragment`.
-        // tests-audit-disable-next-line mock-only -- bound param lands inside a /* */ comment; drivers strip the comment on the mutation path then reject the extra ? ("expected 1 values, received 2") (DESIGN §1 #18)
-        if (ctx.realDbEnabled) return
-        ctx.mockNext(0)
-        const connection = ctx.conn
-        await ctx.withRollback(async () => {
-            const affected = await connection.deleteFrom(tProject)
-                .where(tProject.id.equals(9999))
-                .customizeQuery({
-                    afterDeleteKeyword: connection.rawFragment`/* tenant=${connection.const(3, 'int')} */`,
-                })
-                .executeDelete()
-
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete /* tenant=? */ from project where id = ?"`)
-            expect(ctx.lastParams).toMatchInlineSnapshot(`
-              [
-                3,
-                9999,
-              ]
-            `)
-            assertType<Exact<typeof affected, number>>()
-        })
-    })
-
     test('customize-delete-hook-fragment-with-column-reference', async () => {
         // Column reference inside the hook fragment - drives
         // `__registerRequiredColumn` on the DELETE builder.

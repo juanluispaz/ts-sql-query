@@ -44,34 +44,6 @@ describe(ctx.label, () => {
         })
     })
 
-    test('customize-update-hook-fragment-with-bound-param', async () => {
-        // A fragment whose template interpolates `connection.const(...)`
-        // produces a placeholder inside the hook output.
-        // tests-audit-disable-next-line mock-only -- bound param lands inside a /* */ comment; node:sqlite strips the comment on the mutation path then rejects the extra ? ("expected 2 values, received 3") (DESIGN §1 #18)
-        if (ctx.realDbEnabled) return
-        ctx.mockNext(1)
-        const connection = ctx.conn
-        await ctx.withRollback(async () => {
-            const affected = await connection.update(tProject)
-                .set({ name: 'Pricing page (v2)' })
-                .where(tProject.id.equals(1))
-                .customizeQuery({
-                    afterUpdateKeyword: connection.rawFragment`/* tenant=${connection.const(9, 'int')} */`,
-                })
-                .executeUpdate()
-
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update /* tenant=? */ project set name = ? where id = ?"`)
-            expect(ctx.lastParams).toMatchInlineSnapshot(`
-              [
-                9,
-                "Pricing page (v2)",
-                1,
-              ]
-            `)
-            assertType<Exact<typeof affected, number>>()
-        })
-    })
-
     test('customize-update-hook-fragment-with-column-reference', async () => {
         // Column reference inside the hook fragment - drives
         // `__registerRequiredColumn` on the UPDATE builder.

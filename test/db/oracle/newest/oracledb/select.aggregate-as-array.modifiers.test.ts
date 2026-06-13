@@ -55,7 +55,7 @@ describe(ctx.label, () => {
     })
 
     test('aggregate-as-array-as-optional-non-empty-array', async () => {
-        ctx.mockNext([{ pid: 1, titles: ['Update hero copy'] }])
+        ctx.mockNext([{ pid: 1, titles: ['Update hero copy', 'Redesign navbar'] }])
         const tIssueLeft = tIssue.forUseInLeftJoin()
         const rows = await ctx.conn.selectFrom(tProject)
             .leftJoin(tIssueLeft).on(tIssueLeft.projectId.equals(tProject.id))
@@ -74,16 +74,15 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{ pid: number; titles?: string[] }>>>()
-        // tests-audit-disable-next-line one-sided-guard -- the mock primes a single title; project 1 actually has two issues, so the real DB returns both and the lengths legitimately differ
-        if (!ctx.realDbEnabled) {
-            expect(rows).toEqual([{ pid: 1, titles: ['Update hero copy'] }])
-        }
+        // json_arrayagg has no ORDER BY → sort the inner array before comparing.
+        expect(rows.map(r => ({ pid: r.pid, titles: [...r.titles!].sort() })))
+            .toEqual([{ pid: 1, titles: ['Redesign navbar', 'Update hero copy'] }])
     })
 
     test('aggregate-as-array-only-when-or-null-true-is-passthrough', async () => {
         // `onlyWhenOrNull(true)` returns the same regular value source —
         // no Null variant, so the array stays required.
-        ctx.mockNext([{ pid: 1, titles: ['Update hero copy'] }])
+        ctx.mockNext([{ pid: 1, titles: ['Update hero copy', 'Redesign navbar'] }])
         const tIssueLeft = tIssue.forUseInLeftJoin()
         const rows = await ctx.conn.selectFrom(tProject)
             .leftJoin(tIssueLeft).on(tIssueLeft.projectId.equals(tProject.id))
@@ -102,15 +101,14 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{ pid: number; titles?: string[] }>>>()
-        // tests-audit-disable-next-line one-sided-guard -- the mock primes a single title; project 1 actually has two issues, so the real DB returns both and the lengths legitimately differ
-        if (!ctx.realDbEnabled) {
-            expect(rows).toEqual([{ pid: 1, titles: ['Update hero copy'] }])
-        }
+        // json_arrayagg has no ORDER BY → sort the inner array before comparing.
+        expect(rows.map(r => ({ pid: r.pid, titles: [...r.titles!].sort() })))
+            .toEqual([{ pid: 1, titles: ['Redesign navbar', 'Update hero copy'] }])
     })
 
     test('aggregate-as-array-ignore-when-as-null-false-is-passthrough', async () => {
         // `ignoreWhenAsNull(false)` returns the same regular value source.
-        ctx.mockNext([{ pid: 1, titles: ['Update hero copy'] }])
+        ctx.mockNext([{ pid: 1, titles: ['Update hero copy', 'Redesign navbar'] }])
         const tIssueLeft = tIssue.forUseInLeftJoin()
         const rows = await ctx.conn.selectFrom(tProject)
             .leftJoin(tIssueLeft).on(tIssueLeft.projectId.equals(tProject.id))
@@ -129,10 +127,9 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{ pid: number; titles?: string[] }>>>()
-        // tests-audit-disable-next-line one-sided-guard -- the mock primes a single title; project 1 actually has two issues, so the real DB returns both and the lengths legitimately differ
-        if (!ctx.realDbEnabled) {
-            expect(rows).toEqual([{ pid: 1, titles: ['Update hero copy'] }])
-        }
+        // json_arrayagg has no ORDER BY → sort the inner array before comparing.
+        expect(rows.map(r => ({ pid: r.pid, titles: [...r.titles!].sort() })))
+            .toEqual([{ pid: 1, titles: ['Redesign navbar', 'Update hero copy'] }])
     })
 
     test('aggregate-as-array-disallow-when-true-throws-on-build', async () => {
@@ -162,7 +159,7 @@ describe(ctx.label, () => {
 
     test('aggregate-as-array-disallow-when-false-emits-transparently', async () => {
         // `disallowWhen(false, …)` leaves the value source allowed.
-        ctx.mockNext([{ pid: 1, titles: ['Update hero copy'] }])
+        ctx.mockNext([{ pid: 1, titles: ['Update hero copy', 'Redesign navbar'] }])
         const tIssueLeft = tIssue.forUseInLeftJoin()
         const query = ctx.conn.selectFrom(tProject)
             .leftJoin(tIssueLeft).on(tIssueLeft.projectId.equals(tProject.id))
@@ -183,9 +180,9 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{ pid: number; titles: string[] }>>>()
-        if (!ctx.realDbEnabled) {
-            expect(rows).toEqual([{ pid: 1, titles: ['Update hero copy'] }])
-        }
+        // json_arrayagg has no ORDER BY → sort the inner array before comparing.
+        expect(rows.map(r => ({ pid: r.pid, titles: [...r.titles].sort() })))
+            .toEqual([{ pid: 1, titles: ['Redesign navbar', 'Update hero copy'] }])
     })
 
     test('aggregate-as-array-projecting-optional-values-as-nullable', async () => {

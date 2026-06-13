@@ -109,20 +109,40 @@ describe(ctx.label, () => {
     // runner is built without `allowNestedTransactions`, so a real
     // nested transaction throws NESTED_TRANSACTION_NOT_SUPPORTED.
     test('nested-transaction-preserves-and-restores-outer-after-commit-hook', async () => {
-        // tests-audit-disable-next-line mock-only -- nesting requires allowNestedTransactions, which the matrix pg runner does not enable; real nesting throws NESTED_TRANSACTION_NOT_SUPPORTED
-        if (ctx.realDbEnabled) return
         const connection = ctx.conn
         const events: string[] = []
+        let caught: unknown
         await ctx.withReseed(async () => {
-            await connection.transaction(async () => {
-                connection.executeAfterNextCommit(() => { events.push('outer-after-commit') })
+            try {
                 await connection.transaction(async () => {
-                    connection.executeAfterNextCommit(() => { events.push('inner-after-commit') })
+                    connection.executeAfterNextCommit(() => { events.push('outer-after-commit') })
+                    await connection.transaction(async () => {
+                        connection.executeAfterNextCommit(() => { events.push('inner-after-commit') })
+                    })
                 })
-            })
+            } catch (e) { caught = e }
         })
-        // Inner commit fires its hook first; the outer hook, saved on the
-        // stack across the nested transaction, fires after the outer commit.
-        expect(events).toEqual(['inner-after-commit', 'outer-after-commit'])
+        if (ctx.realDbEnabled) {
+            // The matrix runner is constructed without allowNestedTransactions,
+            // so the real engine rejects the nested transaction.
+            expect(reasonsInChain(caught)).toContain('NESTED_TRANSACTION_NOT_SUPPORTED')
+        } else {
+            // Inner commit fires its hook first; the outer hook, saved on the
+            // stack across the nested transaction, fires after the outer commit.
+            expect(caught).toBeUndefined()
+            expect(events).toEqual(['inner-after-commit', 'outer-after-commit'])
+        }
     })
+
+    // Only the pg / pglite connectors (PgPoolQueryRunner / PgLiteQueryRunner) can enable
+    // SAVEPOINT-based nesting on the real engine; this connector's runner cannot, so the
+    // nesting-works case is validated in the pg/pglite cells (the throw-when-not-enabled
+    // case above still runs on the real engine here).
+    // NOT-APPLICABLE: this connector's query runner does not support allowNestedTransactions.
+    /*
+    test('nested-transaction-works-with-allow-nested-transactions-enabled', async () => {
+        // Builds a flag-on connection via ctx.nestedTransactionConn() and asserts
+        // inner-before-outer after-commit hook order; see the pg / pglite cells.
+    })
+    */
 })

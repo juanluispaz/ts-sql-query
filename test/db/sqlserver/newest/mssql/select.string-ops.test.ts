@@ -360,10 +360,8 @@ describe(ctx.label, () => {
         // pass `start` through the same path so the snapshot is just
         // recorded for documentation.
         //
-        // The expected value below is a placeholder; the real substring
-        // depends on the seeded title and priority, so the value check is
-        // mock-only and not refreshed here.
-        const expected = [{ id: 1, sub: 'X' }]
+        // issue 1: title='Update hero copy', priority=2 → substring(2, 5) = 'dat'.
+        const expected = [{ id: 1, sub: 'dat' }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssue)
             .where(tIssue.id.equals(1))
@@ -373,8 +371,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
         assertType<Exact<typeof result, Array<{ id: number; sub: string }>>>()
-        // tests-audit-disable-next-line one-sided-guard -- mock `expected` is a placeholder value, not the real substring of the seeded row (DESIGN §1)
-        if (!ctx.realDbEnabled) expect(result).toEqual(expected)
+        expect(result).toEqual(expected)
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, substring(title, priority + 1, @0 - priority) as sub from issue where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [

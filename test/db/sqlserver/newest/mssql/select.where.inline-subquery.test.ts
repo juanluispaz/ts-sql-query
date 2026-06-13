@@ -4,10 +4,11 @@
 // wrapped as `((<select>) = 1)` to coerce its bit storage back to a SQL
 // condition.
 //
-// The schema's boolean columns all carry a CustomBooleanTypeAdapter
-// (Y/N or t/f), so the value coming out of the real DB doesn't match
-// what `((...) = 1)` expects on every dialect — the real-DB assertion
-// is gated to mock mode and snapshot/SQL is the primary contract.
+// `published` carries a CustomBooleanTypeAdapter ('t'/'f'); the emitted
+// `cast(case when published = 't' then 1 else 0 end as bit)` plus the
+// `= 1` coercion round-trips it back to a SQL condition, so the result
+// is validated against the real engine in both directions (verified
+// under --docker).
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -20,7 +21,9 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('boolean-inline-subquery-as-condition', async () => {
-        const expected = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        // project 1's `published` (='t') coerces to a constant-true condition,
+        // so every seeded project is returned.
+        const expected = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tProject)
             .where(
@@ -33,8 +36,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
         assertType<Exact<typeof result, Array<{ id: number }>>>()
-        // tests-audit-disable-next-line one-sided-guard -- expected rows depend on seed data; the real-DB contract here is that the query executes (no error), the value is asserted under the mock
-        if (!ctx.realDbEnabled) expect(result).toEqual(expected)
+        expect(result).toEqual(expected)
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project where ((select cast(case when published = 't' then 1 else 0 end as bit) as [result] from project where id = @0) = 1) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
@@ -45,8 +47,9 @@ describe(ctx.label, () => {
 
     test('negated-boolean-inline-subquery-as-condition', async () => {
         // `.negate()` on the wrapped inline-select value source emits a
-        // leading `not (...)` around the same coerced condition.
-        const expected = [{ id: 4 }]
+        // leading `not (...)` around the same coerced condition. Project 1
+        // is published (true), so `not true` is constant-false → no rows.
+        const expected: Array<{ id: number }> = []
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tProject)
             .where(
@@ -60,8 +63,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
         assertType<Exact<typeof result, Array<{ id: number }>>>()
-        // tests-audit-disable-next-line one-sided-guard -- expected rows depend on seed data; the real-DB contract here is that the query executes (no error), the value is asserted under the mock
-        if (!ctx.realDbEnabled) expect(result).toEqual(expected)
+        expect(result).toEqual(expected)
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project where not ((select cast(case when published = 't' then 1 else 0 end as bit) as [result] from project where id = @0) = 1) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [

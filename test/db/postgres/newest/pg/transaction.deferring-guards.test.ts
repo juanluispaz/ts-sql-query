@@ -109,20 +109,48 @@ describe(ctx.label, () => {
     // runner is built without `allowNestedTransactions`, so a real
     // nested transaction throws NESTED_TRANSACTION_NOT_SUPPORTED.
     test('nested-transaction-preserves-and-restores-outer-after-commit-hook', async () => {
-        // tests-audit-disable-next-line mock-only -- nesting requires allowNestedTransactions, which the matrix pg runner does not enable; real nesting throws NESTED_TRANSACTION_NOT_SUPPORTED
-        if (ctx.realDbEnabled) return
         const connection = ctx.conn
         const events: string[] = []
+        let caught: unknown
         await ctx.withReseed(async () => {
-            await connection.transaction(async () => {
-                connection.executeAfterNextCommit(() => { events.push('outer-after-commit') })
+            try {
                 await connection.transaction(async () => {
-                    connection.executeAfterNextCommit(() => { events.push('inner-after-commit') })
+                    connection.executeAfterNextCommit(() => { events.push('outer-after-commit') })
+                    await connection.transaction(async () => {
+                        connection.executeAfterNextCommit(() => { events.push('inner-after-commit') })
+                    })
                 })
+            } catch (e) { caught = e }
+        })
+        if (ctx.realDbEnabled) {
+            // The matrix runner is constructed without allowNestedTransactions,
+            // so the real engine rejects the nested transaction.
+            expect(reasonsInChain(caught)).toContain('NESTED_TRANSACTION_NOT_SUPPORTED')
+        } else {
+            // Inner commit fires its hook first; the outer hook, saved on the
+            // stack across the nested transaction, fires after the outer commit.
+            expect(caught).toBeUndefined()
+            expect(events).toEqual(['inner-after-commit', 'outer-after-commit'])
+        }
+    })
+
+    test('nested-transaction-works-with-allow-nested-transactions-enabled', async () => {
+        // Companion to the test above: there the matrix connection (no
+        // allowNestedTransactions) makes the real engine reject nesting. Here
+        // `ctx.nestedTransactionConn()` is backed by a runner constructed WITH
+        // allowNestedTransactions (real mode), so nesting works: the inner
+        // transaction is a SAVEPOINT, its after-commit hook fires first, and the
+        // outer hook — saved on the stack across the nested transaction — fires
+        // after the outer commit. In mock mode this is `ctx.conn` (the mock
+        // already reports nestedTransactionsSupported()).
+        const connection = ctx.nestedTransactionConn()
+        const events: string[] = []
+        await connection.transaction(async () => {
+            connection.executeAfterNextCommit(() => { events.push('outer-after-commit') })
+            await connection.transaction(async () => {
+                connection.executeAfterNextCommit(() => { events.push('inner-after-commit') })
             })
         })
-        // Inner commit fires its hook first; the outer hook, saved on the
-        // stack across the nested transaction, fires after the outer commit.
         expect(events).toEqual(['inner-after-commit', 'outer-after-commit'])
     })
 })

@@ -28,6 +28,7 @@ import {
     workerNameLikePattern,
 } from '../../lib/containerLifecycle.js'
 import { createTestContext, type TestContext } from '../../lib/testContext.js'
+import { CaptureInterceptor } from '../../lib/captureInterceptor.js'
 import type { QueryRunner } from '../../../src/queryRunners/QueryRunner.js'
 import { MockPgLiteQueryRunner } from '../../lib/mockRunners/MockPgLiteQueryRunner.js'
 import { MockBunSqlPostgresQueryRunner } from '../../lib/mockRunners/MockBunSqlPostgresQueryRunner.js'
@@ -63,6 +64,18 @@ export interface PostgresTestContext extends TestContext<DBConnection> {
     readonly exampleInsensitiveCollation: string
     /** A `DBConnection` whose `insensitiveCollation` is pinned to `collation`. */
     withInsensitiveCollation(collation: string | undefined): DBConnection
+    /**
+     * A `DBConnection` whose query runner has `allowNestedTransactions`
+     * enabled — for the "nested transaction works when enabled" test. In
+     * mock mode this is `ctx.conn` (the `MockQueryRunner` already reports
+     * `nestedTransactionsSupported()`); in real-DB mode it is backed by a
+     * flag-on runner over the same backing database, available only on the
+     * connectors whose runner supports the flag (`pg` via `PgPoolQueryRunner`,
+     * `pglite` via `PgLiteQueryRunner`). Throws on the other connectors
+     * (`postgres` / `bun_sql_postgres`), whose nesting-works test is
+     * NOT-APPLICABLE and commented out.
+     */
+    nestedTransactionConn(): DBConnection
 }
 
 /**
@@ -71,7 +84,10 @@ export interface PostgresTestContext extends TestContext<DBConnection> {
  * `ctx.conn.queryRunner` (the shared interceptor) — `ctx.up()` must
  * have run before any helper is called.
  */
-function decoratePostgresContext(base: TestContext<DBConnection>): PostgresTestContext {
+function decoratePostgresContext(
+    base: TestContext<DBConnection>,
+    getNestedTxConn: () => DBConnection | null,
+): PostgresTestContext {
     return Object.assign(base, {
         // PostgreSqlSqlBuilder wraps the collation name in double
         // quotes itself (`collate "<name>"`) — pass the unquoted
@@ -82,6 +98,14 @@ function decoratePostgresContext(base: TestContext<DBConnection>): PostgresTestC
                 protected override insensitiveCollation: string | undefined = collation
             }
             return new C(base.conn.queryRunner)
+        },
+        nestedTransactionConn(): DBConnection {
+            // The mock reports `nestedTransactionsSupported()`, so nesting
+            // works on `ctx.conn` itself in mock mode.
+            if (!base.realDbEnabled) return base.conn
+            const conn = getNestedTxConn()
+            if (!conn) throw new Error('nestedTransactionConn(): this connector cannot enable nested transactions on the real engine')
+            return conn
         },
     })
 }
@@ -329,6 +353,14 @@ export interface PgTestSpec {
     compatibilityVersion?: number
     /** Build the real runner for this connector against the given URI. */
     createRealRunner(uri: string): Promise<{ runner: QueryRunner; shutdown(): Promise<void> }>
+    /**
+     * Build a real runner with `allowNestedTransactions` enabled, over the
+     * same backing database (URI), for `ctx.nestedTransactionConn()`. Only
+     * the connectors whose runner supports the flag provide this (`pg`);
+     * omitting it makes `nestedTransactionConn()` throw in real mode (the
+     * connector's nesting-works test is NOT-APPLICABLE).
+     */
+    createNestedTxRunner?: (uri: string) => { runner: QueryRunner; shutdown(): Promise<void> }
 }
 
 export function createPgTestContext(spec: PgTestSpec): PostgresTestContext {
@@ -340,6 +372,12 @@ export function createPgTestContext(spec: PgTestSpec): PostgresTestContext {
     // process, not per test file. The `setup.ts` factories don't have
     // to know about this — they just build a runner from a URI.
     const buildRunner = memoizeSharedRunner(spec.createRealRunner)
+
+    // The flag-on connection for `ctx.nestedTransactionConn()` (real mode):
+    // a second runner over the same worker DB, constructed with
+    // `allowNestedTransactions`. Built eagerly in `onUp`, torn down in `onDown`.
+    let nestedTxConn: DBConnection | null = null
+    let nestedTxShutdown: (() => Promise<void>) | null = null
 
     return decoratePostgresContext(createTestContext<DBConnection>({
         label: spec.label,
@@ -353,15 +391,24 @@ export function createPgTestContext(spec: PgTestSpec): PostgresTestContext {
             workerUri = await bootstrapWorkerDbSchemaAndSeed(adminUri)
             return await buildRunner(workerUri)
         },
+        async onUp() {
+            if (spec.createNestedTxRunner && workerUri) {
+                const built = spec.createNestedTxRunner(workerUri)
+                nestedTxShutdown = built.shutdown
+                nestedTxConn = new DBConnection(new CaptureInterceptor(built.runner), spec.compatibilityVersion)
+            }
+        },
         onReseed: reseedAgainstNativePostgresHandle,
         async onDown() {
+            if (nestedTxShutdown) { await nestedTxShutdown(); nestedTxShutdown = null }
+            nestedTxConn = null
             workerUri = null
             await releaseContainer()
         },
         buildConnection(interceptor, compatibilityVersion) {
             return new DBConnection(interceptor, compatibilityVersion)
         },
-    }))
+    }), () => nestedTxConn)
 }
 
 // ---- PgLite (in-process) test context -----------------------------------
@@ -424,6 +471,11 @@ export function createPgLiteTestContext(spec: PgLiteTestSpec): PostgresTestConte
     const connector = spec.label.split(' / ')[1] ?? ''
     const realDbEnabled = isRealDbEnabled(DATABASE, 'wasm', version, connector)
 
+    // The flag-on connection for `ctx.nestedTransactionConn()` (real mode):
+    // a `PgLiteQueryRunner` over the same shared in-process db, constructed
+    // with `allowNestedTransactions`. The db is shared (no shutdown).
+    let nestedTxConn: DBConnection | null = null
+
     return decoratePostgresContext(createTestContext<DBConnection>({
         label: spec.label,
         canonicalForDocs: spec.canonicalForDocs,
@@ -444,11 +496,22 @@ export function createPgLiteTestContext(spec: PgLiteTestSpec): PostgresTestConte
                 shutdown: async () => { /* shared instance, intentional no-op */ },
             }
         },
+        async onUp() {
+            const { PgLiteQueryRunner } = await import('../../../src/queryRunners/PgLiteQueryRunner.js')
+            const db = await getOrCreatePglite()
+            nestedTxConn = new DBConnection(
+                new CaptureInterceptor(new PgLiteQueryRunner(db, { allowNestedTransactions: true })),
+                spec.compatibilityVersion,
+            )
+        },
+        async onDown() {
+            nestedTxConn = null
+        },
         onReseed: reseedAgainstNativePostgresHandle,
         buildConnection(interceptor, compatibilityVersion) {
             return new DBConnection(interceptor, compatibilityVersion)
         },
-    }))
+    }), () => nestedTxConn)
 }
 
 // ---- bun:sql for postgres (docker-backed, bun-only) ---------------------
@@ -490,5 +553,7 @@ export function createBunSqlPostgresTestContext(spec: PgTestSpec): PostgresTestC
         buildConnection(interceptor, compatibilityVersion) {
             return new DBConnection(interceptor, compatibilityVersion)
         },
-    }))
+        // bun:sql's runner does not support allowNestedTransactions — the
+        // nesting-works test is NOT-APPLICABLE on this connector (commented out).
+    }), () => null)
 }

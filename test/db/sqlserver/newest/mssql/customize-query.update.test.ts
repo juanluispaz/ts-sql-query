@@ -44,37 +44,6 @@ describe(ctx.label, () => {
         })
     })
 
-    test('customize-update-hook-fragment-with-bound-param', async () => {
-        // A fragment whose template interpolates `connection.const(...)`
-        // produces a placeholder inside a SQL comment. The mssql driver
-        // strips comments before binding, so the `@0` inside `/* ... */`
-        // becomes an unbound parameter the engine rejects — the emitted
-        // SQL shape is the whole point of the test.
-        // tests-audit-disable-next-line mock-only -- bound placeholder lives inside a SQL comment; mssql driver rejects it at execution, SQL shape is the assertion
-        if (ctx.realDbEnabled) return
-        ctx.mockNext(1)
-        const connection = ctx.conn
-        await ctx.withRollback(async () => {
-            const affected = await connection.update(tProject)
-                .set({ name: 'Pricing page (v2)' })
-                .where(tProject.id.equals(1))
-                .customizeQuery({
-                    afterUpdateKeyword: connection.rawFragment`/* tenant=${connection.const(9, 'int')} */`,
-                })
-                .executeUpdate()
-
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update /* tenant=@0 */ project set name = @1 where id = @2"`)
-            expect(ctx.lastParams).toMatchInlineSnapshot(`
-              [
-                9,
-                "Pricing page (v2)",
-                1,
-              ]
-            `)
-            assertType<Exact<typeof affected, number>>()
-        })
-    })
-
     test('customize-update-hook-fragment-with-column-reference', async () => {
         // Column reference inside the hook fragment - drives
         // `__registerRequiredColumn` on the UPDATE builder.

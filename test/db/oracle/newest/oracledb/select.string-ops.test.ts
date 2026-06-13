@@ -363,11 +363,8 @@ describe(ctx.label, () => {
         // pass `start` through the same path so the snapshot is just
         // recorded for documentation.
         //
-        // The runtime substring is computed from the `priority` column,
-        // so the projected value is data-dependent; `expected.sub` is a
-        // synthetic placeholder, not the value Oracle returns. The value
-        // assertion is therefore mock-only by design.
-        const expected = [{ id: 1, sub: 'X' }]
+        // issue 1: title='Update hero copy', priority=2 → substring(2, 5) = 'dat'.
+        const expected = [{ id: 1, sub: 'dat' }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssue)
             .where(tIssue.id.equals(1))
@@ -377,8 +374,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
         assertType<Exact<typeof result, Array<{ id: number; sub: string }>>>()
-        // tests-audit-disable-next-line one-sided-guard -- expected.sub is a synthetic placeholder; the real value is computed from the priority column
-        if (!ctx.realDbEnabled) expect(result).toEqual(expected)
+        expect(result).toEqual(expected)
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", substr(title, priority + 1, :0 - priority) as "sub" from issue where id = :1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
@@ -421,9 +417,7 @@ describe(ctx.label, () => {
         // end is a column ref. Reaches the base `_substring` arm where
         // `value` is numeric but `value2` is not (the count becomes
         // `value2 - value`), a branch the existing substring tests skip.
-        // Runtime value depends on the `priority` column, so `expected.sub`
-        // is a synthetic placeholder, not the value Oracle returns. The
-        // value assertion is therefore mock-only by design.
+        // substring('Update hero copy', 0, priority) with priority=2 → 'Up'.
         const expected = [{ id: 1, sub: 'Up' }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssue)
@@ -434,8 +428,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
         assertType<Exact<typeof result, Array<{ id: number; sub: string }>>>()
-        // tests-audit-disable-next-line one-sided-guard -- expected.sub is a synthetic placeholder; the real value is computed from the priority column
-        if (!ctx.realDbEnabled) expect(result).toEqual(expected)
+        expect(result).toEqual(expected)
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", substr(title, :0, priority - :1) as "sub" from issue where id = :2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [

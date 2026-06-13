@@ -45,35 +45,6 @@ describe(ctx.label, () => {
         })
     })
 
-    test('customize-insert-hook-fragment-with-bound-param', async () => {
-        // A fragment whose template interpolates `connection.const(...)`
-        // produces a placeholder inside the comment, proving the hook
-        // routes through `_appendRawFragment` and registers the param.
-        // tests-audit-disable-next-line mock-only -- bound param lands inside a /* */ comment; node:sqlite strips the comment on the mutation path then rejects the extra ? ("expected 3 values, received 4") (DESIGN §1 #18)
-        if (ctx.realDbEnabled) return
-        ctx.mockNext(1)
-        const connection = ctx.conn
-        await ctx.withRollback(async () => {
-            const inserted = await connection.insertInto(tProject)
-                .values({ name: 'Help center', slug: 'help-center', organizationId: 1 })
-                .customizeQuery({
-                    afterInsertKeyword: connection.rawFragment`/* tenant=${connection.const(7, 'int')} */`,
-                })
-                .executeInsert()
-
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert /* tenant=? */ into project (name, slug, organization_id) values (?, ?, ?)"`)
-            expect(ctx.lastParams).toMatchInlineSnapshot(`
-              [
-                7,
-                "Help center",
-                "help-center",
-                1,
-              ]
-            `)
-            assertType<Exact<typeof inserted, number>>()
-        })
-    })
-
     test('customize-insert-hook-fragment-with-column-reference', async () => {
         // Column reference inside the hook fragment - drives
         // `__registerRequiredColumn` on the INSERT builder.

@@ -66,8 +66,8 @@ describe(ctx.label, () => {
         ctx.mockNext([{
             pid: 1,
             issues: [
-                { issue: { id: 1, title: 'Redesign navbar' } },
-                { issue: { id: 2, title: 'Update hero copy' } },
+                { issue: { id: 1, title: 'Update hero copy' } },
+                { issue: { id: 2, title: 'Redesign navbar' } },
             ],
         }])
 
@@ -94,16 +94,17 @@ describe(ctx.label, () => {
             issues: Array<{ issue?: { id: number; title: string } | null }>
             pid:    number
         }>>>()
-        // tests-audit-disable-next-line one-sided-guard -- the mock deliberately pairs ids with swapped titles to show order independence; the real DB pairs id 1 with 'Update hero copy', so the contents legitimately differ
-        if (!ctx.realDbEnabled) {
-            expect(rows).toEqual([{
-                pid: 1,
-                issues: [
-                    { issue: { id: 1, title: 'Redesign navbar' } },
-                    { issue: { id: 2, title: 'Update hero copy' } },
-                ],
-            }])
-        }
+        // json_arrayagg has no ORDER BY → sort the inner array by id before comparing.
+        expect(rows.map(r => ({
+            pid: r.pid,
+            issues: [...r.issues].sort((a, b) => a.issue!.id - b.issue!.id),
+        }))).toEqual([{
+            pid: 1,
+            issues: [
+                { issue: { id: 1, title: 'Update hero copy' } },
+                { issue: { id: 2, title: 'Redesign navbar' } },
+            ],
+        }])
     })
 
     test('aggregate-as-array-of-one-column-with-expression-fires-case-2', async () => {
@@ -114,7 +115,7 @@ describe(ctx.label, () => {
         // whose own propagation walks its child column. This pins
         // L2421-2423 / L2436-2438 / L2451-2453 / L2470-2472 /
         // L2489-2491 of `AggregateValueAsArrayValueSource`.
-        ctx.mockNext([{ pid: 1, bumped: [3, 5, 6] }])
+        ctx.mockNext([{ pid: 1, bumped: [3, 2] }])
 
         const tIssueLeft = tIssue.forUseInLeftJoin()
         const rows = await ctx.conn.selectFrom(tProject)
@@ -138,10 +139,9 @@ describe(ctx.label, () => {
             pid:    number
             bumped: Array<number>
         }>>>()
-        // tests-audit-disable-next-line one-sided-guard -- the mock primes three bumped priorities; project 1 actually has two issues, so the real DB returns two values and the contents legitimately differ
-        if (!ctx.realDbEnabled) {
-            expect(rows).toEqual([{ pid: 1, bumped: [3, 5, 6] }])
-        }
+        // json_arrayagg has no ORDER BY → sort the values before comparing.
+        expect(rows.map(r => ({ pid: r.pid, bumped: [...r.bumped].sort((a, b) => a - b) })))
+            .toEqual([{ pid: 1, bumped: [2, 3] }])
     })
 
     test('aggregate-as-array-with-only-when-or-null-false-uses-null-variant', async () => {

@@ -14,14 +14,12 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('docs:recursive/parents-chain', async () => {
-        // Seed has no parent_id set, so against a real DB this returns
-        // only the starting issue (id=2). The mock primes the value
-        // shape we'd expect when the chain has multiple ancestors.
+        // Seed has no parent_id set, so the recursive CTE returns only the
+        // starting issue (id=2); its parent_id is NULL → parentId undefined.
         // Note: `parentId` MUST be projected so the recursive view exposes
         // it for the JOIN ON to reference.
         const expected = [
-            { id: 2, title: 'Redesign navbar' },
-            { id: 1, title: 'Update hero copy' },
+            { id: 2, title: 'Redesign navbar', parentId: undefined },
         ]
         ctx.mockNext(expected)
         const connection = ctx.conn
@@ -51,8 +49,7 @@ describe(ctx.label, () => {
             title:     string
             parentId?: number
         }>>>()
-        // tests-audit-disable-next-line one-sided-guard -- seed has no parent_id, so the real DB returns only the starting issue while the mock primes a multi-ancestor chain
-        if (!ctx.realDbEnabled) expect(ancestors).toEqual(expected)
+        expect(ancestors).toEqual(expected)
     })
 
     test('docs:recursive/parents-chain-full-inner', async () => {
@@ -60,8 +57,7 @@ describe(ctx.label, () => {
         // where the recursive arm is spelled out as a full `selectFrom(...).join(child).on(...).select({...})`
         // instead of the shortcut `recursiveUnionAllOn`.
         const expected = [
-            { id: 2, title: 'Redesign navbar' },
-            { id: 1, title: 'Update hero copy' },
+            { id: 2, title: 'Redesign navbar', parentId: undefined },
         ]
         ctx.mockNext(expected)
         const connection = ctx.conn
@@ -97,8 +93,7 @@ describe(ctx.label, () => {
             title:     string
             parentId?: number
         }>>>()
-        // tests-audit-disable-next-line one-sided-guard -- seed has no parent_id, so the real DB returns only the starting issue while the mock primes a multi-ancestor chain
-        if (!ctx.realDbEnabled) expect(ancestors).toEqual(expected)
+        expect(ancestors).toEqual(expected)
     })
 
     test('docs:recursive/children-tree', async () => {

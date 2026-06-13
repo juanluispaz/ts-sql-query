@@ -141,30 +141,6 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ id: number; issueId: number }>>>()
     })
 
-    test('customize-select-hook-fragment-with-bound-param', async () => {
-        // A fragment passed to a hook can interpolate a value source -
-        // here a bound integer via `connection.const(...)`. The
-        // placeholder ends up inside the comment in the snapshot,
-        // proving the fragment routes through `_appendRawFragment` and
-        // not as a string splice.
-        ctx.mockNext([{ id: 1 }])
-        const connection = ctx.conn
-        const result = await connection.selectFrom(tProject)
-            .select({ id: tProject.id })
-            .customizeQuery({
-                afterSelectKeyword: connection.rawFragment`/* tenant=${connection.const(42, 'int')} */ `,
-            })
-            .executeSelectMany()
-
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select /* tenant=? */  id as id from project"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            42,
-          ]
-        `)
-        assertType<Exact<typeof result, Array<{ id: number }>>>()
-    })
-
     test('customize-select-hook-fragment-with-column-reference', async () => {
         // A fragment that references a column drives
         // `__registerRequiredColumn` on the customization

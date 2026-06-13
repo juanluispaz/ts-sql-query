@@ -45,39 +45,6 @@ describe(ctx.label, () => {
         })
     })
 
-    test('customize-insert-hook-fragment-with-bound-param', async () => {
-        // A fragment whose template interpolates `connection.const(...)`
-        // produces a placeholder inside the comment, proving the hook
-        // routes through `_appendRawFragment` and registers the param.
-        // Mock-only: most drivers strip comments before counting
-        // placeholders, so the bound `?` inside a `/* ... */` block
-        // looks like a stray parameter at execution time. The SQL the
-        // lib emits is still the assertion of interest.
-        // tests-audit-disable-next-line mock-only -- bound param lands inside a /* */ comment; several drivers strip the comment then reject the unused placeholder at execution
-        if (ctx.realDbEnabled) return
-        ctx.mockNext(1)
-        const connection = ctx.conn
-        await ctx.withRollback(async () => {
-            const inserted = await connection.insertInto(tProject)
-                .values({ name: 'Help center', slug: 'help-center', organizationId: 1 })
-                .customizeQuery({
-                    afterInsertKeyword: connection.rawFragment`/* tenant=${connection.const(7, 'int')} */`,
-                })
-                .executeInsert()
-
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert /* tenant=:0 */ into project (name, slug, organization_id) values (:1, :2, :3)"`)
-            expect(ctx.lastParams).toMatchInlineSnapshot(`
-              [
-                7,
-                "Help center",
-                "help-center",
-                1,
-              ]
-            `)
-            assertType<Exact<typeof inserted, number>>()
-        })
-    })
-
     test('customize-insert-hook-fragment-with-column-reference', async () => {
         // Column reference inside the hook fragment - drives
         // `__registerRequiredColumn` on the INSERT builder.

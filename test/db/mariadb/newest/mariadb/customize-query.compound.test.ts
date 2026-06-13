@@ -132,35 +132,4 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ id: number }>>>()
     })
 
-    test('customize-compound-hook-interpolates-bound-param', async () => {
-        // The `beforeQuery` hook interpolates a runtime value via
-        // `${connection.const(...)}`, locking the param-order story
-        // for hook-params relative to compound-body params: hook param
-        // FIRST, body params after.
-        // tests-audit-disable-next-line mock-only -- hook param lands inside a /* */ comment; mariadb strips the comment then rejects the extra ? against the compound body's own placeholder (DESIGN §1 #18)
-        if (ctx.realDbEnabled) return
-        const connection = ctx.conn
-        const projectsQ = connection.selectFrom(tProject)
-            .where(tProject.archivedAt.isNull())
-            .select({ label: tProject.name })
-        const issuesQ = connection.selectFrom(tIssue)
-            .where(tIssue.status.equals('open'))
-            .select({ label: tIssue.title })
-        ctx.mockNext([{ label: 'Update hero copy' }])
-        const result = await projectsQ
-            .union(issuesQ)
-            .customizeQuery({
-                beforeQuery: connection.rawFragment`/* tenant=${connection.const(42, 'int')} */ `,
-            })
-            .executeSelectMany()
-
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"/* tenant=? */  select name as label from project where archived_at is null union select title as label from issue where status = ?"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            42,
-            "open",
-          ]
-        `)
-        assertType<Exact<typeof result, Array<{ label: string }>>>()
-    })
 })

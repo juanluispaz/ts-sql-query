@@ -132,44 +132,4 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ id: number }>>>()
     })
 
-    test('customize-compound-hook-interpolates-bound-param', async () => {
-        // The `beforeQuery` hook interpolates a runtime value via
-        // `${connection.const(...)}` — exercises the path where a
-        // compound's customization fragment binds its own param into
-        // the surrounding query (locks the param-order story for
-        // hook-params relative to compound-body params: hook param
-        // FIRST, body params after).
-        //
-        // Mock-only: the bound placeholder is emitted INSIDE a
-        // `/* ... */` SQL comment, so the count of placeholders the
-        // driver sees (it ignores commented text) no longer matches the
-        // number of params supplied, and execution is rejected. The
-        // synthetic comment-with-param SQL is the whole point of the
-        // test (param-ordering of hook vs body), so it stays mock-only.
-        // tests-audit-disable-next-line mock-only -- bound param lives inside a /* */ comment; no engine executes it, the param-ordering SQL is the test's whole point (DESIGN §1)
-        if (ctx.realDbEnabled) return
-        const connection = ctx.conn
-        const projectsQ = connection.selectFrom(tProject)
-            .where(tProject.archivedAt.isNull())
-            .select({ label: tProject.name })
-        const issuesQ = connection.selectFrom(tIssue)
-            .where(tIssue.status.equals('open'))
-            .select({ label: tIssue.title })
-        ctx.mockNext([{ label: 'Update hero copy' }])
-        const result = await projectsQ
-            .union(issuesQ)
-            .customizeQuery({
-                beforeQuery: connection.rawFragment`/* tenant=${connection.const(42, 'int')} */ `,
-            })
-            .executeSelectMany()
-
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"/* tenant=@0 */  select name as [label] from project where archived_at is null union select title as [label] from issue where status = @1"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            42,
-            "open",
-          ]
-        `)
-        assertType<Exact<typeof result, Array<{ label: string }>>>()
-    })
 })

@@ -287,12 +287,15 @@ The audit moved into its own folder, [`audit/`](./lib/audit/), beside its
 design doc [`AUDIT.md`](./lib/audit/AUDIT.md) — the same convention as
 `codeIndexer/` and `codeSearcher/`. The symmetry check (the script behind
 `bun run tests:audit`) lives at [`audit/symmetry.ts`](./lib/audit/symmetry.ts):
-it walks `test/db/`, lists every `(version × connector)` cell per database,
-extracts test names from each `.test.ts` (including ones inside `/* … */`
-blocks — they count) and exits 1 on any divergence in the file set, the test
-names, or their order. `domain/` + `types.negative/` dirs, the `documentation`
-connector and the `general` db are excluded (see
-[`DOC_CODE_EXTRACTOR.md`](./DOC_CODE_EXTRACTOR.md)).
+it walks `test/db/`, lists every `(database × version × connector)` cell of the
+**whole matrix**, extracts test names from each `.test.ts` (including ones inside
+`/* … */` blocks — they count) and reports any divergence in the file set, the
+test names, or their order as `symmetry` findings folded into the unified report.
+`domain/` + `types.negative/` dirs, the `documentation` connector and the
+`general` db are excluded (see [`DOC_CODE_EXTRACTOR.md`](./DOC_CODE_EXTRACTOR.md)),
+as are `config.*` files and files whose name embeds a database name.
+(`symmetry` is currently `warn` — non-blocking — while the cross-database backlog
+is worked down; it returns to `error` once the matrix is mirrored.)
 
 **To use the audit** (run it, read a finding, fix/suppress, propose a pattern),
 read [`TESTS_AUDIT.md`](./TESTS_AUDIT.md). **To extend it**, read

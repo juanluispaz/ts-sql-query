@@ -46,10 +46,14 @@ Three rules from [`DESIGN.md`](./DESIGN.md):
 2. **Connector × version compatibility is per-cell.** Folders for invalid
    combinations (e.g. `postgres/newest/pglite/`, which would need a pglite
    running PG18+ that does not exist yet) simply do not exist.
-3. **Symmetry**: every cell of a database contains the same `.test.ts` files
-   with the same `test(...)` names in the same order. The audit
+3. **Symmetry**: every cell of the **whole matrix** (all databases × versions ×
+   connectors, not just one database) contains the same `.test.ts` files with the
+   same `test(...)` names in the same order. The audit
    ([`tests:audit`](./TEST_LIB.md#audittestsymmetryts--the-symmetry-audit))
-   enforces this — comment out non-applicable tests, do not delete them.
+   enforces this — comment out non-applicable tests (with a `// NOT-APPLICABLE:` /
+   `// TODO[*]:` marker), do not delete them. Exempt from the comparison:
+   `config.*` files (connection-config-specific), `*.generated.test.ts`, and files
+   whose name embeds a database name (`select.postgres-const-force-type-cast.test.ts`).
 
 ## `domain/` — schema, seed, connection
 

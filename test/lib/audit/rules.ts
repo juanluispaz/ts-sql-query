@@ -8,7 +8,7 @@ import type { Severity } from './types.js'
 
 // Content rules a `// tests-audit-disable-next-line <rule> -- <reason>` comment
 // may target. A directive for an id NOT in this list reports `unknown-rule`.
-export const CONTENT_RULES = ['mock-only', 'mirror-image', 'one-sided-guard', 'uuid-literal', 'as-any', 'any-type', 'non-public-api', 'commented-test-reason', 'focused-test', 'empty-snapshot', 'ts-ignore', 'ts-expect-error', 'eslint-disable-type', 'eslint-disable-other', 'skipped-test-reason', 'skip-real-db', 'tautology', 'no-assertion-runtime', 'empty-catch', 'weak-boolean', 'weak-matcher', 'close-to', 'no-op-expect', 'non-deterministic-input'] as const
+export const CONTENT_RULES = ['mock-only', 'mirror-image', 'one-sided-guard', 'uuid-literal', 'as-any', 'any-type', 'as-unknown-as', 'meaningless-cast', 'meaningless-type', 'type-cast', 'non-public-api', 'commented-test-reason', 'focused-test', 'empty-snapshot', 'ts-ignore', 'ts-expect-error', 'eslint-disable-type', 'eslint-disable-other', 'skipped-test-reason', 'skip-real-db', 'misplaced-marker', 'tautology', 'no-assertion-runtime', 'empty-catch', 'weak-boolean', 'weak-matcher', 'close-to', 'no-op-expect', 'non-deterministic-input'] as const
 
 export const RULE_SEVERITY: Record<string, Severity> = {
     // structural — whole-matrix cell parity. TEMPORARILY `warn` while the
@@ -22,6 +22,10 @@ export const RULE_SEVERITY: Record<string, Severity> = {
     'uuid-literal':           'warn',   // a malformed-UUID literal mock accepts but a real engine rejects
     'as-any':                 'warn',   // a cast to `any` bypassing the public typed API (outside exception tests)
     'any-type':               'warn',   // an `any` type annotation (use a precise type or `unknown`)
+    'as-unknown-as':          'warn',   // `x as unknown as T` — the double-assertion laundering that replaces `as any`
+    'meaningless-cast':       'warn',   // a cast to `unknown` / `null` / `never` / `void` — a pointless type-checker bypass
+    'meaningless-type':       'warn',   // the `unknown` / `null` / `never` / `void` type annotation (mirror of any-type)
+    'type-cast':              'warn',   // any other `x as T` / `<T>x` assertion — may force the type or want `satisfies` (as const exempt)
     'non-public-api':         'warn',   // a relative import into non-public src or non-admitted test/lib
     'commented-test-reason':  'warn',   // a commented-out test with no TODO[BUG]/TODO[LIMITATION]/NOT-APPLICABLE reason
     'focused-test':           'warn',   // a committed `.only` — silently skips the rest of the suite (anchor 0; warn for now, an early promotion candidate)
@@ -32,6 +36,7 @@ export const RULE_SEVERITY: Record<string, Severity> = {
     'eslint-disable-other':   'warn',   // eslint-disable of any other (non-type) lint — tracked separately, lowest priority
     'skipped-test-reason':    'warn',   // `test.skip` / `test.todo` with no TODO[BUG]/TODO[LIMITATION]/NOT-APPLICABLE reason — the .skip twin of commented-test-reason
     'skip-real-db':           'warn',   // `test.skipIf(realDbEnabled)` — a mock-only evasion at the registration level
+    'misplaced-marker':       'warn',   // a TODO[BUG]/TODO[LIMITATION]/NOT-APPLICABLE marker not at a test (file scope, helper, floating)
     'tautology':              'warn',   // a provably-constant assertion (literal-self-compare, same-expression, `.length` ≥ 0)
     'no-assertion-runtime':   'warn',   // a test that runs a query (execute*) but asserts nothing — always green (anchor 0)
     'empty-catch':            'warn',   // an empty `catch { }` (no deliberate throw in the try) — swallows a real failure; 66 mock-only-style cases
@@ -61,6 +66,14 @@ export const RULE_HINT: Record<string, string> = {
         'A cast to `any` bypasses the public typed API — usually because the query could not be built the supported way. The decision: (1) if the cast is feeding an invalid value to a runtime guard in a test whose assertions are all about the resulting exception, the rule already exempts it — so if it fired, restructure the test so its assertions are ONLY the exception (try/catch + reason, `toThrow`) and the exemption applies; (2) otherwise this is a REWRITE, not a suppression — build the query through the public typed surface (if the API genuinely cannot express it, that is a library gap to report, not a cast to keep). There is no `tests-audit-disable` for the general case.',
     'any-type':
         'An `any` type annotation defeats type-checking and usually hides a test that is not realistic. Use the precise type; for a caught error or an intentionally-opaque value use `unknown` (`let thrown: unknown`). This is the type annotation, not the `as any` cast (that is `as-any`).',
+    'as-unknown-as':
+        '`x as unknown as T` double-asserts through `unknown` to force an arbitrary type — it silences the checker exactly like `as any`, just spelled to slip past an `as any` ban. It always means the value was not produced with type `T` the supported way. Build it through the public typed API so it genuinely has type `T`. The only sanctioned use is an exception test feeding a runtime guard, or a `// TODO[BUG]:`-marked repro of a known type bug.',
+    'meaningless-cast':
+        'A cast to `unknown` / `null` / `never` / `void` (or a union of only those, `as unknown | null`) conveys nothing — a test has no reason to assert one of these. Build the value through the public typed API. The only sanctioned use is feeding an invalid value to a runtime guard in an exception test, or a `// TODO[BUG]:`-marked repro. (`as unknown as T` is the separate, more specific `as-unknown-as` rule.)',
+    'meaningless-type':
+        'The `unknown` / `null` / `never` / `void` type used as an annotation hides the real shape under test. Use the precise type. (The matching `as unknown` / `as null` / … cast is the separate `meaningless-cast` rule; `as unknown as T` is `as-unknown-as`.) `unknown`/`null` are allowed in the same contexts as `as any` and where a public API requires them (TypeAdapter, getQueryExecution*); exempt inside a `// TODO[BUG]:`-marked test.',
+    'type-cast':
+        'A type assertion (`x as T` / `<T>x`) forces the checker to accept a type it did not infer — review whether it is necessary. Prefer building the value so it genuinely has type `T`, or `satisfies T` (which checks the shape instead of overriding it). This is the catch-all for casts not covered by `as-any` / `as-unknown-as` / `meaningless-cast`. `as const` is exempt; an exception test / throw-helper / `fromDbValue` / `// TODO[BUG]:` repro is sanctioned (same as `meaningless-cast`).',
     'commented-test-reason':
         'A commented-out test must state why it is off with one of the three first-class markers: `// TODO[BUG]: <reason>` (a defect in src/ — re-enabled here once fixed; BUGS.md), `// TODO[LIMITATION]: <reason>` (the library does not cover it yet / the env can\'t — could re-enable here; LIMITATIONS.md), or `// NOT-APPLICABLE: <reason>` (a deliberate dialect boundary — this cell NEVER runs it; the test runs in the dialects that support it). Pick by future: a TODO means pending work that could re-enable it HERE; NOT-APPLICABLE is permanent. It still counts for symmetry, so do not delete it — comment it WITH a marker, or re-enable it.',
     'non-public-api':
@@ -80,7 +93,9 @@ export const RULE_HINT: Record<string, string> = {
     'skipped-test-reason':
         'A `test.skip` / `it.skip` / `describe.skip` / `test.todo` disables a test — like a commented-out test (`commented-test-reason`), it must state why with one of the three markers within 3 lines above: `// TODO[BUG]: <reason>`, `// TODO[LIMITATION]: <reason>`, or `// NOT-APPLICABLE: <reason>` (a permanent dialect boundary, not a TODO — the test runs in the dialects that support it). Re-enable it, or mark WITH a marker so the reason is visible.',
     'skip-real-db':
-        '`test.skipIf(ctx.realDbEnabled)` / `test.runIf(!ctx.realDbEnabled)` gates the whole test on the real-DB flag — a `mock-only` evasion at the registration level (the body-scoped `mock-only` rule cannot see it). The test never runs against the real engine. Assert the value unconditionally so it is validated in both modes instead of skipping a mode.',
+        '`test.skipIf(ctx.realDbEnabled)` / `test.runIf(!ctx.realDbEnabled)` gates the whole test on the real-DB flag — a `mock-only` evasion at the registration level (the body-scoped `mock-only` rule cannot see it). The test never runs against the real engine. Assert the value unconditionally so it is validated in both modes instead of skipping a mode. A genuine dialect boundary carries `// NOT-APPLICABLE: <reason>`, a known bug `// TODO[BUG]: <reason>`.',
+    'misplaced-marker':
+        'A `// TODO[BUG]:` / `// TODO[LIMITATION]:` / `// NOT-APPLICABLE:` marker must sit AT a test — on the comment line(s) directly above a `test(...)` / `it(...)` / `describe(...)` (the test may itself be commented out), or inside a `test`/`it` body. A marker at file scope, inside a helper, or floating in prose explains no test and reads as a phantom marker. Move it next to the test it documents, or remove it.',
     'tautology':
         'This assertion is provably constant — it passes no matter what the code does, so it validates nothing. `expect(true).toBe(true)` / `expect(x).toBe(x)` pin no value; `expect(x.length).toBeGreaterThanOrEqual(0)` is vacuous because a `.length` is always ≥ 0. Assert the actual computed value (the exact length, the real contents). Only provably-constant shapes are flagged; weak-but-meaningful assertions are the quality-gate sub-agent\'s call.',
     'no-assertion-runtime':

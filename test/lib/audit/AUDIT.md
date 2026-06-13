@@ -107,12 +107,14 @@ drop the matching check."* See [Maintenance contract](#maintenance-contract).
 The TypeScript compiler API is the motor.
 
 - **Syntactic rules** — all current content rules (`mock-only`, `mirror-image`,
-  `one-sided-guard`, `uuid-literal`, `as-any`, `any-type`, `non-public-api`,
+  `one-sided-guard`, `uuid-literal`, `as-any`, `any-type`, `as-unknown-as`,
+  `meaningless-cast`, `meaningless-type`, `type-cast`, `non-public-api`,
   `commented-test-reason`, `focused-test`, `empty-snapshot`, `ts-ignore`,
   `ts-expect-error`, `eslint-disable-type`, `eslint-disable-other`,
-  `skipped-test-reason`, `skip-real-db`, `tautology`, `no-assertion-runtime`,
-  `empty-catch`, `weak-boolean`, `weak-matcher`, `close-to`, `no-op-expect`,
-  `non-deterministic-input`) need only `ts.SourceFile` ASTs (or the TS scanner),
+  `skipped-test-reason`, `skip-real-db`, `misplaced-marker`, `tautology`,
+  `no-assertion-runtime`, `empty-catch`, `weak-boolean`, `weak-matcher`,
+  `close-to`, `no-op-expect`, `non-deterministic-input`) need only
+  `ts.SourceFile` ASTs (or the TS scanner),
   no type checker, so they stay fast over the full ~2.5k-file matrix (~1 s).
   Even `uuid-literal` (anchored on the string's *shape*, not its static type)
   and `as-any` (which tolerates named patterns rather than resolving intent)
@@ -147,6 +149,10 @@ export const RULE_SEVERITY = {
   'uuid-literal':           'warn',   // a malformed-UUID literal mock accepts but a real engine rejects
   'as-any':                 'warn',   // a cast to `any` bypassing the public typed API (backlog to rewrite)
   'any-type':               'warn',   // an `any` type annotation (use a precise type or `unknown`)
+  'as-unknown-as':          'warn',   // `x as unknown as T` — the double-assertion laundering that replaces `as any`
+  'meaningless-cast':       'warn',   // a cast to `unknown` / `null` / `never` / `void` — a pointless type-checker bypass
+  'meaningless-type':       'warn',   // the `unknown` / `null` / `never` / `void` type annotation (mirror of any-type)
+  'type-cast':              'warn',   // any other `x as T` / `<T>x` assertion — may force the type or want `satisfies` (as const + cast carve-outs exempt)
   'non-public-api':         'warn',   // a relative import into non-public src or non-admitted test/lib
   'commented-test-reason':  'warn',   // a commented-out test with no TODO[BUG]/TODO[LIMITATION]/NOT-APPLICABLE reason
   'focused-test':           'warn',   // a committed `.only` — silently skips the rest of the suite (anchor 0, an early promotion candidate)
@@ -157,6 +163,7 @@ export const RULE_SEVERITY = {
   'eslint-disable-other':   'warn',   // eslint-disable of any other (non-type) lint — tracked separately
   'skipped-test-reason':    'warn',   // `test.skip` / `test.todo` with no TODO[BUG]/TODO[LIMITATION]/NOT-APPLICABLE reason — the .skip twin of commented-test-reason
   'skip-real-db':           'warn',   // `test.skipIf(realDbEnabled)` — a mock-only evasion at the registration level
+  'misplaced-marker':       'warn',   // a TODO[BUG]/TODO[LIMITATION]/NOT-APPLICABLE marker not at a test
   'tautology':              'warn',   // a provably-constant assertion (literal-self-compare, same-expression, `.length` ≥ 0)
   'no-assertion-runtime':   'warn',   // a test that runs a query (execute*) but asserts nothing — always green
   'empty-catch':            'warn',   // an empty `catch { }` with no deliberate throw in the try — swallows a real failure
@@ -344,24 +351,25 @@ project decision. Tolerated only when *every* `expect(...)` in the skipped body
 asserts on a `fromDbValue(...)` call; a foreign assertion (SQL snapshot, other
 helper) is not covered. This list is a hole in the rule — keep it minimal.
 
-**NOT-APPLICABLE carve-out** (both forms — skip AND swallow). A **live** test
-marked `// NOT-APPLICABLE: <reason>` (in its body, or within 3 lines above the
-`test(...)` call) is allowed to be mock-only: `NOT-APPLICABLE` means a deliberate
-**dialect boundary** (see [`commented-test-reason`](#commented-test-reason--a-commented-out-test-with-no-stated-reason)),
-so this cell's real engine genuinely cannot validate the case, while the same
-test runs and validates in the dialects that DO support it. This is the in-code,
-greppable, classifiable analogue of a `tests-audit-disable-next-line mock-only`,
-but with the project-semantic meaning attached (and surfaced as a cell caveat by
-the searcher). Keyed on `NOT-APPLICABLE` **specifically** — a `TODO[BUG]` /
-`TODO[LIMITATION]` implies *pending* work and does **not** license a permanently
-mock-only live test (those re-enable here once resolved; a real failure must be
-able to surface meanwhile). Detection is the shared `isNotApplicableTest` /
-`notApplicableMarkerLines` in [`ast.ts`](ast.ts); it scopes to the enclosing
+**NOT-APPLICABLE / TODO[BUG] carve-out** (both forms — skip AND swallow). A
+**live** test marked `// NOT-APPLICABLE: <reason>` OR `// TODO[BUG]: <reason>` (in
+its body, or within 3 lines above the `test(...)` call) is allowed to be
+mock-only. Two reasons license it: `NOT-APPLICABLE` is a deliberate **dialect
+boundary** (this cell's real engine genuinely cannot validate the case, while the
+same test runs and validates in the dialects that DO support it); `TODO[BUG]` is
+a **reproducible bug** whose repro stays mock-only until the bug is fixed. Both
+are the in-code, greppable, classifiable analogue of a
+`tests-audit-disable-next-line mock-only`, with the project-semantic meaning
+attached (and surfaced as a cell caveat by the searcher). `TODO[LIMITATION]` is
+deliberately **excluded** (a pending decision, not a permanent boundary or an
+open bug). Detection is the shared `markerLines(sf, NOT_APPLICABLE_OR_BUG_REASON)`
++ `isNodeInMarkedTest` in [`ast.ts`](ast.ts); it scopes to the enclosing
 `test(...)` so a marker on one test never exempts a sibling. The carve-out
 touches only `mock-only` (and its registration-level twin
 [`skip-real-db`](#registration-skip-rules--skipped-test-reason--skip-real-db)) —
 `mirror-image` / `one-sided-guard` describe a test that DOES run in both modes,
-so a `NOT-APPLICABLE` marker does not affect them.
+so the marker does not affect them. (`TODO[BUG]` additionally exempts the
+type-bypass rules — see [`as-any`](#as-any--a-cast-to-any-that-bypasses-the-public-typed-api).)
 
 **Verified** (whole matrix): 595 findings — e.g.
 `select.value-source.trig.test.ts` (swallow; fix with `toBeCloseTo`),
@@ -537,9 +545,18 @@ that residue is the [quality-gate sub-agent](../../QUALITY_GATE.md)'s — its
 "Gate today" for #4 stays the sub-agent until this backlog is worked down and
 the rule promotes.
 
+**TODO[BUG] carve-out** (shared by `as-any`, `any-type`, `as-unknown-as`,
+`meaningless-cast`, `meaningless-type`). A test marked `// TODO[BUG]: <reason>`
+(in its body or within 3 lines above) is exempt from all five type-bypass rules:
+a reproducible bug often *needs* a cast to even compile its repro, and the marker
+keeps that visible and tracked until the fix lands. Keyed on `TODO[BUG]`
+specifically (`markerLines(sf, TODO_BUG_REASON)` + `isNodeInMarkedTest`), scoped
+to the enclosing test. `NOT-APPLICABLE` does **not** grant this (it licenses only
+mock-only, not a type bypass).
+
 **Status**: **built** (`warn`), in [`checks/asAny.ts`](./checks/asAny.ts). pg
 cell: 15 findings (the rewrite backlog above); whole matrix ~242 (after the
-exception / allow-when / marshalling carve-outs).
+exception / allow-when / marshalling carve-outs) — now 0 after the suite cleanup.
 
 ### `any-type` — an `any` TYPE annotation
 
@@ -553,14 +570,86 @@ very shortcut this guards), an extension whose shape was never spelled out.
 **No conflict with `as-any`**: an `AnyKeyword` whose parent is the cast's `as` /
 `<>` is owned by `as-any` and excluded here, so the two never double-flag.
 
-**No carve-outs** (project decision: the `any` type is simply not allowed). The
-fix is almost always mechanical — `unknown` for a caught error / opaque value, or
-the precise type. Verified on the pg cell: 16 findings (`let thrown: any` →
+**Carve-out**: only the shared `TODO[BUG]` exemption above (a bug repro). The
+fix is otherwise mechanical — `unknown` for a caught error / opaque value, or the
+precise type. Verified on the pg cell: 16 findings (`let thrown: any` →
 `unknown`; `const conn: any`; `(v) => any` in `DynamicCondition` extension type
 defs) — all a `warn` rewrite backlog.
 
 **Status**: **built** (`warn`), in [`checks/asAny.ts`](./checks/asAny.ts). pg
-cell: 16; whole matrix ~272.
+cell: 16; whole matrix ~272 — now 0 after the suite cleanup.
+
+### `as-unknown-as` — the `x as unknown as T` laundering
+
+The single clearest type-checker cheat, given its **own** rule (not folded into
+`meaningless-cast`) because the message to the agent is so specific. Casting
+THROUGH `unknown` strips the value to the top type, then `as T` re-asserts it to
+anything — exactly what `as any` does, just spelled to slip past an `as any`
+ban. There is no honest reason a test needs it. Detection
+([`checks/asAny.ts`](./checks/asAny.ts)): an outer cast whose operand is a cast
+to `unknown`. Same sanctioned carve-outs as `as-any` (exception machinery,
+allow-when, file-scoped, `TODO[BUG]`). The inner `as unknown` of the pair is
+excluded from `meaningless-cast` so the two never double-flag.
+
+**Status**: **built** (`warn`). Whole matrix: 62 — the laundering casts the
+suite cleanup left in place because this rule did not yet exist (mostly the
+`dynamic-condition.extension` sites, replicated per cell). A real rewrite backlog.
+
+### `meaningless-cast` — a cast to `unknown` / `null` / `never` / `void`
+
+The non-`any` spellings of the same bypass: `as unknown` (terminal, not the
+`as unknown as` laundering — that is `as-unknown-as`), `as null`, `as never`,
+`as void`, a union of only those (`as unknown | null`), or an **array of one of
+those** (`as unknown[]` — every array is already assignable to `unknown[]`, so the
+cast is redundant; e.g. `ctx.lastParams as unknown[]` where `lastParams` is
+already `unknown[]`). A union with a real member (`as string | null`) is a genuine
+widening and is **not** flagged. Same sanctioned carve-outs as `as-any`.
+
+**Status**: **built** (`warn`), in [`checks/asAny.ts`](./checks/asAny.ts). Whole
+matrix: 170 — the redundant `ctx.lastParams as unknown[]` casts feeding the public
+`getQueryExecution*` / `isSelectPageCountQuery` APIs (drop the cast; `lastParams`
+is already `unknown[]`).
+
+### `meaningless-type` — the `unknown` / `null` / `never` / `void` type annotation
+
+The type-position twin of `meaningless-cast`. Anything inside a cast's TYPE is
+excluded (`isWithinCastType` → owned by `meaningless-cast` / `as-unknown-as`).
+`unknown` and `null` are **permitted in the same contexts as `as any`** (project
+decision), so the rule reuses the cast carve-outs plus the idiomatic / API-mandated
+uses (see `isExemptMeaninglessType`): an exception test / throw-helper / `fromDbValue`
+/ `TODO[BUG]`; a caught-error variable or `unknown` error PARAMETER (`reasonOf(e:
+unknown)`, recognised by the error-ish name like `weak-matcher`'s diagnostic
+context); a type-test arg (`assertType<…, never>`); what a public API requires —
+a `TypeAdapter` override (`transformValueToDB`/`transformValueFromDB`) or a
+`getQueryExecutionMetadata` result; `null` in a union with a real member; `void`
+as a function return. What stays flagged: a standalone meaningless annotation, and
+`unknown` **plumbing** that only makes a test less readable / realistic (a generic
+`capture(run: () => Promise<unknown>)`, `Set<unknown>`, `Array<{ value: unknown }>`).
+
+**Status**: **built** (`warn`), in [`checks/asAny.ts`](./checks/asAny.ts). Whole
+matrix: 167 — the generic-plumbing backlog above (use a precise type). (The earlier
+"full mirror" count of 3466 was almost entirely legitimate `unknown`: caught
+errors, the public `TypeAdapter` API, type-test args — now carved out.)
+
+### `type-cast` — any other type assertion (`x as T` / `<T>x`)
+
+The catch-all for type assertions the more specific cast rules (`as-any`,
+`as-unknown-as`, `meaningless-cast`) did NOT already claim — a `1 as IssueId`,
+`{ … } as SomeRow`, `rows as Project[]`, `<Foo>x`. A type assertion forces the
+checker to accept a shape it did not infer, so it is often hiding a typing
+problem, or marks a spot where the value should be **built** so it genuinely has
+type `T`, or checked with **`satisfies T`** (which validates instead of
+overriding). `as const` (a const assertion, not a type override) is **exempt**;
+otherwise the **same sanctioned contexts as `meaningless-cast`** apply
+(`castSanctioned`: exception test, throw-helper, allow-when, file-scoped
+`fromDbValue`, `// TODO[BUG]:`). It composes with the other cast rules without
+double-flagging (each cast node is owned by exactly one).
+
+**Status**: **built** (`warn`), in [`checks/asAny.ts`](./checks/asAny.ts). Whole
+matrix: 688 — a broad review backlog (pg: 47, mostly branded-type casts like
+`as IssueId` / `as Money` / `as OrderState`, plus a few `as T[]` / union casts).
+A `warn` rule whose residue is the quality-gate sub-agent's judgement (is the cast
+necessary, or should it be `satisfies` / a properly-built value?).
 
 ### `non-public-api` — a relative import past the supported surface
 
@@ -811,13 +900,36 @@ comments; no type checker).
   test is never even registered to run on the real engine. The value must be
   validated in both modes, so the test must run in both. A `skipIf`/`runIf` on
   some *other* condition (a feature flag) is a different concern and is **not**
-  flagged here. **NOT-APPLICABLE carve-out** (mirrors `mock-only`): a test marked
-  `// NOT-APPLICABLE: <reason>` is exempt — the dialect deliberately cannot
-  validate on a real engine, and the test runs in the dialects that support it.
+  flagged here. **NOT-APPLICABLE / TODO[BUG] carve-out** (mirrors `mock-only`): a
+  test marked `// NOT-APPLICABLE: <reason>` (dialect boundary) or
+  `// TODO[BUG]: <reason>` (reproducible bug pending a fix) is exempt.
   **Anchor: 0** — a preventive gate closing the hole before it appears.
 
 **Status**: **built** (`warn`), in [`checks/registrationSkip.ts`](./checks/registrationSkip.ts).
 Whole-matrix: both 0 — clean preventive gates.
+
+### `misplaced-marker` — a reason marker not at a test
+
+The three first-class markers (`// TODO[BUG]:`, `// TODO[LIMITATION]:`,
+`// NOT-APPLICABLE:`) mean something specific *about a test* — they are consumed
+by `commented-test-reason` / `skipped-test-reason` and the `mock-only` / `as-*`
+carve-outs, and the indexer surfaces them as cell caveats. A marker at file
+scope, inside a helper, or floating in prose belongs to none of those and reads
+as a phantom marking. This rule is the **inverse** of the consumers: it flags a
+marker that no test-detection window would associate with a test.
+
+"At a test" ([`checks/markerPlacement.ts`](./checks/markerPlacement.ts), TS
+scanner + AST) is: in a live test's leading comments (taken from TS trivia, so a
+tall multi-line `// TODO[BUG]:` block directly above the test counts in full) or
+inside its body; in a `describe`'s leading comments / header (a group-level
+marker, NOT its whole body — a file-wrapping `describe` must not whitelist
+everything); or in the contiguous comment run that holds a **commented-out** test
+(the test it explains may itself be commented). Anything else is flagged.
+
+**Status**: **built** (`warn`). Whole matrix: 7 — file-header prose that writes
+the literal `TODO[LIMITATION]:` token in a sentence (e.g.
+`select.compound-extras.test.ts`) rather than only as a marker at the commented
+tests; reword the prose (drop the `:` / use the actual markers) to clear them.
 
 ### `tautology` — a provably-constant assertion that validates nothing
 
@@ -1008,8 +1120,8 @@ test/lib/audit/
 ├── main.ts           ← orchestrator + CLI entry (scripts/tests-audit.sh execs it)
 ├── rules.ts          ← RULE_SEVERITY table + the rule registry (CONTENT_RULES)
 ├── types.ts          ← Severity, Finding
-├── ast.ts            ← lineOf + isInRealBranch (shared `if (ctx.realDbEnabled)` branch detection)
-├── reasons.ts        ← the three disabled-test reason markers (TODO[BUG] / TODO[LIMITATION] / NOT-APPLICABLE) + their semantics, shared by commentedTest + registrationSkip
+├── ast.ts            ← lineOf + isInRealBranch + markerLines / isNodeInMarkedTest (the marker→enclosing-test span check shared by the carve-outs)
+├── reasons.ts        ← the three reason-marker regexes + the derived sets (TODO_BUG, NOT_APPLICABLE_OR_BUG, DISABLED_TEST_REASON, ANY_MARKER) shared across checks
 ├── walk.ts           ← enumerate cell .test.ts files (the audit's exclusions) + typesNegativeTestFiles (ts-ignore only)
 ├── ignores.ts        ← `tests-audit-disable-*` parsing + matching + meta-findings
 ├── report.ts         ← compiler-style output + exit-code tally
@@ -1017,7 +1129,8 @@ test/lib/audit/
 └── checks/
     ├── mirrorImage.ts ← guard rules (mock-only / mirror-image / one-sided-guard)
     ├── uuidLiteral.ts ← `uuid-literal` (malformed-UUID-looking string literals)
-    ├── asAny.ts       ← `as-any` (casts to `any`) + `any-type` (`any` annotations)
+    ├── asAny.ts       ← `as-any` + `any-type` + `as-unknown-as` + `meaningless-cast` + `meaningless-type` + `type-cast` (all the type-bypass / cast rules; TODO[BUG]-exempt)
+    ├── markerPlacement.ts ← `misplaced-marker` (a TODO[BUG]/TODO[LIMITATION]/NOT-APPLICABLE marker not at a test)
     ├── nonPublicApi.ts ← `non-public-api` (relative imports past the public surface)
     ├── commentedTest.ts ← `commented-test-reason` (commented tests need a TODO[BUG]/TODO[LIMITATION]/NOT-APPLICABLE reason marker — see reasons.ts)
     ├── focusedTest.ts ← `focused-test` (committed `.only` — skips the rest of the file)
@@ -1084,9 +1197,19 @@ EXTERNAL_CAVEATS subsection), update the link here in the same change.
     suppression + meta-rules (`ignores.ts`), compiler-style output
     (`report.ts`), the orchestrator (`main.ts`); `--explain` / `--strict` /
     `--all` / `--only`;
-  - twenty-four content rules, **all `warn`** today (the split into one rule per
+  - twenty-nine content rules, **all `warn`** today (the split into one rule per
     mechanism is what lets each be promoted to `error` independently), whole run
-    ~1 s (syntactic AST, no type checker): `mock-only` (595 — never validates
+    ~1 s (syntactic AST, no type checker). The five type-bypass / cast siblings of
+    `as-any`/`any-type` — `as-unknown-as` (62; `x as unknown as T` laundering),
+    `meaningless-cast` (170; `as unknown`/`null`/`never`/`void`, incl. `as unknown[]`),
+    `meaningless-type` (167; the same four as a type — `unknown`/`null` permitted in
+    the same contexts as `as any` + API-mandated uses, so only generic plumbing
+    remains), `type-cast` (688; the catch-all for any other `as T`/`<T>x`, `as const`
+    exempt) — plus `misplaced-marker` (7; a reason marker not at a test) were
+    added last. NOTE: the per-rule counts BELOW are the original anchors; after
+    the suite cleanup most content backlogs are **0** today and the only live
+    findings are `type-cast` / `meaningless-cast` / `meaningless-type` /
+    `as-unknown-as` / `misplaced-marker` (run `tests:audit` for the current tally). Original anchors: `mock-only` (595 — never validates
     against real; exception-only
     skip tests and the listed file-scoped exceptions are carved out, see its
     rule section), `mirror-image`

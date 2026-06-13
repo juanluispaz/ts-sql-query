@@ -45,6 +45,19 @@ Checks:
   any-type         an `any` TYPE annotation (`x: any`, `(v: any) =>`, `any[]`,
                    …) — defeats type-checking, hides unrealistic tests. Use a
                    precise type or `unknown`. Separate from as-any. [warn]
+  as-unknown-as    `x as unknown as T` — the double-assertion laundering that
+                   bypasses the checker exactly like `as any`, spelled to evade
+                   an as-any ban. Its own rule, the clearest cheat. [warn]
+  meaningless-cast a cast to `unknown` / `null` / `never` / `void`, a union of
+                   only those, or an array of one (`as unknown[]` — redundant) —
+                   a pointless type-checker bypass. [warn]
+  meaningless-type the `unknown` / `null` / `never` / `void` TYPE annotation. The
+                   type twin of meaningless-cast; `unknown`/`null` allowed in the
+                   same contexts as `as any` + what a public API requires
+                   (TypeAdapter, getQueryExecution*). [warn]
+  type-cast        any OTHER `x as T` / `<T>x` assertion not caught above — may be
+                   forcing the type or wanting `satisfies`. `as const` exempt; same
+                   sanctioned contexts as meaningless-cast. [warn]
   non-public-api   a relative import past the supported surface: into a src
                    module that is not a package.json export, or into a
                    non-admitted test/lib file. [warn]
@@ -79,6 +92,10 @@ Checks:
   skip-real-db     `test.skipIf(ctx.realDbEnabled)` / `runIf(!realDbEnabled)` —
                    a mock-only evasion at the registration level (the test never
                    runs against the real engine). [warn]
+  misplaced-marker a `// TODO[BUG]:` / `// TODO[LIMITATION]:` / `// NOT-APPLICABLE:`
+                   marker NOT at a test (file scope, a helper, floating prose).
+                   Must sit in the comment block above a test (live or commented)
+                   or inside a test body. [warn]
   tautology        a provably-constant assertion that validates nothing —
                    `expect(true).toBe(true)`, `expect(x).toBe(x)`, or
                    `expect(x.length).toBeGreaterThanOrEqual(0)` (.length is
@@ -121,13 +138,19 @@ Flags:
   --all         list every warning (default groups a large backlog per rule)
   --only <rule> run a single content rule (mock-only | mirror-image |
                 one-sided-guard | uuid-literal | as-any | any-type |
-                non-public-api | commented-test-reason | focused-test |
+                as-unknown-as | meaningless-cast | meaningless-type |
+                type-cast | non-public-api | commented-test-reason | focused-test |
                 empty-snapshot | ts-ignore | ts-expect-error |
                 eslint-disable-type | eslint-disable-other |
-                skipped-test-reason | skip-real-db | tautology |
-                no-assertion-runtime | empty-catch | weak-boolean |
+                skipped-test-reason | skip-real-db | misplaced-marker |
+                tautology | no-assertion-runtime | empty-catch | weak-boolean |
                 weak-matcher | close-to | no-op-expect |
-                non-deterministic-input)
+                non-deterministic-input | symmetry)
+
+A test marked `// TODO[BUG]: <reason>` is exempt from mock-only / skip-real-db
+(like `// NOT-APPLICABLE:`) AND from as-any / any-type / as-unknown-as /
+meaningless-cast / meaningless-type, so a reproducible-bug test can use whatever
+bypass it needs to compile while the bug is open.
 
 Design doc: test/lib/audit/AUDIT.md.
 EOF

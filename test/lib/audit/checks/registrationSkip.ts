@@ -21,9 +21,10 @@
 //                            surface. Scoped to conditions referencing
 //                            `realDbEnabled`; other `skipIf`/`runIf` gates are a
 //                            different concern and not flagged here. A test marked
-//                            `// NOT-APPLICABLE: <reason>` is exempt — the dialect
-//                            deliberately cannot validate on a real engine, and the
-//                            test runs in the dialects that support it.
+//                            `// NOT-APPLICABLE: <reason>` (dialect boundary) or
+//                            `// TODO[BUG]: <reason>` (reproducible bug pending a
+//                            fix) is exempt — same carve-out as body-scoped
+//                            `mock-only`.
 //
 // Engine: AST for the `.skip`/`.todo`/`.skipIf`/`.runIf` access (so a string or
 // comment mentioning them is never matched) + the TS scanner to find the
@@ -32,8 +33,8 @@
 
 import ts from 'typescript'
 import type { Finding } from '../types.js'
-import { lineOf, notApplicableMarkerLines, isNotApplicableTest } from '../ast.js'
-import { DISABLED_TEST_REASON } from '../reasons.js'
+import { lineOf, markerLines, isNodeInMarkedTest } from '../ast.js'
+import { DISABLED_TEST_REASON, NOT_APPLICABLE_OR_BUG_REASON } from '../reasons.js'
 
 const RUNNERS = new Set(['test', 'it', 'describe'])
 const DISABLED = new Set(['skip', 'todo'])
@@ -70,7 +71,7 @@ function reasonLinesOf(sf: ts.SourceFile): Set<number> {
 export function checkRegistrationSkip(sf: ts.SourceFile, file: string): Finding[] {
     const out: Finding[] = []
     const reasonLines = reasonLinesOf(sf)
-    const naLines = notApplicableMarkerLines(sf)
+    const naLines = markerLines(sf, NOT_APPLICABLE_OR_BUG_REASON)
     const hasReasonNear = (line: number): boolean => {
         for (let l = line - 3; l <= line; l++) if (reasonLines.has(l)) return true
         return false
@@ -108,15 +109,16 @@ export function checkRegistrationSkip(sf: ts.SourceFile, file: string): Finding[
                     const call = n.parent
                     const args = ts.isCallExpression(call) && call.expression === n ? call.arguments : undefined
                     const refsRealDb = args?.some(a => a.getText(sf).includes('realDbEnabled')) ?? false
-                    // NOT-APPLICABLE carve-out: a dialect that deliberately cannot
-                    // validate against the real engine may gate the test mock-only
-                    // (it runs in the dialects that support it).
-                    if (refsRealDb && !isNotApplicableTest(n, sf, naLines)) {
+                    // NOT-APPLICABLE / TODO[BUG] carve-out: a dialect that
+                    // deliberately cannot validate against the real engine
+                    // (NOT-APPLICABLE), or a reproducible bug pending a fix
+                    // (TODO[BUG]), may gate the test mock-only.
+                    if (refsRealDb && !isNodeInMarkedTest(n, sf, naLines)) {
                         out.push({
                             rule: 'skip-real-db',
                             file,
                             line: lineOf(sf, n),
-                            message: `\`${root}.${member}(…realDbEnabled…)\` gates the WHOLE test on the real-DB flag — a mock-only evasion at the registration level: the test never executes against the real engine, so a real failure cannot surface. The value must be validated in both modes; assert it unconditionally instead of skipping a mode. If this dialect deliberately cannot validate it on a real engine, mark the test \`// NOT-APPLICABLE: <reason>\` (it runs in the dialects that support it)`,
+                            message: `\`${root}.${member}(…realDbEnabled…)\` gates the WHOLE test on the real-DB flag — a mock-only evasion at the registration level: the test never executes against the real engine, so a real failure cannot surface. The value must be validated in both modes; assert it unconditionally instead of skipping a mode. If this dialect deliberately cannot validate it on a real engine, mark the test \`// NOT-APPLICABLE: <reason>\` (it runs in the dialects that support it); if it is a known reproducible bug, mark it \`// TODO[BUG]: <reason>\``,
                         })
                     }
                 }

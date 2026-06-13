@@ -12,8 +12,9 @@ import { cellTestFiles, typesNegativeTestFiles } from './walk.js'
 import { scanIgnores, applyIgnores } from './ignores.js'
 import { checkMirrorImage } from './checks/mirrorImage.js'
 import { checkUuidLiterals } from './checks/uuidLiteral.js'
-import { checkAsAny, checkAnyType } from './checks/asAny.js'
+import { checkAsAny, checkAnyType, checkAsUnknownAs, checkMeaninglessCast, checkMeaninglessType, checkTypeCast } from './checks/asAny.js'
 import { checkNonPublicApi } from './checks/nonPublicApi.js'
+import { checkMarkerPlacement } from './checks/markerPlacement.js'
 import { checkCommentedTests } from './checks/commentedTest.js'
 import { checkFocusedTests } from './checks/focusedTest.js'
 import { checkEmptySnapshots } from './checks/emptySnapshot.js'
@@ -95,12 +96,15 @@ function runContentChecks(only: string | null, files: string[], tsIgnoreOnlyFile
 
     // checkMirrorImage emits `mock-only` / `mirror-image` / `one-sided-guard`;
     // checkUuidLiterals emits `uuid-literal`; checkAsAny emits `as-any`;
-    // checkAnyType emits `any-type`; checkNonPublicApi emits `non-public-api`;
+    // checkAnyType emits `any-type`; checkAsUnknownAs emits `as-unknown-as`;
+    // checkMeaninglessCast emits `meaningless-cast`; checkMeaninglessType emits
+    // `meaningless-type`; checkTypeCast emits `type-cast`; checkNonPublicApi emits `non-public-api`;
     // checkCommentedTests emits `commented-test-reason`; checkFocusedTests emits
     // `focused-test`; checkEmptySnapshots emits `empty-snapshot`;
     // checkSuppressions emits `ts-ignore` / `ts-expect-error` /
     // `eslint-disable-type` / `eslint-disable-other`; checkRegistrationSkip emits
-    // `skipped-test-reason` / `skip-real-db`; checkTautologies emits `tautology`;
+    // `skipped-test-reason` / `skip-real-db`; checkMarkerPlacement emits
+    // `misplaced-marker`; checkTautologies emits `tautology`;
     // checkNoValidation emits `no-assertion-runtime` / `empty-catch` /
     // `weak-boolean`; checkWeakMatcher emits `weak-matcher`; checkCloseTo emits
     // `close-to`; checkNoOpExpect emits `no-op-expect`; checkNonDeterministicInput
@@ -108,11 +112,12 @@ function runContentChecks(only: string | null, files: string[], tsIgnoreOnlyFile
     for (const file of files) {
         findings.push(...auditFile(file, only, (sf) => [
             ...checkMirrorImage(sf, file), ...checkUuidLiterals(sf, file), ...checkAsAny(sf, file),
-            ...checkAnyType(sf, file), ...checkNonPublicApi(sf, file), ...checkCommentedTests(sf, file),
+            ...checkAnyType(sf, file), ...checkAsUnknownAs(sf, file), ...checkMeaninglessCast(sf, file),
+            ...checkMeaninglessType(sf, file), ...checkTypeCast(sf, file), ...checkNonPublicApi(sf, file), ...checkCommentedTests(sf, file),
             ...checkFocusedTests(sf, file), ...checkEmptySnapshots(sf, file), ...checkSuppressions(sf, file),
-            ...checkRegistrationSkip(sf, file), ...checkTautologies(sf, file), ...checkNoValidation(sf, file),
-            ...checkWeakMatcher(sf, file), ...checkCloseTo(sf, file), ...checkNoOpExpect(sf, file),
-            ...checkNonDeterministicInput(sf, file),
+            ...checkRegistrationSkip(sf, file), ...checkMarkerPlacement(sf, file), ...checkTautologies(sf, file),
+            ...checkNoValidation(sf, file), ...checkWeakMatcher(sf, file), ...checkCloseTo(sf, file),
+            ...checkNoOpExpect(sf, file), ...checkNonDeterministicInput(sf, file),
         ]))
     }
 

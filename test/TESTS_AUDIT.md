@@ -98,6 +98,11 @@ finding. Fix a finding by making the test validate honestly — never by hiding 
 **Build through the public typed API — don't silence the type checker**
 - `as-any` — a cast to `any`. Build the query the supported way. (Feeding an invalid value to a runtime guard in an exception test is tolerated.)
 - `any-type` — an `any` type annotation. Use the precise type, or `unknown` for a caught error.
+- `as-unknown-as` — `x as unknown as T`: the double assertion that launders any value into `T`, bypassing the checker exactly like `as any` (just spelled to evade an `as any` ban). Build the value so it genuinely has type `T`. The single clearest cheat — its own rule.
+- `meaningless-cast` — a cast to `unknown` / `null` / `never` / `void`, a union of only those, or an array of one (`as unknown[]` — redundant, any array is already `unknown[]`). Pointless in a test; drop it / build through the typed API.
+- `meaningless-type` — those same four as a **type annotation**. `unknown`/`null` are allowed in the same contexts as `as any` (exception test / throw-helper / `fromDbValue` / `TODO[BUG]`), as a caught-error variable or `unknown` error param (`reasonOf(e: unknown)`), in a type-test arg (`assertType<…>`), where a public API requires it (a `TypeAdapter` override, a `getQueryExecutionMetadata` result), `null` in a union with a real type (`string | null`), and `void` as a function return. What's flagged: a standalone meaningless annotation, or `unknown` plumbing that just makes the test less realistic (a generic `capture(() => Promise<unknown>)`, `Set<unknown>`). Use the precise type.
+- `type-cast` — any **other** type assertion (`x as T` / `<T>x`) not caught by the rules above (`1 as IssueId`, `{…} as SomeRow`, `rows as Project[]`). A cast forces a type the checker didn't infer — review whether it's necessary; prefer building the value so it genuinely has type `T`, or `satisfies T` (checks instead of overrides). `as const` is exempt.
+- (All six type-bypass / cast rules above are **exempt inside a `// TODO[BUG]:`-marked test** — a bug repro may need a bypass to compile.)
 - `ts-ignore` — `@ts-ignore` / `@ts-nocheck`: forbidden everywhere. A negative-type assertion uses `@ts-expect-error` inside a `types.negative/` cell.
 - `ts-expect-error` — outside a `types.negative/` cell. Build through the public API; a real negative-type assertion belongs in `types.negative/`.
 - `eslint-disable-type` / `eslint-disable-other` — an `eslint-disable` of a type-soundness lint (`no-explicit-any` …) / any other lint. Fix the code instead.
@@ -107,6 +112,7 @@ finding. Fix a finding by making the test validate honestly — never by hiding 
 - `commented-test-reason` — a commented-out test with no reason. Add one of the three first-class markers (see below), or re-enable it.
 - `skipped-test-reason` — `test.skip` / `test.todo` / `xit` … needs the same reason marker as a commented-out test.
 - `focused-test` — a committed `test.only` / `describe.only`: it silently skips the rest of the file. Remove `.only`.
+- `misplaced-marker` — a `// TODO[BUG]:` / `// TODO[LIMITATION]:` / `// NOT-APPLICABLE:` marker that is **not at a test** (file scope, inside a helper, floating prose). It must sit in the comment block directly above a test (live or commented out) or inside a test body. Move it to the test it explains, or remove it.
 - `non-deterministic-input` — `new Date()` (no arg), `Date.now()`, `Math.random()` used as a query input make the params non-deterministic. Use a fixed value (`new Date('2024-01-02T03:04:05Z')`). These are allowed only as **mock data** passed to `mockNext`, simulating the database's own `current_date` / `random()`.
 
 **Structure**
@@ -145,15 +151,24 @@ wrongly implies pending work). The markers are uppercase + hyphen, so prose like
 canonical `// NOT-APPLICABLE: …`. The reason should name the boundary (which
 dialect/feature) and, where useful, where the test *does* run.
 
-**`NOT-APPLICABLE` also licenses a *live* mock-only test.** When the feature
-*can* be exercised through the API (so the SQL/params are worth asserting via the
-mock here) but this dialect's real engine deliberately cannot validate it, keep
-the test **live** and mark it `// NOT-APPLICABLE: <reason>` (in its body or within
-3 lines above the `test(...)`). It then runs mock-only here without tripping
-`mock-only` / `skip-real-db`, and validates fully in the dialects that support it.
-This is the **only** marker with that power — a `TODO[*]` implies pending work and
-does not license a permanently mock-only live test. The marker is scoped to its
-own test, so it never exempts a neighbour.
+**`NOT-APPLICABLE` and `TODO[BUG]` also license a *live* mock-only test.** When
+the feature *can* be exercised through the API (so the SQL/params are worth
+asserting via the mock here) but the real engine should not validate it, keep the
+test **live** and mark it (in its body or within 3 lines above the `test(...)`).
+It then runs mock-only here without tripping `mock-only` / `skip-real-db`. Two
+markers grant this: `// NOT-APPLICABLE:` (a permanent dialect boundary — it
+validates fully in the dialects that support it) and `// TODO[BUG]:` (a
+reproducible bug, mock-only until the fix lands). `// TODO[LIMITATION]:` does
+**not** (a pending decision, neither a boundary nor an open bug).
+
+**`TODO[BUG]` additionally licenses the type-bypass rules.** A reproducible-bug
+test often needs `as any` / `as unknown as T` / an `any` annotation just to
+*compile* the broken call. Inside a `// TODO[BUG]:`-marked test, `as-any`,
+`any-type`, `as-unknown-as`, `meaningless-cast` and `meaningless-type` are all
+exempt — so the repro stays in the suite (and tracked) until the bug is fixed.
+`NOT-APPLICABLE` does not grant this.
+
+Every marker is scoped to its own test, so it never exempts a neighbour.
 
 ## Suppress a finding — rarely, with a reason
 

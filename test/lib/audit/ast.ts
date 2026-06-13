@@ -1,21 +1,21 @@
 // Small AST helpers shared by the content checks.
 
 import ts from 'typescript'
-import { NOT_APPLICABLE_REASON } from './reasons.js'
 
 export function lineOf(sf: ts.SourceFile, node: ts.Node): number {
     return sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1
 }
 
-// 1-based lines carrying a `// NOT-APPLICABLE: <reason>` marker. Comment-scoped
-// (TS scanner), so a string mentioning the text is never matched.
-export function notApplicableMarkerLines(sf: ts.SourceFile): Set<number> {
+// 1-based lines of every COMMENT whose text matches `marker`. Comment-scoped
+// (TS scanner), so a string or live code that merely mentions the text is never
+// matched. A multi-line comment is recorded at its start line.
+export function markerLines(sf: ts.SourceFile, marker: RegExp): Set<number> {
     const scanner = ts.createScanner(ts.ScriptTarget.Latest, /*skipTrivia*/ false, ts.LanguageVariant.Standard, sf.text)
     const lines = new Set<number>()
     let tok = scanner.scan()
     while (tok !== ts.SyntaxKind.EndOfFileToken) {
         if (tok === ts.SyntaxKind.SingleLineCommentTrivia || tok === ts.SyntaxKind.MultiLineCommentTrivia) {
-            if (NOT_APPLICABLE_REASON.test(scanner.getTokenText())) {
+            if (marker.test(scanner.getTokenText())) {
                 lines.add(sf.getLineAndCharacterOfPosition(scanner.getTokenPos()).line + 1)
             }
         }
@@ -54,20 +54,22 @@ function enclosingTestCall(node: ts.Node): ts.CallExpression | undefined {
     return undefined
 }
 
-// Is `node` inside a test marked `// NOT-APPLICABLE: <reason>`? The marker must
-// sit within the enclosing test's span (its body) or within 3 lines above its
-// first line. NOT-APPLICABLE means a deliberate dialect boundary — the test runs
-// and validates in the dialects that support it — so a LIVE test carrying it is
-// allowed to be mock-only here (the `mock-only` / `skip-real-db` carve-out). Keyed
-// on NOT-APPLICABLE specifically: a `TODO[*]` implies pending work and does NOT
-// license a permanently mock-only live test.
-export function isNotApplicableTest(node: ts.Node, sf: ts.SourceFile, naLines: Set<number>): boolean {
-    if (naLines.size === 0) return false
+// Is `node` inside a test whose span carries one of the `markerLines`? "Span"
+// is the enclosing test call's body PLUS the 3 lines immediately above it (a
+// marker sitting on the comment line(s) just above the `test(...)`). The caller
+// chooses which marker set to pass:
+//   - NOT-APPLICABLE ∪ TODO[BUG]  → the `mock-only` / `skip-real-db` carve-out
+//     (a dialect boundary, or a bug repro that stays mock-only until fixed);
+//   - TODO[BUG] alone             → the `as-any` / `any-type` / meaningless-cast
+//     / meaningless-type carve-out (a bug repro may need a type bypass to compile).
+// `TODO[LIMITATION]` licenses neither.
+export function isNodeInMarkedTest(node: ts.Node, sf: ts.SourceFile, markerLineSet: Set<number>): boolean {
+    if (markerLineSet.size === 0) return false
     const call = enclosingTestCall(node)
     if (!call) return false
     const start = sf.getLineAndCharacterOfPosition(call.getStart(sf)).line + 1
     const end = sf.getLineAndCharacterOfPosition(call.getEnd()).line + 1
-    for (const l of naLines) if (l >= start - 3 && l <= end) return true
+    for (const l of markerLineSet) if (l >= start - 3 && l <= end) return true
     return false
 }
 

@@ -42,8 +42,26 @@
 /** `TODO[BUG]: <reason>` or `TODO[LIMITATION]: <reason>` — the two TODO markers. */
 export const TODO_REASON = /TODO\[(?:LIMITATION|BUG)\]\s*:\s*\S/
 
+/** `TODO[BUG]: <reason>` — a reproducible defect in `src/`. */
+export const TODO_BUG_REASON = /TODO\[BUG\]\s*:\s*\S/
+
 /** `NOT-APPLICABLE: <reason>` — a permanent dialect boundary (NOT a TODO). */
 export const NOT_APPLICABLE_REASON = /NOT-APPLICABLE\s*:\s*\S/
 
+/**
+ * `NOT-APPLICABLE` OR `TODO[BUG]` — the two markers that license a LIVE test to
+ * skip real-DB validation (the `mock-only` / `skip-real-db` carve-out): a dialect
+ * boundary, or a reproducible bug whose repro stays mock-only until fixed.
+ * `TODO[LIMITATION]` is deliberately NOT here.
+ */
+export const NOT_APPLICABLE_OR_BUG_REASON = /(?:NOT-APPLICABLE|TODO\[BUG\])\s*:\s*\S/
+
 /** Any of the three first-class markers with a non-empty reason. */
 export const DISABLED_TEST_REASON = /(?:TODO\[(?:LIMITATION|BUG)\]|NOT-APPLICABLE)\s*:\s*\S/
+
+/**
+ * Any of the three first-class markers, WITHOUT requiring a reason — used by the
+ * `misplaced-marker` rule to locate every marker occurrence (a missing reason is
+ * the `commented-test-reason` / `skipped-test-reason` rules' concern, not this one).
+ */
+export const ANY_MARKER = /(?:TODO\[(?:LIMITATION|BUG)\]|NOT-APPLICABLE)\s*:/

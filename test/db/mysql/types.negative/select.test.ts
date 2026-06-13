@@ -9,6 +9,7 @@
 // rule it enforces. DESIGN §6.
 
 import { test, expect } from '../../../lib/testRunner.js'
+import { assertType, type Exact } from '../../../lib/assertType.js'
 import type { DBConnection } from '../domain/connection.js'
 import { tAppUser, tIssue, tProject } from '../domain/connection.js'
 
@@ -95,6 +96,20 @@ function _typeNegatives() {
     // match the column's underlying type.
     // @ts-expect-error string passed where number | null | undefined expected
     void tIssue.priority.equalsIfValue('high')
+
+    // Rule: MySQL does not expose the `*All` set-difference operators, nor
+    // the `minus` alias. The fluent API narrows `intersectAll`,
+    // `exceptAll`, `minus` and `minusAll` to `never` for the mysql dialect
+    // (src/expressions/select.ts). This is the compile-time pairing for the
+    // NOT-APPLICABLE wrap in
+    // test/db/mysql/newest/mysql2/select.compound-extras.test.ts.
+    {
+        const compoundable = connection.selectFrom(tIssue).select({ id: tIssue.id })
+        assertType<Exact<typeof compoundable.intersectAll, never>>()
+        assertType<Exact<typeof compoundable.exceptAll, never>>()
+        assertType<Exact<typeof compoundable.minus, never>>()
+        assertType<Exact<typeof compoundable.minusAll, never>>()
+    }
 }
 
 test('select-negative-types', () => {

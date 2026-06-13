@@ -130,45 +130,34 @@ runtime cell rejects something a mock cell accepted (because the mock
 doesn't execute the SQL), it is almost always this case. Treat as
 "test author error", not as a bug.
 
-## pglite does not bundle the latest PostgreSQL — newest dialect features will fail there
+## pglite may bundle an older PostgreSQL than the dialect's newest syntax targets
 
 [`pglite`](https://pglite.dev/) is a WASM build of PostgreSQL that
 the suite uses for in-process real-DB coverage of postgres-dialect
-cells. Today it ships PostgreSQL **17**. Several features the
-`postgres` SqlBuilder emits at its newest `compatibilityVersion`
-require **PostgreSQL 18+**:
+cells. As of `@electric-sql/pglite` **0.5.1** it ships PostgreSQL
+**18.3** (earlier releases shipped PostgreSQL 17). The `postgres`
+SqlBuilder at its newest `compatibilityVersion` emits syntax such as
+`RETURNING old.<col>` / `RETURNING new.<col>` (the `update returning
+old values` feature) that requires **PostgreSQL 18+** — pglite 0.5.1
+(PG 18.3) accepts it, verified against the embedded engine, so
+`docs:update/update-returning-old-values` now runs live in
+`test/db/postgres/newest/pglite/docs.update.test.ts` (no wrap).
 
-- `RETURNING old.<col>` / `RETURNING new.<col>` (the `update
-  returning old values` feature). The library emits `old.<col>` and
-  PostgreSQL 17 rejects it with `missing FROM-clause entry for table
-  "old"`.
-- Future PG18+ syntax additions, as they are wired into the
-  `postgres` SqlBuilder, will hit the same wall on pglite.
+**There is no current pglite-version wrap.** The guidance below
+applies only if a *future* feature the `postgres` SqlBuilder emits at
+`newest` ever requires a PostgreSQL newer than the version pglite
+bundles at the time:
 
-**What this means for tests** — the wrap is **per
-`compatibilityVersion` cell**, not per pglite-cell. The `postgres`
-SqlBuilder branches on `compatibilityVersion`:
-
-- At `newest` (default, `Number.POSITIVE_INFINITY`) the SqlBuilder
-  emits the newest syntax the dialect supports. For features that
-  PostgreSQL only added in 18+, that is what reaches pglite — and
-  pglite (PG17) rejects it. Wrap the test in
-  `postgres/newest/pglite/` with `TODO[LIMITATION]: see LIMITATIONS.md`.
-- At `oldest` (the `<` zone below the lowest documented breakpoint)
-  the SqlBuilder emits the legacy emulation that PostgreSQL 17 and
-  earlier accept. The test passes against pglite at `oldest`. Do
-  **not** wrap it there.
-
-Existing case today: `docs:update/update-returning-old-values`. The
-SqlBuilder at `newest` emits `RETURNING old.<col>` (PG18+); at
-`oldest` it emits a pre-PG18 emulation built on `for no key update of
-_old_` that PG17 accepts. So the test is commented out **only** in
-`test/db/postgres/newest/pglite/docs.update.test.ts`, not in the
-`oldest/pglite` cell.
-
-When pglite catches up with PostgreSQL 18+, walk
-`grep -rn "TODO\[LIMITATION\]" test/db/postgres/*/pglite/` and
-uncomment each match.
+- The wrap would be **per `compatibilityVersion` cell**, not
+  per pglite-cell. At `newest` (default,
+  `Number.POSITIVE_INFINITY`) the SqlBuilder emits the newest syntax
+  the dialect supports; if that outpaces pglite's bundled PG, wrap
+  only the `postgres/newest/pglite/` test with `TODO[LIMITATION]: see
+  LIMITATIONS.md`. At `oldest` the SqlBuilder emits the legacy
+  emulation that older servers accept, so do **not** wrap it there.
+- When pglite catches up, walk
+  `grep -rn "TODO\[LIMITATION\]" test/db/postgres/*/pglite/` and
+  uncomment each match.
 
 ## MariaDB UPDATE ... RETURNING requires MariaDB 13.0.1+ — `mariadb:latest` still ships 12.x
 
@@ -180,7 +169,7 @@ at `newest` (the default `Number.POSITIVE_INFINITY`) the
 `MariaDBSqlBuilder` emits the new syntax, including
 `returning old_value(col)` for `tTable.oldValues()` references.
 
-The Docker image used by the test matrix (`mariadb`, no tag → `mariadb:latest`) currently resolves to **MariaDB 12.2.2** (LTS is older, 12.3 is in RC, 13.x is not yet GA). Real MariaDB 12.x rejects every `UPDATE ... RETURNING` with `ER_PARSE_ERROR (1064, SQLSTATE 42000)`:
+The Docker image used by the test matrix (`mariadb`, no tag → `mariadb:latest`) currently resolves to **MariaDB 12.3.2** (13.x is not yet GA). Real MariaDB 12.x rejects every `UPDATE ... RETURNING` with `ER_PARSE_ERROR (1064, SQLSTATE 42000)`:
 
 ```text
 You have an error in your SQL syntax; check the manual that corresponds
@@ -200,10 +189,39 @@ the unreleased server version. When `mariadb:latest` catches up to
 grep -rn "TODO\[LIMITATION\]" test/db/mariadb/
 ```
 
-and uncomment each match. If older `MariaDB` `compatibilityVersion`
-cells (`13_000_001`, `10_005_000`, `oldest`, …) are ever added, the
-`< 13_000_001` cells emit a legacy form that real MariaDB 12.x
-accepts and do **not** need the wrap.
+and uncomment each match — **except** the cases in the next section,
+which the 13.0.1+ upgrade does **not** fix. If older `MariaDB`
+`compatibilityVersion` cells (`13_000_001`, `10_005_000`, `oldest`, …)
+are ever added, the `< 13_000_001` cells emit a legacy form that real
+MariaDB 12.x accepts and do **not** need the wrap.
+
+## MariaDB rejects RETURNING on multi-table DML, and the WITH prefix on INSERT (verified against 12.3.2)
+
+Separate from the version gate above, the `mariadb` SqlBuilder emits a
+few DML shapes that MariaDB rejects at parse time independent of the
+RETURNING version gate. Verified by running the emitted SQL against a
+real `mariadb:latest` (12.3.2) container:
+
+- **RETURNING on a multi-table UPDATE / DELETE** — `UPDATE a, b SET ...
+  RETURNING ...` and `DELETE ... USING a, b ... RETURNING ...` are
+  rejected with `ER_PARSE_ERROR` at `returning`, even though
+  single-table `DELETE ... RETURNING` works on 12.x (it has shipped
+  since MariaDB 10.0.5) and single-table `UPDATE ... RETURNING` works
+  from 13.0.1+. The multi-table RETURNING form is not accepted on any
+  current MariaDB. Affects `update.from.variants` and
+  `delete.using.variants`.
+- **WITH prefix on `INSERT ... SELECT`** — `WITH cte AS (...) INSERT
+  INTO ... SELECT ...` is rejected with `ER_PARSE_ERROR` at `insert`.
+  MariaDB accepts a CTE *inside* the SELECT but not as the prefix of an
+  INSERT statement. Affects `insert.from-select.variants`. (Note:
+  MariaDB **12.3** *added* the WITH prefix for multi-table UPDATE /
+  DELETE — those tests are now live — but not yet for INSERT.)
+
+These stay `TODO[LIMITATION]` rather than `NOT-APPLICABLE` because the
+library emits the SQL (no type-level narrowing) and a future MariaDB
+release could accept these shapes, exactly as 12.3 did for the
+WITH-prefixed UPDATE/DELETE. Re-probe against the real engine before
+reactivating.
 
 ## Query introspection (`__isAllowed`) has no public API yet — tests reach internals via a single helper
 

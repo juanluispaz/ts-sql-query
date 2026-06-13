@@ -68,7 +68,7 @@ describe(ctx.label, () => {
         })
     })
 
-    // Not applicable on SQL Server: cannot update an IDENTITY primary-key column, so the `updatePrimaryKey` -> `for update of` path is unreachable here.
+    // NOT-APPLICABLE: SQL Server cannot update an IDENTITY primary-key column, so the `updatePrimaryKey` -> `for update of` path is unreachable here.
     /*
     test('returning-old-values-with-primary-key-in-set-uses-for-update-of', async () => {
         // Including a PRIMARY KEY column in `.set()` flips the builder's
@@ -78,7 +78,7 @@ describe(ctx.label, () => {
         // `OLD.col` with no lock clause). The PK (a SERIAL column) is set
         // to its current value, so the update is a no-op that violates no
         // foreign key referencing project(id). Commented out on sqlserver
-        // (cannot update an IDENTITY column), mariadb (TODO[LIMITATION]:
+        // (cannot update an IDENTITY column), mariadb (limitation:
         // OLD_VALUE needs 13.0.1+) and mysql/oracle/sqlite (oldValues
         // typed `never`).
         const expected = { id: 1, oldName: 'Marketing site', newName: 'Marketing site!' }

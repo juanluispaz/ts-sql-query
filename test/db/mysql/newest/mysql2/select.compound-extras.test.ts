@@ -8,9 +8,9 @@
 // ([src/expressions/select.ts:122-127](../../../../../src/expressions/select.ts#L122-L127)
 // narrows `intersectAll`/`exceptAll`/`minus`/`minusAll` to `never`
 // for `mysql`), so every test body would fail to type-check here.
-// All four are commented out with `TODO[LIMITATION]` (see LIMITATIONS.md)
-// to keep the test count symmetric with the postgres/mariadb cells
-// while honouring the type-system narrowing.
+// All four are commented out with `NOT-APPLICABLE`: the type-system
+// narrowing is a permanent dialect frontier (the bodies can never
+// type-check here), kept for symmetry with the postgres/mariadb cells.
 
 import { afterAll, beforeAll, beforeEach, describe } from '../../../../lib/testRunner.js'
 import { ctx } from './setup.js'
@@ -20,42 +20,30 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — MySQL's pre-8.0.31
-    // versions do not support set-difference operators, and the
-    // fluent API encodes that by narrowing `intersectAll`,
-    // `exceptAll`, `minus` and `minusAll` to `never` for `mysql`. See
-    // the postgres / mariadb cells for the active bodies.
-    // NOT-APPLICABLE: MySQL has no INTERSECT/EXCEPT
+    // NOT-APPLICABLE: the mysql dialect narrows `intersectAll`, `exceptAll`,
+    // `minus` and `minusAll` to `never` (compile-time frontier, paired with
+    // test/db/mysql/types.negative/select.test.ts). Runs in postgres/mariadb.
     /*
     test('intersect-all-emits-intersect-all-syntax', async () => {})
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — MySQL's pre-8.0.31
-    // versions do not support set-difference operators, and the
-    // fluent API encodes that by narrowing `intersectAll`,
-    // `exceptAll`, `minus` and `minusAll` to `never` for `mysql`. See
-    // the postgres / mariadb cells for the active bodies.
-    // NOT-APPLICABLE: MySQL has no INTERSECT/EXCEPT
+    // NOT-APPLICABLE: the mysql dialect narrows `intersectAll`, `exceptAll`,
+    // `minus` and `minusAll` to `never` (compile-time frontier, paired with
+    // test/db/mysql/types.negative/select.test.ts). Runs in postgres/mariadb.
     /*
     test('except-all-emits-except-all-syntax', async () => {})
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — MySQL's pre-8.0.31
-    // versions do not support set-difference operators, and the
-    // fluent API encodes that by narrowing `intersectAll`,
-    // `exceptAll`, `minus` and `minusAll` to `never` for `mysql`. See
-    // the postgres / mariadb cells for the active bodies.
-    // NOT-APPLICABLE: MySQL has no INTERSECT/EXCEPT
+    // NOT-APPLICABLE: the mysql dialect narrows `intersectAll`, `exceptAll`,
+    // `minus` and `minusAll` to `never` (compile-time frontier, paired with
+    // test/db/mysql/types.negative/select.test.ts). Runs in postgres/mariadb.
     /*
     test('minus-routes-through-the-dialect-alias', async () => {})
     */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — MySQL's pre-8.0.31
-    // versions do not support set-difference operators, and the
-    // fluent API encodes that by narrowing `intersectAll`,
-    // `exceptAll`, `minus` and `minusAll` to `never` for `mysql`. See
-    // the postgres / mariadb cells for the active bodies.
-    // NOT-APPLICABLE: MySQL has no INTERSECT/EXCEPT
+    // NOT-APPLICABLE: the mysql dialect narrows `intersectAll`, `exceptAll`,
+    // `minus` and `minusAll` to `never` (compile-time frontier, paired with
+    // test/db/mysql/types.negative/select.test.ts). Runs in postgres/mariadb.
     /*
     test('minus-all-routes-through-the-dialect-alias', async () => {})
     */

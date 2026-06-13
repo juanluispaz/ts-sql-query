@@ -9,6 +9,7 @@
 // rule it enforces. DESIGN §6.
 
 import { test, expect } from '../../../lib/testRunner.js'
+import { assertType, type Exact } from '../../../lib/assertType.js'
 import type { DBConnection } from '../domain/connection.js'
 import { tAppUser, tIssue, tProject } from '../domain/connection.js'
 
@@ -95,6 +96,19 @@ function _typeNegatives() {
     // match the column's underlying type.
     // @ts-expect-error string passed where number | null | undefined expected
     void tIssue.priority.equalsIfValue('high')
+
+    // Rule: Oracle exposes `minus` (its native set-difference operator) but
+    // not the `*All` family. The fluent API narrows `intersectAll`,
+    // `exceptAll` and `minusAll` to `never` for the oracle dialect
+    // (src/expressions/select.ts). This is the compile-time pairing for the
+    // NOT-APPLICABLE wrap in
+    // test/db/oracle/newest/oracledb/select.compound-extras.test.ts.
+    {
+        const compoundable = connection.selectFrom(tIssue).select({ id: tIssue.id })
+        assertType<Exact<typeof compoundable.intersectAll, never>>()
+        assertType<Exact<typeof compoundable.exceptAll, never>>()
+        assertType<Exact<typeof compoundable.minusAll, never>>()
+    }
 }
 
 test('select-negative-types', () => {

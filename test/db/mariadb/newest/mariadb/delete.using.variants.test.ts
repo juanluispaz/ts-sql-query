@@ -88,11 +88,10 @@ describe(ctx.label, () => {
         })
     })
 
-    // MariaDB rejects the `WITH cte AS (...) DELETE FROM a USING a, cte
-    // WHERE ...` form the library emits — MariaDB accepts WITH as a
-    // prefix for a SELECT but not in a multi-table DELETE.
-    // TODO[LIMITATION]: see LIMITATIONS.md — MariaDB has no WITH-prefixed multi-table DELETE
-    /*
+    // MariaDB accepts the `WITH cte AS (...) DELETE FROM a USING a, cte
+    // WHERE ...` form the library emits (verified against the
+    // mariadb:latest image, 12.3.2 — MariaDB 12.3 added WITH-prefixed
+    // multi-table DELETE; earlier 12.x rejected it with a parse error).
     test('delete-using-cte-source', async () => {
         // USING target is a `.forUseInQueryAs(...)` view (a CTE). The
         // emitted SQL must lead with `with active_projects as (...)`
@@ -121,13 +120,13 @@ describe(ctx.label, () => {
             else expect(typeof affected).toBe('number')
         })
     })
-    */
 
-    // MariaDB supports RETURNING only on a single-table DELETE, not on a
-    // multi-table DELETE (DELETE ... USING). The server rejects the
-    // emitted `delete from issue using issue, project ... RETURNING ...`
-    // form with a parse error at `returning`.
-    // TODO[LIMITATION]: see LIMITATIONS.md — MariaDB has no RETURNING on multi-table DELETE
+    // The server rejects the emitted `delete from issue using issue,
+    // project ... RETURNING ...` form with a parse error at `returning`
+    // (verified against MariaDB 12.3.2). Single-table DELETE ... RETURNING
+    // works on this image (it has shipped since MariaDB 10.0.5), but
+    // RETURNING on a multi-table DELETE (DELETE ... USING) is not accepted.
+    // TODO[LIMITATION]: see LIMITATIONS.md — RETURNING is not accepted on a multi-table DELETE (DELETE ... USING) as of MariaDB 12.3.2
     /*
     test('delete-using-with-returning-none-or-one-row', async () => {
         // RETURNING combined with USING. Uses `executeDeleteNoneOrOne`

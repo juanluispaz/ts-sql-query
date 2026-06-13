@@ -89,7 +89,7 @@ describe(ctx.label, () => {
     // MySQL has no UPDATE … RETURNING in any released version, so the
     // fluent API narrows `returningOneColumn`/`returning` to `never` for
     // `mysql` and these bodies would not even type-check here.
-    // TODO[LIMITATION]: see LIMITATIONS.md — re-enable if/when MySQL adds UPDATE … RETURNING.
+    // NOT-APPLICABLE: MySQL has no UPDATE ... RETURNING; `returning`/`returningOneColumn` are typed `never` on the mysql dialect (a permanent compile-time frontier, asserted in test/db/mysql/types.negative/update.test.ts). The body runs in the dialects that support RETURNING (postgres, sqlite, mariadb, sqlserver, oracle).
     /*
     test('execute-update-none-or-one-with-returning-one-column', async () => {
         // See sqlite / postgres cells for the active body.
@@ -99,7 +99,7 @@ describe(ctx.label, () => {
     // MySQL has no UPDATE … RETURNING in any released version, so the
     // fluent API narrows `returningOneColumn`/`returning` to `never` for
     // `mysql` and these bodies would not even type-check here.
-    // TODO[LIMITATION]: see LIMITATIONS.md — re-enable if/when MySQL adds UPDATE … RETURNING.
+    // NOT-APPLICABLE: MySQL has no UPDATE ... RETURNING; `returning`/`returningOneColumn` are typed `never` on the mysql dialect (a permanent compile-time frontier, asserted in test/db/mysql/types.negative/update.test.ts). The body runs in the dialects that support RETURNING (postgres, sqlite, mariadb, sqlserver, oracle).
     /*
     test('execute-update-none-or-one-with-returning-one-column-empty-result', async () => {
         // Same path as the previous test but the engine returns no
@@ -125,7 +125,7 @@ describe(ctx.label, () => {
     // MySQL has no UPDATE … RETURNING in any released version, so the
     // fluent API narrows `returningOneColumn`/`returning` to `never` for
     // `mysql` and these bodies would not even type-check here.
-    // TODO[LIMITATION]: see LIMITATIONS.md — re-enable if/when MySQL adds UPDATE … RETURNING.
+    // NOT-APPLICABLE: MySQL has no UPDATE ... RETURNING; `returning`/`returningOneColumn` are typed `never` on the mysql dialect (a permanent compile-time frontier, asserted in test/db/mysql/types.negative/update.test.ts). The body runs in the dialects that support RETURNING (postgres, sqlite, mariadb, sqlserver, oracle).
     /*
     test('execute-update-many-with-min-max-throws-when-out-of-range', async () => {
         // `executeUpdateMany(min, max)` checks `rows.length` after the
@@ -152,7 +152,7 @@ describe(ctx.label, () => {
     // MySQL has no UPDATE … RETURNING in any released version, so the
     // fluent API narrows `returningOneColumn`/`returning` to `never` for
     // `mysql` and these bodies would not even type-check here.
-    // TODO[LIMITATION]: see LIMITATIONS.md — re-enable if/when MySQL adds UPDATE … RETURNING.
+    // NOT-APPLICABLE: MySQL has no UPDATE ... RETURNING; `returning`/`returningOneColumn` are typed `never` on the mysql dialect (a permanent compile-time frontier, asserted in test/db/mysql/types.negative/update.test.ts). The body runs in the dialects that support RETURNING (postgres, sqlite, mariadb, sqlserver, oracle).
     /*
     test('execute-update-many-with-min-max-throws-when-over-max', async () => {
         // Same guard but on the max side: WHERE matches all 4 seeded
@@ -236,7 +236,7 @@ describe(ctx.label, () => {
     // MySQL has no UPDATE … RETURNING, so `.returning(...)` narrows to
     // `never` and the body would not type-check. The short-circuit it
     // exercises is dialect-independent and covered by the other cells.
-    // TODO[LIMITATION]: see LIMITATIONS.md — re-enable if/when MySQL adds UPDATE … RETURNING.
+    // NOT-APPLICABLE: MySQL has no UPDATE ... RETURNING; `returning`/`returningOneColumn` are typed `never` on the mysql dialect (a permanent compile-time frontier, asserted in test/db/mysql/types.negative/update.test.ts). The body runs in the dialects that support RETURNING (postgres, sqlite, mariadb, sqlserver, oracle).
     /*
     test('execute-update-many-with-no-sets-resolves-empty-array', async () => {
         // See sqlite / postgres cells for the active body.

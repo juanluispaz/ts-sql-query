@@ -25,7 +25,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue } from '../../domain/connection.js'
+import { tIssue, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -141,11 +141,11 @@ describe(ctx.label, () => {
         })
     })
 
-    // MariaDB rejects the `WITH cte AS (...) DELETE FROM ... WHERE x IN
-    // (SELECT ... FROM cte) ...` form: it accepts WITH as a prefix for a
-    // SELECT but not for a DELETE statement.
-    // TODO[LIMITATION]: see LIMITATIONS.md — MariaDB has no WITH-prefixed DELETE
-    /*
+    // MariaDB accepts the `WITH cte AS (...) DELETE FROM ... WHERE x IN
+    // (SELECT ... FROM cte) ... RETURNING ...` form the library emits
+    // (verified against the mariadb:latest image, 12.3.2 — MariaDB 12.3
+    // added the WITH prefix for DELETE, and DELETE ... RETURNING has
+    // shipped since 10.0.5; earlier 12.x rejected the WITH prefix).
     test('delete-cte-in-where-in-subquery-with-returning', async () => {
         // The DELETE consumes a `.forUseInQueryAs(...)` CTE inside a
         // WHERE-in-subquery (not in USING — that case is exercised by
@@ -178,5 +178,4 @@ describe(ctx.label, () => {
             else expect(removed).toEqual([])
         })
     })
-    */
 })

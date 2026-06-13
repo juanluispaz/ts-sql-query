@@ -81,11 +81,10 @@ describe(ctx.label, () => {
         })
     })
 
-    // MariaDB rejects the `WITH cte AS (...) UPDATE a, cte SET a.col =
-    // cte.col WHERE ...` form the library emits — MariaDB accepts WITH
-    // as a prefix for a SELECT but not in a multi-table UPDATE statement.
-    // TODO[LIMITATION]: see LIMITATIONS.md — MariaDB has no WITH-prefixed multi-table UPDATE
-    /*
+    // MariaDB accepts the `WITH cte AS (...) UPDATE a, cte SET ...` form
+    // the library emits (verified against the mariadb:latest image,
+    // 12.3.2 — MariaDB 12.3 added WITH-prefixed multi-table UPDATE;
+    // earlier 12.x rejected it with a parse error).
     test('update-from-cte-source', async () => {
         // FROM target is a `.forUseInQueryAs(...)` view (a CTE). The
         // emitted SQL must lead with `with verified_orgs as (...)`
@@ -116,14 +115,14 @@ describe(ctx.label, () => {
             else expect(typeof affected).toBe('number')
         })
     })
-    */
 
-    // MariaDB supports RETURNING only on a single-table UPDATE, not on a
-    // multi-table UPDATE (UPDATE ... FROM): the server rejects the
-    // emitted `update project, organization set ... returning ...` form
-    // with a parse error at `returning`. (UPDATE…RETURNING itself also
-    // needs MariaDB 13.0.1+; the test image still ships 12.x.)
-    // TODO[LIMITATION]: see LIMITATIONS.md — MariaDB has no RETURNING on multi-table UPDATE
+    // The server rejects the emitted `update project, organization set
+    // ... returning ...` form with a parse error at `returning`
+    // (verified against MariaDB 12.3.2). Two reasons stack: UPDATE ...
+    // RETURNING needs MariaDB 13.0.1+ (the mariadb:latest image still
+    // ships 12.x), and RETURNING on a multi-table UPDATE is not accepted
+    // even where single-table UPDATE RETURNING is.
+    // TODO[LIMITATION]: see LIMITATIONS.md — UPDATE ... RETURNING needs MariaDB 13.0.1+ and is not accepted on a multi-table UPDATE as of 12.3.2
     /*
     test('update-from-with-returning-one-row', async () => {
         // RETURNING combined with FROM. Pins `_buildUpdateReturning` on

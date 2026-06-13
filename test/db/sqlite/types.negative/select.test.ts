@@ -9,6 +9,7 @@
 // rule it enforces. DESIGN §6.
 
 import { test, expect } from '../../../lib/testRunner.js'
+import { assertType, type Exact } from '../../../lib/assertType.js'
 import type { DBConnection } from '../domain/connection.js'
 import { tAppUser, tIssue, tProject } from '../domain/connection.js'
 
@@ -105,6 +106,19 @@ function _typeNegatives() {
     void connection.stringConcatDistinct(tAppUser.fullName, '|')
     // @ts-expect-error 2-arg stringConcatDistinct overload is removed on SqliteConnection (even with empty separator)
     void connection.stringConcatDistinct(tAppUser.fullName, '')
+
+    // Rule: SQLite exposes `minus` (rewritten to EXCEPT) but not the `*All`
+    // family — SQLite has no INTERSECT ALL / EXCEPT ALL / MINUS ALL. The
+    // fluent API narrows `intersectAll`, `exceptAll` and `minusAll` to
+    // `never` for the sqlite dialect (src/expressions/select.ts). This is the
+    // compile-time pairing for the NOT-APPLICABLE wrap in
+    // test/db/sqlite/newest/<connector>/select.compound-extras.test.ts.
+    {
+        const compoundable = connection.selectFrom(tIssue).select({ id: tIssue.id })
+        assertType<Exact<typeof compoundable.intersectAll, never>>()
+        assertType<Exact<typeof compoundable.exceptAll, never>>()
+        assertType<Exact<typeof compoundable.minusAll, never>>()
+    }
 }
 
 test('select-negative-types', () => {

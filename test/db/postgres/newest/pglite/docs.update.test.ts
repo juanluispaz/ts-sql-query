@@ -99,13 +99,13 @@ describe(ctx.label, () => {
         })
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — pglite ships PostgreSQL 17 and the SqlBuilder emits `RETURNING old.<col>` at `newest`, which requires PostgreSQL 18+. The `oldest` cell uses the pre-PG18 emulation and is unaffected.
-    /*
     test('docs:update/update-returning-old-values', async () => {
         // Section "Update returning old values" — `tTable.oldValues()`
         // yields a reference whose columns resolve to the PRE-update row.
         // Supported on PostgreSQL, modern MariaDB and SQL Server. SQLite,
-        // MySQL and Oracle don't support it.
+        // MySQL and Oracle don't support it. At `newest` the SqlBuilder
+        // emits `RETURNING old.<col>`, which needs PostgreSQL 18+; pglite
+        // 0.5.1 ships PostgreSQL 18.3, so it accepts the form (verified).
         ctx.mockNext({ oldName: 'Marketing site', newName: 'Marketing site (v2)' })
 
         await ctx.withRollback(async () => {
@@ -123,12 +123,16 @@ describe(ctx.label, () => {
                 .executeUpdateOne()
             // doc-end
 
-            expect(ctx.lastSql).toMatchInlineSnapshot()
-            expect(ctx.lastParams).toMatchInlineSnapshot()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = $1 where id = $2 returning old.name as "oldName", name as "newName""`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Marketing site (v2)",
+                1,
+              ]
+            `)
             assertType<Exact<typeof updated, { oldName: string; newName: string }>>()
         })
     })
-    */
     test('docs:update/update-from-other-table', async () => {
         // Section "Update using other tables or views" — `.from(other)`
         // joins the other table for use in the SET / WHERE expressions.

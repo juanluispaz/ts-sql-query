@@ -114,10 +114,11 @@ describe(ctx.label, () => {
     })
 
     // MariaDB rejects the `WITH cte AS (...) INSERT INTO ... SELECT ...`
-    // form the library emits here with a parse error at `insert`: MariaDB
-    // accepts CTEs inside a SELECT but not as the prefix of an INSERT
-    // statement.
-    // TODO[LIMITATION]: see LIMITATIONS.md — MariaDB has no WITH-prefixed INSERT
+    // form the library emits here with a parse error at `insert`
+    // (verified against MariaDB 12.3.2): it accepts CTEs inside the SELECT
+    // but not as the prefix of an INSERT statement. (MariaDB 12.3 added the
+    // WITH prefix for UPDATE/DELETE but not yet for INSERT.)
+    // TODO[LIMITATION]: see LIMITATIONS.md — the WITH prefix on an INSERT ... SELECT is not accepted as of MariaDB 12.3.2
     /*
     test('insert-from-select-source-with-cte', async () => {
         // The source SELECT exposes a CTE via `.forUseInQueryAs(...)`.

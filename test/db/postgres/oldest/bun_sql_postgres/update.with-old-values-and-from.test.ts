@@ -14,7 +14,7 @@
 // longer emits the FROM-subquery; PG < 18 (`oldest`), SQL Server, and
 // MariaDB ≥ 13.0.1 all emit the FROM-subquery / OUTPUT-deleted variant.
 // Active in postgres + sqlserver + mariadb cells (mariadb wraps the
-// body in TODO[LIMITATION] until the docker image upgrades past 12.x);
+// body with a limitation wrap until the docker image upgrades past 12.x);
 // commented out in sqlite/mysql/oracle (oldValues typed `never`).
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
@@ -85,7 +85,7 @@ describe(ctx.label, () => {
         // `OLD.col` with no lock clause). The PK (a SERIAL column) is set
         // to its current value, so the update is a no-op that violates no
         // foreign key referencing project(id). Commented out on sqlserver
-        // (cannot update an IDENTITY column), mariadb (TODO[LIMITATION]:
+        // (cannot update an IDENTITY column), mariadb (limitation:
         // OLD_VALUE needs 13.0.1+) and mysql/oracle/sqlite (oldValues
         // typed `never`).
         const expected = { id: 1, oldName: 'Marketing site', newName: 'Marketing site!' }

@@ -22,11 +22,6 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // TODO[BUG]: the natural `.defaultValues().returningLastInsertedId()` is `never` on
-    // SQL Server (and Oracle) — `returningLastInsertedId` is gated out of the on-conflict
-    // path while `.returningOneColumn(...)` / `.returning(...)` are allowed and emit the
-    // identical `OUTPUT inserted.id` SQL. See test/BUGS.md. This returns the id via
-    // returningOneColumn (same SQL); switch back to returningLastInsertedId when fixed.
     test('insert default values', async () => {
         ctx.mockNext(99)
         let id: number | undefined
@@ -34,14 +29,14 @@ describe(ctx.label, () => {
         try {
             id = await ctx.conn.insertInto(tDefaultsOnly)
                 .defaultValues()
-                .returningOneColumn(tDefaultsOnly.id) // ← .returningLastInsertedId() once unblocked
-                .executeInsertOne()
+                .returningLastInsertedId()
+                .executeInsert()
         } catch (e) {
             // The table is absent from the schema, so the real INSERT
             // fails referencing the missing relation.
             thrownError = e
         }
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into defaults_only_table_only_for_sql_test output inserted.id as [result] default values"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into defaults_only_table_only_for_sql_test output inserted.id default values"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         if (ctx.realDbEnabled) {
             expect((thrownError as Error).message).toMatch(/defaults_only_table_only_for_sql_test|Invalid object name|does not exist/)

@@ -499,7 +499,14 @@ describe(ctx.label, () => {
         }>>()
         expect(row).toEqual({ id: 1, projectNames: ['Internal tools', 'Marketing site'] })
     })
+    */
 
+    // SQL Server wraps the inline aggregated-array subquery, so the
+    // order-by lives in the wrapper, not inside the aggregate function
+    // (only MariaDB keeps ORDER BY inside `json_arrayagg(...)`). Bodies
+    // copied verbatim from the canonical mariadb cell for parity.
+    // NOT-APPLICABLE: SQL Server has no ORDER BY inside the inline aggregated-array function
+    /*
     test('inline-aggregate-mariadb-order-by-desc-nulls-first-emits-is-not-null-then-desc', async () => {
         ctx.mockNext({
             id: 1, name: 'Acme Corp',
@@ -527,7 +534,14 @@ describe(ctx.label, () => {
         }>>()
         expect(row).toEqual({ id: 1, projectNames: ['Marketing site', 'Internal tools'] })
     })
+    */
 
+    // SQL Server wraps the inline aggregated-array subquery, so the
+    // order-by lives in the wrapper, not inside the aggregate function
+    // (only MariaDB keeps ORDER BY inside `json_arrayagg(...)`). Bodies
+    // copied verbatim from the canonical mariadb cell for parity.
+    // NOT-APPLICABLE: SQL Server has no ORDER BY inside the inline aggregated-array function
+    /*
     test('inline-aggregate-mariadb-order-by-asc-insensitive-falls-through-without-collation', async () => {
         ctx.mockNext({
             id: 1, name: 'Acme Corp',
@@ -555,7 +569,14 @@ describe(ctx.label, () => {
         }>>()
         expect(row).toEqual({ id: 1, projectNames: ['Internal tools', 'Marketing site'] })
     })
+    */
 
+    // SQL Server wraps the inline aggregated-array subquery, so the
+    // order-by lives in the wrapper, not inside the aggregate function
+    // (only MariaDB keeps ORDER BY inside `json_arrayagg(...)`). Bodies
+    // copied verbatim from the canonical mariadb cell for parity.
+    // NOT-APPLICABLE: SQL Server has no ORDER BY inside the inline aggregated-array function
+    /*
     test('inline-aggregate-mariadb-order-by-asc-nulls-last-insensitive-combines-is-null-and-insensitive-expression', async () => {
         ctx.mockNext({
             id: 1, name: 'Acme Corp',

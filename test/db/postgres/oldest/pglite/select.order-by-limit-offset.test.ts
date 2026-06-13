@@ -106,7 +106,10 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ status: string; id: number }>>>()
         expect(result).toEqual(expected)
     })
+    */
 
+    // NOT-APPLICABLE: the synthetic ORDER BY when `limit/offset` is used without `.orderBy(...)` is SqlServer-only. Every other dialect (PostgreSQL included) accepts limit/offset on an unordered query and emits the clause directly; no fake ORDER BY is needed. Body copied verbatim from the canonical mssql cell for cross-cell diff parity.
+    /*
     test('limit-offset-without-order-by-no-pk-emits-synthetic-position-one', async () => {
         const expected = [{ status: 'in_progress' }]
         ctx.mockNext(expected)

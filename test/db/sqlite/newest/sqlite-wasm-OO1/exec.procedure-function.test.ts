@@ -28,11 +28,47 @@ describe(ctx.label, () => {
     // TODO[LIMITATION]: see LIMITATIONS.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
     /*
     test('execute-procedure-with-no-args', async () => {})
+    */
+
+    // See the postgres / mariadb / mysql / oracle / sqlserver cells for
+    // the active bodies.
+    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
+    /*
     test('execute-procedure-with-args', async () => {})
+    */
+
+    // See the postgres / mariadb / mysql / oracle / sqlserver cells for
+    // the active bodies.
+    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
+    /*
     test('execute-function-returning-int', async () => {})
+    */
+
+    // See the postgres / mariadb / mysql / oracle / sqlserver cells for
+    // the active bodies.
+    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
+    /*
     test('execute-function-returning-string', async () => {})
+    */
+
+    // See the postgres / mariadb / mysql / oracle / sqlserver cells for
+    // the active bodies.
+    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
+    /*
     test('execute-function-optional-accepts-null-result', async () => {})
+    */
+
+    // See the postgres / mariadb / mysql / oracle / sqlserver cells for
+    // the active bodies.
+    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
+    /*
     test('execute-function-required-throws-mandatory-when-driver-returns-null', async () => {})
+    */
+
+    // See the postgres / mariadb / mysql / oracle / sqlserver cells for
+    // the active bodies.
+    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
+    /*
     test('execute-function-throws-no-result-when-driver-returns-undefined', async () => {})
     */
 })

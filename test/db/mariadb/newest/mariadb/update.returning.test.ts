@@ -55,7 +55,10 @@ describe(ctx.label, () => {
             }
         })
     })
+    */
 
+    // TODO[LIMITATION]: see LIMITATIONS.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
+    /*
     test('update-returning-one-column', async () => {
         ctx.mockNext('Renamed Acme')
 
@@ -78,7 +81,10 @@ describe(ctx.label, () => {
             expect(newName).toBe('Renamed Acme')
         })
     })
+    */
 
+    // TODO[LIMITATION]: see LIMITATIONS.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
+    /*
     test('update-returning-many', async () => {
         // Update every issue with priority 1 and return one row per
         // touched record. Exercises `executeUpdateMany`.

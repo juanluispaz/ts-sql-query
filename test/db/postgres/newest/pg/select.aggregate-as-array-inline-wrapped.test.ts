@@ -488,7 +488,10 @@ describe(ctx.label, () => {
         }>>()
         expect(row).toEqual({ id: 1, projectNames: ['Internal tools', 'Marketing site'] })
     })
+    */
 
+    // NOT-APPLICABLE: only MariaDB supports ORDER BY inside `json_arrayagg(...)` for inline aggregated arrays; every other dialect (PostgreSQL included) wraps the subquery, so the order-by lives there instead. Bodies copied verbatim from the canonical mariadb cell for cross-cell diff parity.
+    /*
     test('inline-aggregate-mariadb-order-by-desc-nulls-first-emits-is-not-null-then-desc', async () => {
         ctx.mockNext({
             id: 1, name: 'Acme Corp',
@@ -516,7 +519,10 @@ describe(ctx.label, () => {
         }>>()
         expect(row).toEqual({ id: 1, projectNames: ['Marketing site', 'Internal tools'] })
     })
+    */
 
+    // NOT-APPLICABLE: only MariaDB supports ORDER BY inside `json_arrayagg(...)` for inline aggregated arrays; every other dialect (PostgreSQL included) wraps the subquery, so the order-by lives there instead. Bodies copied verbatim from the canonical mariadb cell for cross-cell diff parity.
+    /*
     test('inline-aggregate-mariadb-order-by-asc-insensitive-falls-through-without-collation', async () => {
         ctx.mockNext({
             id: 1, name: 'Acme Corp',
@@ -544,7 +550,10 @@ describe(ctx.label, () => {
         }>>()
         expect(row).toEqual({ id: 1, projectNames: ['Internal tools', 'Marketing site'] })
     })
+    */
 
+    // NOT-APPLICABLE: only MariaDB supports ORDER BY inside `json_arrayagg(...)` for inline aggregated arrays; every other dialect (PostgreSQL included) wraps the subquery, so the order-by lives there instead. Bodies copied verbatim from the canonical mariadb cell for cross-cell diff parity.
+    /*
     test('inline-aggregate-mariadb-order-by-asc-nulls-last-insensitive-combines-is-null-and-insensitive-expression', async () => {
         ctx.mockNext({
             id: 1, name: 'Acme Corp',

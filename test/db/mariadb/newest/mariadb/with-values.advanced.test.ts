@@ -69,7 +69,10 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ id: number; name: string }>>>()
         expect(rows).toEqual(expected)
     })
+    */
 
+    // NOT-APPLICABLE: `connection.Values` (WITH name(...) AS (VALUES ...)) is not typed on MariaDBConnection — the canonical body below mirrors the postgres / sqlite cells; uncomment and bake snapshots once MariaDB grows `Values` support.
+    /*
     test('values-for-use-in-left-join-as-emits-left-join', async () => {
         // `.forUseInLeftJoinAs(alias)` marks the cloned values view as
         // left-joinable; cloned columns inherit the source's names, so
@@ -103,7 +106,10 @@ describe(ctx.label, () => {
             { pid: 2 },
         ])
     })
+    */
 
+    // NOT-APPLICABLE: `connection.Values` (WITH name(...) AS (VALUES ...)) is not typed on MariaDBConnection — the canonical body below mirrors the postgres / sqlite cells; uncomment and bake snapshots once MariaDB grows `Values` support.
+    /*
     test('values-optional-column-allows-undefined-per-row', async () => {
         // An optional column accepts per-row null/undefined, emitted as NULL
         // in the VALUES tuple, and the projection surfaces it as optional.
@@ -130,7 +136,10 @@ describe(ctx.label, () => {
             { id: 2 },
         ])
     })
+    */
 
+    // NOT-APPLICABLE: `connection.Values` (WITH name(...) AS (VALUES ...)) is not typed on MariaDBConnection — the canonical body below mirrors the postgres / sqlite cells; uncomment and bake snapshots once MariaDB grows `Values` support.
+    /*
     test('values-with-custom-typed-columns-emits-customint-customdouble-casts', async () => {
         // `column<T>('customInt', 'IssueId')` and
         // `optionalColumn<T>('customDouble', 'Money')` on the
@@ -162,7 +171,10 @@ describe(ctx.label, () => {
             { issueId: 102 as IssueId },
         ])
     })
+    */
 
+    // NOT-APPLICABLE: `connection.Values` (WITH name(...) AS (VALUES ...)) is not typed on MariaDBConnection — the canonical body below mirrors the postgres / sqlite cells; uncomment and bake snapshots once MariaDB grows `Values` support.
+    /*
     test('values-virtual-column-from-fragment-with-custom-type-emits-inline-fragment', async () => {
         // `virtualColumnFromFragment<T>('enum', 'OrderState', fn)` reaches
         // the `typeof arg1 === 'string'` branch. The column does NOT
@@ -193,7 +205,10 @@ describe(ctx.label, () => {
             { issueId: 102 as IssueId, state: 'open' as OrderState },
         ])
     })
+    */
 
+    // NOT-APPLICABLE: `connection.Values` (WITH name(...) AS (VALUES ...)) is not typed on MariaDBConnection — the canonical body below mirrors the postgres / sqlite cells; uncomment and bake snapshots once MariaDB grows `Values` support.
+    /*
     test('values-optional-virtual-column-from-fragment-with-custom-type-emits-inline-fragment', async () => {
         // `optionalVirtualColumnFromFragment<T>('customUuid', 'BillingRef', fn)`
         // reaches the same dispatch branch as the required-virtual-column
@@ -223,7 +238,10 @@ describe(ctx.label, () => {
             { issueId: 102 as IssueId },
         ])
     })
+    */
 
+    // NOT-APPLICABLE: `connection.Values` (WITH name(...) AS (VALUES ...)) is not typed on MariaDBConnection — the canonical body below mirrors the postgres / sqlite cells; uncomment and bake snapshots once MariaDB grows `Values` support.
+    /*
     test('values-create-with-empty-list-throws-cannot-be-empty', () => {
         // `Values.create(type, name, [])` reaches the empty-list guard
         // and throws a `TsSqlProcessingError` with reason

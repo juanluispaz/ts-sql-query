@@ -41,7 +41,10 @@ describe(ctx.label, () => {
         if (!ctx.realDbEnabled) expect(next).toBe(42)
         else expect(typeof next).toBe('number')
     })
+    */
 
+    // NOT-APPLICABLE: MySQL has no sequences; `connection.sequence(...)` is not typed on MySqlConnection.
+    /*
     test('sequence-current-value-in-select', async () => {
         // `seq.currentValue()` mirrors nextValue but dispatches to
         // `_currentSequenceValue` - SQL Server emits an embedded
@@ -65,7 +68,10 @@ describe(ctx.label, () => {
         if (!ctx.realDbEnabled) expect(curr).toBe(41)
         else expect(typeof curr).toBe('number')
     })
+    */
 
+    // NOT-APPLICABLE: MySQL has no sequences; `connection.sequence(...)` is not typed on MySqlConnection.
+    /*
     test('sequence-bigint-next-value-emission', async () => {
         // Sequences over `bigint` round-trip through the same
         // dispatcher; the value type only changes how the result is

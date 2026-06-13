@@ -42,7 +42,10 @@ describe(ctx.label, () => {
           ]
         `)
     })
+    */
 
+    // NOT-APPLICABLE: `connection.Values` (WITH name(...) AS (VALUES ...)) is not typed on MariaDBConnection — the canonical body lives in the postgres / sqlite cells.
+    /*
     test('values in update-from', async () => {
         await ctx.withRollback(async () => {
             // patch.id = 1 matches seed project 1 ('Marketing site'),

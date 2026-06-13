@@ -16,6 +16,10 @@ describe(ctx.label, () => {
     test('delete-returning-one-row', async () => {
         // See sqlite/postgres/mariadb/sqlserver/oracle cells for the active body.
     })
+    */
+
+    // NOT-APPLICABLE: MySQL has no RETURNING on DELETE.
+    /*
     test('delete-returning-many', async () => {})
     */
 })

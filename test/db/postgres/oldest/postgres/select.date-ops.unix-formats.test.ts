@@ -50,7 +50,10 @@ describe(ctx.label, () => {
           ]
         `)
     })
+    */
 
+    // NOT-APPLICABLE: PostgreSQL — unix epoch date format is SQLite-specific
+    /*
     test('format Unix time milliseconds: extract all components', async () => {
         const conn = ctx.withDateTimeFormat('Unix time milliseconds as integer')
         const d = conn.const(REF, 'localDateTime')

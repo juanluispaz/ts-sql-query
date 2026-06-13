@@ -16,7 +16,15 @@ describe(ctx.label, () => {
     test('update-returning-one-row', async () => {
         // See sqlite/postgres/mariadb/sqlserver/oracle cells for the active body.
     })
+    */
+
+    // NOT-APPLICABLE: MySQL has no RETURNING.
+    /*
     test('update-returning-one-column', async () => {})
+    */
+
+    // NOT-APPLICABLE: MySQL has no RETURNING.
+    /*
     test('update-returning-many', async () => {})
     */
 })

@@ -503,7 +503,10 @@ describe(ctx.label, () => {
         }>>()
         expect(row).toEqual({ id: 1, projectNames: ['Internal tools', 'Marketing site'] })
     })
+    */
 
+    // NOT-APPLICABLE: MySQL has no ORDER BY inside json_arrayagg(...) for inline aggregated arrays (only MariaDB supports it; MySQL wraps the subquery, so the order-by lives there instead). Bodies kept for cross-cell diff parity.
+    /*
     test('inline-aggregate-mariadb-order-by-desc-nulls-first-emits-is-not-null-then-desc', async () => {
         ctx.mockNext({
             id: 1, name: 'Acme Corp',
@@ -531,7 +534,10 @@ describe(ctx.label, () => {
         }>>()
         expect(row).toEqual({ id: 1, projectNames: ['Marketing site', 'Internal tools'] })
     })
+    */
 
+    // NOT-APPLICABLE: MySQL has no ORDER BY inside json_arrayagg(...) for inline aggregated arrays (only MariaDB supports it; MySQL wraps the subquery, so the order-by lives there instead). Bodies kept for cross-cell diff parity.
+    /*
     test('inline-aggregate-mariadb-order-by-asc-insensitive-falls-through-without-collation', async () => {
         ctx.mockNext({
             id: 1, name: 'Acme Corp',
@@ -559,7 +565,10 @@ describe(ctx.label, () => {
         }>>()
         expect(row).toEqual({ id: 1, projectNames: ['Internal tools', 'Marketing site'] })
     })
+    */
 
+    // NOT-APPLICABLE: MySQL has no ORDER BY inside json_arrayagg(...) for inline aggregated arrays (only MariaDB supports it; MySQL wraps the subquery, so the order-by lives there instead). Bodies kept for cross-cell diff parity.
+    /*
     test('inline-aggregate-mariadb-order-by-asc-nulls-last-insensitive-combines-is-null-and-insensitive-expression', async () => {
         ctx.mockNext({
             id: 1, name: 'Acme Corp',

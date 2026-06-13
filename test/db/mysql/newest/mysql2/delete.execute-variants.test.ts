@@ -84,7 +84,11 @@ describe(ctx.label, () => {
     test('execute-delete-none-or-one-with-returning-one-column', async () => {
         // See sqlite / postgres cells for the active body.
     })
+    */
 
+    // NOT-APPLICABLE: MySQL has no DELETE … RETURNING; the fluent API narrows
+    // `returningOneColumn` / `returning` to `never` on MySqlConnection.
+    /*
     test('execute-delete-none-or-one-with-returning-one-column-empty-result', async () => {
         // Same path but no row returned -> the `__oneColumn` branch
         // coerces missing to `null` (see
@@ -103,7 +107,11 @@ describe(ctx.label, () => {
             expect(result).toBeNull()
         })
     })
+    */
 
+    // NOT-APPLICABLE: MySQL has no DELETE … RETURNING; the fluent API narrows
+    // `returningOneColumn` / `returning` to `never` on MySqlConnection.
+    /*
     test('execute-delete-many-with-min-throws-when-empty', async () => {
         // `executeDeleteMany(min, max)` checks `rows.length` after the
         // RETURNING result; filter on a non-existing priority so
@@ -123,7 +131,11 @@ describe(ctx.label, () => {
             expect(String(caught)).toMatch(/MINIMUM_ROWS_NOT_REACHED|didn't delete the minimum/)
         })
     })
+    */
 
+    // NOT-APPLICABLE: MySQL has no DELETE … RETURNING; the fluent API narrows
+    // `returningOneColumn` / `returning` to `never` on MySqlConnection.
+    /*
     test('execute-delete-many-with-max-throws-when-over-limit', async () => {
         // Same guard but on the max side: WHERE matches all 4 seeded
         // issues (priority >= 1), max = 1 -> `MAXIMUM_ROWS_EXCEEDED`

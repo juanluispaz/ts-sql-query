@@ -41,7 +41,11 @@ describe(ctx.label, () => {
         if (!ctx.realDbEnabled) expect(next).toBe(42)
         else expect(typeof next).toBe('number')
     })
+    */
 
+    // NOT-APPLICABLE: SQLite has no CREATE SEQUENCE DDL and SqliteConnection
+    // does not expose `connection.sequence(...)`, so these bodies cannot run.
+    /*
     test('sequence-current-value-in-select', async () => {
         // `seq.currentValue()` mirrors nextValue but dispatches to
         // `_currentSequenceValue` - SQL Server emits an embedded
@@ -65,7 +69,11 @@ describe(ctx.label, () => {
         if (!ctx.realDbEnabled) expect(curr).toBe(41)
         else expect(typeof curr).toBe('number')
     })
+    */
 
+    // NOT-APPLICABLE: SQLite has no CREATE SEQUENCE DDL and SqliteConnection
+    // does not expose `connection.sequence(...)`, so these bodies cannot run.
+    /*
     test('sequence-bigint-next-value-emission', async () => {
         // Sequences over `bigint` round-trip through the same
         // dispatcher; the value type only changes how the result is

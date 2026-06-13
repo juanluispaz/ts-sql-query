@@ -42,7 +42,10 @@ describe(ctx.label, () => {
         `)
         expect(rows).toEqual([{ id: 1 }])
     })
+    */
 
+    // NOT-APPLICABLE: SQLite — ForceTypeCast emits a PostgreSQL `::<type>` placeholder cast; other dialects no-op
+    /*
     test('force-type-cast-adapter-on-string-column-in-where', async () => {
         // `tProjectFC.name` is wrapped in a `ForceTypeCast`; the
         // comparison forces `$1::text` on the bound param.

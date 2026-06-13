@@ -55,7 +55,12 @@ describe(ctx.label, () => {
             expect(ctx.lastParams).toMatchInlineSnapshot()
         })
     })
+    */
 
+    // NOT-APPLICABLE: SqliteConnection does not expose default(); SQLite rejects
+    // DEFAULT as a value expression in INSERT VALUES / UPDATE SET. Kept commented
+    // for cross-cell symmetry (compile-time negative lives in types.negative/).
+    /*
     test('update-set-to-default-keyword', async () => {
         // `connection.default()` in `.set({...})` resets the column to
         // the DDL default at the dialect level (current_timestamp here).
@@ -74,7 +79,12 @@ describe(ctx.label, () => {
             assertType<Exact<typeof affected, number>>()
         })
     })
+    */
 
+    // NOT-APPLICABLE: SqliteConnection does not expose default(); SQLite rejects
+    // DEFAULT as a value expression in INSERT VALUES / UPDATE SET. Kept commented
+    // for cross-cell symmetry (compile-time negative lives in types.negative/).
+    /*
     test('on-conflict-do-update-with-default-keyword', async () => {
         // The `default()` literal also survives through the
         // ON CONFLICT … DO UPDATE SET arm. Same dispatch as plain
@@ -94,7 +104,12 @@ describe(ctx.label, () => {
             expect(ctx.lastParams).toMatchInlineSnapshot()
         })
     })
+    */
 
+    // NOT-APPLICABLE: SqliteConnection does not expose default(); SQLite rejects
+    // DEFAULT as a value expression in INSERT VALUES / UPDATE SET. Kept commented
+    // for cross-cell symmetry (compile-time negative lives in types.negative/).
+    /*
     test('multi-row-insert-with-default-in-some-rows', async () => {
         // Multi-row insert where one row uses an explicit value for the
         // default column and the other uses `default()`. Every row in
@@ -116,7 +131,12 @@ describe(ctx.label, () => {
             expect(ctx.lastParams).toMatchInlineSnapshot()
         })
     })
+    */
 
+    // NOT-APPLICABLE: SqliteConnection does not expose default(); SQLite rejects
+    // DEFAULT as a value expression in INSERT VALUES / UPDATE SET. Kept commented
+    // for cross-cell symmetry (compile-time negative lives in types.negative/).
+    /*
     test('default-on-custom-boolean-column', async () => {
         // Regression: `verified` carries a `CustomBooleanTypeAdapter`,
         // so `_appendCustomBooleanRemapForColumnIfRequired` used to

@@ -94,7 +94,13 @@ describe(ctx.label, () => {
     test('execute-update-none-or-one-with-returning-one-column', async () => {
         // See sqlite / postgres cells for the active body.
     })
+    */
 
+    // MySQL has no UPDATE … RETURNING in any released version, so the
+    // fluent API narrows `returningOneColumn`/`returning` to `never` for
+    // `mysql` and these bodies would not even type-check here.
+    // TODO[LIMITATION]: see LIMITATIONS.md — re-enable if/when MySQL adds UPDATE … RETURNING.
+    /*
     test('execute-update-none-or-one-with-returning-one-column-empty-result', async () => {
         // Same path as the previous test but the engine returns no
         // row -> the `__oneColumn` branch coerces missing to `null`
@@ -114,7 +120,13 @@ describe(ctx.label, () => {
             expect(result).toBeNull()
         })
     })
+    */
 
+    // MySQL has no UPDATE … RETURNING in any released version, so the
+    // fluent API narrows `returningOneColumn`/`returning` to `never` for
+    // `mysql` and these bodies would not even type-check here.
+    // TODO[LIMITATION]: see LIMITATIONS.md — re-enable if/when MySQL adds UPDATE … RETURNING.
+    /*
     test('execute-update-many-with-min-max-throws-when-out-of-range', async () => {
         // `executeUpdateMany(min, max)` checks `rows.length` after the
         // RETURNING result; filter on a non-existing priority so
@@ -135,7 +147,13 @@ describe(ctx.label, () => {
             expect(String(caught)).toMatch(/MINIMUM_ROWS_NOT_REACHED|didn't update the minimum/)
         })
     })
+    */
 
+    // MySQL has no UPDATE … RETURNING in any released version, so the
+    // fluent API narrows `returningOneColumn`/`returning` to `never` for
+    // `mysql` and these bodies would not even type-check here.
+    // TODO[LIMITATION]: see LIMITATIONS.md — re-enable if/when MySQL adds UPDATE … RETURNING.
+    /*
     test('execute-update-many-with-min-max-throws-when-over-max', async () => {
         // Same guard but on the max side: WHERE matches all 4 seeded
         // issues (priority >= 1), max = 1 -> `MAXIMUM_ROWS_EXCEEDED`

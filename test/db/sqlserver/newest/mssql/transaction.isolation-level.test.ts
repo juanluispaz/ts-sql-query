@@ -54,7 +54,11 @@ describe(ctx.label, () => {
         expect(ctx.lastTransactionOpts).toEqual(['repeatable read', 'read write'])
         expect(result).toBe(1)
     })
+    */
 
+    // Bodies kept verbatim (from the pg/mysql cells) for cross-cell diff parity.
+    // NOT-APPLICABLE: SQL Server's `isolationLevel` takes only a level, no access mode, so neither the level+accessMode form nor the access-mode-only form exists.
+    /*
     test('isolation-access-mode-only-builds-access-mode-opts', async () => {
         ctx.mockNext(1)
         const result = await runReadOnlyTransaction(ctx.conn.isolationLevel('read only'))

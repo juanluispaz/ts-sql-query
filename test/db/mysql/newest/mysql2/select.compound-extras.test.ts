@@ -28,8 +28,35 @@ describe(ctx.label, () => {
     // NOT-APPLICABLE: MySQL has no INTERSECT/EXCEPT
     /*
     test('intersect-all-emits-intersect-all-syntax', async () => {})
+    */
+
+    // TODO[LIMITATION]: see LIMITATIONS.md — MySQL's pre-8.0.31
+    // versions do not support set-difference operators, and the
+    // fluent API encodes that by narrowing `intersectAll`,
+    // `exceptAll`, `minus` and `minusAll` to `never` for `mysql`. See
+    // the postgres / mariadb cells for the active bodies.
+    // NOT-APPLICABLE: MySQL has no INTERSECT/EXCEPT
+    /*
     test('except-all-emits-except-all-syntax', async () => {})
+    */
+
+    // TODO[LIMITATION]: see LIMITATIONS.md — MySQL's pre-8.0.31
+    // versions do not support set-difference operators, and the
+    // fluent API encodes that by narrowing `intersectAll`,
+    // `exceptAll`, `minus` and `minusAll` to `never` for `mysql`. See
+    // the postgres / mariadb cells for the active bodies.
+    // NOT-APPLICABLE: MySQL has no INTERSECT/EXCEPT
+    /*
     test('minus-routes-through-the-dialect-alias', async () => {})
+    */
+
+    // TODO[LIMITATION]: see LIMITATIONS.md — MySQL's pre-8.0.31
+    // versions do not support set-difference operators, and the
+    // fluent API encodes that by narrowing `intersectAll`,
+    // `exceptAll`, `minus` and `minusAll` to `never` for `mysql`. See
+    // the postgres / mariadb cells for the active bodies.
+    // NOT-APPLICABLE: MySQL has no INTERSECT/EXCEPT
+    /*
     test('minus-all-routes-through-the-dialect-alias', async () => {})
     */
 })

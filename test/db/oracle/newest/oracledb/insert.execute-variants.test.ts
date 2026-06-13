@@ -188,31 +188,25 @@ describe(ctx.label, () => {
         })
     })
 
+    // Oracle's `RETURNING ... INTO` does not support `INSERT ... SELECT` (only
+    // single-row `INSERT ... VALUES`) — verified against Oracle 23ai: an
+    // `INSERT INTO t (...) SELECT ... RETURNING id INTO :out` raises
+    // `ORA-03049: SQL keyword 'RETURNING' is not syntactically valid following ...`,
+    // while `INSERT ... VALUES ... RETURNING id INTO :out` works. So the library
+    // faithfully types `returningOneColumn` on the from-select path as `never`
+    // for Oracle: there is no way to drive a 0-row INSERT that still returns
+    // through RETURNING, and a `.values(...)` INSERT always writes its row. The
+    // empty-result -> null coercion (pure JS in the result processor) is therefore
+    // unreachable on a real Oracle engine; it is validated on the connectors whose
+    // from-select RETURNING supports it (pg / sqlite / sqlServer / mariaDB).
+    // NOT-APPLICABLE: Oracle rejects RETURNING with INSERT...SELECT (ORA-03049), so a 0-row returning insert is not expressible (returningOneColumn on from-select is `never`).
+    /*
     test('execute-insert-none-or-one-with-returning-one-column-empty-result', async () => {
-        // The `__oneColumn` branch coerces missing to `null` (see
-        // [InsertQueryBuilder.ts:205](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L205)).
-        // Mock-only: real INSERT always writes the row.
-        // tests-audit-disable-next-line mock-only -- the empty-result→null coercion is unreachable on a real engine, where INSERT always returns the written row's id
-        if (ctx.realDbEnabled) return
-        ctx.mockNext(undefined)
-        const result = await ctx.conn.insertInto(tOrganization)
-            .values({ name: 'Oscorp', plan: 'free' })
-            .returningOneColumn(tOrganization.id)
-            .executeInsertNoneOrOne()
-
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into "organization" (name, "plan") values (:0, :1) returning id into :2"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            "Oscorp",
-            "free",
-            {
-              "as": "result",
-              "dir": 3003,
-            },
-          ]
-        `)
-        expect(result).toBeNull()
+        // would drive a never-matching INSERT ... SELECT and assert
+        // executeInsertNoneOrOne() coerces the empty result to null; see the
+        // pg / sqlserver / mariadb cells.
     })
+    */
 
     test('execute-insert-one-with-returning-one-column', async () => {
         // `executeInsertOne()` + `returningOneColumn(col)` lands on the

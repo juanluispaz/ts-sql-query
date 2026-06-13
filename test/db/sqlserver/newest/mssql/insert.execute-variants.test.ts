@@ -177,25 +177,31 @@ describe(ctx.label, () => {
     })
 
     test('execute-insert-none-or-one-with-returning-one-column-empty-result', async () => {
-        // The `__oneColumn` branch coerces a missing returned value to
-        // `null`. Mock-only: a real INSERT always writes the row, so the
-        // empty-result coercion path is unreachable against a real engine.
-        // tests-audit-disable-next-line mock-only -- empty INSERT result is unreachable on a real DB (the row is always written) (DESIGN §1)
-        if (ctx.realDbEnabled) return
-        ctx.mockNext(undefined)
-        const result = await ctx.conn.insertInto(tOrganization)
-            .values({ name: 'Oscorp', plan: 'free' })
-            .returningOneColumn(tOrganization.id)
-            .executeInsertNoneOrOne()
+        // A 0-row `INSERT ... SELECT` (the source select matches no row) inserts
+        // nothing, so `RETURNING` yields no row and `executeInsertNoneOrOne()`'s
+        // `__oneColumn` branch coerces the missing value to `null`. Driving it
+        // through a never-matching select reaches that coercion on the REAL
+        // engine, not only the mock.
+        await ctx.withRollback(async () => {
+            ctx.mockNext(undefined)
+            // "Clone" the organizations matching a never-true filter: the source
+            // select yields no row, so nothing is inserted and RETURNING is empty.
+            const source = ctx.conn.selectFrom(tOrganization)
+                .where(tOrganization.id.equals(-1))
+                .select({ name: tOrganization.name, plan: tOrganization.plan })
+            const result = await ctx.conn.insertInto(tOrganization)
+                .from(source)
+                .returningOneColumn(tOrganization.id)
+                .executeInsertNoneOrOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, [plan]) output inserted.id as [result] values (@0, @1)"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            "Oscorp",
-            "free",
-          ]
-        `)
-        expect(result).toBeNull()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, [plan]) output inserted.id as [result] select name as name, [plan] as [plan] from organization where id = @0"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                -1,
+              ]
+            `)
+            expect(result).toBeNull()
+        })
     })
 
     test('execute-insert-one-with-returning-one-column', async () => {

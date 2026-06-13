@@ -205,7 +205,7 @@ describe(ctx.label, () => {
         ])
         const billing = Values.create(VIssueBilling, 'issueBilling', [
             { issueId: 101 as IssueId, amount: 19.99 as Money },
-            { issueId: 102 as IssueId, amount: null as unknown as Money },
+            { issueId: 102 as IssueId, amount: null },
         ])
 
         const rows = await ctx.conn.selectFrom(billing)
@@ -243,7 +243,7 @@ describe(ctx.label, () => {
         ])
         const billing = Values.create(VIssueBilling, 'issueBilling', [
             { issueId: 101 as IssueId, amount: 19.99 as Money },
-            { issueId: 102 as IssueId, amount: null as unknown as Money },
+            { issueId: 102 as IssueId, amount: null },
         ])
 
         const rows = await ctx.conn.selectFrom(billing)
@@ -276,12 +276,12 @@ describe(ctx.label, () => {
         // required-virtual-column test above; the projection surfaces
         // `string | undefined`.
         ctx.mockNext([
-            { issueId: 101 as IssueId, billingRef: undefined as string | undefined },
-            { issueId: 102 as IssueId, billingRef: undefined as string | undefined },
+            { issueId: 101 as IssueId, billingRef: undefined },
+            { issueId: 102 as IssueId, billingRef: undefined },
         ])
         const billing = Values.create(VIssueBilling, 'issueBilling', [
             { issueId: 101 as IssueId, amount: 19.99 as Money },
-            { issueId: 102 as IssueId, amount: null as unknown as Money },
+            { issueId: 102 as IssueId, amount: null },
         ])
 
         const rows = await ctx.conn.selectFrom(billing)

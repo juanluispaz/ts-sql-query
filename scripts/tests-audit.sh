@@ -68,6 +68,12 @@ Checks:
                    `// TODO[LIMITATION]: …` (not covered yet / env), or
                    `// NOT-APPLICABLE: …` (a permanent dialect boundary; runs in
                    the dialects that support it). [warn]
+  grouped-commented-tests  several commented-out tests crammed into ONE `/* … */`
+                   comment block, sharing a single reason marker — the individual
+                   reasons are lost. Split it: one commented-out test per block,
+                   each with its own marker (`commented-test-reason` then enforces
+                   one per block). A normal `//`-per-line commented test is not
+                   flagged; only a block holding two or more tests. [warn]
   focused-test     a committed `test.only` / `it.only` / `describe.only` —
                    focuses the runner and silently skips the rest of the file,
                    so the cell looks green while almost nothing ran. Never
@@ -141,7 +147,8 @@ Flags:
   --only <rule> run a single content rule (mock-only | mirror-image |
                 one-sided-guard | uuid-literal | as-any | any-type |
                 as-unknown-as | meaningless-cast | meaningless-type |
-                type-cast | non-public-api | commented-test-reason | focused-test |
+                type-cast | non-public-api | commented-test-reason |
+                grouped-commented-tests | focused-test |
                 empty-snapshot | ts-ignore | ts-expect-error |
                 eslint-disable-type | eslint-disable-other |
                 skipped-test-reason | skip-real-db | misplaced-marker |

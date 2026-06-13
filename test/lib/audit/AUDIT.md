@@ -109,7 +109,7 @@ The TypeScript compiler API is the motor.
 - **Syntactic rules** — all current content rules (`mock-only`, `mirror-image`,
   `one-sided-guard`, `uuid-literal`, `as-any`, `any-type`, `as-unknown-as`,
   `meaningless-cast`, `meaningless-type`, `type-cast`, `non-public-api`,
-  `commented-test-reason`, `focused-test`, `empty-snapshot`, `ts-ignore`,
+  `commented-test-reason`, `grouped-commented-tests`, `focused-test`, `empty-snapshot`, `ts-ignore`,
   `ts-expect-error`, `eslint-disable-type`, `eslint-disable-other`,
   `skipped-test-reason`, `skip-real-db`, `misplaced-marker`, `tautology`,
   `no-assertion-runtime`, `empty-catch`, `weak-boolean`, `weak-matcher`,
@@ -744,6 +744,40 @@ one of the three markers (a dialect boundary → `// NOT-APPLICABLE:`; a bug →
 `// TODO[BUG]:`; not-covered-yet → `// TODO[LIMITATION]:`). The migration itself
 is suite work, owned by the corrections pass, not the audit tool.
 
+### `grouped-commented-tests` — several commented-out tests sharing one comment block
+
+The structural companion to `commented-test-reason`. That rule asks "does this
+commented-out test have *a* reason?"; this one asks "does *each* commented-out
+test have *its own* reason?". When several `test(...)` / `it(...)` calls are
+lumped into a single `/* … */` block, one marker above the block satisfies
+`commented-test-reason` for all of them — so the individual justifications are
+lost and a reader cannot tell which reason applies to which test (the marker may
+even be right for one test and wrong for the next). The fix is to **split the
+block**: one commented-out test per comment, each carrying its own
+`// TODO[BUG]:` / `// TODO[LIMITATION]:` / `// NOT-APPLICABLE:` marker — after
+which `commented-test-reason` enforces a distinct reason on every one. So the two
+rules compose: this one forbids the block, that one fills each split with a reason.
+
+**Anchor — the SHAPE, comment-scoped (no type checker)**, in
+[`checks/groupedCommentedTests.ts`](./checks/groupedCommentedTests.ts): the TS
+scanner enumerates comments (so a string or live code that merely contains
+`test(` is never matched, same `TEST_CALL`-with-trailing-`,`/`)` shape as
+`commented-test-reason`), and a **single comment node** whose text holds **two or
+more** test calls is flagged. **Per node by design**: a normal `//`-per-line
+commented-out test (one `test(` on one of its lines) is never flagged — only a
+multi-test `/* … */` block (or two calls crammed onto one comment line) is. No
+marker carve-out (a `TODO[BUG]` repro has no reason to group two tests either);
+the rule is purely about layout, orthogonal to *which* marker each test needs.
+
+**Verified**: 88 findings — multi-test `/* … */` blocks copied verbatim from the
+canonical cell for cross-cell diff parity, then commented out under one shared
+marker (e.g. `transaction.isolation-level.test.ts`, `exec.procedure-function.test.ts`,
+`select.aggregate-as-array-inline-wrapped.test.ts`, replicated across the
+symmetric cells). The backlog is to split each block so every commented test gets
+its own marker — suite work owned by the corrections pass, not the audit tool.
+
+**Status**: **built** (`warn`).
+
 ### `uuid-literal` — a string literal that looks like a UUID but is not valid
 
 **Threat (a real, shipped bug)**: `transformValueToDB` for `'uuid'` only checks
@@ -1148,6 +1182,7 @@ test/lib/audit/
     ├── markerPlacement.ts ← `misplaced-marker` (a TODO[BUG]/TODO[LIMITATION]/NOT-APPLICABLE marker not at a test)
     ├── nonPublicApi.ts ← `non-public-api` (relative imports past the public surface)
     ├── commentedTest.ts ← `commented-test-reason` (commented tests need a TODO[BUG]/TODO[LIMITATION]/NOT-APPLICABLE reason marker — see reasons.ts)
+    ├── groupedCommentedTests.ts ← `grouped-commented-tests` (one `/* … */` block holding 2+ commented-out tests — split so each gets its own reason marker)
     ├── focusedTest.ts ← `focused-test` (committed `.only` — skips the rest of the file)
     ├── emptySnapshot.ts ← `empty-snapshot` (un-baked `toMatchInlineSnapshot()` in live code)
     ├── suppressions.ts ← `ts-ignore` / `ts-expect-error` / `eslint-disable-type` / `eslint-disable-other`
@@ -1212,7 +1247,7 @@ EXTERNAL_CAVEATS subsection), update the link here in the same change.
     suppression + meta-rules (`ignores.ts`), compiler-style output
     (`report.ts`), the orchestrator (`main.ts`); `--explain` / `--strict` /
     `--all` / `--only`;
-  - twenty-nine content rules, **all `warn`** today (the split into one rule per
+  - thirty content rules, **all `warn`** today (the split into one rule per
     mechanism is what lets each be promoted to `error` independently), whole run
     ~1 s (syntactic AST, no type checker). The five type-bypass / cast siblings of
     `as-any`/`any-type` — `as-unknown-as` (62; `x as unknown as T` laundering),
@@ -1221,10 +1256,12 @@ EXTERNAL_CAVEATS subsection), update the link here in the same change.
     the same contexts as `as any` + API-mandated uses, so only generic plumbing
     remains), `type-cast` (688; the catch-all for any other `as T`/`<T>x`, `as const`
     exempt) — plus `misplaced-marker` (7; a reason marker not at a test) were
-    added last. NOTE: the per-rule counts BELOW are the original anchors; after
-    the suite cleanup most content backlogs are **0** today and the only live
-    findings are `type-cast` / `meaningless-cast` / `meaningless-type` /
-    `as-unknown-as` / `misplaced-marker` (run `tests:audit` for the current tally). Original anchors: `mock-only` (595 — never validates
+    added last, then `grouped-commented-tests` (88; 2+ commented-out tests sharing
+    one `/* … */` block — split so each carries its own reason marker, the
+    structural companion to `commented-test-reason`). NOTE: the per-rule counts
+    BELOW are the original anchors; after the suite cleanup most content backlogs
+    are **0** today and the only live findings are `grouped-commented-tests` (88)
+    (run `tests:audit` for the current tally). Original anchors: `mock-only` (595 — never validates
     against real; exception-only
     skip tests and the listed file-scoped exceptions are carved out, see its
     rule section), `mirror-image`
@@ -1240,6 +1277,8 @@ EXTERNAL_CAVEATS subsection), update the link here in the same change.
     preventive gate: src imports must be public `exports`, test/lib imports must
     be admitted helpers), and `commented-test-reason` (555 — commented-out tests
     that lack one of the three reason markers TODO[BUG]/TODO[LIMITATION]/NOT-APPLICABLE),
+    and `grouped-commented-tests` (88 — 2+ commented-out tests crammed into one
+    `/* … */` block under a single shared marker; split so each gets its own),
     and `focused-test` (0 — a
     committed `.only`; a clean preventive gate, early promotion candidate), and
     `empty-snapshot` (0 live — un-baked `toMatchInlineSnapshot()`; the 384

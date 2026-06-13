@@ -110,6 +110,7 @@ finding. Fix a finding by making the test validate honestly — never by hiding 
 
 **Don't disable or fake tests silently**
 - `commented-test-reason` — a commented-out test with no reason. Add one of the three first-class markers (see below), or re-enable it.
+- `grouped-commented-tests` — several commented-out tests lumped into ONE `/* … */` block, so a single marker "covers" them all and the individual reasons are lost. Split the block: one commented-out test per comment, each with its own `// TODO[BUG]:` / `// TODO[LIMITATION]:` / `// NOT-APPLICABLE:` marker (the structural companion to `commented-test-reason`, which then requires a reason on each). A normal `//`-per-line commented-out test is fine — only a block holding two or more tests is flagged.
 - `skipped-test-reason` — `test.skip` / `test.todo` / `xit` … needs the same reason marker as a commented-out test.
 - `focused-test` — a committed `test.only` / `describe.only`: it silently skips the rest of the file. Remove `.only`.
 - `misplaced-marker` — a `// TODO[BUG]:` / `// TODO[LIMITATION]:` / `// NOT-APPLICABLE:` marker that is **not at a test** (file scope, inside a helper, floating prose). It must sit in the comment block directly above a test (live or commented out) or inside a test body. Move it to the test it explains, or remove it.

@@ -8,7 +8,7 @@ import type { Severity } from './types.js'
 
 // Content rules a `// tests-audit-disable-next-line <rule> -- <reason>` comment
 // may target. A directive for an id NOT in this list reports `unknown-rule`.
-export const CONTENT_RULES = ['mock-only', 'mirror-image', 'one-sided-guard', 'uuid-literal', 'as-any', 'any-type', 'as-unknown-as', 'meaningless-cast', 'meaningless-type', 'type-cast', 'non-public-api', 'commented-test-reason', 'focused-test', 'empty-snapshot', 'ts-ignore', 'ts-expect-error', 'eslint-disable-type', 'eslint-disable-other', 'skipped-test-reason', 'skip-real-db', 'misplaced-marker', 'tautology', 'no-assertion-runtime', 'empty-catch', 'weak-boolean', 'weak-matcher', 'close-to', 'no-op-expect', 'non-deterministic-input'] as const
+export const CONTENT_RULES = ['mock-only', 'mirror-image', 'one-sided-guard', 'uuid-literal', 'as-any', 'any-type', 'as-unknown-as', 'meaningless-cast', 'meaningless-type', 'type-cast', 'non-public-api', 'commented-test-reason', 'grouped-commented-tests', 'focused-test', 'empty-snapshot', 'ts-ignore', 'ts-expect-error', 'eslint-disable-type', 'eslint-disable-other', 'skipped-test-reason', 'skip-real-db', 'misplaced-marker', 'tautology', 'no-assertion-runtime', 'empty-catch', 'weak-boolean', 'weak-matcher', 'close-to', 'no-op-expect', 'non-deterministic-input'] as const
 
 export const RULE_SEVERITY: Record<string, Severity> = {
     // structural — whole-matrix cell parity. TEMPORARILY `warn` while the
@@ -28,6 +28,7 @@ export const RULE_SEVERITY: Record<string, Severity> = {
     'type-cast':              'warn',   // any other `x as T` / `<T>x` assertion — may force the type or want `satisfies` (as const exempt)
     'non-public-api':         'warn',   // a relative import into non-public src or non-admitted test/lib
     'commented-test-reason':  'warn',   // a commented-out test with no TODO[BUG]/TODO[LIMITATION]/NOT-APPLICABLE reason
+    'grouped-commented-tests': 'warn',  // several commented-out tests crammed into one comment block, sharing a single reason marker — split so each carries its own
     'focused-test':           'warn',   // a committed `.only` — silently skips the rest of the suite (anchor 0; warn for now, an early promotion candidate)
     'empty-snapshot':         'warn',   // an un-baked `toMatchInlineSnapshot()` in live code — pins nothing (anchor 0 live; commented placeholders are AST-exempt)
     'ts-ignore':              'warn',   // `@ts-ignore` / `@ts-nocheck` — silences every error on the line; forbidden everywhere (anchor 0; promotion candidate)
@@ -76,6 +77,8 @@ export const RULE_HINT: Record<string, string> = {
         'A type assertion (`x as T` / `<T>x`) forces the checker to accept a type it did not infer — review whether it is necessary. Prefer building the value so it genuinely has type `T`, or `satisfies T` (which checks the shape instead of overriding it). This is the catch-all for casts not covered by `as-any` / `as-unknown-as` / `meaningless-cast`. `as const` is exempt; an exception test / throw-helper / `fromDbValue` / `// TODO[BUG]:` repro is sanctioned (same as `meaningless-cast`).',
     'commented-test-reason':
         'A commented-out test must state why it is off with one of the three first-class markers: `// TODO[BUG]: <reason>` (a defect in src/ — re-enabled here once fixed; BUGS.md), `// TODO[LIMITATION]: <reason>` (the library does not cover it yet / the env can\'t — could re-enable here; LIMITATIONS.md), or `// NOT-APPLICABLE: <reason>` (a deliberate dialect boundary — this cell NEVER runs it; the test runs in the dialects that support it). Pick by future: a TODO means pending work that could re-enable it HERE; NOT-APPLICABLE is permanent. It still counts for symmetry, so do not delete it — comment it WITH a marker, or re-enable it.',
+    'grouped-commented-tests':
+        'This `/* … */` comment groups several commented-out tests under a single reason marker, so the individual justifications are lost (one marker "covers" them all). Split it: one commented-out test per comment block, each with its OWN `// TODO[BUG]: <reason>` / `// TODO[LIMITATION]: <reason>` / `// NOT-APPLICABLE: <reason>` marker — then `commented-test-reason` enforces a distinct reason on every one. A normal `//`-per-line commented-out test is never flagged; only a block holding two or more tests.',
     'non-public-api':
         'A *.test.ts may import only the public library API (the package.json `exports`, never the __UNSUPPORTED__ escape hatch) and the admitted test/lib helpers (testRunner, assertType, isAllowed). This relative import reaches past that. Build through the public surface; if a real gap exists it belongs in the library, not behind a relative import into internals.',
     'focused-test':

@@ -115,7 +115,11 @@ the dialect / driver constraint that justifies the comment-out. Example in
 rule of [`tests:audit`](./TESTS_AUDIT.md) fails any commented test that
 lacks one of the three first-class reason markers (`// NOT-APPLICABLE`,
 `// TODO[LIMITATION]`, `// TODO[BUG]`), so the stub-without-reason path
-is blocked across the whole matrix. Distinguishing "body is a stub"
+is blocked across the whole matrix. Its structural companion
+`grouped-commented-tests` additionally fails any single `/* … */` block
+that holds two or more commented-out tests, so several tests can no longer
+share one reason marker — each must be its own block with its own marker.
+Distinguishing "body is a stub"
 from "body is a legitimate one-line test wrapped with a real reason
 header" still requires reading neighbouring canonical bodies — that
 judgement stays with the validation sub-agent

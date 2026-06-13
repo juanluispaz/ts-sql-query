@@ -160,4 +160,82 @@ describe(ctx.label, () => {
 
         expect(order).toEqual(['afterRollback', 'rollbackReturned'])
     })
+
+    test('low-level-multiple-after-commit-hooks-fire-in-registration-order', async () => {
+        // Several `executeAfterNextCommit` hooks registered against one
+        // transaction all fire, in the order they were registered, after the
+        // explicit `commit()` — `callDeferredFunctions` walks the list in
+        // push order.
+        const connection = ctx.conn
+        const order: string[] = []
+
+        await ctx.withReseed(async () => {
+            await connection.beginTransaction()
+            try {
+                connection.executeAfterNextCommit(() => { order.push('first') })
+                connection.executeAfterNextCommit(() => { order.push('second') })
+                connection.executeAfterNextCommit(() => { order.push('third') })
+                await connection.commit()
+            } catch (e) {
+                await connection.rollback()
+                throw e
+            }
+        })
+
+        expect(order).toEqual(['first', 'second', 'third'])
+    })
+
+    test('low-level-is-transaction-active-reflects-lifecycle', async () => {
+        // `isTransactionActive()` tracks the low-level transaction state:
+        // false before `beginTransaction()`, true while the transaction is
+        // open, and false again after both `commit()` and `rollback()`. The
+        // same value drives the NOT_IN_TRANSACTION guards on the deferred-hook
+        // registrars and `getTransactionMetadata()`.
+        const connection = ctx.conn
+
+        await ctx.withReseed(async () => {
+            expect(connection.isTransactionActive()).toBe(false)
+
+            await connection.beginTransaction()
+            expect(connection.isTransactionActive()).toBe(true)
+            await connection.commit()
+            expect(connection.isTransactionActive()).toBe(false)
+
+            await connection.beginTransaction()
+            expect(connection.isTransactionActive()).toBe(true)
+            await connection.rollback()
+            expect(connection.isTransactionActive()).toBe(false)
+        })
+    })
+
+    test('low-level-begin-while-active-throws-nested-transaction', async () => {
+        // `beginTransaction()` while a transaction is already open is the
+        // low-level analogue of the nested `transaction(...)` guard. The
+        // matrix runner is built without allowNestedTransactions, so the real
+        // engine reports `nestedTransactionsSupported() === false` and the
+        // second `beginTransaction()` throws NESTED_TRANSACTION_NOT_SUPPORTED.
+        // In mock mode the runner reports nesting supported, so the second
+        // begin is accepted and both levels are unwound.
+        const connection = ctx.conn
+        let caught: unknown
+
+        await ctx.withReseed(async () => {
+            await connection.beginTransaction()
+            try {
+                await connection.beginTransaction()
+                // Reached only when nesting is supported (mock): unwind the
+                // inner level so the outer commit below closes cleanly.
+                await connection.commit()
+            } catch (e) {
+                caught = e
+            }
+            await connection.commit()
+        })
+
+        if (ctx.realDbEnabled) {
+            expect(String(caught)).toMatch(/NESTED_TRANSACTION_NOT_SUPPORTED/)
+        } else {
+            expect(caught).toBeUndefined()
+        }
+    })
 })

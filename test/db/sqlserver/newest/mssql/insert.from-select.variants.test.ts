@@ -66,7 +66,7 @@ describe(ctx.label, () => {
         // shape coming out of `_buildInsertReturning` when paired with
         // `__from`.
         const expectedMock = [
-            { id: 100, projectId: 4, number: 1, title: 'Document /v2/users', status: 'draft' as string, priority: 2 },
+            { id: 100, projectId: 4, number: 1, title: 'Document /v2/users', status: 'draft', priority: 2 },
         ]
         ctx.mockNext(expectedMock)
 

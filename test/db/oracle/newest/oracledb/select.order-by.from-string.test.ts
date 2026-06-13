@@ -78,11 +78,12 @@ describe(ctx.label, () => {
         // skips emission entirely — no ORDER BY clause ends up in the
         // SQL. We exercise the three falsy variants the `__isValue`
         // helper accepts as "no value".
-        for (const v of [null, undefined, '']) {
+        const cases: Array<string | null | undefined> = [null, undefined, '']
+        for (const v of cases) {
             ctx.mockNext([])
             await ctx.conn.selectFrom(tIssue)
                 .select({ id: tIssue.id })
-                .orderByFromStringIfValue(v as string | null | undefined)
+                .orderByFromStringIfValue(v)
                 .executeSelectMany()
             expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)

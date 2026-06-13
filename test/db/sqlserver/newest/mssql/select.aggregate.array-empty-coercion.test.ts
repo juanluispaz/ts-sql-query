@@ -65,7 +65,7 @@ describe(ctx.label, () => {
         // `.useEmptyArrayForNoValue()` modifier coerces NULL → [].
         // Without the modifier, the TS type would be `string[] | null`
         // (see `aggregateAsArrayOfOneColumn` projecting nullable).
-        const expected = { id: 1, titles: [] as string[] }
+        const expected: { id: number; titles: string[] } = { id: 1, titles: [] }
         ctx.mockNext({ id: 1, titles: null })
         const connection = ctx.conn
         const tIssueLeftJoin = tIssue.forUseInLeftJoin()
@@ -96,7 +96,7 @@ describe(ctx.label, () => {
         // value-type narrowing on `useEmptyArrayForNoValue` applies
         // identically; only the SQL emitter branch differs (object vs
         // singleton column).
-        const expected = { id: 1, issues: [] as Array<{ id: number; title: string }> }
+        const expected: { id: number; issues: Array<{ id: number; title: string }> } = { id: 1, issues: [] }
         ctx.mockNext({ id: 1, issues: null })
         const connection = ctx.conn
         const tIssueLeftJoin = tIssue.forUseInLeftJoin()

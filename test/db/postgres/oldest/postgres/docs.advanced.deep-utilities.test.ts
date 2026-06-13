@@ -81,7 +81,7 @@ describe(ctx.label, () => {
     test('docs-extra:deep-utilities/deep-pick-runtime-absent-inner', () => {
         // When an intermediate value is null/undefined the path is skipped, so
         // the nested key is simply absent (matching the optional model shape).
-        const customer = { id: 1, firstName: 'John', lastName: 'Doe', company: null as null | { id: number; name: string } }
+        const customer: { id: number; firstName: string; lastName: string; company: null | { id: number; name: string } } = { id: 1, firstName: 'John', lastName: 'Doe', company: null }
         const picked = deepPick(customer, ['id', 'company.name'])
         expect(picked).toEqual({ id: 1 })
     })
@@ -116,12 +116,12 @@ describe(ctx.label, () => {
         assertType<Extends<typeof trimmed, { id: number; firstName: string; company: { name: string; plan: string } }>>()
         // The input object is not mutated.
         expect(customer.company.id).toBe(7)
-        expect((customer as { lastName?: string }).lastName).toBe('Doe')
+        expect(customer.lastName).toBe('Doe')
     })
 
     test('docs-extra:deep-utilities/deep-omit-runtime-absent-inner', () => {
         // A dotted omit whose intermediate value is null is a no-op for that path.
-        const customer = { id: 1, firstName: 'John', lastName: 'Doe', company: null as null | { id: number; name: string } }
+        const customer: { id: number; firstName: string; lastName: string; company: null | { id: number; name: string } } = { id: 1, firstName: 'John', lastName: 'Doe', company: null }
         const trimmed = deepOmit(customer, ['company.id'])
         expect(trimmed).toEqual({ id: 1, firstName: 'John', lastName: 'Doe', company: null })
     })

@@ -67,12 +67,6 @@ describe(ctx.label, () => {
         >>()
     })
 
-    async function capture(run: () => Promise<unknown>): Promise<{ sql: string; params: unknown[] }> {
-        ctx.mockNext([])
-        await run()
-        return { sql: ctx.lastSql, params: ctx.lastParams }
-    }
-
     test('from-model/emits-the-same-sql-as-the-descriptor-form', async () => {
         // Same filter value, typed two ways: from the model vs from the
         // descriptor map. Both must route through withValues identically.
@@ -89,17 +83,25 @@ describe(ctx.label, () => {
             estimatedHours: 'int', externalRef: 'string', createdAt: 'localDateTime',
         }> = fromModel   // the model-derived type is assignable to the descriptor form
 
-        const run = (filter: typeof fromModel) => () => ctx.conn.selectFrom(tIssue)
-            .where(ctx.conn.dynamicConditionFor(selectFields).withValues(filter))
+        // Same filter, routed two ways: the model-derived type and the
+        // descriptor form. Each emits its SQL through the interceptor; both
+        // must come out identical.
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor(selectFields).withValues(fromModel))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const modelSql = ctx.lastSql
+        const modelParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor(selectFields).withValues(fromDescriptor))
             .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
 
-        const a = await capture(run(fromModel))
-        const b = await capture(run(fromDescriptor))
-
-        expect(a.sql).toBe(b.sql)
-        expect(a.params).toEqual(b.params)
-        expect(a.sql).toMatchInlineSnapshot(`"select id as id from issue where (lower(title) like lower(? || '%') escape '\\' or priority > ?) and view_count >= ? and lower(external_ref) like lower('%' || ? || '%') escape '\\' order by id"`)
-        expect(a.params).toMatchInlineSnapshot(`
+        expect(ctx.lastSql).toBe(modelSql)
+        expect(ctx.lastParams).toEqual(modelParams)
+        expect(modelSql).toMatchInlineSnapshot(`"select id as id from issue where (lower(title) like lower(? || '%') escape '\\' or priority > ?) and view_count >= ? and lower(external_ref) like lower('%' || ? || '%') escape '\\' order by id"`)
+        expect(modelParams).toMatchInlineSnapshot(`
           [
             "Re",
             3,

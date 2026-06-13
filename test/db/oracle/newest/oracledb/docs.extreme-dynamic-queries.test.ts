@@ -428,16 +428,15 @@ describe(ctx.label, () => {
         const connection = ctx.conn
 
         const availableFields = {
+            id:   tProject.id,
             name: tProject.name,
             slug: tProject.slug,
         }
-        // User picked only `name`; 'id' is always included because it's
-        // passed as the always-required key.
-        const picked = dynamicPick(availableFields, { name: true }, [
-            'id' as keyof typeof availableFields,
-        ])
-        const idCol = { id: tProject.id } as const
-        const fields = { ...idCol, ...picked }
+        // The user picked only `name`; `id` is always included because it is
+        // passed as an always-required key (the third argument), even though
+        // it was not picked. `slug` is available but neither picked nor
+        // required, so it is dropped.
+        const fields = dynamicPick(availableFields, { name: true }, ['id'])
 
         const rows = await connection.selectFrom(tProject)
             .where(tProject.id.equals(1))
@@ -450,10 +449,11 @@ describe(ctx.label, () => {
             1,
           ]
         `)
+        assertType<Exact<typeof rows, Array<{ id: number; name?: string; slug?: string }>>>()
+        expect(rows).toEqual(expected)
         // Used to keep imports active.
         void tAppUser
         void tOrganization
         void dynamicPickPaths
-        void rows
     })
 })

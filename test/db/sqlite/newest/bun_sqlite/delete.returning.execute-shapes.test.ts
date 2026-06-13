@@ -38,7 +38,7 @@ describe(ctx.label, () => {
         // returns the row; the real DB only deletes when the seeded id
         // exists (we use a no-match id so the test is non-destructive
         // and the real-DB returns null).
-        const expectedMock = { id: 99999, status: 'open' as string }
+        const expectedMock: { id: number; status: string } = { id: 99999, status: 'open' }
         ctx.mockNext(expectedMock)
         await ctx.withRollback(async () => {
             const row = await ctx.conn.deleteFrom(tIssue)

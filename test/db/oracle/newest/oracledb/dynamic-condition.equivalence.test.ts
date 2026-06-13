@@ -40,18 +40,6 @@ import type { DynamicCondition } from '../../../../../src/dynamic/condition.js'
 import { tIssue, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
-type IssueFilter = DynamicCondition<{
-    id:             'int',
-    title:          'string',
-    body:           'string',
-    status:         'string',
-    priority:       'int',
-    viewCount:      'bigint',
-    estimatedHours: 'double',
-    externalRef:    'uuid',
-    createdAt:      'localDateTime',
-}>
-
 const selectFields = {
     id:             tIssue.id,
     title:          tIssue.title,
@@ -69,32 +57,23 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // Capture the SQL + params a query emits through the interceptor.
-    async function capture(run: () => Promise<unknown>): Promise<{ sql: string; params: unknown[] }> {
-        ctx.mockNext([])
-        await run()
-        return { sql: ctx.lastSql, params: ctx.lastParams }
-    }
-
-    // The dynamic half: the filter object routed through the builder.
-    function dyn(filter: IssueFilter): Promise<unknown> {
-        return ctx.conn.selectFrom(tIssue)
-            .where(ctx.conn.dynamicConditionFor(selectFields).withValues(filter))
-            .select({ id: tIssue.id })
-            .orderBy('id')
-            .executeSelectMany()
-    }
-
     test('equivalence/equals-and-not-equals', async () => {
-        const ref = await capture(() => ctx.conn.selectFrom(tIssue)
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
             .where(tIssue.priority.equals(2).and(tIssue.priority.notEquals(5)))
-            .select({ id: tIssue.id }).orderBy('id').executeSelectMany())
-        const dynamic = await capture(() => dyn({ priority: { equals: 2, notEquals: 5 } }))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
 
-        expect(dynamic.sql).toBe(ref.sql)
-        expect(dynamic.params).toEqual(ref.params)
-        expect(ref.sql).toMatchInlineSnapshot(`"select id as "id" from issue where priority = :0 and priority <> :1 order by "id""`)
-        expect(ref.params).toMatchInlineSnapshot(`
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor(selectFields).withValues({ priority: { equals: 2, notEquals: 5 } }))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as "id" from issue where priority = :0 and priority <> :1 order by "id""`)
+        expect(refParams).toMatchInlineSnapshot(`
           [
             2,
             5,
@@ -106,15 +85,22 @@ describe(ctx.label, () => {
         // `is` / `isNot` are the null-safe equality operators, dispatched
         // distinctly from equals/notEquals and special-cased in the
         // builder's `_isValue` guard so they survive even on null input.
-        const ref = await capture(() => ctx.conn.selectFrom(tIssue)
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
             .where(tIssue.priority.is(2).and(tIssue.status.isNot('closed')))
-            .select({ id: tIssue.id }).orderBy('id').executeSelectMany())
-        const dynamic = await capture(() => dyn({ priority: { is: 2 }, status: { isNot: 'closed' } }))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
 
-        expect(dynamic.sql).toBe(ref.sql)
-        expect(dynamic.params).toEqual(ref.params)
-        expect(ref.sql).toMatchInlineSnapshot(`"select id as "id" from issue where decode(priority, :0, 1, 0 ) = 1 and decode(status, :1, 1, 0 ) = 0 order by "id""`)
-        expect(ref.params).toMatchInlineSnapshot(`
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor(selectFields).withValues({ priority: { is: 2 }, status: { isNot: 'closed' } }))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as "id" from issue where decode(priority, :0, 1, 0 ) = 1 and decode(status, :1, 1, 0 ) = 0 order by "id""`)
+        expect(refParams).toMatchInlineSnapshot(`
           [
             2,
             "closed",
@@ -123,15 +109,22 @@ describe(ctx.label, () => {
     })
 
     test('equivalence/in-and-not-in', async () => {
-        const ref = await capture(() => ctx.conn.selectFrom(tIssue)
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
             .where(tIssue.priority.in([1, 2]).and(tIssue.priority.notIn([9])))
-            .select({ id: tIssue.id }).orderBy('id').executeSelectMany())
-        const dynamic = await capture(() => dyn({ priority: { in: [1, 2], notIn: [9] } }))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
 
-        expect(dynamic.sql).toBe(ref.sql)
-        expect(dynamic.params).toEqual(ref.params)
-        expect(ref.sql).toMatchInlineSnapshot(`"select id as "id" from issue where priority in (:0, :1) and priority not in (:2) order by "id""`)
-        expect(ref.params).toMatchInlineSnapshot(`
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor(selectFields).withValues({ priority: { in: [1, 2], notIn: [9] } }))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as "id" from issue where priority in (:0, :1) and priority not in (:2) order by "id""`)
+        expect(refParams).toMatchInlineSnapshot(`
           [
             1,
             2,
@@ -141,20 +134,27 @@ describe(ctx.label, () => {
     })
 
     test('equivalence/comparable-operators', async () => {
-        const ref = await capture(() => ctx.conn.selectFrom(tIssue)
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
             .where(tIssue.priority.greaterThan(1)
                 .and(tIssue.priority.lessThan(9))
                 .and(tIssue.priority.greaterOrEqual(2))
                 .and(tIssue.priority.lessOrEqual(8)))
-            .select({ id: tIssue.id }).orderBy('id').executeSelectMany())
-        const dynamic = await capture(() => dyn({
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor(selectFields).withValues({
             priority: { greaterThan: 1, lessThan: 9, greaterOrEqual: 2, lessOrEqual: 8 },
         }))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
 
-        expect(dynamic.sql).toBe(ref.sql)
-        expect(dynamic.params).toEqual(ref.params)
-        expect(ref.sql).toMatchInlineSnapshot(`"select id as "id" from issue where priority > :0 and priority < :1 and priority >= :2 and priority <= :3 order by "id""`)
-        expect(ref.params).toMatchInlineSnapshot(`
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as "id" from issue where priority > :0 and priority < :1 and priority >= :2 and priority <= :3 order by "id""`)
+        expect(refParams).toMatchInlineSnapshot(`
           [
             1,
             9,
@@ -168,29 +168,43 @@ describe(ctx.label, () => {
         // `isNull: false` / `isNotNull: false` route through the builder's
         // negate branch: it calls `valueSource.isNull()` then `.negate()`
         // when the supplied boolean is false. The reference spells that out.
-        const ref = await capture(() => ctx.conn.selectFrom(tIssue)
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
             .where(tIssue.body.isNull().negate().and(tIssue.body.isNotNull().negate()))
-            .select({ id: tIssue.id }).orderBy('id').executeSelectMany())
-        const dynamic = await capture(() => dyn({ body: { isNull: false, isNotNull: false } }))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
 
-        expect(dynamic.sql).toBe(ref.sql)
-        expect(dynamic.params).toEqual(ref.params)
-        expect(ref.sql).toMatchInlineSnapshot(`"select id as "id" from issue where not "body" is null and not "body" is not null order by "id""`)
-        expect(ref.params).toMatchInlineSnapshot(`[]`)
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor(selectFields).withValues({ body: { isNull: false, isNotNull: false } }))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as "id" from issue where not "body" is null and not "body" is not null order by "id""`)
+        expect(refParams).toMatchInlineSnapshot(`[]`)
     })
 
     test('equivalence/equals-insensitive-and-not-equals-insensitive', async () => {
-        const ref = await capture(() => ctx.conn.selectFrom(tIssue)
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
             .where(tIssue.title.equalsInsensitive('Triage').and(tIssue.title.notEqualsInsensitive('Draft')))
-            .select({ id: tIssue.id }).orderBy('id').executeSelectMany())
-        const dynamic = await capture(() => dyn({
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor(selectFields).withValues({
             title: { equalsInsensitive: 'Triage', notEqualsInsensitive: 'Draft' },
         }))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
 
-        expect(dynamic.sql).toBe(ref.sql)
-        expect(dynamic.params).toEqual(ref.params)
-        expect(ref.sql).toMatchInlineSnapshot(`"select id as "id" from issue where lower(title) = lower(:0) and lower(title) <> lower(:1) order by "id""`)
-        expect(ref.params).toMatchInlineSnapshot(`
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as "id" from issue where lower(title) = lower(:0) and lower(title) <> lower(:1) order by "id""`)
+        expect(refParams).toMatchInlineSnapshot(`
           [
             "Triage",
             "Draft",
@@ -199,20 +213,27 @@ describe(ctx.label, () => {
     })
 
     test('equivalence/like-family', async () => {
-        const ref = await capture(() => ctx.conn.selectFrom(tIssue)
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
             .where(tIssue.title.like('%a%')
                 .and(tIssue.title.notLike('%b%'))
                 .and(tIssue.title.likeInsensitive('%C%'))
                 .and(tIssue.title.notLikeInsensitive('%D%')))
-            .select({ id: tIssue.id }).orderBy('id').executeSelectMany())
-        const dynamic = await capture(() => dyn({
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor(selectFields).withValues({
             title: { like: '%a%', notLike: '%b%', likeInsensitive: '%C%', notLikeInsensitive: '%D%' },
         }))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
 
-        expect(dynamic.sql).toBe(ref.sql)
-        expect(dynamic.params).toEqual(ref.params)
-        expect(ref.sql).toMatchInlineSnapshot(`"select id as "id" from issue where title like :0 escape '\\' and title not like :1 escape '\\' and lower(title) like lower(:2) escape '\\' and lower(title) not like lower(:3) escape '\\' order by "id""`)
-        expect(ref.params).toMatchInlineSnapshot(`
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as "id" from issue where title like :0 escape '\\' and title not like :1 escape '\\' and lower(title) like lower(:2) escape '\\' and lower(title) not like lower(:3) escape '\\' order by "id""`)
+        expect(refParams).toMatchInlineSnapshot(`
           [
             "%a%",
             "%b%",
@@ -223,26 +244,33 @@ describe(ctx.label, () => {
     })
 
     test('equivalence/affix-sensitive', async () => {
-        const ref = await capture(() => ctx.conn.selectFrom(tIssue)
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
             .where(tIssue.title.startsWith('Re')
                 .and(tIssue.title.notStartsWith('Un'))
                 .and(tIssue.title.endsWith('me'))
                 .and(tIssue.title.notEndsWith('xx'))
                 .and(tIssue.title.contains('esi'))
                 .and(tIssue.title.notContains('zzz')))
-            .select({ id: tIssue.id }).orderBy('id').executeSelectMany())
-        const dynamic = await capture(() => dyn({
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor(selectFields).withValues({
             title: {
                 startsWith: 'Re', notStartsWith: 'Un',
                 endsWith: 'me', notEndsWith: 'xx',
                 contains: 'esi', notContains: 'zzz',
             },
         }))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
 
-        expect(dynamic.sql).toBe(ref.sql)
-        expect(dynamic.params).toEqual(ref.params)
-        expect(ref.sql).toMatchInlineSnapshot(`"select id as "id" from issue where title like (:0 || '%') escape '\\' and title not like (:1 || '%') escape '\\' and title like ('%' || :2) escape '\\' and title not like ('%' || :3) escape '\\' and title like ('%' || :4 || '%') escape '\\' and title not like ('%' || :5 || '%') escape '\\' order by "id""`)
-        expect(ref.params).toMatchInlineSnapshot(`
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as "id" from issue where title like (:0 || '%') escape '\\' and title not like (:1 || '%') escape '\\' and title like ('%' || :2) escape '\\' and title not like ('%' || :3) escape '\\' and title like ('%' || :4 || '%') escape '\\' and title not like ('%' || :5 || '%') escape '\\' order by "id""`)
+        expect(refParams).toMatchInlineSnapshot(`
           [
             "Re",
             "Un",
@@ -255,26 +283,33 @@ describe(ctx.label, () => {
     })
 
     test('equivalence/affix-insensitive', async () => {
-        const ref = await capture(() => ctx.conn.selectFrom(tIssue)
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
             .where(tIssue.title.startsWithInsensitive('Re')
                 .and(tIssue.title.notStartsWithInsensitive('Un'))
                 .and(tIssue.title.endsWithInsensitive('me'))
                 .and(tIssue.title.notEndsWithInsensitive('xx'))
                 .and(tIssue.title.containsInsensitive('esi'))
                 .and(tIssue.title.notContainsInsensitive('zzz')))
-            .select({ id: tIssue.id }).orderBy('id').executeSelectMany())
-        const dynamic = await capture(() => dyn({
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor(selectFields).withValues({
             title: {
                 startsWithInsensitive: 'Re', notStartsWithInsensitive: 'Un',
                 endsWithInsensitive: 'me', notEndsWithInsensitive: 'xx',
                 containsInsensitive: 'esi', notContainsInsensitive: 'zzz',
             },
         }))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
 
-        expect(dynamic.sql).toBe(ref.sql)
-        expect(dynamic.params).toEqual(ref.params)
-        expect(ref.sql).toMatchInlineSnapshot(`"select id as "id" from issue where lower(title) like lower(:0 || '%') escape '\\' and lower(title) not like lower(:1 || '%') escape '\\' and lower(title) like lower('%' || :2) escape '\\' and lower(title) not like lower('%' || :3) escape '\\' and lower(title) like lower('%' || :4 || '%') escape '\\' and lower(title) not like lower('%' || :5 || '%') escape '\\' order by "id""`)
-        expect(ref.params).toMatchInlineSnapshot(`
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as "id" from issue where lower(title) like lower(:0 || '%') escape '\\' and lower(title) not like lower(:1 || '%') escape '\\' and lower(title) like lower('%' || :2) escape '\\' and lower(title) not like lower('%' || :3) escape '\\' and lower(title) like lower('%' || :4 || '%') escape '\\' and lower(title) not like lower('%' || :5 || '%') escape '\\' order by "id""`)
+        expect(refParams).toMatchInlineSnapshot(`
           [
             "Re",
             "Un",
@@ -291,15 +326,22 @@ describe(ctx.label, () => {
         // non-dynamic equivalent of the dynamic `equalsIfValue` is the
         // direct `.equalsIfValue`. With a present value both emit the
         // predicate; both short-circuit on null/undefined.
-        const ref = await capture(() => ctx.conn.selectFrom(tIssue)
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
             .where(tIssue.priority.equalsIfValue(7))
-            .select({ id: tIssue.id }).orderBy('id').executeSelectMany())
-        const dynamic = await capture(() => dyn({ priority: { equalsIfValue: 7 } }))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
 
-        expect(dynamic.sql).toBe(ref.sql)
-        expect(dynamic.params).toEqual(ref.params)
-        expect(ref.sql).toMatchInlineSnapshot(`"select id as "id" from issue where priority = :0 order by "id""`)
-        expect(ref.params).toMatchInlineSnapshot(`
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor(selectFields).withValues({ priority: { equalsIfValue: 7 } }))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as "id" from issue where priority = :0 order by "id""`)
+        expect(refParams).toMatchInlineSnapshot(`
           [
             7,
           ]
@@ -307,15 +349,22 @@ describe(ctx.label, () => {
     })
 
     test('equivalence/double-column-dispatch', async () => {
-        const ref = await capture(() => ctx.conn.selectFrom(tIssue)
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
             .where(tIssue.estimatedHours.greaterThan(2.5))
-            .select({ id: tIssue.id }).orderBy('id').executeSelectMany())
-        const dynamic = await capture(() => dyn({ estimatedHours: { greaterThan: 2.5 } }))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
 
-        expect(dynamic.sql).toBe(ref.sql)
-        expect(dynamic.params).toEqual(ref.params)
-        expect(ref.sql).toMatchInlineSnapshot(`"select id as "id" from issue where estimated_hours > :0 order by "id""`)
-        expect(ref.params).toMatchInlineSnapshot(`
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor(selectFields).withValues({ estimatedHours: { greaterThan: 2.5 } }))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as "id" from issue where estimated_hours > :0 order by "id""`)
+        expect(refParams).toMatchInlineSnapshot(`
           [
             2.5,
           ]
@@ -324,15 +373,22 @@ describe(ctx.label, () => {
 
     test('equivalence/datetime-column-dispatch', async () => {
         const since = new Date('2020-01-01T00:00:00.000Z')
-        const ref = await capture(() => ctx.conn.selectFrom(tIssue)
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
             .where(tIssue.createdAt.greaterOrEqual(since))
-            .select({ id: tIssue.id }).orderBy('id').executeSelectMany())
-        const dynamic = await capture(() => dyn({ createdAt: { greaterOrEqual: since } }))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
 
-        expect(dynamic.sql).toBe(ref.sql)
-        expect(dynamic.params).toEqual(ref.params)
-        expect(ref.sql).toMatchInlineSnapshot(`"select id as "id" from issue where created_at >= :0 order by "id""`)
-        expect(ref.params).toMatchInlineSnapshot(`
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor(selectFields).withValues({ createdAt: { greaterOrEqual: since } }))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as "id" from issue where created_at >= :0 order by "id""`)
+        expect(refParams).toMatchInlineSnapshot(`
           [
             2020-01-01T00:00:00.000Z,
           ]
@@ -340,15 +396,22 @@ describe(ctx.label, () => {
     })
 
     test('equivalence/bigint-column-dispatch', async () => {
-        const ref = await capture(() => ctx.conn.selectFrom(tIssue)
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
             .where(tIssue.viewCount.greaterThan(10n))
-            .select({ id: tIssue.id }).orderBy('id').executeSelectMany())
-        const dynamic = await capture(() => dyn({ viewCount: { greaterThan: 10n } }))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
 
-        expect(dynamic.sql).toBe(ref.sql)
-        expect(dynamic.params).toEqual(ref.params)
-        expect(ref.sql).toMatchInlineSnapshot(`"select id as "id" from issue where view_count > :0 order by "id""`)
-        expect(ref.params).toMatchInlineSnapshot(`
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor(selectFields).withValues({ viewCount: { greaterThan: 10n } }))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as "id" from issue where view_count > :0 order by "id""`)
+        expect(refParams).toMatchInlineSnapshot(`
           [
             10n,
           ]
@@ -364,17 +427,22 @@ describe(ctx.label, () => {
         type ProjectFilter = DynamicCondition<{ id: 'int', published: 'boolean' }>
         const filter: ProjectFilter = { published: { equals: true } }
 
-        const ref = await capture(() => ctx.conn.selectFrom(tProject)
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProject)
             .where(tProject.published.equals(true))
-            .select({ id: tProject.id }).orderBy('id').executeSelectMany())
-        const dynamic = await capture(() => ctx.conn.selectFrom(tProject)
-            .where(ctx.conn.dynamicConditionFor(projectFields).withValues(filter))
-            .select({ id: tProject.id }).orderBy('id').executeSelectMany())
+            .select({ id: tProject.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
 
-        expect(dynamic.sql).toBe(ref.sql)
-        expect(dynamic.params).toEqual(ref.params)
-        expect(ref.sql).toMatchInlineSnapshot(`"select id as "id" from project where case when published = 't' then 1 else 0 end = :0 order by "id""`)
-        expect(ref.params).toMatchInlineSnapshot(`
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProject)
+            .where(ctx.conn.dynamicConditionFor(projectFields).withValues(filter))
+            .select({ id: tProject.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as "id" from project where case when published = 't' then 1 else 0 end = :0 order by "id""`)
+        expect(refParams).toMatchInlineSnapshot(`
           [
             1,
           ]
@@ -385,15 +453,22 @@ describe(ctx.label, () => {
         // For the like/insensitive operator family the builder rewrites a
         // uuid value source through `.asString()` before dispatching
         // (useAsStringInUuid). The reference spells that rewrite out.
-        const ref = await capture(() => ctx.conn.selectFrom(tIssue)
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
             .where(tIssue.externalRef.asString().containsInsensitive('abc'))
-            .select({ id: tIssue.id }).orderBy('id').executeSelectMany())
-        const dynamic = await capture(() => dyn({ externalRef: { containsInsensitive: 'abc' } }))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
 
-        expect(dynamic.sql).toBe(ref.sql)
-        expect(dynamic.params).toEqual(ref.params)
-        expect(ref.sql).toMatchInlineSnapshot(`"select id as "id" from issue where lower(raw_to_uuid(external_ref)) like lower('%' || :0 || '%') escape '\\' order by "id""`)
-        expect(ref.params).toMatchInlineSnapshot(`
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor(selectFields).withValues({ externalRef: { containsInsensitive: 'abc' } }))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as "id" from issue where lower(raw_to_uuid(external_ref)) like lower('%' || :0 || '%') escape '\\' order by "id""`)
+        expect(refParams).toMatchInlineSnapshot(`
           [
             "abc",
           ]
@@ -403,15 +478,22 @@ describe(ctx.label, () => {
     test('equivalence/and-combinator', async () => {
         // `{ and: [A, B] }` is the array conjunction — equivalent to the
         // direct `A.and(B)`.
-        const ref = await capture(() => ctx.conn.selectFrom(tIssue)
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
             .where(tIssue.status.equals('open').and(tIssue.priority.equals(3)))
-            .select({ id: tIssue.id }).orderBy('id').executeSelectMany())
-        const dynamic = await capture(() => dyn({ and: [{ status: { equals: 'open' } }, { priority: { equals: 3 } }] }))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
 
-        expect(dynamic.sql).toBe(ref.sql)
-        expect(dynamic.params).toEqual(ref.params)
-        expect(ref.sql).toMatchInlineSnapshot(`"select id as "id" from issue where status = :0 and priority = :1 order by "id""`)
-        expect(ref.params).toMatchInlineSnapshot(`
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor(selectFields).withValues({ and: [{ status: { equals: 'open' } }, { priority: { equals: 3 } }] }))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as "id" from issue where status = :0 and priority = :1 order by "id""`)
+        expect(refParams).toMatchInlineSnapshot(`
           [
             "open",
             3,
@@ -420,15 +502,22 @@ describe(ctx.label, () => {
     })
 
     test('equivalence/or-combinator', async () => {
-        const ref = await capture(() => ctx.conn.selectFrom(tIssue)
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
             .where(tIssue.status.equals('open').or(tIssue.priority.equals(3)))
-            .select({ id: tIssue.id }).orderBy('id').executeSelectMany())
-        const dynamic = await capture(() => dyn({ or: [{ status: { equals: 'open' } }, { priority: { equals: 3 } }] }))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
 
-        expect(dynamic.sql).toBe(ref.sql)
-        expect(dynamic.params).toEqual(ref.params)
-        expect(ref.sql).toMatchInlineSnapshot(`"select id as "id" from issue where status = :0 or priority = :1 order by "id""`)
-        expect(ref.params).toMatchInlineSnapshot(`
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor(selectFields).withValues({ or: [{ status: { equals: 'open' } }, { priority: { equals: 3 } }] }))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as "id" from issue where status = :0 or priority = :1 order by "id""`)
+        expect(refParams).toMatchInlineSnapshot(`
           [
             "open",
             3,
@@ -437,15 +526,22 @@ describe(ctx.label, () => {
     })
 
     test('equivalence/not-combinator', async () => {
-        const ref = await capture(() => ctx.conn.selectFrom(tIssue)
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
             .where(tIssue.status.equals('closed').negate())
-            .select({ id: tIssue.id }).orderBy('id').executeSelectMany())
-        const dynamic = await capture(() => dyn({ not: { status: { equals: 'closed' } } }))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
 
-        expect(dynamic.sql).toBe(ref.sql)
-        expect(dynamic.params).toEqual(ref.params)
-        expect(ref.sql).toMatchInlineSnapshot(`"select id as "id" from issue where not (status = :0) order by "id""`)
-        expect(ref.params).toMatchInlineSnapshot(`
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor(selectFields).withValues({ not: { status: { equals: 'closed' } } }))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as "id" from issue where not (status = :0) order by "id""`)
+        expect(refParams).toMatchInlineSnapshot(`
           [
             "closed",
           ]
@@ -455,26 +551,33 @@ describe(ctx.label, () => {
     test('equivalence/if-value-equalable-family', async () => {
         // Every equalable `*IfValue` operator paired against its direct
         // `.xxxIfValue` twin; with present values each emits its predicate.
-        const ref = await capture(() => ctx.conn.selectFrom(tIssue)
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
             .where(tIssue.priority.equalsIfValue(2)
                 .and(tIssue.priority.notEqualsIfValue(3))
                 .and(tIssue.priority.isIfValue(4))
                 .and(tIssue.priority.isNotIfValue(5))
                 .and(tIssue.priority.inIfValue([1, 2]))
                 .and(tIssue.priority.notInIfValue([9])))
-            .select({ id: tIssue.id }).orderBy('id').executeSelectMany())
-        const dynamic = await capture(() => dyn({
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor(selectFields).withValues({
             priority: {
                 equalsIfValue: 2, notEqualsIfValue: 3,
                 isIfValue: 4, isNotIfValue: 5,
                 inIfValue: [1, 2], notInIfValue: [9],
             },
         }))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
 
-        expect(dynamic.sql).toBe(ref.sql)
-        expect(dynamic.params).toEqual(ref.params)
-        expect(ref.sql).toMatchInlineSnapshot(`"select id as "id" from issue where priority = :0 and priority <> :1 and decode(priority, :2, 1, 0 ) = 1 and decode(priority, :3, 1, 0 ) = 0 and priority in (:4, :5) and priority not in (:6) order by "id""`)
-        expect(ref.params).toMatchInlineSnapshot(`
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as "id" from issue where priority = :0 and priority <> :1 and decode(priority, :2, 1, 0 ) = 1 and decode(priority, :3, 1, 0 ) = 0 and priority in (:4, :5) and priority not in (:6) order by "id""`)
+        expect(refParams).toMatchInlineSnapshot(`
           [
             2,
             3,
@@ -488,23 +591,30 @@ describe(ctx.label, () => {
     })
 
     test('equivalence/if-value-comparable-family', async () => {
-        const ref = await capture(() => ctx.conn.selectFrom(tIssue)
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
             .where(tIssue.priority.lessThanIfValue(9)
                 .and(tIssue.priority.greaterThanIfValue(1))
                 .and(tIssue.priority.lessOrEqualIfValue(8))
                 .and(tIssue.priority.greaterOrEqualIfValue(2)))
-            .select({ id: tIssue.id }).orderBy('id').executeSelectMany())
-        const dynamic = await capture(() => dyn({
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor(selectFields).withValues({
             priority: {
                 lessThanIfValue: 9, greaterThanIfValue: 1,
                 lessOrEqualIfValue: 8, greaterOrEqualIfValue: 2,
             },
         }))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
 
-        expect(dynamic.sql).toBe(ref.sql)
-        expect(dynamic.params).toEqual(ref.params)
-        expect(ref.sql).toMatchInlineSnapshot(`"select id as "id" from issue where priority < :0 and priority > :1 and priority <= :2 and priority >= :3 order by "id""`)
-        expect(ref.params).toMatchInlineSnapshot(`
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as "id" from issue where priority < :0 and priority > :1 and priority <= :2 and priority >= :3 order by "id""`)
+        expect(refParams).toMatchInlineSnapshot(`
           [
             9,
             1,
@@ -515,26 +625,33 @@ describe(ctx.label, () => {
     })
 
     test('equivalence/if-value-string-equality-and-like-family', async () => {
-        const ref = await capture(() => ctx.conn.selectFrom(tIssue)
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
             .where(tIssue.title.equalsInsensitiveIfValue('Foo')
                 .and(tIssue.title.notEqualsInsensitiveIfValue('Bar'))
                 .and(tIssue.title.likeIfValue('%a%'))
                 .and(tIssue.title.notLikeIfValue('%b%'))
                 .and(tIssue.title.likeInsensitiveIfValue('%C%'))
                 .and(tIssue.title.notLikeInsensitiveIfValue('%D%')))
-            .select({ id: tIssue.id }).orderBy('id').executeSelectMany())
-        const dynamic = await capture(() => dyn({
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor(selectFields).withValues({
             title: {
                 equalsInsensitiveIfValue: 'Foo', notEqualsInsensitiveIfValue: 'Bar',
                 likeIfValue: '%a%', notLikeIfValue: '%b%',
                 likeInsensitiveIfValue: '%C%', notLikeInsensitiveIfValue: '%D%',
             },
         }))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
 
-        expect(dynamic.sql).toBe(ref.sql)
-        expect(dynamic.params).toEqual(ref.params)
-        expect(ref.sql).toMatchInlineSnapshot(`"select id as "id" from issue where lower(title) = lower(:0) and lower(title) <> lower(:1) and title like :2 escape '\\' and title not like :3 escape '\\' and lower(title) like lower(:4) escape '\\' and lower(title) not like lower(:5) escape '\\' order by "id""`)
-        expect(ref.params).toMatchInlineSnapshot(`
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as "id" from issue where lower(title) = lower(:0) and lower(title) <> lower(:1) and title like :2 escape '\\' and title not like :3 escape '\\' and lower(title) like lower(:4) escape '\\' and lower(title) not like lower(:5) escape '\\' order by "id""`)
+        expect(refParams).toMatchInlineSnapshot(`
           [
             "Foo",
             "Bar",
@@ -547,26 +664,33 @@ describe(ctx.label, () => {
     })
 
     test('equivalence/if-value-affix-sensitive-family', async () => {
-        const ref = await capture(() => ctx.conn.selectFrom(tIssue)
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
             .where(tIssue.title.startsWithIfValue('Re')
                 .and(tIssue.title.notStartsWithIfValue('Un'))
                 .and(tIssue.title.endsWithIfValue('me'))
                 .and(tIssue.title.notEndsWithIfValue('xx'))
                 .and(tIssue.title.containsIfValue('esi'))
                 .and(tIssue.title.notContainsIfValue('zzz')))
-            .select({ id: tIssue.id }).orderBy('id').executeSelectMany())
-        const dynamic = await capture(() => dyn({
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor(selectFields).withValues({
             title: {
                 startsWithIfValue: 'Re', notStartsWithIfValue: 'Un',
                 endsWithIfValue: 'me', notEndsWithIfValue: 'xx',
                 containsIfValue: 'esi', notContainsIfValue: 'zzz',
             },
         }))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
 
-        expect(dynamic.sql).toBe(ref.sql)
-        expect(dynamic.params).toEqual(ref.params)
-        expect(ref.sql).toMatchInlineSnapshot(`"select id as "id" from issue where title like (:0 || '%') escape '\\' and title not like (:1 || '%') escape '\\' and title like ('%' || :2) escape '\\' and title not like ('%' || :3) escape '\\' and title like ('%' || :4 || '%') escape '\\' and title not like ('%' || :5 || '%') escape '\\' order by "id""`)
-        expect(ref.params).toMatchInlineSnapshot(`
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as "id" from issue where title like (:0 || '%') escape '\\' and title not like (:1 || '%') escape '\\' and title like ('%' || :2) escape '\\' and title not like ('%' || :3) escape '\\' and title like ('%' || :4 || '%') escape '\\' and title not like ('%' || :5 || '%') escape '\\' order by "id""`)
+        expect(refParams).toMatchInlineSnapshot(`
           [
             "Re",
             "Un",
@@ -579,26 +703,33 @@ describe(ctx.label, () => {
     })
 
     test('equivalence/if-value-affix-insensitive-family', async () => {
-        const ref = await capture(() => ctx.conn.selectFrom(tIssue)
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
             .where(tIssue.title.startsWithInsensitiveIfValue('Re')
                 .and(tIssue.title.notStartsWithInsensitiveIfValue('Un'))
                 .and(tIssue.title.endsWithInsensitiveIfValue('me'))
                 .and(tIssue.title.notEndsWithInsensitiveIfValue('xx'))
                 .and(tIssue.title.containsInsensitiveIfValue('esi'))
                 .and(tIssue.title.notContainsInsensitiveIfValue('zzz')))
-            .select({ id: tIssue.id }).orderBy('id').executeSelectMany())
-        const dynamic = await capture(() => dyn({
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor(selectFields).withValues({
             title: {
                 startsWithInsensitiveIfValue: 'Re', notStartsWithInsensitiveIfValue: 'Un',
                 endsWithInsensitiveIfValue: 'me', notEndsWithInsensitiveIfValue: 'xx',
                 containsInsensitiveIfValue: 'esi', notContainsInsensitiveIfValue: 'zzz',
             },
         }))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
 
-        expect(dynamic.sql).toBe(ref.sql)
-        expect(dynamic.params).toEqual(ref.params)
-        expect(ref.sql).toMatchInlineSnapshot(`"select id as "id" from issue where lower(title) like lower(:0 || '%') escape '\\' and lower(title) not like lower(:1 || '%') escape '\\' and lower(title) like lower('%' || :2) escape '\\' and lower(title) not like lower('%' || :3) escape '\\' and lower(title) like lower('%' || :4 || '%') escape '\\' and lower(title) not like lower('%' || :5 || '%') escape '\\' order by "id""`)
-        expect(ref.params).toMatchInlineSnapshot(`
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as "id" from issue where lower(title) like lower(:0 || '%') escape '\\' and lower(title) not like lower(:1 || '%') escape '\\' and lower(title) like lower('%' || :2) escape '\\' and lower(title) not like lower('%' || :3) escape '\\' and lower(title) like lower('%' || :4 || '%') escape '\\' and lower(title) not like lower('%' || :5 || '%') escape '\\' order by "id""`)
+        expect(refParams).toMatchInlineSnapshot(`
           [
             "Re",
             "Un",

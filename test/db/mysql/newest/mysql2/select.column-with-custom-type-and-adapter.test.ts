@@ -18,16 +18,16 @@ import type { TypeAdapter, DefaultTypeAdapter } from '../../../../../src/TypeAda
 import { DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
-const fromDBCalls: Array<{ value: unknown; type: string }> = []
-const toDBCalls:   Array<{ value: unknown; type: string }> = []
+const fromDBCalls: Array<{ type: string }> = []
+const toDBCalls:   Array<{ type: string }> = []
 
 const loggingAdapter: TypeAdapter = {
     transformValueFromDB(value: unknown, type: string, next: DefaultTypeAdapter): unknown {
-        fromDBCalls.push({ value, type })
+        fromDBCalls.push({ type })
         return next.transformValueFromDB(value, type)
     },
     transformValueToDB(value: unknown, type: string, next: DefaultTypeAdapter): unknown {
-        toDBCalls.push({ value, type })
+        toDBCalls.push({ type })
         return next.transformValueToDB(value, type)
     },
 }

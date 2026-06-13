@@ -70,7 +70,7 @@ describe(ctx.label, () => {
         // engine-assigned `id` is deterministic, so the unconditional
         // assertion checks those and just types `id` as a number.
         const expectedMock = [
-            { id: 100, projectId: 4, number: 1, title: 'Document /v2/users', status: 'draft' as string, priority: 2 },
+            { id: 100, projectId: 4, number: 1, title: 'Document /v2/users', status: 'draft', priority: 2 },
         ]
         ctx.mockNext(expectedMock)
 

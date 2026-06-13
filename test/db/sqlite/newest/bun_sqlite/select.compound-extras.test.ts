@@ -9,7 +9,7 @@
 // `.intersectAll`/`.exceptAll`/`.minusAll` are narrowed to `never`
 // because the engine doesn't accept the `ALL` flavour of these
 // operators. Those three tests are commented out with
-// `TODO[LIMITATION]: see LIMITATIONS.md` to keep the test count
+// `TODO[LIMITATION]` (see LIMITATIONS.md) to keep the test count
 // symmetric with the postgres/mariadb cells while honouring the
 // type-system narrowing.
 //

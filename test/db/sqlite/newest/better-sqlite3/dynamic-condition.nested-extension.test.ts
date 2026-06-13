@@ -229,7 +229,7 @@ describe(ctx.label, () => {
                 above: (v: number) => tIssue.id.greaterThan(v),
             },
         }
-        const filter = { id: { idRules: { above: 10 } } } as DynamicCondition<{ id: 'int' }>
+        const filter: DynamicCondition<{ id: 'int' }, { idRules: { above: BoolRule<number> } }> = { id: { idRules: { above: 10 } } }
         await connection.selectFrom(tIssue)
             .where(connection.dynamicConditionFor(selectFields, extension).withValues(filter))
             .select({ id: tIssue.id })
@@ -259,7 +259,7 @@ describe(ctx.label, () => {
                 },
             },
         }
-        const filter = { id: { idRules: { grp: { above: 10 } } } } as DynamicCondition<{ id: 'int' }>
+        const filter: DynamicCondition<{ id: 'int' }, { idRules: { grp: { above: BoolRule<number> } } }> = { id: { idRules: { grp: { above: 10 } } } }
         await connection.selectFrom(tIssue)
             .where(connection.dynamicConditionFor(selectFields, extension).withValues(filter))
             .select({ id: tIssue.id })

@@ -35,7 +35,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
 
         // doc-start
-        const stack: string | undefined = getQueryExecutionStack(ctx.lastSql, ctx.lastParams as unknown[])
+        const stack: string | undefined = getQueryExecutionStack(ctx.lastSql, ctx.lastParams)
         // doc-end
         expect(typeof stack).toBe('string')
         // The leading line is hard-coded by __setQueryMetadata.
@@ -51,7 +51,7 @@ describe(ctx.label, () => {
 
         // doc-start
         const info: FunctionExecutingQueryInformation | undefined =
-            getFunctionExecutingQuery(ctx.lastSql, ctx.lastParams as unknown[])
+            getFunctionExecutingQuery(ctx.lastSql, ctx.lastParams)
         // doc-end
         // The stack regex requires a recognisable frame after the
         // synthetic "Query executed at" header — present on Node/Bun.
@@ -73,7 +73,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
 
         // doc-start
-        const isCount: boolean = isSelectPageCountQuery(ctx.lastSql, ctx.lastParams as unknown[])
+        const isCount: boolean = isSelectPageCountQuery(ctx.lastSql, ctx.lastParams)
         // doc-end
         expect(isCount).toBe(false)
     })
@@ -93,7 +93,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         // doc-end
 
-        const name: string | undefined = getQueryExecutionName(ctx.lastSql, ctx.lastParams as unknown[])
+        const name: string | undefined = getQueryExecutionName(ctx.lastSql, ctx.lastParams)
         expect(name).toBe('My query name')
     })
 
@@ -112,7 +112,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         // doc-end
 
-        const metadata: unknown = getQueryExecutionMetadata(ctx.lastSql, ctx.lastParams as unknown[])
+        const metadata: unknown = getQueryExecutionMetadata(ctx.lastSql, ctx.lastParams)
         expect(metadata).toEqual({ myMetadataProp: 'my metadata value' })
     })
 
@@ -127,7 +127,7 @@ describe(ctx.label, () => {
             .select({ id: tProject.id, name: tProject.name })
             .executeSelectPage()
         // After executeSelectPage the LAST query is the count query.
-        const isCount = isSelectPageCountQuery(ctx.lastSql, ctx.lastParams as unknown[])
+        const isCount = isSelectPageCountQuery(ctx.lastSql, ctx.lastParams)
         expect(isCount).toBe(true)
     })
 
@@ -140,8 +140,8 @@ describe(ctx.label, () => {
             .select({ id: tProject.id, name: tProject.name })
             .executeSelectOne()
 
-        expect(getQueryExecutionName(ctx.lastSql, ctx.lastParams as unknown[])).toBeUndefined()
-        expect(getQueryExecutionMetadata(ctx.lastSql, ctx.lastParams as unknown[])).toBeUndefined()
+        expect(getQueryExecutionName(ctx.lastSql, ctx.lastParams)).toBeUndefined()
+        expect(getQueryExecutionMetadata(ctx.lastSql, ctx.lastParams)).toBeUndefined()
     })
 
     test('docs-extra:query-execution-metadata/name-and-metadata-coexist', async () => {
@@ -157,7 +157,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(getQueryExecutionName(ctx.lastSql, ctx.lastParams as unknown[])).toBe('find-project')
-        expect(getQueryExecutionMetadata(ctx.lastSql, ctx.lastParams as unknown[])).toEqual({ tag: 'hot-path' })
+        expect(getQueryExecutionName(ctx.lastSql, ctx.lastParams)).toBe('find-project')
+        expect(getQueryExecutionMetadata(ctx.lastSql, ctx.lastParams)).toEqual({ tag: 'hot-path' })
     })
 })

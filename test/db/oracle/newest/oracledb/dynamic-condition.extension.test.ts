@@ -25,20 +25,26 @@ import type { DynamicCondition } from '../../../../../src/dynamic/condition.js'
 import { tIssue, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
-// `withProjectName` is the extension rule: a top-level key whose
-// value is a string and whose callback emits an `EXISTS (...)`
-// correlated subquery.
+// `withProjectName` is the extension rule: a top-level key whose value
+// is an optional string and whose callback emits an `EXISTS (...)`
+// correlated subquery. It is a genuine IfValue-style rule — the input is
+// `string | null | undefined` and the callback returns `noValueBoolean()`
+// for an absent value — so the no-op is part of the extension's own
+// contract (the builder also skips the callback on null/undefined).
 type ExtendedFilter = DynamicCondition<{
     id:       'int',
     status:   'string',
     priority: 'int',
 }, {
-    withProjectName: (rules: string) => ReturnType<ReturnType<typeof buildExtension>['withProjectName']>
+    withProjectName: (rules: string | null | undefined) => ReturnType<ReturnType<typeof buildExtension>['withProjectName']>
 }>
 
 function buildExtension(connection: typeof ctx.conn) {
     return {
-        withProjectName: (rules: string) => {
+        withProjectName: (rules: string | null | undefined) => {
+            if (!rules) {
+                return connection.noValueBoolean()
+            }
             const sub = connection.subSelectUsing(tIssue)
                 .from(tProject)
                 .where(tProject.id.equals(tIssue.projectId))
@@ -86,12 +92,14 @@ describe(ctx.label, () => {
     test('extension-noop-when-value-is-null-or-undefined', async () => {
         // The documented short-circuit: when the extension key's value
         // is null/undefined the callback is NOT invoked and the WHERE
-        // clause is empty.
+        // clause is empty. The rule is IfValue-style (its input type
+        // admits `undefined`), so the filter expresses the no-op without
+        // fighting the extension's own contract.
         ctx.mockNext([])
         const connection = ctx.conn
         const extension = buildExtension(connection)
         const noopFilter: ExtendedFilter = {
-            withProjectName: undefined as unknown as string,
+            withProjectName: undefined,
         }
         await connection.selectFrom(tIssue)
             .where(connection.dynamicConditionFor(selectFields, extension).withValues(noopFilter))

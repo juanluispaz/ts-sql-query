@@ -100,9 +100,7 @@ describe(ctx.label, () => {
         expect(result).toBe(1)
     })
 
-    // NOT-APPLICABLE: `'snapshot'` type-checks on SQL Server but needs the
-    // database-level ALLOW_SNAPSHOT_ISOLATION option, which the test database
-    // does not enable — so the level cannot be exercised here.
+    // TODO[LIMITATION]: see LIMITATIONS.md — `'snapshot'` type-checks and SQL Server 2025 supports it; gated only because the test database doesn't enable ALLOW_SNAPSHOT_ISOLATION (an env gap, not a dialect boundary; no other cell validates SNAPSHOT).
     /*
     test('isolation-level-snapshot-builds-level-opts', async () => {
         ctx.mockNext(1)

@@ -8,9 +8,11 @@
 // ([src/expressions/select.ts:122-127](../../../../../src/expressions/select.ts#L122-L127)
 // narrows `intersectAll`/`exceptAll`/`minus`/`minusAll` to `never`
 // for `mysql`), so every test body would fail to type-check here.
-// All four are commented out with `NOT-APPLICABLE`: the type-system
-// narrowing is a permanent dialect frontier (the bodies can never
-// type-check here), kept for symmetry with the postgres/mariadb cells.
+// All four are commented out with `TODO[LIMITATION]`: the type-system
+// narrowing means the bodies can't type-check here today, but MySQL
+// 8.0.31+ (verified on mysql:9) supports these operators — a library
+// gap, not a permanent dialect frontier. Kept for symmetry with the
+// postgres/mariadb cells (where they run live).
 
 import { afterAll, beforeAll, beforeEach, describe } from '../../../../lib/testRunner.js'
 import { ctx } from './setup.js'
@@ -20,30 +22,22 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // NOT-APPLICABLE: the mysql dialect narrows `intersectAll`, `exceptAll`,
-    // `minus` and `minusAll` to `never` (compile-time frontier, paired with
-    // test/db/mysql/types.negative/select.test.ts). Runs in postgres/mariadb.
+    // TODO[LIMITATION]: see LIMITATIONS.md — mysql narrows intersectAll/exceptAll/minus/minusAll to never, but MySQL 8.0.31+ (verified on mysql:9) supports them; a library gap (paired with the never assertion in test/db/mysql/types.negative/select.test.ts). Runs in postgres/mariadb.
     /*
     test('intersect-all-emits-intersect-all-syntax', async () => {})
     */
 
-    // NOT-APPLICABLE: the mysql dialect narrows `intersectAll`, `exceptAll`,
-    // `minus` and `minusAll` to `never` (compile-time frontier, paired with
-    // test/db/mysql/types.negative/select.test.ts). Runs in postgres/mariadb.
+    // TODO[LIMITATION]: see LIMITATIONS.md — mysql narrows intersectAll/exceptAll/minus/minusAll to never, but MySQL 8.0.31+ (verified on mysql:9) supports them; a library gap (paired with the never assertion in test/db/mysql/types.negative/select.test.ts). Runs in postgres/mariadb.
     /*
     test('except-all-emits-except-all-syntax', async () => {})
     */
 
-    // NOT-APPLICABLE: the mysql dialect narrows `intersectAll`, `exceptAll`,
-    // `minus` and `minusAll` to `never` (compile-time frontier, paired with
-    // test/db/mysql/types.negative/select.test.ts). Runs in postgres/mariadb.
+    // TODO[LIMITATION]: see LIMITATIONS.md — mysql narrows intersectAll/exceptAll/minus/minusAll to never, but MySQL 8.0.31+ (verified on mysql:9) supports them; a library gap (paired with the never assertion in test/db/mysql/types.negative/select.test.ts). Runs in postgres/mariadb.
     /*
     test('minus-routes-through-the-dialect-alias', async () => {})
     */
 
-    // NOT-APPLICABLE: the mysql dialect narrows `intersectAll`, `exceptAll`,
-    // `minus` and `minusAll` to `never` (compile-time frontier, paired with
-    // test/db/mysql/types.negative/select.test.ts). Runs in postgres/mariadb.
+    // TODO[LIMITATION]: see LIMITATIONS.md — mysql narrows intersectAll/exceptAll/minus/minusAll to never, but MySQL 8.0.31+ (verified on mysql:9) supports them; a library gap (paired with the never assertion in test/db/mysql/types.negative/select.test.ts). Runs in postgres/mariadb.
     /*
     test('minus-all-routes-through-the-dialect-alias', async () => {})
     */

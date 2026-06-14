@@ -19,7 +19,7 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // NOT-APPLICABLE: `connection.Values` (WITH name(...) AS (VALUES ...)) is not typed on MariaDBConnection — the canonical body below mirrors the postgres / sqlite cells; uncomment and bake snapshots once MariaDB grows `Values` support.
+    // TODO[LIMITATION]: see LIMITATIONS.md — MariaDB accepts the library's exact `name(cols) AS (VALUES (...),(...))` emission (verified on mariadb 12.3.2) but Values is type-excluded on MariaDBConnection. A library gap, not a dialect boundary; the canonical body below mirrors the postgres / sqlite cells — uncomment and bake snapshots once the typing lands.
     /*
     class VProjectPatch extends Values<DBConnection, 'projectPatch'> {
         id   = this.column('int')
@@ -71,7 +71,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-APPLICABLE: `connection.Values` (WITH name(...) AS (VALUES ...)) is not typed on MariaDBConnection — the canonical body below mirrors the postgres / sqlite cells; uncomment and bake snapshots once MariaDB grows `Values` support.
+    // TODO[LIMITATION]: see LIMITATIONS.md — MariaDB accepts the library's exact `name(cols) AS (VALUES (...),(...))` emission (verified on mariadb 12.3.2) but Values is type-excluded on MariaDBConnection. A library gap, not a dialect boundary; the canonical body below mirrors the postgres / sqlite cells — uncomment and bake snapshots once the typing lands.
     /*
     test('values-for-use-in-left-join-as-emits-left-join', async () => {
         // `.forUseInLeftJoinAs(alias)` marks the cloned values view as
@@ -108,7 +108,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-APPLICABLE: `connection.Values` (WITH name(...) AS (VALUES ...)) is not typed on MariaDBConnection — the canonical body below mirrors the postgres / sqlite cells; uncomment and bake snapshots once MariaDB grows `Values` support.
+    // TODO[LIMITATION]: see LIMITATIONS.md — MariaDB accepts the library's exact `name(cols) AS (VALUES (...),(...))` emission (verified on mariadb 12.3.2) but Values is type-excluded on MariaDBConnection. A library gap, not a dialect boundary; the canonical body below mirrors the postgres / sqlite cells — uncomment and bake snapshots once the typing lands.
     /*
     test('values-optional-column-allows-undefined-per-row', async () => {
         // An optional column accepts per-row null/undefined, emitted as NULL
@@ -138,7 +138,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-APPLICABLE: `connection.Values` (WITH name(...) AS (VALUES ...)) is not typed on MariaDBConnection — the canonical body below mirrors the postgres / sqlite cells; uncomment and bake snapshots once MariaDB grows `Values` support.
+    // TODO[LIMITATION]: see LIMITATIONS.md — MariaDB accepts the library's exact `name(cols) AS (VALUES (...),(...))` emission (verified on mariadb 12.3.2) but Values is type-excluded on MariaDBConnection. A library gap, not a dialect boundary; the canonical body below mirrors the postgres / sqlite cells — uncomment and bake snapshots once the typing lands.
     /*
     test('values-with-custom-typed-columns-emits-customint-customdouble-casts', async () => {
         // `column<T>('customInt', 'IssueId')` and
@@ -173,7 +173,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-APPLICABLE: `connection.Values` (WITH name(...) AS (VALUES ...)) is not typed on MariaDBConnection — the canonical body below mirrors the postgres / sqlite cells; uncomment and bake snapshots once MariaDB grows `Values` support.
+    // TODO[LIMITATION]: see LIMITATIONS.md — MariaDB accepts the library's exact `name(cols) AS (VALUES (...),(...))` emission (verified on mariadb 12.3.2) but Values is type-excluded on MariaDBConnection. A library gap, not a dialect boundary; the canonical body below mirrors the postgres / sqlite cells — uncomment and bake snapshots once the typing lands.
     /*
     test('values-virtual-column-from-fragment-with-custom-type-emits-inline-fragment', async () => {
         // `virtualColumnFromFragment<T>('enum', 'OrderState', fn)` reaches
@@ -207,7 +207,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-APPLICABLE: `connection.Values` (WITH name(...) AS (VALUES ...)) is not typed on MariaDBConnection — the canonical body below mirrors the postgres / sqlite cells; uncomment and bake snapshots once MariaDB grows `Values` support.
+    // TODO[LIMITATION]: see LIMITATIONS.md — MariaDB accepts the library's exact `name(cols) AS (VALUES (...),(...))` emission (verified on mariadb 12.3.2) but Values is type-excluded on MariaDBConnection. A library gap, not a dialect boundary; the canonical body below mirrors the postgres / sqlite cells — uncomment and bake snapshots once the typing lands.
     /*
     test('values-optional-virtual-column-from-fragment-with-custom-type-emits-inline-fragment', async () => {
         // `optionalVirtualColumnFromFragment<T>('customUuid', 'BillingRef', fn)`
@@ -240,7 +240,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-APPLICABLE: `connection.Values` (WITH name(...) AS (VALUES ...)) is not typed on MariaDBConnection — the canonical body below mirrors the postgres / sqlite cells; uncomment and bake snapshots once MariaDB grows `Values` support.
+    // TODO[LIMITATION]: see LIMITATIONS.md — MariaDB accepts the library's exact `name(cols) AS (VALUES (...),(...))` emission (verified on mariadb 12.3.2) but Values is type-excluded on MariaDBConnection. A library gap, not a dialect boundary; the canonical body below mirrors the postgres / sqlite cells — uncomment and bake snapshots once the typing lands.
     /*
     test('values-create-with-empty-list-throws-cannot-be-empty', () => {
         // `Values.create(type, name, [])` reaches the empty-list guard

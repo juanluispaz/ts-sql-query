@@ -66,7 +66,7 @@ describe(ctx.label, () => {
     // MySQL is intentionally excluded from `intersect` / `except` in the
     // library's type signatures — ts-sql-query refuses it at compile time.
     // Kept commented for symmetry.
-    // NOT-APPLICABLE: MySQL has no INTERSECT/EXCEPT
+    // TODO[LIMITATION]: see LIMITATIONS.md — MySQL 8.0.31+ (verified on mysql:9) supports INTERSECT/EXCEPT; the library type-excludes mysql from .intersect/.except. A library gap, not a dialect boundary.
     /*
     test('intersect', async () => {
         const expected = [{ status: 'open' }]
@@ -83,7 +83,7 @@ describe(ctx.label, () => {
     */
 
     // Same as above — `except` excluded for mysql in the library's types.
-    // NOT-APPLICABLE: MySQL has no INTERSECT/EXCEPT
+    // TODO[LIMITATION]: see LIMITATIONS.md — MySQL 8.0.31+ (verified on mysql:9) supports INTERSECT/EXCEPT; the library type-excludes mysql from .intersect/.except. A library gap, not a dialect boundary.
     /*
     test('except', async () => {
         const expected = [{ status: 'closed' }]

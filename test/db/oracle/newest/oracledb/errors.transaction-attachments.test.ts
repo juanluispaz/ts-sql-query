@@ -213,7 +213,7 @@ describe(ctx.label, () => {
         expect(caught).toBe(thrown)
     })
 
-    // Not applicable in any cell: `attachRollbackError` (L449-463 of
+    // Unreachable in every cell of this matrix: `attachRollbackError` (L449-463 of
     // `TsSqlError.ts`) is wired by `ManagedTransactionQueryRunner.executeInTransaction`
     // (L13-22 of `ManagedTransactionQueryRunner.ts`) when the body's
     // error AND the subsequent rollback both throw. The mock-mode
@@ -226,7 +226,7 @@ describe(ctx.label, () => {
     // connection. Left as a documented gap; the helper is still
     // exercised through real-driver integration tests outside this
     // matrix.
-    // NOT-APPLICABLE: attachRollbackError needs the body error AND the rollback to both throw; the mock swallows the rollback error and the real driver runners expose no hook to force a rollback failure, so the branch is unreachable in this matrix
+    // TODO[LIMITATION]: see LIMITATIONS.md — attachRollbackError needs the body error AND the rollback to both throw; the mock swallows the rollback error and the real driver runners expose no hook to force a rollback failure, so the branch is unreachable across every cell of this matrix (a harness gap, not a dialect boundary).
     /*
     test('rollback-driver-failure-attaches-rollback-error', async () => {
         // would force `e instanceof TsSqlQueryExecutionError` body

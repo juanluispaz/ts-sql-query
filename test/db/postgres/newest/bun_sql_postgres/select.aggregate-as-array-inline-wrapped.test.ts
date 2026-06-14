@@ -459,9 +459,7 @@ describe(ctx.label, () => {
         }>>>()
         expect(rows).toEqual([{ pid: 3 }, { pid: 4 }])
     })
-    // NOT-APPLICABLE: only MariaDB supports ORDER BY inside `json_arrayagg(...)` for inline aggregated arrays; every other dialect (PostgreSQL included) wraps the subquery, so the order-by lives there instead. Bodies copied verbatim from the canonical mariadb cell for cross-cell diff parity.
-    /*
-    test('inline-aggregate-mariadb-order-by-asc-nulls-last-emits-is-null-then-asc', async () => {
+    test('inline-aggregate-order-by-asc-nulls-last', async () => {
         ctx.mockNext({
             id: 1, name: 'Acme Corp',
             projectNames: JSON.stringify(['Internal tools', 'Marketing site']),
@@ -480,19 +478,20 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot()
-        expect(ctx.lastParams).toMatchInlineSnapshot()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select json_agg(a_1_.result) from (select name as result from project where organization_id = organization.id order by result asc nulls last) as a_1_) as "projectNames" from organization where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
         assertType<Exact<typeof row, {
             id:           number
             projectNames: string[]
         }>>()
         expect(row).toEqual({ id: 1, projectNames: ['Internal tools', 'Marketing site'] })
     })
-    */
 
-    // NOT-APPLICABLE: only MariaDB supports ORDER BY inside `json_arrayagg(...)` for inline aggregated arrays; every other dialect (PostgreSQL included) wraps the subquery, so the order-by lives there instead. Bodies copied verbatim from the canonical mariadb cell for cross-cell diff parity.
-    /*
-    test('inline-aggregate-mariadb-order-by-desc-nulls-first-emits-is-not-null-then-desc', async () => {
+    test('inline-aggregate-order-by-desc-nulls-first', async () => {
         ctx.mockNext({
             id: 1, name: 'Acme Corp',
             projectNames: JSON.stringify(['Marketing site', 'Internal tools']),
@@ -511,19 +510,22 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot()
-        expect(ctx.lastParams).toMatchInlineSnapshot()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select json_agg(a_1_.result) from (select name as result from project where organization_id = organization.id order by result desc nulls first) as a_1_) as "projectNames" from organization where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
         assertType<Exact<typeof row, {
             id:           number
             projectNames: string[]
         }>>()
         expect(row).toEqual({ id: 1, projectNames: ['Marketing site', 'Internal tools'] })
     })
-    */
 
-    // NOT-APPLICABLE: only MariaDB supports ORDER BY inside `json_arrayagg(...)` for inline aggregated arrays; every other dialect (PostgreSQL included) wraps the subquery, so the order-by lives there instead. Bodies copied verbatim from the canonical mariadb cell for cross-cell diff parity.
-    /*
-    test('inline-aggregate-mariadb-order-by-asc-insensitive-falls-through-without-collation', async () => {
+    // TODO[BUG]: see test/BUGS.md — case-insensitive ORDER BY on an inline aggregated array emits `lower(<alias>)`, which PostgreSQL / SQL Server reject (column does not exist); kept mock-only until the SqlBuilder emits `lower(<source-expr>)`.
+    test('inline-aggregate-order-by-asc-insensitive', async () => {
+        if (ctx.realDbEnabled) return // mock-only: see TODO[BUG] above
         ctx.mockNext({
             id: 1, name: 'Acme Corp',
             projectNames: JSON.stringify(['Internal tools', 'Marketing site']),
@@ -542,19 +544,22 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot()
-        expect(ctx.lastParams).toMatchInlineSnapshot()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select json_agg(a_1_.result) from (select name as result from project where organization_id = organization.id order by lower(result) asc) as a_1_) as "projectNames" from organization where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
         assertType<Exact<typeof row, {
             id:           number
             projectNames: string[]
         }>>()
         expect(row).toEqual({ id: 1, projectNames: ['Internal tools', 'Marketing site'] })
     })
-    */
 
-    // NOT-APPLICABLE: only MariaDB supports ORDER BY inside `json_arrayagg(...)` for inline aggregated arrays; every other dialect (PostgreSQL included) wraps the subquery, so the order-by lives there instead. Bodies copied verbatim from the canonical mariadb cell for cross-cell diff parity.
-    /*
-    test('inline-aggregate-mariadb-order-by-asc-nulls-last-insensitive-combines-is-null-and-insensitive-expression', async () => {
+    // TODO[BUG]: see test/BUGS.md — case-insensitive ORDER BY on an inline aggregated array emits `lower(<alias>)`, which PostgreSQL / SQL Server reject (column does not exist); kept mock-only until the SqlBuilder emits `lower(<source-expr>)`.
+    test('inline-aggregate-order-by-asc-nulls-last-insensitive', async () => {
+        if (ctx.realDbEnabled) return // mock-only: see TODO[BUG] above
         ctx.mockNext({
             id: 1, name: 'Acme Corp',
             projectNames: JSON.stringify(['Internal tools', 'Marketing site']),
@@ -573,15 +578,18 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot()
-        expect(ctx.lastParams).toMatchInlineSnapshot()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select json_agg(a_1_.result) from (select name as result from project where organization_id = organization.id order by lower(result) asc nulls last) as a_1_) as "projectNames" from organization where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
         assertType<Exact<typeof row, {
             id:           number
             projectNames: string[]
         }>>()
         expect(row).toEqual({ id: 1, projectNames: ['Internal tools', 'Marketing site'] })
     })
-    */
 
 
 })

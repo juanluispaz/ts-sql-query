@@ -12,29 +12,29 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // NOT-APPLICABLE: MySQL has no Values (`WITH name AS (VALUES …)`) — the library type-excludes it on MySqlConnection.
+    // TODO[LIMITATION]: see LIMITATIONS.md — MySQL supports table value constructors (8.0.19+) but only via `VALUES ROW(...)`; the bare `VALUES (...)` the library emits is rejected, and Values is type-excluded on MySqlConnection. A library gap, not a dialect boundary.
     /*
     test('values-aliased-via-as-keeps-original-with-name', async () => {
         // Not supported on this dialect: `Values` is not typed.
     })
     */
 
-    // NOT-APPLICABLE: MySQL has no Values (`WITH name AS (VALUES …)`) — the library type-excludes it on MySqlConnection.
+    // TODO[LIMITATION]: see LIMITATIONS.md — MySQL supports table value constructors (8.0.19+) but only via `VALUES ROW(...)`; the bare `VALUES (...)` the library emits is rejected, and Values is type-excluded on MySqlConnection. A library gap, not a dialect boundary.
     /*
     test('values-for-use-in-left-join-as-emits-left-join', async () => {
         // Not supported on this dialect: `Values` is not typed.
     })
     */
 
-    // NOT-APPLICABLE: MySQL has no Values (`WITH name AS (VALUES …)`) — the library type-excludes it on MySqlConnection.
+    // TODO[LIMITATION]: see LIMITATIONS.md — MySQL supports table value constructors (8.0.19+) but only via `VALUES ROW(...)`; the bare `VALUES (...)` the library emits is rejected, and Values is type-excluded on MySqlConnection. A library gap, not a dialect boundary.
     /*
     test('values-optional-column-allows-undefined-per-row', async () => {
         // Not supported on this dialect: `Values` is not typed.
     })
     */
 
-    // NOT-APPLICABLE: MySQL has no Values (`WITH name AS (VALUES …)`); the
-    // library type-excludes it on MySqlConnection.
+    // TODO[LIMITATION]: see LIMITATIONS.md — MySQL supports table value constructors (8.0.19+) but only via `VALUES ROW(...)`; the bare `VALUES (...)`
+    // the library emits is rejected, and Values is type-excluded on MySqlConnection. A library gap, not a dialect boundary.
     /*
     test('values-with-custom-typed-columns-emits-customint-customdouble-casts', async () => {
         // `column<T>('customInt', 'IssueId')` and
@@ -74,8 +74,8 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-APPLICABLE: MySQL has no Values (`WITH name AS (VALUES …)`); the
-    // library type-excludes it on MySqlConnection.
+    // TODO[LIMITATION]: see LIMITATIONS.md — MySQL supports table value constructors (8.0.19+) but only via `VALUES ROW(...)`; the bare `VALUES (...)`
+    // the library emits is rejected, and Values is type-excluded on MySqlConnection. A library gap, not a dialect boundary.
     /*
     test('values-virtual-column-from-fragment-with-custom-type-emits-inline-fragment', async () => {
         // `virtualColumnFromFragment<T>('enum', 'OrderState', fn)` reaches
@@ -109,8 +109,8 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-APPLICABLE: MySQL has no Values (`WITH name AS (VALUES …)`); the
-    // library type-excludes it on MySqlConnection.
+    // TODO[LIMITATION]: see LIMITATIONS.md — MySQL supports table value constructors (8.0.19+) but only via `VALUES ROW(...)`; the bare `VALUES (...)`
+    // the library emits is rejected, and Values is type-excluded on MySqlConnection. A library gap, not a dialect boundary.
     /*
     test('values-optional-virtual-column-from-fragment-with-custom-type-emits-inline-fragment', async () => {
         // `optionalVirtualColumnFromFragment<T>('customUuid', 'BillingRef', fn)`
@@ -144,7 +144,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-APPLICABLE: MySQL has no Values (`WITH name AS (VALUES …)`) — the library type-excludes it on MySqlConnection.
+    // TODO[LIMITATION]: see LIMITATIONS.md — MySQL supports table value constructors (8.0.19+) but only via `VALUES ROW(...)`; the bare `VALUES (...)` the library emits is rejected, and Values is type-excluded on MySqlConnection. A library gap, not a dialect boundary.
     /*
     test('values-create-with-empty-list-throws-cannot-be-empty', () => {
         // Not supported on this dialect: `Values` is not typed.

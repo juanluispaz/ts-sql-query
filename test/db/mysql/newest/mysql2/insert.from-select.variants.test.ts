@@ -76,7 +76,7 @@ describe(ctx.label, () => {
 
     // MySQL accepts CTEs inside a SELECT but not as the prefix of an
     // INSERT statement. See other cells for the canonical body.
-    // NOT-APPLICABLE: MySQL rejects the `WITH cte AS (...) INSERT INTO ... SELECT ...` form (parse error at `insert`).
+    // TODO[LIMITATION]: see LIMITATIONS.md — MySQL 9 accepts a CTE inside the SELECT but rejects the leading-WITH form the library emits (parse error at `insert`); a library emission gap (same as MariaDB), not a dialect boundary.
     /*
     test('insert-from-select-source-with-cte', async () => {
         // ... see other cells for the full body — pins the bubbled

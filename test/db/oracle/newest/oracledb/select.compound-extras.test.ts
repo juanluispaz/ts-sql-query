@@ -10,10 +10,11 @@
 // On Oracle only `.minus(...)` is exposed by the fluent API
 // ([src/expressions/select.ts:126](../../../../../src/expressions/select.ts#L126));
 // `.intersectAll`/`.exceptAll`/`.minusAll` are narrowed to `never`.
-// Those three tests are commented out with `NOT-APPLICABLE`: the
-// type-system narrowing is a permanent dialect frontier (the bodies can
-// never type-check here), kept for symmetry with the postgres/mariadb
-// cells.
+// Those three tests are commented out with `TODO[LIMITATION]`: the
+// type-system narrowing means the bodies can't type-check here today,
+// but Oracle 23ai (the matrix engine, verified) supports INTERSECT ALL /
+// MINUS ALL / EXCEPT / EXCEPT ALL — a library gap, not a permanent
+// dialect frontier. Kept for symmetry with the postgres/mariadb cells.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { tIssue } from '../../domain/connection.js'
@@ -24,11 +25,9 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // Oracle's engine has MINUS ALL, but the fluent surface exposes the
-    // `*All` family only on postgres / mariadb.
-    // NOT-APPLICABLE: `intersectAll` is `never` for the oracle dialect
-    // (compile-time frontier, paired with
-    // test/db/oracle/types.negative/select.test.ts). Runs in postgres/mariadb.
+    // Oracle 23ai supports INTERSECT ALL natively (verified); the fluent
+    // surface exposes the `*All` family only on postgres / mariadb.
+    // TODO[LIMITATION]: see LIMITATIONS.md — `intersectAll` is narrowed to `never` on oracle but Oracle 23ai supports INTERSECT ALL; a library gap (paired with the never assertion in test/db/oracle/types.negative/select.test.ts). Runs in postgres/mariadb.
     /*
     test('intersect-all-emits-intersect-all-syntax', async () => {
         // INTERSECT ALL keeps row-multiplicities (vs INTERSECT which
@@ -54,9 +53,9 @@ describe(ctx.label, () => {
     })
     */
 
-    // Oracle would accept the native `MINUS ALL` form, but the fluent
-    // surface chose to expose the `*All` family only on postgres / mariadb.
-    // NOT-APPLICABLE: `exceptAll` is narrowed to `never` for the oracle dialect (compile-time frontier; see test/db/oracle/types.negative/select.test.ts). The body runs in the postgres / mariadb cells.
+    // Oracle 23ai accepts EXCEPT / EXCEPT ALL natively (verified), but the
+    // fluent surface exposes the `*All` family only on postgres / mariadb.
+    // TODO[LIMITATION]: see LIMITATIONS.md — `exceptAll` is narrowed to `never` on oracle but Oracle 23ai supports EXCEPT ALL; a library gap (see test/db/oracle/types.negative/select.test.ts). The body runs in the postgres / mariadb cells.
     /*
     test('except-all-emits-except-all-syntax', async () => {
         // EXCEPT ALL preserves duplicates from the left side that have
@@ -84,7 +83,8 @@ describe(ctx.label, () => {
     test('minus-routes-through-the-dialect-alias', async () => {
         // On Oracle the fluent `.minus(...)` method routes through the
         // dialect override and emits ` minus ` (Oracle's native
-        // set-difference operator). Oracle does not accept `EXCEPT`.
+        // set-difference operator). (Oracle 23ai also accepts `EXCEPT`, but
+        // the builder emits `minus`.)
         const expected = [{ status: 'closed' }]
         ctx.mockNext(expected)
         const all = ctx.conn.selectFrom(tIssue)
@@ -101,9 +101,9 @@ describe(ctx.label, () => {
         `)
     })
 
-    // Oracle would accept the native `MINUS ALL`, but the fluent surface
-    // chose to expose the `*All` family only on postgres / mariadb.
-    // NOT-APPLICABLE: `minusAll` is narrowed to `never` for the oracle dialect (compile-time frontier; see test/db/oracle/types.negative/select.test.ts). The body runs in the postgres / mariadb cells.
+    // Oracle 23ai accepts MINUS ALL natively (verified), but the fluent
+    // surface exposes the `*All` family only on postgres / mariadb.
+    // TODO[LIMITATION]: see LIMITATIONS.md — `minusAll` is narrowed to `never` on oracle but Oracle 23ai supports MINUS ALL; a library gap (see test/db/oracle/types.negative/select.test.ts). The body runs in the postgres / mariadb cells.
     /*
     test('minus-all-routes-through-the-dialect-alias', async () => {
         // The `*All` flavour renders as ` except all ` (multiset

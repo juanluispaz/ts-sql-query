@@ -6,7 +6,7 @@
 // independently of where in the query it is used (WHERE, projection,
 // INSERT VALUES, etc.). On PostgreSQL the cast is `::<pg-type>` (see
 // `PostgreSqlConnection.transformPlaceholder`); other dialects no-op
-// or rewrite differently — this file is PostgreSQL-specific by intent.
+// or rewrite differently — those dialects assert that intentional no-op in their own cells.
 //
 // The fixture is a local `Table` that re-maps over the existing
 // `project` table (same columns, same row shape as the shared

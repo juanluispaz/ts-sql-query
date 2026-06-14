@@ -474,9 +474,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual([{ pid: 3 }, { pid: 4 }])
     })
 
-    // NOT-APPLICABLE: MySQL has no ORDER BY inside json_arrayagg(...) for inline aggregated arrays (only MariaDB supports it; MySQL wraps the subquery, so the order-by lives there instead). Bodies kept for cross-cell diff parity.
-    /*
-    test('inline-aggregate-mariadb-order-by-asc-nulls-last-emits-is-null-then-asc', async () => {
+    test('inline-aggregate-order-by-asc-nulls-last', async () => {
         ctx.mockNext({
             id: 1, name: 'Acme Corp',
             projectNames: JSON.stringify(['Internal tools', 'Marketing site']),
@@ -495,19 +493,20 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot()
-        expect(ctx.lastParams).toMatchInlineSnapshot()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select json_arrayagg(a_1_.result) from (select \`name\` as result from project where organization_id = \`organization\`.id order by result is null, result asc limit 2147483647) as a_1_) as projectNames from \`organization\` where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
         assertType<Exact<typeof row, {
             id:           number
             projectNames: string[]
         }>>()
         expect(row).toEqual({ id: 1, projectNames: ['Internal tools', 'Marketing site'] })
     })
-    */
 
-    // NOT-APPLICABLE: MySQL has no ORDER BY inside json_arrayagg(...) for inline aggregated arrays (only MariaDB supports it; MySQL wraps the subquery, so the order-by lives there instead). Bodies kept for cross-cell diff parity.
-    /*
-    test('inline-aggregate-mariadb-order-by-desc-nulls-first-emits-is-not-null-then-desc', async () => {
+    test('inline-aggregate-order-by-desc-nulls-first', async () => {
         ctx.mockNext({
             id: 1, name: 'Acme Corp',
             projectNames: JSON.stringify(['Marketing site', 'Internal tools']),
@@ -526,19 +525,20 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot()
-        expect(ctx.lastParams).toMatchInlineSnapshot()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select json_arrayagg(a_1_.result) from (select \`name\` as result from project where organization_id = \`organization\`.id order by result is not null, result desc limit 2147483647) as a_1_) as projectNames from \`organization\` where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
         assertType<Exact<typeof row, {
             id:           number
             projectNames: string[]
         }>>()
         expect(row).toEqual({ id: 1, projectNames: ['Marketing site', 'Internal tools'] })
     })
-    */
 
-    // NOT-APPLICABLE: MySQL has no ORDER BY inside json_arrayagg(...) for inline aggregated arrays (only MariaDB supports it; MySQL wraps the subquery, so the order-by lives there instead). Bodies kept for cross-cell diff parity.
-    /*
-    test('inline-aggregate-mariadb-order-by-asc-insensitive-falls-through-without-collation', async () => {
+    test('inline-aggregate-order-by-asc-insensitive', async () => {
         ctx.mockNext({
             id: 1, name: 'Acme Corp',
             projectNames: JSON.stringify(['Internal tools', 'Marketing site']),
@@ -557,19 +557,20 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot()
-        expect(ctx.lastParams).toMatchInlineSnapshot()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select json_arrayagg(a_1_.result) from (select \`name\` as result from project where organization_id = \`organization\`.id order by lower(result) asc limit 2147483647) as a_1_) as projectNames from \`organization\` where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
         assertType<Exact<typeof row, {
             id:           number
             projectNames: string[]
         }>>()
         expect(row).toEqual({ id: 1, projectNames: ['Internal tools', 'Marketing site'] })
     })
-    */
 
-    // NOT-APPLICABLE: MySQL has no ORDER BY inside json_arrayagg(...) for inline aggregated arrays (only MariaDB supports it; MySQL wraps the subquery, so the order-by lives there instead). Bodies kept for cross-cell diff parity.
-    /*
-    test('inline-aggregate-mariadb-order-by-asc-nulls-last-insensitive-combines-is-null-and-insensitive-expression', async () => {
+    test('inline-aggregate-order-by-asc-nulls-last-insensitive', async () => {
         ctx.mockNext({
             id: 1, name: 'Acme Corp',
             projectNames: JSON.stringify(['Internal tools', 'Marketing site']),
@@ -588,15 +589,18 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot()
-        expect(ctx.lastParams).toMatchInlineSnapshot()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select json_arrayagg(a_1_.result) from (select \`name\` as result from project where organization_id = \`organization\`.id order by result is null, result asc limit 2147483647) as a_1_) as projectNames from \`organization\` where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
         assertType<Exact<typeof row, {
             id:           number
             projectNames: string[]
         }>>()
         expect(row).toEqual({ id: 1, projectNames: ['Internal tools', 'Marketing site'] })
     })
-    */
 
 
 })

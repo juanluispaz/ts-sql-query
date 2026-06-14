@@ -92,7 +92,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ id: number }>>>()
         expect(result).toEqual([{ id: 2 }, { id: 3 }])
     })
-    test('limit-offset-without-order-by-pk-not-first-emits-synthetic-pk-position', async () => {
+    test('limit-offset-without-order-by-pk-in-projection', async () => {
         // SqlServer requires ORDER BY for OFFSET/FETCH. When the user
         // omits `.orderBy(...)`, `SqlServerSqlBuilder._buildSelectOrderBy`
         // synthesises one: it scans the select columns left-to-right and
@@ -121,7 +121,7 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-    test('limit-offset-without-order-by-no-pk-emits-synthetic-position-one', async () => {
+    test('limit-offset-without-order-by-no-pk-in-projection', async () => {
         // Same path but the projection has NO PK column. The for-loop at
         // L262-270 finds no PK and falls through to `return ' order by 1'`
         // at L271. With four seeded statuses (`open`, `in_progress`,

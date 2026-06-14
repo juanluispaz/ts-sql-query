@@ -485,7 +485,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual([{ pid: 3 }, { pid: 4 }])
     })
 
-    test('inline-aggregate-mariadb-order-by-asc-nulls-last-emits-is-null-then-asc', async () => {
+    test('inline-aggregate-order-by-asc-nulls-last', async () => {
         // MariaDB-only path: when an inline aggregate carries an
         // orderBy with `'asc nulls last'`,
         // `_buildAggregateArrayOrderBy` (AbstractMySqlMariaBDSqlBuilder.ts:158-159)
@@ -522,7 +522,7 @@ describe(ctx.label, () => {
         expect(row).toEqual({ id: 1, projectNames: ['Internal tools', 'Marketing site'] })
     })
 
-    test('inline-aggregate-mariadb-order-by-desc-nulls-first-emits-is-not-null-then-desc', async () => {
+    test('inline-aggregate-order-by-desc-nulls-first', async () => {
         // Twin of the above for `'desc nulls first'`
         // (AbstractMySqlMariaBDSqlBuilder.ts:161-162): emits
         // `<expr> is not null, <expr> desc`.
@@ -557,7 +557,7 @@ describe(ctx.label, () => {
         expect(row).toEqual({ id: 1, projectNames: ['Marketing site', 'Internal tools'] })
     })
 
-    test('inline-aggregate-mariadb-order-by-asc-insensitive-falls-through-without-collation', async () => {
+    test('inline-aggregate-order-by-asc-insensitive', async () => {
         // `'asc insensitive'` reaches the insensitive branch
         // (AbstractMySqlMariaBDSqlBuilder.ts:167-169) and calls
         // `_appendOrderByColumnExpressionInsensitive`. Under the default
@@ -598,7 +598,7 @@ describe(ctx.label, () => {
         expect(row).toEqual({ id: 1, projectNames: ['Internal tools', 'Marketing site'] })
     })
 
-    test('inline-aggregate-mariadb-order-by-asc-nulls-last-insensitive-combines-is-null-and-insensitive-expression', async () => {
+    test('inline-aggregate-order-by-asc-nulls-last-insensitive', async () => {
         // The combined case
         // (AbstractMySqlMariaBDSqlBuilder.ts:175-176): the plain
         // expression goes first for the `is null` tie-breaker, then the

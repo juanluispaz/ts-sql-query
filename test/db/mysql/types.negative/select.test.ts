@@ -97,12 +97,16 @@ function _typeNegatives() {
     // @ts-expect-error string passed where number | null | undefined expected
     void tIssue.priority.equalsIfValue('high')
 
-    // Rule: MySQL does not expose the `*All` set-difference operators, nor
-    // the `minus` alias. The fluent API narrows `intersectAll`,
-    // `exceptAll`, `minus` and `minusAll` to `never` for the mysql dialect
-    // (src/expressions/select.ts). This is the compile-time pairing for the
-    // NOT-APPLICABLE wrap in
-    // test/db/mysql/newest/mysql2/select.compound-extras.test.ts.
+    // Rule: the library does not expose the `*All` set-difference operators,
+    // nor the `minus` alias, on the mysql dialect. The fluent API narrows
+    // `intersectAll`, `exceptAll`, `minus` and `minusAll` to `never`
+    // (src/expressions/select.ts). NOTE: MySQL 8.0.31+ (verified on mysql:9)
+    // actually supports these — the narrowing is a library limitation (see
+    // test/LIMITATIONS.md), not a dialect boundary. This `never` assertion is
+    // the compile-time pairing for the TODO[LIMITATION] wrap in
+    // test/db/mysql/newest/mysql2/select.compound-extras.test.ts; it stops
+    // compiling the day the library types these for MySQL, signaling
+    // reactivation.
     {
         const compoundable = connection.selectFrom(tIssue).select({ id: tIssue.id })
         assertType<Exact<typeof compoundable.intersectAll, never>>()

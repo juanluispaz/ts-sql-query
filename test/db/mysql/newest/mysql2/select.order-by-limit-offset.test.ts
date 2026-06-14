@@ -100,9 +100,7 @@ describe(ctx.label, () => {
     // Every other dialect accepts limit/offset on an unordered query and
     // emits the clause directly; no fake ORDER BY is needed. Body copied
     // verbatim from the canonical mssql cell for cross-cell diff parity.
-    // NOT-APPLICABLE: MySQL emits limit/offset on an unordered query directly; the synthetic ORDER BY is SqlServer-only.
-    /*
-    test('limit-offset-without-order-by-pk-not-first-emits-synthetic-pk-position', async () => {
+    test('limit-offset-without-order-by-pk-in-projection', async () => {
         const expected = [{ status: 'in_progress', id: 2 }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssue)
@@ -112,21 +110,23 @@ describe(ctx.label, () => {
             })
             .limit(1).offset(1)
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot()
-        expect(ctx.lastParams).toMatchInlineSnapshot()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`status\` as \`status\`, id as id from issue limit ? offset ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            1,
+          ]
+        `)
         assertType<Exact<typeof result, Array<{ status: string; id: number }>>>()
         expect(result).toEqual(expected)
     })
-    */
 
     // Not applicable: the synthetic ORDER BY when `limit/offset` is used
     // without `.orderBy(...)` is SqlServer-only (SqlServerSqlBuilder.ts:256-271).
     // Every other dialect accepts limit/offset on an unordered query and
     // emits the clause directly; no fake ORDER BY is needed. Body copied
     // verbatim from the canonical mssql cell for cross-cell diff parity.
-    // NOT-APPLICABLE: MySQL emits limit/offset on an unordered query directly; the synthetic ORDER BY is SqlServer-only.
-    /*
-    test('limit-offset-without-order-by-no-pk-emits-synthetic-position-one', async () => {
+    test('limit-offset-without-order-by-no-pk-in-projection', async () => {
         const expected = [{ status: 'in_progress' }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssue)
@@ -135,12 +135,16 @@ describe(ctx.label, () => {
             })
             .limit(1).offset(1)
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot()
-        expect(ctx.lastParams).toMatchInlineSnapshot()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`status\` as \`status\` from issue limit ? offset ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            1,
+          ]
+        `)
         assertType<Exact<typeof result, Array<{ status: string }>>>()
         expect(result).toEqual(expected)
     })
-    */
 
     test('offset-without-limit', async () => {
         // `.offset(n)` without a preceding `.limit(n)` exercises the

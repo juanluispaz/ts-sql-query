@@ -16,7 +16,7 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // NOT-APPLICABLE: `connection.Values` (WITH name(...) AS (VALUES ...)) is not typed on MariaDBConnection — the canonical body lives in the postgres / sqlite cells.
+    // TODO[LIMITATION]: see LIMITATIONS.md — MariaDB accepts the library's exact `name(cols) AS (VALUES (...),(...))` emission (verified on mariadb 12.3.2) but Values is type-excluded on MariaDBConnection. A library gap, not a dialect boundary; canonical body lives in the postgres / sqlite cells.
     /*
     class VProjectPatch extends Values<DBConnection, 'projectPatch'> {
         id   = this.column('int')
@@ -44,7 +44,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-APPLICABLE: `connection.Values` (WITH name(...) AS (VALUES ...)) is not typed on MariaDBConnection — the canonical body lives in the postgres / sqlite cells.
+    // TODO[LIMITATION]: see LIMITATIONS.md — MariaDB accepts the library's exact `name(cols) AS (VALUES (...),(...))` emission (verified on mariadb 12.3.2) but Values is type-excluded on MariaDBConnection. A library gap, not a dialect boundary; canonical body lives in the postgres / sqlite cells.
     /*
     test('values in update-from', async () => {
         await ctx.withRollback(async () => {

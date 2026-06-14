@@ -62,10 +62,10 @@ describe(ctx.label, () => {
     })
 
     // The library does not expose `.intersect` (or `.except`) on
-    // MySqlConnection because MySQL has no native INTERSECT / EXCEPT —
-    // `select.compound.test.ts` makes the same exclusion. See other
-    // cells for the canonical body.
-    // NOT-APPLICABLE: MySQL has no INTERSECT (.intersect is not typed on MySqlConnection)
+    // MySqlConnection (the type signatures exclude mysql) — although MySQL
+    // 8.0.31+ does support them; `select.compound.test.ts` makes the same
+    // exclusion. See other cells for the canonical body.
+    // TODO[LIMITATION]: see LIMITATIONS.md — MySQL 8.0.31+ supports INTERSECT (verified on mysql:9); .intersect is type-excluded on MySqlConnection. A library gap, not a dialect boundary.
     /*
     test('customize-compound-with-query-hooks-wrap-cte', async () => {
         // ... see other cells for the full body — uses `.intersect(...)`
@@ -74,7 +74,7 @@ describe(ctx.label, () => {
     */
 
     // `.except` not exposed (see above).
-    // NOT-APPLICABLE: MySQL has no EXCEPT (.except is not typed on MySqlConnection)
+    // TODO[LIMITATION]: see LIMITATIONS.md — MySQL 8.0.31+ supports EXCEPT (verified on mysql:9); .except is type-excluded on MySqlConnection. A library gap, not a dialect boundary.
     /*
     test('customize-compound-all-hooks-combined-on-except', async () => {
         // ... see other cells for the full body — uses `.except(...)`

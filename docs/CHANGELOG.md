@@ -161,7 +161,7 @@ search:
 
 The following releases in v1 are included:
 
-- v1.67.0 (18 Jun 2025)
+- v1.68.0 (14 Jun 2026)
 
 ## v2.0.0-alpha.3 (14 Jun 2025)
 
@@ -285,6 +285,15 @@ The folowing releases in the v1 are included:
 - Remove long-deprecated overload of functions in columns that allowed to send to the database null values in TypeScript when the type were optional.
 
 **Base point**: v1.60.0 (25 Feb 2024)
+
+## v1.68.0 (14 Jun 2026)
+
+**Changes**:
+
+- Deprecate `greaterOrEquals`, `greaterOrEqualsIfValue`, `lessOrEquals` and `lessOrEqualsIfValue` due to a typo in their names; use `greaterOrEqual`, `greaterOrEqualIfValue`, `lessOrEqual` and `lessOrEqualIfValue` instead.
+- Deprecate `substract` due to a typo in its name; use `subtract` instead.
+- Deprecate `insesitiveCollation` due to a typo in its name; use `insensitiveCollation` instead.
+- Deprecate providing the constraint name as a string or an expression in insert on conflict on constraint because it was not working; provide a raw fragment with the constraint name instead.
 
 ## v1.67.0 (18 Jun 2025)
 

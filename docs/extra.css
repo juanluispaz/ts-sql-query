@@ -16,6 +16,49 @@
     font-size: 1.3em;
 }
 
+/* Version indicator / switcher in the header (v2 alpha -> v1).
+   Injected by js/version-switcher.js, placed before the palette toggle. */
+.ts-version-switcher {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0 0.2rem;
+    padding: 0.2rem 0.55rem;
+    border: 1px solid var(--md-primary-bg-color);
+    border-radius: 2rem;
+    color: var(--md-primary-bg-color);
+    font-size: 0.62rem;
+    line-height: 1;
+    white-space: nowrap;
+    text-decoration: none;
+    transition: background-color 0.2s, opacity 0.2s;
+}
+
+.ts-version-switcher:hover {
+    background-color: rgba(0, 0, 0, 0.12);
+}
+
+.ts-version-switcher__current {
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.ts-version-switcher__switch {
+    opacity: 0.85;
+}
+
+.ts-version-switcher__switch::before {
+    content: "\2192\00a0"; /* arrow + non-breaking space */
+}
+
+/* Keep the header uncluttered on small screens: show only the version badge. */
+@media screen and (max-width: 599px) {
+    .ts-version-switcher__switch {
+        display: none;
+    }
+}
+
 .md-source__fact--stars {
     display: none;
 }

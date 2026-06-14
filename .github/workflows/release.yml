@@ -5,13 +5,22 @@ on:
         description: 'What to publish'
         type: choice
         required: true
-        default: dry-run
+        default: alpha
         options:
-          - dry-run     # v2 (master): npm stage publish --dry-run — exercise the pipeline, stage nothing
           - alpha       # v2 (master): publish with dist-tag `alpha`
           - beta        # v2 (master): publish with dist-tag `beta`
-          - latest      # v2 (master): publish with dist-tag `latest`
+          - latest      # v2 (master): publish with dist-tag `latest` (stable versions only)
           - v1          # legacy 1.x line, published from the `v1` branch
+      dry_run:
+        # `npm stage publish --dry-run` — build + validate the publish, stage
+        # nothing. A modifier on the chosen release_type, not a separate tag:
+        # npm REQUIRES an explicit --tag to publish a prerelease version (e.g.
+        # 2.0.0-alpha.3), so a tagless dry-run would error. Dry-running `latest`
+        # while the version is a prerelease still (correctly) fails.
+        description: 'Dry run (stage nothing)'
+        type: boolean
+        required: true
+        default: true
 
 name: Publish
 
@@ -136,14 +145,16 @@ jobs:
       # Stage-publish via OIDC trusted publishing — no NODE_AUTH_TOKEN. Each
       # `dist*` script runs `npm stage publish`, so the version lands in the
       # staging area pending a maintainer's `npm stage approve`. The dist-tag is
-      # selected by the workflow input; `dry-run` stages nothing.
+      # selected by release_type; dry_run appends `--dry-run` (passed through to
+      # the script's final `npm stage publish` via `npm run … -- --dry-run`).
       - name: Build for dist & Publish
         run: |
+          dry=""
+          if [ "${{ inputs.dry_run }}" = "true" ]; then dry="-- --dry-run"; fi
           case "${{ inputs.release_type }}" in
-            latest)  npm run dist ;;
-            alpha)   npm run dist-alpha ;;
-            beta)    npm run dist-beta ;;
-            dry-run) npm run test-dist ;;
+            latest)  npm run dist $dry ;;
+            alpha)   npm run dist-alpha $dry ;;
+            beta)    npm run dist-beta $dry ;;
             *) echo "Unexpected release_type: ${{ inputs.release_type }}"; exit 1 ;;
           esac
 
@@ -195,8 +206,12 @@ jobs:
         run: npm run no-docker-examples
 
       # Runs the v1 branch's own `dist` script via OIDC (no NODE_AUTH_TOKEN).
-      # NOTE: for v1 to STAGE (rather than publish directly), the `dist` /
-      # `dist-beta` scripts on the `v1` branch must also switch to
-      # `npm stage publish` — that change lives on the v1 branch, not here.
+      # The v1 branch's `dist` already uses `npm stage publish`; dry_run appends
+      # `--dry-run` the same way as the v2 path.
       - name: Build for dist & Publish
-        run: npm run dist
+        run: |
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            npm run dist -- --dry-run
+          else
+            npm run dist
+          fi

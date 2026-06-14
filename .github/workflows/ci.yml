@@ -44,6 +44,10 @@ jobs:
         run: npm run validate:tests
       - name: Validate tests (tsc, sub-experience)
         run: npm run validate:tests:tsc
+        env:
+          # Raise V8's heap ceiling: tsc checks the full test/ matrix + src/
+          # in one program (~4.5 GB peak) and OOMs at Node's ~4 GB default.
+          NODE_OPTIONS: --max-old-space-size=8192
 
       # Symmetry audit (DESIGN §4) — structural check of test/db/.
       - name: Audit test symmetry
@@ -91,6 +95,10 @@ jobs:
         run: bun run validate:tests
       - name: Bun validate tests (tsc, sub-experience)
         run: bun run validate:tests:tsc
+        env:
+          # Raise V8's heap ceiling: tsc checks the full test/ matrix + src/
+          # in one program (~4.5 GB peak) and OOMs at Node's ~4 GB default.
+          NODE_OPTIONS: --max-old-space-size=8192
 
       # Symmetry audit (DESIGN §4) — structural check of test/db/.
       - name: Bun audit test symmetry

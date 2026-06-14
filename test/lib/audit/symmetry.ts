@@ -223,10 +223,24 @@ function checkAllCells(cells: Cell[]): Finding[] {
     return out
 }
 
+// Per-cell and whole-matrix test counts the symmetry rule governs:
+//   - `testsPerCell` — how many tests each cell must declare (the reference
+//     cell's count; under a symmetric matrix every cell matches it). This is
+//     the number of distinct tests SUBJECT TO the symmetry rule.
+//   - `totalTests`   — the sum across every cell, i.e. every cell's copy of
+//     every governed test: the TOTAL number of tests VALIDATED by the audit.
+//     Equals `testsPerCell × cells.length` when the matrix is symmetric.
+function countTests(cells: Cell[]): { testsPerCell: number; totalTests: number } {
+    const testsPerCell = [...cells[0]!.files.values()].reduce((acc, names) => acc + names.length, 0)
+    let totalTests = 0
+    for (const c of cells) for (const names of c.files.values()) totalTests += names.length
+    return { testsPerCell, totalTests }
+}
+
 function describeSymmetric(cells: Cell[]): string {
-    const fileNames = [...cells[0]!.files.keys()].sort()
-    const total = fileNames.reduce((acc, f) => acc + (cells[0]!.files.get(f)?.length ?? 0), 0)
-    return `${cells.length} cells, ${fileNames.length} test files, ${total} tests per cell`
+    const fileCount = cells[0]!.files.size
+    const { testsPerCell, totalTests } = countTests(cells)
+    return `${cells.length} cells, ${fileCount} test files, ${testsPerCell} tests per cell (${totalTests} tests validated across the matrix)`
 }
 
 // Emit the symmetry verdict to $GITHUB_STEP_SUMMARY — just the COUNT, not the
@@ -234,9 +248,15 @@ function describeSymmetric(cells: Cell[]): string {
 // warnings by the unified report. Wording follows the rule's current severity: a
 // `warn` symmetry does not fail the build (it is a migration backlog), an
 // `error` one does.
-function emitGithubSummary(findings: Finding[], cellCount: number, sev: Severity): void {
+function emitGithubSummary(findings: Finding[], cells: Cell[], sev: Severity): void {
     const summaryFile = process.env['GITHUB_STEP_SUMMARY']
     if (!summaryFile) return
+
+    const cellCount = cells.length
+    const { testsPerCell, totalTests } = countTests(cells)
+    // The `n × cells` breakdown is exact only when the matrix is symmetric; with
+    // divergences `testsPerCell` is just the reference cell, so show the raw total.
+    const totalNote = findings.length === 0 ? ` (${testsPerCell} × ${cellCount} cells)` : ''
 
     const lines: string[] = []
     lines.push('## Test Symmetry Audit')
@@ -254,6 +274,8 @@ function emitGithubSummary(findings: Finding[], cellCount: number, sev: Severity
     lines.push('- **Phase:** Symmetry audit')
     lines.push('- **Runner:** tsx')
     lines.push('- **Scope:** whole-matrix structural check of `test/db/` (no tests executed)')
+    lines.push(`- **Tests subject to symmetry:** ${testsPerCell} per cell`)
+    lines.push(`- **Total tests validated by symmetry:** ${totalTests}${totalNote}`)
     lines.push('')
     appendFileSync(summaryFile, lines.join('\n'))
 }
@@ -277,7 +299,7 @@ export function runSymmetryCheck(): Finding[] {
 
     const findings = checkAllCells(cells)
     const sev = RULE_SEVERITY['symmetry'] ?? 'error'
-    emitGithubSummary(findings, cells.length, sev)
+    emitGithubSummary(findings, cells, sev)
 
     if (findings.length === 0) {
         console.log(`Symmetry: ✓ ${describeSymmetric(cells)} — whole matrix symmetric.`)

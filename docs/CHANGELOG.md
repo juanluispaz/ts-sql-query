@@ -1,5 +1,14 @@
 # Change Log
 
+## v1.68.0 (unreleased)
+
+**Changes**:
+
+- Deprecate `greaterOrEquals`, `greaterOrEqualsIfValue`, `lessOrEquals` and `lessOrEqualsIfValue` due to a typo in their names; use `greaterOrEqual`, `greaterOrEqualIfValue`, `lessOrEqual` and `lessOrEqualIfValue` instead.
+- Deprecate `substract` due to a typo in its name; use `subtract` instead.
+- Deprecate `insesitiveCollation` due to a typo in its name; use `insensitiveCollation` instead.
+- Deprecate providing the constraint name as a string or an expression in insert on conflict on constraint because it was not working; provide a raw fragment with the constraint name instead.
+
 ## v1.67.0 (18 Jun 2025)
 
 **Changes**:

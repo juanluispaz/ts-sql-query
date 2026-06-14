@@ -4,6 +4,24 @@ search:
 ---
 # Change Log
 
+## v2.0.0-beta.1 (14 Jun 2026)
+
+This is the first **beta** of ts-sql-query 2.0: the 2.0 line is now feature-complete and entering stabilization ahead of the final release. v2 is the biggest step the library has taken since v1 — a modernized foundation, a new portable error model, broader and more uniform database support, more runtimes, and sharper types. The headline advances since v1:
+
+- **Typed, portable error handling** — every execution and processing failure is now a typed error carrying a single dialect-independent reason (unique / foreign-key / not-null / check violations, deadlocks, lock timeouts, serialization failures, connection errors, …), so you branch on a portable category instead of pattern-matching raw driver messages per database.
+- **One `compatibilityVersion` knob and modern SQL emission** across all six engines, defaulting to the latest dialect, plus a large jump in cross-database feature parity (e.g. `Values` sources, set operations, sequences, `oldValues`) so the same query works the same way on more databases.
+- **More runtimes and drivers** — first-class Bun support (including its native SQL/SQLite drivers), Node's built-in `node:sqlite`, the in-process `pglite`, and transaction support on the postgres.js runner.
+- **Sharper types** — complex projections reworked to drop recursive types (clearer TypeScript errors), and dynamic queries (conditions, picks, order by) that can now be typed directly from your business model.
+- **A modernized foundation** — ESM-only, Node 22+, an explicit `exports` map that locks down the public surface, and the removal of every long-deprecated API, driver and connection type.
+- **A rebuilt documentation site** (Material for MkDocs) and a large batch of cross-dialect correctness fixes.
+
+This entry only summarizes the journey. For the complete, itemized list — every new feature, behavior change, breaking change and migration step — read the four **v2.0.0-alpha** entries this beta consolidates:
+
+- v2.0.0-alpha.4 (14 Jun 2026)
+- v2.0.0-alpha.3 (14 Jun 2025)
+- v2.0.0-alpha.2 (2 Mar 2024)
+- v2.0.0-alpha.1 (2 Mar 2024)
+
 ## v2.0.0-alpha.4 (14 Jun 2026)
 
 **New features**:

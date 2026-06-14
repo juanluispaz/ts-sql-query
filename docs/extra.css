@@ -16,7 +16,7 @@
     font-size: 1.3em;
 }
 
-/* Version indicator / switcher in the header (v2 alpha -> v1).
+/* Version indicator / switcher in the header (v2 beta -> v1).
    Injected by js/version-switcher.js, placed before the palette toggle. */
 .ts-version-switcher {
     display: inline-flex;

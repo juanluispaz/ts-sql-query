@@ -1,6 +1,6 @@
 /*
  * Injects a small version indicator/switcher into the header, right before the
- * light/dark palette toggle. It shows that the reader is on the v2 (alpha) docs
+ * light/dark palette toggle. It shows that the reader is on the v2 (beta) docs
  * and links to the stable v1 documentation.
  *
  * Done in JS on purpose: mkdocs-material offers no declarative hook to place a
@@ -25,10 +25,10 @@
         link.className = 'ts-version-switcher';
         link.href = V1_URL;
         link.title =
-            'You are viewing the v2 (alpha) documentation. ' +
+            'You are viewing the v2 (beta) documentation. ' +
             'Click to switch to the stable v1 documentation.';
         link.innerHTML =
-            '<span class="ts-version-switcher__current">v2 alpha</span>' +
+            '<span class="ts-version-switcher__current">v2 beta</span>' +
             '<span class="ts-version-switcher__switch">Switch to v1</span>';
 
         var palette = header.querySelector('[data-md-component="palette"]');

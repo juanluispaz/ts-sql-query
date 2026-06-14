@@ -41,8 +41,8 @@
         "coverage": "nyc sh ./scripts/run-all-examples.sh",
         "validate": "tsc --noEmit",
         "build": "rm -rf dist/*; tsc --version && tsc && npm run copy-prisma",
-        "dist": "npm run build && cp LICENSE.md package.json README.md dist && cd dist && rm exampleTests* && rm -Rf examples && npm publish",
-        "dist-beta": "npm run build && cp LICENSE.md package.json README.md dist && cd dist && rm exampleTests* && rm -Rf examples && npm publish --tag beta",
+        "dist": "npm run build && cp LICENSE.md package.json README.md dist && cd dist && rm exampleTests* && rm -Rf examples && npm stage publish",
+        "dist-beta": "npm run build && cp LICENSE.md package.json README.md dist && cd dist && rm exampleTests* && rm -Rf examples && npm stage publish --tag beta",
         "docs": "mkdocs serve",
         "create-single-doc-file": "sh ./scripts/create-single-doc-file.sh"
     },

@@ -1,10 +1,40 @@
 on:
   workflow_dispatch:
+    inputs:
+      release_type:
+        description: 'What to publish'
+        type: choice
+        required: true
+        default: dry-run
+        options:
+          - dry-run     # v2 (master): npm stage publish --dry-run — exercise the pipeline, stage nothing
+          - alpha       # v2 (master): publish with dist-tag `alpha`
+          - beta        # v2 (master): publish with dist-tag `beta`
+          - latest      # v2 (master): publish with dist-tag `latest`
+          - v1          # legacy 1.x line, published from the `v1` branch
 
-name: Release
+name: Publish
+
+# npm Trusted Publishing (OIDC): npm registers THIS file (release.yml) as the
+# single trusted publisher for `ts-sql-query`, so every publish path lives here.
+# `id-token: write` lets the runner mint the OIDC token npm exchanges for a
+# short-lived publish credential — no NODE_AUTH_TOKEN. Provenance is generated
+# automatically when publishing this way from a public repo.
+#
+# The jobs run `npm stage publish` (staged publishing): CI uploads the version
+# to a STAGING area unattended (no 2FA), where it is NOT yet installable. A
+# maintainer then promotes it to the live registry with `npm stage approve
+# <stage-id>` (or the Approve button on npmjs.com), which prompts for 2FA. Enable
+# the "npm stage publish" action in the trusted-publisher config for this to work.
+permissions:
+  contents: read
+  id-token: write
 
 jobs:
+  # ── v2 line (master) ───────────────────────────────────────────────────────
+  # Full test suite on Bun (~4 min). Gates the v2 publish via `needs: bun`.
   bun:
+    if: inputs.release_type != 'v1'
     name: bun validation
     runs-on: ubuntu-latest
 
@@ -59,12 +89,13 @@ jobs:
       - name: Bun new test suite
         run: bun run test:no-docker
 
-  build:
+  publish:
+    if: inputs.release_type != 'v1'
     needs: bun
-    name: build library
+    name: build & publish (v2)
     runs-on: ubuntu-latest
     environment: npm-release
-    
+
     steps:
       # Setup environment
       - uses: actions/checkout@v6
@@ -73,6 +104,11 @@ jobs:
         with:
           node-version: '26.x'
           registry-url: 'https://registry.npmjs.org'
+
+      # Staged publishing (`npm stage publish`) needs npm >= 11.15.0; the npm
+      # bundled with Node 26 is older, so upgrade it within the 11.x line.
+      - name: Update npm (staged publishing needs >= 11.15.0)
+        run: npm install -g npm@^11.15.0
 
       # Validate branch
       - name: Validate if in master branch
@@ -97,8 +133,70 @@ jobs:
       # on Node, and `needs: bun` already gates this job on a green Bun run, so
       # the Node side only builds the publishable artifact and publishes it.
 
-      # Publish
+      # Stage-publish via OIDC trusted publishing — no NODE_AUTH_TOKEN. Each
+      # `dist*` script runs `npm stage publish`, so the version lands in the
+      # staging area pending a maintainer's `npm stage approve`. The dist-tag is
+      # selected by the workflow input; `dry-run` stages nothing.
+      - name: Build for dist & Publish
+        run: |
+          case "${{ inputs.release_type }}" in
+            latest)  npm run dist ;;
+            alpha)   npm run dist-alpha ;;
+            beta)    npm run dist-beta ;;
+            dry-run) npm run test-dist ;;
+            *) echo "Unexpected release_type: ${{ inputs.release_type }}"; exit 1 ;;
+          esac
+
+  # ── v1 line (legacy) ───────────────────────────────────────────────────────
+  # Published from the `v1` branch with that branch's own scripts. The workflow
+  # file still lives on master, so the OIDC claims (workflow=release.yml,
+  # environment=npm-release) match the trusted-publisher config; only the
+  # checked-out code is v1. Keeps its own Node-based light tests (the v1 line
+  # predates the Bun test matrix).
+  publish-v1:
+    if: inputs.release_type == 'v1'
+    name: build & publish (v1 legacy)
+    runs-on: ubuntu-latest
+    environment: npm-release
+
+    steps:
+      # Setup environment
+      - uses: actions/checkout@v6
+        with:
+          ref: v1
+
+      - name: Use Node.js 22.x
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22.x'
+          registry-url: 'https://registry.npmjs.org'
+
+      # Staged publishing (`npm stage publish`) needs npm >= 11.15.0; Node 22
+      # ships npm 10.x, so upgrade it within the 11.x line.
+      - name: Update npm (staged publishing needs >= 11.15.0)
+        run: npm install -g npm@^11.15.0
+
+      # Show package.json
+      - name: Show package.json
+        run: 'cat package.json'
+
+      # Install dependencies
+      - name: Install dependencies
+        run: npm install
+
+      # Build
+      - name: Prepare
+        run: npm run generate-prisma
+      - name: Build
+        run: npm run build
+
+      # Light tests (docker tests not supported yet)
+      - name: Light tests
+        run: npm run no-docker-examples
+
+      # Runs the v1 branch's own `dist` script via OIDC (no NODE_AUTH_TOKEN).
+      # NOTE: for v1 to STAGE (rather than publish directly), the `dist` /
+      # `dist-beta` scripts on the `v1` branch must also switch to
+      # `npm stage publish` — that change lives on the v1 branch, not here.
       - name: Build for dist & Publish
         run: npm run dist
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

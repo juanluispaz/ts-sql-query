@@ -92,30 +92,10 @@ jobs:
       - name: Validate src (tsgo)
         run: npm run validate:tsgo
 
-      # Type-check the test/ tree against the published library types.
-      # tsgo is authoritative for the test matrix; tsc runs as the
-      # sub-experience right after, covering the few files excluded
-      # from the tsc config (see test/MAINTAINING.md).
-      - name: Validate tests (tsgo, authoritative)
-        run: npm run validate:tests
-      - name: Validate tests (tsc, sub-experience)
-        run: npm run validate:tests:tsc
-        env:
-          # Raise V8's heap ceiling: tsc checks the full test/ matrix + src/
-          # in one program (~4.5 GB peak) and OOMs at Node's ~4 GB default.
-          NODE_OPTIONS: --max-old-space-size=8192
-
-      # Symmetry audit (DESIGN §4) — structural check of test/db/.
-      - name: Audit test symmetry
-        run: npm run tests:audit
-
-      # Light tests (docker tests not supported yet)
-      - name: Light tests
-        run: npm run no-docker-examples
-
-      # New test suite — full matrix mocked + real WASM phase (no docker).
-      - name: New test suite
-        run: npm run test:no-docker
+      # Tests (new matrix + legacy examples) and the test-tree typecheck run
+      # ONLY on the bun job above: Bun runs the full suite in ~4 min vs ~25 min
+      # on Node, and `needs: bun` already gates this job on a green Bun run, so
+      # the Node side only builds the publishable artifact and publishes it.
 
       # Publish
       - name: Build for dist & Publish

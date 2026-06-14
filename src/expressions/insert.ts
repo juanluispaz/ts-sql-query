@@ -1087,7 +1087,13 @@ type OnConflictOnConstraintFnType<TABLE extends ITableOrView<any>, NEXT> =
         : never
 
 interface OnConflictOnConstraintFnTypeInterface<TABLE extends ITableOrView<any>, NEXT> {
+    /**
+     * @deprecated Provide a raw fragment
+     */
     (constraint: string): NEXT
+    /**
+     * @deprecated Provide a raw fragment
+     */
     (constraint: TypeWhenSafeDB<TABLE[typeof database], IStringValueSource<NoTableOrViewRequired<TABLE[typeof database]>, 'required'>, ITypeSafeStringValueSource<NoTableOrViewRequired<TABLE[typeof database]>, 'required'>>): NEXT
     (constraint: RawFragment<TABLE[typeof database]>): NEXT
 }

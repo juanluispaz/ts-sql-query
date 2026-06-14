@@ -306,10 +306,10 @@ situation, not the non-applicability case.
 
 The symmetry audit (`bun run tests:audit`) enforces this mechanically over the
 **whole matrix** (every database × version × connector, not just the cells of one
-database). See [`test/lib/audit/AUDIT.md`](./lib/audit/AUDIT.md). It is currently
-reported at `warn` severity while the cross-database backlog (files/tests not yet
-mirrored to every cell) is worked down, and returns to `error` once the matrix is
-clean.
+database). See [`test/lib/audit/AUDIT.md`](./lib/audit/AUDIT.md). It is reported
+at `error` severity: the cross-database backlog (files/tests not yet mirrored to
+every cell) has been worked down and the matrix is clean, so a divergence now
+blocks.
 
 **Exempt: `config.*` connection-configuration tests.** Files named `config.*.test.ts`
 hold tests specific to a connector's / database's connection configuration (e.g.

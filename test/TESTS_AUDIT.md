@@ -34,17 +34,17 @@ bun run tests:audit 'postgres/*/pg'       # globs / {a,b} braces work
 bun run tests:audit --only weak-matcher   # a single rule
 bun run tests:audit --explain             # print a fix hint per finding
 bun run tests:audit --all                 # list every finding (default groups large backlogs)
-bun run tests:audit --strict              # treat every warning as an error (trial a promotion)
+bun run tests:audit --strict              # force `error` for any rule still at `warn` (no-op today; every rule is already `error`)
 bun run tests:audit --help
 ```
 Under `npm run`, put flags behind `--`: `npm run tests:audit -- --only weak-matcher --all`.
 
 Exit code is `0` unless there is an **error**-severity finding. Scope with a coord
 while iterating; run the whole matrix before pushing. **CI runs the whole-matrix
-form on every push** — an `error`-severity finding (today: only the suppression
-meta-rules `disable-without-reason` / `unknown-rule`; `symmetry` and every content
-rule are `warn` for now; tomorrow: any rule that gets promoted, see § Severities)
-blocks the merge.
+form on every push** — and **every rule is now `error`** (`symmetry`, every
+content rule, and the suppression meta-rules `disable-without-reason` /
+`unknown-rule` / `unused-ignore`; see § Severities), so **any** finding blocks the
+merge.
 
 ## Read a finding
 
@@ -117,7 +117,7 @@ finding. Fix a finding by making the test validate honestly — never by hiding 
 - `non-deterministic-input` — `new Date()` (no arg), `Date.now()`, `Math.random()` used as a query input make the params non-deterministic. Use a fixed value (`new Date('2024-01-02T03:04:05Z')`). These are allowed only as **mock data** passed to `mockNext`, simulating the database's own `current_date` / `random()`.
 
 **Structure**
-- `symmetry` — **every cell of the WHOLE matrix** (all databases × versions × connectors) must declare the same `.test.ts` files with the same test names in the same order (executed OR commented out). Keep the cells mirror images across dialects: a test that doesn't apply to a dialect is commented out with a `// NOT-APPLICABLE: <reason>` (or TODO) marker, not dropped. Some files are **excluded** from the comparison (see below). (Currently `warn` — a cross-database migration backlog; returns to `error` once the matrix is mirrored.)
+- `symmetry` — **every cell of the WHOLE matrix** (all databases × versions × connectors) must declare the same `.test.ts` files with the same test names in the same order (executed OR commented out). Keep the cells mirror images across dialects: a test that doesn't apply to a dialect is commented out with a `// NOT-APPLICABLE: <reason>` (or TODO) marker, not dropped. Some files are **excluded** from the comparison (see below). (`error`: the cross-database migration backlog has been worked down and the matrix is mirrored.)
 
 ### Files excluded from symmetry
 
@@ -203,14 +203,14 @@ should be *fixed*, not suppressed; a test that doesn't apply to the database is
 
 ## Severities
 
-Today every content rule is `warning` (a backlog), and so is `symmetry` (it was
-just widened to a whole-matrix check, which surfaced a cross-database backlog —
-it returns to `error` once that is cleared). Only the suppression meta-rules
-(`disable-without-reason` / `unknown-rule`) are `error`. Rules get **promoted to
-`error`** once the tree is clean for them — so a rule that is `warning` for you
-now may be `error`
-later. Treat warnings as real work, not noise. `*.generated.test.ts` files are
-exempt from every check.
+**Every rule is now `error`** — the warn→error ramp is complete and the tree is
+clean for every rule. That covers `symmetry` (back to `error` now its
+whole-matrix cross-database backlog is worked down), every content rule, and the
+suppression meta-rules (`disable-without-reason` / `unknown-rule` /
+`unused-ignore`). So **any** finding fails the audit (exit 1). A NEW rule may
+still land at `warn` (reported, exit 0) and be **promoted to `error`** once the
+tree is clean for it, but there is no such rule today. `*.generated.test.ts`
+files are exempt from every check.
 
 ## Proposing a new valid pattern (or a new rule)
 

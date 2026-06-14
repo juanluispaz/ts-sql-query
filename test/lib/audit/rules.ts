@@ -1,6 +1,8 @@
 // The rule registry + severity table. See AUDIT.md § Severity model.
 //
-// Promoting a content rule from `warn` to `error` is a one-line edit here,
+// The warn→error severity ramp is COMPLETE: the tree is clean for every rule,
+// so every rule is now `error` and any finding fails the audit (exit 1). Adding
+// a NEW rule that needs a temporary warn phase is still a one-line edit here,
 // recorded in the commit (and, per AUDIT.md § Maintenance contract, paired
 // with the ANTIPATTERNS "Gate today" update + the sub-agent prompt drop).
 
@@ -11,50 +13,50 @@ import type { Severity } from './types.js'
 export const CONTENT_RULES = ['mock-only', 'mirror-image', 'one-sided-guard', 'uuid-literal', 'as-any', 'any-type', 'as-unknown-as', 'meaningless-cast', 'meaningless-type', 'type-cast', 'non-public-api', 'commented-test-reason', 'grouped-commented-tests', 'focused-test', 'empty-snapshot', 'ts-ignore', 'ts-expect-error', 'eslint-disable-type', 'eslint-disable-other', 'skipped-test-reason', 'skip-real-db', 'misplaced-marker', 'tautology', 'no-assertion-runtime', 'empty-catch', 'weak-boolean', 'weak-matcher', 'close-to', 'no-op-expect', 'non-deterministic-input'] as const
 
 export const RULE_SEVERITY: Record<string, Severity> = {
-    // structural — whole-matrix cell parity. TEMPORARILY `warn` while the
-    // cross-database backlog (files/tests not yet mirrored to every cell) is
-    // worked down; promote back to `error` once the matrix is clean.
-    'symmetry':               'warn',
-    // anti-cheat content rules — start as `warn`, promote to `error`
-    'mock-only':              'warn',   // most severe: never executes against the real engine — first to promote
-    'mirror-image':           'warn',
-    'one-sided-guard':        'warn',
-    'uuid-literal':           'warn',   // a malformed-UUID literal mock accepts but a real engine rejects
-    'as-any':                 'warn',   // a cast to `any` bypassing the public typed API (outside exception tests)
-    'any-type':               'warn',   // an `any` type annotation (use a precise type or `unknown`)
-    'as-unknown-as':          'warn',   // `x as unknown as T` — the double-assertion laundering that replaces `as any`
-    'meaningless-cast':       'warn',   // a cast to `unknown` / `null` / `never` / `void` — a pointless type-checker bypass
-    'meaningless-type':       'warn',   // the `unknown` / `null` / `never` / `void` type annotation (mirror of any-type)
-    'type-cast':              'warn',   // any other `x as T` / `<T>x` assertion — may force the type or want `satisfies` (as const exempt)
-    'non-public-api':         'warn',   // a relative import into non-public src or non-admitted test/lib
-    'commented-test-reason':  'warn',   // a commented-out test with no TODO[BUG]/TODO[LIMITATION]/NOT-APPLICABLE reason
-    'grouped-commented-tests': 'warn',  // several commented-out tests crammed into one comment block, sharing a single reason marker — split so each carries its own
-    'focused-test':           'warn',   // a committed `.only` — silently skips the rest of the suite (anchor 0; warn for now, an early promotion candidate)
-    'empty-snapshot':         'warn',   // an un-baked `toMatchInlineSnapshot()` in live code — pins nothing (anchor 0 live; commented placeholders are AST-exempt)
-    'ts-ignore':              'warn',   // `@ts-ignore` / `@ts-nocheck` — silences every error on the line; forbidden everywhere (anchor 0; promotion candidate)
-    'ts-expect-error':        'warn',   // `@ts-expect-error` outside a types.negative cell — a type-error bypass
-    'eslint-disable-type':    'warn',   // eslint-disable of a type-soundness lint (no-explicit-any / no-unsafe-* / ban-ts-comment) — the lint twin of as-any/any-type
-    'eslint-disable-other':   'warn',   // eslint-disable of any other (non-type) lint — tracked separately, lowest priority
-    'skipped-test-reason':    'warn',   // `test.skip` / `test.todo` with no TODO[BUG]/TODO[LIMITATION]/NOT-APPLICABLE reason — the .skip twin of commented-test-reason
-    'skip-real-db':           'warn',   // `test.skipIf(realDbEnabled)` — a mock-only evasion at the registration level
-    'misplaced-marker':       'warn',   // a TODO[BUG]/TODO[LIMITATION]/NOT-APPLICABLE marker not at a test (file scope, helper, floating)
-    'tautology':              'warn',   // a provably-constant assertion (literal-self-compare, same-expression, `.length` ≥ 0)
-    'no-assertion-runtime':   'warn',   // a test that runs a query (execute*) but asserts nothing — always green (anchor 0)
-    'empty-catch':            'warn',   // an empty `catch { }` (no deliberate throw in the try) — swallows a real failure; 66 mock-only-style cases
-    'weak-boolean':           'warn',   // `expect(x).toBeTruthy()` / `toBeFalsy()` — pins truthiness, not the value (anchor 0)
-    'weak-matcher':           'warn',   // asymmetric matcher / `.toContain`/`.toMatch` on a value — approximate reserved for diagnostic + real-DB branch
-    'close-to':               'warn',   // `toBeCloseTo` outside a real-DB branch — its own (lenient) rule, kept separate from the rigid weak-matcher
-    'no-op-expect':           'warn',   // an `expect(...)` chain with no matcher invoked — a no-op that always passes (anchor 0)
-    'non-deterministic-input': 'warn',  // `new Date()` / `Date.now()` / `Math.random()` as a query input (mock data is carved out) (anchor 0)
+    // structural — whole-matrix cell parity. Back to `error`: the cross-database
+    // backlog (files/tests not yet mirrored to every cell) has been worked down
+    // and the matrix is symmetric.
+    'symmetry':               'error',
+    // anti-cheat content rules — all `error` (the warn→error ramp is complete)
+    'mock-only':              'error',   // most severe: never executes against the real engine
+    'mirror-image':           'error',
+    'one-sided-guard':        'error',
+    'uuid-literal':           'error',   // a malformed-UUID literal mock accepts but a real engine rejects
+    'as-any':                 'error',   // a cast to `any` bypassing the public typed API (outside exception tests)
+    'any-type':               'error',   // an `any` type annotation (use a precise type or `unknown`)
+    'as-unknown-as':          'error',   // `x as unknown as T` — the double-assertion laundering that replaces `as any`
+    'meaningless-cast':       'error',   // a cast to `unknown` / `null` / `never` / `void` — a pointless type-checker bypass
+    'meaningless-type':       'error',   // the `unknown` / `null` / `never` / `void` type annotation (mirror of any-type)
+    'type-cast':              'error',   // any other `x as T` / `<T>x` assertion — may force the type or want `satisfies` (as const exempt)
+    'non-public-api':         'error',   // a relative import into non-public src or non-admitted test/lib
+    'commented-test-reason':  'error',   // a commented-out test with no TODO[BUG]/TODO[LIMITATION]/NOT-APPLICABLE reason
+    'grouped-commented-tests': 'error',  // several commented-out tests crammed into one comment block, sharing a single reason marker — split so each carries its own
+    'focused-test':           'error',   // a committed `.only` — silently skips the rest of the suite
+    'empty-snapshot':         'error',   // an un-baked `toMatchInlineSnapshot()` in live code — pins nothing (commented placeholders are AST-exempt)
+    'ts-ignore':              'error',   // `@ts-ignore` / `@ts-nocheck` — silences every error on the line; forbidden everywhere
+    'ts-expect-error':        'error',   // `@ts-expect-error` outside a types.negative cell — a type-error bypass
+    'eslint-disable-type':    'error',   // eslint-disable of a type-soundness lint (no-explicit-any / no-unsafe-* / ban-ts-comment) — the lint twin of as-any/any-type
+    'eslint-disable-other':   'error',   // eslint-disable of any other (non-type) lint — tracked separately
+    'skipped-test-reason':    'error',   // `test.skip` / `test.todo` with no TODO[BUG]/TODO[LIMITATION]/NOT-APPLICABLE reason — the .skip twin of commented-test-reason
+    'skip-real-db':           'error',   // `test.skipIf(realDbEnabled)` — a mock-only evasion at the registration level
+    'misplaced-marker':       'error',   // a TODO[BUG]/TODO[LIMITATION]/NOT-APPLICABLE marker not at a test (file scope, helper, floating)
+    'tautology':              'error',   // a provably-constant assertion (literal-self-compare, same-expression, `.length` ≥ 0)
+    'no-assertion-runtime':   'error',   // a test that runs a query (execute*) but asserts nothing — always green
+    'empty-catch':            'error',   // an empty `catch { }` (no deliberate throw in the try) — swallows a real failure
+    'weak-boolean':           'error',   // `expect(x).toBeTruthy()` / `toBeFalsy()` — pins truthiness, not the value
+    'weak-matcher':           'error',   // asymmetric matcher / `.toContain`/`.toMatch` on a value — approximate reserved for diagnostic + real-DB branch
+    'close-to':               'error',   // `toBeCloseTo` outside a real-DB branch — its own (lenient) rule, kept separate from the rigid weak-matcher
+    'no-op-expect':           'error',   // an `expect(...)` chain with no matcher invoked — a no-op that always passes
+    'non-deterministic-input': 'error',  // `new Date()` / `Date.now()` / `Math.random()` as a query input (mock data is carved out)
     // meta-rules guarding the suppression mechanism — `error` from day 1
     'disable-without-reason': 'error',
     'unknown-rule':           'error',
-    'unused-ignore':          'warn',
+    'unused-ignore':          'error',   // a stale `tests-audit-disable` directive that matches no finding on its target line
 }
 
 export const RULE_HINT: Record<string, string> = {
     'symmetry':
-        'EVERY cell of the WHOLE matrix (all databases × versions × connectors) must declare the same `.test.ts` files with the same test names in the same order. A test that does not apply to a dialect is COMMENTED OUT (kept for symmetry) with a `// NOT-APPLICABLE: <reason>` marker (or a `// TODO[BUG]:` / `// TODO[LIMITATION]:`), never deleted. Exempt files: `config.*` (connection-config-specific), `*.generated.test.ts`, and any whose name embeds a database name as a `.`/`-`-delimited token (e.g. `select.postgres-const-force-type-cast.test.ts`) — those are inherently dialect-specific. (Currently `warn` — a migration backlog; will return to `error` once the matrix is mirrored.)',
+        'EVERY cell of the WHOLE matrix (all databases × versions × connectors) must declare the same `.test.ts` files with the same test names in the same order. A test that does not apply to a dialect is COMMENTED OUT (kept for symmetry) with a `// NOT-APPLICABLE: <reason>` marker (or a `// TODO[BUG]:` / `// TODO[LIMITATION]:`), never deleted. Exempt files: `config.*` (connection-config-specific), `*.generated.test.ts`, and any whose name embeds a database name as a `.`/`-`-delimited token (e.g. `select.postgres-const-force-type-cast.test.ts`) — those are inherently dialect-specific.',
     'mock-only':
         'The test must execute against the real engine — skipping it (`if (ctx.realDbEnabled) return`) or swallowing the real error (`catch { if (!ctx.realDbEnabled) throw e }`) lets a real failure pass as green. Drive the case on real: synthesise an off-shape input with `fragmentWithType` / `rawFragment` if the engine cannot produce it naturally; use `toBeCloseTo` for float precision. A genuinely-irreducible case (extremely rare) carries `// tests-audit-disable-next-line mock-only -- <reason>`.',
     'mirror-image':
@@ -82,7 +84,7 @@ export const RULE_HINT: Record<string, string> = {
     'non-public-api':
         'A *.test.ts may import only the public library API (the package.json `exports`, never the __UNSUPPORTED__ escape hatch) and the admitted test/lib helpers (testRunner, assertType, isAllowed). This relative import reaches past that. Build through the public surface; if a real gap exists it belongs in the library, not behind a relative import into internals.',
     'focused-test':
-        'Remove the `.only` — `test.only` / `it.only` / `describe.only` focuses the runner on that one test and silently skips every other test in the file, so the cell reports green while almost nothing ran. `.only` is a local-iteration convenience; it must never be committed. (Currently `warn`; an early promotion candidate since the anchor is 0.)',
+        'Remove the `.only` — `test.only` / `it.only` / `describe.only` focuses the runner on that one test and silently skips every other test in the file, so the cell reports green while almost nothing ran. `.only` is a local-iteration convenience; it must never be committed.',
     'empty-snapshot':
         'An empty `toMatchInlineSnapshot()` pins nothing — it auto-fills on the next run and the assertion always passes, so it validates nothing until baked. Bake the snapshot (`--update-snapshots`) so the SQL/params are actually asserted. (A snapshot inside a commented-out test is naturally exempt — it is not live code; it is governed by `commented-test-reason` instead.)',
     'ts-ignore':

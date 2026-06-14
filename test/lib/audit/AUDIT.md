@@ -59,16 +59,16 @@ The audit **fails on content** (exit 1) — it does not merely inform. That is
 the line between it and the [searcher](../codeSearcher/CODE_SEARCHER.md),
 which never fails on content.
 
-The one deliberate, time-boxed exception is the **severity ramp**: a new
-content rule lands as `warn` (reported, exit 0) and is promoted to `error`
-(exit 1) once the tree is clean for it (see [Severity model](#severity-model)).
-The warning phase is informative *with a committed promotion plan*, not a
-permanent state. The **symmetry check is currently `warn` too** — it was
-recently widened from a per-database check to a **whole-matrix** one (every cell
-of every database must match, per [DESIGN §4](../../DESIGN.md#symmetry-rule)),
-which surfaced a cross-database backlog (files/tests not yet mirrored to every
-cell). It rides the same severity ramp: `warn` while that backlog is worked
-down, back to `error` once the matrix is clean.
+The **severity ramp is complete**: every rule is now `error` (a finding of any
+rule exits 1). A new content rule may still land as `warn` (reported, exit 0)
+and be promoted to `error` once the tree is clean for it (see
+[Severity model](#severity-model)) — that warning phase is informative *with a
+committed promotion plan*, not a permanent state — but there is no such rule
+today. The **symmetry check is `error` too**: it was widened from a per-database
+check to a **whole-matrix** one (every cell of every database must match, per
+[DESIGN §4](../../DESIGN.md#symmetry-rule)), which surfaced a cross-database
+backlog (files/tests not yet mirrored to every cell); that backlog has been
+worked down and the matrix is clean, so it is back to `error`.
 
 ## Boundary
 
@@ -142,54 +142,54 @@ A declarative table in [`rules.ts`](rules.ts):
 
 ```ts
 export const RULE_SEVERITY = {
-  'symmetry':               'warn',   // structural — whole-matrix cell parity; TEMPORARILY warn while the cross-db backlog is cleared, back to error once clean
-  'mock-only':              'warn',   // most severe: the test never validates against the real engine — first to promote
-  'mirror-image':           'warn',   // anti-cheat — promote to 'error' once the tree is clean
-  'one-sided-guard':        'warn',   // anti-cheat — large DESIGN §1 backlog, stays warn longer
-  'uuid-literal':           'warn',   // a malformed-UUID literal mock accepts but a real engine rejects
-  'as-any':                 'warn',   // a cast to `any` bypassing the public typed API (backlog to rewrite)
-  'any-type':               'warn',   // an `any` type annotation (use a precise type or `unknown`)
-  'as-unknown-as':          'warn',   // `x as unknown as T` — the double-assertion laundering that replaces `as any`
-  'meaningless-cast':       'warn',   // a cast to `unknown` / `null` / `never` / `void` — a pointless type-checker bypass
-  'meaningless-type':       'warn',   // the `unknown` / `null` / `never` / `void` type annotation (mirror of any-type)
-  'type-cast':              'warn',   // any other `x as T` / `<T>x` assertion — may force the type or want `satisfies` (as const + cast carve-outs exempt)
-  'non-public-api':         'warn',   // a relative import into non-public src or non-admitted test/lib
-  'commented-test-reason':  'warn',   // a commented-out test with no TODO[BUG]/TODO[LIMITATION]/NOT-APPLICABLE reason
-  'focused-test':           'warn',   // a committed `.only` — silently skips the rest of the suite (anchor 0, an early promotion candidate)
-  'empty-snapshot':         'warn',   // an un-baked `toMatchInlineSnapshot()` in live code (commented placeholders are AST-exempt)
-  'ts-ignore':              'warn',   // `@ts-ignore` / `@ts-nocheck` — silences every error on the line; forbidden everywhere
-  'ts-expect-error':        'warn',   // `@ts-expect-error` outside a types.negative cell — a type-error bypass
-  'eslint-disable-type':    'warn',   // eslint-disable of a type-soundness lint — the lint twin of as-any/any-type
-  'eslint-disable-other':   'warn',   // eslint-disable of any other (non-type) lint — tracked separately
-  'skipped-test-reason':    'warn',   // `test.skip` / `test.todo` with no TODO[BUG]/TODO[LIMITATION]/NOT-APPLICABLE reason — the .skip twin of commented-test-reason
-  'skip-real-db':           'warn',   // `test.skipIf(realDbEnabled)` — a mock-only evasion at the registration level
-  'misplaced-marker':       'warn',   // a TODO[BUG]/TODO[LIMITATION]/NOT-APPLICABLE marker not at a test
-  'tautology':              'warn',   // a provably-constant assertion (literal-self-compare, same-expression, `.length` ≥ 0)
-  'no-assertion-runtime':   'warn',   // a test that runs a query (execute*) but asserts nothing — always green
-  'empty-catch':            'warn',   // an empty `catch { }` with no deliberate throw in the try — swallows a real failure
-  'weak-boolean':           'warn',   // `expect(x).toBeTruthy()` / `toBeFalsy()` — pins truthiness, not the value
-  'weak-matcher':           'warn',   // asymmetric matcher / `.toContain`/`.toMatch` on a value — approximate reserved for a diagnostic blob (error/stack) only
-  'close-to':               'warn',   // `toBeCloseTo` outside a real-DB branch — its own (lenient) rule, separate from the rigid weak-matcher
-  'no-op-expect':           'warn',   // an `expect(...)` chain with no matcher invoked — a no-op that always passes
-  'non-deterministic-input': 'warn',  // `new Date()` / `Date.now()` / `Math.random()` as a query input (mock data carved out)
+  'symmetry':               'error',  // structural — whole-matrix cell parity; back to error now the cross-db backlog is cleared and the matrix is clean
+  'mock-only':              'error',  // most severe: the test never validates against the real engine
+  'mirror-image':           'error',  // anti-cheat
+  'one-sided-guard':        'error',  // anti-cheat — DESIGN §1
+  'uuid-literal':           'error',  // a malformed-UUID literal mock accepts but a real engine rejects
+  'as-any':                 'error',  // a cast to `any` bypassing the public typed API
+  'any-type':               'error',  // an `any` type annotation (use a precise type or `unknown`)
+  'as-unknown-as':          'error',  // `x as unknown as T` — the double-assertion laundering that replaces `as any`
+  'meaningless-cast':       'error',  // a cast to `unknown` / `null` / `never` / `void` — a pointless type-checker bypass
+  'meaningless-type':       'error',  // the `unknown` / `null` / `never` / `void` type annotation (mirror of any-type)
+  'type-cast':              'error',  // any other `x as T` / `<T>x` assertion — may force the type or want `satisfies` (as const + cast carve-outs exempt)
+  'non-public-api':         'error',  // a relative import into non-public src or non-admitted test/lib
+  'commented-test-reason':  'error',  // a commented-out test with no TODO[BUG]/TODO[LIMITATION]/NOT-APPLICABLE reason
+  'focused-test':           'error',  // a committed `.only` — silently skips the rest of the suite
+  'empty-snapshot':         'error',  // an un-baked `toMatchInlineSnapshot()` in live code (commented placeholders are AST-exempt)
+  'ts-ignore':              'error',  // `@ts-ignore` / `@ts-nocheck` — silences every error on the line; forbidden everywhere
+  'ts-expect-error':        'error',  // `@ts-expect-error` outside a types.negative cell — a type-error bypass
+  'eslint-disable-type':    'error',  // eslint-disable of a type-soundness lint — the lint twin of as-any/any-type
+  'eslint-disable-other':   'error',  // eslint-disable of any other (non-type) lint — tracked separately
+  'skipped-test-reason':    'error',  // `test.skip` / `test.todo` with no TODO[BUG]/TODO[LIMITATION]/NOT-APPLICABLE reason — the .skip twin of commented-test-reason
+  'skip-real-db':           'error',  // `test.skipIf(realDbEnabled)` — a mock-only evasion at the registration level
+  'misplaced-marker':       'error',  // a TODO[BUG]/TODO[LIMITATION]/NOT-APPLICABLE marker not at a test
+  'tautology':              'error',  // a provably-constant assertion (literal-self-compare, same-expression, `.length` ≥ 0)
+  'no-assertion-runtime':   'error',  // a test that runs a query (execute*) but asserts nothing — always green
+  'empty-catch':            'error',  // an empty `catch { }` with no deliberate throw in the try — swallows a real failure
+  'weak-boolean':           'error',  // `expect(x).toBeTruthy()` / `toBeFalsy()` — pins truthiness, not the value
+  'weak-matcher':           'error',  // asymmetric matcher / `.toContain`/`.toMatch` on a value — approximate reserved for a diagnostic blob (error/stack) only
+  'close-to':               'error',  // `toBeCloseTo` outside a real-DB branch — its own (lenient) rule, separate from the rigid weak-matcher
+  'no-op-expect':           'error',  // an `expect(...)` chain with no matcher invoked — a no-op that always passes
+  'non-deterministic-input': 'error', // `new Date()` / `Date.now()` / `Math.random()` as a query input (mock data carved out)
   // meta-rules that protect the suppression mechanism — `error` from day 1:
   'disable-without-reason': 'error',
   'unknown-rule':           'error',
-  'unused-ignore':          'warn',
+  'unused-ignore':          'error',  // a stale `tests-audit-disable` that matches no finding
 }
 ```
-(Every content rule is `warn` today — see [The rules](#the-rules). The split into one rule per suppression **mechanism**, all kept `warn` for now, is deliberate: it lets each be **promoted to `error` independently** later. `focused-test` and `ts-ignore` are the early promotion candidates — their anchor is 0, so the tree is already clean for them.)
+(Every rule is `error` today — the warn→error ramp is complete, the tree is clean for every rule. The split into one rule per suppression **mechanism** is still deliberate: it lets a NEW rule be landed at `warn` and **promoted to `error` independently** of the rest.)
 
 - Exit 1 **iff** there is ≥1 finding of severity `error`. `symmetry` is folded
   into the same Findings pipeline (rule id `symmetry`), so its severity is read
-  from this table like any other rule — it is **currently `warn`** (see the note
-  above the table), so a divergence does not block today.
-- Promoting a rule is a one-line `'warn'` → `'error'` edit, recorded in the
-  commit + changelog.
+  from this table like any other rule — it is now `error`, so a divergence
+  blocks.
+- Promoting a (future) rule from `warn` is a one-line `'warn'` → `'error'` edit,
+  recorded in the commit + changelog.
 - `--strict` raises every `warn` to `error` (to trial a promotion before
-  committing it). `--only <rule-id>` runs a single rule. `--explain` adds the
-  violated rule + a fix hint. The audit stays invocable with **no arguments**
-  for CI.
+  committing it) — a no-op while every rule is already `error`. `--only
+  <rule-id>` runs a single rule. `--explain` adds the violated rule + a fix
+  hint. The audit stays invocable with **no arguments** for CI.
 
 ### The `tests-audit-disable` suppression comment
 
@@ -210,16 +210,16 @@ the documenting section ([`EXTERNAL_CAVEATS.md`](../../EXTERNAL_CAVEATS.md)
 hosts the finite legitimate-guard set) where one applies; the format is free,
 the **reason is mandatory**.
 
-The **meta-rules are `error` from day 1** even while the real rules are
-`warn`, because they guard the suppression mechanism itself — the cheat
+The **meta-rules were `error` from day 1**, before the real rules were
+promoted, because they guard the suppression mechanism itself — the cheat
 vector is silencing the rule quietly:
 
 - `tests-audit-disable-next-line mirror-image` with no `-- reason` → **error**
   (`disable-without-reason`). You cannot silence without justifying.
 - `tests-audit-disable-next-line <unknown-rule>` → **error** (`unknown-rule`). You cannot
   pre-disable by mistyping an id.
-- a `tests-audit-disable` that matches no violation (stale) → **warn**
-  (`unused-ignore`), promotable — stops dead suppressions accumulating.
+- a `tests-audit-disable` that matches no violation (stale) → **error**
+  (`unused-ignore`) — stops dead suppressions accumulating.
 
 Anchor suppressions by content (rule-id + reason in code), **never** by
 `file:line` in an external file — the canonical cells shift lines on every
@@ -234,16 +234,18 @@ summary. Report **all** violations, then fail (never bail on the first):
 
 ```
 test/db/postgres/newest/pg/select.distinct.test.ts
-  30  warning  real-DB branch only asserts rows.length; value never validated against an engine  mirror-image
+  30  error    real-DB branch only asserts rows.length; value never validated against an engine  mirror-image
 
 test/db/.../foo.test.ts
   12  error    tests-audit-disable needs a reason after '--'  disable-without-reason
 
 rules: mirror-image 1  disable-without-reason 1
-✖ 2 problems (1 error, 1 warning)
+✖ 2 problems (2 errors, 0 warnings)
 ```
 
-A large warning backlog is capped (the first N) unless `--all`. Colour follows
+(The `warning` severity still renders — yellow on a TTY — for a rule kept in its
+`warn` phase; there is none today.) A large warning backlog is capped (the
+first N) unless `--all`. Colour follows
 `NO_COLOR` / TTY. `symmetry` findings flow through this same report (grouped by
 the offending cell file). The symmetry check still emits its
 `$GITHUB_STEP_SUMMARY` line, but only the **count/verdict** — the per-divergence
@@ -265,8 +267,8 @@ falls inside the scope are *reported* (the canon is still computed from the full
 matrix). The matcher is the **shared**
 [`test/lib/coords.ts`](../coords.ts) — the same one the searcher's `--coord`
 uses (`coordMatch` / `cellFromPath`), extracted there so both tools agree on
-coordinate semantics. Scoping is the practical way to triage the
-`one-sided-guard` backlog one cell or canonical at a time, e.g.
+coordinate semantics. Scoping is the practical way to triage any future
+backlog (e.g. a newly-landed `warn` rule) one cell or canonical at a time, e.g.
 `bun run tests:audit postgres/newest/pg --only mirror-image --all --explain`.
 
 ## The rules
@@ -281,7 +283,8 @@ The three rules below are produced by [`checks/mirrorImage.ts`](./checks/mirrorI
 (one syntactic-AST pass) and enforce the same principle — *the suite's purpose
 is real-DB validation; a test that doesn't actually validate against the real
 engine "sneaks past" us* (DESIGN § Real-DB validation, §1). They are **separate
-rule ids** ordered by severity, so each is suppressed and promoted independently.
+rule ids** ordered by severity, so each is suppressed independently (and was
+promoted to `error` independently during the warn→error ramp, now complete).
 
 **The bar is deliberately high: NOT going to the real DB is almost never
 legitimate.** "It can only be tested with the mock" is usually false — the lib
@@ -378,8 +381,9 @@ type-bypass rules — see [`as-any`](#as-any--a-cast-to-any-that-bypasses-the-pu
 synthetic-SQL exception (DESIGN § Mock-only smell — Skip-real form) carries a
 `// tests-audit-disable-next-line mock-only -- <reason>`.
 
-**Status**: **built** (`warn`). The **first to promote to `error`** — not going
-to the real DB is the least defensible smell.
+**Status**: **built** (`error`). The **first promoted to `error`** — not going
+to the real DB is the least defensible smell. The backlog is worked down; 0
+findings today.
 
 ### `mirror-image` — two-sided guard, real branch shape-only (ANTIPATTERNS #1)
 
@@ -399,9 +403,9 @@ is **stricter** than the autogen-id one: a `random()` guard
 ([`usesRandom`](./checks/mirrorImage.ts)) is tolerated **only** when the
 real-validating branch contains both a lower- and an upper-bound comparison
 (`toBeGreaterThan*` AND `toBeLessThan*`). A `typeof`-only real branch **stays
-flagged** until it bounds the value. (Today only the canonical
-`select.scalar-helpers.test.ts` `random` cell carries the bound; the other cells
-stay flagged until propagated.)
+flagged** until it bounds the value. (Every `random` cell now carries the bound
+— the canonical `select.scalar-helpers.test.ts` shape propagated to all cells, so
+none stays flagged.)
 
 **Verified**: 145 findings, 100% genuine on the sample, e.g.
 [`select.distinct.test.ts:29`](../../db/postgres/newest/pg/select.distinct.test.ts#L29)
@@ -415,9 +419,9 @@ subagent false-positive review of the pg cell found 2 FPs here — a two-sided
 `toBeNull` / `toBeUndefined` as scalar value matchers (they were in `WEAK`); the
 count dropped 171 → 145.
 
-**Status**: **built** (`warn`). Close to promotion — fix the ~18 sites (make
-the value assertion unconditional per DESIGN §1) or justify with
-`// tests-audit-disable-next-line mirror-image -- <reason>`, then flip to `error`.
+**Status**: **built** (`error`). The sites have been fixed (the value assertion
+made unconditional per DESIGN §1, or justified with
+`// tests-audit-disable-next-line mirror-image -- <reason>`); 0 findings today.
 
 ### `one-sided-guard` — only one mode validates the value
 
@@ -492,8 +496,8 @@ validate (engine-only error). The 367 sites the carve-out removed
 `toBeUndefined` as value matchers (the mirror-image FP fix) then added 46
 previously-invisible one-sided `toBeNull` guards (1521 → 1567) — a gap it closed.
 
-**Status**: **built** (`warn`). Stays `warn` through its (large) migration;
-promote independently of `mirror-image` once the backlog is worked down.
+**Status**: **built** (`error`). Promoted independently of `mirror-image`; its
+(large) migration backlog has been worked down to 0 findings today.
 
 ### `as-any` — a cast to `any` that bypasses the public typed API
 
@@ -509,7 +513,7 @@ symptom of *not understanding the problem*.
 Verified on the whole matrix (~1277 casts, 0 cheats today — they get fixed in
 review): the legitimate population is large and diverse. So instead of one
 discriminator, the rule **tolerates a small set of project-sanctioned patterns
-and flags everything else** as a `warn` backlog to rewrite (it surfaces a smell
+and flags everything else** to rewrite (it surfaces a smell
 for a human, it does not bless the cast). Tolerated:
 
 1. **Exception machinery** — the cast feeds an invalid value to a runtime guard
@@ -534,7 +538,7 @@ for a human, it does not bless the cast). Tolerated:
    error-extractors it is not covered by (1) and needs the explicit hole. The
    rest of the file stays covered.
 
-**Deliberately NOT tolerated** (flagged, `warn`, to rewrite — verified on the pg
+**Deliberately NOT tolerated** (flagged, to rewrite — verified on the pg
 cell, the others are replicas): a `{…} as any` **dynamic payload** to
 `withValues` (it *should* compile without the cast — a public documented API; the
 cast can hide a typing bug); a wrong-type value to a **conditional-set** skip
@@ -545,8 +549,8 @@ realistic-query goal. These are smells the rule keeps visible.
 
 The line the rule can't draw is **intent** (testing a guard vs faking a query);
 that residue is the [quality-gate sub-agent](../../QUALITY_GATE.md)'s — its
-"Gate today" for #4 stays the sub-agent until this backlog is worked down and
-the rule promotes.
+"Gate today" for #4 stays the sub-agent even though the rule has promoted to
+`error` and the backlog is now 0.
 
 **TODO[BUG] carve-out** (shared by `as-any`, `any-type`, `as-unknown-as`,
 `meaningless-cast`, `meaningless-type`). A test marked `// TODO[BUG]: <reason>`
@@ -557,7 +561,7 @@ specifically (`markerLines(sf, TODO_BUG_REASON)` + `isNodeInMarkedTest`), scoped
 to the enclosing test. `NOT-APPLICABLE` does **not** grant this (it licenses only
 mock-only, not a type bypass).
 
-**Status**: **built** (`warn`), in [`checks/asAny.ts`](./checks/asAny.ts). pg
+**Status**: **built** (`error`), in [`checks/asAny.ts`](./checks/asAny.ts). pg
 cell: 15 findings (the rewrite backlog above); whole matrix ~242 (after the
 exception / allow-when / marshalling carve-outs) — now 0 after the suite cleanup.
 
@@ -577,9 +581,9 @@ very shortcut this guards), an extension whose shape was never spelled out.
 fix is otherwise mechanical — `unknown` for a caught error / opaque value, or the
 precise type. Verified on the pg cell: 16 findings (`let thrown: any` →
 `unknown`; `const conn: any`; `(v) => any` in `DynamicCondition` extension type
-defs) — all a `warn` rewrite backlog.
+defs) — that rewrite backlog has since been worked down to 0.
 
-**Status**: **built** (`warn`), in [`checks/asAny.ts`](./checks/asAny.ts). pg
+**Status**: **built** (`error`), in [`checks/asAny.ts`](./checks/asAny.ts). pg
 cell: 16; whole matrix ~272 — now 0 after the suite cleanup.
 
 ### `as-unknown-as` — the `x as unknown as T` laundering
@@ -594,9 +598,10 @@ to `unknown`. Same sanctioned carve-outs as `as-any` (exception machinery,
 allow-when, file-scoped, `TODO[BUG]`). The inner `as unknown` of the pair is
 excluded from `meaningless-cast` so the two never double-flag.
 
-**Status**: **built** (`warn`). Whole matrix: 62 — the laundering casts the
-suite cleanup left in place because this rule did not yet exist (mostly the
-`dynamic-condition.extension` sites, replicated per cell). A real rewrite backlog.
+**Status**: **built** (`error`). Whole matrix: 0 today (was 62 during the ramp —
+the laundering casts the suite cleanup had left in place because this rule did
+not yet exist, mostly the `dynamic-condition.extension` sites replicated per
+cell; that rewrite backlog has been cleared).
 
 ### `meaningless-cast` — a cast to `unknown` / `null` / `never` / `void`
 
@@ -608,10 +613,10 @@ cast is redundant; e.g. `ctx.lastParams as unknown[]` where `lastParams` is
 already `unknown[]`). A union with a real member (`as string | null`) is a genuine
 widening and is **not** flagged. Same sanctioned carve-outs as `as-any`.
 
-**Status**: **built** (`warn`), in [`checks/asAny.ts`](./checks/asAny.ts). Whole
-matrix: 170 — the redundant `ctx.lastParams as unknown[]` casts feeding the public
-`getQueryExecution*` / `isSelectPageCountQuery` APIs (drop the cast; `lastParams`
-is already `unknown[]`).
+**Status**: **built** (`error`), in [`checks/asAny.ts`](./checks/asAny.ts). Whole
+matrix: 0 today (was 170 during the ramp — the redundant `ctx.lastParams as unknown[]`
+casts feeding the public `getQueryExecution*` / `isSelectPageCountQuery` APIs;
+the cast was dropped since `lastParams` is already `unknown[]`).
 
 ### `meaningless-type` — the `unknown` / `null` / `never` / `void` type annotation
 
@@ -631,7 +636,7 @@ or a `getQueryExecutionMetadata` result; `null` in a union with a real member;
 annotation, and `unknown` **plumbing** that only makes a test less readable /
 realistic (a generic `capture(run: () => Promise<unknown>)`, `Set<unknown>`).
 
-**Status**: **built** (`warn`), in [`checks/asAny.ts`](./checks/asAny.ts). Whole
+**Status**: **built** (`error`), in [`checks/asAny.ts`](./checks/asAny.ts). Whole
 matrix: **0** today — after the carve-outs (the error-shape alias was the last)
 and the suite cleanup. (The earlier "full mirror" count of 3466 was almost
 entirely legitimate `unknown`: caught errors, the public `TypeAdapter` API,
@@ -660,9 +665,9 @@ test, throw-helper / error-handling helper, allow-when, file-scoped `fromDbValue
 `// TODO[BUG]:`). It composes with the other cast rules without double-flagging
 (each cast node is owned by exactly one).
 
-**Status**: **built** (`warn`), in [`checks/asAny.ts`](./checks/asAny.ts). Whole
+**Status**: **built** (`error`), in [`checks/asAny.ts`](./checks/asAny.ts). Whole
 matrix: **0** today — after the branded + error-narrowing carve-outs and the suite
-cleanup, nothing remains. A `warn` rule whose residue is the quality-gate
+cleanup, nothing remains. An `error` rule whose residue is the quality-gate
 sub-agent's judgement (is the cast necessary, or should it be `satisfies` / a
 properly-built value?).
 
@@ -690,7 +695,7 @@ AST-only so comment links to internal files don't count):
   flagged. `./setup.js` and `../../domain/…` are neither src nor test/lib, so
   they are fine.
 
-**Status**: **built** (`warn`). Whole matrix: 0 findings today (every src import
+**Status**: **built** (`error`). Whole matrix: 0 findings today (every src import
 is a public export or under the allowed `src/experimental/*`, every test/lib
 import is admitted) — a clean preventive gate. (`documentation` / `*.generated` cells, which import a mock-runner, are
 outside the walked set, so they don't count.)
@@ -737,12 +742,13 @@ only checks that a disabled test **has** a marker — a structural requirement, 
 cross-reference and no per-category classification (that distinction lives in the
 searcher).
 
-**Status**: **built** (`warn`). Whole matrix: 555 findings — commented-out tests
-that explain themselves in prose (`// Not applicable on MariaDB: …`) but lack a
-standardised marker. The backlog is to convert each prose note into the right
-one of the three markers (a dialect boundary → `// NOT-APPLICABLE:`; a bug →
-`// TODO[BUG]:`; not-covered-yet → `// TODO[LIMITATION]:`). The migration itself
-is suite work, owned by the corrections pass, not the audit tool.
+**Status**: **built** (`error`). Whole matrix: 0 findings today (was 555 during
+the ramp — commented-out tests that explained themselves in prose
+(`// Not applicable on MariaDB: …`) but lacked a standardised marker). The backlog
+was to convert each prose note into the right one of the three markers (a dialect
+boundary → `// NOT-APPLICABLE:`; a bug → `// TODO[BUG]:`; not-covered-yet →
+`// TODO[LIMITATION]:`); that migration — suite work owned by the corrections
+pass, not the audit tool — is now complete.
 
 ### `grouped-commented-tests` — several commented-out tests sharing one comment block
 
@@ -773,10 +779,11 @@ the rule is purely about layout, orthogonal to *which* marker each test needs.
 canonical cell for cross-cell diff parity, then commented out under one shared
 marker (e.g. `transaction.isolation-level.test.ts`, `exec.procedure-function.test.ts`,
 `select.aggregate-as-array-inline-wrapped.test.ts`, replicated across the
-symmetric cells). The backlog is to split each block so every commented test gets
-its own marker — suite work owned by the corrections pass, not the audit tool.
+symmetric cells). The backlog — split each block so every commented test gets
+its own marker, suite work owned by the corrections pass, not the audit tool — has
+since been worked down to 0 findings today.
 
-**Status**: **built** (`warn`).
+**Status**: **built** (`error`).
 
 ### `uuid-literal` — a string literal that looks like a UUID but is not valid
 
@@ -809,7 +816,7 @@ out of scope — distinguishing *that* from a valid string needs the type checke
 the unbounded question the [Boundary](#boundary) walls off. This is why the rule
 stays **narrow**: UUID-looking literals only, never "any value a mock accepts".
 
-**Status**: **built** (`warn`), in [`checks/uuidLiteral.ts`](./checks/uuidLiteral.ts).
+**Status**: **built** (`error`), in [`checks/uuidLiteral.ts`](./checks/uuidLiteral.ts).
 Whole-matrix run: 0 findings today (every UUID in the suite is valid) — a clean
 preventive gate.
 
@@ -830,11 +837,11 @@ The chain walk ([`rootIdentifier`](./checks/focusedTest.ts)) also catches
 non-runner root and is **not** flagged. No type checker.
 
 `.only` is a local-iteration convenience; committed to the matrix it is never
-legitimate, and there is nothing to migrate (anchor: **0 today**). It is an
-**early promotion candidate** — once the project flips it to `error` it fails the
+legitimate, and there is nothing to migrate (anchor: **0 today**). It was an
+**early promotion**, and now that it is `error` it fails the
 build the moment a `.only` is committed.
 
-**Status**: **built** (`warn` — like every content rule today; see
+**Status**: **built** (`error` — like every content rule today; see
 [Severity model](#severity-model)), in [`checks/focusedTest.ts`](./checks/focusedTest.ts).
 Whole-matrix run: 0 findings today — a clean preventive gate.
 
@@ -867,10 +874,9 @@ would be pure noise and double-count. So the **live-code anchor is 0**, and this
 is a preventive gate — the snapshot twin of `uuid-literal` / `non-public-api`:
 it fails the build the moment an un-baked snapshot is committed to live code.
 
-**Status**: **built** (`warn`). Whole-matrix run: 0 live findings today (the 384
+**Status**: **built** (`error`). Whole-matrix run: 0 live findings today (the 384
 empty placeholders are all in commented-out tests, AST-exempt). Like the other
-anchor-0 preventive gates it stays `warn` for consistency, immediately
-promotable to `error` since the live tree is already clean.
+anchor-0 preventive gates it is `error`, the live tree being already clean.
 
 ### Suppression-comment rules — `ts-ignore` / `ts-expect-error` / `eslint-disable-type` / `eslint-disable-other`
 
@@ -885,8 +891,8 @@ query through the public typed API can reach for a `@ts-ignore` or an
 Produced by one pass ([`checks/suppressions.ts`](./checks/suppressions.ts), TS
 scanner — so a string or live code that merely contains the text is never
 mistaken for a directive, no type checker). They are **split into one rule per
-mechanism** (project decision) so each carries its own severity and can be
-promoted independently; all four are `warn` today.
+mechanism** (project decision) so each carries its own severity and was
+promoted independently; all four are `error` today.
 
 - **`ts-ignore`** — `@ts-ignore` / `@ts-nocheck`. Silences EVERY type error on
   the next line — the bluntest bypass. Forbidden **everywhere** in the tests,
@@ -894,33 +900,34 @@ promoted independently; all four are `warn` today.
   line-scoped, error-asserting `@ts-expect-error` *inside* a `types.negative/`
   cell, never the blanket ignore. This is the **one rule that also scans
   `types.negative/`** (every other rule skips it). **Anchor: 0 anywhere in
-  `test/`** — a clean preventive gate, and (with `focused-test`) an early
-  promotion candidate.
+  `test/`** — a clean preventive gate, and (with `focused-test`) one of the early
+  promotions.
 - **`ts-expect-error`** — `@ts-expect-error` **outside** a `types.negative/`
   cell. Inside those cells it is the *expected* negative-type assertion (proving
   the public API rejects something — 243 legitimate uses today), and they are
   excluded from the walk, so they are naturally exempt. Anywhere else it asserts
   a type error where the line should compile cleanly — a type-limitation bypass
-  ("…the runtime accepts this SQL"). **Anchor: 4**, all in
+  ("…the runtime accepts this SQL"). **Anchor: 0 today** (was 4 during the ramp,
+  all in
   [`mariadb/.../select.aggregate-as-array-inline-wrapped.test.ts`](../../db/mariadb/newest/mariadb/select.aggregate-as-array-inline-wrapped.test.ts)
-  (MariaDB types disallow group-by/having in correlated inline aggregates; the
-  test bypasses the type to exercise SQL the runtime accepts) — a `warn` backlog
-  to rebuild through the public surface or move to a `types.negative/` cell.
+  — MariaDB types disallow group-by/having in correlated inline aggregates, the
+  test bypassed the type to exercise SQL the runtime accepts; that backlog was
+  rebuilt through the public surface or moved to a `types.negative/` cell).
 - **`eslint-disable-type`** — an `eslint-disable*` of a **type-soundness** lint
   (`@typescript-eslint/no-explicit-any`, `no-unsafe-*`, `ban-ts-comment`) or a
   **bare** disable (no rule named → turns off every lint). The lint twin of
   `as-any` / `any-type` — it silences the rule that would flag a type-dodging
-  test. **Anchor: 34** (all `no-explicit-any`) — a `warn` rewrite backlog.
+  test. **Anchor: 0 today** (was 34, all `no-explicit-any` — that rewrite backlog
+  has been cleared).
 - **`eslint-disable-other`** — an `eslint-disable*` of any **other** (non-type)
   lint. Split from the type bucket so the type-soundness signal stays clean;
-  this one is the lowest-priority bucket. **Anchor: 17**, all
+  this one is the lowest-priority bucket. **Anchor: 0 today** (was 17, all
   `no-unused-vars` on a kept-for-parity `import { assertType as _assertType }`
-  (a doc-example import unused in that snippet). Tracked, `warn`; the per-pattern
-  exceptions are a follow-up.
+  — a doc-example import unused in that snippet; cleared).
 
-**Status**: **built** (`warn`), in [`checks/suppressions.ts`](./checks/suppressions.ts).
-Whole-matrix: `ts-ignore` 0, `ts-expect-error` 4, `eslint-disable-type` 34,
-`eslint-disable-other` 17.
+**Status**: **built** (`error`), in [`checks/suppressions.ts`](./checks/suppressions.ts).
+Whole-matrix: all 0 today (ramp anchors were `ts-ignore` 0, `ts-expect-error` 4,
+`eslint-disable-type` 34, `eslint-disable-other` 17 — the latter three cleared).
 
 ### Registration-skip rules — `skipped-test-reason` / `skip-real-db`
 
@@ -954,7 +961,7 @@ comments; no type checker).
   `// TODO[BUG]: <reason>` (reproducible bug pending a fix) is exempt.
   **Anchor: 0** — a preventive gate closing the hole before it appears.
 
-**Status**: **built** (`warn`), in [`checks/registrationSkip.ts`](./checks/registrationSkip.ts).
+**Status**: **built** (`error`), in [`checks/registrationSkip.ts`](./checks/registrationSkip.ts).
 Whole-matrix: both 0 — clean preventive gates.
 
 ### `misplaced-marker` — a reason marker not at a test
@@ -975,10 +982,10 @@ marker, NOT its whole body — a file-wrapping `describe` must not whitelist
 everything); or in the contiguous comment run that holds a **commented-out** test
 (the test it explains may itself be commented). Anything else is flagged.
 
-**Status**: **built** (`warn`). Whole matrix: 7 — file-header prose that writes
-the literal `TODO[LIMITATION]:` token in a sentence (e.g.
-`select.compound-extras.test.ts`) rather than only as a marker at the commented
-tests; reword the prose (drop the `:` / use the actual markers) to clear them.
+**Status**: **built** (`error`). Whole matrix: 0 today (was 7 during the ramp —
+file-header prose that wrote the literal `TODO[LIMITATION]:` token in a sentence,
+e.g. `select.compound-extras.test.ts`, rather than only as a marker at the
+commented tests; the prose was reworded to clear them).
 
 ### `tautology` — a provably-constant assertion that validates nothing
 
@@ -1007,7 +1014,7 @@ receiver is `expect(x).not`, not the `expect(x)` call), and `expect(true).toBe(f
 form (the `mirror-image` §`select.value-source.null-and-if-value-modifiers.test.ts:184`
 site and its replicas); literal-self-compare and same-expression are **0** today.
 
-**Status**: **built** (`warn`), in [`checks/tautology.ts`](./checks/tautology.ts).
+**Status**: **built** (`error`), in [`checks/tautology.ts`](./checks/tautology.ts).
 The narrowest of the content rules by design — the open-ended "is this assertion
 meaningful?" residue stays with the [quality-gate sub-agent](../../QUALITY_GATE.md).
 
@@ -1039,15 +1046,17 @@ don't actually validate**. Three mechanical shapes, three rule ids
   a `mock-only` pattern in disguise (per the project author — *"there is no reason
   you can't validate that on the mock without the swallow"*), and one the
   body-scoped `mock-only` rule misses because the swallow is **unconditional**
-  (not `catch { if (!realDbEnabled) throw e }`). A `warn` backlog of 66.
+  (not `catch { if (!realDbEnabled) throw e }`). A backlog of 66 during the ramp,
+  worked down to 0 today.
 - **`weak-boolean`** — `expect(x).toBeTruthy()` / `toBeFalsy()` pins only
   truthiness, not the value (a truthy/falsy check passes for many results).
   Assert the exact value (`toBe(true)`, the real result). **Anchor: 0** — a
   preventive gate. (A `.not` chain is excluded — its receiver is `expect(x).not`,
   not the `expect(x)` call.)
 
-**Status**: **built** (`warn`), in [`checks/noValidation.ts`](./checks/noValidation.ts).
-Whole-matrix: `no-assertion-runtime` 0, `empty-catch` 66, `weak-boolean` 0.
+**Status**: **built** (`error`), in [`checks/noValidation.ts`](./checks/noValidation.ts).
+Whole-matrix: all 0 today (`empty-catch`'s ramp anchor was 66, since cleared;
+`no-assertion-runtime` and `weak-boolean` were preventive gates at 0).
 
 ### `weak-matcher` — an assertion that pins shape/membership, not the value
 
@@ -1092,12 +1101,12 @@ type checker):
 **`toBeCloseTo` is NOT here** — a *float* is non-pinnable even with known data
 (rounding), unlike a string, so it gets its own real-branch-aware rule
 [`close-to`](#close-to--an-approximate-float-comparison-outside-a-real-db-branch),
-kept separate so this rule stays rigid (promotable to `error` independently)
+kept separate so this rule stays rigid (promoted to `error` independently)
 without the float case's leniency diluting it.
 
-**Status**: **built** (`warn`), in [`checks/weakMatcher.ts`](./checks/weakMatcher.ts).
-Whole-matrix: 208 (14 structural + 194 string-pattern on a value; diagnostic-blob
-uses tolerated).
+**Status**: **built** (`error`), in [`checks/weakMatcher.ts`](./checks/weakMatcher.ts).
+Whole-matrix: 0 today (was 208 during the ramp — 14 structural + 194 string-pattern
+on a value, diagnostic-blob uses tolerated — since worked down).
 
 ### `close-to` — an approximate float comparison outside a real-DB branch
 
@@ -1109,12 +1118,12 @@ Outside a real-DB branch the value comes from the mock (exactly what `mockNext`
 set), so `toBe` pins it; an approximate comparison there hides a value.
 
 **Kept deliberately separate from `weak-matcher`** (the author's call): the
-weak-matcher family should stay rigid and promote to `error` on its own schedule;
-this more lenient, real-branch-aware float case would dilute it. Detection is the
+weak-matcher family should stay rigid and was promoted to `error` on its own
+schedule; this more lenient, real-branch-aware float case would dilute it. Detection is the
 shared [`isInRealBranch`](./ast.ts). **Anchor: 0** — all 107 `toBeCloseTo` sit in
 a real-DB branch today, so it is a clean preventive gate.
 
-**Status**: **built** (`warn`), in [`checks/closeTo.ts`](./checks/closeTo.ts).
+**Status**: **built** (`error`), in [`checks/closeTo.ts`](./checks/closeTo.ts).
 
 ### `no-op-expect` — an `expect(...)` chain with no matcher invoked
 
@@ -1132,7 +1141,7 @@ expression (through an optional `await`) that is a bare `expect(...)` call or an
 (`expect(x).toBe(1)`, `await expect(p).rejects.toThrow()`) is a CallExpression
 whose callee is the matcher property, so it is fine.
 
-**Status**: **built** (`warn`). Anchor 0 — a clean preventive gate.
+**Status**: **built** (`error`). Anchor 0 — a clean preventive gate.
 
 ### `non-deterministic-input` — a non-deterministic JS value used as a query input
 
@@ -1154,7 +1163,7 @@ distinction is the project author's: *"`new Date()` as input data is a problem
 because it isn't deterministic; different is a `new Date` with a fixed value, and
 different again is probing the DB's equivalents [as mock data]."*
 
-**Status**: **built** (`warn`). Anchor 0 — every `new Date()` in the suite today
+**Status**: **built** (`error`). Anchor 0 — every `new Date()` in the suite today
 is mock data (68: 34 direct in `mockNext`, 34 via a variable passed to it); a
 clean preventive gate against a non-deterministic input.
 
@@ -1209,6 +1218,10 @@ The references in
 
 ## Maintenance contract
 
+The current rule set has already completed this ramp — every rule is `error`
+today. The steps below remain the procedure for any **future** rule that lands at
+`warn` and is later promoted.
+
 When a rule is **promoted to `error`**:
 
 1. Update the matching entry's **"Gate today"** line in
@@ -1241,14 +1254,15 @@ EXTERNAL_CAVEATS subsection), update the link here in the same change.
 ## Status & roadmap
 
 - **Built**:
-  - the whole-matrix symmetry check (`symmetry.ts`, currently `warn` during the
-    cross-database migration, sub-second);
+  - the whole-matrix symmetry check (`symmetry.ts`, `error` now the
+    cross-database migration is done and the matrix is symmetric, sub-second);
   - the framework — severity model (`rules.ts`), the `tests-audit-disable`
     suppression + meta-rules (`ignores.ts`), compiler-style output
     (`report.ts`), the orchestrator (`main.ts`); `--explain` / `--strict` /
     `--all` / `--only`;
-  - thirty content rules, **all `warn`** today (the split into one rule per
-    mechanism is what lets each be promoted to `error` independently), whole run
+  - thirty content rules, **all `error`** today — the warn→error ramp is complete
+    (the split into one rule per mechanism is what let each be promoted to `error`
+    independently), whole run
     ~1 s (syntactic AST, no type checker). The five type-bypass / cast siblings of
     `as-any`/`any-type` — `as-unknown-as` (62; `x as unknown as T` laundering),
     `meaningless-cast` (170; `as unknown`/`null`/`never`/`void`, incl. `as unknown[]`),
@@ -1259,8 +1273,8 @@ EXTERNAL_CAVEATS subsection), update the link here in the same change.
     added last, then `grouped-commented-tests` (88; 2+ commented-out tests sharing
     one `/* … */` block — split so each carries its own reason marker, the
     structural companion to `commented-test-reason`). NOTE: the per-rule counts
-    BELOW are the original anchors; after the suite cleanup most content backlogs
-    are **0** today and the only live findings are `grouped-commented-tests` (88)
+    BELOW are the original ramp anchors; after the suite cleanup every content
+    backlog is **0** today — the tree is clean for every rule
     (run `tests:audit` for the current tally). Original anchors: `mock-only` (595 — never validates
     against real; exception-only
     skip tests and the listed file-scoped exceptions are carved out, see its
@@ -1280,11 +1294,11 @@ EXTERNAL_CAVEATS subsection), update the link here in the same change.
     and `grouped-commented-tests` (88 — 2+ commented-out tests crammed into one
     `/* … */` block under a single shared marker; split so each gets its own),
     and `focused-test` (0 — a
-    committed `.only`; a clean preventive gate, early promotion candidate), and
+    committed `.only`; a clean preventive gate, one of the early promotions), and
     `empty-snapshot` (0 live — un-baked `toMatchInlineSnapshot()`; the 384
     empty placeholders are all in commented-out tests, AST-exempt), and the four
     suppression-comment rules `ts-ignore` (0 anywhere, incl. types.negative; the
-    other early promotion candidate), `ts-expect-error` (4 — bypass outside a
+    other early promotion), `ts-expect-error` (4 — bypass outside a
     types.negative cell), `eslint-disable-type` (34 — the lint twin of
     as-any/any-type), `eslint-disable-other` (17 — non-type lint suppressions),
     and the two registration-skip rules `skipped-test-reason` (0 — `.skip`/`.todo`
@@ -1307,22 +1321,26 @@ EXTERNAL_CAVEATS subsection), update the link here in the same change.
 - **Deferred**: none — `as-any` was the last; its residual *intent* judgement
   stays with the [quality-gate sub-agent](../../QUALITY_GATE.md) (see its rule).
 
-**Next steps** (severity order — the deeper the failure to reach the real DB,
-the higher the priority):
+**Next steps** — done. The warn→error ramp is complete: every rule is `error`
+and the tree is clean (`tests:audit` reports `✖ 0 problems` and
+`whole matrix symmetric`). The three migration backlogs that drove the ramp were
+worked down in severity order:
 
-1. **`mock-only` first** — the least defensible (the engine is never validated).
-   Drive each case on the real engine (`fragmentWithType` / `rawFragment` to
-   synthesise off-shape inputs; `toBeCloseTo` for float precision; assert
-   procedure/RETURNING results unconditionally instead of swallowing). Then
-   promote `mock-only` to `error`.
-2. **`mirror-image`** (smallest after mock-only): give the real branch the same
-   value assertion (JS-sort / UPDATE-in-`withRollback`), then promote.
-3. **`one-sided-guard`** (large backlog): add `ORDER BY` / JS-sort so one
-   `expect(...).toEqual(...)` passes in both modes. Promote once worked down.
+1. **`mock-only`** — the least defensible (the engine is never validated). Each
+   case was driven on the real engine (`fragmentWithType` / `rawFragment` to
+   synthesise off-shape inputs; `toBeCloseTo` for float precision; procedure/
+   RETURNING results asserted unconditionally instead of swallowed), then promoted
+   to `error`.
+2. **`mirror-image`** — the real branch got the same value assertion (JS-sort /
+   UPDATE-in-`withRollback`), then promoted.
+3. **`one-sided-guard`** — the large backlog: `ORDER BY` / JS-sort so one
+   `expect(...).toEqual(...)` passes in both modes; worked down, then promoted.
+
+A future rule that lands at `warn` follows the same path; its promotion runs the
+[Maintenance contract](#maintenance-contract).
 
 A `tests-audit-disable` at any tier is rare and must name why the case is
-genuinely irreducible. Each promotion runs the
-[Maintenance contract](#maintenance-contract).
+genuinely irreducible.
 
 ### Candidate rules — all built
 
@@ -1350,7 +1368,8 @@ built — the [no-validation rules](#no-validation-rules--no-assertion-runtime--
 [`weak-matcher`](#weak-matcher--an-assertion-that-pins-shapemembership-not-the-value),
 and [`close-to`](#close-to--an-approximate-float-comparison-outside-a-real-db-branch)
 — plus the `xit`/`xtest`/`xdescribe` extension to `skipped-test-reason`.
-`empty-catch` (66) and `weak-matcher` (208) are the ones with live backlogs, and
+`empty-catch` (66 during the ramp) and `weak-matcher` (208) were the ones with
+backlogs (since worked down to 0), and
 both illustrate the project principle for carve-outs: **"a legitimate use means
 we write the rule to recognise it and flag the rest"**, not "a legitimate use
 means no rule" — `empty-catch` carves out the deliberate-throw rollback pattern;
@@ -1373,6 +1392,7 @@ exception-validation uses), `assertType<Extends>` (utility-type demos vs a
 weakened result type) — all intent-level, the [Boundary](#boundary)'s sub-agent
 territory.
 
-The detector's growth surface now shifts from *adding rules* to **working down
-the `warn` backlogs and promoting rules to `error`** (see Next steps above) — and
+The detector's growth surface has moved past *adding rules* and past **working
+down the `warn` backlogs and promoting rules to `error`** — both are now done
+(every rule is `error`, the tree is clean; see Next steps above). What remains is
 adding new rules only as fresh cheat vectors are observed.

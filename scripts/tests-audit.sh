@@ -20,121 +20,119 @@ Checks:
                 names in the same order (executed OR commented out). Exempt:
                 `config.*` (connection-config-specific), `*.generated.test.ts`,
                 and files whose name embeds a database name as a `.`/`-` token
-                (e.g. select.postgres-…). DESIGN § Symmetry. [warn — temporarily,
-                while the cross-database backlog is worked down; returns to error
-                once clean]
+                (e.g. select.postgres-…). DESIGN § Symmetry. [error]
   mock-only        the test never validates against the real engine — either
                    `if (ctx.realDbEnabled) return` (mock-only) or a catch that
                    rethrows only on the mock (swallows the real-DB error). Most
-                   severe. DESIGN § Real-DB validation. [warn]
+                   severe. DESIGN § Real-DB validation. [error]
   mirror-image     two-sided ctx.realDbEnabled guard where the mock branch
                    asserts a value (deep equality) but the real-DB branch only
                    checks shape — a regression slips through under --docker.
-                   DESIGN §1 / ANTIPATTERNS #1. [warn]
+                   DESIGN §1 / ANTIPATTERNS #1. [error]
   one-sided-guard  a ctx.realDbEnabled guard where only ONE mode validates the
                    value (the other gets no branch, or returns early). The
                    value must be checked in both mock and real DB. DESIGN §1.
-                   [warn]
+                   [error]
   uuid-literal     a string literal that looks like a UUID (8-4-4-4-12 shape)
                    but is not valid hex — the mock accepts any string, a real
-                   engine rejects it, so it passes mock-only. [warn]
+                   engine rejects it, so it passes mock-only. [error]
   as-any           a cast to `any` bypassing the public typed API — the symptom
                    of a query not built the supported way. Exception tests,
                    allow-when (isQueryAllowed) and the marshalling fromDbValue
-                   helper are tolerated; the rest is a rewrite backlog. [warn]
+                   helper are tolerated; the rest is a rewrite backlog. [error]
   any-type         an `any` TYPE annotation (`x: any`, `(v: any) =>`, `any[]`,
                    …) — defeats type-checking, hides unrealistic tests. Use a
-                   precise type or `unknown`. Separate from as-any. [warn]
+                   precise type or `unknown`. Separate from as-any. [error]
   as-unknown-as    `x as unknown as T` — the double-assertion laundering that
                    bypasses the checker exactly like `as any`, spelled to evade
-                   an as-any ban. Its own rule, the clearest cheat. [warn]
+                   an as-any ban. Its own rule, the clearest cheat. [error]
   meaningless-cast a cast to `unknown` / `null` / `never` / `void`, a union of
                    only those, or an array of one (`as unknown[]` — redundant) —
-                   a pointless type-checker bypass. [warn]
+                   a pointless type-checker bypass. [error]
   meaningless-type the `unknown` / `null` / `never` / `void` TYPE annotation. The
                    type twin of meaningless-cast; `unknown`/`null` allowed in the
                    same contexts as `as any` + what a public API requires
-                   (TypeAdapter, getQueryExecution*). [warn]
+                   (TypeAdapter, getQueryExecution*). [error]
   type-cast        any OTHER `x as T` / `<T>x` assertion not caught above — may be
                    forcing the type or wanting `satisfies`. Exempt: `as const`,
                    branded casts (`19.99 as Money`), error-narrowing casts
                    (`(thrownError as Error).message`); same sanctioned contexts as
-                   meaningless-cast. [warn]
+                   meaningless-cast. [error]
   non-public-api   a relative import past the supported surface: into a src
                    module that is not a package.json export, or into a
-                   non-admitted test/lib file. [warn]
+                   non-admitted test/lib file. [error]
   commented-test-reason  a commented-out test with no reason marker saying why
                    it is disabled — one of `// TODO[BUG]: …` (defect in src/),
                    `// TODO[LIMITATION]: …` (not covered yet / env), or
                    `// NOT-APPLICABLE: …` (a permanent dialect boundary; runs in
-                   the dialects that support it). [warn]
+                   the dialects that support it). [error]
   grouped-commented-tests  several commented-out tests crammed into ONE `/* … */`
                    comment block, sharing a single reason marker — the individual
                    reasons are lost. Split it: one commented-out test per block,
                    each with its own marker (`commented-test-reason` then enforces
                    one per block). A normal `//`-per-line commented test is not
-                   flagged; only a block holding two or more tests. [warn]
+                   flagged; only a block holding two or more tests. [error]
   focused-test     a committed `test.only` / `it.only` / `describe.only` —
                    focuses the runner and silently skips the rest of the file,
                    so the cell looks green while almost nothing ran. Never
-                   legitimate in committed code. [warn]
+                   legitimate in committed code. [error]
   empty-snapshot   an empty `toMatchInlineSnapshot()` in live code — pins
                    nothing (auto-fills on the next run), so it asserts nothing
                    until baked. Snapshots inside commented-out tests are
-                   naturally exempt (not live code). [warn]
+                   naturally exempt (not live code). [error]
   ts-ignore        `@ts-ignore` / `@ts-nocheck` — silences every type error on
                    the next line. Forbidden everywhere in the tests, including
-                   the negative-type cells (use `@ts-expect-error` there). [warn]
+                   the negative-type cells (use `@ts-expect-error` there). [error]
   ts-expect-error  `@ts-expect-error` outside a `types.negative/` cell — a
                    type-error bypass where the line should compile cleanly.
-                   Inside `types.negative/` it is the expected tool. [warn]
+                   Inside `types.negative/` it is the expected tool. [error]
   eslint-disable-type   an `eslint-disable` of a type-soundness lint
                    (`no-explicit-any` / `no-unsafe-*` / `ban-ts-comment`, or a
-                   bare disable) — the lint twin of as-any / any-type. [warn]
+                   bare disable) — the lint twin of as-any / any-type. [error]
   eslint-disable-other  an `eslint-disable` of any other (non-type) lint —
-                   tracked separately so the type bucket stays clean. [warn]
+                   tracked separately so the type bucket stays clean. [error]
   skipped-test-reason   `test.skip` / `it.skip` / `describe.skip` / `test.todo`
                    with no reason marker (`// TODO[BUG]: …` / `// TODO[LIMITATION]: …`
                    / `// NOT-APPLICABLE: …`) — the `.skip` twin of
-                   commented-test-reason. [warn]
+                   commented-test-reason. [error]
   skip-real-db     `test.skipIf(ctx.realDbEnabled)` / `runIf(!realDbEnabled)` —
                    a mock-only evasion at the registration level (the test never
-                   runs against the real engine). [warn]
+                   runs against the real engine). [error]
   misplaced-marker a `// TODO[BUG]:` / `// TODO[LIMITATION]:` / `// NOT-APPLICABLE:`
                    marker NOT at a test (file scope, a helper, floating prose).
                    Must sit in the comment block above a test (live or commented)
-                   or inside a test body. [warn]
+                   or inside a test body. [error]
   tautology        a provably-constant assertion that validates nothing —
                    `expect(true).toBe(true)`, `expect(x).toBe(x)`, or
                    `expect(x.length).toBeGreaterThanOrEqual(0)` (.length is
                    always >= 0). Only provable shapes; weak-but-real ones are
-                   the sub-agent's call. [warn]
+                   the sub-agent's call. [error]
   no-assertion-runtime  a test that runs a query (an `execute*` call) but has no
                    assertion (`expect` / `assertType` / `toThrow`) — it executes
-                   and validates nothing. (Type-only demos are not flagged.) [warn]
+                   and validates nothing. (Type-only demos are not flagged.) [error]
   empty-catch      an empty `catch { }` swallows the error unconditionally, so a
                    real failure can't surface. Swallowing an `execute*` to assert
                    only the captured SQL is a mock-only pattern. A deliberate
-                   `throw` in the try (e.g. to force a rollback) is exempt. [warn]
+                   `throw` in the try (e.g. to force a rollback) is exempt. [error]
   weak-boolean     `expect(x).toBeTruthy()` / `toBeFalsy()` — pins only
-                   truthiness, not the value. Assert the exact value. [warn]
+                   truthiness, not the value. Assert the exact value. [error]
   weak-matcher     an asymmetric matcher (`expect.arrayContaining` /
                    `objectContaining` / `any` / `anything`) or `.toContain` /
                    `.toMatch` on a value — pins shape/membership, not the exact
                    value. Approximate matching is reserved for a diagnostic blob
                    (error message / stack trace); elsewhere pin the value
                    (normalise id/timestamp + `toEqual`, the full SQL snapshot;
-                   a real string is deterministic). [warn]
+                   a real string is deterministic). [error]
   close-to         `toBeCloseTo` outside a real-DB branch — approximate float
                    comparison is warranted only against the real engine's
                    rounding; the mock returns exact values, pin with `toBe`. A
-                   separate, lenient rule. [warn]
+                   separate, lenient rule. [error]
   no-op-expect     an `expect(...)` chain with no matcher invoked (`expect(x)`,
                    `expect(x).not`, `await expect(p).rejects`) — a no-op that
-                   always passes. Call a matcher or remove it. [warn]
+                   always passes. Call a matcher or remove it. [error]
   non-deterministic-input  `new Date()` (no arg) / `Date.now()` / `Math.random()`
                    used as a query input — non-deterministic params/snapshot. Use
-                   a fixed value; allowed only as mock data (`mockNext`). [warn]
+                   a fixed value; allowed only as mock data (`mockNext`). [error]
 
 Suppress a content finding with a reason (eslint/oxlint syntax; reason required):
   // tests-audit-disable-next-line <rule> -- <reason>   (line above the finding)
@@ -142,8 +140,12 @@ Suppress a content finding with a reason (eslint/oxlint syntax; reason required)
 
 Flags:
   --explain     print the fix hint for each finding
-  --strict      treat every warning as an error (trial a promotion)
-  --all         list every warning (default groups a large backlog per rule)
+  --strict      force `error` for any rule still set to `warn`. Every rule is
+                `error` today, so this is a no-op for the current rule set —
+                kept for trialing a NEW rule that lands at `warn`.
+  --all         list every finding in full (the default caps a large `warn`
+                backlog per rule; with all rules at `error` there is normally
+                nothing to cap)
   --only <rule> run a single content rule (mock-only | mirror-image |
                 one-sided-guard | uuid-literal | as-any | any-type |
                 as-unknown-as | meaningless-cast | meaningless-type |

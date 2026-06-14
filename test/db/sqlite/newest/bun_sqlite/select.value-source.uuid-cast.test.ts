@@ -14,8 +14,9 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
+    // NOT-APPLICABLE: bun:sqlite has no user-defined-function API (only `loadExtension`), so the `uuid_str` / `uuid_blob` extension functions can't be registered; its built-ins are present only where the system SQLite bundles the `uuid` extension (e.g. macOS) and are absent from Bun's bundled SQLite on Linux/CI. Like `sqlite3`, kept mock-only here so the SqlBuilder shape is still asserted; this round-trip runs end-to-end on the connectors that register the functions (better-sqlite3 / node:sqlite / sqlite-wasm-OO1 — see test/db/sqlite/runners.ts).
     test('uuid-asString-on-const', async () => {
-        // Runs end-to-end here — see file header.
+        if (ctx.realDbEnabled) return
         ctx.mockNext(UUID_VALUE)
         // The shared test connection now defaults to the `'string'` uuid
         // strategy; opt back into `'uuid-extension'` explicitly so this

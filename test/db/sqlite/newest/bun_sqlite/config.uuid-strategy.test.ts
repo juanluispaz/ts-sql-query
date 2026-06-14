@@ -21,14 +21,19 @@
 // universally executable, so they run end-to-end in mock and real-DB
 // mode. The `'uuid-extension'` branch tests emit
 // `uuid_str(uuid_blob(?))`, which requires the SQLite `uuid` extension
-// functions. This connector provides them (bun:sqlite ships them
-// built-in; better-sqlite3, node:sqlite and sqlite-wasm-OO1 register
-// them in the test harness — see test/db/sqlite/runners.ts), so those
-// tests also run end-to-end against the real engine. Only the `sqlite3`
-// (npm) connector — which has no user-function API — keeps them
-// mock-only (guarded by `ctx.realDbEnabled`), per
+// functions. bun:sqlite has no user-defined-function API (only
+// `loadExtension`), so they can't be registered here; its built-in
+// `uuid_str` / `uuid_blob` are present only where the underlying system
+// SQLite already bundles the `uuid` extension (e.g. macOS) and are
+// ABSENT from Bun's bundled SQLite on Linux/CI ("no such function:
+// uuid_blob"). Like the `sqlite3` (npm) connector, this connector
+// therefore keeps the `'uuid-extension'` tests mock-only (guarded by
+// `ctx.realDbEnabled`), per
 // [DESIGN.md §1 #18](../../../../DESIGN.md#1-principles): there the
 // assertion of interest is the SqlBuilder shape, not engine execution.
+// The connectors that DO register the functions (better-sqlite3,
+// node:sqlite, sqlite-wasm-OO1 — see test/db/sqlite/runners.ts) run the
+// `'uuid-extension'` path end-to-end.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { ctx } from './setup.js'
@@ -57,11 +62,9 @@ describe(ctx.label, () => {
         `)
     })
 
+    // NOT-APPLICABLE: bun:sqlite has no user-defined-function API (only `loadExtension`), so the `uuid_str` / `uuid_blob` extension functions can't be registered; its built-ins are present only where the system SQLite bundles the `uuid` extension (e.g. macOS) and are absent from Bun's bundled SQLite on Linux/CI. Like `sqlite3`, kept mock-only here so the SqlBuilder shape is still asserted; the connectors that register the functions (better-sqlite3 / node:sqlite / sqlite-wasm-OO1 — see test/db/sqlite/runners.ts) run the `'uuid-extension'` path end-to-end.
     test('uuid-strategy: uuid-extension wraps asString in uuid_str', async () => {
-        // Runs end-to-end here — see file header. The emitted
-        // `uuid_str(uuid_blob(?))` executes against the real engine
-        // because this connector provides the `uuid` extension
-        // functions (only the `sqlite3` npm connector stays mock-only).
+        if (ctx.realDbEnabled) return
         const conn = ctx.withUuidStrategy('uuid-extension')
         ctx.mockNext(UUID_VALUE)
         await conn.selectFromNoTable()
@@ -78,11 +81,12 @@ describe(ctx.label, () => {
         `)
     })
 
+    // NOT-APPLICABLE: bun:sqlite has no user-defined-function API (only `loadExtension`), so the `uuid_str` / `uuid_blob` extension functions can't be registered; its built-ins are present only where the system SQLite bundles the `uuid` extension (e.g. macOS) and are absent from Bun's bundled SQLite on Linux/CI. Like `sqlite3`, kept mock-only here so the SqlBuilder shape is still asserted; the connectors that register the functions (better-sqlite3 / node:sqlite / sqlite-wasm-OO1 — see test/db/sqlite/runners.ts) run the `'uuid-extension'` path end-to-end.
     test('uuid-strategy: outermost-column projection wraps uuid value with uuid_str on uuid-extension', async () => {
-        // Runs end-to-end here — see file header. `_appendColumnValue`
-        // adds a `uuid_str(...)` wrapper at the outermost query for any
-        // uuid value source when strategy is `'uuid-extension'`; the
-        // resulting SQL executes on this connector's real engine.
+        // `_appendColumnValue` adds a `uuid_str(...)` wrapper at the
+        // outermost query for any uuid value source when strategy is
+        // `'uuid-extension'`.
+        if (ctx.realDbEnabled) return
         const conn = ctx.withUuidStrategy('uuid-extension')
         ctx.mockNext(UUID_VALUE)
         await conn.selectFromNoTable()

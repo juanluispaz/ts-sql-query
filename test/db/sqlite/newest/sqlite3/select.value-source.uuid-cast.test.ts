@@ -14,7 +14,7 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // NOT-APPLICABLE: the `sqlite3` (npm) connector has no user-defined-function API, so the `uuid_str` / `uuid_blob` extension functions can't be registered; this round-trip runs end-to-end on the connectors that can (bun:sqlite built-in; better-sqlite3 / node:sqlite / sqlite-wasm-OO1 register them — see test/db/sqlite/runners.ts). Kept mock-only here so the SqlBuilder shape is still asserted.
+    // NOT-APPLICABLE: the `sqlite3` (npm) connector has no user-defined-function API, so the `uuid_str` / `uuid_blob` extension functions can't be registered; this round-trip runs end-to-end on the connectors that register them (better-sqlite3 / node:sqlite / sqlite-wasm-OO1 — see test/db/sqlite/runners.ts). bun:sqlite, like this connector, has no user-defined-function API (its built-ins aren't present on every platform) and keeps it mock-only too. Kept mock-only here so the SqlBuilder shape is still asserted.
     test('uuid-asString-on-const', async () => {
         if (ctx.realDbEnabled) return
         ctx.mockNext(UUID_VALUE)

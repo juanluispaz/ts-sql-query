@@ -41,11 +41,16 @@ import { DBConnection } from './domain/connection.js'
 //     src/examples/{BetterSqlite3,NodeSqlite}*Example.ts show.
 //   - sqlite-wasm-OO1 — registered here via `db.createFunction(...)` (the OO1
 //     user-defined-function API), exactly as the connector doc shows.
-//   - bun:sqlite — ships uuid / uuid_str / uuid_blob built-in, nothing to do.
-// Only the `sqlite3` (npm) connector cannot: it has no user-function API, so
-// its `'uuid-extension'` tests stay mock-only (guarded by `ctx.realDbEnabled`).
+// Two connectors can't register them, so their `'uuid-extension'` tests stay
+// mock-only (guarded by `ctx.realDbEnabled`):
+//   - sqlite3 (npm) — has no user-defined-function API at all.
+//   - bun:sqlite — also has no user-defined-function API (only `loadExtension`).
+//     Its `uuid_str` / `uuid_blob` are present only where the underlying system
+//     SQLite already bundles the `uuid` extension (e.g. macOS); Bun's bundled
+//     SQLite on Linux/CI has them NOT, raising "no such function: uuid_blob".
+//     Relying on the built-ins is therefore not portable.
 // uuid_str / uuid_blob are NULL-safe (return NULL on NULL input), mirroring
-// the real uuid extension and bun:sqlite's built-ins.
+// the real uuid extension.
 function registerBetterSqlite3UuidFunctions(db: import('better-sqlite3').Database): void {
     db.function('uuid', uuidv7 as (_: unknown) => unknown)
     db.function('uuid_str', ((blob: Uint8Array | null) => blob == null ? null : uuidStringify(blob)) as (_: unknown) => unknown)

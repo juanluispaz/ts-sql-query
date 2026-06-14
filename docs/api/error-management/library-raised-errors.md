@@ -1,3 +1,7 @@
+---
+search:
+  boost: 0.25
+---
 # Library-Raised Errors
 
 This page covers `TsSqlError` reasons raised directly by `ts-sql-query` outside the native database mapping tables. It is meant as a lookup page for errors produced by query construction, value conversion, transaction orchestration, dynamic conditions, mocks, and library guards.

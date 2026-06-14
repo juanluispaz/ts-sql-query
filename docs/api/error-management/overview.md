@@ -1,3 +1,7 @@
+---
+search:
+  boost: 0.25
+---
 # Error Management Overview
 
 `ts-sql-query` wraps execution and processing failures in typed errors. The most important field for callers is `errorReason`, whose `reason` value identifies the semantic category of the failure.

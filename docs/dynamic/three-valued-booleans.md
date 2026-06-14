@@ -1,6 +1,6 @@
 ---
 search:
-  boost: 0.7
+  boost: 1.5
 ---
 # Booleans and three-valued logic
 

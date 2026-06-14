@@ -1,3 +1,7 @@
+---
+search:
+  boost: 0.25
+---
 # TypeScript Types
 
 This page collects the TypeScript-facing error declarations that are useful when handling `ts-sql-query` errors in application code. The semantic explanation of each reason lives in [Error types](error-types.md), while native database signals are documented in the per-database mapping pages.

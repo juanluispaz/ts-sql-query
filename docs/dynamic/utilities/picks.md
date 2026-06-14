@@ -1,6 +1,6 @@
 ---
 search:
-  boost: 0.61
+  boost: 0.7
 ---
 # Dynamic picks
 

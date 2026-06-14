@@ -1,6 +1,6 @@
 ---
 search:
-  boost: 0.8
+  boost: 1.5
 ---
 # Dynamic query building blocks
 

@@ -1,3 +1,7 @@
+---
+search:
+  boost: 0.25
+---
 # Error Types
 
 `TsSqlErrorReason` is the structured reason carried by `TsSqlError`, `TsSqlProcessingError`, and `TsSqlQueryExecutionError`. This page mirrors the current reason names and subtype fields from `src/TsSqlError.ts`.

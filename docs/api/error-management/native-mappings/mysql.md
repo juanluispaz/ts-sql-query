@@ -1,3 +1,7 @@
+---
+search:
+  boost: 0.2
+---
 # MySQL Error Mapping
 
 This page lists how native MySQL database or driver errors are represented as `TsSqlErrorReason` values. The table uses the same row catalog and row order as the other native database pages, so a `-` means this semantic case is not currently mapped for MySQL.

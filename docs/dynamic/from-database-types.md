@@ -1,6 +1,6 @@
 ---
 search:
-  boost: 0.5
+  boost: 1.5
 ---
 # Typing dynamic queries from the database types
 

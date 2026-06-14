@@ -4,7 +4,7 @@ search:
 ---
 # Change Log
 
-## v2.0.0-alpha.4 (unreleased)
+## v2.0.0-alpha.4 (14 Jun 2026)
 
 **New features**:
 

@@ -195,10 +195,10 @@ which the 13.0.1+ upgrade does **not** fix. If older `MariaDB`
 are ever added, the `< 13_000_001` cells emit a legacy form that real
 MariaDB 12.x accepts and do **not** need the wrap.
 
-## MariaDB rejects RETURNING on multi-table DML, and the WITH prefix on INSERT (verified against 12.3.2)
+## MariaDB rejects RETURNING on multi-table DML (verified against 12.3.2)
 
 Separate from the version gate above, the `mariadb` SqlBuilder emits a
-few DML shapes that MariaDB rejects at parse time independent of the
+DML shape that MariaDB rejects at parse time independent of the
 RETURNING version gate. Verified by running the emitted SQL against a
 real `mariadb:latest` (12.3.2) container:
 
@@ -210,17 +210,10 @@ real `mariadb:latest` (12.3.2) container:
   from 13.0.1+. The multi-table RETURNING form is not accepted on any
   current MariaDB. Affects `update.from.variants` and
   `delete.using.variants`.
-- **WITH prefix on `INSERT ... SELECT`** — `WITH cte AS (...) INSERT
-  INTO ... SELECT ...` is rejected with `ER_PARSE_ERROR` at `insert`.
-  MariaDB accepts a CTE *inside* the SELECT but not as the prefix of an
-  INSERT statement. Affects `insert.from-select.variants`. (Note:
-  MariaDB **12.3** *added* the WITH prefix for multi-table UPDATE /
-  DELETE — those tests are now live — but not yet for INSERT.)
 
-These stay `TODO[LIMITATION]` rather than `NOT-APPLICABLE` because the
+This stays `TODO[LIMITATION]` rather than `NOT-APPLICABLE` because the
 library emits the SQL (no type-level narrowing) and a future MariaDB
-release could accept these shapes, exactly as 12.3 did for the
-WITH-prefixed UPDATE/DELETE. Re-probe against the real engine before
+release could accept this shape. Re-probe against the real engine before
 reactivating.
 
 ## Query introspection (`__isAllowed`) has no public API yet — tests reach internals via a single helper
@@ -282,104 +275,61 @@ call. Keep it scoped to the SQL-fragments path and do not try to
 build a wrapper that pretends window functions are part of the
 typed surface.
 
-## Set operations are under-typed: `INTERSECT`/`EXCEPT` on MySQL, the `ALL` variants on Oracle
-
-MySQL 8.0.31+ supports `INTERSECT`, `EXCEPT`, `INTERSECT ALL` and
-`EXCEPT ALL` — **verified against the matrix image `mysql:9` (server
-9.7.0)**: all four run, with multiplicity preserved for the `ALL`
-forms. The library nevertheless narrows `.intersect`, `.except`,
-`.intersectAll`, `.exceptAll`, `.minus` and `.minusAll` to `never` on
-`MySqlConnection` — `mysql` is absent from the `CompoundFunction`
-dialect lists in [`src/expressions/select.ts`](../src/expressions/select.ts).
-This is a **library gap, not a dialect boundary**: a future release
-could type these for MySQL (`.minus`/`.minusAll` are aliases the
-builder rewrites to `EXCEPT` / `EXCEPT ALL`, which MySQL also accepts).
-
-**What this means for tests** — the compound-operator tests in
-`select.compound.test.ts` / `select.compound-extras.test.ts` /
-`customize-query.compound.test.ts` for the mysql cell stay commented
-with `TODO[LIMITATION]`. The compile-time pairing in
-[`test/db/mysql/types.negative/select.test.ts`](./db/mysql/types.negative/select.test.ts)
-(`assertType<Exact<…, never>>`) doubles as the reactivation signal: the
-day the library types these for MySQL, that assertion stops compiling.
-Re-enable the wrapped bodies (mirroring the postgres / mariadb cells)
-when the typing lands.
-
-Separately, **Oracle 23ai** supports `INTERSECT ALL`, `MINUS ALL`,
-`EXCEPT` and `EXCEPT ALL` natively — **verified** against
-`gvenzl/oracle-free:23-slim-faststart` (build 23.26.1), with correct
-multiset semantics — but the library narrows `.intersectAll`,
-`.exceptAll` and `.minusAll` to `never` on `OracleConnection`; only
-`.minus` is exposed (`OracleSqlBuilder` already maps `intersectAll` →
-`intersect all` and `minusAll` → `minus all`, so the emitter is half
-there). The `*All` tests in
-`oracle/newest/oracledb/select.compound-extras.test.ts` stay commented
-with `TODO[LIMITATION]`, paired with the `never` assertions in
-`test/db/oracle/types.negative/select.test.ts`. (The matrix has no
-`oracle/oldest` cell; these operators are a 23ai-era addition, so a
-future older-Oracle cell would not get them.)
-
-## `Values` (`WITH name AS (VALUES …)`) is not typed on MySQL or MariaDB
-
-`Values` is constrained to `postgreSql | sqlite | sqlServer | oracle |
-noopDB` in [`src/Values.ts`](../src/Values.ts), so `connection.Values`
-/ the `Values` class does not type-check on `MySqlConnection` or
-`MariaDBConnection`. Both engines support the capability at the matrix
-versions (verified live):
-
-- **MariaDB 12.3.2** accepts the library's exact emission *verbatim* —
-  `name(cols) AS (VALUES (v1,v2),(v3,v4))` (no `ROW` keyword) — both as
-  a `select … from` source and to drive an `UPDATE … , values_cte` (its
-  multi-table UPDATE). Re-enabling MariaDB is a typing change plus the
-  snapshot bake; the canonical bodies are already kept in the
-  `mariadb/newest/mariadb/with-values*.test.ts` comments.
-- **MySQL 9.7** supports table value constructors but only via the
-  `VALUES ROW(v1,v2)` spelling — the bare `VALUES (v1,v2)` the library
-  emits is rejected (ER_PARSE_ERROR). Re-enabling MySQL needs a
-  MySQL-specific `_buildWithValues` that emits `ROW(...)`, plus the
-  typing change.
-
-**What this means for tests** — `with-values.test.ts` /
-`with-values.advanced.test.ts` in the mysql and mariadb cells stay
-commented with `TODO[LIMITATION]`.
-
-## The `WITH` prefix on `INSERT … SELECT` is rejected by MySQL too (not only MariaDB)
-
-The MariaDB section earlier in this file records that `WITH cte AS (…)
-INSERT INTO … SELECT …` is rejected at parse time. **MySQL 9.7 behaves
-identically (verified live)**: the leading-`WITH` form the library
-emits fails (ER_PARSE_ERROR at `insert`), while a CTE *inside* the
-SELECT (`INSERT INTO … (cols) WITH cte AS (…) SELECT …`) works. As with
-MariaDB this stays `TODO[LIMITATION]` rather than `NOT-APPLICABLE` — the
-library emits the SQL (no type-level narrowing) and could fix it the
-way Oracle does, by overriding `_useInsertSupportWith()` to emit the
-inner-`WITH` form. Affects
-`mysql/newest/mysql2/insert.from-select.variants.test.ts`.
-
 ## SQL Server SNAPSHOT isolation needs `ALLOW_SNAPSHOT_ISOLATION` on the test database
 
 `isolationLevel('snapshot')` type-checks on `SqlServerConnection` and
 SQL Server 2025 fully supports it — but only once the database has
 `ALTER DATABASE … SET ALLOW_SNAPSHOT_ISOLATION ON` (verified: without
 it the engine raises `Msg 3952`; with it a snapshot transaction reading
-a table commits fine). The matrix's SQL Server setup does not enable
-the option, so the snapshot test in
-`sqlserver/newest/mssql/transaction.isolation-level.test.ts` stays
-commented with `TODO[LIMITATION]`. There is no other cell where this
-validates (SNAPSHOT is SQL-Server-only). Enabling the option in the
-cell setup (and reading a real table inside the transaction) would let
-it run.
+a table commits fine).
+
+The matrix's SQL Server setup **deliberately** does not enable the
+option. `ALLOW_SNAPSHOT_ISOLATION` is database-wide and makes **every**
+data modification start generating row versions in `tempdb` (≈14 bytes
+per modified row plus version-store writes), not just the snapshot
+transactions — an overhead we avoid on the SQL Server container, which
+runs x86 under ARM emulation and is already the slowest cell of the
+matrix. The trade is poor: the test's mock half (that the library
+forwards the `['snapshot']` transaction opts) is already covered by the
+other isolation levels, so all the option would buy is confirming that a
+real snapshot transaction commits — a single SQL-Server-only case (no
+other cell validates SNAPSHOT, since `isolationLevel('snapshot')` only
+type-checks here).
+
+The snapshot test in
+`sqlserver/newest/mssql/transaction.isolation-level.test.ts` therefore
+stays commented with `TODO[LIMITATION]`. Re-evaluate if the cost stops
+mattering (e.g. a native, non-emulated SQL Server runner): enabling the
+option in the cell setup — and reading a real table inside the
+transaction to exercise the version store — would let it run.
 
 ## `attachRollbackError` cannot be exercised through this matrix's runners
 
 `attachRollbackError` (in [`src/TsSqlError.ts`](../src/TsSqlError.ts))
 is wired by `ManagedTransactionQueryRunner.executeInTransaction` when
 the body's error AND the subsequent rollback both throw. The mock
-runner swallows the rollback error without chaining, and the real
-driver runners expose no hook to force a rollback failure without
-corrupting the connection — so the branch is unreachable across **every**
-cell of this matrix (a harness gap, not a per-dialect boundary). It
-stays `TODO[LIMITATION]` in
-`oracle/newest/oracledb/errors.transaction-attachments.test.ts`; a
-test-only runner subclass that forces `executeRollback` to reject would
-cover it.
+runner has its own `executeInTransaction` that swallows the rollback
+error without chaining (so it never reaches the attach helper), and the
+real driver runners expose no hook to force a rollback failure without
+corrupting the connection — so the branch is unreachable across
+**every** cell of this matrix (a harness gap, not a per-dialect
+boundary).
+
+The branch is **dialect-agnostic** — it lives in the shared
+`ManagedTransactionQueryRunner`, not in any per-dialect `SqlBuilder` — so
+a per-cell test (one per connector) is both infeasible (a real driver's
+rollback can't be forced to fail cleanly) and redundant (every cell
+would exercise the same shared code). The only feasible in-matrix shape
+is a **single dialect-agnostic unit test** driving
+`ManagedTransactionQueryRunner.executeInTransaction` with an in-memory
+stub runner whose `executeRollback` rejects and a body that throws a
+`TsSqlQueryExecutionError`; the per-cell matrix has no clean home for a
+library-only unit test, which is why this was parked per-cell instead.
+Meanwhile the helper is covered by real-driver integration tests outside
+this matrix.
+
+It stays `TODO[LIMITATION]` in
+`oracle/newest/oracledb/errors.transaction-attachments.test.ts` (and as
+the symmetric placeholder in every other cell). Reactivate by adding the
+dialect-agnostic unit test described above if a home for lib-only unit
+tests is introduced.

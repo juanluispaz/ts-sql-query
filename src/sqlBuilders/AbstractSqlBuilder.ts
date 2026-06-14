@@ -640,11 +640,18 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 }
                 valueSql += this._appendValueForColumn(column, value[columnName], params, false)
             }
-            valuesSql += '(' + valueSql + ')'
+            valuesSql += this._withValuesRowConstructorKeyword() + '(' + valueSql + ')'
         }
         result += valuesSql
         result += ')'
         return result
+    }
+    _withValuesRowConstructorKeyword(): string {
+        // The SQL-standard table value constructor inside a `WITH name AS
+        // (VALUES (a, b), (c, d))` uses bare row parentheses. MySQL is the
+        // exception — it requires the `ROW(...)` row constructor — so it
+        // overrides this hook to return 'row'.
+        return ''
     }
     _appendWithColumns(_withData: WithSelectData, _params: any[]): string {
         return ''

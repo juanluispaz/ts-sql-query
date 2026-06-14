@@ -3,6 +3,7 @@
  */
 
 import { Table } from '../Table.js'
+import { Values } from '../Values.js'
 import { PrismaMariaDb } from '@prisma/adapter-mariadb'
 import { assertEquals } from './assertEquals.js'
 import { ConsoleLogQueryRunner } from '../queryRunners/ConsoleLogQueryRunner.js'
@@ -790,42 +791,42 @@ async function main() {
         //     dateValue: date,
         // })
 
-        // class VCustomerForUpdate extends Values<DBConnection, 'customerForUpdate'> {
-        //     id = this.column('int')
-        //     firstName = this.column('string')
-        //     lastName = this.column('string')
-        // }
-        // const customerForUpdate = Values.create(VCustomerForUpdate, 'customerForUpdate', [{
-        //     id: 1,
-        //     firstName: 'First Name',
-        //     lastName: 'Last Name'
-        // }])
-        
-        // i = await connection.update(tCustomer)
-        //     .from(customerForUpdate)
-        //     .set({
-        //         firstName: customerForUpdate.firstName,
-        //         lastName: customerForUpdate.lastName
-        //     })
-        //     .where(tCustomer.id.equals(customerForUpdate.id))
-        //     .executeUpdate()
-        // assertEquals(i, 0)
-    
-        // class VCustomerForDelete extends Values<DBConnection, 'customerForDelete'> {
-        //     firstName = this.column('string')
-        //     lastName = this.column('string')
-        // }
-        // const customerForDelete = Values.create(VCustomerForDelete, 'customerForDelete', [{
-        //     firstName: 'First Name',
-        //     lastName: 'Last Name'
-        // }])
-        
-        // i = await connection.deleteFrom(tCustomer)
-        //     .using(customerForDelete)
-        //     .where(tCustomer.firstName.equals(customerForDelete.firstName))
-        //     .and(tCustomer.lastName.equals(customerForDelete.lastName))
-        //     .executeDelete()
-        // assertEquals(i, 0)
+        class VCustomerForUpdate extends Values<DBConnection, 'customerForUpdate'> {
+            id = this.column('int')
+            firstName = this.column('string')
+            lastName = this.column('string')
+        }
+        const customerForUpdate = Values.create(VCustomerForUpdate, 'customerForUpdate', [{
+            id: 1,
+            firstName: 'First Name',
+            lastName: 'Last Name'
+        }])
+
+        i = await connection.update(tCustomer)
+            .from(customerForUpdate)
+            .set({
+                firstName: customerForUpdate.firstName,
+                lastName: customerForUpdate.lastName
+            })
+            .where(tCustomer.id.equals(customerForUpdate.id))
+            .executeUpdate()
+        assertEquals(i, 0)
+
+        class VCustomerForDelete extends Values<DBConnection, 'customerForDelete'> {
+            firstName = this.column('string')
+            lastName = this.column('string')
+        }
+        const customerForDelete = Values.create(VCustomerForDelete, 'customerForDelete', [{
+            firstName: 'First Name',
+            lastName: 'Last Name'
+        }])
+
+        i = await connection.deleteFrom(tCustomer)
+            .using(customerForDelete)
+            .where(tCustomer.firstName.equals(customerForDelete.firstName))
+            .and(tCustomer.lastName.equals(customerForDelete.lastName))
+            .executeDelete()
+        assertEquals(i, 0)
 
         i = await connection
             .insertInto(tBoolean)

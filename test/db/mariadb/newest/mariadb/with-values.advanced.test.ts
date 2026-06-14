@@ -3,44 +3,63 @@
 // [`docs/queries/select.md`](../../../../../docs/queries/select.md);
 // the source is [`src/Values.ts`](../../../../../src/Values.ts).
 //
-// `Values` is only typed on PostgreSQL / SQLite / SQL Server / Oracle
-// / noopDB connections. MariaDB and MySQL cells comment out the file
-// body with the same reason as the existing
-// [`with-values.test.ts`](./with-values.test.ts). The full canonical
-// body (mirrored from `postgres/newest/pg`) is kept inside the comment
-// so a fix here is a `/* */` removal — plus the snapshot bake — once
-// MariaDB grows `Values` support.
+// Specifically:
+//
+//   - `.as(alias)`: clones the values view under a new alias, copying
+//     `__values` and `__source` so the WITH clause keeps emitting the
+//     original name once.
+//   - `.forUseInLeftJoin()` / `.forUseInLeftJoinAs(alias)`: marks the
+//     cloned values view as left-joinable; columns become
+//     `originallyRequired` via `__setColumnsForLeftJoin`.
+//   - `.optionalColumn(...)`: the optional sibling of `column(...)`.
+//     Each row may legitimately set the field to `undefined`, and the
+//     typed projection surfaces it as `T | undefined`.
+//   - `.virtualColumnFromFragment(...)`: declares a computed column
+//     derived from a fragment over the values row; reading the field
+//     inlines the fragment SQL wherever it's selected.
+//   - `Values.create(type, name, [])`: empty values list throws
+//     `TsSqlProcessingError` with reason
+//     `CONSTANT_VALUES_VIEW_CANNOT_BE_EMPTY`.
+//
+// MariaDB 12.3.2 accepts the library's exact `name(cols) AS (VALUES
+// (...),(...))` emission verbatim (no `ROW` keyword) — the same form
+// PostgreSQL / SQLite / SQL Server emit — so each test runs against the
+// real engine.
 
-import { afterAll, beforeAll, beforeEach, describe } from '../../../../lib/testRunner.js'
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
+import { assertType, type Exact } from '../../../../lib/assertType.js'
+import { Values } from '../../../../../src/Values.js'
+import { TsSqlProcessingError } from '../../../../../src/TsSqlError.js'
+import { DBConnection, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+
+class VProjectPatch extends Values<DBConnection, 'projectPatch'> {
+    id   = this.column('int')
+    name = this.column('string')
+}
+
+class VProjectPatchOptional extends Values<DBConnection, 'projectPatchOpt'> {
+    id        = this.column('int')
+    newName   = this.optionalColumn('string')
+}
+
+// Branded-type ergonomics that production apps commonly want at the
+// edges of typed SQL: an `IssueId` newtype + a `Money` newtype.
+type IssueId    = number & { readonly __brand: 'IssueId' }
+type Money      = number & { readonly __brand: 'Money' }
+type OrderState = 'open' | 'paid' | 'void'
+
+class VIssueBilling extends Values<DBConnection, 'issueBilling'> {
+    issueId  = this.column<IssueId>('customInt', 'IssueId')
+    amount   = this.optionalColumn<Money>('customDouble', 'Money')
+    state     = this.virtualColumnFromFragment<OrderState>('enum', 'OrderState', fragment => fragment.sql`'open'`)
+    billingRef = this.optionalVirtualColumnFromFragment<string>('customUuid', 'BillingRef', fragment => fragment.sql`null`)
+}
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
-
-    // TODO[LIMITATION]: see LIMITATIONS.md — MariaDB accepts the library's exact `name(cols) AS (VALUES (...),(...))` emission (verified on mariadb 12.3.2) but Values is type-excluded on MariaDBConnection. A library gap, not a dialect boundary; the canonical body below mirrors the postgres / sqlite cells — uncomment and bake snapshots once the typing lands.
-    /*
-    class VProjectPatch extends Values<DBConnection, 'projectPatch'> {
-        id   = this.column('int')
-        name = this.column('string')
-    }
-
-    class VProjectPatchOptional extends Values<DBConnection, 'projectPatchOpt'> {
-        id        = this.column('int')
-        newName   = this.optionalColumn('string')
-    }
-
-    type IssueId    = number & { readonly __brand: 'IssueId' }
-    type Money      = number & { readonly __brand: 'Money' }
-    type OrderState = 'open' | 'paid' | 'void'
-
-    class VIssueBilling extends Values<DBConnection, 'issueBilling'> {
-        issueId  = this.column<IssueId>('customInt', 'IssueId')
-        amount   = this.optionalColumn<Money>('customDouble', 'Money')
-        state     = this.virtualColumnFromFragment<OrderState>('enum', 'OrderState', fragment => fragment.sql`'open'`)
-        billingRef = this.optionalVirtualColumnFromFragment<string>('customUuid', 'BillingRef', fragment => fragment.sql`null`)
-    }
 
     test('values-aliased-via-as-keeps-original-with-name', async () => {
         // `.as(alias)` clones the values view under a new alias.
@@ -64,15 +83,19 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot()
-        expect(ctx.lastParams).toMatchInlineSnapshot()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectPatch(id, name) as (values (?, ?), (?, ?)) select pp.id as id, pp.name as name from projectPatch as pp order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            "one",
+            2,
+            "two",
+          ]
+        `)
         assertType<Exact<typeof rows, Array<{ id: number; name: string }>>>()
         expect(rows).toEqual(expected)
     })
-    */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — MariaDB accepts the library's exact `name(cols) AS (VALUES (...),(...))` emission (verified on mariadb 12.3.2) but Values is type-excluded on MariaDBConnection. A library gap, not a dialect boundary; the canonical body below mirrors the postgres / sqlite cells — uncomment and bake snapshots once the typing lands.
-    /*
     test('values-for-use-in-left-join-as-emits-left-join', async () => {
         // `.forUseInLeftJoinAs(alias)` marks the cloned values view as
         // left-joinable; cloned columns inherit the source's names, so
@@ -97,8 +120,14 @@ describe(ctx.label, () => {
             .orderBy('pid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot()
-        expect(ctx.lastParams).toMatchInlineSnapshot()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectPatch(id, name) as (values (?, ?)) select project.id as pid, pp.name as newName from project left join projectPatch as pp on pp.id = project.id where project.id <= ? order by pid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            "one",
+            2,
+          ]
+        `)
         assertType<Exact<typeof rows, Array<{ pid: number; newName?: string }>>>()
         // Projects 1 and 2 exist; only project 1 has a patch row → project 2's newName is absent.
         expect(rows).toEqual([
@@ -106,10 +135,7 @@ describe(ctx.label, () => {
             { pid: 2 },
         ])
     })
-    */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — MariaDB accepts the library's exact `name(cols) AS (VALUES (...),(...))` emission (verified on mariadb 12.3.2) but Values is type-excluded on MariaDBConnection. A library gap, not a dialect boundary; the canonical body below mirrors the postgres / sqlite cells — uncomment and bake snapshots once the typing lands.
-    /*
     test('values-optional-column-allows-undefined-per-row', async () => {
         // An optional column accepts per-row null/undefined, emitted as NULL
         // in the VALUES tuple, and the projection surfaces it as optional.
@@ -127,8 +153,15 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot()
-        expect(ctx.lastParams).toMatchInlineSnapshot()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectPatchOpt(id, newName) as (values (?, ?), (?, ?)) select id as id, newName as newName from projectPatchOpt order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            "one",
+            2,
+            null,
+          ]
+        `)
         assertType<Exact<typeof rows, Array<{ id: number; newName?: string }>>>()
         // Row 2's null newName surfaces as an absent (undefined) field.
         expect(rows).toEqual([
@@ -136,10 +169,7 @@ describe(ctx.label, () => {
             { id: 2 },
         ])
     })
-    */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — MariaDB accepts the library's exact `name(cols) AS (VALUES (...),(...))` emission (verified on mariadb 12.3.2) but Values is type-excluded on MariaDBConnection. A library gap, not a dialect boundary; the canonical body below mirrors the postgres / sqlite cells — uncomment and bake snapshots once the typing lands.
-    /*
     test('values-with-custom-typed-columns-emits-customint-customdouble-casts', async () => {
         // `column<T>('customInt', 'IssueId')` and
         // `optionalColumn<T>('customDouble', 'Money')` on the
@@ -163,18 +193,22 @@ describe(ctx.label, () => {
             .orderBy('issueId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot()
-        expect(ctx.lastParams).toMatchInlineSnapshot()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with issueBilling(issueId, amount) as (values (?, ?), (?, ?)) select issueId as issueId, amount as amount from issueBilling order by issueId"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            101,
+            19.99,
+            102,
+            null,
+          ]
+        `)
         assertType<Exact<typeof rows, Array<{ issueId: IssueId; amount?: Money }>>>()
         expect(rows).toEqual([
             { issueId: 101 as IssueId, amount: 19.99 as Money },
             { issueId: 102 as IssueId },
         ])
     })
-    */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — MariaDB accepts the library's exact `name(cols) AS (VALUES (...),(...))` emission (verified on mariadb 12.3.2) but Values is type-excluded on MariaDBConnection. A library gap, not a dialect boundary; the canonical body below mirrors the postgres / sqlite cells — uncomment and bake snapshots once the typing lands.
-    /*
     test('values-virtual-column-from-fragment-with-custom-type-emits-inline-fragment', async () => {
         // `virtualColumnFromFragment<T>('enum', 'OrderState', fn)` reaches
         // the `typeof arg1 === 'string'` branch. The column does NOT
@@ -197,18 +231,22 @@ describe(ctx.label, () => {
             .orderBy('issueId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot()
-        expect(ctx.lastParams).toMatchInlineSnapshot()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with issueBilling(issueId, amount) as (values (?, ?), (?, ?)) select issueId as issueId, 'open' as state from issueBilling order by issueId"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            101,
+            19.99,
+            102,
+            null,
+          ]
+        `)
         assertType<Exact<typeof rows, Array<{ issueId: IssueId; state: OrderState }>>>()
         expect(rows).toEqual([
             { issueId: 101 as IssueId, state: 'open' as OrderState },
             { issueId: 102 as IssueId, state: 'open' as OrderState },
         ])
     })
-    */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — MariaDB accepts the library's exact `name(cols) AS (VALUES (...),(...))` emission (verified on mariadb 12.3.2) but Values is type-excluded on MariaDBConnection. A library gap, not a dialect boundary; the canonical body below mirrors the postgres / sqlite cells — uncomment and bake snapshots once the typing lands.
-    /*
     test('values-optional-virtual-column-from-fragment-with-custom-type-emits-inline-fragment', async () => {
         // `optionalVirtualColumnFromFragment<T>('customUuid', 'BillingRef', fn)`
         // reaches the same dispatch branch as the required-virtual-column
@@ -230,18 +268,22 @@ describe(ctx.label, () => {
             .orderBy('issueId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot()
-        expect(ctx.lastParams).toMatchInlineSnapshot()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with issueBilling(issueId, amount) as (values (?, ?), (?, ?)) select issueId as issueId, null as billingRef from issueBilling order by issueId"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            101,
+            19.99,
+            102,
+            null,
+          ]
+        `)
         assertType<Exact<typeof rows, Array<{ issueId: IssueId; billingRef?: string }>>>()
         expect(rows).toEqual([
             { issueId: 101 as IssueId },
             { issueId: 102 as IssueId },
         ])
     })
-    */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — MariaDB accepts the library's exact `name(cols) AS (VALUES (...),(...))` emission (verified on mariadb 12.3.2) but Values is type-excluded on MariaDBConnection. A library gap, not a dialect boundary; the canonical body below mirrors the postgres / sqlite cells — uncomment and bake snapshots once the typing lands.
-    /*
     test('values-create-with-empty-list-throws-cannot-be-empty', () => {
         // `Values.create(type, name, [])` reaches the empty-list guard
         // and throws a `TsSqlProcessingError` with reason
@@ -258,5 +300,4 @@ describe(ctx.label, () => {
         expect((thrown as TsSqlProcessingError).errorReason.reason)
             .toBe('CONSTANT_VALUES_VIEW_CANNOT_BE_EMPTY')
     })
-    */
 })

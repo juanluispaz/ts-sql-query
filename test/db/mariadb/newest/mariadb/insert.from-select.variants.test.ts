@@ -113,18 +113,12 @@ describe(ctx.label, () => {
         })
     })
 
-    // MariaDB rejects the `WITH cte AS (...) INSERT INTO ... SELECT ...`
-    // form the library emits here with a parse error at `insert`
-    // (verified against MariaDB 12.3.2): it accepts CTEs inside the SELECT
-    // but not as the prefix of an INSERT statement. (MariaDB 12.3 added the
-    // WITH prefix for UPDATE/DELETE but not yet for INSERT.)
-    // TODO[LIMITATION]: see LIMITATIONS.md — the WITH prefix on an INSERT ... SELECT is not accepted as of MariaDB 12.3.2
-    /*
     test('insert-from-select-source-with-cte', async () => {
         // The source SELECT exposes a CTE via `.forUseInQueryAs(...)`.
-        // The expected SQL starts with `with active_projects as (...)`
-        // because `__addWiths` walks through the select source and the
-        // INSERT statement bubbles it up to the top level.
+        // MariaDB rejects the leading `WITH ... INSERT` form, so the builder
+        // emits the CTE *inside* the INSERT's SELECT (`insert into issue
+        // (cols) with active_projects as (...) select ...`) — see
+        // `MariaDBSqlBuilder._useInsertSupportWith`.
         ctx.mockNext(0)
         await ctx.withRollback(async () => {
             const activeProjects = ctx.conn.selectFrom(tProject)
@@ -147,7 +141,7 @@ describe(ctx.label, () => {
                 .from(source)
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"with active_projects as (select id as id from project where archived_at is null) insert into issue (project_id, number, title, status, priority) select issue.project_id as projectId, issue.number + ? as number, issue.title as title, ? as status, issue.priority as priority from issue inner join active_projects on active_projects.id = issue.project_id where issue.project_id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) with active_projects as (select id as id from project where archived_at is null) select issue.project_id as projectId, issue.number + ? as number, issue.title as title, ? as status, issue.priority as priority from issue inner join active_projects on active_projects.id = issue.project_id where issue.project_id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1000,
@@ -160,7 +154,6 @@ describe(ctx.label, () => {
             else expect(typeof affected).toBe('number')
         })
     })
-    */
 
     test('insert-from-select-with-on-conflict-do-nothing', async () => {
         // `CustomizableExecutableInsertFromSelectOnConflictOptional` —

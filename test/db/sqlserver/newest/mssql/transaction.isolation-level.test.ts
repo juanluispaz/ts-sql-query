@@ -100,7 +100,7 @@ describe(ctx.label, () => {
         expect(result).toBe(1)
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — `'snapshot'` type-checks and SQL Server 2025 supports it; gated only because the test database doesn't enable ALLOW_SNAPSHOT_ISOLATION (an env gap, not a dialect boundary; no other cell validates SNAPSHOT).
+    // TODO[LIMITATION]: see LIMITATIONS.md — `'snapshot'` type-checks and SQL Server 2025 supports it; deliberately not enabled because ALLOW_SNAPSHOT_ISOLATION is DB-wide and penalizes every write on the ARM-emulated SQL Server container (its mock opts pass-through is already covered by the other isolation levels; no other cell validates SNAPSHOT). Not a dialect boundary.
     /*
     test('isolation-level-snapshot-builds-level-opts', async () => {
         ctx.mockNext(1)

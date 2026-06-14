@@ -9,7 +9,6 @@
 // rule it enforces. DESIGN §6.
 
 import { test, expect } from '../../../lib/testRunner.js'
-import { assertType, type Exact } from '../../../lib/assertType.js'
 import type { DBConnection } from '../domain/connection.js'
 import { tAppUser, tIssue, tProject } from '../domain/connection.js'
 
@@ -96,23 +95,6 @@ function _typeNegatives() {
     // match the column's underlying type.
     // @ts-expect-error string passed where number | null | undefined expected
     void tIssue.priority.equalsIfValue('high')
-
-    // Rule: the library exposes `minus` (Oracle's native set-difference
-    // operator) but not the `*All` family on the oracle dialect. The fluent
-    // API narrows `intersectAll`, `exceptAll` and `minusAll` to `never`
-    // (src/expressions/select.ts). NOTE: Oracle 23ai (the matrix engine,
-    // verified) supports INTERSECT ALL / MINUS ALL / EXCEPT ALL — the
-    // narrowing is a library limitation (see test/LIMITATIONS.md), not a
-    // dialect boundary. This `never` assertion is the compile-time pairing
-    // for the TODO[LIMITATION] wrap in
-    // test/db/oracle/newest/oracledb/select.compound-extras.test.ts; it stops
-    // compiling the day the library types these for Oracle, signaling reactivation.
-    {
-        const compoundable = connection.selectFrom(tIssue).select({ id: tIssue.id })
-        assertType<Exact<typeof compoundable.intersectAll, never>>()
-        assertType<Exact<typeof compoundable.exceptAll, never>>()
-        assertType<Exact<typeof compoundable.minusAll, never>>()
-    }
 }
 
 test('select-negative-types', () => {

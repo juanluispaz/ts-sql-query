@@ -18,6 +18,22 @@ export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
     override _isReservedKeyword(word: string): boolean {
         return word.toUpperCase() in reservedWords
     }
+    override _useInsertSupportWith(): boolean {
+        // MySQL rejects the leading `WITH cte AS (...) INSERT INTO ...`
+        // form at parse time (ER_PARSE_ERROR), but accepts the CTE *inside*
+        // the SELECT of an INSERT ... SELECT (`INSERT INTO t (cols)
+        // WITH cte AS (...) SELECT ...`). Returning false makes the builder
+        // emit that inner-WITH form (the same mechanism Oracle uses).
+        // Verified against mysql:9 (server 9.7).
+        return false
+    }
+    override _withValuesRowConstructorKeyword(): string {
+        // MySQL's table value constructor requires the `ROW(...)` row
+        // constructor — the bare `VALUES (a, b)` form the SQL standard
+        // (and every other supported dialect) uses is a parse error.
+        // Verified against mysql:9 (server 9.7).
+        return 'row'
+    }
     override _buildInsertReturning(_query: InsertData, params: any[]): string {
         this._setContainsInsertReturningClause(params, false)
         return ''

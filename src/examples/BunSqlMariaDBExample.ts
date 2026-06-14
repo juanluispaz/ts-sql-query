@@ -836,6 +836,13 @@ async function main() {
             dateValue: date,
         })
 
+        // Bulk update / delete via `Values` works on the `mariadb` driver (see MariaDBExample.ts)
+        // and on every MySQL adapter (which emits `VALUES ROW(...)`), but Bun.SQL's MariaDB adapter
+        // fails with errno 1406 ("Data too long for column 'id'") on the
+        // `WITH name(cols) AS (VALUES (...)) UPDATE/DELETE` form. The emitted SQL and its bound
+        // parameters are correct — the param count matches the `?` placeholders exactly (verified) —
+        // so this is the adapter mishandling the `VALUES (...)` table constructor (it appears to treat
+        // it as a bulk-insert row list), not a library issue. Stays commented for this connector.
         // class VCustomerForUpdate extends Values<DBConnection, 'customerForUpdate'> {
         //     id = this.column('int')
         //     firstName = this.column('string')

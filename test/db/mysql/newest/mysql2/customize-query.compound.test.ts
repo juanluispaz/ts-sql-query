@@ -61,25 +61,75 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ label: string }>>>()
     })
 
-    // The library does not expose `.intersect` (or `.except`) on
-    // MySqlConnection (the type signatures exclude mysql) — although MySQL
-    // 8.0.31+ does support them; `select.compound.test.ts` makes the same
-    // exclusion. See other cells for the canonical body.
-    // TODO[LIMITATION]: see LIMITATIONS.md — MySQL 8.0.31+ supports INTERSECT (verified on mysql:9); .intersect is type-excluded on MySqlConnection. A library gap, not a dialect boundary.
-    /*
     test('customize-compound-with-query-hooks-wrap-cte', async () => {
-        // ... see other cells for the full body — uses `.intersect(...)`
-        // which is not typed on MySqlConnection.
-    })
-    */
+        // A CTE feeds the left side of an INTERSECT; the compound
+        // carries `beforeWithQuery` / `afterWithQuery` hooks that
+        // wrap the WITH clause itself (NOT the inner select), so the
+        // snapshot shows the comments adjacent to `with` / before the
+        // first compound branch. Lands on
+        // `_buildWith` → `customization.beforeWithQuery / afterWithQuery`
+        // at AbstractSqlBuilder L573-L580.
+        const connection = ctx.conn
+        const openIssues = connection.selectFrom(tIssue)
+            .where(tIssue.status.equals('open'))
+            .select({ id: tIssue.id })
+            .forUseInQueryAs('openIssues')
+        const left = connection.selectFrom(openIssues)
+            .select({ id: openIssues.id })
+        const right = connection.selectFrom(tIssue)
+            .where(tIssue.id.lessOrEqual(2))
+            .select({ id: tIssue.id })
+        ctx.mockNext([{ id: 1 }])
+        const result = await left
+            .intersect(right)
+            .customizeQuery({
+                beforeWithQuery: connection.rawFragment`/* with-head */ `,
+                afterWithQuery:  connection.rawFragment` /* with-tail */`,
+            })
+            .executeSelectMany()
 
-    // `.except` not exposed (see above).
-    // TODO[LIMITATION]: see LIMITATIONS.md — MySQL 8.0.31+ supports EXCEPT (verified on mysql:9); .except is type-excluded on MySqlConnection. A library gap, not a dialect boundary.
-    /*
-    test('customize-compound-all-hooks-combined-on-except', async () => {
-        // ... see other cells for the full body — uses `.except(...)`
-        // which is not typed on MySqlConnection.
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with openIssues as (select id as id from issue where \`status\` = ?) select id as id from openIssues intersect select id as id from issue where id <= ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "open",
+            2,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
     })
-    */
+
+    test('customize-compound-all-hooks-combined-on-except', async () => {
+        // The four compound hooks at once on an EXCEPT. Documents
+        // exactly where each one lands relative to the others — the
+        // snapshot is the spec.
+        const connection = ctx.conn
+        const allIssueIds = connection.selectFrom(tIssue)
+            .select({ id: tIssue.id })
+            .forUseInQueryAs('allIssueIds')
+        const left = connection.selectFrom(allIssueIds)
+            .select({ id: allIssueIds.id })
+        const right = connection.selectFrom(tIssue)
+            .where(tIssue.priority.equals(1))
+            .select({ id: tIssue.id })
+        ctx.mockNext([{ id: 1 }, { id: 3 }, { id: 4 }])
+        const result = await left
+            .except(right)
+            .orderBy('id')
+            .customizeQuery({
+                beforeWithQuery: connection.rawFragment`/* with-head */ `,
+                afterWithQuery:  connection.rawFragment` /* with-tail */`,
+                beforeQuery:     connection.rawFragment`/* head */ `,
+                afterQuery:      connection.rawFragment` /* tail */`,
+            })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  with allIssueIds as (select id as id from issue) select id as id from allIssueIds except select id as id from issue where priority = ? order by id  /* tail */"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+    })
 
 })

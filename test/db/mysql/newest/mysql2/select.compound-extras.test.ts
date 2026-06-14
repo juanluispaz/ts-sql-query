@@ -2,19 +2,18 @@
 // [select.compound.test.ts](./select.compound.test.ts) leaves on the
 // table: `intersectAll`, `exceptAll`, `minus`, `minusAll`. Each lands
 // on `_appendCompoundOperator` in
-// [src/sqlBuilders/AbstractSqlBuilder.ts:661](../../../../../src/sqlBuilders/AbstractSqlBuilder.ts#L661).
+// [src/sqlBuilders/AbstractSqlBuilder.ts](../../../../../src/sqlBuilders/AbstractSqlBuilder.ts).
 //
-// MySQL exposes NONE of these four operators on the fluent API
-// ([src/expressions/select.ts:122-127](../../../../../src/expressions/select.ts#L122-L127)
-// narrows `intersectAll`/`exceptAll`/`minus`/`minusAll` to `never`
-// for `mysql`), so every test body would fail to type-check here.
-// All four are commented out with `TODO[LIMITATION]`: the type-system
-// narrowing means the bodies can't type-check here today, but MySQL
-// 8.0.31+ (verified on mysql:9) supports these operators — a library
-// gap, not a permanent dialect frontier. Kept for symmetry with the
-// postgres/mariadb cells (where they run live).
+// MySQL has no `MINUS` keyword (it is not an Oracle-mode dialect), so
+// the builder renders `.minus(...)` / `.minusAll(...)` as `except` /
+// `except all` (the same portable form PostgreSQL and MariaDB emit).
+// MySQL 8.0.31+ (verified on mysql:9, server 9.7) supports
+// `INTERSECT` / `EXCEPT` and their `ALL` variants, so each test runs
+// against the real engine asserting the result multiset (compound
+// order is engine-defined).
 
-import { afterAll, beforeAll, beforeEach, describe } from '../../../../lib/testRunner.js'
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
+import { tIssue } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -22,23 +21,91 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — mysql narrows intersectAll/exceptAll/minus/minusAll to never, but MySQL 8.0.31+ (verified on mysql:9) supports them; a library gap (paired with the never assertion in test/db/mysql/types.negative/select.test.ts). Runs in postgres/mariadb.
-    /*
-    test('intersect-all-emits-intersect-all-syntax', async () => {})
-    */
+    test('intersect-all-emits-intersect-all-syntax', async () => {
+        // INTERSECT ALL keeps row-multiplicities (vs INTERSECT which
+        // deduplicates). left = every issue status
+        // (open, in_progress, open, closed); right (priority <= 3) = all
+        // four rows, so the intersection is the full left multiset.
+        const expected = [{ status: 'closed' }, { status: 'in_progress' }, { status: 'open' }, { status: 'open' }]
+        ctx.mockNext(expected)
+        const left = ctx.conn.selectFrom(tIssue)
+            .select({ status: tIssue.status })
+        const right = ctx.conn.selectFrom(tIssue)
+            .where(tIssue.priority.lessOrEqual(3))
+            .select({ status: tIssue.status })
+        const result = await left.intersectAll(right).executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`status\` as \`status\` from issue intersect all select \`status\` as \`status\` from issue where priority <= ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+          ]
+        `)
+        // Compound result order is engine-defined; compare as a multiset.
+        expect(result.map(r => r.status).sort()).toEqual(['closed', 'in_progress', 'open', 'open'])
+    })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — mysql narrows intersectAll/exceptAll/minus/minusAll to never, but MySQL 8.0.31+ (verified on mysql:9) supports them; a library gap (paired with the never assertion in test/db/mysql/types.negative/select.test.ts). Runs in postgres/mariadb.
-    /*
-    test('except-all-emits-except-all-syntax', async () => {})
-    */
+    test('except-all-emits-except-all-syntax', async () => {
+        // EXCEPT ALL preserves duplicates from the left side that have
+        // no matching duplicate on the right. left = all statuses
+        // (open, in_progress, open, closed); right (id <= 2) =
+        // open, in_progress. Subtracting one of each leaves open, closed.
+        const expected = [{ status: 'closed' }, { status: 'open' }]
+        ctx.mockNext(expected)
+        const all = ctx.conn.selectFrom(tIssue)
+            .select({ status: tIssue.status })
+        const small = ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.lessOrEqual(2))
+            .select({ status: tIssue.status })
+        const result = await all.exceptAll(small).executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`status\` as \`status\` from issue except all select \`status\` as \`status\` from issue where id <= ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        expect(result.map(r => r.status).sort()).toEqual(['closed', 'open'])
+    })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — mysql narrows intersectAll/exceptAll/minus/minusAll to never, but MySQL 8.0.31+ (verified on mysql:9) supports them; a library gap (paired with the never assertion in test/db/mysql/types.negative/select.test.ts). Runs in postgres/mariadb.
-    /*
-    test('minus-routes-through-the-dialect-alias', async () => {})
-    */
+    test('minus-routes-through-the-dialect-alias', async () => {
+        // `.minus(...)` renders as ` except ` on MySQL (it has no MINUS
+        // keyword). Distinct left statuses {open, in_progress, closed}
+        // minus right (id <= 2) {open, in_progress} leaves {closed}.
+        const expected = [{ status: 'closed' }]
+        ctx.mockNext(expected)
+        const all = ctx.conn.selectFrom(tIssue)
+            .select({ status: tIssue.status })
+        const small = ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.lessOrEqual(2))
+            .select({ status: tIssue.status })
+        const result = await all.minus(small).executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`status\` as \`status\` from issue except select \`status\` as \`status\` from issue where id <= ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        expect(result.map(r => r.status).sort()).toEqual(['closed'])
+    })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — mysql narrows intersectAll/exceptAll/minus/minusAll to never, but MySQL 8.0.31+ (verified on mysql:9) supports them; a library gap (paired with the never assertion in test/db/mysql/types.negative/select.test.ts). Runs in postgres/mariadb.
-    /*
-    test('minus-all-routes-through-the-dialect-alias', async () => {})
-    */
+    test('minus-all-routes-through-the-dialect-alias', async () => {
+        // The `*All` flavour renders as ` except all ` (MySQL has no
+        // MINUS keyword). left = all statuses
+        // (open, in_progress, open, closed); right (id <= 2) =
+        // open, in_progress. Subtracting one of each leaves open, closed.
+        const expected = [{ status: 'closed' }, { status: 'open' }]
+        ctx.mockNext(expected)
+        const all = ctx.conn.selectFrom(tIssue)
+            .select({ status: tIssue.status })
+        const small = ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.lessOrEqual(2))
+            .select({ status: tIssue.status })
+        const result = await all.minusAll(small).executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`status\` as \`status\` from issue except all select \`status\` as \`status\` from issue where id <= ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        expect(result.map(r => r.status).sort()).toEqual(['closed', 'open'])
+    })
 })

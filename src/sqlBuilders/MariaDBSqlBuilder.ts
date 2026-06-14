@@ -12,6 +12,15 @@ export class MariaDBSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
     override _isReservedKeyword(word: string): boolean {
         return word.toUpperCase() in reservedWords
     }
+    override _useInsertSupportWith(): boolean {
+        // MariaDB rejects the leading `WITH cte AS (...) INSERT INTO ...`
+        // form at parse time (ER_PARSE_ERROR), but accepts the CTE *inside*
+        // the SELECT of an INSERT ... SELECT (`INSERT INTO t (cols)
+        // WITH cte AS (...) SELECT ...`). Returning false makes the builder
+        // emit that inner-WITH form (the same mechanism Oracle uses).
+        // Verified against mariadb:latest (server 12.3.2).
+        return false
+    }
     // No `_appendCompoundOperator` override: MariaDB renders `.minus(...)` /
     // `.minusAll(...)` as the abstract builder's `EXCEPT` / `EXCEPT ALL`
     // (the same form PostgreSQL and MySQL emit). MariaDB's `MINUS` keyword

@@ -63,12 +63,9 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-    // MySQL is intentionally excluded from `intersect` / `except` in the
-    // library's type signatures — ts-sql-query refuses it at compile time.
-    // Kept commented for symmetry.
-    // TODO[LIMITATION]: see LIMITATIONS.md — MySQL 8.0.31+ (verified on mysql:9) supports INTERSECT/EXCEPT; the library type-excludes mysql from .intersect/.except. A library gap, not a dialect boundary.
-    /*
     test('intersect', async () => {
+        // status values appearing in both opened-issues and id<=2-issues:
+        // both sets contain 'open' (id 1 has status open and is ≤ 2).
         const expected = [{ status: 'open' }]
         ctx.mockNext(expected)
         const left = ctx.conn.selectFrom(tIssue)
@@ -78,14 +75,22 @@ describe(ctx.label, () => {
             .where(tIssue.id.lessOrEqual(2))
             .select({ status: tIssue.status })
         const result = await left.intersect(right).executeSelectMany()
-        // ... see other cells for the full body.
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`status\` as \`status\` from issue where \`status\` = ? intersect select \`status\` as \`status\` from issue where id <= ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "open",
+            2,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ status: string }>>>()
+        expect(result).toEqual(expected)
     })
-    */
 
-    // Same as above — `except` excluded for mysql in the library's types.
-    // TODO[LIMITATION]: see LIMITATIONS.md — MySQL 8.0.31+ (verified on mysql:9) supports INTERSECT/EXCEPT; the library type-excludes mysql from .intersect/.except. A library gap, not a dialect boundary.
-    /*
     test('except', async () => {
+        // statuses present in issues but NOT under id <= 2.
+        // id<=2 contains: open (id=1), in_progress (id=2)
+        // all issues: open (1), in_progress (2), open (3), closed (4)
+        // except → { closed }
         const expected = [{ status: 'closed' }]
         ctx.mockNext(expected)
         const all = ctx.conn.selectFrom(tIssue)
@@ -94,9 +99,15 @@ describe(ctx.label, () => {
             .where(tIssue.id.lessOrEqual(2))
             .select({ status: tIssue.status })
         const result = await all.except(small).executeSelectMany()
-        // ... see other cells for the full body.
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`status\` as \`status\` from issue except select \`status\` as \`status\` from issue where id <= ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ status: string }>>>()
+        expect(result).toEqual(expected)
     })
-    */
     test('union-with-insensitive-order-by', async () => {
         // Compound (union) ordered case-insensitively. A compound ORDER BY may
         // reference only result-column names / ordinal positions on the strict

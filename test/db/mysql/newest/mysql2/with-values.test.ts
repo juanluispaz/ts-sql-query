@@ -1,28 +1,68 @@
-// `Values` (`WITH name(...) AS (VALUES ...)`) is typed only on the
-// postgreSql / sqlite / sqlServer / oracle / noopDB dialects. The
-// library blocks it at compile time on mysql. Block-commented stubs
-// keep the symmetry audit's per-cell test-name count aligned; see the
-// active implementation in any sqlite or postgres cell.
+// Behavioral coverage of `connection.Values` used as a `WITH name(c1, c2)
+// AS (VALUES ...)` clause. MySQL 8.0.19+ (verified on mysql:9, server 9.7)
+// supports table value constructors only via the `VALUES ROW(...)` row
+// syntax, which the builder emits (see
+// `MySqlSqlBuilder._withValuesRowConstructorKeyword`), both as a
+// `select ... from` source and to drive its multi-table
+// `UPDATE ... , values_cte`.
 
-import { afterAll, beforeAll, beforeEach, describe } from '../../../../lib/testRunner.js'
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
+import { Values } from '../../../../../src/Values.js'
+import { DBConnection, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+
+class VProjectPatch extends Values<DBConnection, 'projectPatch'> {
+    id   = this.column('int')
+    name = this.column('string')
+}
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — MySQL supports table value constructors (8.0.19+) but only via `VALUES ROW(...)`; the bare `VALUES (...)` the library emits is rejected, and Values is type-excluded on MySqlConnection. A library gap, not a dialect boundary.
-    /*
     test('values in select-from', async () => {
-        // Not supported by MySQL.
+        ctx.mockNext([])
+        const patch = Values.create(VProjectPatch, 'projectPatch', [
+            { id: 1, name: 'one'   },
+            { id: 2, name: 'two'   },
+        ])
+        await ctx.conn.selectFrom(patch)
+            .select({ id: patch.id, name: patch.name })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectPatch(id, \`name\`) as (values row(?, ?), row(?, ?)) select id as id, \`name\` as \`name\` from projectPatch"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            "one",
+            2,
+            "two",
+          ]
+        `)
     })
-    */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — MySQL supports table value constructors (8.0.19+) but only via `VALUES ROW(...)`; the bare `VALUES (...)` the library emits is rejected, and Values is type-excluded on MySqlConnection. A library gap, not a dialect boundary.
-    /*
     test('values in update-from', async () => {
-        // Not supported by MySQL.
+        await ctx.withRollback(async () => {
+            // patch.id = 1 matches seed project 1 ('Marketing site'),
+            // so the multi-table UPDATE ... , projectPatch touches exactly
+            // one row.
+            ctx.mockNext(1)
+            const patch = Values.create(VProjectPatch, 'projectPatch', [
+                { id: 1, name: 'renamed' },
+            ])
+            const affected = await ctx.conn.update(tProject)
+                .from(patch)
+                .set({ name: patch.name })
+                .where(tProject.id.equals(patch.id))
+                .executeUpdate()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectPatch(id, \`name\`) as (values row(?, ?)) update project, projectPatch set project.\`name\` = projectPatch.\`name\` where project.id = projectPatch.id"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "renamed",
+              ]
+            `)
+            expect(affected).toBe(1)
+        })
     })
-    */
 })

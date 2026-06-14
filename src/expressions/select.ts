@@ -121,12 +121,12 @@ export interface CompoundedOrderedExecutableSelectExpression</*in|out*/ FROM ext
 export interface CompoundableExecutableSelectExpression</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends WithableExecutableSelect<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
     union<SELECT extends ICompoundableSelect<REQUIRED, COLUMNS, RESULT>>(select: SELECT): CompoundedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
     unionAll<SELECT extends ICompoundableSelect<REQUIRED, COLUMNS, RESULT>>(select: SELECT): CompoundedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
-    intersect: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql' | 'sqlite' | 'sqlServer' | 'oracle', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
-    intersectAll: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
-    except: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql' | 'sqlite' | 'sqlServer' | 'oracle', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
-    exceptAll: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
-    minus: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql' | 'sqlite' | 'sqlServer' | 'oracle', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
-    minusAll: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
+    intersect: CompoundFunction<'noopDB' | 'mariaDB' | 'mySql' | 'postgreSql' | 'sqlite' | 'sqlServer' | 'oracle', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
+    intersectAll: CompoundFunction<'noopDB' | 'mariaDB' | 'mySql' | 'postgreSql' | 'oracle', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
+    except: CompoundFunction<'noopDB' | 'mariaDB' | 'mySql' | 'postgreSql' | 'sqlite' | 'sqlServer' | 'oracle', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
+    exceptAll: CompoundFunction<'noopDB' | 'mariaDB' | 'mySql' | 'postgreSql' | 'oracle', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
+    minus: CompoundFunction<'noopDB' | 'mariaDB' | 'mySql' | 'postgreSql' | 'sqlite' | 'sqlServer' | 'oracle', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
+    minusAll: CompoundFunction<'noopDB' | 'mariaDB' | 'mySql' | 'postgreSql' | 'oracle', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
 
     recursiveUnion: RecursiveUnionFn<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
     recursiveUnionAll<SELECT extends ICompoundableSelect<REQUIRED, COLUMNS, RESULT>>(fn: (view: WithView<NRecursiveFrom<REQUIRED[typeof source]>, ColumnsForWithView<NRecursiveFrom<REQUIRED[typeof source]>, COLUMNS>>) => SELECT): OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'recursive'>
@@ -137,12 +137,12 @@ export interface CompoundableExecutableSelectExpression</*in|out*/ FROM extends 
 export interface CompoundableExecutableSelectExpressionWithoutWhere</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends WithableExecutableSelectWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
     union<SELECT extends ICompoundableSelect<REQUIRED, COLUMNS, RESULT>>(select: SELECT): CompoundedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
     unionAll<SELECT extends ICompoundableSelect<REQUIRED, COLUMNS, RESULT>>(select: SELECT): CompoundedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
-    intersect: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql' | 'sqlite' | 'sqlServer' | 'oracle', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
-    intersectAll: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
-    except: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql' | 'sqlite' | 'sqlServer' | 'oracle', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
-    exceptAll: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
-    minus: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql' | 'sqlite' | 'sqlServer' | 'oracle', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
-    minusAll: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
+    intersect: CompoundFunction<'noopDB' | 'mariaDB' | 'mySql' | 'postgreSql' | 'sqlite' | 'sqlServer' | 'oracle', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
+    intersectAll: CompoundFunction<'noopDB' | 'mariaDB' | 'mySql' | 'postgreSql' | 'oracle', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
+    except: CompoundFunction<'noopDB' | 'mariaDB' | 'mySql' | 'postgreSql' | 'sqlite' | 'sqlServer' | 'oracle', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
+    exceptAll: CompoundFunction<'noopDB' | 'mariaDB' | 'mySql' | 'postgreSql' | 'oracle', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
+    minus: CompoundFunction<'noopDB' | 'mariaDB' | 'mySql' | 'postgreSql' | 'sqlite' | 'sqlServer' | 'oracle', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
+    minusAll: CompoundFunction<'noopDB' | 'mariaDB' | 'mySql' | 'postgreSql' | 'oracle', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
 
     recursiveUnion: RecursiveUnionFn<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
     recursiveUnionAll<SELECT extends ICompoundableSelect<REQUIRED, COLUMNS, RESULT>>(fn: (view: WithView<NRecursiveFrom<REQUIRED[typeof source]>, ColumnsForWithView<NRecursiveFrom<REQUIRED[typeof source]>, COLUMNS>>) => SELECT): OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'recursive'>
@@ -198,12 +198,12 @@ export interface OrderedExecutableSelectExpression</*in|out*/ FROM extends HasSo
 export interface CompoundedExecutableSelectExpression</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends CompoundedOrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
     union<SELECT extends ICompoundableSelect<REQUIRED, COLUMNS, RESULT>>(select: SELECT): CompoundedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
     unionAll<SELECT extends ICompoundableSelect<REQUIRED, COLUMNS, RESULT>>(select: SELECT): CompoundedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
-    intersect: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql' | 'sqlite' | 'sqlServer' | 'oracle', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
-    intersectAll: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
-    except: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql' | 'sqlite' | 'sqlServer' | 'oracle', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
-    exceptAll: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
-    minus: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql' | 'sqlite' | 'sqlServer' | 'oracle', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
-    minusAll: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
+    intersect: CompoundFunction<'noopDB' | 'mariaDB' | 'mySql' | 'postgreSql' | 'sqlite' | 'sqlServer' | 'oracle', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
+    intersectAll: CompoundFunction<'noopDB' | 'mariaDB' | 'mySql' | 'postgreSql' | 'oracle', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
+    except: CompoundFunction<'noopDB' | 'mariaDB' | 'mySql' | 'postgreSql' | 'sqlite' | 'sqlServer' | 'oracle', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
+    exceptAll: CompoundFunction<'noopDB' | 'mariaDB' | 'mySql' | 'postgreSql' | 'oracle', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
+    minus: CompoundFunction<'noopDB' | 'mariaDB' | 'mySql' | 'postgreSql' | 'sqlite' | 'sqlServer' | 'oracle', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
+    minusAll: CompoundFunction<'noopDB' | 'mariaDB' | 'mySql' | 'postgreSql' | 'oracle', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
 }
 
 export interface OrderableExecutableSelectExpressionWithoutWhere</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends CompoundableCustomizableExecutableSelectExpressionWitoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {

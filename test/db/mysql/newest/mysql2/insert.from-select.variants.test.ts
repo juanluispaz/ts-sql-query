@@ -74,15 +74,47 @@ describe(ctx.label, () => {
     })
     */
 
-    // MySQL accepts CTEs inside a SELECT but not as the prefix of an
-    // INSERT statement. See other cells for the canonical body.
-    // TODO[LIMITATION]: see LIMITATIONS.md — MySQL 9 accepts a CTE inside the SELECT but rejects the leading-WITH form the library emits (parse error at `insert`); a library emission gap (same as MariaDB), not a dialect boundary.
-    /*
     test('insert-from-select-source-with-cte', async () => {
-        // ... see other cells for the full body — pins the bubbled
-        // `with active_projects as (...) insert into issue ...`.
+        // The source SELECT exposes a CTE via `.forUseInQueryAs(...)`.
+        // MySQL rejects the leading `WITH ... INSERT` form, so the builder
+        // emits the CTE *inside* the INSERT's SELECT (`insert into issue
+        // (cols) with active_projects as (...) select ...`) — see
+        // `MySqlSqlBuilder._useInsertSupportWith`.
+        ctx.mockNext(0)
+        await ctx.withRollback(async () => {
+            const activeProjects = ctx.conn.selectFrom(tProject)
+                .where(tProject.archivedAt.isNull())
+                .select({ id: tProject.id })
+                .forUseInQueryAs('active_projects')
+
+            const source = ctx.conn.selectFrom(tIssue)
+                .innerJoin(activeProjects).on(activeProjects.id.equals(tIssue.projectId))
+                .where(tIssue.projectId.equals(99999))
+                .select({
+                    projectId: tIssue.projectId,
+                    number:    tIssue.number.add(1000),
+                    title:     tIssue.title,
+                    status:    ctx.conn.const('draft', 'string'),
+                    priority:  tIssue.priority,
+                })
+
+            const affected = await ctx.conn.insertInto(tIssue)
+                .from(source)
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, \`number\`, title, \`status\`, priority) with active_projects as (select id as id from project where archived_at is null) select issue.project_id as projectId, issue.\`number\` + ? as \`number\`, issue.title as title, ? as \`status\`, issue.priority as priority from issue inner join active_projects on active_projects.id = issue.project_id where issue.project_id = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1000,
+                "draft",
+                99999,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            if (!ctx.realDbEnabled) expect(affected).toBe(0)
+            else expect(typeof affected).toBe('number')
+        })
     })
-    */
 
     test('insert-from-select-with-on-conflict-do-nothing', async () => {
         // `CustomizableExecutableInsertFromSelectOnConflictOptional` —

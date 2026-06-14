@@ -220,7 +220,7 @@ const deleteACMECustomers: Promise<number>
 
 ## Bulk delete
 
-Sometimes you need to delete multiple rows in a single query, where each condition depends on different data. For these cases, you can [map the constant values as a view](../configuration/mapping.md#mapping-constant-values-as-view) and perform the deletion. This is only supported by [PostgreSQL](../configuration/supported-databases/postgresql.md) and [SQL Server](../configuration/supported-databases/sqlserver.md). On [Oracle](../configuration/supported-databases/oracle.md) — even on Oracle 23ai, where `deleteFrom.using(...)` itself is accepted — combining a `Values` view with `deleteFrom.using(...)` would emit `WITH name AS (VALUES …) DELETE … USING name`, which the Oracle parser rejects with `ORA-00928: SELECT keyword missing` because it does not allow a `WITH` clause to precede a `DELETE … USING` statement; use a `MERGE` or a correlated subquery for the bulk-delete use case instead.
+Sometimes you need to delete multiple rows in a single query, where each condition depends on different data. For these cases, you can [map the constant values as a view](../configuration/mapping.md#mapping-constant-values-as-view) and perform the deletion. This is supported by [PostgreSQL](../configuration/supported-databases/postgresql.md), [SQL Server](../configuration/supported-databases/sqlserver.md), [MariaDB](../configuration/supported-databases/mariadb.md) and [MySQL](../configuration/supported-databases/mysql.md). MariaDB and MySQL drive it through their multi-table `DELETE ... USING target, name` form. On [Oracle](../configuration/supported-databases/oracle.md) — even on Oracle 23ai, where `deleteFrom.using(...)` itself is accepted — combining a `Values` view with `deleteFrom.using(...)` would emit `WITH name AS (VALUES …) DELETE … USING name`, which the Oracle parser rejects with `ORA-00928: SELECT keyword missing` because it does not allow a `WITH` clause to precede a `DELETE … USING` statement; use a `MERGE` or a correlated subquery for the bulk-delete use case instead.
 
 ```ts
 class VCustomerForDelete extends Values<DBConnection, 'customerForDelete'> {
@@ -243,27 +243,27 @@ The executed query is:
 
 === "MariaDB"
     ```mariadb
-    --
-    --
-    --
-    --
-    -- MariaDB doesn't support bulk update
-    --
-    --
-    --
-    --
+    with 
+        customerForDelete(firstName, lastName) as (
+            values (?, ?)
+        ) 
+    delete from customer 
+    using customer, customerForDelete 
+    where 
+            customer.first_name = customerForDelete.firstName 
+        and customer.last_name = customerForDelete.lastName
     ```
 === "MySQL"
     ```mysql
-    --
-    --
-    --
-    --
-    -- MySQL doesn't support bulk update
-    --
-    --
-    --
-    --
+    with 
+        customerForDelete(firstName, lastName) as (
+            values row(?, ?)
+        ) 
+    delete from customer 
+    using customer, customerForDelete 
+    where 
+            customer.first_name = customerForDelete.firstName 
+        and customer.last_name = customerForDelete.lastName
     ```
 === "Oracle"
     ```oracle
@@ -271,7 +271,7 @@ The executed query is:
     --
     --
     --
-    -- Oracle doesn't support bulk update
+    -- Oracle doesn't support bulk delete
     --
     --
     --
@@ -295,7 +295,7 @@ The executed query is:
     --
     --
     --
-    -- SQLite doesn't support bulk update
+    -- SQLite doesn't support bulk delete
     --
     --
     --

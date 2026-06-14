@@ -1,27 +1,23 @@
 // Behavioral coverage of `connection.Values` used as a `WITH name(c1, c2)
-// AS (VALUES ...)` clause. Each SqlBuilder owns its own
-// `_buildWithValues` implementation (Abstract default for sqlite/oracle,
-// dialect overrides on postgres / sqlserver). No existing test reaches
-// this path on the new test matrix.
-//
-// Values is typed only on postgres / sqlite / sqlserver / oracle / noopDB
-// — mariadb and mysql block-comment their copies (the feature is not
-// typed on MariaDBConnection) to keep the symmetry audit happy.
+// AS (VALUES ...)` clause. MariaDB 12.3.2 accepts the library's exact
+// emission verbatim — `name(cols) AS (VALUES (a, b), (c, d))` (no `ROW`
+// keyword) — both as a `select ... from` source and to drive its
+// multi-table `UPDATE ... , values_cte`.
 
-import { afterAll, beforeAll, beforeEach, describe } from '../../../../lib/testRunner.js'
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
+import { Values } from '../../../../../src/Values.js'
+import { DBConnection, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+
+class VProjectPatch extends Values<DBConnection, 'projectPatch'> {
+    id   = this.column('int')
+    name = this.column('string')
+}
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
-
-    // TODO[LIMITATION]: see LIMITATIONS.md — MariaDB accepts the library's exact `name(cols) AS (VALUES (...),(...))` emission (verified on mariadb 12.3.2) but Values is type-excluded on MariaDBConnection. A library gap, not a dialect boundary; canonical body lives in the postgres / sqlite cells.
-    /*
-    class VProjectPatch extends Values<DBConnection, 'projectPatch'> {
-        id   = this.column('int')
-        name = this.column('string')
-    }
 
     test('values in select-from', async () => {
         ctx.mockNext([])
@@ -42,14 +38,12 @@ describe(ctx.label, () => {
           ]
         `)
     })
-    */
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — MariaDB accepts the library's exact `name(cols) AS (VALUES (...),(...))` emission (verified on mariadb 12.3.2) but Values is type-excluded on MariaDBConnection. A library gap, not a dialect boundary; canonical body lives in the postgres / sqlite cells.
-    /*
     test('values in update-from', async () => {
         await ctx.withRollback(async () => {
             // patch.id = 1 matches seed project 1 ('Marketing site'),
-            // so the UPDATE ... FROM (VALUES ...) touches exactly one row.
+            // so the multi-table UPDATE ... , projectPatch touches exactly
+            // one row.
             ctx.mockNext(1)
             const patch = Values.create(VProjectPatch, 'projectPatch', [
                 { id: 1, name: 'renamed' },
@@ -69,5 +63,4 @@ describe(ctx.label, () => {
             expect(affected).toBe(1)
         })
     })
-    */
 })

@@ -9,6 +9,7 @@ import { ConsoleLogQueryRunner } from '../../queryRunners/ConsoleLogQueryRunner.
 import { MockQueryRunner } from '../../queryRunners/MockQueryRunner.js'
 import { Table } from '../../Table.js'
 import { CustomBooleanTypeAdapter } from '../../TypeAdapter.js'
+import { Values } from '../../Values.js'
 import { View } from '../../View.js'
 import { assertEquals } from '../assertEquals.js'
 
@@ -809,7 +810,7 @@ async function main() {
 
     result = 1
     expectedResult.push(result)
-    expectedQuery.push(`with sourceCustomers as (select first_name as firstName, last_name as lastName, company_id as companyId from customer where company_id = ?) insert into customer (first_name, last_name, company_id) select firstName as firstName, lastName as lastName, companyId as companyId from sourceCustomers`)
+    expectedQuery.push(`insert into customer (first_name, last_name, company_id) with sourceCustomers as (select first_name as firstName, last_name as lastName, company_id as companyId from customer where company_id = ?) select firstName as firstName, lastName as lastName, companyId as companyId from sourceCustomers`)
     expectedParams.push(`[1]`)
     expectedType.push(`insert`)
 
@@ -901,7 +902,7 @@ async function main() {
     
     /* *** Example ****************************************************************/
 
-    const deleteCustomer = await connection.deleteFrom(tCustomer)
+    let deleteCustomer = await connection.deleteFrom(tCustomer)
         .where(tCustomer.id.equals(10))
         .executeDelete()
     
@@ -3926,64 +3927,64 @@ async function main() {
         .executeSelectPage()
     assertEquals(companyWithFavouriteCustomer, { data: result, count: 0})
 
-    // /* *** Preparation ************************************************************/
+    /* *** Preparation ************************************************************/
 
-    // result = 1
-    // expectedResult.push(result)
-    // expectedQuery.push(`with customerForUpdate(id, firstName, lastName) as (values ($1, $2, $3)) update customer set first_name = customerForUpdate.firstName, last_name = customerForUpdate.lastName from customerForUpdate where customer.id = customerForUpdate.id`)
-    // expectedParams.push(`[1,"First Name","Last Name"]`)
-    // expectedType.push(`update`)
+    result = 1
+    expectedResult.push(result)
+    expectedQuery.push(`with customerForUpdate(id, firstName, lastName) as (values (?, ?, ?)) update customer, customerForUpdate set customer.first_name = customerForUpdate.firstName, customer.last_name = customerForUpdate.lastName where customer.id = customerForUpdate.id`)
+    expectedParams.push(`[1,"First Name","Last Name"]`)
+    expectedType.push(`update`)
 
-    // /* *** Example ****************************************************************/
+    /* *** Example ****************************************************************/
 
-    // class VCustomerForUpdate extends Values<DBConnection, 'customerForUpdate'> {
-    //     id = this.column('int')
-    //     firstName = this.column('string')
-    //     lastName = this.column('string')
-    // }
-    // const customerForUpdate = Values.create(VCustomerForUpdate, 'customerForUpdate', [{
-    //     id: 1,
-    //     firstName: 'First Name',
-    //     lastName: 'Last Name'
-    // }])
-    
-    // updateCustomer = await connection.update(tCustomer)
-    //     .from(customerForUpdate)
-    //     .set({
-    //         firstName: customerForUpdate.firstName,
-    //         lastName: customerForUpdate.lastName
-    //     })
-    //     .where(tCustomer.id.equals(customerForUpdate.id))
-    //     .executeUpdate()
-    
-    // assertEquals(updateCustomer, result)
+    class VCustomerForUpdate extends Values<DBConnection, 'customerForUpdate'> {
+        id = this.column('int')
+        firstName = this.column('string')
+        lastName = this.column('string')
+    }
+    const customerForUpdate = Values.create(VCustomerForUpdate, 'customerForUpdate', [{
+        id: 1,
+        firstName: 'First Name',
+        lastName: 'Last Name'
+    }])
 
-    // /* *** Preparation ************************************************************/
+    updateCustomer = await connection.update(tCustomer)
+        .from(customerForUpdate)
+        .set({
+            firstName: customerForUpdate.firstName,
+            lastName: customerForUpdate.lastName
+        })
+        .where(tCustomer.id.equals(customerForUpdate.id))
+        .executeUpdate()
 
-    // result = 1
-    // expectedResult.push(result)
-    // expectedQuery.push(`with customerForDelete(firstName, lastName) as (values ($1, $2)) delete from customer using customerForDelete where customer.first_name = customerForDelete.firstName and customer.last_name = customerForDelete.lastName`)
-    // expectedParams.push(`["First Name","Last Name"]`)
-    // expectedType.push(`delete`)
+    assertEquals(updateCustomer, result)
 
-    // /* *** Example ****************************************************************/
+    /* *** Preparation ************************************************************/
 
-    // class VCustomerForDelete extends Values<DBConnection, 'customerForDelete'> {
-    //     firstName = this.column('string')
-    //     lastName = this.column('string')
-    // }
-    // const customerForDelete = Values.create(VCustomerForDelete, 'customerForDelete', [{
-    //     firstName: 'First Name',
-    //     lastName: 'Last Name'
-    // }])
-    
-    // deleteCustomer = await connection.deleteFrom(tCustomer)
-    //     .using(customerForDelete)
-    //     .where(tCustomer.firstName.equals(customerForDelete.firstName))
-    //     .and(tCustomer.lastName.equals(customerForDelete.lastName))
-    //     .executeDelete()
-    
-    // assertEquals(deleteCustomer, result)
+    result = 1
+    expectedResult.push(result)
+    expectedQuery.push(`with customerForDelete(firstName, lastName) as (values (?, ?)) delete from customer using customer, customerForDelete where customer.first_name = customerForDelete.firstName and customer.last_name = customerForDelete.lastName`)
+    expectedParams.push(`["First Name","Last Name"]`)
+    expectedType.push(`delete`)
+
+    /* *** Example ****************************************************************/
+
+    class VCustomerForDelete extends Values<DBConnection, 'customerForDelete'> {
+        firstName = this.column('string')
+        lastName = this.column('string')
+    }
+    const customerForDelete = Values.create(VCustomerForDelete, 'customerForDelete', [{
+        firstName: 'First Name',
+        lastName: 'Last Name'
+    }])
+
+    deleteCustomer = await connection.deleteFrom(tCustomer)
+        .using(customerForDelete)
+        .where(tCustomer.firstName.equals(customerForDelete.firstName))
+        .and(tCustomer.lastName.equals(customerForDelete.lastName))
+        .executeDelete()
+
+    assertEquals(deleteCustomer, result)
 
     /* *** Preparation ************************************************************/
 

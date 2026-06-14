@@ -523,9 +523,7 @@ describe(ctx.label, () => {
         expect(row).toEqual({ id: 1, projectNames: ['Marketing site', 'Internal tools'] })
     })
 
-    // TODO[BUG]: see test/BUGS.md — case-insensitive ORDER BY on an inline aggregated array emits `lower(<alias>)`, which PostgreSQL / SQL Server reject (column does not exist); kept mock-only until the SqlBuilder emits `lower(<source-expr>)`.
     test('inline-aggregate-order-by-asc-insensitive', async () => {
-        if (ctx.realDbEnabled) return // mock-only: see TODO[BUG] above
         ctx.mockNext({
             id: 1, name: 'Acme Corp',
             projectNames: JSON.stringify(['Internal tools', 'Marketing site']),
@@ -544,7 +542,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select json_agg(a_1_.result) from (select name as result from project where organization_id = organization.id order by lower(result) asc) as a_1_) as "projectNames" from organization where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select json_agg(a_1_.result) from (select name as result from project where organization_id = organization.id order by lower(name) asc) as a_1_) as "projectNames" from organization where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -557,9 +555,7 @@ describe(ctx.label, () => {
         expect(row).toEqual({ id: 1, projectNames: ['Internal tools', 'Marketing site'] })
     })
 
-    // TODO[BUG]: see test/BUGS.md — case-insensitive ORDER BY on an inline aggregated array emits `lower(<alias>)`, which PostgreSQL / SQL Server reject (column does not exist); kept mock-only until the SqlBuilder emits `lower(<source-expr>)`.
     test('inline-aggregate-order-by-asc-nulls-last-insensitive', async () => {
-        if (ctx.realDbEnabled) return // mock-only: see TODO[BUG] above
         ctx.mockNext({
             id: 1, name: 'Acme Corp',
             projectNames: JSON.stringify(['Internal tools', 'Marketing site']),
@@ -578,7 +574,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select json_agg(a_1_.result) from (select name as result from project where organization_id = organization.id order by lower(result) asc nulls last) as a_1_) as "projectNames" from organization where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select json_agg(a_1_.result) from (select name as result from project where organization_id = organization.id order by lower(name) asc nulls last) as a_1_) as "projectNames" from organization where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

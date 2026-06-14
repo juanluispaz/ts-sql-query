@@ -69,15 +69,7 @@ of that. Two minutes of triage and one paragraph is the bar.
 
 ---
 
-## Case-insensitive `ORDER BY` of an inline aggregated array emits `lower(<alias>)` (rejected by PostgreSQL / SQL Server)
-
-**Where**: the wrapped inline-aggregate path — `forUseAsInlineAggregatedArrayValue()` combined with an `... insensitive` order-by. The order-by emission inside the aggregate wrapper (`AbstractSqlBuilder`) wraps the **output alias** in `lower(...)` instead of the source expression.
-
-**Reproduction**: `subSelectUsing(t).selectOneColumn(col).orderBy('result', 'asc insensitive').forUseAsInlineAggregatedArrayValue()` emits `(select json_agg(a_1_.result) from (select <col> as result from ... order by lower(result) ...) a_1_)`. PostgreSQL → `column "result" does not exist`; SQL Server → error 207 "Invalid column name". MySQL / SQLite / Oracle accept it (they resolve the alias inside the expression). MariaDB does not hit it — its `asc insensitive` falls through to a plain `order by name` on its case-insensitive default collation.
-
-**Expected**: order by `lower(<source-expression>)` (e.g. `lower(name)`), which is valid on every dialect.
-
-**Current workaround in the suite**: `inline-aggregate-order-by-asc-insensitive` and `inline-aggregate-order-by-asc-nulls-last-insensitive` in `select.aggregate-as-array-inline-wrapped.test.ts` are kept **live but mock-only** (`if (ctx.realDbEnabled) return`, marked `// TODO[BUG]`) in the PostgreSQL cells (pg / postgres / bun_sql_postgres / pglite, newest + oldest) and the SQL Server cell (mssql). They run and validate against the real engine in the MySQL / MariaDB / Oracle / SQLite cells. Once `src/` emits `lower(<source-expr>)`, drop the `if (ctx.realDbEnabled) return` + `// TODO[BUG]` lines and re-bake those snapshots.
+_None currently open._
 
 ---
 

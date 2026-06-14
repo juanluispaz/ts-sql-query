@@ -266,8 +266,8 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push(`select id as id, first_name || $1 || last_name as name, birthday as birthday from customer where first_name like ('%' || $2 || '%') order by lower(name), birthday asc nulls last`)
-    expectedParams.push(`[" ","ohn"]`)
+    expectedQuery.push(`select id as id, first_name || $1 || last_name as name, birthday as birthday from customer where first_name like ('%' || $2 || '%') order by lower(first_name || $3 || last_name), birthday asc nulls last`)
+    expectedParams.push(`[" ","ohn"," "]`)
     expectedType.push(`selectManyRows`)
 
     /* *** Example ****************************************************************/
@@ -298,8 +298,8 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push(`select id as id, first_name || $1 || last_name as name, birthday as birthday from customer where first_name like ('%' || $2 || '%') order by lower(name), birthday asc nulls last`)
-    expectedParams.push(`[" ","ohn"]`)
+    expectedQuery.push(`select id as id, first_name || $1 || last_name as name, birthday as birthday from customer where first_name like ('%' || $2 || '%') order by lower(first_name || $3 || last_name), birthday asc nulls last`)
+    expectedParams.push(`[" ","ohn"," "]`)
     expectedType.push(`selectManyRows`)
 
     /* *** Example ****************************************************************/
@@ -331,8 +331,8 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push(`select id as id, first_name || $1 || last_name as name, birthday as birthday from customer where first_name like ('%' || $2 || '%') order by lower(name), birthday asc nulls last`)
-    expectedParams.push(`[" ","ohn"]`)
+    expectedQuery.push(`select id as id, first_name || $1 || last_name as name, birthday as birthday from customer where first_name like ('%' || $2 || '%') order by lower(first_name || $3 || last_name), birthday asc nulls last`)
+    expectedParams.push(`[" ","ohn"," "]`)
     expectedType.push(`selectManyRows`)
 
     /* *** Example ****************************************************************/
@@ -367,7 +367,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push(`select customer.id as id, customer.first_name as "firstName", customer.last_name as "lastName", customer.birthday as birthday, comp.name as "companyName" from customer inner join company as comp on customer.company_id = comp.id where customer.first_name ilike ($1 || '%') order by lower("firstName"), lower("lastName") asc`)
+    expectedQuery.push(`select customer.id as id, customer.first_name as "firstName", customer.last_name as "lastName", customer.birthday as birthday, comp.name as "companyName" from customer inner join company as comp on customer.company_id = comp.id where customer.first_name ilike ($1 || '%') order by lower(customer.first_name), lower(customer.last_name) asc`)
     expectedParams.push(`["John"]`)
     expectedType.push(`selectManyRows`)
 
@@ -948,7 +948,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push(`select customer.id as id, customer.first_name as "firstName", customer.last_name as "lastName", customer.birthday as birthday, company.name as "companyName" from customer inner join company on customer.company_id = company.id where (customer.first_name ilike ($1 || '%') or (customer.last_name ilike ($2 || '%') and customer.last_name like ('%' || $3))) and company.name = $4 order by lower("firstName"), lower("lastName") asc`)
+    expectedQuery.push(`select customer.id as id, customer.first_name as "firstName", customer.last_name as "lastName", customer.birthday as birthday, company.name as "companyName" from customer inner join company on customer.company_id = company.id where (customer.first_name ilike ($1 || '%') or (customer.last_name ilike ($2 || '%') and customer.last_name like ('%' || $3))) and company.name = $4 order by lower(customer.first_name), lower(customer.last_name) asc`)
     expectedParams.push(`["John","Smi","th","ACME"]`)
     expectedType.push(`selectManyRows`)
     
@@ -994,7 +994,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push(`select customer.id as id, customer.first_name as "name.firstName", customer.last_name as "name.lastName", customer.birthday as birthday, company.id as "company.id", company.name as "company.name" from customer inner join company on customer.company_id = company.id where (customer.first_name ilike ($1 || '%') or (customer.last_name ilike ($2 || '%') and customer.last_name like ('%' || $3))) and company.name = $4 order by lower("name.firstName"), lower("name.lastName") asc`)
+    expectedQuery.push(`select customer.id as id, customer.first_name as "name.firstName", customer.last_name as "name.lastName", customer.birthday as birthday, company.id as "company.id", company.name as "company.name" from customer inner join company on customer.company_id = company.id where (customer.first_name ilike ($1 || '%') or (customer.last_name ilike ($2 || '%') and customer.last_name like ('%' || $3))) and company.name = $4 order by lower(customer.first_name), lower(customer.last_name) asc`)
     expectedParams.push(`["John","Smi","th","ACME"]`)
     expectedType.push(`selectManyRows`)
     
@@ -1139,7 +1139,7 @@ async function main() {
         'company.id': 10,
         'company.name': 'ACME Inc.'
     })
-    expectedQuery.push(`select customer.id as id, customer.first_name as "name.firstName", customer.last_name as "name.lastName", customer.birthday as birthday, company.id as "company.id", company.name as "company.name" from customer inner join company on company.id = customer.company_id where company.name = $1 and (customer.first_name ilike ('%' || $2 || '%') or customer.last_name ilike ('%' || $3 || '%')) order by lower("company.name") asc, birthday desc`)
+    expectedQuery.push(`select customer.id as id, customer.first_name as "name.firstName", customer.last_name as "name.lastName", customer.birthday as birthday, company.id as "company.id", company.name as "company.name" from customer inner join company on company.id = customer.company_id where company.name = $1 and (customer.first_name ilike ('%' || $2 || '%') or customer.last_name ilike ('%' || $3 || '%')) order by lower(company.name) asc, birthday desc`)
     expectedParams.push(`["ACME","John","Smi"]`)
     expectedType.push(`selectOneRow`)
     

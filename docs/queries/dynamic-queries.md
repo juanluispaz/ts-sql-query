@@ -121,7 +121,7 @@ The executed query is:
     from customer 
     where first_name like ('%' || $2 || '%') 
     order by 
-        lower(name), 
+        lower(first_name || $3 || last_name), 
         birthday asc nulls last
     ```
 === "SQLite"
@@ -145,12 +145,12 @@ The executed query is:
     from customer 
     where first_name like ('%' + @1 + '%') 
     order by 
-        lower(name), 
+        lower(first_name + @2 + last_name), 
         iif(customer.birthday is null, 1, 0), 
         birthday asc
     ```
 
-The parameters are: `[ ' ', 'ohn' ]`
+The parameters are: `[ ' ', 'ohn' ]` (on [PostgreSQL](../configuration/supported-databases/postgresql.md) and [SQL Server](../configuration/supported-databases/sqlserver.md) the case-insensitive `order by` re-emits the concatenated expression — these dialects can't reference a select alias inside an `order by` expression — so its separator is bound again, giving `[ ' ', 'ohn', ' ' ]`)
 
 The result type is:
 ```tsx

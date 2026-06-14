@@ -127,15 +127,30 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         // with them so `... order by col collate "<name>"` is emitted.
         const collation = this._connectionConfiguration.insensitiveCollation
         const stringColumn = this._isStringOrderByColumn(entry, query)
-        if (!stringColumn) {
+        if (!stringColumn || collation === '') {
             return this._appendOrderByColumnAlias(entry, query, params)
-        } else if (collation) {
-            return this._appendOrderByColumnAlias(entry, query, params) + ' collate "' + collation + '"'
-        } else if (collation === '') {
-            return this._appendOrderByColumnAlias(entry, query, params)
-        } else {
-            return 'lower(' + this._appendOrderByColumnAlias(entry, query, params) + ')'
         }
+        // PostgreSQL doesn't resolve a SELECT alias inside an ORDER BY
+        // expression (see `_supportOrderByColumnAliasInExpression`), so for a
+        // plain select emit the alias' underlying source expression; a compound
+        // query references a real result column where the alias is fine (see
+        // the base method for the full rationale).
+        const resolveSource = typeof entry.expression === 'string'
+            && query.__type !== 'compound'
+            && !this._supportOrderByColumnAliasInExpression()
+        const wrapped = resolveSource
+            ? this._appendOrderByColumnSourceAsInSelect(entry, query, params)
+            : this._appendOrderByColumnAlias(entry, query, params)
+        if (collation) {
+            return wrapped + ' collate "' + collation + '"'
+        }
+        return 'lower(' + wrapped + ')'
+    }
+    override _supportOrderByColumnAliasInExpression(): boolean {
+        // PostgreSQL resolves a name inside an ORDER BY expression against the
+        // input columns, not the SELECT output aliases, so `lower(<alias>)`
+        // fails with "column does not exist". Verified against the real engine.
+        return false
     }
     override _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayDistinct: boolean, params: any[], query: SelectData | undefined): string {
         if (aggregatedArrayDistinct && !isValueSource(aggregatedArrayColumns)) {

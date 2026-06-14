@@ -225,20 +225,6 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         }
         return this._appendOrderByColumnExpression(entry, query, params)
     }
-    _appendOrderByColumnExpression(entry: OrderByEntry, query: SelectData, params: any[]): string {
-        const expression = entry.expression
-        if (typeof expression === 'string') {
-            const column = getQueryColumn(query.__columns, expression)
-            if (!column) {
-                throw new TsSqlProcessingError({ reason: 'ORDER_BY_COLUMN_NOT_IN_SELECT', column: expression }, 'Column ' + expression + ' included in the order by not found in the select clause')
-            }
-            return this._appendSql(column, params, false)
-        } else if (isValueSource(expression)) {
-            return this._appendSql(expression, params, false)
-        } else {
-            return this._appendRawFragment(expression, params)
-        }
-    }
     override _buildSelectLimitOffset(query: SelectData, params: any[]): string {
         let result = ''
 

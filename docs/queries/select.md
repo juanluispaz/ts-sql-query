@@ -88,8 +88,8 @@ The executed query is:
     inner join company as comp on customer.company_id = comp.id 
     where customer.first_name ilike ($1 || '%') 
     order by 
-        lower("firstName"), 
-        lower("lastName") asc
+        lower(customer.first_name), 
+        lower(customer.last_name) asc
     ```
 === "SQLite"
     ```sqlite
@@ -118,8 +118,8 @@ The executed query is:
     inner join company as comp on customer.company_id = comp.id 
     where lower(customer.first_name) like lower(@0 + '%') 
     order by 
-        lower(firstName), 
-        lower(lastName) asc
+        lower(customer.first_name), 
+        lower(customer.last_name) asc
     ```
 
 The parameters are: `[ 'John' ]`

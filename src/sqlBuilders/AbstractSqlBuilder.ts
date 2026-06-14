@@ -69,6 +69,27 @@ export class AbstractSqlBuilder implements SqlBuilder {
             configurable: true
         })
     }
+    /**
+     * The safe table/view the surrounding SELECT clause rendered its columns
+     * against. The ORDER BY build resets `_safeTableOrView` to `undefined` so
+     * value-source terms are emitted qualified, but a term that resolves an
+     * output alias to its source column must render exactly as that column
+     * appears in the SELECT clause (bare on a single-table select), so that
+     * `lower(...)` / `collate` references a real column and stays readable.
+     * `_appendOrderByColumnExpression` applies this slot when resolving an
+     * alias; the build sites set it to the select-clause safe table.
+     */
+    _getOrderBySafeTableOrView(params: any[]): AnyTableOrView | undefined {
+        return (params as any)._orderBySafeTableOrView
+    }
+    _setOrderBySafeTableOrView(params: any[], tableOrView: AnyTableOrView | undefined): void {
+        Object.defineProperty(params, '_orderBySafeTableOrView', {
+            value: tableOrView,
+            writable: true,
+            enumerable: false,
+            configurable: true
+        })
+    }
     _getForceAliasAs(params: any[]): string | undefined {
         return (params as any)._forceAliasAs
     }
@@ -983,8 +1004,11 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         if (!query.__asInlineAggregatedArrayValue || !this._supportOrderByWhenAggregateArray || this._isAggregateArrayWrapped(params)) {
             const oldSafeTableOrViewInOrderBy = this._getSafeTableOrView(params)
+            const oldOrderBySafeTableOrView = this._getOrderBySafeTableOrView(params)
             this._setSafeTableOrView(params, undefined)
+            this._setOrderBySafeTableOrView(params, oldSafeTableOrViewInOrderBy)
             selectQuery += this._buildSelectOrderBy(query, params)
+            this._setOrderBySafeTableOrView(params, oldOrderBySafeTableOrView)
             this._setSafeTableOrView(params, oldSafeTableOrViewInOrderBy)
         }
         if (!query.__asInlineAggregatedArrayValue || !this._supportLimitWhenAggregateArray || this._isAggregateArrayWrapped(params)) {
@@ -1127,17 +1151,67 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _appendOrderByColumnAliasInsensitive(entry: OrderByEntry, query: SelectData, params: any[]): string {
         const collation = this._connectionConfiguration.insensitiveCollation
         const stringColumn = this._isStringOrderByColumn(entry, query)
-        if (!stringColumn) {
-            // Ignore the insensitive term, it do nothing
+        if (!stringColumn || collation === '') {
+            // Non-string column, or the engine handles case-insensitivity by
+            // its default collation: the insensitive term renders nothing
+            // extra, so a bare alias reference is enough.
             return this._appendOrderByColumnAlias(entry, query, params)
-        } else if (collation) {
-            return this._appendOrderByColumnAlias(entry, query, params) + ' collate ' + collation
-        } else if (collation === '') {
-            return this._appendOrderByColumnAlias(entry, query, params)
-        } else {
-            return 'lower(' + this._appendOrderByColumnAlias(entry, query, params) + ')'
         }
-    } 
+        // The insensitive term wraps the column in an expression (`lower(...)`
+        // or `<col> collate <name>`). A *string* entry is an output alias;
+        // PostgreSQL / SQL Server don't resolve an alias inside an ORDER BY
+        // expression, so emit its underlying source column (as in the SELECT
+        // clause). A value-source / raw entry already renders the expression
+        // itself (never an alias), and the lenient dialects + compound queries
+        // accept the alias, so those keep the original rendering.
+        const resolveSource = typeof entry.expression === 'string'
+            && query.__type !== 'compound'
+            && !this._supportOrderByColumnAliasInExpression()
+        const wrapped = resolveSource
+            ? this._appendOrderByColumnSourceAsInSelect(entry, query, params)
+            : this._appendOrderByColumnAlias(entry, query, params)
+        if (collation) {
+            return wrapped + ' collate ' + collation
+        }
+        return 'lower(' + wrapped + ')'
+    }
+    /**
+     * Render the order-by entry's underlying source expression as it appears in
+     * the SELECT clause (a bare column name on a single-table select, qualified
+     * across a join), independent of the qualified-everything mode the ORDER BY
+     * build uses for value-source terms. Used only by the insensitive wrapper so
+     * `lower(<src>)` / `<src> collate <name>` reads like the projected column;
+     * the plain `_appendOrderByColumnExpression` (used e.g. by `is null` checks)
+     * keeps the surrounding qualification. See `_getOrderBySafeTableOrView`.
+     */
+    _appendOrderByColumnSourceAsInSelect(entry: OrderByEntry, query: SelectData, params: any[]): string {
+        const oldSafeTableOrView = this._getSafeTableOrView(params)
+        this._setSafeTableOrView(params, this._getOrderBySafeTableOrView(params))
+        const result = this._appendOrderByColumnExpression(entry, query, params)
+        this._setSafeTableOrView(params, oldSafeTableOrView)
+        return result
+    }
+    _appendOrderByColumnExpression(entry: OrderByEntry, query: SelectData, params: any[]): string {
+        // Resolve the order-by entry to its underlying source expression.
+        // Unlike `_appendOrderByColumnAlias`, a string entry is resolved to the
+        // SELECT column it names and rendered as that column's expression (not
+        // the output alias). Required wherever the ordering term is wrapped in
+        // an expression (`lower(...)`, `collate`, a null check), because the
+        // strict engines don't resolve a SELECT alias inside an ORDER BY
+        // expression.
+        const expression = entry.expression
+        if (typeof expression === 'string') {
+            const column = getQueryColumn(query.__columns, expression)
+            if (!column) {
+                throw new TsSqlProcessingError({ reason: 'ORDER_BY_COLUMN_NOT_IN_SELECT', column: expression }, 'Column ' + expression + ' included in the order by not found in the select clause')
+            }
+            return this._appendSql(column, params, false)
+        } else if (isValueSource(expression)) {
+            return this._appendSql(expression, params, false)
+        } else {
+            return this._appendRawFragment(expression, params)
+        }
+    }
     _isStringOrderByColumn(entry: OrderByEntry, query: SelectData): boolean {
         const expression = entry.expression
         const columns = query.__columns
@@ -1152,6 +1226,21 @@ export class AbstractSqlBuilder implements SqlBuilder {
         } else {
             return false
         }
+    }
+    /**
+     * Whether this dialect resolves a SELECT output alias when it appears
+     * *inside an expression* in the ORDER BY clause (e.g. `order by
+     * lower(<alias>)` / `order by <alias> collate <name>`). A bare `order by
+     * <alias>` reference works everywhere; the question is only about an alias
+     * wrapped in an expression. Verified against the real engines: MySQL,
+     * MariaDB, Oracle and SQLite resolve it; PostgreSQL and SQL Server do not
+     * (they resolve any name inside an expression against the input columns and
+     * fail with "column does not exist" / error 207). When `false`, an
+     * insensitive ordering must reference the alias' underlying source
+     * expression instead — see `_appendOrderByColumnAliasInsensitive`.
+     */
+    _supportOrderByColumnAliasInExpression(): boolean {
+        return true
     }
     /**
      * Whether this dialect accepts a function call (e.g. `lower(col)`) as an

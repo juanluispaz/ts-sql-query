@@ -586,7 +586,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     //     }
     // }
     // -------------------------------------------------------------------
-    _appendOrderByColumnExpression(entry: OrderByEntry, query: SelectData, params: any[]): string {
+    override _appendOrderByColumnExpression(entry: OrderByEntry, query: SelectData, params: any[]): string {
         // T-SQL does not resolve SELECT aliases inside scalar functions in
         // ORDER BY (only as bare references). When the entry is an alias
         // name, emit the underlying column expression instead.
@@ -599,6 +599,12 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             return this._appendSql(column, params, false)
         }
         return this._appendOrderByColumnAlias(entry, query, params)
+    }
+    override _supportOrderByColumnAliasInExpression(): boolean {
+        // T-SQL resolves a name inside an ORDER BY expression against the input
+        // columns, not the SELECT output aliases, so `lower(<alias>)` fails with
+        // error 207 "Invalid column name". Verified against the real engine.
+        return false
     }
     override _buildInsertOutput(query: InsertData, params: any[]): string {
         const idColumn = query.__idColumn

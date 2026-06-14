@@ -77,6 +77,17 @@ The library is layered. Read top-down when tracing a query through the system:
 
 [src/simplifiedDefinition.txt](src/simplifiedDefinition.txt) is a hand-maintained simplified view of the public type surface — useful as a map when navigating the heavily generic real types.
 
+## Code navigation — searcher before textual search on TypeScript
+
+**Before any textual search over `src/` or `test/db/`** — by **any** means that matches characters rather than resolved symbols (the Grep tool, ripgrep, `find` over file contents, `awk`/`sed`, a Bash one-liner, a shell pipe, an MCP search, opening files by hand to scan them, anything else of that shape) — read [`test/CODE_SEARCH.md`](test/CODE_SEARCH.md) **in full once at session start**. Doors, sections, presets and reading conventions are all operational, not optional. Pay special attention to [§ "This tool vs. textual search"](test/CODE_SEARCH.md#this-tool-vs-textual-search): it is the gate that decides searcher vs textual search per question. Then reach for `tests:where-is` instead. The searcher runs against a resolved semantic index — the compiler's view of the code — and answers TypeScript-shaped questions textual search cannot model: declarations across all overloads, type-argument blast radius (where an alias is used as a type arg), call-chains, implementer classes, brand sites, public-surface vs internal classification, and the cross-world (`src/` + `test/` matrix + `docs/` + `src/examples/`) trail of a single symbol. Recent miss: a bug fix searched textually across the two files the BUGS.md entry named (`View.ts`, `Values.ts`) and left a third (`Table.ts`) regressed; `tests:where-is --search virtualColumnFromFragment --declared full` would have listed all three in one report.
+
+```bash
+bun run tests:index            # refresh the index (~28 s, gitignored, once per session)
+bun run tests:where-is --help  # doors / sections / presets
+```
+
+The ~30 s of indexing is a price worth paying: one indexed query beats several rounds of textual scanning and catches what they silently miss. Textual search still wins for **literal prose** (comments, doc bodies, EXTERNAL_CAVEATS catalogues), **switch case literals** (`case 'x'`), **byte-anchored mass edits** (perl/python on file positions) and **exact occurrence counts** — the searcher resolves and de-duplicates, so it's the wrong ruler for "how many literal times". For the wired-in hot spots (verify an API exists before a wave, trace a type bug, walk declared caveats per cell), follow the entries in [`test/README.md` § "… find context fast (the searcher)"](test/README.md).
+
 ## Module / TypeScript conventions
 
 - ESM-only (`"type": "module"`). **Relative imports must use the `.js` extension** even when pointing at a `.ts` file (`verbatimModuleSyntax` + `isolatedModules` are on). Type-only imports must use `import type`.

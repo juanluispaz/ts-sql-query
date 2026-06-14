@@ -307,7 +307,7 @@
     },
     "homepage": "https://ts-sql-query.readthedocs.io/",
     "devDependencies": {
-        "@electric-sql/pglite": "^0.5.1",
+        "@electric-sql/pglite": "^0.5.2",
         "@prisma/adapter-better-sqlite3": "^7.8.0",
         "@prisma/adapter-mariadb": "^7.8.0",
         "@prisma/adapter-mssql": "^7.8.0",

@@ -390,7 +390,7 @@ describe(ctx.label, () => {
         expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where created_at >= $1 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
-            "2020-01-01T00:00:00.000Z",
+            2020-01-01T00:00:00.000Z,
           ]
         `)
     })

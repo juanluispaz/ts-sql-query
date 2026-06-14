@@ -30,7 +30,6 @@ import {
 import { createTestContext, type TestContext } from '../../lib/testContext.js'
 import { CaptureInterceptor } from '../../lib/captureInterceptor.js'
 import type { QueryRunner } from '../../../src/queryRunners/QueryRunner.js'
-import { MockPgLiteQueryRunner } from '../../lib/mockRunners/MockPgLiteQueryRunner.js'
 import { MockBunSqlPostgresQueryRunner } from '../../lib/mockRunners/MockBunSqlPostgresQueryRunner.js'
 import { DBConnection } from './domain/connection.js'
 
@@ -482,7 +481,6 @@ export function createPgLiteTestContext(spec: PgLiteTestSpec): PostgresTestConte
         compatibilityVersion: spec.compatibilityVersion,
         database: 'postgreSql',
         realDbEnabled,
-        mockRunnerClass: MockPgLiteQueryRunner,
         timeoutMs: 30_000,
         async createRealRunner() {
             const { PgLiteQueryRunner } = await import('../../../src/queryRunners/PgLiteQueryRunner.js')

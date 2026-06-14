@@ -222,30 +222,6 @@ generation can now copy `new Date(...)` parameter tests to
 `bun_sql_postgres` as-is, expecting the ISO string in the param
 snapshot.
 
-### `pglite` — `Date` parameter bound to an uncast (text-inferred) placeholder
-
-When a `Date` parameter reaches a **bare** placeholder (no `::`-cast),
-PostgreSQL infers the parameter type as text/unknown. pglite's
-in-process serializer is then handed a JS `Date` for a string-typed
-param and rejects it with `Invalid input for string type`. The
-wire-protocol postgres drivers (`pg`, `postgres`) stringify a `Date`
-before it reaches the server, so they round-trip fine; pglite's
-serializer does not. Open upstream:
-<https://github.com/electric-sql/pglite/issues/1021>.
-
-**Workaround now built into the runner:**
-`PgLiteQueryRunner.addParam` serialises every `Date` to an ISO 8601
-string (`date.toISOString()`) before binding it — mirroring what `pg` /
-`postgres` send — so even the bare-placeholder case binds. The captured
-param is therefore the ISO string, not a `Date`;
-`MockPgLiteQueryRunner` mirrors the same coercion so mock and real modes
-agree. This made the previously-commented test runnable again
-(`select.postgres-const-force-type-cast.test.ts` →
-`const-custom-localdate-falls-through-without-cast`; the enumerated
-`'localDate'` / `'localDateTime'` cases always bound thanks to their
-`::date` / `::timestamp` cast). Best-effort workaround that may change
-without backwards compatibility once the upstream bug is fixed.
-
 ## Connectors not in the matrix today
 
 These are reachable from the public exports and have their own runner

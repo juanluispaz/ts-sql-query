@@ -130,35 +130,6 @@ runtime cell rejects something a mock cell accepted (because the mock
 doesn't execute the SQL), it is almost always this case. Treat as
 "test author error", not as a bug.
 
-## pglite may bundle an older PostgreSQL than the dialect's newest syntax targets
-
-[`pglite`](https://pglite.dev/) is a WASM build of PostgreSQL that
-the suite uses for in-process real-DB coverage of postgres-dialect
-cells. As of `@electric-sql/pglite` **0.5.1** it ships PostgreSQL
-**18.3** (earlier releases shipped PostgreSQL 17). The `postgres`
-SqlBuilder at its newest `compatibilityVersion` emits syntax such as
-`RETURNING old.<col>` / `RETURNING new.<col>` (the `update returning
-old values` feature) that requires **PostgreSQL 18+** — pglite 0.5.1
-(PG 18.3) accepts it, verified against the embedded engine, so
-`docs:update/update-returning-old-values` now runs live in
-`test/db/postgres/newest/pglite/docs.update.test.ts` (no wrap).
-
-**There is no current pglite-version wrap.** The guidance below
-applies only if a *future* feature the `postgres` SqlBuilder emits at
-`newest` ever requires a PostgreSQL newer than the version pglite
-bundles at the time:
-
-- The wrap would be **per `compatibilityVersion` cell**, not
-  per pglite-cell. At `newest` (default,
-  `Number.POSITIVE_INFINITY`) the SqlBuilder emits the newest syntax
-  the dialect supports; if that outpaces pglite's bundled PG, wrap
-  only the `postgres/newest/pglite/` test with `TODO[LIMITATION]: see
-  LIMITATIONS.md`. At `oldest` the SqlBuilder emits the legacy
-  emulation that older servers accept, so do **not** wrap it there.
-- When pglite catches up, walk
-  `grep -rn "TODO\[LIMITATION\]" test/db/postgres/*/pglite/` and
-  uncomment each match.
-
 ## MariaDB UPDATE ... RETURNING requires MariaDB 13.0.1+ — `mariadb:latest` still ships 12.x
 
 [MariaDB added `UPDATE ... RETURNING` (and the matching `OLD_VALUE(col)` helper) in MariaDB 13.0.1](https://jira.mariadb.org/browse/MDEV-5092). The

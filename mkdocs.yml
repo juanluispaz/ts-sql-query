@@ -1,5 +1,9 @@
 site_name: ts-sql-query
 site_description: Type-safe SQL query builder for TypeScript.
+# Required for a non-empty sitemap.xml and <link rel="canonical"> tags.
+# On Read the Docs this resolves per-version (e.g. .../en/latest/) via READTHEDOCS_CANONICAL_URL;
+# the fallback is used for local builds.
+site_url: !ENV [READTHEDOCS_CANONICAL_URL, 'https://ts-sql-query.readthedocs.io/']
 repo_url: https://github.com/juanluispaz/ts-sql-query
 repo_name: juanluispaz/ts-sql-query
 # Theme overrides live under docs/overrides (theme.custom_dir); exclude them from the built site.

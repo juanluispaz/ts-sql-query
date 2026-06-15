@@ -1,5 +1,4 @@
-// Dynamic `ON CONFLICT … DO UPDATE` builders in
-// [InsertQueryBuilder.ts:1662-1820](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L1662-L1820):
+// Dynamic `ON CONFLICT … DO UPDATE` builders
 //
 //   - `.onConflictOn(col).doUpdateDynamicSet({…?})` opens an empty (or
 //     pre-populated) update-set; subsequent `.set(...)` / `.setIfValue(...)`
@@ -29,8 +28,7 @@ describe(ctx.label, () => {
     /*
     test('do-update-dynamic-set-then-set-builds-incremental-update', async () => {
         // `doUpdateDynamicSet()` opens an empty update-set, then two
-        // chained `.set(...)` calls dispatch into the opened set via
-        // [InsertQueryBuilder.ts:428-435](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L428-L435).
+        // chained `.set(...)` calls dispatch into the opened set
         ctx.mockNext(1)
         await ctx.withRollback(async () => {
             const affected = await ctx.conn.insertInto(tProject)
@@ -55,7 +53,7 @@ describe(ctx.label, () => {
         // `doUpdateDynamicSet()` (no-arg form) opens an empty update-set;
         // a chained `.set({name})` adds the only surviving entry; the
         // following `.setIfValue({slug: undefined})` is dropped because
-        // `undefined` fails `_isValue` ([InsertQueryBuilder.ts:454-476](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L454-L476)).
+        // `undefined` fails `_isValue`.
         ctx.mockNext(1)
         await ctx.withRollback(async () => {
             await ctx.conn.insertInto(tProject)
@@ -75,12 +73,10 @@ describe(ctx.label, () => {
     // NOT-APPLICABLE: SQL Server has no INSERT…ON CONFLICT (uses MERGE)
     /*
     test('do-update-dynamic-set-with-initial-columns-then-set-if-value', async () => {
-        // Initial-columns form: `doUpdateDynamicSet({...})` at
-        // [InsertQueryBuilder.ts:1761-1773](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L1761-L1773)
+        // Initial-columns form: `doUpdateDynamicSet({...})`
         // seeds the on-conflict update-set in one shot (delegates to
         // `doUpdateSet`); the chained `setIfValue({slug: undefined})`
         // is dropped via `_isValue`
-        // ([InsertQueryBuilder.ts:448-478](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L448-L478)).
         // Same emitted SQL as the no-arg variant above; the difference
         // is purely the entry point.
         ctx.mockNext(1)
@@ -101,8 +97,7 @@ describe(ctx.label, () => {
     // NOT-APPLICABLE: SQL Server has no INSERT…ON CONFLICT (uses MERGE)
     /*
     test('do-update-set-if-value-keeps-only-properties-passing-value-gate', async () => {
-        // One-shot `doUpdateSetIfValue({...})` at
-        // [InsertQueryBuilder.ts:1806-1828](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L1806-L1828):
+        // One-shot `doUpdateSetIfValue({...})`
         // each property is tested with `_isValue` before being added to
         // the update-set. `archivedAt: undefined` is filtered out, the
         // two real values survive.

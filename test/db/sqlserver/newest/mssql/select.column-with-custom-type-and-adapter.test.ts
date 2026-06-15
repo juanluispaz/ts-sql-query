@@ -3,9 +3,9 @@
 // re-projects the existing `project` table with its `id` column
 // declared as a branded `customInt` (`'ProjectId'`) carrying a
 // `TypeAdapter`. The form lives on `Table.column` overloads
-// (Table.ts:92-109 typed by 'customInt'/'customDouble'/'customUuid'/
+// (typed by 'customInt'/'customDouble'/'customUuid'/
 // 'customLocalDate*'/'customComparable') and is mirrored on
-// `optionalColumn` (Table.ts:126-142).
+// `optionalColumn`.
 //
 // The adapter used here is `LoggingAdapter`: it records the
 // `transformValueFromDB` and `transformValueToDB` invocations into

@@ -22,7 +22,7 @@
 // (the **expression** variant — they reference the original column in
 // ORDER BY, not the SELECT alias); every other dialect goes through
 // `AbstractSqlBuilder._appendOrderByColumnAliasInsensitive` (the alias
-// variant). The L202 expression-variant was previously unexercised.
+// variant). The expression-variant was previously unexercised.
 //
 // `_isStringOrderByColumn` is also exercised by the last test, which
 // orders by an int column with the insensitive modifier — the modifier

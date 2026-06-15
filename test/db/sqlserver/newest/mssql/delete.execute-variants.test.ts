@@ -1,11 +1,9 @@
 // Mirror of [update.execute-variants.test.ts](./update.execute-variants.test.ts)
 // for the DELETE side. Lights up:
 //
-//   - `executeDelete(min, max)` — min-/max-row guards in
-//     [DeleteQueryBuilder.ts:45](../../../../../src/queryBuilders/DeleteQueryBuilder.ts#L45).
+//   - `executeDelete(min, max)` — min-/max-row guards
 //   - `executeDeleteNoneOrOne()` with `returningOneColumn(...)` — the
-//     `__oneColumn` branch in
-//     [DeleteQueryBuilder.ts:76](../../../../../src/queryBuilders/DeleteQueryBuilder.ts#L76)
+//     `__oneColumn` branch
 //     plus its `value === undefined → null` coercion path.
 //   - `executeDeleteMany(min, max)` — the same min/max guards on the
 //     RETURNING-many path.
@@ -101,8 +99,7 @@ describe(ctx.label, () => {
 
     test('execute-delete-none-or-one-with-returning-one-column-empty-result', async () => {
         // Same path but no row returned -> the `__oneColumn` branch
-        // coerces missing to `null` (see
-        // [DeleteQueryBuilder.ts:82](../../../../../src/queryBuilders/DeleteQueryBuilder.ts#L82)).
+        // coerces missing to `null`
         // Filter on a non-existing id so real-DB also yields no row
         // from RETURNING.
         ctx.mockNext(undefined)

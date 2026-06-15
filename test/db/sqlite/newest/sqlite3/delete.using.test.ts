@@ -12,7 +12,27 @@ describe(ctx.label, () => {
     // NOT-APPLICABLE: SQLite does not support DELETE … USING; the library type-excludes it for sqlite connections.
     /*
     test('delete-using-other-table', async () => {
-        // See postgres/mariadb/mysql/sqlserver cells for the active body.
+        ctx.mockNext(2)
+
+        await ctx.withRollback(async () => {
+            // Delete issues whose project's name contains 'Marketing'.
+            const affected = await ctx.conn.deleteFrom(tIssue)
+                .using(tProject)
+                .where(tIssue.projectId.equals(tProject.id))
+                .and(tProject.name.containsInsensitive('Marketing'))
+                .executeDelete()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof affected, number>>()
+            if (ctx.realDbEnabled) {
+                expect(typeof affected).toBe('number')
+                // Project 1 = 'Marketing site' → had 2 issues (1, 2)
+                expect(affected).toBe(2)
+            } else {
+                expect(affected).toBe(2)
+            }
+        })
     })
     */
 })

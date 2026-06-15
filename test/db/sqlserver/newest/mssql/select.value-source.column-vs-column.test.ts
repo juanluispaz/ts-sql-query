@@ -1,8 +1,7 @@
 // Coverage of value-source operators with a column (or other value
 // source) on the right-hand side, complementing the column-vs-literal
 // cases that the existing `select.{numeric,string,where.operators}*`
-// tests cover. Every operator in
-// [src/internal/ValueSourceImpl.ts](../../../../../src/internal/ValueSourceImpl.ts)
+// tests cover. Every operator
 // has both overloads; the parameter-binding path is exercised by the
 // existing tests, this file covers the no-parameter-binding (pure
 // column-on-column) path.

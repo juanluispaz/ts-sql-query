@@ -1,19 +1,16 @@
 // `UPDATE … INNER JOIN j ON … WHERE …` — multi-table UPDATE where the
 // JOIN method (not just `.from(...)`) is used. Only MariaDB and MySQL
-// type `.innerJoin` / `.leftJoin` on `UpdateExpression` (see
-// [src/expressions/update.ts:368-447](../../../../../src/expressions/update.ts#L368-L447) —
+// type `.innerJoin` / `.leftJoin` on `UpdateExpression`
 // `OnExpressionFnType` is narrowed to `'noopDB' | 'mariaDB' | 'mySql'`).
 // On those two dialects the library emits MariaDB/MySQL's
-// `UPDATE t INNER JOIN j ON ... SET ... WHERE ...` form natively (see
-// [src/sqlBuilders/AbstractMySqlMariaBDSqlBuilder.ts](../../../../../src/sqlBuilders/AbstractMySqlMariaBDSqlBuilder.ts)).
+// `UPDATE t INNER JOIN j ON ... SET ... WHERE ...` form natively
 //
 // Pins the UpdateQueryBuilder `innerJoin` / `leftJoin` / `leftOuterJoin` /
-// `dynamicOn` / `on` / `and`-on-join branches at
-// [src/queryBuilders/UpdateQueryBuilder.ts:847-924](../../../../../src/queryBuilders/UpdateQueryBuilder.ts#L847-L924)
+// `dynamicOn` / `on` / `and`-on-join branches
 // that aren't reached by `update.from.test.ts` (which only uses
 // `.from(table)`). The `.and()` after `.on()` exercises a different code
 // path than `.where().and()` because it lands on `__lastJoin.__on`
-// instead of `__where` (see [L811-815](../../../../../src/queryBuilders/UpdateQueryBuilder.ts#L811-L815)).
+// instead of `__where`.
 //
 // Mock-mode pins the SQL; real-DB mode wraps each update in
 // `ctx.withRollback` so the seed survives.
@@ -91,8 +88,7 @@ describe(ctx.label, () => {
     test('update-with-multi-condition-on-clause-via-and', async () => {
         // The `on(...)` chain followed by `.and(...)` accumulates into
         // a compound JOIN predicate (NOT into the outer WHERE). Pins
-        // the `.and()` branch on `UpdateQueryBuilder` at
-        // [L811-815](../../../../../src/queryBuilders/UpdateQueryBuilder.ts#L811-L815)
+        // the `.and()` branch on `UpdateQueryBuilder`
         // that lands on `__lastJoin.__on` (instead of the where slot).
         // Distinct code path from `.where().and()` — same .and() method,
         // different dispatch.

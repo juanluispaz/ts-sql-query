@@ -1,15 +1,14 @@
-// Coverage of the `dynamicPick` / `expandType*` utilities in
-// [src/dynamicCondition.ts](../../../../../src/dynamicCondition.ts) that the
+// Coverage of the `dynamicPick` / `expandType*` utilities that the
 // existing docs.* and `dynamic-condition.pick-paths.test.ts` files do not
 // reach:
 //
 //   - `dynamicPick` with a NESTED object pick (`{ meta: { priority: true } }`)
-//     drives `internalDynamicPick` (L62-93) — every documented `dynamicPick`
+// drives `internalDynamicPick` — every documented `dynamicPick`
 //     example uses a FLAT pick, so the recursion was never exercised.
 //   - `dynamicPickPaths` against a DEPTH-3 `availableFields` with an
 //     `a.b.c` path drives `internalDynamicPickPaths`' own recursion
-//     (L140-144) — the sibling pick-paths file only goes two levels deep.
-//   - `expandTypeProjectedAsNullableFromDynamicPickPaths` (L170-182) — the
+// the sibling pick-paths file only goes two levels deep.
+// `expandTypeProjectedAsNullableFromDynamicPickPaths` — the
 //     nullable-projection sibling of the already-covered
 //     `expandTypeFromDynamicPickPaths`; a runtime passthrough whose value is
 //     the reshaped result TYPE.
@@ -96,7 +95,7 @@ describe(ctx.label, () => {
         // dynamicPick's OWN deep recursion (internalDynamicPick calling
         // itself) — the 3-level analogue of the depth-3 dynamicPickPaths
         // above. Unlike dynamicPickPaths, internalDynamicPick sets its
-        // `hasContent` flag correctly (L82), so the deep leaf survives and
+        // `hasContent` flag correctly, so the deep leaf survives and
         // this works as intended.
         const expected = [{ id: 1, group: { sub: { priority: 2 } } }]
         ctx.mockNext(expected)

@@ -1,25 +1,24 @@
 // CTE shape variants the existing `cte.chained.test.ts` and
 // `select.cte.test.ts` do not exercise. Specifically targets the
-// `WithViewImpl` branches at
-// [src/internal/WithViewImpl.ts:51-99](../../../../../src/internal/WithViewImpl.ts#L51-L99)
+// `WithViewImpl` branches
 // not reached by current coverage:
 //
-//   - `as(alias)` (L51-55) and the `__originalWith` bookkeeping it
-//     populates (L73-75) — exposed by calling `.as('alias')` on a CTE,
+// `as(alias)` and the `__originalWith` bookkeeping it
+// populates — exposed by calling `.as('alias')` on a CTE,
 //     which constructs a new WithViewImpl whose `__originalWith` points
 //     back to the source. The recursive `__addWiths` walks the
 //     `__originalWith` chain rather than re-registering the alias
 //     itself.
-//   - `forUseInLeftJoin()` (L57-59) / `forUseInLeftJoinAs(alias)`
-//     (L60-66) — same WithViewImpl constructor path, but with
+// `forUseInLeftJoin` / `forUseInLeftJoinAs(alias)`
+// same WithViewImpl constructor path, but with
 //     `__forUseInLeftJoin = true` and `__setColumnsForLeftJoin`
 //     marking every CTE column optional. The outer SELECT then emits
 //     `left join cte on …` (or `left join cte alias on …`).
-//   - `__addWiths` dedup branch (L75) — a CTE joined against its own
+// `__addWiths` dedup branch — a CTE joined against its own
 //     alias must appear exactly once in the `WITH` clause; the
 //     `if (!withs.includes(this))` short-circuit makes that happen.
 //
-// The `__hasExternalDependencies = true` branch (L39-41) is set only
+// The `__hasExternalDependencies = true` branch is set only
 // when the underlying `selectData.__subSelectUsing` is non-empty, but
 // `subSelectUsing(...)` returns a `SelectExpressionSubquery` that
 // does not type-expose `forUseInQueryAs(...)`. The branch is currently
@@ -46,7 +45,7 @@ describe(ctx.label, () => {
         // SELECT must use `oi` everywhere it references the CTE, but
         // the `WITH` declaration MUST keep the source name —
         // `__addWiths` walks `__originalWith` and never registers the
-        // alias itself (L73-75).
+        // alias itself.
         ctx.mockNext([{ id: 1, projectId: 10 }, { id: 2, projectId: 10 }])
         const connection = ctx.conn
 
@@ -75,7 +74,7 @@ describe(ctx.label, () => {
 
     test('cte-forUseInLeftJoin-emits-left-join-and-marks-columns-optional', async () => {
         // `openIssues.forUseInLeftJoin()` flips `__forUseInLeftJoin =
-        // true` (L57-59) and `__setColumnsForLeftJoin` widens every
+        // true` and `__setColumnsForLeftJoin` widens every
         // CTE column to `optional`. The outer SELECT must emit
         // `left join open_issues on …` and the projected `openId`
         // surfaces as `number | undefined` in the typed result.
@@ -113,7 +112,7 @@ describe(ctx.label, () => {
         // `forUseInLeftJoinAs('alias')` combines the two previous
         // paths: alias + left-join. The ON clause references the
         // alias; the `WITH` declaration keeps the source name. Pins
-        // L60-66 of WithViewImpl.
+        // WithViewImpl.
         ctx.mockNext([
             { projectName: 'Marketing site', openId: 1 },
             { projectName: 'Internal tools', openId: undefined },
@@ -148,9 +147,9 @@ describe(ctx.label, () => {
         // `openIssues` is registered as a CTE; the outer query joins
         // it once unaliased and once via `.as('oi2')`. The `__addWiths`
         // bookkeeping must dedupe — the aliased reference's
-        // `__originalWith` (L73-75) points at the same WithViewImpl,
+        // `__originalWith` points at the same WithViewImpl,
         // so the WITH clause lists the CTE exactly once even though
-        // two references appear in FROM/JOIN. Combines L51-55
+        // two references appear in FROM/JOIN. Combines
         // (`as`) with the dedup branch of `__addWiths`.
         ctx.mockNext([{ projectId: 10, leftId: 1, rightId: 2 }])
         const connection = ctx.conn

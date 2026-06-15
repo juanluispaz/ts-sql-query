@@ -3,11 +3,9 @@
 // file covers the remaining RawFragment slot - `beforeQuery` -
 // plus variants where the fragment interpolates bound values and
 // columns, which drives `__registerRequiredColumn`/`__addWiths` on
-// the INSERT builder (see
-// [src/queryBuilders/InsertQueryBuilder.ts](../../../../../src/queryBuilders/InsertQueryBuilder.ts)).
+// the INSERT builder
 //
-// The hook fields are defined at
-// [src/expressions/insert.ts:L14](../../../../../src/expressions/insert.ts#L14).
+// The hook fields are defined
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -109,8 +107,7 @@ describe(ctx.label, () => {
     test('customize-insert-from-select-with-hooks', async () => {
         // INSERT ... FROM (SELECT ...) also accepts `customizeQuery`.
         // Confirms the same three hooks land on the insert-from-select
-        // branch of `_appendInsertSelect` in
-        // [AbstractSqlBuilder.ts:L1432+](../../../../../src/sqlBuilders/AbstractSqlBuilder.ts#L1432).
+        // branch of `_appendInsertSelect`
         ctx.mockNext(3)
         const connection = ctx.conn
         await ctx.withRollback(async () => {

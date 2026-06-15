@@ -32,8 +32,7 @@ describe(ctx.label, () => {
 
     test('avg-distinct-from-aggregation-group-by', async () => {
         // averageDistinct over an integer column. The library promotes
-        // the result type from `int` → `double` (see
-        // [src/connections/AbstractConnection.ts:998](../src/connections/AbstractConnection.ts#L998))
+        // the result type from `int` → `double`
         // so engines that return a fractional `numeric`/`decimal` scalar
         // for `AVG(int)` deserialise without tripping the int parser.
         const expectedMock = { avgDistinctPriority: 2 }
@@ -59,8 +58,7 @@ describe(ctx.label, () => {
         // Issues 1 and 2 belong to project 1 with priorities {2, 1}; the
         // average is 1.5 on every supported engine. SQL Server's native
         // `AVG(int)` would truncate the result to 1, so the SqlServerSqlBuilder
-        // wraps the operand in `cast(<expr> as float)` (see
-        // [src/sqlBuilders/SqlServerSqlBuilder.ts](../../../../../src/sqlBuilders/SqlServerSqlBuilder.ts)
+        // wraps the operand in `cast(<expr> as float)`
         // `_average`); every other dialect produces the fractional result
         // natively.
         ctx.mockNext({ avgPriority: 1.5 })

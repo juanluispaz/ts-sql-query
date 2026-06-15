@@ -1,5 +1,4 @@
 // Drives `RawFragmentImpl.__addWiths`
-// ([src/internal/RawFragmentImpl.ts:27](../../../../../src/internal/RawFragmentImpl.ts#L27))
 // by embedding sub-queries that themselves select from a CTE built
 // via `.forUseInQueryAs(...)`. The CTE must bubble up through the
 // rawFragment's `__params` traversal to the OUTER query's WITH

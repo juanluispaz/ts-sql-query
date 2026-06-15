@@ -3,11 +3,9 @@
 // file fills the gap with `beforeQuery` plus variants where the
 // fragment interpolates bound values and column references - which
 // drives `__registerRequiredColumn`/`__addWiths` on the UPDATE
-// builder (see
-// [src/queryBuilders/UpdateQueryBuilder.ts](../../../../../src/queryBuilders/UpdateQueryBuilder.ts)).
+// builder
 //
-// Hook fields defined at
-// [src/expressions/update.ts:L12](../../../../../src/expressions/update.ts#L12).
+// Hook fields defined
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'

@@ -1,5 +1,5 @@
 // Coverage of the 2-arg form `dynamicConditionFor(definition, extension)`
-// in [src/queryBuilders/DynamicConditionBuilder.ts](../../../../../src/queryBuilders/DynamicConditionBuilder.ts).
+// in.
 // An extension supplies custom filter rules (callbacks) that get
 // dispatched in `processFilter` whenever the caller's filter object
 // contains a matching top-level key.

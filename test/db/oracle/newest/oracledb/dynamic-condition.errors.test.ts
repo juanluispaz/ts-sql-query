@@ -10,7 +10,7 @@
 //   - DYNAMIC_CONDITION_UNKNOWN_COLUMN    — a filter key with no matching column
 //   - DYNAMIC_CONDITION_UNKNOWN_OPERATION — an unknown operator on a column,
 //     and the blanket rejection of any operator on an aggregated-array
-//     value source (DynamicConditionBuilder.ts L147)
+// value source
 //   - DYNAMIC_CONDITION_INVALID_FILTER    — a non-object / Date filter, a
 //     column value that is not an object, and `and` / `or` given a non-array
 //
@@ -89,7 +89,7 @@ describe(ctx.label, () => {
     test('errors/aggregated-array-operation-reason', () => {
         // An aggregated-array value source rejects ANY operator — the
         // builder funnels it through the same UNKNOWN_OPERATION guard
-        // (DynamicConditionBuilder.ts L147: `|| valueSourcePrivate.__aggregatedArrayColumns`).
+        // `|| valueSourcePrivate.__aggregatedArrayColumns`).
         const aggFields = {
             id:     tIssue.id,
             titles: ctx.conn.aggregateAsArrayOfOneColumn(tIssue.title),

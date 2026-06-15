@@ -1,5 +1,4 @@
-// Low-level transaction API on
-// [AbstractConnection.ts](../../../../../src/connections/AbstractConnection.ts):
+// Low-level transaction API
 // `beginTransaction()` / `commit()` / `rollback()` exposed directly
 // rather than wrapped by the high-level `transaction(callback)`
 // helper covered in `docs.transaction.test.ts`.
@@ -40,7 +39,7 @@ describe(ctx.label, () => {
         // then `rollback()`. Asserts the row is not visible
         // afterward — pins the rollback wiring through
         // `queryRunner.executeRollback` and the `popTransactionStack`
-        // path on [AbstractConnection.ts:L372-L408](../../../../../src/connections/AbstractConnection.ts#L372).
+        // path on.
         // Mock-mode: the seeded count (2 organizations) is returned
         // by `mockNext`. Real-DB: the actual COUNT runs and proves
         // the rollback was honoured.
@@ -75,11 +74,9 @@ describe(ctx.label, () => {
     test('low-level-double-commit-throws-not-in-transaction', async () => {
         // After a clean `commit()` the transaction is closed.
         // Calling `commit()` (or `rollback()`) again must surface
-        // `NOT_IN_TRANSACTION` — the runtime guard on
-        // [AbstractConnection.ts:L303-L304](../../../../../src/connections/AbstractConnection.ts#L303)
+        // `NOT_IN_TRANSACTION` — the runtime guard
         // and the matching one in `rollback()`. The same guard fires
         // in both mock and real-DB mode because
-        // [MockQueryRunner](../../../../../src/queryRunners/MockQueryRunner.ts)
         // now tracks transaction depth unconditionally, so
         // `isTransactionActive()` reports `false` after the clean
         // commit on either runner.

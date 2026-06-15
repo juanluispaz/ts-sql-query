@@ -1,24 +1,10 @@
 // Coverage of `connection.sequence(name, type).nextValue()` and
-// `.currentValue()` — the [SequenceQueryBuilder](../../../../../src/queryBuilders/SequenceQueryBuilder.ts)
-// is otherwise dead code (no other test wave instantiates it). The
-// dispatcher just constructs a `SequenceValueSource` tagged with
-// `_nextSequenceValue` / `_currentSequenceValue`, which each dialect's
-// SqlBuilder renders via its overridable
-// [`_nextSequenceValue`](../../../../../src/sqlBuilders/AbstractSqlBuilder.ts#L1907)
-// / `_currentSequenceValue` pair:
-//
-//   - PostgreSQL: `nextval('seq')` / `currval('seq')`
-//     ([AbstractSqlBuilder defaults](../../../../../src/sqlBuilders/AbstractSqlBuilder.ts#L1907))
-//   - Oracle: `"seq".nextval` / `"seq".currval`
-//   - SQL Server: `next value for seq` / `(select current_value from sys.sequences …)`
-//   - MariaDB ≥ 10.3: `nextval(seq)` / `lastval(seq)`
-//
-// MySQL and SQLite have no `CREATE SEQUENCE` and the `sequence()` API
-// isn't exposed at the type level (`SqliteConnection` / `MySqlConnection`
-// don't inherit from `AbstractAdvancedConnection`; see
-// [docs/api/connection.md](../../../../../docs/api/connection.md)).
-// Their mirror files keep the suite in `/* */` blocks for cross-cell
-// symmetry per DESIGN §4.
+// `.currentValue`. The dispatcher constructs a `SequenceValueSource`
+// tagged with `_nextSequenceValue` / `_currentSequenceValue`; each
+// dialect's SqlBuilder renders that pair its own way, pinned per cell
+// by the snapshot below. Where the dialect has no `CREATE SEQUENCE` and
+// the `sequence()` API isn't exposed at the type level, the test is
+// commented out.
 //
 // The two sequence references the tests use (`issueIdSeq`,
 // `auditTagSeq`) are declared on the shared
@@ -68,12 +54,10 @@ describe(ctx.label, () => {
     /*
     test('sequence-current-value-in-select', async () => {
         // `seq.currentValue()` mirrors nextValue but dispatches to
-        // `_currentSequenceValue` - SQL Server emits an embedded
-        // sys.sequences subquery; the other dialects emit the
-        // engine's dedicated function. On PG/Oracle/MariaDB,
-        // currval/lastval requires nextval to have been called in
-        // the same session, so we call nextValue first when running
-        // real-DB.
+        // `_currentSequenceValue`, pinned per cell by the snapshot
+        // below. Some engines require `nextValue` to have been called in
+        // the same session before `currentValue`, so the test calls
+        // `nextValue` first when running against a real DB.
         if (ctx.realDbEnabled) {
             await ctx.conn.selectFromNoTable()
                 .selectOneColumn(ctx.conn.issueIdSeq.nextValue())

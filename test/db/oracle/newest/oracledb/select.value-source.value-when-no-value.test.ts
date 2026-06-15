@@ -2,8 +2,7 @@
 // `valueWhenNull` *with a value-source default*. These wrap a value
 // source whose SQL might collapse to the empty string (IfValue
 // elision) or to NULL (column-level NULL) into a stable boolean /
-// scalar — covering classes in
-// [src/internal/ValueSourceImpl.ts](../../../../../src/internal/ValueSourceImpl.ts)
+// scalar — covering classes
 // that are not exercised by
 // [select.value-source.null-and-if-value-modifiers.test.ts](./select.value-source.null-and-if-value-modifiers.test.ts):
 //
@@ -181,9 +180,9 @@ describe(ctx.label, () => {
 
     test('value-when-no-value-false-as-selected-column-elided-emits-false-literal', async () => {
         // Boolean IfValue with `valueWhenNoValue(false)` selected as a
-        // projected column (not used in WHERE). ValueSourceImpl.ts:404
+        // projected column (not used in WHERE).
         // → `falseWhenNoValue()` → `BooleanValueWhenNoValueValueSource`,
-        // and the SELECT path hits the class's `__toSql` (L745-752),
+        // and the SELECT path hits the class's `__toSql`,
         // distinct from the `__toSqlForCondition` path the WHERE tests
         // above cover. With the IfValue elided, the column emits the
         // dialect's FALSE literal.
@@ -214,8 +213,8 @@ describe(ctx.label, () => {
 
     test('value-when-no-value-false-as-selected-column-fires-uses-primary-sql', async () => {
         // Twin: when the IfValue does fire, the wrapper's `__toSql`
-        // returns the primary SQL via L747-749 (`if (sql) return sql`)
-        // and the FALSE fallback at L752 is unused. Issue 1's status is
+        // returns the primary SQL (`if (sql) return sql`)
+        // and the FALSE fallback is unused. Issue 1's status is
         // `'open'`, matching the probe.
         const expected = [{ id: 1, statusMatches: true }]
         ctx.mockNext(expected)

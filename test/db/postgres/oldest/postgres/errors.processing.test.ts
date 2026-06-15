@@ -77,7 +77,7 @@ describe(ctx.label, () => {
     test('groupBy by alias not in select throws GROUP_BY_COLUMN_NOT_IN_SELECT', async () => {
         // The string-name `groupBy(...)` overload validates the name
         // against the select clause; an unselected name reaches the
-        // runtime guard at SelectQueryBuilder.ts:974. Cast to `any` to
+        // runtime guard. Cast to `any` to
         // bypass the `RequiredColumnNames` static check, like the
         // order-by twin above.
         ctx.mockNext([])

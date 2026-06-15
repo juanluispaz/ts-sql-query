@@ -1,9 +1,7 @@
-// Coverage of every `*When(when: boolean, …)` conditional helper on
-// [UpdateQueryBuilder](../../../../../src/queryBuilders/UpdateQueryBuilder.ts).
+// Coverage of every `*When(when: boolean, …)` conditional helper
 // Each helper is a thin dispatcher (~3 lines) that routes to its
 // non-`When` sibling when the boolean is true, or returns `this`
 // unchanged when false — see e.g.
-// [L672-677](../../../../../src/queryBuilders/UpdateQueryBuilder.ts#L672-L677).
 //
 // The behaviour of the underlying methods (`set`, `setIfValue`,
 // `setIfHasValue`, `disallowIfSet`, …) is exercised by

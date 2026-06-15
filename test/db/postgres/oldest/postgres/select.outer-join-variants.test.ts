@@ -1,15 +1,14 @@
-// Outer-join variants on
-// [SelectQueryBuilder.ts](../../../../../src/queryBuilders/SelectQueryBuilder.ts)
+// Outer-join variants
 // that the existing `select.join.test.ts` does not exercise:
 //
 //   - `.leftOuterJoin(...)`       — emits `LEFT OUTER JOIN` (the
 //     SQL-standard spelling) instead of the abbreviated `LEFT JOIN`
-//     that `.leftJoin(...)` produces. [L786](../../../../../src/queryBuilders/SelectQueryBuilder.ts#L786).
+// that `.leftJoin(...)` produces..
 //   - `.optionalLeftJoin(...)`    — only renders the join when at
 //     least one column from the joined source is referenced in the
-//     final SELECT / WHERE / ORDER BY. [L829](../../../../../src/queryBuilders/SelectQueryBuilder.ts#L829).
+// final SELECT / WHERE / ORDER BY..
 //   - `.optionalLeftOuterJoin(...)` — same dependency-elimination
-//     logic with `LEFT OUTER JOIN` keyword. [L844](../../../../../src/queryBuilders/SelectQueryBuilder.ts#L844).
+// logic with `LEFT OUTER JOIN` keyword..
 //
 // `.optionalInnerJoin(...)` is already covered by
 // `docs.extreme-dynamic-queries.test.ts`.

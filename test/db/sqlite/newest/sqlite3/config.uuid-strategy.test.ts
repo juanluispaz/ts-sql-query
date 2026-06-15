@@ -1,6 +1,6 @@
 // Per-connection coverage of `SqliteConnection.uuidStrategy`. The two
 // supported strategies branch the dialect's emitter for the UUID
-// surface in [SqliteSqlBuilder.ts](../../../../../src/sqlBuilders/SqliteSqlBuilder.ts):
+// surface in:
 //
 //   - `'uuid-extension'` (the library default for SqliteConnection;
 //     the shared test connection overrides the default to `'string'` —

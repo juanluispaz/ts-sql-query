@@ -16,9 +16,8 @@
 //      up to the outer INSERT statement.
 //   4. `.from(select).onConflictDoNothing()` — exercises
 //      `CustomizableExecutableInsertFromSelectOnConflictOptional` on
-//      every dialect that supports `ON CONFLICT` (postgres / sqlite /
-//      mariadb / mysql). Oracle and SQL Server keep the test commented
-//      out for symmetry — see those cells.
+//      every dialect that supports `ON CONFLICT`. Dialects without
+//      `ON CONFLICT` keep the test commented out for symmetry.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'

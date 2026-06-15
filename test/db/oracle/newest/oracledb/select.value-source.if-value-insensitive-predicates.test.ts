@@ -12,11 +12,6 @@
 //   - `startsWithInsensitiveIfValue` / `endsWithInsensitiveIfValue`
 //   - `notStartsWithInsensitiveIfValue` / `notEndsWithInsensitiveIfValue`
 //   - `containsInsensitiveIfValue` / `notContainsInsensitiveIfValue`
-//
-// MySQL/MariaDB override `_startsWith`/`_endsWith`/`_contains` (and
-// their insensitive forms) with a `concat()`-based shape, so the SQL
-// snapshots on those cells diverge from the wrapper-based shape pinned
-// here.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'

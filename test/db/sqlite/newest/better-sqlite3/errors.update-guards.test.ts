@@ -5,11 +5,11 @@
 //   - `INVALID_SHAPE_OVERRIDE` when `extendShape` re-declares a key the
 //     shape already maps. The existing update docs/tests only ADD new
 //     keys via `extendShape`, never collide with an existing one, so
-//     the guard at UpdateQueryBuilder.ts:260 is otherwise unverified.
+// the guard at is otherwise unverified.
 //
 // The reason is surfaced by src/queryBuilders/UpdateQueryBuilder.ts (not
 // the dialect SqlBuilder), so the behaviour is identical on every
-// dialect and this file is byte-identical across all 17 cells. No SQL
+// dialect and this file is byte-identical across every cell. No SQL
 // snapshots: the guard throws while configuring the builder, before any
 // query is emitted.
 

@@ -1,6 +1,5 @@
 // Coverage of `selectOneColumn(...)` and `selectCountAll()` —
-// projection-builder shortcuts in
-// [src/queryBuilders/SelectQueryBuilder.ts](../../../../../src/queryBuilders/SelectQueryBuilder.ts)
+// projection-builder shortcuts
 // that pin the result to a single scalar column. Paired with the
 // `executeSelectOneColumn*` runner family
 // (`executeSelectOneColumnOneRow` / `executeSelectOneColumnManyRows`).
@@ -142,7 +141,7 @@ describe(ctx.label, () => {
 
     test('select-one-column-execute-one-empty-result-throws-no-result', async () => {
         // `executeSelectOne()` on a one-column query that matches no row
-        // throws NO_RESULT (SelectQueryBuilder.ts:126). Filtering on a
+        // throws NO_RESULT. Filtering on a
         // non-existing id makes the real DB return no row too, so this
         // runs in both modes; the query is still emitted (captured
         // before the throw fires in the `.then`).
@@ -167,7 +166,7 @@ describe(ctx.label, () => {
 
     test('select-multi-column-execute-one-empty-result-throws-no-result', async () => {
         // Same NO_RESULT guard on the multi-column row path
-        // (SelectQueryBuilder.ts:137): `executeSelectOneRow` returns no
+        // `executeSelectOneRow` returns no
         // row, so the row-shape branch throws instead of coercing.
         ctx.mockNext(undefined)
         let caught: unknown

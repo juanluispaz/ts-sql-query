@@ -1,10 +1,9 @@
 // Coverage of `connection.default()` — the typed reference to the SQL
 // `DEFAULT` keyword that survives until the SqlBuilder dispatches it
-// through `_default(params)` (see
-// [src/expressions/Default.ts](../../../../../src/expressions/Default.ts)
+// through `_default(params)`
 // and `AbstractSqlBuilder._default`). It is only typed on columns
 // declared with `columnWithDefaultValue` — the per-table optional vs
-// `Default` branch in [src/expressions/insert.ts](../../../../../src/expressions/insert.ts)
+// `Default` branch in
 // and `src/expressions/update.ts`.
 //
 // `default-on-custom-boolean-column` covers the boolean-remap

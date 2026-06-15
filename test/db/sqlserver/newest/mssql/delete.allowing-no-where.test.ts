@@ -1,5 +1,4 @@
 // Coverage of `connection.deleteAllowingNoWhereFrom(...)`
-// ([AbstractConnection.ts:425](../../../../../src/connections/AbstractConnection.ts#L425)):
 // the explicit opt-in that lets a DELETE reach the driver without a
 // WHERE clause. The regular `connection.deleteFrom(...)` throws when the
 // sentence ends without a WHERE (the safety guard documented in

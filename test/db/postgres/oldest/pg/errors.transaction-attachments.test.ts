@@ -1,27 +1,26 @@
 // Coverage of the `attach*` helpers on `TsSqlQueryExecutionError`
-// at [src/TsSqlError.ts:432-503](../../../../../src/TsSqlError.ts#L432-L503):
+// at:
 //
-//   - `attachTransactionSource` (L432-447): fired by every
+// `attachTransactionSource`: fired by every
 //     `connection.transaction(…)` / `executeInTransaction(…)` error
-//     path in [`AbstractConnection.transaction`](../../../../../src/connections/AbstractConnection.ts#L207-L268).
+// path in.
 //     Already cross-covered by existing transaction tests, but we
 //     re-pin the round-trip here so the assertion library reports
 //     `transactionSource` defined when the body throws.
-//   - `attachRollbackError` (L449-463): wired by
+// `attachRollbackError`: wired by
 //     `ManagedTransactionQueryRunner.executeInTransaction` when the
 //     body's error AND the subsequent rollback both throw. The
 //     mock-mode `MockQueryRunner.executeInTransaction` swallows the
 //     rollback error without chaining, and the real-driver runners
 //     have no injection hook — so this branch is documented as a
 //     gap (block-commented placeholder at the bottom of the file).
-//   - `attachTransactionError` (L465-479): fired by
-//     [`PromiseUtils.callDeferredFunctions`](../../../../../src/utils/PromiseUtils.ts#L42-L46)
-//     when a deferred `executeAfterNextRollback` callback throws AND
+//   - `attachTransactionError`: fired when a deferred
+//     `executeAfterNextRollback` callback throws AND
 //     the outer transaction body already threw. We register one
 //     after-rollback hook that throws after the body has already
 //     thrown — the second error attaches to the first via
 //     `attachTransactionError(transactionError)`.
-//   - `attachAdditionalError` (L481-503): fired by the same
+// `attachAdditionalError`: fired by the same
 //     `callDeferredFunctions` whenever MORE THAN ONE deferred hook
 //     fails (after-commit or after-rollback) so the first becomes
 //     the surfaced error and every subsequent failure is appended via
@@ -31,8 +30,7 @@
 //
 // Plus the inverse contract — when the body throws something the
 // driver does NOT recognise as a SQL error AND is not a
-// `TsSqlQueryExecutionError`, the `else { throw e }` branch at
-// L227-228 / L237-238 of [`AbstractConnection.transaction`](../../../../../src/connections/AbstractConnection.ts#L222-L240)
+// `TsSqlQueryExecutionError`, the `else { throw e }` branch
 // surfaces the EXACT same instance to the caller — no wrapping, no
 // `attach*` decoration. Tests 4 and 5 pin both sides of that
 // contract: a user-defined error class and a bare `new Error(...)`.
@@ -49,14 +47,13 @@ import { QueryExecutionSource, TsSqlQueryExecutionError } from '../../../../../s
 
 // Body errors are thrown as `TsSqlQueryExecutionError` directly so
 // every dialect's `isSqlError(...)` recognises them and the wrapping
-// at [src/connections/AbstractConnection.ts:222-256](../../../../../src/connections/AbstractConnection.ts#L222-L256)
+// at
 // produces a `TsSqlQueryExecutionError` (which is what `attach*`
 // helpers live on). A plain `new Error(...)` would be rejected by the
 // per-driver `isSqlError` (e.g. PgLite's
 // `isSqlError(error) => error instanceof TsSqlError || isPgError(error)`),
 // leaving `throwError = e` as a plain Error and the downstream
-// `errorContainer.error.attachAdditionalError(...)` call at
-// [src/utils/PromiseUtils.ts:56](../../../../../src/utils/PromiseUtils.ts#L56)
+// `errorContainer.error.attachAdditionalError(...)` call
 // would crash with "not a function" on the real-DB cells.
 function bodyError(message: string): TsSqlQueryExecutionError {
     return new TsSqlQueryExecutionError(
@@ -76,8 +73,7 @@ describe(ctx.label, () => {
         // The base path: body throws a plain `Error`. `transaction(...)`
         // wraps it in `TsSqlQueryExecutionError` and calls
         // `attachTransactionSource`. We pin that `transactionSource`
-        // is defined on the surfaced error (the helper at
-        // L432-447 of `TsSqlError.ts`).
+        // is defined on the surfaced error (the helper).
         const connection = ctx.conn
         let caught: unknown
 
@@ -104,8 +100,8 @@ describe(ctx.label, () => {
         // `callDeferredFunctions` wraps the hook's error as a new
         // `TsSqlQueryExecutionError`; since the outer transaction
         // also produced an error, the wrapper calls
-        // `attachTransactionError(transactionError)` (L44 / L77 of
-        // `PromiseUtils.ts`). We verify `transactionError` is
+        // `attachTransactionError(transactionError)`. We verify
+        // `transactionError` is
         // populated on the deferred-hook error.
         const connection = ctx.conn
         let caught: unknown
@@ -129,7 +125,7 @@ describe(ctx.label, () => {
             // The SURFACED error is the body's wrapped error; the
             // deferred-fn-wrapper landed in `additionalErrors[0]`,
             // and THAT wrapper carries `transactionError` (the raw
-            // body error passed through PromiseUtils L44 / L77).
+            // body error passed through PromiseUtils).
             expect(caught.additionalErrors).toBeDefined()
             expect(caught.additionalErrors).toHaveLength(1)
             const additional = caught.additionalErrors?.[0]
@@ -146,8 +142,8 @@ describe(ctx.label, () => {
         // `executeAfterNextCommit` hooks throw. `callDeferredFunctions`
         // is non-stopping, so the first error becomes the surfaced
         // wrapper and the second one is attached via
-        // `attachAdditionalError('after next commit')` (L56 / L83 of
-        // `PromiseUtils.ts`). Pin that `additionalErrors` is
+        // `attachAdditionalError('after next commit')`. Pin that
+        // `additionalErrors` is
         // populated on the surfaced error.
         const connection = ctx.conn
         let caught: unknown

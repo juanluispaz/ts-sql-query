@@ -72,8 +72,8 @@ describe(ctx.label, () => {
         // The `__*Of` methods hit case 2 (`isValueSource(...)`) at the
         // root — the value source IS a `SqlOperation1ValueSource`
         // whose own propagation walks its child column. This pins
-        // L2421-2423 / L2436-2438 / L2451-2453 / L2470-2472 /
-        // L2489-2491 of `AggregateValueAsArrayValueSource`.
+        // /
+        // `AggregateValueAsArrayValueSource`.
         ctx.mockNext([{ pid: 1, bumped: [2, 3] }])
 
         const tIssueLeft = tIssue.forUseInLeftJoin()

@@ -1,7 +1,6 @@
 // Coverage of `onlyWhenOrNull(when)` / `ignoreWhenAsNull(when)` on
 // value sources in SELECT projections. Both methods sit on every
-// comparable value source (see
-// [src/expressions/values.ts](../../../../../src/expressions/values.ts))
+// comparable value source
 // and short-circuit at SQL-build time:
 //
 //   - `onlyWhenOrNull(false)` / `ignoreWhenAsNull(true)` replace the

@@ -71,14 +71,14 @@ describe(ctx.label, () => {
     })
 
     test('docs-extra:id-manipulation/decrypter-rejects-too-short-input-with-invalid-id', () => {
-        // IDEncrypter.ts:131 — `decrypt(s)` requires length ≥ 16; below
+        // `decrypt(s)` requires length ≥ 16; below
         // that throws "Invalid id" before any crypto runs.
         const enc = new IDEncrypter('3zTvzr3p67VC61jm', '60iP0h6vJoEaJo8c')
         expect(() => enc.decrypt('short')).toThrow(/Invalid id/)
     })
 
     test('docs-extra:id-manipulation/decrypter-rejects-wrong-prefix', () => {
-        // IDEncrypter.ts:134 — `decrypt(s, prefix)` rejects with
+        // `decrypt(s, prefix)` rejects with
         // "Invalid prefix" when the encrypted string doesn't start with
         // the expected prefix.
         const enc = new IDEncrypter('3zTvzr3p67VC61jm', '60iP0h6vJoEaJo8c')
@@ -87,7 +87,7 @@ describe(ctx.label, () => {
     })
 
     test('docs-extra:id-manipulation/decrypter-rejects-tampered-checksum-with-invalid-id', () => {
-        // IDEncrypter.ts:141 — the public checksum (last 2 chars) must
+        // the public checksum (last 2 chars) must
         // match `checksumString` of the rest. Flipping the final byte
         // breaks the checksum and throws "Invalid id".
         const enc = new IDEncrypter('3zTvzr3p67VC61jm', '60iP0h6vJoEaJo8c')
@@ -102,7 +102,7 @@ describe(ctx.label, () => {
     })
 
     test('docs-extra:id-manipulation/is-valid-encrypted-id-true-for-output-of-encrypt', () => {
-        // IDEncrypter.ts:238 — the cheap client-side checksum check
+        // the cheap client-side checksum check
         // that a UI can run before sending the string back to the
         // server. Accepts everything `encrypt(...)` produces, with or
         // without a prefix.
@@ -112,14 +112,14 @@ describe(ctx.label, () => {
     })
 
     test('docs-extra:id-manipulation/is-valid-encrypted-id-false-for-too-short', () => {
-        // IDEncrypter.ts:240-241 — strings shorter than the minimum
+        // strings shorter than the minimum
         // length cannot be valid; return false (vs. `decrypt` throwing).
         expect(isValidEncryptedID('short')).toBe(false)
         expect(isValidEncryptedID('co123', 'co')).toBe(false)
     })
 
     test('docs-extra:id-manipulation/is-valid-encrypted-id-false-for-wrong-prefix', () => {
-        // IDEncrypter.ts:243 — when an expected prefix is required and
+        // when an expected prefix is required and
         // the candidate string does not start with it, `isValidEncryptedID`
         // returns false without recomputing the checksum (mirrors
         // `decrypt`'s `Invalid prefix` throw).
@@ -129,7 +129,7 @@ describe(ctx.label, () => {
     })
 
     test('docs-extra:id-manipulation/is-valid-encrypted-id-false-for-tampered-checksum', () => {
-        // IDEncrypter.ts:246-247 — same checksum the decrypter throws
+        // same checksum the decrypter throws
         // on, but returned as a boolean.
         const enc = new IDEncrypter('3zTvzr3p67VC61jm', '60iP0h6vJoEaJo8c')
         const encrypted = enc.encrypt(1n)

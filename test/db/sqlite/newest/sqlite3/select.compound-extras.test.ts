@@ -1,11 +1,9 @@
 // Coverage of the compound-operator variants
 // [select.compound.test.ts](./select.compound.test.ts) leaves on the
 // table: `intersectAll`, `exceptAll`, `minus`, `minusAll`. Each lands
-// on `_appendCompoundOperator` in
-// [src/sqlBuilders/AbstractSqlBuilder.ts:661](../../../../../src/sqlBuilders/AbstractSqlBuilder.ts#L661).
+// on `_appendCompoundOperator`
 //
 // On SQLite only `.minus(...)` is exposed by the fluent API
-// ([src/expressions/select.ts:126](../../../../../src/expressions/select.ts#L126));
 // `.intersectAll`/`.exceptAll`/`.minusAll` are narrowed to `never`
 // because the engine doesn't accept the `ALL` flavour of these
 // operators. Those three tests are commented out with

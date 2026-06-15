@@ -1,18 +1,15 @@
 // `DELETE … USING t INNER JOIN j ON … WHERE …` — multi-table DELETE
 // where the JOIN method (not just plain `.using(...)`) is used. Only
 // MariaDB and MySQL type `.innerJoin` / `.leftJoin` on their
-// `DeleteExpression` (see
-// [src/expressions/delete.ts:97-105](../../../../../src/expressions/delete.ts#L97-L105) —
+// `DeleteExpression`
 // `OnExpressionFnType` is narrowed to `'noopDB' | 'mariaDB' | 'mySql'`).
 // On those two dialects the library rewrites it under the hood to
-// MariaDB/MySQL's `DELETE FROM t USING t JOIN j ON ...` form (see
-// [src/sqlBuilders/AbstractMySqlMariaBDSqlBuilder.ts:348-357](../../../../../src/sqlBuilders/AbstractMySqlMariaBDSqlBuilder.ts#L348-L357)
+// MariaDB/MySQL's `DELETE FROM t USING t JOIN j ON ...` form
 // `_buidDeleteUsing` override that prefixes the target table to the
 // from-joins result).
 //
 // Pins the DeleteQueryBuilder `join` / `innerJoin` / `leftJoin` /
-// `dynamicOn` / `on` branches at
-// [src/queryBuilders/DeleteQueryBuilder.ts:277-353](../../../../../src/queryBuilders/DeleteQueryBuilder.ts#L277-L353)
+// `dynamicOn` / `on` branches
 // that aren't reached by `delete.using.test.ts` (which only uses
 // `.using(table)`).
 //

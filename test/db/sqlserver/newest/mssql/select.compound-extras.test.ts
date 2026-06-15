@@ -1,11 +1,9 @@
 // Coverage of the compound-operator variants
 // [select.compound.test.ts](./select.compound.test.ts) leaves on the
 // table: `intersectAll`, `exceptAll`, `minus`, `minusAll`. Each lands
-// on `_appendCompoundOperator` in
-// [src/sqlBuilders/AbstractSqlBuilder.ts:661](../../../../../src/sqlBuilders/AbstractSqlBuilder.ts#L661).
+// on `_appendCompoundOperator`
 //
 // On SqlServer only `.minus(...)` is exposed by the fluent API
-// ([src/expressions/select.ts:126](../../../../../src/expressions/select.ts#L126));
 // `.intersectAll`/`.exceptAll`/`.minusAll` are narrowed to `never`
 // because the engine doesn't accept the `ALL` flavour of these
 // operators. Those three tests are commented out with
@@ -25,10 +23,26 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     // NOT-APPLICABLE: SQL Server does not accept `INTERSECT ALL`; the
-    // fluent API narrows `intersectAll` to `never` for `sqlServer`. See
-    // the postgres / mariadb cells for the active body.
+    // fluent API narrows `intersectAll` to `never` for `sqlServer`.
     /*
-    test('intersect-all-emits-intersect-all-syntax', async () => {})
+    test('intersect-all-emits-intersect-all-syntax', async () => {
+        // INTERSECT ALL keeps row-multiplicities (vs INTERSECT which
+        // deduplicates). left = every issue status
+        // (open, in_progress, open, closed); right (priority <= 3) = all
+        // four rows, so the intersection is the full left multiset.
+        const expected = [{ status: 'closed' }, { status: 'in_progress' }, { status: 'open' }, { status: 'open' }]
+        ctx.mockNext(expected)
+        const left = ctx.conn.selectFrom(tIssue)
+            .select({ status: tIssue.status })
+        const right = ctx.conn.selectFrom(tIssue)
+            .where(tIssue.priority.lessOrEqual(3))
+            .select({ status: tIssue.status })
+        const result = await left.intersectAll(right).executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(ctx.lastParams).toMatchInlineSnapshot()
+        // Compound result order is engine-defined; compare as a multiset.
+        expect(result.map(r => r.status).sort()).toEqual(['closed', 'in_progress', 'open', 'open'])
+    })
     */
 
     // NOT-APPLICABLE: SQL Server does not accept `EXCEPT ALL`;

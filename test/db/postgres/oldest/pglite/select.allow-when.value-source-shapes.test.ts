@@ -5,14 +5,13 @@
 // `mutation.allow-when.test.ts` and `fragments.propagation.test.ts` don't
 // exercise. Each test wraps the gate INSIDE the operation being tested so
 // the introspection walker visits the corresponding `__isAllowed` method
-// in [src/internal/ValueSourceImpl.ts](../../../../../src/internal/ValueSourceImpl.ts),
+// in,
 // `WithViewImpl`, `CompoundSelectQueryBuilder`, `RawFragmentImpl`, etc.
 //
 // Background on the introspection walker, the public-API gap that makes
 // the [`isQueryAllowed(...)`](../../../../lib/isAllowed.ts) helper
 // necessary, and the design contract that `__isAllowed` mirrors `__toSql`,
-// see the comment on `AllowWhenValueSource.__toSql` in
-// [src/internal/ValueSourceImpl.ts:1689-1717](../../../../../src/internal/ValueSourceImpl.ts#L1689-L1717),
+// see the comment on `AllowWhenValueSource.__toSql`
 // the entry in [test/LIMITATIONS.md](../../../../LIMITATIONS.md) and
 // [test/lib/isAllowed.ts](../../../../lib/isAllowed.ts).
 

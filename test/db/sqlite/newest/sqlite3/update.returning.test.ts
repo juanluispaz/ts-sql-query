@@ -1,8 +1,4 @@
 // Coverage of `UPDATE ... RETURNING` / `OUTPUT inserted.*` paths.
-// Lights up `_buildUpdateReturning` (PostgreSQL/MariaDB/SQLite),
-// `_buildUpdateOutput` (SqlServer) and Oracle's `RETURNING ... INTO`
-// override. MySQL has no equivalent, so its cell keeps the test
-// commented out for symmetry.
 //
 // Each mutation runs inside `ctx.withRollback(...)`. Snapshots can be
 // refreshed with `bun run tests <cell> --use-vitest -u`.

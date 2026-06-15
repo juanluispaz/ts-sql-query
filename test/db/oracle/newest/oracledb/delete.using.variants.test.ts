@@ -18,9 +18,6 @@
 //      (SqlServer) and Oracle's `RETURNING ... INTO` override on top
 //      of a USING-list. MySQL has no RETURNING and the cell comments
 //      this test out.
-//
-// SQLite has no DELETE...USING (the library type-excludes it for sqlite
-// connections); every test is commented out in those cells.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -93,7 +90,7 @@ describe(ctx.label, () => {
     // only as a prefix to SELECT; the inline-subquery rewrite (`DELETE
     // FROM (SELECT ... FROM tgt JOIN cte ...) WHERE ...`) would be needed
     // instead. The library emits the WITH-prefix form here. Body kept
-    // verbatim from the postgres cell for cross-cell diff parity.
+    // verbatim for cross-cell diff parity.
     // NOT-APPLICABLE: Oracle accepts WITH only as a prefix to SELECT, so DELETE … USING <CTE> (ORA-00928) is not emittable
     /*
     test('delete-using-cte-source', async () => {

@@ -1,5 +1,4 @@
 // Coverage of the `ForceTypeCast` type adapter
-// ([`src/TypeAdapter.ts`](../../../../../src/TypeAdapter.ts)).
 // A column wrapped with this adapter unconditionally forces
 // `transformPlaceholder(... forceTypeCast = true)`, so every bound
 // parameter for that column carries the dialect's placeholder cast —

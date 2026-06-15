@@ -18,9 +18,6 @@
 //      (SqlServer) and Oracle's `RETURNING ... INTO` override on top
 //      of a USING-list. MySQL has no RETURNING and the cell comments
 //      this test out.
-//
-// SQLite has no DELETE...USING (the library type-excludes it for sqlite
-// connections); every test is commented out in those cells.
 
 import { afterAll, beforeAll, beforeEach, describe } from '../../../../lib/testRunner.js'
 import { ctx } from './setup.js'

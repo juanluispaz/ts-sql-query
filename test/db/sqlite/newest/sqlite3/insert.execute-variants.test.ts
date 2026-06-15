@@ -1,24 +1,20 @@
 // Coverage of the INSERT executor variants the other INSERT tests
 // don't exercise:
 //
-//   - `executeInsert(min, max)` — min-/max-row guards in
-//     [InsertQueryBuilder.ts:164](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L164).
+//   - `executeInsert(min, max)` — min-/max-row guards
 //     Plain inserts (no RETURNING) compare `min`/`max` against the
 //     engine's reported rowCount; the `.returningLastInsertedId()` path
 //     compares against `result.length` (multi-row) or 0/1 based on the
 //     id being null/non-null (single-row).
 //   - `.values([...]).returningLastInsertedId().executeInsert()` — the
 //     multi-row last-inserted-id path
-//     ([InsertQueryBuilder.ts:114](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L114))
 //     that dispatches through
 //     `_queryRunner.executeInsertReturningMultipleLastInsertedId`.
 //   - `executeInsertNoneOrOne()` + `returningOneColumn(...)` — the
-//     `__oneColumn` branch in
-//     [InsertQueryBuilder.ts:200](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L200)
+//     `__oneColumn` branch
 //     plus its `value === undefined → null` coercion path.
 //   - `executeInsertOne()` + `returningOneColumn(...)` — same shape, but
 //     throws `NO_RESULT` when the engine returns nothing
-//     ([InsertQueryBuilder.ts:241](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L241)).
 //   - `executeInsertMany(min, max)` with `returningOneColumn(...)` and
 //     with `returning({...})` — covers both `__oneColumn` and row-shape
 //     branches of the many-returning path.
@@ -232,8 +228,7 @@ describe(ctx.label, () => {
 
     test('execute-insert-one-throws-no-result-when-row-missing', async () => {
         // `executeInsertOne()` raises `NO_RESULT` when the engine
-        // returns no row (see
-        // [InsertQueryBuilder.ts:253](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L253)).
+        // returns no row
         // Mock-only: real INSERT always returns the inserted row.
         if (ctx.realDbEnabled) return
         ctx.mockNext(undefined)
@@ -252,7 +247,6 @@ describe(ctx.label, () => {
     test('execute-insert-many-with-returning-one-column', async () => {
         // `executeInsertMany()` + `returningOneColumn(col)` lands on
         // the `__oneColumn` branch of the many-returning path
-        // ([InsertQueryBuilder.ts:272](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L272))
         // and returns an array of the projected column. Real DB
         // returns engine-assigned ids; the value assertion is
         // length-based to avoid pinning specific id values.

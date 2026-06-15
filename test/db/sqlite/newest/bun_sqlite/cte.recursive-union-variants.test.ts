@@ -4,15 +4,13 @@
 //   - `.recursiveUnion(...)` (the dedup variant) on dialects that
 //     accept `UNION` in the recursive arm (mysql, mariaDB,
 //     postgreSql, sqlite) - Oracle and SQL Server reject the operator
-//     ([src/expressions/select.ts:L497-L503](../../../../../src/expressions/select.ts#L497))
 //     and `recursiveUnion` is typed as `never` there.
 //   - `.recursiveUnionOn(...)` (the shortcut paired with
 //     `.recursiveUnion`) - same dialect narrowing.
 //   - `.recursiveUnionAll(...)` with an extra column on the inner
 //     arm (alias preservation through the JOIN).
 //
-// Hits the `_buildRecursiveSelect` branch in
-// [src/sqlBuilders/AbstractSqlBuilder.ts](../../../../../src/sqlBuilders/AbstractSqlBuilder.ts)
+// Hits the `_buildRecursiveSelect` branch
 // that switches between `union` and `union all`.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'

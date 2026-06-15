@@ -1,9 +1,6 @@
 // Behavioral coverage of `connection.insertInto(t).defaultValues()`,
 // which triggers `_buildInsertDefaultValues` in each SqlBuilder. Each
-// dialect emits a different form: SQLite/PostgreSQL emit
-// `INSERT INTO t DEFAULT VALUES`; MySQL/MariaDB emit
-// `INSERT INTO t () VALUES ()`; Oracle expands all sequence-backed
-// columns explicitly. No existing test exercises this path.
+// dialect emits its own form, pinned per cell by the snapshot below.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { Table } from '../../../../../src/Table.js'

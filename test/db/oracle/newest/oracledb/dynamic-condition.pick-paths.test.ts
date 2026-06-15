@@ -1,12 +1,10 @@
-// `dynamicPickPaths(availableFields, paths, mandatory?)` from
-// [src/dynamicCondition.ts](../../../../../src/dynamicCondition.ts).
+// `dynamicPickPaths(availableFields, paths, mandatory?)`
 // The existing `docs.extreme-dynamic-queries.test.ts` and
 // `docs.advanced.utility-dynamic-picks.test.ts` cover the *flat*
 // case: `availableFields` is a `{ key: column, ... }` shape and the
 // `paths` list contains only top-level keys.
 //
-// This file pins the recursive branch on
-// [L139-L146](../../../../../src/dynamicCondition.ts#L139): when
+// This file pins the recursive branch that fires when
 // `availableFields` contains a nested object whose leaves are
 // columns, `dynamicPickPaths` walks into it and matches paths of
 // the form `"nested.key"`. The same recursion is what powers the

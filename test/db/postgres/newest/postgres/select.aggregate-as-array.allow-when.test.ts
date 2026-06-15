@@ -1,19 +1,18 @@
 // `.allowWhen(...)` / `.disallowWhen(...)` on the four aggregate-as-array
-// value sources land in distinct subclasses at
-// [src/internal/ValueSourceImpl.ts](../../../../../src/internal/ValueSourceImpl.ts):
+// value sources land in distinct subclasses
 //
-//   - `AggregateSelectValueSource.allowWhen` (L2056-2068) →
-//     `AllowWhenAggregateSelectValueSource` (L2125-2145).
-//   - `NullAggregateSelectValueSource.allowWhen` (L2176-2189) →
-//     `NullAllowWhenAggregateSelectValueSource` (L2241-2261).
-//   - `AggregateValueAsArrayValueSource.allowWhen` (L2343-2355) →
-//     `AllowWhenAggregateValueAsArrayValueSource` (L2495+).
-//   - `NullAggregateValueAsArrayValueSource.allowWhen` (L2546-2563) →
-//     `NullAllowWhenAggregateValueAsArrayValueSource` (L2580+).
+// `AggregateSelectValueSource.allowWhen` →
+// `AllowWhenAggregateSelectValueSource`.
+// `NullAggregateSelectValueSource.allowWhen` →
+// `NullAllowWhenAggregateSelectValueSource`.
+// `AggregateValueAsArrayValueSource.allowWhen` →
+// `AllowWhenAggregateValueAsArrayValueSource`.
+// `NullAggregateValueAsArrayValueSource.allowWhen` →
+// `NullAllowWhenAggregateValueAsArrayValueSource`.
 //
 // Each subclass's `__toSql` throws when `__allowed === false`; the
 // existing [`select.value-source.allow-when.test.ts`](./select.value-source.allow-when.test.ts)
-// only covers the plain `ValueSourceImpl.allowWhen` (L95-105 / 107-117)
+// only covers the plain `ValueSourceImpl.allowWhen`
 // and never reaches any of these four. The `Null*` variants are
 // reached by chaining `.onlyWhenOrNull(false)` BEFORE `.allowWhen(...)`.
 
@@ -90,10 +89,10 @@ describe(ctx.label, () => {
 
     test('null-aggregate-as-array-via-only-when-or-null-false-then-allow-when-false-throws', async () => {
         // `.onlyWhenOrNull(false)` swaps the value source for
-        // `NullAggregateSelectValueSource` (L2105-2110); chaining
+        // `NullAggregateSelectValueSource`; chaining
         // `.allowWhen(false, '...')` on THAT lands in
         // `NullAllowWhenAggregateSelectValueSource`. Its `__toSql`
-        // (L2249-2253) throws on the disallowed path before reaching
+        // throws on the disallowed path before reaching
         // the parent `_asNullValue(...)`.
         const connection = ctx.conn
         const tIssueLeftJoin = tIssue.forUseInLeftJoin()

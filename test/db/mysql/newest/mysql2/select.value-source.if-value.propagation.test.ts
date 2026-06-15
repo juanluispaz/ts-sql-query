@@ -8,28 +8,27 @@
 // subquery). Placing the same operators in an UPDATE WHERE / SET
 // closes the remaining uncovered ranges:
 //
-//   - `SqlOperation1ValueSourceIfValueOrNoop` (L1192-1248): created by
+// `SqlOperation1ValueSourceIfValueOrNoop`: created by
 //     the `*IfValue(value)` family. Test 1 uses `equalsIfValue` in an
 //     UPDATE WHERE, exercising the value-present branches of every
-//     method on the node (including `__getOldValues` L1230-1234 and
-//     `__getValuesForInsert` L1236-1240).
-//   - `SqlOperationInValueSourceIfValueOrNoop` (L1250-1373): test 2
+//     method on the node (including `__getOldValues` and
+//     `__getValuesForInsert`).
+// `SqlOperationInValueSourceIfValueOrNoop`: test 2
 //     uses `inIfValue([…])` in an UPDATE WHERE. The non-empty array
-//     also exercises the per-item loops at L1273-1278 (`__addWiths`),
-//     L1287-1292 (`__registerTableOrView`), L1301-1307
-//     (`__registerRequiredColumn`), L1318-1324 (`__getOldValues`)
+// also exercises the per-item loops (`__addWiths`),
+// (`__registerTableOrView`),
+// (`__registerRequiredColumn`), (`__getOldValues`)
 //     and the matching `__getValuesForInsert` / `__isAllowed`.
-//   - `SqlOperation2ValueSource` (L1425-1465): test 3 uses
+// `SqlOperation2ValueSource`: test 3 uses
 //     `between(a, b)` in an UPDATE WHERE; the 2-arg comparator has no
 //     IfValue guard so every method always propagates.
-//   - `SqlOperation1ValueSourceIfValueOrIgnore` (L1385-1423): test 4
+// `SqlOperation1ValueSourceIfValueOrIgnore`: test 4
 //     uses `concatIfValue(suffix)` inside an UPDATE SET expression —
 //     the OrIgnore variant fires the propagation through the SET
-//     right-hand side, exercising L1407-1421.
-//   - `SqlOperation2ValueSourceIfValueOrIgnore` (L1467-1513): test 5
+// right-hand side, exercising.
+// `SqlOperation2ValueSourceIfValueOrIgnore`: test 5
 //     uses `replaceAllIfValue(find, replace)` inside an UPDATE SET
-//     expression, exercising the 2-arg OrIgnore propagation at
-//     L1495-1511.
+//     expression, exercising the 2-arg OrIgnore propagation
 //
 // LHS columns are all from `tProject` / `tIssue` (no `oldValues()` /
 // `valuesForInsert()` references), so the SQL surface is portable
@@ -55,7 +54,7 @@ describe(ctx.label, () => {
         // whether to materialise the `_old_` subquery and whether
         // the statement references EXCLUDED columns — even though
         // both checks return `undefined` for a regular column, the
-        // calls execute the value-present branches at L1216-1247.
+        // calls execute the value-present branches.
         // The SQL is the standard `update … where id = $1 and name = $2`.
         ctx.mockNext(1)
         const connection = ctx.conn
@@ -86,7 +85,7 @@ describe(ctx.label, () => {
         // WHERE of an UPDATE. UpdateQueryBuilder walks the predicate
         // and the `SqlOperationInValueSourceIfValueOrNoop` node fires
         // the array-iteration arms of every propagation method (the
-        // `Array.isArray(values)` branches at L1273-1278 etc.) plus
+        // `Array.isArray(values)` branches) plus
         // its own `__getOldValues` / `__getValuesForInsert` calls.
         // Three placeholders land in the WHERE for the array
         // contents.
@@ -119,7 +118,7 @@ describe(ctx.label, () => {
     test('between-in-update-where-fires-two-arg-propagation', async () => {
         // `tIssue.priority.between(1, 3)` is the 2-arg shape of
         // `SqlOperation2ValueSource`. No IfValue early-return — the
-        // propagation methods at L1447-1460 always walk the LHS and
+        // propagation methods always walk the LHS and
         // both values. We exercise the path inside an UPDATE WHERE
         // so UpdateQueryBuilder also calls `__getOldValues` /
         // `__getValuesForInsert` (both returning undefined for plain
@@ -156,7 +155,7 @@ describe(ctx.label, () => {
         // node renders the LHS unchanged (test
         // `select.value-source.if-value-negated-and-is` already pins
         // the "absent" path). Placing it inside an UPDATE SET
-        // exercises the propagation methods at L1407-1421 via
+        // exercises the propagation methods via
         // UpdateQueryBuilder walking SET expressions.
         ctx.mockNext(1)
         const connection = ctx.conn
@@ -186,7 +185,7 @@ describe(ctx.label, () => {
         // `SqlOperation2ValueSourceIfValueOrIgnore`. Both find /
         // replace values are concrete, so the operator emits the
         // `replace(<col>, $1, $2)` shape and the propagation methods
-        // at L1495-1511 fire from UpdateQueryBuilder walking SET
+        // fire from UpdateQueryBuilder walking SET
         // expressions.
         ctx.mockNext(1)
         const connection = ctx.conn

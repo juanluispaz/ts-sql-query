@@ -87,7 +87,20 @@ describe(ctx.label, () => {
     // NOT-APPLICABLE: MySQL has no UPDATE ... RETURNING; `returning`/`returningOneColumn` are typed `never` on the mysql dialect (a permanent compile-time frontier, asserted in test/db/mysql/types.negative/update.test.ts). The body runs in the dialects that support RETURNING (postgres, sqlite, mariadb, sqlserver, oracle).
     /*
     test('execute-update-none-or-one-with-returning-one-column', async () => {
-        // See sqlite / postgres cells for the active body.
+        // `executeUpdateNoneOrOne()` + `returningOneColumn(col)` returns
+        // the single updated value. Sets issue 1's status to 'reviewed'.
+        ctx.mockNext('reviewed')
+        await ctx.withRollback(async () => {
+            const result = await ctx.conn.update(tIssue)
+                .set({ status: 'reviewed' })
+                .where(tIssue.id.equals(1))
+                .returningOneColumn(tIssue.status)
+                .executeUpdateNoneOrOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            expect(result).toBe('reviewed')
+        })
     })
     */
 
@@ -230,7 +243,7 @@ describe(ctx.label, () => {
 
     // MySQL has no UPDATE … RETURNING, so `.returning(...)` narrows to
     // `never` and the body would not type-check. The short-circuit it
-    // exercises is dialect-independent and covered by the other cells.
+    // exercises is dialect-independent.
     // NOT-APPLICABLE: MySQL has no UPDATE ... RETURNING; `returning`/`returningOneColumn` are typed `never` on the mysql dialect (a permanent compile-time frontier, asserted in test/db/mysql/types.negative/update.test.ts). The body runs in the dialects that support RETURNING (postgres, sqlite, mariadb, sqlserver, oracle).
     /*
     test('execute-update-many-with-no-sets-resolves-empty-array', async () => {

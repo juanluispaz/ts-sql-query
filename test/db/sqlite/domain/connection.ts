@@ -32,7 +32,7 @@ export class DBConnection extends SqliteConnection<'DBConnection'> {
     // connectors expose (better-sqlite3, node:sqlite and sqlite-wasm-OO1
     // register them in the test harness; `sqlite3` and bun:sqlite have no
     // user-defined-function API, so they can't). Using
-    // the binary strategy as the ambient default forced those cells to
+    // the binary strategy as the ambient default forced those connectors to
     // deactivate every uuid-touching test. The `'string'` strategy emits
     // plain TEXT (no helper functions), so the uuid columns run end-to-end
     // on every sqlite connector. The binary `'uuid-extension'` emission is

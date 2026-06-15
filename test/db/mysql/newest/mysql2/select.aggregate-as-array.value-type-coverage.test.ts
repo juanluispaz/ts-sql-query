@@ -1,13 +1,12 @@
 // `aggregateAsArray` / `aggregateAsArrayOfOneColumn` across value types
 // the existing tests don't exercise (`boolean`, `localDateTime`,
-// optional `localDateTime`). Motivated by gaps in
-// [SqlServerSqlBuilder.ts:1238-1363](../../../../../src/sqlBuilders/SqlServerSqlBuilder.ts#L1238-L1363) —
+// optional `localDateTime`). Motivated by gaps
 // `_appendJsonValueForAggregate` / `_appendJsonValueForWrappedAggregate`:
 // each case of the `switch(type)` (boolean/int/double, bigint/customInt/
 // customDouble/uuid, string/aggregatedArray, localDate/localTime/
 // localDateTime/customLocal*, default) emits a distinct JSON-escaping
 // SQL shape on T-SQL ≥ SQL Server 2016 (compatibilityVersion ≥ 13_000_000).
-// The `isnull(..., 'null')` optional-wrapper at L1278-1280 / L1358-1360
+// The `isnull(..., 'null')` optional-wrapper
 // is reached only when the column is `optional` — covered by the
 // `aggregate-of-optional-local-date-time` test below.
 //
@@ -102,7 +101,6 @@ describe(ctx.label, () => {
     test('aggregate-of-optional-local-date-time-column-as-array', async () => {
         // `tProject.archivedAt` is `optional` — the SqlServer JSON
         // emission wraps the per-element SQL with `isnull(..., 'null')`
-        // ([SqlServerSqlBuilder.ts:1278-1280](../../../../../src/sqlBuilders/SqlServerSqlBuilder.ts#L1278-L1280)).
         // The seed has project 4 archived and projects 1–3 not — at
         // least one NULL is present in the aggregate.
         ctx.mockNext([
@@ -282,7 +280,7 @@ describe(ctx.label, () => {
         // `bigint` + optional `uuid` + optional `double`. Pins the
         // `bigint`/`uuid`/`double` cases in
         // `_appendJsonValueForWrappedAggregate` simultaneously
-        // (SqlServerSqlBuilder.ts:1322-1362). On PG and the other
+        // On PG and the other
         // JSON-native dialects the per-property cast is absent.
         //
         // We UPDATE project 1's two issues to known per-row values so
@@ -361,8 +359,7 @@ describe(ctx.label, () => {
         // Object-shape `aggregateAsArray({...})` mixing a boolean and
         // a localDateTime column. On SqlServer this exercises
         // `_appendJsonValueForWrappedAggregate` with the per-property
-        // switch over `boolean` and `localDateTime` cases at
-        // [SqlServerSqlBuilder.ts:1322-1362](../../../../../src/sqlBuilders/SqlServerSqlBuilder.ts#L1322-L1362).
+        // switch over `boolean` and `localDateTime` cases
         ctx.mockNext([
             {
                 id:       1,

@@ -1,5 +1,5 @@
 // Per-connection coverage of the three branches every insensitive
-// comparison operator in [AbstractSqlBuilder](../../../../../src/sqlBuilders/AbstractSqlBuilder.ts)
+// comparison operator in
 // gates on `_connectionConfiguration.insensitiveCollation`:
 //
 //   - `collation` set to a non-empty string: emits the native form
@@ -20,10 +20,6 @@
 // `utf8mb4_general_ci`, Oracle: `BINARY_CI`, SQL Server:
 // `Latin1_General_CI_AS`) so the emitted SQL runs against the real DB
 // in every cell — no mock-only guard needed.
-//
-// MySQL/MariaDB override `_startsWith/_endsWith/_contains` and their
-// insensitive forms with a `concat()`-based shape, so the snapshots on
-// those cells differ from the sqlite shape pinned here.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { tAppUser } from '../../domain/connection.js'

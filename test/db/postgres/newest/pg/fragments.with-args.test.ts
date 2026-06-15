@@ -1,9 +1,7 @@
-// Coverage of the three FragmentFunction factories exposed by
-// [AbstractConnection](../../../../../src/connections/AbstractConnection.ts)
+// Coverage of the three FragmentFunction factories exposed
 // via the protected `buildFragmentWithArgs`, `buildFragmentWithArgsIfValue`
 // and `buildFragmentWithMaybeOptionalArgs` builders. Each returns a
-// dispatcher `(...args) => AnyValueSource` whose body lives in
-// [FragmentQueryBuilder](../../../../../src/queryBuilders/FragmentQueryBuilder.ts).
+// dispatcher `(...args) => AnyValueSource` whose body lives
 //
 // The three dispatchers expose different branches:
 //   - `FragmentFunctionBuilder.as` — coerces literal args via
@@ -14,8 +12,7 @@
 //     `SqlOperationValueSourceIfValueAlwaysNoop` when the arg is
 //     present but rejected by `_isValue`.
 //   - `FragmentFunctionBuilderMaybeOptional.as` — coerces args while
-//     tracking the merged `optionalType` (via `__mergeOptional` in
-//     [expressions/values.ts](../../../../../src/expressions/values.ts))
+//     tracking the merged `optionalType` (via `__mergeOptional`
 //     and stamps the merged value on the result.
 //
 // The factories are `protected` on the connection so the canonical

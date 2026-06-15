@@ -3,7 +3,6 @@
 // produces. Dynamic conditions exist so an external system can hand a
 // JSON-shaped filter that ts-sql-query maps onto the *same* public
 // value-source methods the fluent API exposes
-// ([src/queryBuilders/DynamicConditionBuilder.ts](../../../../../src/queryBuilders/DynamicConditionBuilder.ts)).
 //
 // Every test here builds the predicate twice:
 //   - REFERENCE — the direct fluent call (`tIssue.priority.equals(3)`),
@@ -21,7 +20,6 @@
 // API) and fills the dispatch gaps that file does not reach:
 //   - `is` / `isNot` (null-safe equality, distinct from equals/notEquals)
 //   - the `isNull(false)` / `isNotNull(false)` negate branch
-//     ([DynamicConditionBuilder.ts:158-162](../../../../../src/queryBuilders/DynamicConditionBuilder.ts#L158-L162))
 //   - `equalsInsensitive` / `notEqualsInsensitive`
 //   - the *insensitive* affix family (startsWith/endsWith/contains)
 //   - the `*IfValue` family WITH a value (emits the same as the plain op)
@@ -29,7 +27,6 @@
 //     boolean (custom adapter) column types, not just int + string
 //   - the uuid `asString()` rewrite the builder applies for the
 //     like/insensitive operators
-//     ([DynamicConditionBuilder.ts:164-166](../../../../../src/queryBuilders/DynamicConditionBuilder.ts#L164-L166)).
 //
 // The result *type* of a query is unaffected by its WHERE expression, so
 // these tests assert SQL + params identity only; result-type coverage for

@@ -1,6 +1,5 @@
 // Chains `.and(...)` / `.or(...)` after `.where(...)` on the ON CONFLICT
-// branches of an INSERT — exercises code paths in
-// [InsertQueryBuilder.ts:1866-1910](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L1866-L1910)
+// branches of an INSERT — exercises code paths
 // that the existing `insert.on-conflict-do-update-extras.test.ts`
 // leaves alone (it only uses `.where(c1)` with no follow-up chain).
 //
@@ -11,12 +10,6 @@
 // on `__onConflictUpdateWhere` or `__onConflictOnColumnsWhere`
 // respectively. The two dispatch branches are not reachable via
 // any other test in the matrix.
-//
-// Active in postgres and sqlite cells (the only dialects that type
-// `.onConflictOn(...)` and accept a WHERE clause on ON CONFLICT).
-// MariaDB/MySQL (`ON DUPLICATE KEY UPDATE` — no target spec, no
-// WHERE) and Oracle/SQL Server (no ON CONFLICT syntax — they use
-// `MERGE`) comment the file body out for symmetry.
 
 import { afterAll, beforeAll, beforeEach, describe } from '../../../../lib/testRunner.js'
 import { ctx } from './setup.js'
@@ -31,8 +24,7 @@ describe(ctx.label, () => {
     test('do-update-set-where-then-and-or-builds-compound-update-predicate', async () => {
         // `onConflictOn(cols).doUpdateSet(...).where(c1).and(c2).or(c3)`
         // — pins `and()` and `or()` dispatch on
-        // `__onConflictUpdateSets` ([L1866-1876](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L1866-L1876)
-        // and [L1889-1899](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L1889-L1899)).
+        // `__onConflictUpdateSets`.
         // The emitted predicate is `c1 AND c2 OR c3` with the
         // parenthesisation chosen by the builder.
         ctx.mockNext(1)
@@ -69,8 +61,7 @@ describe(ctx.label, () => {
     test('on-columns-where-then-and-or-builds-compound-partial-index-predicate', async () => {
         // `onConflictOn(cols).where(c1).and(c2).or(c3).doUpdateSet(...)`
         // — pins `and()` and `or()` dispatch on
-        // `__onConflictOnColumns` ([L1877-1887](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L1877-L1887)
-        // and [L1900-1910](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L1900-L1910)).
+        // `__onConflictOnColumns`.
         // This is the PARTIAL-INDEX-TARGET predicate (between the
         // conflict-target columns and the DO UPDATE clause), distinct
         // from the partial-UPDATE predicate covered by test 1.

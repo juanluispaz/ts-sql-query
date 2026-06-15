@@ -1,9 +1,7 @@
 // Oracle's hierarchical query syntax: `START WITH … CONNECT BY [NOCYCLE]
 // PRIOR …`. The fluent shape is `.startWith(cond).connectBy(prior =>
-// …)` /  `.connectByNoCycle(prior => …)`, defined on
-// [src/expressions/select.ts:265-405](../../../../../src/expressions/select.ts#L265-L405).
-// The rendering path lives in
-// [src/sqlBuilders/AbstractSqlBuilder.ts:929-948](../../../../../src/sqlBuilders/AbstractSqlBuilder.ts#L929-L948).
+// …)` /  `.connectByNoCycle(prior => …)`, defined
+// The rendering path lives
 // On every other dialect (`postgreSql`, `sqlServer`, `mariaDB`,
 // `mySql`, `sqlite`) these methods are typed `never`; the equivalent
 // pattern is a recursive CTE — see
@@ -73,8 +71,7 @@ describe(ctx.label, () => {
     test('connect-by-nocycle-emits-nocycle-keyword', async () => {
         // `connectByNoCycle` is the cycle-safe variant — Oracle stops
         // traversing once it detects the start of a loop and does not
-        // raise ORA-01436. Pins the `connect by nocycle` rendering at
-        // [AbstractSqlBuilder.ts:943](../../../../../src/sqlBuilders/AbstractSqlBuilder.ts#L943).
+        // raise ORA-01436. Pins the `connect by nocycle` rendering
         // Tree shape identical to test 1.
         ctx.mockNext([
             { id: 3, parentId: null },
@@ -118,7 +115,6 @@ describe(ctx.label, () => {
         // matching the filter. Pins both the START WITH and the WHERE
         // landing in the emitted SQL in the documented order (WHERE
         // before START WITH per
-        // [AbstractSqlBuilder.ts:920-948](../../../../../src/sqlBuilders/AbstractSqlBuilder.ts#L920-L948)).
         ctx.mockNext([
             { id: 1, parentId: 2 },
             { id: 4, parentId: null },

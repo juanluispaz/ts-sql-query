@@ -2,7 +2,6 @@
 // intersect / except). The plain-SELECT path is covered by
 // [docs.select-page.test.ts](./docs.select-page.test.ts); a compound
 // SELECT goes through a different builder:
-// [src/queryBuilders/SelectQueryBuilder.ts:1290](../../../../../src/queryBuilders/SelectQueryBuilder.ts#L1290)
 // `CompoundSelectQueryBuilder.__buildSelectCount`. That branch wraps
 // the whole compound query in `WITH result_for_count AS (...)` and
 // emits `SELECT count(*) FROM result_for_count` so the count is

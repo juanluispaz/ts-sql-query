@@ -18,9 +18,6 @@
 //      bubble-up walk through `_buildDeleteReturning` (distinct from
 //      `delete.using.variants.test.ts` test 3 which puts the CTE in
 //      USING; here the CTE lives in a WHERE-in-subquery).
-//
-// MySQL has no RETURNING; all five tests are commented out in its cell
-// for symmetry.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'

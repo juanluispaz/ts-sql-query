@@ -1,14 +1,13 @@
 // Trigonometric `SqlOperation0` paths on `ValueSourceImpl`:
 // `.acos()`, `.asin()`, `.atan()`, `.cos()`, `.cot()`, `.sin()`,
 // `.tan()` — each forwards to the corresponding `_acos`/`_asin`/…
-// emitter on [AbstractSqlBuilder.ts:L2688-L2708](../../../../../src/sqlBuilders/AbstractSqlBuilder.ts#L2688).
+// emitter on.
 // `.atan2(other)` (the 2-arg variant) is already covered by
 // `select.numeric-ops.test.ts`, so this file pins only the 1-arg
 // trig family.
 //
-// node:sqlite exposes the standard SQL trig functions
-// `acos`/`asin`/`atan`/`cos`/`sin`/`tan` natively, so those cells run
-// end-to-end against the real DB and the runtime value is asserted with
+// The standard SQL trig functions `acos`/`asin`/`atan`/`cos`/`sin`/`tan`
+// are available natively here, so the runtime value is asserted with
 // `toBeCloseTo`. The one exception is `cot`, which this SQLite build does
 // NOT provide (`no such function: cot`); that block is NOT-APPLICABLE and
 // kept commented for cross-cell symmetry.

@@ -1,8 +1,7 @@
 // Oracle does NOT support `INSERT … ON CONFLICT` syntax. The library
 // excludes Oracle from the on-conflict family at compile time. Kept
-// here as commented stubs so the symmetry audit reports the same
-// test names per cell; see the postgres/sqlite cells for the active
-// implementation.
+// here as commented bodies so the symmetry audit reports the same
+// test names per cell.
 
 import { afterAll, beforeAll, beforeEach, describe } from '../../../../lib/testRunner.js'
 import { ctx } from './setup.js'

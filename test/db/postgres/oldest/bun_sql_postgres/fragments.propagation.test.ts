@@ -2,8 +2,7 @@
 // `connection.fragmentWithType(type, optional).sql\`…\``) wraps a
 // typed template-string fragment as a first-class value source. Its
 // `__addWiths` / `__registerTableOrView` / `__registerRequiredColumn`
-// / `__getOldValues` / `__getValuesForInsert` overrides at
-// [src/internal/ValueSourceImpl.ts:1573-1615](../../../../../src/internal/ValueSourceImpl.ts#L1573-L1615)
+// / `__getOldValues` / `__getValuesForInsert` overrides
 // loop over every interpolated `__sqlParams` entry so that whatever
 // the fragment references bubbles up to the enclosing query — CTEs
 // land in the outer WITH clause, joined-in tables get registered as
@@ -17,7 +16,7 @@
 // through a fragment param — this file fills those three branches.
 //
 // The fourth interesting branch — `FragmentValueSource.__isAllowed`
-// (L1616-1626) — is currently broken (it calls `__getValuesForInsert`
+// is currently broken (it calls `__getValuesForInsert`
 // on each param instead of `__isAllowed`, see `test/BUGS.md`). The
 // bug is masked by the dead `__isAllowed` web noted in the same file,
 // so a positive test for it cannot ship green today and is omitted.
@@ -36,10 +35,9 @@ describe(ctx.label, () => {
     test('fragment-with-old-values-column-bubbles-up-in-update-returning', async () => {
         // A typed fragment that interpolates `oldProject.name` is the
         // sole `result` column of an UPDATE…returningOneColumn. The
-        // build path at
-        // [src/queryBuilders/UpdateQueryBuilder.ts:957-964](../../../../../src/queryBuilders/UpdateQueryBuilder.ts#L957-L964)
+        // build path
         // calls `__getOldValues` on the projection's value source
-        // privately; FragmentValueSource's override at L1594-1604
+        // privately; FragmentValueSource's override
         // walks `__sqlParams`, finds `oldProject.name`'s reverse
         // pointer to the synthetic _old_ table and returns it. The
         // resulting SQL must include the OLD/`_old_` subquery — on PG
@@ -77,10 +75,9 @@ describe(ctx.label, () => {
         // is the documented place to reach the EXCLUDED row. A typed
         // fragment that interpolates `tProject.valuesForInsert().name`
         // must propagate the "valuesForInsert" marker through
-        // FragmentValueSource.__getValuesForInsert (L1605-1614) so
-        // InsertQueryBuilder's set() path at
-        // [src/queryBuilders/InsertQueryBuilder.ts:1700](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L1700)
-        // (and L1801 for the dynamic-set sibling) marks the statement
+        // FragmentValueSource.__getValuesForInsert so
+        // InsertQueryBuilder's set() path
+        // (and for the dynamic-set sibling) marks the statement
         // as needing the EXCLUDED alias. Without the propagation the
         // EXCLUDED alias would not be emitted and PG would fail to
         // resolve `excluded.name`.
@@ -117,11 +114,10 @@ describe(ctx.label, () => {
         // fragment referencing a joined-in table column. The fragment
         // sits inside RETURNING and references `tOrganization.name`
         // via interpolation. The dialect's
-        // `_extractAdditionalRequiredColumnsForUpdate` at
-        // [src/sqlBuilders/AbstractSqlBuilder.ts:2118-2244](../../../../../src/sqlBuilders/AbstractSqlBuilder.ts#L2118-L2244)
+        // `_extractAdditionalRequiredColumnsForUpdate`
         // walks every RETURNING column and asks each for its
         // `__registerRequiredColumn` set. FragmentValueSource's
-        // override at L1587-1593 forwards to the interpolated params,
+        // override forwards to the interpolated params,
         // so `organization.name` must end up in the synthetic _old_
         // subquery as `organization__name`. On PG ≥ 18 (this cell)
         // the OLD qualifier is native, so the FROM-subquery is not
@@ -178,7 +174,7 @@ describe(ctx.label, () => {
 
     test('fragment-with-disallowed-interpolated-column-throws-on-build', async () => {
         // The throw comes from the leaf `AllowWhenValueSource.__toSql`
-        // at [src/internal/ValueSourceImpl.ts:1715](../../../../../src/internal/ValueSourceImpl.ts#L1715),
+        // at,
         // reached via `FragmentValueSource.__toSql` → `sqlBuilder._fragment` →
         // `_appendValue` on the interpolated param. Pins that the
         // disallow gate propagates through the fragment template

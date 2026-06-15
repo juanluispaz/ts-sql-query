@@ -1,5 +1,4 @@
-// Coverage of multi-row insert shapes in
-// [src/queryBuilders/InsertQueryBuilder.ts](../../../../../src/queryBuilders/InsertQueryBuilder.ts).
+// Coverage of multi-row insert shapes
 // The single-row `.values({...})` path is already covered widely; this
 // file walks the array-arg surface that drives the SqlBuilder's
 // `_buildInsertMultiple` per-dialect branch:

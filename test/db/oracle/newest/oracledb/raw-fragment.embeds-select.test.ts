@@ -1,4 +1,4 @@
-// `RawFragmentImpl` ([src/internal/RawFragmentImpl.ts](../../../../../src/internal/RawFragmentImpl.ts))
+// `RawFragmentImpl`
 // forwards `__addWiths`, `__registerTableOrView`,
 // `__registerRequiredColumn`, `__getOldValues`,
 // `__getValuesForInsert` and `__isAllowed` over every entry in its

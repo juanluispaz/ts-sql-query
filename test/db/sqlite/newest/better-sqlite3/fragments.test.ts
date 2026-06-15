@@ -9,7 +9,6 @@
 //     the basic `afterSelectKeyword` / `afterQuery` pair
 //
 // Each fragment funnels through
-// [src/queryBuilders/FragmentQueryBuilder.ts](../../../../../src/queryBuilders/FragmentQueryBuilder.ts)
 // and lands on the dialect's `_appendRawFragment` /
 // `_appendFragmentWithType` (or equivalent) — the snapshots are the
 // authoritative SQL the lib emits, so a per-dialect render

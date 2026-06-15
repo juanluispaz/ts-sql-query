@@ -98,8 +98,7 @@ describe(ctx.label, () => {
         // Issues 1 and 2 belong to project 1 with priorities {2, 1}; the
         // average is 1.5 on every supported engine. SQL Server's native
         // `AVG(int)` would truncate the result to 1, so the SqlServerSqlBuilder
-        // wraps the operand in `cast(<expr> as float)` (see
-        // [src/sqlBuilders/SqlServerSqlBuilder.ts](../../../../../src/sqlBuilders/SqlServerSqlBuilder.ts)
+        // wraps the operand in `cast(<expr> as float)`
         // `_average`); every other dialect produces the fractional result
         // natively. The `averageDistinct` flavour has its own twin in
         // `select.aggregate-distinct.test.ts`.

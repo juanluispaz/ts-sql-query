@@ -1,8 +1,7 @@
 // Behavioral coverage of the NULL-safe equality operators `.is(...)` and
 // `.isNot(...)`. They are part of the public surface but no other test
-// exercises them. Each dialect renders them differently — sqlite uses
-// `IS` / `IS NOT`, mysql/mariadb use `<=>` / `NOT (a <=> b)`, postgres
-// and others use `IS DISTINCT FROM` / `IS NOT DISTINCT FROM`.
+// exercises them. Each dialect renders them its own way, pinned per cell
+// by the snapshot below.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { tIssue } from '../../domain/connection.js'

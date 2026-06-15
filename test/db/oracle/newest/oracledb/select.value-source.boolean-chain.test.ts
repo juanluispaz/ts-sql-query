@@ -4,10 +4,8 @@
 // rather than via the SELECT builder's `.where(...).and(...)` chain
 // already covered by `select.where.operators.test.ts`.
 //
-// These map to `_and`/`_or` on
-// [AbstractSqlBuilder.ts](../../../../../src/sqlBuilders/AbstractSqlBuilder.ts)
-// (the `SqlOperation1ValueSource` branch on
-// [ValueSourceImpl.ts:L605-L609](../../../../../src/internal/ValueSourceImpl.ts#L605)).
+// These map to `_and`/`_or`
+// (the `SqlOperation1ValueSource` branch
 // Their behaviour is observably different from the builder-side
 // `.and(...)` because the chained `.and(...)` returns a fresh
 // `BooleanValueSource` you can pass around (e.g. into

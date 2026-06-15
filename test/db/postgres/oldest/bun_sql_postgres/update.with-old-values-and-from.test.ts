@@ -1,7 +1,6 @@
 // `tTable.oldValues()` combined with an `UPDATE ... FROM other-table`
 // or `... JOIN other-table` clause stresses the dialect-specific
-// "extract additional required columns" path in
-// [AbstractSqlBuilder.ts:2118-2244](../../../../../src/sqlBuilders/AbstractSqlBuilder.ts#L2118-L2244)
+// "extract additional required columns" path
 // (`_extractAdditionalRequiredColumnsForUpdate` + the `requiredColumns`
 // branch of `_buildUpdateFrom`). The shallow case (only the target
 // table referenced in RETURNING) is covered by
@@ -10,12 +9,8 @@
 // table and so the synthetic `_old_` subquery has to pre-project those
 // extra columns aliased as `<table>__<column>`.
 //
-// PostgreSQL ≥ 18 (`newest`) uses native `OLD.col` qualifiers and no
-// longer emits the FROM-subquery; PG < 18 (`oldest`), SQL Server, and
-// MariaDB ≥ 13.0.1 all emit the FROM-subquery / OUTPUT-deleted variant.
-// Active in postgres + sqlserver + mariadb cells (mariadb wraps the
-// body with a limitation wrap until the docker image upgrades past 12.x);
-// commented out in sqlite/mysql/oracle (oldValues typed `never`).
+// The exact emitted form is dialect- and version-dependent and is
+// pinned per cell by the snapshot below.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'

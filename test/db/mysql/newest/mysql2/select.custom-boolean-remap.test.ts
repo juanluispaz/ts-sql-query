@@ -100,7 +100,7 @@ describe(ctx.label, () => {
     test('update set: custom boolean column from a boolean expression', async () => {
         // The SET path (`_appendValueForColumn` →
         // `_appendCustomBooleanRemapForColumnIfRequired`, the
-        // `isValueSource` branch at AbstractSqlBuilder.ts:1381) — the
+        // `isValueSource` branch — the
         // existing tests only reach the remap from a WHERE comparison.
         // `project.published` stores t/f; setting it from a boolean
         // expression (`id > 0`) must wrap the expression in a case that
@@ -123,9 +123,9 @@ describe(ctx.label, () => {
     })
 
     test('update from: custom boolean column from a different-adapter column', async () => {
-        // The column-to-column SET remap (isColumn branch at
-        // AbstractSqlBuilder.ts:1356-1371): `update ... from` makes
-        // another table's column available in `set(...)`. Setting
+        // The column-to-column SET remap (the isColumn branch of
+        // `update ... from`) makes another table's column available in
+        // `set(...)`. Setting
         // `project.published` (t/f) from `organization.verified` (Y/N)
         // forces the case-based remap on the assigned value.
         ctx.mockNext(2)

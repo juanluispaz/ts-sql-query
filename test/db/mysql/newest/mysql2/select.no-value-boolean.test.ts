@@ -1,5 +1,4 @@
 // Coverage of `connection.noValueBoolean()`
-// ([AbstractConnection.ts:948](../../../../../src/connections/AbstractConnection.ts#L948)):
 // the neutral boolean mark the `ifValue` family returns when there is
 // no value. Combined into an AND/OR chain it collapses away (the
 // `__isAllowed === false` short-circuit in the boolean operators); used

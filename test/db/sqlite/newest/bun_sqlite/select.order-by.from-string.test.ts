@@ -1,6 +1,5 @@
 // Coverage of `orderByFromString(...)` and `orderByFromStringIfValue(...)`
-// — the dynamic ORDER BY surface in
-// [src/queryBuilders/SelectQueryBuilder.ts](../../../../../src/queryBuilders/SelectQueryBuilder.ts).
+// — the dynamic ORDER BY surface
 // Beyond the trivial `'col asc'` form (already covered by
 // `select.order-by-limit-offset.test.ts`), the builder routes through
 // distinct branches for:

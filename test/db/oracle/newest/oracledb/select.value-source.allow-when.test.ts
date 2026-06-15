@@ -1,5 +1,4 @@
 // Runtime gating modifier on value sources:
-// [src/internal/ValueSourceImpl.ts:1678-1715](../../../../../src/internal/ValueSourceImpl.ts#L1678-L1715)
 // `AllowWhenValueSource`. The fluent API is `.allowWhen(cond, error)`
 // / `.disallowWhen(cond, error)` — when the condition resolves to a
 // disallowed state, building the SQL throws (and therefore so does

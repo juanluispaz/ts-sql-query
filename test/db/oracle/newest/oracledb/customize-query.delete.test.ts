@@ -3,11 +3,9 @@
 // file fills the gap with `beforeQuery` plus variants where the
 // fragment interpolates bound values and column references - which
 // drives `__registerRequiredColumn`/`__addWiths` on the DELETE
-// builder (see
-// [src/queryBuilders/DeleteQueryBuilder.ts](../../../../../src/queryBuilders/DeleteQueryBuilder.ts)).
+// builder
 //
-// Hook fields defined at
-// [src/expressions/delete.ts:L9](../../../../../src/expressions/delete.ts#L9).
+// Hook fields defined
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'

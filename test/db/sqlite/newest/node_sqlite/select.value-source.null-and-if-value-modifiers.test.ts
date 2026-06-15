@@ -1,6 +1,5 @@
 // Coverage of the "*IfValue" family and the NULL-coalescing modifiers
 // on ValueSource. These methods sit on the value-source layer
-// ([src/internal/ValueSourceImpl.ts](../../../../../src/internal/ValueSourceImpl.ts))
 // and dominate the still-uncovered function count there:
 //
 //   - `valueWhenNull(default)` — `COALESCE`-style fallback. The default

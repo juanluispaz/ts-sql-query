@@ -3,8 +3,7 @@
 // template. The template is built from `rawFragment` and may embed
 // `${table}` (the wrapped table-or-view's name) and `${alias}` (the
 // `AS <name>` suffix). Each of those reaches the SqlBuilder via
-// `_rawFragmentTableName` and `_rawFragmentTableAlias` on
-// [AbstractSqlBuilder.ts:L2977-L2990](../../../../../src/sqlBuilders/AbstractSqlBuilder.ts#L2977),
+// `_rawFragmentTableName` and `_rawFragmentTableAlias`
 // neither of which is otherwise exercised by the suite.
 //
 // The customization itself lives on `DBConnection.withSqlHint` in the

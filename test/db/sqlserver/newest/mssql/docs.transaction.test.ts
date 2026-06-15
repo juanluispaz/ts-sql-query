@@ -111,9 +111,9 @@ describe(ctx.label, () => {
     test('docs:transaction/isolation-level', async () => {
         // Section "Transaction isolation": the isolation level AND the access
         // mode can be combined in a single `connection.isolationLevel(level,
-        // mode)` argument to `.transaction(...)`. PostgreSQL, MySQL and
-        // MariaDB accept the combination; Oracle and SQL Server do not (see
-        // the NOT-APPLICABLE note in those cells).
+        // mode)` argument to `.transaction(...)`. Dialects that support the
+        // combination run this test; the rest keep it commented out for
+        // symmetry.
         ctx.mockNext(1)
         const connection = ctx.conn
 
@@ -211,9 +211,8 @@ describe(ctx.label, () => {
         // transaction throws `NOT_IN_TRANSACTION`. The guard now fires
         // uniformly in mock and real-DB mode: the lenient mock
         // short-circuit that used to silence it (`isMocked()` skipping
-        // the check) has been removed —
-        // [MockQueryRunner](../../../../../src/queryRunners/MockQueryRunner.ts)
-        // tracks transaction depth and `AbstractConnection` consults
+        // the check) has been removed. Transaction depth is tracked
+        // internally and `AbstractConnection` consults
         // `isTransactionActive()` directly.
         const connection = ctx.conn
 

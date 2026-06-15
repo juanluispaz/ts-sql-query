@@ -1,20 +1,17 @@
 // Exhaustive coverage of `customizeQuery({...})` hooks on SELECT.
 // The docs page ([docs/queries/sql-fragments.md]) covers
 // `afterSelectKeyword` + `afterQuery` only; this file fills in the
-// rest of the `SelectCustomization` surface defined at
-// [src/expressions/select.ts:L16](../../../../../src/expressions/select.ts#L16):
+// rest of the `SelectCustomization` surface defined
 // `beforeColumns`, `customWindow`, `beforeOrderByItems`,
 // `afterOrderByItems`, `beforeQuery`, `beforeWithQuery`, and
 // `afterWithQuery`. Each hook routes through `_appendRawFragment`
-// at the corresponding branch in
-// [src/sqlBuilders/AbstractSqlBuilder.ts](../../../../../src/sqlBuilders/AbstractSqlBuilder.ts)
+// at the corresponding branch
 // (see lines 779, 800, 872, 880, 960, 1010, 1014, 1035, 1074, 977
 // for the SELECT/COMPOUND-SELECT paths).
 //
 // Hooks also accept fragments that interpolate columns and bound
 // values, which exercises the `__registerRequiredColumn`/`__addWiths`
 // forwarding through the SELECT builder
-// ([src/queryBuilders/SelectQueryBuilder.ts:459-466 / 606-612 / 1060-1066](../../../../../src/queryBuilders/SelectQueryBuilder.ts#L459)).
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -48,7 +45,6 @@ describe(ctx.label, () => {
     test('customize-select-custom-window-emits-named-window', async () => {
         // `customWindow` is the slot for a `WINDOW name AS (...)` clause
         // - the builder always prefixes with the `window ` keyword
-        // (see [AbstractSqlBuilder.ts:L960](../../../../../src/sqlBuilders/AbstractSqlBuilder.ts#L960)),
         // so the fragment supplies just the window definition.
         ctx.mockNext([{ id: 1 }])
         const connection = ctx.conn
@@ -115,7 +111,7 @@ describe(ctx.label, () => {
         // that SELECT is materialised as a CTE via
         // `.forUseInQueryAs(...)`. The builder splices the fragments
         // around the `(...)` parens, between the CTE name and body,
-        // see [AbstractSqlBuilder.ts:L573-L581](../../../../../src/sqlBuilders/AbstractSqlBuilder.ts#L573).
+        // see.
         ctx.mockNext([{ id: 1, issueId: 1 }])
         const connection = ctx.conn
         const openIssues = connection.selectFrom(tIssue)
@@ -144,7 +140,6 @@ describe(ctx.label, () => {
     test('customize-select-hook-fragment-with-column-reference', async () => {
         // A fragment that references a column drives
         // `__registerRequiredColumn` on the customization
-        // ([SelectQueryBuilder.ts:459-466](../../../../../src/queryBuilders/SelectQueryBuilder.ts#L459)).
         // Inline column reference rendered as `issue.priority`.
         ctx.mockNext([{ id: 1 }])
         const connection = ctx.conn

@@ -1,6 +1,5 @@
 // `allowWhen` / `disallowWhen` propagation through SELECT-side compositions.
-// The leaf `AllowWhenValueSource.__toSql` at
-// [src/internal/ValueSourceImpl.ts:1688-1693](../../../../../src/internal/ValueSourceImpl.ts#L1688-L1693)
+// The leaf `AllowWhenValueSource.__toSql`
 // is the *only* enforcement point — it throws during SQL construction when
 // the gate is closed. Every composite shape that renders SQL recursively
 // (subquery-as-value via `_inlineSelectAsValue`, CTE via `_buildSelect`,

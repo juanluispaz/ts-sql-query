@@ -113,8 +113,7 @@ describe(ctx.label, () => {
     })
 
     // NOT-APPLICABLE: MySQL has no RETURNING — `.returning(...)` is not
-    // typed on the MySQL `UpdateExpression`. See other cells for the
-    // canonical body.
+    // typed on the MySQL `UpdateExpression`.
     /*
     test('update-from-with-returning-one-row', async () => {
         // RETURNING combined with FROM. Pins

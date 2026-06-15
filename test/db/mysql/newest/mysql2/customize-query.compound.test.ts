@@ -2,9 +2,7 @@
 // (UNION / UNION ALL / INTERSECT / EXCEPT). Compound queries land on a
 // different code path in `AbstractSqlBuilder._buildSelectWithColumnsInfo`
 // (the `query.__type === 'compound'` branch around
-// [L769](../../../../../src/sqlBuilders/AbstractSqlBuilder.ts#L769))
 // than ordinary SELECTs, and accept a narrower
-// [CompoundSelectCustomization](../../../../../src/expressions/select.ts)
 // — only `beforeQuery`, `afterQuery`, `beforeWithQuery`, `afterWithQuery`,
 // plus `queryExecutionName` / `queryExecutionMetadata` (separately
 // exercised in `docs.advanced.query-execution-metadata.test.ts`).
@@ -12,7 +10,7 @@
 // The existing `select.compound*` tests pin the raw compound shape;
 // `customize-query.select.test.ts` covers the SELECT-specific hooks.
 // Nothing in the suite exercises the *compound* hooks, so the
-// `customization.beforeQuery / afterQuery` branches at L779-L802 are
+// `customization.beforeQuery / afterQuery` branches are
 // only reachable through this file. The WITH-wrapped branch is
 // exercised by the second test below.
 
@@ -68,7 +66,7 @@ describe(ctx.label, () => {
         // snapshot shows the comments adjacent to `with` / before the
         // first compound branch. Lands on
         // `_buildWith` → `customization.beforeWithQuery / afterWithQuery`
-        // at AbstractSqlBuilder L573-L580.
+        // at AbstractSqlBuilder.
         const connection = ctx.conn
         const openIssues = connection.selectFrom(tIssue)
             .where(tIssue.status.equals('open'))

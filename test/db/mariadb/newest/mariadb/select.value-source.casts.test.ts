@@ -1,10 +1,9 @@
 // Coverage of the numeric cast surface on value sources. Each cast
-// lands on a distinct `_asXxx` operator in
-// [src/internal/ValueSourceImpl.ts](../../../../../src/internal/ValueSourceImpl.ts);
-// the dialect's `_appendSqlOperation*` renders the concrete SQL — the
-// snapshots are the source of truth for that per-dialect rendering.
+// lands on a distinct `_asXxx` operator; the dialect renders the
+// concrete SQL — the snapshots are the source of truth for that
+// per-dialect rendering.
 //
-//   - `.asDouble()`             → cast to real / float / numeric per dialect
+//   - `.asDouble()`             → cast to a floating-point type
 //   - `.asInt()` on a double    → emulated via `round(...)`
 //   - `.asBigint()` on a double → emulated via `round(...)`
 //   - `.asInt()` / `.asBigint()` on an int — typed-only noop in SQL
@@ -25,9 +24,8 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('asDouble-on-int-emits-cast', async () => {
-        // `.asDouble()` always emits an explicit cast (sqlite uses
-        // `cast(... as real)`; other dialects pick their own
-        // floating-point type).
+        // `.asDouble()` always emits an explicit cast to the dialect's
+        // floating-point type (pinned by the snapshot below).
         const expected = [{ id: 1, d: 2.0 }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssue)

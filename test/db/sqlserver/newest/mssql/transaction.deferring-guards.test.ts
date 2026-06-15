@@ -3,16 +3,16 @@
 //
 //   - `executeBeforeNextCommit` called from inside another
 //     `executeBeforeNextCommit` callback throws
-//     NESTED_DEFERRING_IN_TRANSACTION_NOT_SUPPORTED (L154-155): the
+// NESTED_DEFERRING_IN_TRANSACTION_NOT_SUPPORTED: the
 //     before-commit list is drained while the transaction is still
 //     active, so the `beforeCommit === null` guard is reachable.
 //   - `executeAfterNextCommit` / `executeAfterNextRollback` callbacks run
 //     AFTER the transaction has closed, so registering any deferred hook
-//     from inside them throws NOT_IN_TRANSACTION (L145 / L166 / L184) —
+// from inside them throws NOT_IN_TRANSACTION —
 //     the post-transaction reach of that guard, distinct from the
 //     "no transaction at all" path other tests cover.
 //   - the nested-transaction hook stack `pushTransactionStack` /
-//     `popTransactionStack` (L79-139): a nested `transaction(...)` saves
+// `popTransactionStack`: a nested `transaction(...)` saves
 //     the outer transaction's pending hooks, runs the inner one, then
 //     restores them — so the outer after-commit hook fires after the
 //     inner one.

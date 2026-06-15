@@ -1,6 +1,5 @@
 // Coverage of `connection.dynamicConditionFor(...).withValues(...)`
-// across the operator surface in
-// [src/queryBuilders/DynamicConditionBuilder.ts](../../../../../src/queryBuilders/DynamicConditionBuilder.ts).
+// across the operator surface
 // The docs page exercises a handful (`containsInsensitive`,
 // `startsWithInsensitive`, nested and/or) — this file walks the rest
 // of the operator names that the builder dispatches through

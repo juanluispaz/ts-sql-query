@@ -1,5 +1,4 @@
-// Deep `and` / `or` / `not` composition in
-// [src/queryBuilders/DynamicConditionBuilder.ts](../../../../../src/queryBuilders/DynamicConditionBuilder.ts).
+// Deep `and` / `or` / `not` composition
 // The sibling `dynamic-condition.operators.test.ts` covers the leaf
 // operators; this file drives `processAndFilter`,
 // `processOrFilter` and the recursive `processFilter` paths with

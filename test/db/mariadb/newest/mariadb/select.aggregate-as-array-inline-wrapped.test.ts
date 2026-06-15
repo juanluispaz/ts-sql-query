@@ -34,7 +34,7 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // NOT-APPLICABLE: MariaDB types `forUseAsInlineAggregatedArrayValue()` as `never` for an inline aggregate carrying `group by` (also `having`/`compound`/`distinct`) — MariaDB allows no outer references in an inner FROM (no LATERAL), so the typed public API forbids this correlated-inline shape by design (`ForUseAsInlineAggregatedArrayValue` in src/expressions/select.ts:486-489). A MariaDB user can never build it; casting past the guard only emits SQL MariaDB rejects at execution (ER_BAD_FIELD_ERROR: Unknown column 'organization.id'). Runs in MySQL/PostgreSQL/Oracle/SQL Server. Body kept (canonical shape) for cross-cell diff parity per the symmetry rule.
+    // NOT-APPLICABLE: MariaDB types `forUseAsInlineAggregatedArrayValue` as `never` for an inline aggregate carrying `group by` (also `having`/`compound`/`distinct`) — MariaDB allows no outer references in an inner FROM (no LATERAL), so the typed public API forbids this correlated-inline shape by design (`ForUseAsInlineAggregatedArrayValue` in). A MariaDB user can never build it; casting past the guard only emits SQL MariaDB rejects at execution (ER_BAD_FIELD_ERROR: Unknown column 'organization.id'). Runs in MySQL/PostgreSQL/Oracle/SQL Server. Body kept (canonical shape) for cross-cell diff parity per the symmetry rule.
     /*
     test('inline-aggregate-of-object-with-group-by', async () => {
         // Inline aggregate carrying its own `group by` — forces the
@@ -90,7 +90,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-APPLICABLE: same MariaDB boundary as the group-by case above — a `having` inline aggregate correlates the outer `organization.id` into an inner FROM, which MariaDB does not support (no LATERAL). `forUseAsInlineAggregatedArrayValue()` types as `never` here by design (src/expressions/select.ts:486-489), so MariaDB users can't build it; MySQL/PostgreSQL/Oracle/SQL Server run this test. Body kept (canonical shape) for cross-cell diff parity per the symmetry rule.
+    // NOT-APPLICABLE: same MariaDB boundary as the group-by case above — a `having` inline aggregate correlates the outer `organization.id` into an inner FROM, which MariaDB does not support (no LATERAL). `forUseAsInlineAggregatedArrayValue` types as `never` here by design, so MariaDB users can't build it; MySQL/PostgreSQL/Oracle/SQL Server run this test. Body kept (canonical shape) for cross-cell diff parity per the symmetry rule.
     /*
     test('inline-aggregate-of-object-with-having', async () => {
         // `having` is one of the wrap triggers in
@@ -141,7 +141,7 @@ describe(ctx.label, () => {
     test('inline-aggregate-use-empty-array-for-no-value-explicit', async () => {
         // `forUseAsInlineAggregatedArrayValue()` already defaults to a
         // required array; `useEmptyArrayForNoValue()` on the inline value
-        // source (ValueSourceImpl.ts:2140) is the explicit form. SQL is
+        // source is the explicit form. SQL is
         // unchanged — the modifier only pins the result shape.
         ctx.mockNext({
             id: 1, name: 'Acme Corp',
@@ -188,7 +188,7 @@ describe(ctx.label, () => {
 
     test('inline-aggregate-as-optional-non-empty-array', async () => {
         // `asOptionalNonEmptyArray()` on the inline value source
-        // (ValueSourceImpl.ts:2143) → `projects?: ...` — when the
+        // → `projects?: ...` — when the
         // subquery aggregates no rows, `projects` is absent.
         ctx.mockNext({
             id: 1, name: 'Acme Corp',
@@ -234,7 +234,7 @@ describe(ctx.label, () => {
     })
 
     test('inline-aggregate-only-when-or-null-true-is-passthrough', async () => {
-        // `onlyWhenOrNull(true)` returns `this` (ValueSourceImpl.ts:2150);
+        // `onlyWhenOrNull(true)` returns `this`;
         // the type signature still widens to optional so the call is a
         // type-only pass-through. SQL is unchanged.
         ctx.mockNext({
@@ -282,7 +282,7 @@ describe(ctx.label, () => {
 
     test('inline-aggregate-ignore-when-as-null-false-is-passthrough', async () => {
         // `ignoreWhenAsNull(false)` returns `this`
-        // (ValueSourceImpl.ts:2159). Type widens to optional; SQL is
+        // Type widens to optional; SQL is
         // unchanged.
         ctx.mockNext({
             id: 1, name: 'Acme Corp',
@@ -330,7 +330,7 @@ describe(ctx.label, () => {
     test('null-inline-aggregate-then-use-empty-array-for-no-value', async () => {
         // `onlyWhenOrNull(false)` swaps in NullAggregateSelectValueSource;
         // chaining `useEmptyArrayForNoValue()` exercises that modifier on
-        // the Null class (ValueSourceImpl.ts:2257). The subquery collapses
+        // the Null class. The subquery collapses
         // to literal `null`; the result is the empty array.
         ctx.mockNext({ id: 1, name: 'Acme Corp', projects: null })
         const orgProjects = ctx.conn.subSelectUsing(tOrganization).from(tProject)
@@ -366,7 +366,7 @@ describe(ctx.label, () => {
 
     test('null-inline-aggregate-then-as-optional-non-empty-array', async () => {
         // The Null variant + `asOptionalNonEmptyArray()`
-        // (ValueSourceImpl.ts:2260). The subquery collapses to literal
+        // The subquery collapses to literal
         // `null`; `projects` is absent in the result.
         ctx.mockNext({ id: 1, name: 'Acme Corp', projects: null })
         const orgProjects = ctx.conn.subSelectUsing(tOrganization).from(tProject)
@@ -402,7 +402,7 @@ describe(ctx.label, () => {
 
     test('inline-aggregate-as-required-in-optional-object', async () => {
         // `asRequiredInOptionalObject()` on the inline-aggregate value
-        // source (ValueSourceImpl.ts:2145 —
+        // source (—
         // AggregateSelectValueSource.asRequiredInOptionalObject) makes the
         // subquery the gate of an optional inner object. If the subquery
         // aggregates no rows, the array aggregate returns NULL and the inner
@@ -447,7 +447,6 @@ describe(ctx.label, () => {
         // The Null variant — chaining `onlyWhenOrNull(false)` swaps in
         // `NullAggregateSelectValueSource`; chaining
         // `asRequiredInOptionalObject()` exercises
-        // ValueSourceImpl.ts:2262
         // (NullAggregateSelectValueSource.asRequiredInOptionalObject).
         // The whole expression collapses to literal `null`, so `meta` is
         // always absent.

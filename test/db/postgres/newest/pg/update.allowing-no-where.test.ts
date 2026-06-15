@@ -1,5 +1,4 @@
 // Coverage of `connection.updateAllowingNoWhere(...)`
-// ([AbstractConnection.ts:419](../../../../../src/connections/AbstractConnection.ts#L419)):
 // the explicit opt-in that lets an UPDATE reach the driver without a
 // WHERE clause. The regular `connection.update(...)` throws when the
 // sentence ends without a WHERE (the safety guard documented in

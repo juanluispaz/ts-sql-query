@@ -1,4 +1,4 @@
-// Coverage of a class-based SQL `View` (src/View.ts) — the
+// Coverage of a class-based SQL `View` — the
 // `project_overview` view mapped in domain/connection.ts over the
 // `project_overview` DDL view in domain/schema.sql. Exercises the View
 // mapping surface that was previously untouched by the suite:

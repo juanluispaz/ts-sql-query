@@ -110,7 +110,7 @@ function _typeNegatives() {
     // Rule: SQLite exposes `minus` (rewritten to EXCEPT) but not the `*All`
     // family — SQLite has no INTERSECT ALL / EXCEPT ALL / MINUS ALL. The
     // fluent API narrows `intersectAll`, `exceptAll` and `minusAll` to
-    // `never` for the sqlite dialect (src/expressions/select.ts). This is the
+    // `never` for the sqlite dialect. This is the
     // compile-time pairing for the NOT-APPLICABLE wrap in
     // test/db/sqlite/newest/<connector>/select.compound-extras.test.ts.
     {

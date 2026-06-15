@@ -309,7 +309,6 @@ describe(ctx.label, () => {
         })
     })
 
-    // Not applicable on Oracle: Oracle does not support insert on conflict.
     // NOT-APPLICABLE: Oracle has no INSERT…ON CONFLICT (uses MERGE)
     /*
     test('docs:insert/insert-on-conflict-do-nothing', async () => {
@@ -349,7 +348,6 @@ describe(ctx.label, () => {
     })
     */
 
-    // Not applicable on Oracle: Oracle does not support insert on conflict.
     // NOT-APPLICABLE: Oracle has no INSERT…ON CONFLICT (uses MERGE)
     /*
     test('docs:insert/insert-on-conflict-do-update', async () => {
@@ -392,7 +390,6 @@ describe(ctx.label, () => {
     })
     */
 
-    // Not applicable on Oracle: Oracle does not support insert ... on conflict do update.
     // NOT-APPLICABLE: Oracle has no INSERT…ON CONFLICT (uses MERGE)
     /*
     test('docs-extra:insert/insert-on-conflict-do-update-bare', async () => {
@@ -432,7 +429,6 @@ describe(ctx.label, () => {
     })
     */
 
-    // Not applicable on Oracle: Oracle does not support insert on conflict.
     // NOT-APPLICABLE: Oracle has no INSERT…ON CONFLICT (uses MERGE)
     /*
     test('docs-extra:insert/values-for-insert-in-update', async () => {

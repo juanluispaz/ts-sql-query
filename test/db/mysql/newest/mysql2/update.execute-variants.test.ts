@@ -81,9 +81,6 @@ describe(ctx.label, () => {
         })
     })
 
-    // MySQL has no UPDATE … RETURNING in any released version, so the
-    // fluent API narrows `returningOneColumn`/`returning` to `never` for
-    // `mysql` and these bodies would not even type-check here.
     // NOT-APPLICABLE: MySQL has no UPDATE ... RETURNING; `returning`/`returningOneColumn` are typed `never` on the mysql dialect (a permanent compile-time frontier asserted in this dialect's `types.negative` suite).
     /*
     test('execute-update-none-or-one-with-returning-one-column', async () => {
@@ -104,9 +101,6 @@ describe(ctx.label, () => {
     })
     */
 
-    // MySQL has no UPDATE … RETURNING in any released version, so the
-    // fluent API narrows `returningOneColumn`/`returning` to `never` for
-    // `mysql` and these bodies would not even type-check here.
     // NOT-APPLICABLE: MySQL has no UPDATE ... RETURNING; `returning`/`returningOneColumn` are typed `never` on the mysql dialect (a permanent compile-time frontier asserted in this dialect's `types.negative` suite).
     /*
     test('execute-update-none-or-one-with-returning-one-column-empty-result', async () => {
@@ -128,9 +122,6 @@ describe(ctx.label, () => {
     })
     */
 
-    // MySQL has no UPDATE … RETURNING in any released version, so the
-    // fluent API narrows `returningOneColumn`/`returning` to `never` for
-    // `mysql` and these bodies would not even type-check here.
     // NOT-APPLICABLE: MySQL has no UPDATE ... RETURNING; `returning`/`returningOneColumn` are typed `never` on the mysql dialect (a permanent compile-time frontier asserted in this dialect's `types.negative` suite).
     /*
     test('execute-update-many-with-min-max-throws-when-out-of-range', async () => {
@@ -155,9 +146,6 @@ describe(ctx.label, () => {
     })
     */
 
-    // MySQL has no UPDATE … RETURNING in any released version, so the
-    // fluent API narrows `returningOneColumn`/`returning` to `never` for
-    // `mysql` and these bodies would not even type-check here.
     // NOT-APPLICABLE: MySQL has no UPDATE ... RETURNING; `returning`/`returningOneColumn` are typed `never` on the mysql dialect (a permanent compile-time frontier asserted in this dialect's `types.negative` suite).
     /*
     test('execute-update-many-with-min-max-throws-when-over-max', async () => {

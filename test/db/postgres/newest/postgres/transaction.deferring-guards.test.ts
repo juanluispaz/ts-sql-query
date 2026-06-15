@@ -1,5 +1,5 @@
 // Coverage of the deferred-hook guards and the nested-transaction hook
-// stack in AbstractConnection (src/connections/AbstractConnection.ts):
+// stack in `AbstractConnection`:
 //
 //   - `executeBeforeNextCommit` called from inside another
 //     `executeBeforeNextCommit` callback throws

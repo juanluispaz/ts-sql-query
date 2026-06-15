@@ -1,7 +1,7 @@
 // Behavioral coverage of the user-facing TsSqlProcessingError reasons
 // that the SQL builders surface from public API misuse. The existing
 // suite has plenty of `toThrow` calls but none assert the `reason:`
-// code, so the per-reason branches in src/sqlBuilders/ remain unverified.
+// code, so the per-reason branches in the SqlBuilders remain unverified.
 //
 // Several of these reasons live behind a type-level guard that mirrors
 // the runtime guard (e.g. `.executeDelete()` is not on

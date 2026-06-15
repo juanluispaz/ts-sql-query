@@ -1,4 +1,4 @@
-// Coverage of `ProxyTypeAdapter` (src/internal/ProxyTypeAdapter.ts).
+// Coverage of `ProxyTypeAdapter`.
 //
 // When a column carrying a `CustomBooleanTypeAdapter` is re-projected by
 // `createColumnsFrom` (building the columns of a WITH view / inline

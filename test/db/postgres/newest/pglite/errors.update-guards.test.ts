@@ -7,7 +7,7 @@
 //     keys via `extendShape`, never collide with an existing one, so
 // the guard at is otherwise unverified.
 //
-// The reason is surfaced by src/queryBuilders/UpdateQueryBuilder.ts (not
+// The reason is surfaced by `UpdateQueryBuilder` (not
 // the dialect SqlBuilder), so the behaviour is identical on every
 // dialect and this file is byte-identical across every cell. No SQL
 // snapshots: the guard throws while configuring the builder, before any

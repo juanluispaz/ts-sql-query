@@ -3,9 +3,6 @@
 // asOptionalNonEmptyArray, onlyWhenOrNull / ignoreWhenAsNull pass-through,
 // disallowWhen, projectingOptionalValuesAsNullable, and the same modifiers
 // on the NULL variant from onlyWhenOrNull(false).
-//
-// the array aggregate has no ORDER BY, so the array order is not deterministic on the
-// real engine — value assertions sort the array before comparing.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'

@@ -3,9 +3,7 @@
 // file fills the gap with `beforeQuery` plus variants where the
 // fragment interpolates bound values and column references - which
 // drives `__registerRequiredColumn`/`__addWiths` on the DELETE
-// builder
-//
-// Hook fields defined
+// builder.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'

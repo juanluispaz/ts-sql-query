@@ -1,7 +1,7 @@
 // Coverage of every `*When(when: boolean, …)` conditional helper
 // Each helper is a thin dispatcher (~3 lines) that routes to its
 // non-`When` sibling when the boolean is true, or returns `this`
-// unchanged when false — see e.g.
+// unchanged when false.
 //
 // The behaviour of the underlying methods (`set`, `setIfValue`,
 // `setIfHasValue`, `disallowIfSet`, …) is exercised by

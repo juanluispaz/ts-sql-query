@@ -3,9 +3,7 @@
 // file covers the remaining RawFragment slot - `beforeQuery` -
 // plus variants where the fragment interpolates bound values and
 // columns, which drives `__registerRequiredColumn`/`__addWiths` on
-// the INSERT builder
-//
-// The hook fields are defined
+// the INSERT builder.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'

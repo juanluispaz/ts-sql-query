@@ -40,7 +40,6 @@ describe(ctx.label, () => {
               ]
             `)
             assertType<Exact<typeof affected, number>>()
-            // Acme Corp is the only `pro` org; its projects are 1 and 2.
             expect(affected).toBe(2)
             const projects = await ctx.conn.selectFrom(tProject)
                 .where(tProject.organizationId.equals(1))

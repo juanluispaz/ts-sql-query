@@ -19,6 +19,14 @@ describe(ctx.label, () => {
     test('with-clause/forUseInQueryAs', async () => {
         const connection = ctx.conn
 
+        // Acme (org 1) owns projects 1,2 → count 2; Globex (org 2) owns
+        // projects 3,4 → count 2. Both pass projects>1; ordered by name.
+        const expected = [
+            { orgName: 'Acme Corp', projects: 2 },
+            { orgName: 'Globex Ltd', projects: 2 },
+        ]
+        ctx.mockNext(expected)
+
         // doc-start
         const projectCountPerOrg = connection.selectFrom(tProject)
             .innerJoin(tOrganization).on(tOrganization.id.equals(tProject.organizationId))
@@ -50,10 +58,7 @@ describe(ctx.label, () => {
             orgName:  string
             projects: number
         }>>>()
-        if (ctx.realDbEnabled) {
-            // Seed: Acme has 2 projects, Globex has 2 (1 archived + 1 active)
-            expect(rows.length).toBeGreaterThanOrEqual(1)
-        }
+        expect(rows).toEqual(expected)
     })
 
     test('forUseAsInlineQueryValue/scalar', async () => {

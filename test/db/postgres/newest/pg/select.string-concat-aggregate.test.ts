@@ -23,7 +23,8 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select string_agg(full_name, ',') as result from app_user"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         expect(row).not.toBeNull()
-        expect(row!.split(',').sort()).toEqual(['Ada Lovelace', 'Alan Turing', 'Grace Hopper'])
+        const parts = row!.split(',').sort()
+        expect(parts).toEqual(['Ada Lovelace', 'Alan Turing', 'Grace Hopper'])
     })
 
     test('string-concat-empty-separator', async () => {
@@ -50,7 +51,8 @@ describe(ctx.label, () => {
           ]
         `)
         expect(row).not.toBeNull()
-        expect(row!.split(' | ').sort()).toEqual(['Ada Lovelace', 'Alan Turing', 'Grace Hopper'])
+        const parts = row!.split(' | ').sort()
+        expect(parts).toEqual(['Ada Lovelace', 'Alan Turing', 'Grace Hopper'])
     })
 
     test('string-concat-distinct-no-separator', async () => {
@@ -63,7 +65,8 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select string_agg(distinct status, ',') as result from issue"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         expect(row).not.toBeNull()
-        expect(row!.split(',').sort()).toEqual(['closed', 'in_progress', 'open'])
+        const parts = row!.split(',').sort()
+        expect(parts).toEqual(['closed', 'in_progress', 'open'])
     })
 
     test('string-concat-distinct-string-separator', async () => {
@@ -78,7 +81,8 @@ describe(ctx.label, () => {
           ]
         `)
         expect(row).not.toBeNull()
-        expect(row!.split('|').sort()).toEqual(['closed', 'in_progress', 'open'])
+        const parts = row!.split('|').sort()
+        expect(parts).toEqual(['closed', 'in_progress', 'open'])
     })
 
     test('string-concat-distinct-empty-separator', async () => {

@@ -19,12 +19,13 @@ describe(ctx.label, () => {
     test('with-clause/forUseInQueryAs', async () => {
         const connection = ctx.conn
 
-        // Seed: Acme has 2 projects (1, 2), Globex has 2 (3 + archived 4).
-        // Both have count 2 > 1, ordered by orgName.
-        ctx.mockNext([
+        // Acme (org 1) owns projects 1,2 → count 2; Globex (org 2) owns
+        // projects 3,4 → count 2. Both pass projects>1; ordered by name.
+        const expected = [
             { orgName: 'Acme Corp', projects: 2 },
             { orgName: 'Globex Ltd', projects: 2 },
-        ])
+        ]
+        ctx.mockNext(expected)
 
         // doc-start
         const projectCountPerOrg = connection.selectFrom(tProject)
@@ -57,21 +58,18 @@ describe(ctx.label, () => {
             orgName:  string
             projects: number
         }>>>()
-        expect(rows).toEqual([
-            { orgName: 'Acme Corp', projects: 2 },
-            { orgName: 'Globex Ltd', projects: 2 },
-        ])
+        expect(rows).toEqual(expected)
     })
 
     test('forUseAsInlineQueryValue/scalar', async () => {
         const connection = ctx.conn
 
-        // Seed: Acme Corp is org 1; its projects are 1 (Marketing site)
-        // and 2 (Internal tools), ordered by id.
-        ctx.mockNext([
+        // Acme Corp is org 1, which owns projects 1 and 2 (ordered by id).
+        const expected = [
             { id: 1, name: 'Marketing site' },
             { id: 2, name: 'Internal tools' },
-        ])
+        ]
+        ctx.mockNext(expected)
 
         // doc-start
         const acmeId = connection.selectFrom(tOrganization)
@@ -93,23 +91,21 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number; name: string }>>>()
-        expect(rows).toEqual([
-            { id: 1, name: 'Marketing site' },
-            { id: 2, name: 'Internal tools' },
-        ])
+        expect(rows).toEqual(expected)
     })
 
     test('subSelectUsing/forUseAsInlineQueryValue/correlated', async () => {
         const connection = ctx.conn
 
-        // Seeded issue counts per project, ordered by id: 1 → 2 issues,
-        // 2 → 1, 3 → 1, 4 → 0.
-        ctx.mockNext([
+        // Correlated issue count per project (ordered by id):
+        // project 1 → 2 issues, 2 → 1, 3 → 1, 4 → 0.
+        const expected = [
             { id: 1, name: 'Marketing site', count: 2 },
             { id: 2, name: 'Internal tools', count: 1 },
-            { id: 3, name: 'Public API',     count: 1 },
-            { id: 4, name: 'Legacy app',     count: 0 },
-        ])
+            { id: 3, name: 'Public API', count: 1 },
+            { id: 4, name: 'Legacy app', count: 0 },
+        ]
+        ctx.mockNext(expected)
 
         // doc-start: correlated count of issues per project, inlined.
         const issueCount = connection.subSelectUsing(tProject)
@@ -135,11 +131,6 @@ describe(ctx.label, () => {
             name:  string
             count: number
         }>>>()
-        expect(rows).toEqual([
-            { id: 1, name: 'Marketing site', count: 2 },
-            { id: 2, name: 'Internal tools', count: 1 },
-            { id: 3, name: 'Public API',     count: 1 },
-            { id: 4, name: 'Legacy app',     count: 0 },
-        ])
+        expect(rows).toEqual(expected)
     })
 })

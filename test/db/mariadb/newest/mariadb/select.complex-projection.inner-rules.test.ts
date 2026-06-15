@@ -17,15 +17,15 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('cte-with-nested-object-of-required-columns-applies-rule-3', async () => {
-        // The CTE projects a nested object whose two leaves are
-        // `tProject.id` and `tProject.name` — both required columns, so the
-        // inner object is required and present on every row.
-        ctx.mockNext([
+        // The CTE projects a nested object whose two leaves are required
+        // columns, so the inner object is required and present on every row.
+        const expected = [
             { pid: 1, project: { id: 1, name: 'Marketing site' } },
             { pid: 2, project: { id: 2, name: 'Internal tools' } },
             { pid: 3, project: { id: 3, name: 'Public API' } },
             { pid: 4, project: { id: 4, name: 'Legacy app' } },
-        ])
+        ]
+        ctx.mockNext(expected)
         const connection = ctx.conn
 
         const projectCte = connection.selectFrom(tProject)
@@ -49,12 +49,7 @@ describe(ctx.label, () => {
             pid:     number
             project: { id: number; name: string }
         }>>>()
-        expect(rows).toEqual([
-            { pid: 1, project: { id: 1, name: 'Marketing site' } },
-            { pid: 2, project: { id: 2, name: 'Internal tools' } },
-            { pid: 3, project: { id: 3, name: 'Public API' } },
-            { pid: 4, project: { id: 4, name: 'Legacy app' } },
-        ])
+        expect(rows).toEqual(expected)
     })
 
     test('cte-with-nested-object-of-only-left-join-columns-applies-rule-2', async () => {

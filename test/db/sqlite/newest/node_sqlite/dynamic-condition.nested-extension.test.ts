@@ -14,12 +14,12 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import type { DynamicCondition } from '../../../../../src/dynamic/condition.js'
+import { tAppUser, tIssue, tProject } from '../../domain/connection.js'
+import { ctx } from './setup.js'
 
 // A publicly-typed boolean value source — the type an extension rule
 // callback is contractually required to return.
 type BoolRule<V> = (rule: V) => ReturnType<typeof tIssue.id.equals>
-import { tAppUser, tIssue, tProject } from '../../domain/connection.js'
-import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)

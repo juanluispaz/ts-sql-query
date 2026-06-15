@@ -19,17 +19,18 @@ describe(ctx.label, () => {
 
     test('update-from-old-values-with-two-columns-from-same-from-table-sorts-by-column-name', async () => {
         // RETURNING references both `organization.name` and
-        // `organization.plan`. Both come from the same FROM table, so
-        // the `t1Name === t2Name` tiebreak branch (L2221-2226) of the
-        // comparator fires. Lexicographic by column name puts `name`
-        // before `plan` in the projection.
-        ctx.mockNext({
+        // `organization.plan` from the same FROM table; the synthesised
+        // `old.` subquery orders extra columns by column name, so `name`
+        // precedes `plan` in the emitted SQL.
+        // project 1 → org 1 (Acme Corp, plan='pro' per seed).
+        const expectedRow = {
             id:      1,
             oldName: 'Marketing site',
             newName: 'Marketing site / Acme',
             orgName: 'Acme Corp',
             orgPlan: 'pro',
-        })
+        }
+        ctx.mockNext(expectedRow)
 
         await ctx.withRollback(async () => {
             const oldProject = tProject.oldValues()
@@ -63,24 +64,25 @@ describe(ctx.label, () => {
                 orgName: string
                 orgPlan: string
             }>>()
-            expect(row.orgName).toBe('Acme Corp')
-            expect(row.orgPlan).toBe('pro')
+            expect(row).toEqual(expectedRow)
         })
     })
 
     test('update-from-old-values-with-columns-from-two-from-tables-sorts-by-table-then-column', async () => {
         // RETURNING references columns from TWO joined-in tables —
-        // `organization.name` and `app_user.full_name`. The comparator
-        // must order by table name first (L2215-2220): `app_user`
-        // sorts before `organization`. Within each table block, the
-        // column-name tiebreak (L2221-2226) handles ordering.
-        ctx.mockNext({
+        // `organization.name` and `app_user.full_name`. Extra columns
+        // are ordered by table name first (`app_user` before
+        // `organization`), then by column name within each table.
+        // issue 1: title='Update hero copy', assignee 1 (Ada Lovelace),
+        // project 1 → org 1 (Acme Corp).
+        const expectedRow = {
             id:        1,
             oldTitle:  'Update hero copy',
-            newTitle:  'Hero copy / Ada @ Acme',
+            newTitle:  'Update hero copy / Ada @ Acme',
             assignee:  'Ada Lovelace',
             orgName:   'Acme Corp',
-        })
+        }
+        ctx.mockNext(expectedRow)
 
         await ctx.withRollback(async () => {
             const oldIssue = tIssue.oldValues()
@@ -118,8 +120,7 @@ describe(ctx.label, () => {
                 assignee: string
                 orgName:  string
             }>>()
-            expect(row.assignee).toBe('Ada Lovelace')
-            expect(row.orgName).toBe('Acme Corp')
+            expect(row).toEqual(expectedRow)
         })
     })
 })

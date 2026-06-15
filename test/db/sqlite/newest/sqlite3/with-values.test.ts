@@ -44,9 +44,8 @@ describe(ctx.label, () => {
     })
 
     test('values in update-from', async () => {
-        // SQLite (>= 3.33) supports `UPDATE … FROM (values-CTE)`; the row
-        // for project 1 is renamed to 'renamed'. Seed: project 1 starts
-        // as 'Marketing site'.
+        // patch.id = 1 matches seed project 1 ('Marketing site'), so the
+        // UPDATE ... FROM (VALUES ...) touches exactly one row, renaming it.
         const renamedProject = { id: 1, name: 'renamed' }
         ctx.mockNext(1)              // affected rows from the UPDATE
         ctx.mockNext(renamedProject) // row from the verification SELECT

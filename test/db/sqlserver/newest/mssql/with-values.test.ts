@@ -44,10 +44,12 @@ describe(ctx.label, () => {
     })
 
     test('values in update-from', async () => {
+        // patch.id = 1 matches seed project 1 ('Marketing site'), so the
+        // UPDATE ... FROM (VALUES ...) touches exactly one row, renaming it.
+        const renamedProject = { id: 1, name: 'renamed' }
+        ctx.mockNext(1)              // affected rows from the UPDATE
+        ctx.mockNext(renamedProject) // row from the verification SELECT
         await ctx.withRollback(async () => {
-            // patch.id = 1 matches seed project 1 ('Marketing site'),
-            // so the UPDATE ... FROM (VALUES ...) touches exactly one row.
-            ctx.mockNext(1)
             const patch = Values.create(VProjectPatch, 'projectPatch', [
                 { id: 1, name: 'renamed' },
             ])
@@ -64,6 +66,12 @@ describe(ctx.label, () => {
               ]
             `)
             expect(affected).toBe(1)
+
+            const row = await ctx.conn.selectFrom(tProject)
+                .where(tProject.id.equals(1))
+                .select({ id: tProject.id, name: tProject.name })
+                .executeSelectOne()
+            expect(row).toEqual(renamedProject)
         })
     })
 })

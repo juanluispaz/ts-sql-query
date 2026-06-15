@@ -26,22 +26,24 @@ describe(ctx.label, () => {
 
     test('insert default values', async () => {
         ctx.mockNext(99)
-        let caught: unknown
+        let id: number | undefined
+        let thrownError: unknown
         try {
-            const inserted = await ctx.conn.insertInto(tDefaultsOnly)
+            id = await ctx.conn.insertInto(tDefaultsOnly)
                 .defaultValues()
                 .returningLastInsertedId()
                 .executeInsert()
-            if (!ctx.realDbEnabled) expect(inserted).toBe(99)
         } catch (e) {
-            caught = e
-        }
-        if (ctx.realDbEnabled) {
-            expect(String(caught)).toMatch(/no such table|defaults_only_table_only_for_sql_test/)
-        } else {
-            expect(caught).toBeUndefined()
+            // The table is absent from the schema, so the real INSERT fails
+            // referencing the missing relation.
+            thrownError = e
         }
         expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into defaults_only_table_only_for_sql_test default values returning id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        if (ctx.realDbEnabled) {
+            expect((thrownError as Error).message).toMatch(/no such table|defaults_only_table_only_for_sql_test/)
+        } else {
+            expect(id).toBe(99)
+        }
     })
 })

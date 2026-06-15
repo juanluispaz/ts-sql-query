@@ -1,18 +1,16 @@
-// Coverage of the compound-operator variants
-// [select.compound.test.ts](./select.compound.test.ts) leaves on the
-// table: `intersectAll`, `exceptAll`, `minus`, `minusAll`. Each lands
-// on `_appendCompoundOperator`
+// Coverage of the compound-operator variants the main compound-select
+// coverage leaves on the table: `intersectAll`, `exceptAll`, `minus`,
+// `minusAll`.
 //
-// On SQLite only `.minus(...)` is exposed by the fluent API
+// On SQLite only `.minus(...)` is exposed by the fluent API;
 // `.intersectAll`/`.exceptAll`/`.minusAll` are narrowed to `never`
 // because the engine doesn't accept the `ALL` flavour of these
 // operators. Those three tests are commented out with
 // `NOT-APPLICABLE`: the type-system narrowing is a permanent dialect
-// frontier (the bodies can never type-check here), kept for symmetry
-// with the postgres/mariadb cells.
+// frontier (the bodies can never type-check here), kept for symmetry.
 //
-// Note: `_appendCompoundOperator` rewrites `.minus(...)` to ` except `
-// for SQLite (SQLite supports `EXCEPT` natively but not `MINUS`).
+// Note: the builder rewrites `.minus(...)` to ` except ` for SQLite
+// (SQLite supports `EXCEPT` natively but not `MINUS`).
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { tIssue } from '../../domain/connection.js'
@@ -24,15 +22,15 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     // NOT-APPLICABLE: SQLite has no `INTERSECT ALL` — `intersectAll` is
-    // `never` for sqlite (compile-time frontier, paired with
-    // test/db/sqlite/types.negative/select.test.ts). Runs in postgres/mariadb.
+    // `never` for sqlite (compile-time frontier, paired with this
+    // dialect's `types.negative` suite).
     /*
     test('intersect-all-emits-intersect-all-syntax', async () => {})
     */
 
     // NOT-APPLICABLE: SQLite has no `EXCEPT ALL` — `exceptAll` is `never`
-    // for sqlite (compile-time frontier, paired with
-    // test/db/sqlite/types.negative/select.test.ts). Runs in postgres/mariadb.
+    // for sqlite (compile-time frontier, paired with this dialect's
+    // `types.negative` suite).
     /*
     test('except-all-emits-except-all-syntax', async () => {})
     */
@@ -62,7 +60,7 @@ describe(ctx.label, () => {
 
     // NOT-APPLICABLE: SQLite has no `MINUS ALL` (nor its `EXCEPT ALL`
     // rewrite) — `minusAll` is `never` for sqlite (frontier, paired with
-    // test/db/sqlite/types.negative/select.test.ts). Runs in postgres/mariadb.
+    // this dialect's `types.negative` suite).
     /*
     test('minus-all-routes-through-the-dialect-alias', async () => {})
     */

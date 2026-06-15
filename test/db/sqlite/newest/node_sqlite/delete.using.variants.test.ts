@@ -8,16 +8,13 @@
 //      pins the case where the USING-side narrows the delete via a
 //      column predicate, not just a join.
 //   2. Two `.using(...)` calls chained — exercises the multi-source
-//      USING-list path (PG/Oracle: `using a, b`; mariadb/mysql:
-//      `delete a from a, b, c`; SqlServer: `delete from a from a, b`).
+//      USING-list path; the emitted form is pinned by the snapshot below.
 //   3. The USING target is a CTE (`.forUseInQueryAs(...)`), so the
 //      builder must bubble the `WITH ...` up to the top level of the
 //      DELETE — distinct from a plain table reference.
-//   4. RETURNING combined with USING — pins
-//      `_buildDeleteReturning` (PG/MariaDB/SQLite), `_buildDeleteOutput`
-//      (SqlServer) and Oracle's `RETURNING ... INTO` override on top
-//      of a USING-list. MySQL has no RETURNING and the cell comments
-//      this test out.
+//   4. RETURNING combined with USING; the emitted form is pinned by the
+//      snapshot below. Where the dialect has no DELETE … RETURNING the
+//      test is commented out for symmetry.
 
 import { afterAll, beforeAll, beforeEach, describe } from '../../../../lib/testRunner.js'
 import { ctx } from './setup.js'
@@ -117,11 +114,10 @@ describe(ctx.label, () => {
         // instead of throwing NO_RESULT when no rows match — the
         // snapshot assertions then run unconditionally. Projects only
         // columns from the *target* table so the snapshot is portable
-        // across dialects (SqlServer's `output deleted.*` and Oracle's
-        // `returning ... into` both project the deleted row). MySQL has
-        // no RETURNING and the cell comments this test out. The `where`
-        // filters by an impossible id so the test does not delete seed
-        // rows under real DB.
+        // across dialects. Where the dialect has no DELETE … RETURNING
+        // the test is commented out for symmetry. The `where` filters by
+        // an impossible id so the test does not delete seed rows under
+        // real DB.
         const expectedMock = { id: -1, title: 'X' }
         ctx.mockNext(expectedMock)
         await ctx.withRollback(async () => {

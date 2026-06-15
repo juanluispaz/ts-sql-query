@@ -15,7 +15,8 @@
 // Each test wraps its body in `ctx.withCommit(...)` for two reasons:
 //   1. The transaction `withCommit` opens pins one backend session,
 //      so the `currval` / `lastval` call sees the prior `nextval`
-//      (those functions are session-scoped on PG / Oracle / MariaDB).
+//      (those functions are session-scoped on the engines that expose
+//      them).
 //   2. The trailing reseed resets the sequence counters that
 //      `nextval()` bumps. Sequences are non-transactional on every
 //      supported engine, so a `withRollback` would leave the bump

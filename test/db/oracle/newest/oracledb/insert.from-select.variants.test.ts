@@ -160,12 +160,10 @@ describe(ctx.label, () => {
     /*
     test('insert-from-select-with-on-conflict-do-nothing', async () => {
         // `CustomizableExecutableInsertFromSelectOnConflictOptional` —
-        // ON CONFLICT chained off `from(select)`. Distinct from the
-        // VALUES-based on-conflict in `insert.on-conflict.test.ts`;
-        // here the row source is a select, so the SqlBuilder uses the
-        // `__from` rendering branch and *then* appends the ON CONFLICT
-        // suffix. Comment-out cells: Oracle / SQL Server (no ON
-        // CONFLICT in the dialect).
+        // ON CONFLICT chained off `from(select)`. Here the row source is
+        // a select, so the builder uses the `__from` rendering branch and
+        // *then* appends the ON CONFLICT suffix. Commented out where the
+        // dialect has no ON CONFLICT clause.
         ctx.mockNext(0)
         await ctx.withRollback(async () => {
             // Try to clone every project as `(orgId=org, slug=existing-slug)`

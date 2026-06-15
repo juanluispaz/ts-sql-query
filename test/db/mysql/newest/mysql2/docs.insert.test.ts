@@ -284,8 +284,8 @@ describe(ctx.label, () => {
     // NOT-APPLICABLE: MySQL has no RETURNING
     /*
     test('docs:insert/insert-on-conflict-do-nothing', async () => {
-        // Section "Insert on conflict do nothing" — postgres/sqlite/mariadb/mysql
-        // accept `.onConflictDoNothing()`. With RETURNING + executeInsertNoneOrOne
+        // Section "Insert on conflict do nothing" — `.onConflictDoNothing()`
+        // with RETURNING + executeInsertNoneOrOne
         // the result is `T | null` (the row is null when the conflict
         // suppressed the insert).
         ctx.mockNext({ id: 1, name: 'Acme Corp', plan: 'pro' })
@@ -323,10 +323,9 @@ describe(ctx.label, () => {
     // NOT-APPLICABLE: MySQL has no RETURNING
     /*
     test('docs:insert/insert-on-conflict-do-update', async () => {
-        // Section "Insert on conflict do update" — postgres/sqlite require
-        // `.onConflictOn(col).doUpdateSet({...})`. MariaDB/MySQL use the
-        // bare `.onConflictDoUpdateSet({...})`. This is the targeted
-        // form; the bare form lives below as docs-extra.
+        // Section "Insert on conflict do update" — the targeted
+        // `.onConflictOn(col).doUpdateSet({...})` form. The bare
+        // `.onConflictDoUpdateSet({...})` form lives below as docs-extra.
         ctx.mockNext({ id: 1, name: 'Acme Corp', plan: 'enterprise' })
 
         await ctx.withRollback(async () => {
@@ -366,9 +365,9 @@ describe(ctx.label, () => {
     // NOT-APPLICABLE: MySQL has no RETURNING
     /*
     test('docs-extra:insert/insert-on-conflict-do-update-bare', async () => {
-        // MariaDB/MySQL variant of upsert — `.onConflictDoUpdateSet({...})`
-        // without a target column. On those engines any unique-key
-        // violation triggers the UPDATE.
+        // The bare upsert variant — `.onConflictDoUpdateSet({...})`
+        // without a target column. Any unique-key violation triggers the
+        // UPDATE.
         ctx.mockNext({ id: 1, name: 'Acme Corp', plan: 'pro' })
 
         await ctx.withRollback(async () => {

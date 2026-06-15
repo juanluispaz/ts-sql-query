@@ -98,8 +98,8 @@ describe(ctx.label, () => {
     })
 
     test('concat-column-to-column', async () => {
-        // String concat with both sides as columns — `||` on sqlite/PG,
-        // `concat(...)` on MySQL/MariaDB/MSSQL.
+        // String concat with both sides as columns; the emitted form is
+        // pinned by the snapshot below.
         const expected = [{ id: 1, slug: 'ada@acme.testAda Lovelace' }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tAppUser)

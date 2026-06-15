@@ -15,11 +15,9 @@
 // `insensitiveCollation` is pinned to the requested value while sharing
 // `ctx.conn`'s underlying `CaptureInterceptor` and driver. The
 // non-empty value comes from `ctx.exampleInsensitiveCollation` — each
-// dialect picks a collation that ships with a default install
-// (SQLite: `NOCASE`, PostgreSQL: `C`, MySQL/MariaDB:
-// `utf8mb4_general_ci`, Oracle: `BINARY_CI`, SQL Server:
-// `Latin1_General_CI_AS`) so the emitted SQL runs against the real DB
-// in every cell — no mock-only guard needed.
+// dialect picks a collation that ships with a default install, so the
+// emitted SQL runs against the real DB in every cell — no mock-only
+// guard needed.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { tAppUser } from '../../domain/connection.js'

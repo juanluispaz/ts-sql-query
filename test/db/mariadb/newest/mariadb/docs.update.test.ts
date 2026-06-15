@@ -107,8 +107,6 @@ describe(ctx.label, () => {
     test('docs:update/update-returning-old-values', async () => {
         // Section "Update returning old values" — `tTable.oldValues()`
         // yields a reference whose columns resolve to the PRE-update row.
-        // Supported on PostgreSQL, modern MariaDB and SQL Server. SQLite,
-        // MySQL and Oracle don't support it.
         ctx.mockNext({ oldName: 'Marketing site', newName: 'Marketing site (v2)' })
 
         await ctx.withRollback(async () => {

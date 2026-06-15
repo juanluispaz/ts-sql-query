@@ -41,7 +41,7 @@ describe(ctx.label, () => {
         expect(result).toBe(1)
     })
 
-    // Bodies kept verbatim (from the pg/mysql cells) for cross-cell diff parity.
+    // Bodies kept verbatim for cross-cell diff parity.
     // NOT-APPLICABLE: SQL Server's `isolationLevel` takes only a level, no access mode, so neither the level+accessMode form nor the access-mode-only form exists.
     /*
     test('isolation-level-with-access-mode-builds-pair-opts', async () => {
@@ -55,7 +55,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // Bodies kept verbatim (from the pg/mysql cells) for cross-cell diff parity.
+    // Bodies kept verbatim for cross-cell diff parity.
     // NOT-APPLICABLE: SQL Server's `isolationLevel` takes only a level, no access mode, so neither the level+accessMode form nor the access-mode-only form exists.
     /*
     test('isolation-access-mode-only-builds-access-mode-opts', async () => {

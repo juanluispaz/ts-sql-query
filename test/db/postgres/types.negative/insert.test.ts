@@ -55,9 +55,9 @@ function _typeNegatives() {
     // conflict target — either a column list (`onConflictOn(col)`) or
     // a constraint name (`onConflictOnConstraint(name)`). The bare
     // `.onConflictDoUpdateSet({...})` / `.onConflictDoUpdateSetIfValue(...)`
-    // / `.onConflictDoUpdateDynamicSet()` forms are typed only on
-    // MariaDB, MySQL and SQLite (and the noopDB) — calling them on a
-    // PostgreSqlConnection must not compile. Covers the .set(), .values()
+    // / `.onConflictDoUpdateDynamicSet()` forms are not typed on
+    // PostgreSqlConnection — calling them must not compile. Covers the
+    // .set(), .values()
     // and .from(select) entry chains so a regression in any of the three
     // shapes is caught here.
     const orgSelect = connection.selectFromNoTable().select({

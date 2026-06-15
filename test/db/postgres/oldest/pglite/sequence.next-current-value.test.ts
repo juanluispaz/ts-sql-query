@@ -15,7 +15,8 @@
 // Each test wraps its body in `ctx.withCommit(...)` for two reasons:
 //   1. The transaction `withCommit` opens pins one backend session,
 //      so the `currval` / `lastval` call sees the prior `nextval`
-//      (those functions are session-scoped on PG / Oracle / MariaDB).
+//      (those functions are session-scoped on the engines that expose
+//      them).
 //   2. The trailing reseed resets the sequence counters that
 //      `nextval()` bumps. Sequences are non-transactional on every
 //      supported engine, so a `withRollback` would leave the bump
@@ -50,12 +51,11 @@ describe(ctx.label, () => {
     test('sequence-current-value-in-select', async () => {
         await ctx.withCommit(async () => {
             // `seq.currentValue()` mirrors nextValue but dispatches to
-            // `_currentSequenceValue` — SQL Server emits an embedded
-            // sys.sequences subquery; PG / Oracle / MariaDB emit the
-            // engine's dedicated function. currval / lastval on those
-            // three is session-scoped, so the outer `withCommit` (which
-            // opens a `connection.transaction` for us) pins the pool's
-            // backend and both queries land on the same session.
+            // `_currentSequenceValue`; the form this dialect emits is
+            // pinned by the snapshot below. currval / lastval is
+            // session-scoped, so the outer `withCommit` (which opens a
+            // `connection.transaction` for us) pins the pool's backend
+            // and both queries land on the same session.
             // (Asserts stay inside the body so `lastSql` shows the
             // currentValue query, not the trailing "commit".)
             ctx.mockNext(41)

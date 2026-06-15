@@ -1,7 +1,6 @@
 // Coverage of INSERT … ON CONFLICT DO NOTHING / DO UPDATE patterns.
-// Supported by postgres, sqlite, mariadb, mysql. Oracle and SQL Server
-// don't support these syntaxes; the corresponding cells comment the
-// tests out for symmetry.
+// Runs where the dialect supports the ON CONFLICT / upsert syntax;
+// commented out elsewhere for symmetry.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -111,12 +110,9 @@ describe(ctx.label, () => {
     */
 
     test('on-conflict-do-update-with-expression', async () => {
-        // The SET clause receives a value-source RHS (not a plain literal),
-        // exercising the value-source branch of `_appendValueForColumn` in
-        // `_buildInsertOnConflictBeforeReturning`. The dialects emit very
-        // different SQL here:
-        //   - sqlite / postgres → `name = name || ?`
-        //   - mariadb / mysql   → `name = concat(name, ?)`
+        // The SET clause receives a value-source RHS (not a plain
+        // literal), exercising the value-source branch of the upsert SET
+        // rendering; the emitted form is pinned by the snapshot below.
         ctx.mockNext(1)
         await ctx.withRollback(async () => {
             const affected = await ctx.conn.insertInto(tProject)
@@ -147,10 +143,8 @@ describe(ctx.label, () => {
 
     test('on-conflict-do-update-with-inserted-row-ref', async () => {
         // `tProject.valuesForInsert()` exposes a table-like reference to
-        // the row that was attempted to be inserted. Each dialect emits
-        // a different identifier for it:
-        //   - sqlite / postgres → `excluded.<col>`
-        //   - mariadb / mysql   → `values(<col>)`
+        // the row that was attempted to be inserted. The identifier this
+        // dialect emits for it is pinned by the snapshot below.
         ctx.mockNext(1)
         await ctx.withRollback(async () => {
             const tProjectForInsert = tProject.valuesForInsert()

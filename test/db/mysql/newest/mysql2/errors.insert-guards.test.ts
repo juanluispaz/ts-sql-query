@@ -94,7 +94,7 @@ describe(ctx.label, () => {
         expect(r).toBe(0)
     })
 
-    // NOT-APPLICABLE: MySQL has no RETURNING, so multi-row `returningLastInsertedId()` is not on its typed surface; the shared empty-values short-circuit (→ []) is covered in the postgres/sqlite/mariadb cells.
+    // NOT-APPLICABLE: MySQL has no RETURNING, so multi-row `returningLastInsertedId()` is not on its typed surface.
     /*
     test('insert-guards/empty-values-returning-last-id-resolves-empty-array', async () => {
         const r = await ctx.conn.insertInto(tProject)

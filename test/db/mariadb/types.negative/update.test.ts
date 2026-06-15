@@ -50,8 +50,8 @@ function _typeNegatives() {
     })
 
     // Note: `tTable.oldValues()` IS typed on MariaDBConnection (the
-    // current dialect) — see test/db/sqlite/types.negative/update.test.ts
-    // for the compile-time negative on dialects that don't expose it.
+    // current dialect); the compile-time negative lives in the
+    // `types.negative` suite of the dialects that don't expose it.
 }
 
 test('update-negative-types', () => {

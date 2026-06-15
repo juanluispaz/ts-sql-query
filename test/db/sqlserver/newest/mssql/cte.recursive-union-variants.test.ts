@@ -1,10 +1,8 @@
-// Recursive CTE variants beyond the ones the docs page exercises in
-// [docs.recursive-select.test.ts](./docs.recursive-select.test.ts):
+// Recursive CTE variants beyond the ones the docs page exercises:
 //
 //   - `.recursiveUnion(...)` (the dedup variant) on dialects that
-//     accept `UNION` in the recursive arm (mysql, mariaDB,
-//     postgreSql, sqlite) - Oracle and SQL Server reject the operator
-//     and `recursiveUnion` is typed as `never` there.
+//     accept `UNION` in the recursive arm; where the dialect rejects it
+//     `recursiveUnion` is typed as `never`.
 //   - `.recursiveUnionOn(...)` (the shortcut paired with
 //     `.recursiveUnion`) - same dialect narrowing.
 //   - `.recursiveUnionAll(...)` with an extra column on the inner

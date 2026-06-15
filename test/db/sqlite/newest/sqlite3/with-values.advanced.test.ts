@@ -1,7 +1,6 @@
-// Coverage of the `Values` class surface that the existing
-// `with-values.test.ts` does not exercise. `Values` is documented at
-// [`docs/queries/select.md`](../../../../../docs/queries/select.md);
-// the source is.
+// Coverage of the `Values` class surface that the basic `with-values`
+// coverage does not exercise. `Values` is documented at
+// [`docs/queries/select.md`](../../../../../docs/queries/select.md).
 //
 // Specifically:
 //
@@ -26,10 +25,9 @@
 //     throws `TsSqlProcessingError` with reason
 //     `CONSTANT_VALUES_VIEW_CANNOT_BE_EMPTY`.
 //
-// `Values` is only typed on PostgreSQL / SQLite / SQL Server / Oracle
-// / noopDB connections. MariaDB and MySQL cells comment out the file
-// body with the same reason as the existing
-// [`with-values.test.ts`](./with-values.test.ts).
+// `Values` is only typed on the dialects that support this surface; the
+// cells whose dialect types it `never` comment out the file body with a
+// "not supported" note to keep the symmetry audit happy.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'

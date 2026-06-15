@@ -6,11 +6,9 @@
 // true and the builder wraps the inner select with the dialect's
 // "select aggregate from (subquery)" form.
 //
-// The existing docs.aggregate-as-object-array tests exercise the
-// non-wrapped path. Adding the wrapped path here lights up:
-//   - AbstractMySqlMariaBDSqlBuilder._appendAggragateArrayWrappedColumns
-//     (MariaDB falls through to it; MySQL overrides)
-//   - the wrapped branch in every other dialect's override
+// The existing non-wrapped aggregate-as-object-array tests exercise the
+// non-wrapped path. Adding the wrapped path here lights up the wrapped
+// branch in each dialect's builder.
 //
 // Like other inline-aggregate tests, the JSON returned from the real
 // DB is a string that has to be re-parsed by the type adapter, and the
@@ -19,10 +17,9 @@
 // The `group by` / `having` wrapped forms correlate an outer column into
 // an inner FROM. MariaDB does not support that (no LATERAL), so the
 // library types `forUseAsInlineAggregatedArrayValue()` as `never` for
-// those forms on MariaDB by design — see `ForUseAsInlineAggregatedArrayValue`
-// in src/expressions/select.ts. Those two cases are therefore NOT-APPLICABLE
-// here (kept commented for symmetry); they run in the supporting dialects
-// (MySQL/PostgreSQL/Oracle/SQL Server).
+// those forms on MariaDB by design. Those two cases are therefore
+// NOT-APPLICABLE here (kept commented for symmetry); they run on the
+// dialects that allow the correlated-inline shape.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -34,7 +31,7 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // NOT-APPLICABLE: MariaDB types `forUseAsInlineAggregatedArrayValue` as `never` for an inline aggregate carrying `group by` (also `having`/`compound`/`distinct`) — MariaDB allows no outer references in an inner FROM (no LATERAL), so the typed public API forbids this correlated-inline shape by design (`ForUseAsInlineAggregatedArrayValue` in). A MariaDB user can never build it; casting past the guard only emits SQL MariaDB rejects at execution (ER_BAD_FIELD_ERROR: Unknown column 'organization.id'). Runs in MySQL/PostgreSQL/Oracle/SQL Server. Body kept (canonical shape) for cross-cell diff parity per the symmetry rule.
+    // NOT-APPLICABLE: MariaDB types `forUseAsInlineAggregatedArrayValue` as `never` for an inline aggregate carrying `group by` (also `having`/`compound`/`distinct`) — MariaDB allows no outer references in an inner FROM (no LATERAL), so the typed public API forbids this correlated-inline shape by design. A MariaDB user can never build it; casting past the guard only emits SQL MariaDB rejects at execution (ER_BAD_FIELD_ERROR: Unknown column 'organization.id'). Body kept (canonical shape) for cross-cell diff parity per the symmetry rule.
     /*
     test('inline-aggregate-of-object-with-group-by', async () => {
         // Inline aggregate carrying its own `group by` — forces the
@@ -90,7 +87,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-APPLICABLE: same MariaDB boundary as the group-by case above — a `having` inline aggregate correlates the outer `organization.id` into an inner FROM, which MariaDB does not support (no LATERAL). `forUseAsInlineAggregatedArrayValue` types as `never` here by design, so MariaDB users can't build it; MySQL/PostgreSQL/Oracle/SQL Server run this test. Body kept (canonical shape) for cross-cell diff parity per the symmetry rule.
+    // NOT-APPLICABLE: same MariaDB boundary as the group-by case above — a `having` inline aggregate correlates the outer `organization.id` into an inner FROM, which MariaDB does not support (no LATERAL). `forUseAsInlineAggregatedArrayValue` types as `never` here by design, so MariaDB users can't build it. Body kept (canonical shape) for cross-cell diff parity per the symmetry rule.
     /*
     test('inline-aggregate-of-object-with-having', async () => {
         // `having` is one of the wrap triggers in

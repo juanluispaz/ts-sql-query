@@ -116,10 +116,8 @@ describe(ctx.label, () => {
 
     test('getDay-day-of-week', async () => {
         // `.getDay()` returns the day-of-week (0..6 / 1..7 depending on
-        // the dialect). Each builder picks a different SQL form —
-        // `strftime('%w', …)` for SQLite, `extract(dow from …)` for PG,
-        // `to_char(…, 'D')` for Oracle, `datepart(weekday, …)` for
-        // SqlServer, `dayofweek(…)` for MySQL/MariaDB.
+        // the dialect). The SQL form this dialect emits is pinned by the
+        // snapshot below.
         const expected = [{ id: 1, dow: 6 }]
         ctx.mockNext(expected)
         const rows = await ctx.conn.selectFrom(tOrganization)
@@ -170,8 +168,7 @@ describe(ctx.label, () => {
 
     test('getMilliseconds', async () => {
         // `.getMilliseconds()` returns the millisecond component (0..999).
-        // Every dialect uses a different expression — strftime+modulo on
-        // SQLite, extract on PG, to_char on Oracle, datepart on SqlServer.
+        // The expression this dialect uses is pinned by the snapshot below.
         const expected = [{ id: 1, ms: 0 }]
         ctx.mockNext(expected)
         const rows = await ctx.conn.selectFrom(tIssue)

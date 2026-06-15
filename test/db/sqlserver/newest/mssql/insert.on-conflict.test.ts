@@ -35,14 +35,14 @@ describe(ctx.label, () => {
     // NOT-APPLICABLE: SQL Server has no INSERT…ON CONFLICT (uses MERGE)
     /*
     test('on-conflict-do-update-with-expression', async () => {
-        // Not supported by this dialect: see active variant in sqlite / mariadb / mysql cells.
+        // Not supported by this dialect.
     })
     */
 
     // NOT-APPLICABLE: SQL Server has no INSERT…ON CONFLICT (uses MERGE)
     /*
     test('on-conflict-do-update-with-inserted-row-ref', async () => {
-        // Not supported by this dialect: see active variant in sqlite / mariadb / mysql cells.
+        // Not supported by this dialect.
     })
     */
 

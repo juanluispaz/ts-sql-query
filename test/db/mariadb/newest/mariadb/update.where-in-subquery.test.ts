@@ -1,7 +1,6 @@
-// Coverage of `UPDATE ... WHERE col IN (select ...)`. Combines the
-// update-builder path with the `_inSelect` branch of each dialect's
-// SqlBuilder. Several dialects (Oracle, SqlServer) emit identifier
-// quoting that differs from the simple in-list case.
+// Coverage of `UPDATE ... WHERE col IN (select ...)`. The emitted form,
+// including any dialect-specific identifier quoting, is pinned by the
+// snapshot below.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'

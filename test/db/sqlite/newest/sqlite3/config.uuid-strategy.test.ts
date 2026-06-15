@@ -59,7 +59,7 @@ describe(ctx.label, () => {
         `)
     })
 
-    // NOT-APPLICABLE: the `sqlite3` (npm) connector has no user-defined-function API, so the `uuid_str` / `uuid_blob` extension functions can't be registered; the `'uuid-extension'` path runs end-to-end on the connectors that register them (better-sqlite3 / node:sqlite / sqlite-wasm-OO1 — see test/db/sqlite/runners.ts). bun:sqlite, like this connector, has no user-defined-function API (its built-ins aren't present on every platform) and keeps it mock-only too. Kept mock-only here so the SqlBuilder shape is still asserted.
+    // NOT-APPLICABLE: the `sqlite3` (npm) connector has no user-defined-function API, so the `uuid_str` / `uuid_blob` extension functions can't be registered; the `'uuid-extension'` path runs end-to-end on the connectors that register them. Kept mock-only here so the SqlBuilder shape is still asserted.
     test('uuid-strategy: uuid-extension wraps asString in uuid_str', async () => {
         if (ctx.realDbEnabled) return
         const conn = ctx.withUuidStrategy('uuid-extension')
@@ -78,7 +78,7 @@ describe(ctx.label, () => {
         `)
     })
 
-    // NOT-APPLICABLE: the `sqlite3` (npm) connector has no user-defined-function API, so the `uuid_str` / `uuid_blob` extension functions can't be registered; the `'uuid-extension'` path runs end-to-end on the connectors that register them (better-sqlite3 / node:sqlite / sqlite-wasm-OO1 — see test/db/sqlite/runners.ts). bun:sqlite, like this connector, has no user-defined-function API (its built-ins aren't present on every platform) and keeps it mock-only too. Kept mock-only here so the SqlBuilder shape is still asserted.
+    // NOT-APPLICABLE: the `sqlite3` (npm) connector has no user-defined-function API, so the `uuid_str` / `uuid_blob` extension functions can't be registered; the `'uuid-extension'` path runs end-to-end on the connectors that register them. Kept mock-only here so the SqlBuilder shape is still asserted.
     test('uuid-strategy: outermost-column projection wraps uuid value with uuid_str on uuid-extension', async () => {
         // `_appendColumnValue` adds a `uuid_str(...)` wrapper at the
         // outermost query for any uuid value source when strategy is

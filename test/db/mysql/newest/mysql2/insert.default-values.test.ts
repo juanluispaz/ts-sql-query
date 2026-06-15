@@ -25,7 +25,7 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // NOT-APPLICABLE: on MySQL the id of a `.defaultValues()` insert can't be returned through the typed surface. `.returning(...)`/`.returningOneColumn(...)` are `never` (MySQL has no RETURNING clause), and `.returningLastInsertedId()` is `never` too: `.defaultValues()` reuses the post-on-conflict returning surface, whose `returningLastInsertedId` (`OnConflictReturningLastInsertedIdType`) excludes MySQL on purpose — `LAST_INSERT_ID()` after `ON DUPLICATE KEY UPDATE` is ambiguous, whereas MariaDB is allowed there because it returns the id via a `RETURNING` clause. The DEFAULT VALUES form is covered in the postgres/sqlite/mariadb cells.
+    // NOT-APPLICABLE: on MySQL the id of a `.defaultValues()` insert can't be returned through the typed surface. `.returning(...)`/`.returningOneColumn(...)` are `never` (MySQL has no RETURNING clause), and `.returningLastInsertedId()` is `never` too: `.defaultValues()` reuses the post-on-conflict returning surface, whose `returningLastInsertedId` (`OnConflictReturningLastInsertedIdType`) excludes MySQL on purpose — `LAST_INSERT_ID()` after `ON DUPLICATE KEY UPDATE` is ambiguous.
     /*
     test('insert default values', async () => {
         ctx.mockNext(99)

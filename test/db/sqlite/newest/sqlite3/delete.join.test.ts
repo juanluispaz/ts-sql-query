@@ -1,17 +1,15 @@
 // `DELETE … USING t INNER JOIN j ON … WHERE …` — multi-table DELETE
-// where the JOIN method (not just plain `.using(...)`) is used. Only
-// MariaDB and MySQL type `.innerJoin` / `.leftJoin` on their
-// `DeleteExpression`
-// `OnExpressionFnType` is narrowed to `'noopDB' | 'mariaDB' | 'mySql'`).
-// On those two dialects the library rewrites it under the hood to
-// MariaDB/MySQL's `DELETE FROM t USING t JOIN j ON ...` form
-// `_buidDeleteUsing` override that prefixes the target table to the
-// from-joins result).
+// where the JOIN method (not just plain `.using(...)`) is used. The
+// `.innerJoin` / `.leftJoin` methods on `DeleteExpression` are typed
+// `never` on the dialects whose grammar has no JOIN-on-DELETE form, so
+// this file runs only where they are part of the typed surface and is
+// commented out elsewhere with a NOT-APPLICABLE marker. Where it runs,
+// the library rewrites the JOIN into the dialect's multi-table DELETE
+// form; the emitted SQL is pinned by the snapshot below.
 //
 // Pins the DeleteQueryBuilder `join` / `innerJoin` / `leftJoin` /
-// `dynamicOn` / `on` branches
-// that aren't reached by `delete.using.test.ts` (which only uses
-// `.using(table)`).
+// `dynamicOn` / `on` branches that aren't reached by the plain
+// `.using(table)` form.
 //
 // Mock-mode pins the SQL; real-DB mode wraps each delete in
 // `ctx.withRollback` so the seed survives.

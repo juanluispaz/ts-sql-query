@@ -51,8 +51,8 @@ function _typeNegatives() {
     })
 
     // Note: `tTable.oldValues()` IS typed on PostgreSqlConnection (the
-    // current dialect) — see test/db/sqlite/types.negative/update.test.ts
-    // for the compile-time negative on dialects that don't expose it.
+    // current dialect); the compile-time negative lives in the
+    // `types.negative` suite of the dialects that don't expose it.
 
     // Rule: `executeUpdateNoneOrOne` / `executeUpdateOne` / `executeUpdateMany`
     // are RETURNING executors — they resolve the projected row(s), so they
@@ -61,7 +61,7 @@ function _typeNegatives() {
     // count-only `executeUpdate(min?, max?)`; reaching any of the row-returning
     // variants without a returning clause does not compile. The runtime +
     // typed positive coverage (including the empty-set short-circuit) lives in
-    // test/db/postgres/newest/pg/update.execute-variants.test.ts.
+    // this dialect's execute-variants coverage.
     // @ts-expect-error executeUpdateNoneOrOne needs a RETURNING clause; it is not on a bare update
     void connection.update(tIssue).dynamicSet().where(tIssue.id.equals(1)).executeUpdateNoneOrOne()
     // @ts-expect-error executeUpdateOne needs a RETURNING clause; it is not on a bare update

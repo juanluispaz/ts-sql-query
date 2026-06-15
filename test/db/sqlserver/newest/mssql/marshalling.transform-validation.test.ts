@@ -26,10 +26,7 @@
 //
 // No SQL/param snapshots: the contract under test is the transform, not
 // the emitted SQL. The scalar branches behave identically on every
-// dialect — SQLite only overrides the date types, Oracle only the
-// valid-boolean case, SqlServer only lowercases a VALID uuid (it calls
-// `super` first, so an invalid uuid still throws) — so this file is
-// byte-identical across every cell.
+// dialect, so this file is byte-identical across every cell.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { TsSqlError } from '../../../../../src/TsSqlError.js'

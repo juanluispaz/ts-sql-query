@@ -27,7 +27,7 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // NOT-APPLICABLE: MariaDB uses the bare onConflictDoUpdateSet form — `onConflictOn(...)` is not typed on MariaDBConnection (the `ON DUPLICATE KEY UPDATE` grammar takes no column list); see `test/db/mariadb/types.negative/insert.test.ts` for the compile-time negative.
+    // NOT-APPLICABLE: MariaDB uses the bare onConflictDoUpdateSet form — `onConflictOn(...)` is not typed on MariaDBConnection (the `ON DUPLICATE KEY UPDATE` grammar takes no column list); see this dialect's `types.negative` suite for the compile-time negative.
     /*
     test('on-conflict-do-update-set-if-value-fires-defined-fields', async () => {
         // `doUpdateSetIfValue` is the IfValue twin of `doUpdateSet`.
@@ -60,7 +60,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-APPLICABLE: MariaDB uses the bare onConflictDoUpdateSet form — `onConflictOn(...)` is not typed on MariaDBConnection (the `ON DUPLICATE KEY UPDATE` grammar takes no column list); see `test/db/mariadb/types.negative/insert.test.ts` for the compile-time negative.
+    // NOT-APPLICABLE: MariaDB uses the bare onConflictDoUpdateSet form — `onConflictOn(...)` is not typed on MariaDBConnection (the `ON DUPLICATE KEY UPDATE` grammar takes no column list); see this dialect's `types.negative` suite for the compile-time negative.
     /*
     test('on-conflict-do-update-set-then-set-if-value-chain', async () => {
         // Chain `setIfValue` after `doUpdateSet`. Both contribute to
@@ -93,7 +93,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-APPLICABLE: MariaDB uses the bare onConflictDoUpdateSet form — `onConflictOn(...)` is not typed on MariaDBConnection (the `ON DUPLICATE KEY UPDATE` grammar takes no column list); see `test/db/mariadb/types.negative/insert.test.ts` for the compile-time negative.
+    // NOT-APPLICABLE: MariaDB uses the bare onConflictDoUpdateSet form — `onConflictOn(...)` is not typed on MariaDBConnection (the `ON DUPLICATE KEY UPDATE` grammar takes no column list); see this dialect's `types.negative` suite for the compile-time negative.
     /*
     test('on-conflict-do-update-set-with-where-clause', async () => {
         // Partial UPDATE on conflict: the SET clause only fires when
@@ -126,7 +126,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-APPLICABLE: MariaDB uses the bare onConflictDoUpdateSet form — `onConflictOn(...)` is not typed on MariaDBConnection (the `ON DUPLICATE KEY UPDATE` grammar takes no column list); see `test/db/mariadb/types.negative/insert.test.ts` for the compile-time negative.
+    // NOT-APPLICABLE: MariaDB uses the bare onConflictDoUpdateSet form — `onConflictOn(...)` is not typed on MariaDBConnection (the `ON DUPLICATE KEY UPDATE` grammar takes no column list); see this dialect's `types.negative` suite for the compile-time negative.
     /*
     test('on-conflict-on-columns-with-where-do-update', async () => {
         // Partial INDEX target: `onConflictOn(cols).where(cond)` targets a
@@ -159,7 +159,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-APPLICABLE: MariaDB uses the bare onConflictDoUpdateSet form — `onConflictOn(...)` is not typed on MariaDBConnection (the `ON DUPLICATE KEY UPDATE` grammar takes no column list); see `test/db/mariadb/types.negative/insert.test.ts` for the compile-time negative.
+    // NOT-APPLICABLE: MariaDB uses the bare onConflictDoUpdateSet form — `onConflictOn(...)` is not typed on MariaDBConnection (the `ON DUPLICATE KEY UPDATE` grammar takes no column list); see this dialect's `types.negative` suite for the compile-time negative.
     /*
     test('on-conflict-on-columns-do-nothing-explicit', async () => {
         // `onConflictOn(cols).doNothing()` — the explicit-target

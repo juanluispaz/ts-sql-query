@@ -273,8 +273,8 @@ describe(ctx.label, () => {
     })
 
     test('docs:insert/insert-on-conflict-do-nothing', async () => {
-        // Section "Insert on conflict do nothing" — postgres/sqlite/mariadb/mysql
-        // accept `.onConflictDoNothing()`. With RETURNING + executeInsertNoneOrOne
+        // Section "Insert on conflict do nothing" — `.onConflictDoNothing()`
+        // with RETURNING + executeInsertNoneOrOne
         // the result is `T | null` (the row is null when the conflict
         // suppressed the insert).
         ctx.mockNext({ id: 1, name: 'Acme Corp', plan: 'pro' })
@@ -309,10 +309,9 @@ describe(ctx.label, () => {
     })
 
     test('docs:insert/insert-on-conflict-do-update', async () => {
-        // Section "Insert on conflict do update" — postgres/sqlite require
-        // `.onConflictOn(col).doUpdateSet({...})`. MariaDB/MySQL use the
-        // bare `.onConflictDoUpdateSet({...})`. This is the targeted
-        // form; the bare form lives below as docs-extra.
+        // Section "Insert on conflict do update" — the targeted
+        // `.onConflictOn(col).doUpdateSet({...})` form. The bare
+        // `.onConflictDoUpdateSet({...})` form lives below as docs-extra.
         ctx.mockNext({ id: 1, name: 'Acme Corp', plan: 'enterprise' })
 
         await ctx.withRollback(async () => {
@@ -348,12 +347,12 @@ describe(ctx.label, () => {
         })
     })
 
-    // NOT-APPLICABLE: PostgreSQL requires onConflictOn(col).doUpdateSet({...}) or onConflictOnConstraint(name).doUpdateSet({...}). The bare-form onConflictDoUpdateSet is typed only on MariaDB / MySQL / SQLite; see test/db/postgres/types.negative/insert.test.ts for the compile-time negative.
+    // NOT-APPLICABLE: PostgreSQL requires onConflictOn(col).doUpdateSet({...}) or onConflictOnConstraint(name).doUpdateSet({...}); the bare-form onConflictDoUpdateSet is not typed on PostgreSQL. The compile-time negative lives in this dialect's `types.negative` suite.
     /*
     test('docs-extra:insert/insert-on-conflict-do-update-bare', async () => {
-        // MariaDB/MySQL variant of upsert — `.onConflictDoUpdateSet({...})`
-        // without a target column. On those engines any unique-key
-        // violation triggers the UPDATE.
+        // The bare upsert variant — `.onConflictDoUpdateSet({...})`
+        // without a target column. Any unique-key violation triggers the
+        // UPDATE.
         ctx.mockNext({ id: 1, name: 'Acme Corp', plan: 'pro' })
 
         await ctx.withRollback(async () => {

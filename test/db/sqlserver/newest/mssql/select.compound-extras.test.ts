@@ -1,17 +1,16 @@
-// Coverage of the compound-operator variants
-// [select.compound.test.ts](./select.compound.test.ts) leaves on the
-// table: `intersectAll`, `exceptAll`, `minus`, `minusAll`. Each lands
-// on `_appendCompoundOperator`
+// Coverage of the compound-operator variants the main compound-select
+// coverage leaves on the table: `intersectAll`, `exceptAll`, `minus`,
+// `minusAll`.
 //
-// On SqlServer only `.minus(...)` is exposed by the fluent API
+// On SqlServer only `.minus(...)` is exposed by the fluent API;
 // `.intersectAll`/`.exceptAll`/`.minusAll` are narrowed to `never`
 // because the engine doesn't accept the `ALL` flavour of these
 // operators. Those three tests are commented out with
-// `NOT-APPLICABLE` markers to keep the test count symmetric with the
-// postgres/mariadb cells while honouring the type-system narrowing.
+// `NOT-APPLICABLE` markers to keep the test count symmetric while
+// honouring the type-system narrowing.
 //
-// Note: `_appendCompoundOperator` rewrites `.minus(...)` to ` except `
-// for SqlServer (SqlServer supports `EXCEPT` natively but not `MINUS`).
+// Note: the builder rewrites `.minus(...)` to ` except ` for SqlServer
+// (SqlServer supports `EXCEPT` natively but not `MINUS`).
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { tIssue } from '../../domain/connection.js'

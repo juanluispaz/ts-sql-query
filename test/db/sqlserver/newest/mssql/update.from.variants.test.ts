@@ -1,21 +1,16 @@
-// Extra coverage for `UPDATE ... FROM other-table` on top of the lone
-// scenario already pinned in `update.from.test.ts`. Each test exercises
-// a code path through `UpdateQueryBuilder.from(...)` /
-// `AbstractSqlBuilder._buildUpdateFrom` that the canonical test leaves
-// alone:
+// Extra coverage for `UPDATE ... FROM other-table` beyond the lone
+// scenario pinned in the canonical update-from test. Each test
+// exercises a builder code path the canonical test leaves alone:
 //
 //   1. The SET assigns a single bare column from the FROM table — the
-//      simplest possible reference shape (no concat, no expression),
-//      which pins the bare-column branch of `_buildSetValueOf`.
+//      simplest possible reference shape (no concat, no expression).
 //   2. Two `.from(...)` calls chained — exercises the multi-source
-//      USING-list path (`update a, b, c` on mariadb/mysql,
-//      `update a set ... from b, c` everywhere else).
+//      USING-list path; the emitted form is pinned by the snapshot below.
 //   3. The FROM target is a CTE (`.forUseInQueryAs(...)`), so the
 //      builder must bubble the `WITH ...` up to the top level of the
 //      UPDATE — distinct from a plain table reference.
-//   4. RETURNING combined with FROM — distinct from
-//      `update.returning.test.ts` (no FROM there). MySQL has no
-//      RETURNING and keeps the test commented for symmetry.
+//   4. RETURNING combined with FROM. Where the dialect has no UPDATE …
+//      RETURNING the test is commented out for symmetry.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -113,15 +108,12 @@ describe(ctx.label, () => {
     })
 
     test('update-from-with-returning-one-row', async () => {
-        // RETURNING combined with FROM. Pins
-        // `_buildUpdateReturning` (PG/SQLite/MariaDB), the SqlServer
-        // `output inserted.*` branch and Oracle's `returning ... into`
-        // override — all on top of a USING-list. MySQL has no RETURNING
-        // and the cell comments this test out. The projection only
-        // references columns from the *target* table: SQLite's
-        // RETURNING clause cannot project columns from the FROM table,
-        // and SqlServer's OUTPUT projects `inserted.*` rows, which
-        // likewise mirror the target table.
+        // RETURNING combined with FROM; the emitted form is pinned by
+        // the snapshot below. Where the dialect has no UPDATE …
+        // RETURNING the test is commented out for symmetry. The
+        // projection references only columns from the *target* table,
+        // because not every dialect's RETURNING/OUTPUT can project
+        // columns from the FROM table.
         const expectedMock = { id: 1, newName: 'Acme Corp', slug: 'mktg-site' }
         ctx.mockNext(expectedMock)
         await ctx.withRollback(async () => {

@@ -1,25 +1,19 @@
 // Coverage of `connection.default()` — the typed reference to the SQL
 // `DEFAULT` keyword that survives until the SqlBuilder dispatches it
-// through `_default(params)`
-// and `AbstractSqlBuilder._default`). It is only typed on columns
-// declared with `columnWithDefaultValue` — the per-table optional vs
-// `Default` branch in
-// and `src/expressions/update.ts`.
+// through `_default(...)`. It is only typed on columns declared with
+// `columnWithDefaultValue` — the per-table optional vs `Default` branch.
 //
 // `default-on-custom-boolean-column` covers the boolean-remap
-// short-circuit: the SqlBuilder detects the `Default` sentinel inside
-// `_appendCustomBooleanRemapForColumnIfRequired` and emits the bare
-// `default` keyword instead of wrapping it in
+// short-circuit: the SqlBuilder detects the `Default` sentinel and emits
+// the bare `default` keyword instead of wrapping it in
 // `case when default then 'Y' else 'N' end` (which every dialect
 // rejects at execution time).
 //
-// SQLite is not exercised here — `SqliteConnection` does not expose
-// `default()` (SQLite's grammar rejects DEFAULT as a value expression
-// in INSERT VALUES / UPDATE SET / ON CONFLICT DO UPDATE SET). The
-// compile-time negative lives at
-// [test/db/sqlite/types.negative/insert.test.ts](../../../../sqlite/types.negative/insert.test.ts);
-// the sqlite cells keep `insert.default-keyword.test.ts` for cross-cell
-// symmetry per DESIGN §4 with every test commented out.
+// Not every dialect exposes `default()` — where the grammar rejects
+// DEFAULT as a value expression in INSERT VALUES / UPDATE SET / ON
+// CONFLICT DO UPDATE SET, `connection.default()` is not typed and this
+// file is commented out for cross-cell symmetry, with the compile-time
+// negative living in that dialect's `types.negative` suite.
 
 import { afterAll, beforeAll, describe } from '../../../../lib/testRunner.js'
 import { ctx } from './setup.js'

@@ -7,22 +7,18 @@
 // The two branches covered here are:
 //   - `insensitiveCollation: '<name>'` — emits `<col> collate <name>`.
 //     The order-by argument must be a value source (not a SELECT alias
-//     string), because PostgreSQL and SQL Server only accept `COLLATE`
+//     string), because some dialects only accept `COLLATE`
 //     against a real column reference in ORDER BY, never against a
 //     SELECT output alias. The string-alias route is verified under
 //     the collation-empty mode below where no `collate` suffix is
 //     emitted.
 //   - `insensitiveCollation: ''` — engine handles case-insensitivity
-//     itself (typical for `_ci` MySQL/MariaDB collations or Oracle's
-//     NLS_SORT settings); the builder emits the bare column with no
-//     wrapper.
+//     itself; the builder emits the bare column with no wrapper.
 //
-// MySQL / MariaDB take a different path through
-// `AbstractMySqlMariaBDSqlBuilder._appendOrderByColumnExpressionInsensitive`
-// (the **expression** variant — they reference the original column in
-// ORDER BY, not the SELECT alias); every other dialect goes through
-// `AbstractSqlBuilder._appendOrderByColumnAliasInsensitive` (the alias
-// variant). The expression-variant was previously unexercised.
+// Some dialects reference the original column in ORDER BY (the
+// expression variant) rather than the SELECT alias (the alias variant);
+// this file exercises both. The exact ORDER BY form for this dialect is
+// pinned by the snapshot below.
 //
 // `_isStringOrderByColumn` is also exercised by the last test, which
 // orders by an int column with the insensitive modifier — the modifier

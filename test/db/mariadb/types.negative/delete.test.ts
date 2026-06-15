@@ -40,8 +40,8 @@ function _typeNegatives() {
     })
 
     // Note: DELETE … USING IS supported on mariadb — no negative test
-    // for `.using(...)` here; see test/db/sqlite/types.negative/delete.test.ts
-    // for the compile-time negative on the dialect that excludes it.
+    // for `.using(...)` here; the compile-time negative lives in the
+    // `types.negative` suite of the dialects that exclude it.
 }
 
 test('delete-negative-types', () => {

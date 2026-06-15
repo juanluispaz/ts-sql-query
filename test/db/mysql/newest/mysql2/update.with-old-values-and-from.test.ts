@@ -25,12 +25,11 @@ describe(ctx.label, () => {
     test('returning-old-and-new-with-from-table-projects-required-columns-in-old-subquery', async () => {
         // Update tProject.name from organization.name; RETURNING the
         // PRE-update project.name AND the organization.name pulled in
-        // via FROM. On PG ≥ 18 the FROM-subquery is replaced by native
-        // `OLD.col`; on PG < 18 (and sqlserver / mariadb) the
-        // `_extractAdditionalRequiredColumnsForUpdate` branch fires and
-        // the synthesised `_old_` subquery must pre-project the
-        // organization column as `organization__name` so it's
-        // reachable in the RETURNING clause.
+        // via FROM. Where the dialect synthesises an `_old_` subquery for
+        // the pre-update values, that subquery must pre-project the
+        // organization column (as `organization__name`) so it's reachable
+        // in the RETURNING clause; where the dialect has native
+        // pre-update row access the subquery is not needed.
         ctx.mockNext({
             id:      1,
             oldName: 'Marketing site',
@@ -85,14 +84,11 @@ describe(ctx.label, () => {
     test('returning-old-values-with-primary-key-in-set-uses-for-update-of', async () => {
         // Including a PRIMARY KEY column in `.set()` flips the builder's
         // `updatePrimaryKey` flag, so the synthesised `_old_` subquery
-        // locks with `for update of _old_` instead of the default
-        // `for no key update of _old_` (PG < 18; PG >= 18 uses native
-        // `OLD.col` with no lock clause). The PK (a SERIAL column) is set
-        // to its current value, so the update is a no-op that violates no
-        // foreign key referencing project(id). Commented out on sqlserver
-        // (cannot update an IDENTITY column), mariadb (limitation:
-        // OLD_VALUE needs 13.0.1+) and mysql/oracle/sqlite (oldValues
-        // typed `never`).
+        // locks the synthesised `_old_` subquery for update where the
+        // dialect builds one (dialects with native pre-update row access
+        // emit no lock clause). The PK (a SERIAL column) is set to its
+        // current value, so the update is a no-op that violates no
+        // foreign key referencing project(id).
         const expected = { id: 1, oldName: 'Marketing site', newName: 'Marketing site!' }
         ctx.mockNext(expected)
 

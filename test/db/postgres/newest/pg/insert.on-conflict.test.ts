@@ -1,7 +1,6 @@
 // Coverage of INSERT … ON CONFLICT DO NOTHING / DO UPDATE patterns.
-// Supported by postgres, sqlite, mariadb, mysql. Oracle and SQL Server
-// don't support these syntaxes; the corresponding cells comment the
-// tests out for symmetry.
+// Runs where the dialect supports the ON CONFLICT / upsert syntax;
+// commented out elsewhere for symmetry.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -42,7 +41,7 @@ describe(ctx.label, () => {
         })
     })
 
-    // NOT-APPLICABLE: PostgreSQL rejects `ON CONFLICT DO UPDATE` without an inference target (`(col)` or `ON CONSTRAINT name`), so the connection blocks the bare form at compile time; PG users go through the `on-conflict-on-columns-do-update` test below. Test body is kept as commented documentation for cross-cell symmetry with the dialects that still accept the bare form (MariaDB / MySQL / SQLite).
+    // NOT-APPLICABLE: PostgreSQL rejects `ON CONFLICT DO UPDATE` without an inference target (`(col)` or `ON CONSTRAINT name`), so the connection blocks the bare form at compile time; PostgreSQL users go through the `on-conflict-on-columns-do-update` test below. The body is kept as commented documentation for cross-cell symmetry.
     /*
     test('on-conflict-do-update', async () => {
         ctx.mockNext(1)
@@ -81,8 +80,8 @@ describe(ctx.label, () => {
     */
 
     test('on-conflict-on-columns-do-update', async () => {
-        // ON CONFLICT (cols) DO UPDATE — postgres/sqlite syntax. mariadb
-        // ignores the column list and uses the row's keys.
+        // ON CONFLICT (cols) DO UPDATE. The emitted form is pinned by the
+        // snapshot below.
         ctx.mockNext(1)
         await ctx.withRollback(async () => {
             const affected = await ctx.conn.insertInto(tProject)
@@ -108,22 +107,22 @@ describe(ctx.label, () => {
         })
     })
 
-    // NOT-APPLICABLE: the bare `.onConflictDoUpdateSet({...})` form is blocked at compile time on PostgreSQL (needs `.onConflictOn(col)` / `.onConflictOnConstraint(name)`); see `test/db/postgres/types.negative/insert.test.ts` and the active `on-conflict-on-columns-do-update` test above.
+    // NOT-APPLICABLE: the bare `.onConflictDoUpdateSet({...})` form is blocked at compile time on PostgreSQL (needs `.onConflictOn(col)` / `.onConflictOnConstraint(name)`); see this dialect's `types.negative` suite and the active `on-conflict-on-columns-do-update` test above.
     /*
     test('on-conflict-do-update-with-expression', async () => {
         // Not applicable on PostgreSQL: the bare `.onConflictDoUpdateSet({...})`
         // form is blocked at compile time on PG (needs `.onConflictOn(col)` /
-        // `.onConflictOnConstraint(name)`). See `test/db/postgres/types.negative/insert.test.ts`
+        // `.onConflictOnConstraint(name)`). See this dialect's `types.negative` suite
         // and the active `on-conflict-on-columns-do-update` test above.
     })
     */
 
-    // NOT-APPLICABLE: the bare `.onConflictDoUpdateSet({...})` form is blocked at compile time on PostgreSQL (needs `.onConflictOn(col)` / `.onConflictOnConstraint(name)`); see `test/db/postgres/types.negative/insert.test.ts` and the active `on-conflict-on-columns-do-update` test above.
+    // NOT-APPLICABLE: the bare `.onConflictDoUpdateSet({...})` form is blocked at compile time on PostgreSQL (needs `.onConflictOn(col)` / `.onConflictOnConstraint(name)`); see this dialect's `types.negative` suite and the active `on-conflict-on-columns-do-update` test above.
     /*
     test('on-conflict-do-update-with-inserted-row-ref', async () => {
         // Not applicable on PostgreSQL: the bare `.onConflictDoUpdateSet({...})`
         // form is blocked at compile time on PG (needs `.onConflictOn(col)` /
-        // `.onConflictOnConstraint(name)`). See `test/db/postgres/types.negative/insert.test.ts`
+        // `.onConflictOnConstraint(name)`). See this dialect's `types.negative` suite
         // and the active `on-conflict-on-columns-do-update` test above.
     })
     */

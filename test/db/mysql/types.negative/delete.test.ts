@@ -32,17 +32,16 @@ function _typeNegatives() {
     void connection.deleteFrom(tIssue).where(tIssue.priority.equalsIfValue('high'))
 
     // Rule: MySQL does not support `DELETE ... RETURNING`. The
-    // `.returning({...})` method is typed only on postgres, sqlite,
-    // mariadb, oracle, sqlserver, and the noop dialect; on the mysql
-    // dialect it resolves to `never` and the call must not typecheck.
+    // `.returning({...})` method is not typed on the mysql dialect; it
+    // resolves to `never` and the call must not typecheck.
     // @ts-expect-error returning() is not typed on the mysql dialect (DELETE ... RETURNING unsupported)
     void connection.deleteFrom(tProject).where(tProject.id.equals(1)).returning({
         id: tProject.id,
     })
 
     // Note: DELETE … USING IS supported on mysql — no negative test
-    // for `.using(...)` here; see test/db/sqlite/types.negative/delete.test.ts
-    // for the compile-time negative on the dialect that excludes it.
+    // for `.using(...)` here; the compile-time negative lives in the
+    // `types.negative` suite of the dialects that exclude it.
 }
 
 test('delete-negative-types', () => {

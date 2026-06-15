@@ -1,17 +1,14 @@
 // Coverage of the scalar (two-argument) min/max forms:
 //   - .minValue(other) — clamp this so its value is AT LEAST other (the
-//     biggest value is returned). Internally calls `_maximumBetweenTwoValues`.
+//     greater value is returned).
 //   - .maxValue(other) — clamp this so its value is AT MOST other (the
-//     smallest value is returned). Internally calls `_minimumBetweenTwoValues`.
+//     lesser value is returned).
 //
 // These are distinct from the column aggregates `conn.min(col)` /
-// `conn.max(col)` already exercised in `select.aggregation.test.ts`.
+// `conn.max(col)`.
 //
-// Dialect emission differs:
-//   - sqlite                       → min(a, b) / max(a, b)
-//   - mariadb / mysql / postgres   → least(a, b) / greatest(a, b)
-//   - sqlserver (compat >= 16M)    → least(a, b) / greatest(a, b)
-//   - oracle                       → least(a, b) / greatest(a, b)
+// The exact SQL function this dialect renders is pinned by the snapshot
+// below.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { tIssue } from '../../domain/connection.js'

@@ -167,8 +167,8 @@ describe(ctx.label, () => {
     // Oracle rejects the `WITH cte AS (...) DELETE FROM ... WHERE x IN
     // (SELECT ... FROM cte) ...` form with ORA-00928 "SELECT keyword
     // missing": Oracle accepts WITH only as a prefix to SELECT; the
-    // library emits the WITH-prefix form here. Body kept verbatim from
-    // the postgres cell for cross-cell diff parity.
+    // library emits the WITH-prefix form here. Body kept verbatim for
+    // cross-cell diff parity.
     // NOT-APPLICABLE: Oracle accepts WITH only as a prefix to SELECT, so WITH … DELETE (ORA-00928) is not emittable
     /*
     test('delete-cte-in-where-in-subquery-with-returning', async () => {

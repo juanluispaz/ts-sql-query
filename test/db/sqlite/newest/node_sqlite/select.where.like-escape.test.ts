@@ -5,9 +5,8 @@
 // triple-`replace(...)` runtime escape branch instead of the
 // compile-time literal escape.
 //
-// Each dialect picks a different shape — SQLite/PostgreSQL stitch the
-// `replace(...)` chain with `||`, MySQL/MariaDB use `concat(...)`,
-// SqlServer uses `+`, Oracle drops the `escape` clause.
+// The exact shape of the `replace(...)` escape chain this dialect emits
+// is pinned by the snapshot below.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'

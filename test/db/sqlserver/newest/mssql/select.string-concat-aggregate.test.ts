@@ -108,6 +108,6 @@ describe(ctx.label, () => {
     // near ','`). `stringConcatDistinct` is therefore not typed on
     // SqlServerConnection. The portable workaround is a pre-deduplicated
     // subquery: `subSelectUsing(...).distinct().select(...).forUseAsInlineQueryValue()`.
-    // See test/db/sqlserver/types.negative/select.test.ts for the compile-time
-    // negative that locks this contract.
+    // The compile-time negative that locks this contract lives in this
+    // dialect's `types.negative` suite.
 })

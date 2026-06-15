@@ -37,8 +37,7 @@ describe(ctx.label, () => {
     test('valueWhenNull-numeric-with-literal-default', async () => {
         // `tIssue.assigneeId.valueWhenNull(0)` — the optional column
         // becomes required (`number`) at the type level. SQL emits
-        // some form of `coalesce(assignee_id, ?)` (PG/SQLite/MySQL/
-        // MariaDB/Oracle/SqlServer all spell it `coalesce(...)`).
+        // `coalesce(assignee_id, ?)`.
         const expected = [
             { id: 1, owner: 1 },
             { id: 2, owner: 2 },

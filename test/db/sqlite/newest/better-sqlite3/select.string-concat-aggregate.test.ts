@@ -107,6 +107,6 @@ describe(ctx.label, () => {
     // Note: `stringConcatDistinct(col, separator)` is NOT exposed on
     // SqliteConnection because SQLite always rejects
     // `group_concat(distinct X, sep)` with `DISTINCT aggregates must have
-    // exactly one argument`. The compile-time rejection is locked by
-    // `test/db/sqlite/types.negative/select.test.ts`.
+    // exactly one argument`. The compile-time rejection is locked by this
+    // dialect's `types.negative` suite.
 })

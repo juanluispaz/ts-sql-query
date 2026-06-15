@@ -2,16 +2,10 @@
 // suite leaves alone:
 //
 //   1. `aggregateAsArrayDistinct({...})` — the object-shape `distinct`
-//      form, distinct from `aggregateAsArrayOfOneColumnDistinct` which
-//      `docs.aggregate-as-object-array.test.ts` already exercises.
-//      Lands on `_appendAggragateArrayColumns(distinct=true, columns=object)`
-//      on every dialect's SqlBuilder — each builder overrides the
-//      method and renders distinct + json-object together in its own
-//      shape (PostgreSQL: `json_agg(distinct jsonb_build_object(...))`,
-//      SQLite: `json_group_array(distinct json_object(...))`,
-//      MySQL/MariaDB: `json_arrayagg(distinct json_object(...))`,
-//      Oracle: `json_arrayagg(distinct json_object(...))`, SQL Server:
-//      a `FOR JSON PATH` subquery).
+//      form, distinct from the one-column
+//      `aggregateAsArrayOfOneColumnDistinct`. Each dialect renders
+//      distinct + json-object together in its own shape, pinned per cell
+//      by the snapshot below.
 //
 //   2. `.useEmptyArrayForNoValue()` — JS-level result transformation
 //      that coerces a `null` aggregate (LEFT JOIN with zero matching

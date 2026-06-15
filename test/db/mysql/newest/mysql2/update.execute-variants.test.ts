@@ -84,7 +84,7 @@ describe(ctx.label, () => {
     // MySQL has no UPDATE … RETURNING in any released version, so the
     // fluent API narrows `returningOneColumn`/`returning` to `never` for
     // `mysql` and these bodies would not even type-check here.
-    // NOT-APPLICABLE: MySQL has no UPDATE ... RETURNING; `returning`/`returningOneColumn` are typed `never` on the mysql dialect (a permanent compile-time frontier, asserted in test/db/mysql/types.negative/update.test.ts). The body runs in the dialects that support RETURNING (postgres, sqlite, mariadb, sqlserver, oracle).
+    // NOT-APPLICABLE: MySQL has no UPDATE ... RETURNING; `returning`/`returningOneColumn` are typed `never` on the mysql dialect (a permanent compile-time frontier asserted in this dialect's `types.negative` suite).
     /*
     test('execute-update-none-or-one-with-returning-one-column', async () => {
         // `executeUpdateNoneOrOne()` + `returningOneColumn(col)` returns
@@ -107,7 +107,7 @@ describe(ctx.label, () => {
     // MySQL has no UPDATE … RETURNING in any released version, so the
     // fluent API narrows `returningOneColumn`/`returning` to `never` for
     // `mysql` and these bodies would not even type-check here.
-    // NOT-APPLICABLE: MySQL has no UPDATE ... RETURNING; `returning`/`returningOneColumn` are typed `never` on the mysql dialect (a permanent compile-time frontier, asserted in test/db/mysql/types.negative/update.test.ts). The body runs in the dialects that support RETURNING (postgres, sqlite, mariadb, sqlserver, oracle).
+    // NOT-APPLICABLE: MySQL has no UPDATE ... RETURNING; `returning`/`returningOneColumn` are typed `never` on the mysql dialect (a permanent compile-time frontier asserted in this dialect's `types.negative` suite).
     /*
     test('execute-update-none-or-one-with-returning-one-column-empty-result', async () => {
         // Same path as the previous test but the engine returns no row →
@@ -131,7 +131,7 @@ describe(ctx.label, () => {
     // MySQL has no UPDATE … RETURNING in any released version, so the
     // fluent API narrows `returningOneColumn`/`returning` to `never` for
     // `mysql` and these bodies would not even type-check here.
-    // NOT-APPLICABLE: MySQL has no UPDATE ... RETURNING; `returning`/`returningOneColumn` are typed `never` on the mysql dialect (a permanent compile-time frontier, asserted in test/db/mysql/types.negative/update.test.ts). The body runs in the dialects that support RETURNING (postgres, sqlite, mariadb, sqlserver, oracle).
+    // NOT-APPLICABLE: MySQL has no UPDATE ... RETURNING; `returning`/`returningOneColumn` are typed `never` on the mysql dialect (a permanent compile-time frontier asserted in this dialect's `types.negative` suite).
     /*
     test('execute-update-many-with-min-max-throws-when-out-of-range', async () => {
         // `executeUpdateMany(min, max)` checks `rows.length` after the
@@ -158,7 +158,7 @@ describe(ctx.label, () => {
     // MySQL has no UPDATE … RETURNING in any released version, so the
     // fluent API narrows `returningOneColumn`/`returning` to `never` for
     // `mysql` and these bodies would not even type-check here.
-    // NOT-APPLICABLE: MySQL has no UPDATE ... RETURNING; `returning`/`returningOneColumn` are typed `never` on the mysql dialect (a permanent compile-time frontier, asserted in test/db/mysql/types.negative/update.test.ts). The body runs in the dialects that support RETURNING (postgres, sqlite, mariadb, sqlserver, oracle).
+    // NOT-APPLICABLE: MySQL has no UPDATE ... RETURNING; `returning`/`returningOneColumn` are typed `never` on the mysql dialect (a permanent compile-time frontier asserted in this dialect's `types.negative` suite).
     /*
     test('execute-update-many-with-min-max-throws-when-over-max', async () => {
         // Same guard but on the max side: WHERE matches all 4 seeded
@@ -198,7 +198,7 @@ describe(ctx.label, () => {
         expect(affected).toBe(0)
     })
 
-    // NOT-APPLICABLE: `executeUpdateNoneOrOne` is a RETURNING executor reached through `returningOneColumn`, which narrows to `never` on MySQL (no UPDATE … RETURNING); the shared empty-set short-circuit (→ null) is covered in the postgres/sqlite/mariadb cells.
+    // NOT-APPLICABLE: `executeUpdateNoneOrOne` is a RETURNING executor reached through `returningOneColumn`, which narrows to `never` on MySQL (no UPDATE … RETURNING).
     /*
     test('execute-update-none-or-one-with-no-sets-resolves-null', async () => {
         // Same empty-set short-circuit on the none-or-one path: with no
@@ -219,7 +219,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-APPLICABLE: `executeUpdateOne` is a RETURNING executor reached through `returningOneColumn`, which narrows to `never` on MySQL (no UPDATE … RETURNING); the shared empty-set short-circuit (→ NO_COLUMN_SETS on the one-row path) is covered in the postgres/sqlite/mariadb cells.
+    // NOT-APPLICABLE: `executeUpdateOne` is a RETURNING executor reached through `returningOneColumn`, which narrows to `never` on MySQL (no UPDATE … RETURNING).
     /*
     test('execute-update-one-with-no-sets-throws-no-column-sets', async () => {
         // The one-row path cannot resolve "no row" as success, so the
@@ -244,7 +244,7 @@ describe(ctx.label, () => {
     // MySQL has no UPDATE … RETURNING, so `.returning(...)` narrows to
     // `never` and the body would not type-check. The short-circuit it
     // exercises is dialect-independent.
-    // NOT-APPLICABLE: MySQL has no UPDATE ... RETURNING; `returning`/`returningOneColumn` are typed `never` on the mysql dialect (a permanent compile-time frontier, asserted in test/db/mysql/types.negative/update.test.ts). The body runs in the dialects that support RETURNING (postgres, sqlite, mariadb, sqlserver, oracle).
+    // NOT-APPLICABLE: MySQL has no UPDATE ... RETURNING; `returning`/`returningOneColumn` are typed `never` on the mysql dialect (a permanent compile-time frontier asserted in this dialect's `types.negative` suite).
     /*
     test('execute-update-many-with-no-sets-resolves-empty-array', async () => {
         // Empty-set short-circuit on the returning-many path: resolves [],

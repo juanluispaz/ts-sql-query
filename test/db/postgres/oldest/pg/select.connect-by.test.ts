@@ -18,7 +18,7 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // NOT-APPLICABLE: `.startWith` / `.connectBy` / `.connectByNoCycle` are typed `never` on PostgreSQL (Oracle-only `START WITH … CONNECT BY` syntax); equivalent shape on PostgreSQL is a recursive CTE — see `cte.recursive-union-variants.test.ts`.
+    // NOT-APPLICABLE: `.startWith` / `.connectBy` / `.connectByNoCycle` are typed `never` on PostgreSQL (`START WITH … CONNECT BY` is hierarchical-query syntax not supported here); the equivalent shape on PostgreSQL is a recursive CTE.
     /*
     test('start-with-connect-by-prior-walks-tree-from-roots', async () => {
         // Tree shape after seeding: 3 ← 2 ← 1, plus 4 (root standalone).
@@ -66,7 +66,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-APPLICABLE: `.startWith` / `.connectBy` / `.connectByNoCycle` are typed `never` on PostgreSQL (Oracle-only `START WITH … CONNECT BY` syntax); equivalent shape on PostgreSQL is a recursive CTE — see `cte.recursive-union-variants.test.ts`.
+    // NOT-APPLICABLE: `.startWith` / `.connectBy` / `.connectByNoCycle` are typed `never` on PostgreSQL (`START WITH … CONNECT BY` is hierarchical-query syntax not supported here); the equivalent shape on PostgreSQL is a recursive CTE.
     /*
     test('connect-by-nocycle-emits-nocycle-keyword', async () => {
         // `connectByNoCycle` is the cycle-safe variant — Oracle stops
@@ -107,7 +107,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-APPLICABLE: `.startWith` / `.connectBy` / `.connectByNoCycle` are typed `never` on PostgreSQL (Oracle-only `START WITH … CONNECT BY` syntax); equivalent shape on PostgreSQL is a recursive CTE — see `cte.recursive-union-variants.test.ts`.
+    // NOT-APPLICABLE: `.startWith` / `.connectBy` / `.connectByNoCycle` are typed `never` on PostgreSQL (`START WITH … CONNECT BY` is hierarchical-query syntax not supported here); the equivalent shape on PostgreSQL is a recursive CTE.
     /*
     test('start-with-where-and-connect-by-combine', async () => {
         // WHERE narrows the hierarchical result post-walk. START WITH
@@ -164,7 +164,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-APPLICABLE: `.startWith` / `.connectBy` / `.connectByNoCycle` are typed `never` on PostgreSQL (Oracle-only `START WITH … CONNECT BY` syntax); equivalent shape on PostgreSQL is a recursive CTE — see `cte.recursive-union-variants.test.ts`.
+    // NOT-APPLICABLE: `.startWith` / `.connectBy` / `.connectByNoCycle` are typed `never` on PostgreSQL (`START WITH … CONNECT BY` is hierarchical-query syntax not supported here); the equivalent shape on PostgreSQL is a recursive CTE.
     /*
     test('connect-by-ordering-siblings-only-emits-order-siblings-by', async () => {
         // `.orderingSiblingsOnly()` swaps the trailing `order by` for

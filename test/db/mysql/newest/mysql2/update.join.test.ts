@@ -1,16 +1,17 @@
 // `UPDATE … INNER JOIN j ON … WHERE …` — multi-table UPDATE where the
-// JOIN method (not just `.from(...)`) is used. Only MariaDB and MySQL
-// type `.innerJoin` / `.leftJoin` on `UpdateExpression`
-// `OnExpressionFnType` is narrowed to `'noopDB' | 'mariaDB' | 'mySql'`).
-// On those two dialects the library emits MariaDB/MySQL's
-// `UPDATE t INNER JOIN j ON ... SET ... WHERE ...` form natively
+// JOIN method (not just `.from(...)`) is used. The `.innerJoin` /
+// `.leftJoin` methods on `UpdateExpression` are typed `never` on the
+// dialects whose grammar has no JOIN-on-UPDATE form, so this file runs
+// only where they are part of the typed surface and is commented out
+// elsewhere with a NOT-APPLICABLE marker. Where it runs, the library
+// emits the dialect's multi-table UPDATE form; the emitted SQL is
+// pinned by the snapshot below.
 //
 // Pins the UpdateQueryBuilder `innerJoin` / `leftJoin` / `leftOuterJoin` /
-// `dynamicOn` / `on` / `and`-on-join branches
-// that aren't reached by `update.from.test.ts` (which only uses
-// `.from(table)`). The `.and()` after `.on()` exercises a different code
-// path than `.where().and()` because it lands on `__lastJoin.__on`
-// instead of `__where`.
+// `dynamicOn` / `on` / `and`-on-join branches that aren't reached by the
+// plain `.from(table)` form. The `.and()` after `.on()` exercises a
+// different code path than `.where().and()` because it lands on
+// `__lastJoin.__on` instead of `__where`.
 //
 // Mock-mode pins the SQL; real-DB mode wraps each update in
 // `ctx.withRollback` so the seed survives.

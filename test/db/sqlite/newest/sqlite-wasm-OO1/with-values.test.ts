@@ -1,12 +1,10 @@
 // Behavioral coverage of `connection.Values` used as a `WITH name(c1, c2)
-// AS (VALUES ...)` clause. Each SqlBuilder owns its own
-// `_buildWithValues` implementation (Abstract default for sqlite/oracle,
-// dialect overrides on postgres / sqlserver). No existing test reaches
-// this path on the new test matrix.
+// AS (VALUES ...)` clause. The `WITH ... VALUES` form this dialect emits
+// is pinned by the snapshot below.
 //
-// Values is typed only on postgres / sqlite / sqlserver / oracle / noopDB
-// — mariadb and mysql block-comment their copies with a "not supported"
-// note to keep the symmetry audit happy.
+// `Values` is typed only on the dialects that support this surface; the
+// cells whose dialect types it `never` block-comment their copies with a
+// "not supported" note to keep the symmetry audit happy.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { Values } from '../../../../../src/Values.js'

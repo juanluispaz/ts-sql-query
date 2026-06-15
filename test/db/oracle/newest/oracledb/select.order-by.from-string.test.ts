@@ -11,12 +11,10 @@
 //   - the `IfValue` no-op branch (null / undefined / empty string)
 //   - the validation errors: unknown column / unknown ordering keyword
 //
-// Each ordering token is mapped by the per-dialect SqlBuilder
-// (`_appendOrderBy`/`_appendOrderByItem*` in
-// `AbstractSqlBuilder`/`AbstractMySqlMariaBDSqlBuilder`/etc.). Dialects
-// without native `NULLS FIRST`/`NULLS LAST` (mysql, mariadb, sqlserver)
-// emit a `CASE WHEN col IS NULL …` fallback — the snapshot is the
-// authoritative SQL per cell.
+// Each ordering token is mapped by the per-dialect builder. Dialects
+// without native `NULLS FIRST`/`NULLS LAST` emit a
+// `CASE WHEN col IS NULL …` fallback — the snapshot is the authoritative
+// SQL per cell.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'

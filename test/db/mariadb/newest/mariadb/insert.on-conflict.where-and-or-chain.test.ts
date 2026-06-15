@@ -19,7 +19,7 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // NOT-APPLICABLE: MariaDB uses the bare onConflictDoUpdateSet form — `.onConflictOn(...)` is not typed on `MariaDBConnection` (MariaDB's `ON DUPLICATE KEY UPDATE` grammar takes no column list and no WHERE clause); see `test/db/mariadb/types.negative/insert.test.ts`.
+    // NOT-APPLICABLE: MariaDB uses the bare onConflictDoUpdateSet form — `.onConflictOn(...)` is not typed on `MariaDBConnection` (MariaDB's `ON DUPLICATE KEY UPDATE` grammar takes no column list and no WHERE clause); see this dialect's `types.negative` suite.
     /*
     test('do-update-set-where-then-and-or-builds-compound-update-predicate', async () => {
         // `onConflictOn(cols).doUpdateSet(...).where(c1).and(c2).or(c3)`
@@ -56,7 +56,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-APPLICABLE: MariaDB uses the bare onConflictDoUpdateSet form — `.onConflictOn(...)` is not typed on `MariaDBConnection` (MariaDB's `ON DUPLICATE KEY UPDATE` grammar takes no column list and no WHERE clause); see `test/db/mariadb/types.negative/insert.test.ts`.
+    // NOT-APPLICABLE: MariaDB uses the bare onConflictDoUpdateSet form — `.onConflictOn(...)` is not typed on `MariaDBConnection` (MariaDB's `ON DUPLICATE KEY UPDATE` grammar takes no column list and no WHERE clause); see this dialect's `types.negative` suite.
     /*
     test('on-columns-where-then-and-or-builds-compound-partial-index-predicate', async () => {
         // `onConflictOn(cols).where(c1).and(c2).or(c3).doUpdateSet(...)`

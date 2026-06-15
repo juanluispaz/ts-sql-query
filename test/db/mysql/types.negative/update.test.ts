@@ -42,9 +42,8 @@ function _typeNegatives() {
     void connection.update(tIssue).set({ title: 'x' }).where(tIssue.priority.equalsIfValue('high'))
 
     // Rule: MySQL does not support `UPDATE ... RETURNING`. The
-    // `.returning({...})` method is typed only on postgres, sqlite,
-    // mariadb, oracle, sqlserver, and the noop dialect; on the mysql
-    // dialect it resolves to `never` and the call must not typecheck.
+    // `.returning({...})` method is not typed on the mysql dialect; it
+    // resolves to `never` and the call must not typecheck.
     // @ts-expect-error returning() is not typed on the mysql dialect (UPDATE ... RETURNING unsupported)
     void connection.update(tProject).set({ name: 'x' }).where(tProject.id.equals(1)).returning({
         id: tProject.id,

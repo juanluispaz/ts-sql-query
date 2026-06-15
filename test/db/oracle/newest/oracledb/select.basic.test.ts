@@ -6,9 +6,9 @@
 // updated en masse via `bun test --update-snapshots` (or
 // `bunx vitest run -u`) whenever the library's emitted SQL changes.
 //
-// The seed dataset (test/db/sqlite/domain/seed.sql) and the values primed
-// via `ctx.mockNext(...)` are kept aligned so a single
-// `expect(result).toEqual(expected)` line covers both modes.
+// The seed dataset and the values primed via `ctx.mockNext(...)` are kept
+// aligned so a single `expect(result).toEqual(expected)` line covers
+// both modes.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'

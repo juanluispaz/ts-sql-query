@@ -1,5 +1,6 @@
-// Coverage of `DELETE … USING other-table` (PostgreSQL/SQL Server/
-// MariaDB/MySQL syntax). SQLite and Oracle don't support it.
+// Coverage of `DELETE … USING other-table`. Runs where the dialect
+// supports a `USING` clause on DELETE; commented out elsewhere with a
+// NOT-APPLICABLE marker.
 
 import { afterAll, beforeAll, beforeEach, describe } from '../../../../lib/testRunner.js'
 import { ctx } from './setup.js'

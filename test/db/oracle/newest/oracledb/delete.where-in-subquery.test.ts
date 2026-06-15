@@ -1,9 +1,6 @@
 // Coverage of DELETE with a subquery in the WHERE clause — the most
 // portable cross-dialect way to delete rows that match a derived set
 // (works on every supported backend because it's pure standard SQL).
-// Together with `delete.using.test.ts` (PG/MySQL/MariaDB/MSSQL
-// extension) and `delete.returning.test.ts` (PG/SQLite/SqlServer/
-// MariaDB), this rounds out the DELETE shape coverage.
 //
 //   - `.deleteFrom(t).where(t.id.in(connection.selectFrom(...))...)`
 //   - `.deleteFrom(t).where(connection.subSelectUsing(t)...exists())`

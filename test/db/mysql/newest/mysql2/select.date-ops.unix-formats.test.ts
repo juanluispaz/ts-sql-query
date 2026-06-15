@@ -15,7 +15,7 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // NOT-APPLICABLE: MySQL — unix epoch date format is SQLite-specific
+    // NOT-APPLICABLE: MySQL has no Unix-epoch date format
     /*
     const REF = new Date(Date.UTC(2024, 0, 15, 10, 30, 45, 123))
 
@@ -52,7 +52,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-APPLICABLE: MySQL — unix epoch date format is SQLite-specific
+    // NOT-APPLICABLE: MySQL has no Unix-epoch date format
     /*
     test('format Unix time milliseconds: extract all components', async () => {
         const conn = ctx.withDateTimeFormat('Unix time milliseconds as integer')

@@ -1,25 +1,13 @@
 // Coverage of `.minValue(other)` / `.maxValue(other)` on numeric value
-// sources — the public surface that lands on
-// `_maximumBetweenTwoValues` / `_minimumBetweenTwoValues` in each
-// SqlBuilder. The semantic of the API is "constrain to at-least X" /
-// "constrain to at-most X", which inverts to the dialect SQL function:
-//   - `.minValue(X)` (floor) → `greatest(value, X)` / `max(value, X)`
-//   - `.maxValue(X)` (cap)   → `least(value, X)`    / `min(value, X)`
+// sources. The API semantic is "constrain to at-least X" / "constrain
+// to at-most X":
+//   - `.minValue(X)` (floor) → the greater of the two values
+//   - `.maxValue(X)` (cap)   → the lesser of the two values
+// The exact SQL function this dialect renders is pinned by the snapshot
+// below.
 //
-// The dialect SQL diverges sharply:
-//
-//   - SQLite                          → `min(a, b)` / `max(a, b)`
-//     (sqlite's scalar `min` / `max` are variadic — distinct from the
-//     aggregate forms by arity).
-//   - PostgreSQL / Oracle / MariaDB / MySQL → `least(a, b)` / `greatest(a, b)`
-//     (the abstract default).
-//   - SQL Server (compat ≥ 16_000_000) → native `least(a, b)` / `greatest(a, b)`.
-//     Older compat versions emit `iif(... < ..., ..., ...)` — not
-//     exercised here because the only sqlserver cell in the matrix is
-//     `newest/` (POSITIVE_INFINITY, i.e. ≥ 16).
-//
-// No test in the suite calls these operators today, so every emitter
-// listed above is dead code at runtime until this file runs.
+// No test in the suite calls these operators today, so this file is
+// their only coverage.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -119,10 +107,9 @@ describe(ctx.label, () => {
         // the TS result type retains the `?` on `capped` even when the
         // runtime values are all non-null.
         //
-        // NULL semantics diverge across dialects (PostgreSQL/SQL Server
-        // ignore NULL inputs in least/greatest, every other dialect
-        // propagates NULL), so the WHERE clause filters NULL rows
-        // before the operator runs to keep the value assertion stable.
+        // NULL handling in least/greatest differs across dialects, so the
+        // WHERE clause filters NULL rows before the operator runs to keep
+        // the value assertion stable.
         // The optional flag we lock here is structural — it lives in
         // the TS type and does not depend on the runtime rows.
         // Seeded `(id, assignee_id)` after the filter: (1,1), (2,2), (4,3).

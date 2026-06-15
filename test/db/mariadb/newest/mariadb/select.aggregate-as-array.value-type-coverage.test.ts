@@ -1,23 +1,13 @@
 // `aggregateAsArray` / `aggregateAsArrayOfOneColumn` across value types
 // the existing tests don't exercise (`boolean`, `localDateTime`,
-// optional `localDateTime`). Motivated by gaps
-// `_appendJsonValueForAggregate` / `_appendJsonValueForWrappedAggregate`:
-// each case of the `switch(type)` (boolean/int/double, bigint/customInt/
-// customDouble/uuid, string/aggregatedArray, localDate/localTime/
-// localDateTime/customLocal*, default) emits a distinct JSON-escaping
-// SQL shape on T-SQL ≥ SQL Server 2016 (compatibilityVersion ≥ 13_000_000).
-// The `isnull(..., 'null')` optional-wrapper
-// is reached only when the column is `optional` — covered by the
-// `aggregate-of-optional-local-date-time` test below.
-//
-// On every other dialect the emission funnels through different SQL
-// (PostgreSQL `json_agg`, MariaDB/MySQL `json_arrayagg`, SQLite
-// `json_group_array`, Oracle `json_arrayagg`), so the test runs
-// everywhere; only the inline snapshots diverge.
-//
-// `int` / `string` aggregations are already pinned by
-// `docs.aggregate-as-object-array.test.ts`; this file deliberately
-// avoids re-doing them to stay focused on the gaps.
+// optional `localDateTime`). On dialects that build JSON through a
+// per-value-type switch, each type emits a distinct JSON-escaping SQL
+// shape, and the optional-wrapper is reached only when the column is
+// `optional` — covered by the `aggregate-of-optional-local-date-time`
+// test below. The test runs on every dialect; only the inline snapshots
+// diverge. `int` / `string` aggregations are already covered elsewhere,
+// so this file deliberately avoids re-doing them to stay focused on the
+// gaps.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -64,11 +54,10 @@ describe(ctx.label, () => {
     })
 
     test('aggregate-of-local-date-time-column-as-array', async () => {
-        // Pins the `localDateTime` case in the SqlServer JSON switch
-        // — the only path that emits `convert(nvarchar, ..., 127)` for
-        // ISO 8601 formatting. On PG / MariaDB / MySQL / SQLite /
-        // Oracle the SQL just routes through the native JSON aggregator
-        // with no per-column convert.
+        // Exercises the `localDateTime` value type in the JSON
+        // aggregate. On dialects with a per-type JSON switch this is the
+        // path that formats the timestamp for ISO 8601; the exact form
+        // is pinned by the snapshot below.
         ctx.mockNext([
             { projectId: 1, createdAts: [new Date('2024-01-01T00:00:00Z'), new Date('2024-01-02T00:00:00Z')] },
         ])
@@ -99,8 +88,9 @@ describe(ctx.label, () => {
     })
 
     test('aggregate-of-optional-local-date-time-column-as-array', async () => {
-        // `tProject.archivedAt` is `optional` — the SqlServer JSON
-        // emission wraps the per-element SQL with `isnull(..., 'null')`
+        // `tProject.archivedAt` is `optional` — on dialects with a
+        // per-type JSON switch the per-element SQL is wrapped to
+        // preserve NULLs; the exact form is pinned by the snapshot below.
         // The seed has project 4 archived and projects 1–3 not — at
         // least one NULL is present in the aggregate.
         ctx.mockNext([
@@ -134,11 +124,10 @@ describe(ctx.label, () => {
     })
 
     test('aggregate-of-bigint-column-as-array', async () => {
-        // Pins the `bigint` case in the SqlServer JSON switch. SqlServer
-        // wraps bigint with `convert(nvarchar, ..., 0)` (the value
-        // doesn't fit in a JSON int reliably). PG / MariaDB / MySQL /
-        // SQLite / Oracle route the bigint through the native JSON
-        // aggregator. `tIssue.viewCount` is `bigint`.
+        // Exercises the `bigint` value type in the JSON aggregate (a
+        // bigint doesn't fit in a JSON int reliably, so dialects with a
+        // per-type switch convert it); the exact form is pinned by the
+        // snapshot below. `tIssue.viewCount` is `bigint`.
         //
         // The seed leaves `view_count` at its `0n` default, which would
         // make the asserted aggregate trivially `[0n, 0n]`. We UPDATE

@@ -53,7 +53,7 @@ function _typeNegatives() {
 
     // Rule: MySQL's `ON DUPLICATE KEY UPDATE` has no inference target
     // (no column list, no `ON CONSTRAINT`), so `.onConflictOn(...)` is
-    // not exposed on MySqlConnection. The PostgreSQL/SQLite-only
+    // not exposed on MySqlConnection; the targeted
     // `.onConflictOn(col).doUpdateSet({...})` form must not compile.
     void connection.insertInto(tProject)
         .values({ organizationId: 1, slug: 'x', name: 'y' })

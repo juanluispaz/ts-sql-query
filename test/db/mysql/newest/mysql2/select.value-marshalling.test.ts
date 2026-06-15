@@ -12,13 +12,8 @@
 // only loses that test (not the others). Connector limitations surfaced:
 //   - bigint: the `sqlite3` driver can't bind a JS BigInt (sends NULL).
 //   - uuid:   the shared test connection defaults to the `'string'` uuid
-//             strategy (see test/db/sqlite/domain/connection.ts), so uuid
-//             columns round-trip as plain TEXT on every sqlite connector —
-//             no `uuid_blob` / `uuid_str` helper is needed. (SQLite's binary
-//             `'uuid-extension'` emission — which only better-sqlite3 /
-//             node:sqlite / sqlite-wasm-OO1 can run end-to-end; sqlite3 and
-//             bun:sqlite lack the user-defined-function API — is pinned
-//             mock-only in the sqlite cells' config.uuid-strategy.test.ts.)
+//             strategy, so uuid columns round-trip as plain TEXT and no
+//             binary uuid helper is needed.
 //
 // Bodies run inside `ctx.withRollback(...)`. The value assertion is
 // identical in both modes: `expected` carries the exact JS values

@@ -8,12 +8,11 @@
 //     value-gated variant — properties whose values fail `_isValue` are
 //     dropped before the SET clause is emitted.
 //   - The bare-form siblings (`.onConflictDoUpdateDynamicSet({…?})` and
-//     `.onConflictDoUpdateSetIfValue({...})`) are mariadb/mysql/sqlite only
-//     and are commented out for symmetry in the cells whose dialect does
-//     not type them.
+//     `.onConflictDoUpdateSetIfValue({...})`) are commented out for
+//     symmetry in the cells whose dialect does not type them.
 //
 // The static `.onConflictDoUpdateSet({...})` / `.doUpdateSet({...})` paths
-// are already pinned by `insert.on-conflict.test.ts`; this file only
+// are already pinned by the static on-conflict coverage; this file only
 // exercises the dynamic + value-gated variants.
 
 import { afterAll, beforeAll, beforeEach, describe } from '../../../../lib/testRunner.js'

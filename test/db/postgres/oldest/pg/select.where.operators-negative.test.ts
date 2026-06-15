@@ -1,14 +1,7 @@
 // Behavioral coverage of case-sensitive predicate operators that the
 // existing operator suites don't yet exercise: `.like`, `.notLike`,
 // `.notStartsWith`, `.notEndsWith`, `.notContains`, `.notBetween`.
-// The Insensitive variants are covered in
-// select.where.operators-insensitive.test.ts; the positive forms
-// (startsWith/endsWith/contains) live in select.string-ops.test.ts.
-//
-// Each dialect picks a different rendering: SQLite/PostgreSQL emit
-// `like ... escape '\\'` with `||` concatenation, MySQL/MariaDB use
-// `concat(...)`, SqlServer wraps both sides for `not like` predicates
-// and Oracle drops the `escape` clause.
+// The exact rendering this dialect emits is pinned by the snapshot below.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'

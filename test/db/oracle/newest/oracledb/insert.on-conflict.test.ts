@@ -84,8 +84,8 @@ describe(ctx.label, () => {
     // NOT-APPLICABLE: Oracle has no INSERT…ON CONFLICT (uses MERGE)
     /*
     test('on-conflict-on-columns-do-update', async () => {
-        // ON CONFLICT (cols) DO UPDATE — postgres/sqlite syntax. mariadb
-        // ignores the column list and uses the row's keys.
+        // ON CONFLICT (cols) DO UPDATE. The emitted form is pinned by the
+        // snapshot below.
         ctx.mockNext(1)
         await ctx.withRollback(async () => {
             const affected = await ctx.conn.insertInto(tProject)
@@ -115,12 +115,9 @@ describe(ctx.label, () => {
     // NOT-APPLICABLE: Oracle has no INSERT…ON CONFLICT (uses MERGE)
     /*
     test('on-conflict-do-update-with-expression', async () => {
-        // The SET clause receives a value-source RHS (not a plain literal),
-        // exercising the value-source branch of `_appendValueForColumn` in
-        // `_buildInsertOnConflictBeforeReturning`. The dialects emit very
-        // different SQL here:
-        //   - sqlite / postgres → `name = name || ?`
-        //   - mariadb / mysql   → `name = concat(name, ?)`
+        // The SET clause receives a value-source RHS (not a plain
+        // literal), exercising the value-source branch of the upsert SET
+        // rendering; the emitted form is pinned by the snapshot below.
         ctx.mockNext(1)
         await ctx.withRollback(async () => {
             const affected = await ctx.conn.insertInto(tProject)
@@ -154,10 +151,8 @@ describe(ctx.label, () => {
     /*
     test('on-conflict-do-update-with-inserted-row-ref', async () => {
         // `tProject.valuesForInsert()` exposes a table-like reference to
-        // the row that was attempted to be inserted. Each dialect emits
-        // a different identifier for it:
-        //   - sqlite / postgres → `excluded.<col>`
-        //   - mariadb / mysql   → `values(<col>)`
+        // the row that was attempted to be inserted. The identifier this
+        // dialect emits for it is pinned by the snapshot below.
         ctx.mockNext(1)
         await ctx.withRollback(async () => {
             const tProjectForInsert = tProject.valuesForInsert()

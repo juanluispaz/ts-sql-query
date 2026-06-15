@@ -42,7 +42,7 @@ describe(ctx.label, () => {
         expect(result).toBe(1)
     })
 
-    // Body kept verbatim (from the pg/mysql cells) for cross-cell diff parity.
+    // Body kept verbatim for cross-cell diff parity.
     // NOT-APPLICABLE: Oracle takes an isolation level OR an access mode, not
     // both — `isolationLevel` has no level+accessMode overload.
     /*

@@ -195,14 +195,13 @@ describe(ctx.label, () => {
     // for Oracle: there is no way to drive a 0-row INSERT that still returns
     // through RETURNING, and a `.values(...)` INSERT always writes its row. The
     // empty-result -> null coercion (pure JS in the result processor) is therefore
-    // unreachable on a real Oracle engine; it is validated on the connectors whose
-    // from-select RETURNING supports it (pg / sqlite / sqlServer / mariaDB).
+    // unreachable on a real Oracle engine; it is validated on the dialects whose
+    // from-select RETURNING supports a 0-row insert.
     // NOT-APPLICABLE: Oracle rejects RETURNING with INSERT...SELECT (ORA-03049), so a 0-row returning insert is not expressible (returningOneColumn on from-select is `never`).
     /*
     test('execute-insert-none-or-one-with-returning-one-column-empty-result', async () => {
         // would drive a never-matching INSERT ... SELECT and assert
-        // executeInsertNoneOrOne() coerces the empty result to null; see the
-        // pg / sqlserver / mariadb cells.
+        // executeInsertNoneOrOne() coerces the empty result to null.
     })
     */
 

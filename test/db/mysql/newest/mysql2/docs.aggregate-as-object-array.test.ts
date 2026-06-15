@@ -211,6 +211,7 @@ describe(ctx.label, () => {
     // NOT-APPLICABLE: MySQL's JSON_ARRAYAGG does not accept DISTINCT, so aggregateAsArrayOfOneColumnDistinct is not declared on MySqlConnection
     /*
     test('docs:aggregate-as-object-array/aggregate-as-array-distinct', async () => {
+        // Per-issue counts of priorities, distinct list.
         ctx.mockNext({
             id: 1, name: 'Marketing site',
             priorities: JSON.stringify([1, 2]),

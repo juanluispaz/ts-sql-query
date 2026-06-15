@@ -211,6 +211,7 @@ describe(ctx.label, () => {
     // NOT-APPLICABLE: `aggregateAsArrayOfOneColumnDistinct` is not exposed on OracleConnection — Oracle rejects `JSON_ARRAYAGG(DISTINCT …)` (ORA-30482) so the method is a TypeScript compile error here
     /*
     test('docs:aggregate-as-object-array/aggregate-as-array-distinct', async () => {
+        // Per-issue counts of priorities, distinct list.
         ctx.mockNext({
             id: 1, name: 'Marketing site',
             priorities: JSON.stringify([1, 2]),

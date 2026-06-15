@@ -1,6 +1,5 @@
-// Coverage of `UPDATE … FROM other-table` (PostgreSQL/SQLite/SQL Server
-// /MariaDB/MySQL syntax). Useful when the SET clause references another
-// table.
+// Coverage of `UPDATE … FROM other-table`: the SET clause references a
+// column of the joined-in table.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'

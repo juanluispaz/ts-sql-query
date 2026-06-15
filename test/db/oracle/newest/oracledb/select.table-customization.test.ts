@@ -44,10 +44,8 @@ describe(ctx.label, () => {
         await ctx.conn.selectFrom(tOrgCustom)
             .select({ id: tOrgCustom.id })
             .executeSelectMany()
-        // Oracle's `_supportTableAliasWithAs` is false, so
-        // `_rawFragmentTableAlias` emits the bare alias — `"o"`
-        // rather than `as "o"`. Oracle rejects the `AS` form with
-        // ORA-03048 between a table name and its alias.
+        // `${alias}` resolves to `as "o"` — the dialect-specific
+        // alias emitter on `_rawFragmentTableAlias`.
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select "o".id as "id" from /*+ hint */ "organization" "o""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
     })

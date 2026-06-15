@@ -96,8 +96,8 @@ describe(ctx.label, () => {
     })
 
     test('join-with-alias', async () => {
-        // No seeded issue sets `parent_id` (all NULL), so the self-join
-        // `child.parent_id = parent.id` yields no rows.
+        // Self-join on parent_id. No seeded issue has a parent_id, so the
+        // inner join matches nothing.
         const expected: Array<{ id: number; child: string }> = []
         ctx.mockNext(expected)
         const parent = tIssue.as('parent')

@@ -15,7 +15,6 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('uuid-asString-on-const', async () => {
-        // Runs end-to-end here — see file header.
         ctx.mockNext(UUID_VALUE)
         // The shared test connection now defaults to the `'string'` uuid
         // strategy; opt back into `'uuid-extension'` explicitly so this

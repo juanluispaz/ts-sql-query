@@ -1,22 +1,10 @@
-// `HAVING` chains and `dynamicHaving()` — gaps left by
-// `select.aggregation.test.ts`, which only exercises a single `.having(cond)`.
-//
-// Three distinct builder paths pinned here:
-//
-//   1. `.having(c1).and(c2).or(c3)` — chains `.and()` / `.or()` on top
-//      of `.having()`. The chain is mechanical SQL composition but
-//      exercises the `__inHaving` dispatch branch in
-//      [SelectQueryBuilder.ts:905-918 + L931-944](../../../../../src/queryBuilders/SelectQueryBuilder.ts#L905-L944)
-//      that is otherwise untouched by the matrix (the `.where().and()`
-//      and `.on().and()` dispatch branches share the same method).
-//   2. `.dynamicHaving()` followed by `.and(...)` — the dynamic
-//      counterpart, pinning the `__inHaving` setter at
-//      [L946-950](../../../../../src/queryBuilders/SelectQueryBuilder.ts#L946-L950).
-//      `dynamicHaving` is not exercised anywhere else in the matrix —
-//      `grep -r dynamicHaving test/` returns no other hits before this file.
-//   3. `.dynamicHaving()` with no `.and(...)` follow-up — the empty
-//      dynamic branch, where no HAVING clause is emitted at all
-//      (twin of `dynamicWhere`).
+// `HAVING` chains and `dynamicHaving()`:
+//   1. `.having(c1).and(c2).or(c3)` — chaining `.and()` / `.or()` on a
+//      committed HAVING predicate.
+//   2. `.dynamicHaving()` followed by `.and(...)` — builds the HAVING
+//      expression incrementally (twin of `dynamicWhere`).
+//   3. `.dynamicHaving()` with no `.and(...)` follow-up — the HAVING
+//      keyword is elided entirely.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -29,13 +17,10 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('having-and-then-or-chains-after-initial-having', async () => {
-        // `.having(c1).and(c2).or(c3)` — the `.and()` and `.or()`
-        // calls land on `__inHaving` dispatch, not on `__where`. The
-        // emitted SQL composes the three predicates with standard
-        // precedence: `((c1 AND c2) OR c3)`.
-        // HAVING `(count > 0 AND count < 10) OR max(priority) = 3` passes
-        // every group: closed (1 row), in_progress (1 row), open (2 rows).
-        // Ordered by status.
+        // `.having(c1).and(c2).or(c3)` composes `(c1 AND c2) OR c3`.
+        // Per status group: closed→count 1 (max priority 2), in_progress→1
+        // (max 1), open→2 (max 3). (count>0 AND count<10) is true for all
+        // three, so every group survives; ordered by status.
         const expected = [
             { status: 'closed',      total: 1 },
             { status: 'in_progress', total: 1 },
@@ -68,10 +53,9 @@ describe(ctx.label, () => {
     })
 
     test('dynamic-having-then-and-emits-having-clause', async () => {
-        // `.dynamicHaving()` sets `__inHaving = true` without committing
-        // a predicate; the subsequent `.and(cond)` builds the HAVING
-        // expression incrementally. Pins the dynamic-builder pattern
-        // documented for HAVING (twin of `dynamicWhere`).
+        // `.dynamicHaving()` opens a HAVING without committing a predicate;
+        // the subsequent `.and(cond)` builds it. Only the open status group
+        // has count > 1.
         const expected = [{ status: 'open', total: 2 }]
         ctx.mockNext(expected)
 

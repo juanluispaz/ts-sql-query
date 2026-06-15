@@ -10,13 +10,8 @@
 //   - `executeDeleteMany(min, max)` — the same min/max guards on the
 //     RETURNING-many path.
 //
-// MySQL does not support `DELETE … RETURNING` in any released
-// version, and the fluent surface in
-// [src/expressions/delete.ts:177-188](../../../../../src/expressions/delete.ts#L177-L188)
-// narrows `returning` / `returningOneColumn` to `never` for `mysql`
-// to encode that limitation in the type system. The four tests that
-// rely on those methods stay commented out here; the two `min`/`max`-
-// only tests run identically to every other dialect.
+// Mock-only for the min/max throw cases; the rest run inside
+// `withRollback` so real-DB cells stay clean.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -29,6 +24,10 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('execute-delete-with-min-max-passes-when-count-in-range', async () => {
+        // `executeDelete(2, 5)` accepts any count in [2, 5]. The
+        // WHERE matches every seeded issue (4 rows) so the assertion
+        // passes against the real DB too. Wrapped in `withRollback`
+        // to leave the seed intact.
         ctx.mockNext(4)
         await ctx.withRollback(async () => {
             const affected = await ctx.conn.deleteFrom(tIssue)
@@ -47,6 +46,8 @@ describe(ctx.label, () => {
     })
 
     test('execute-delete-throws-when-fewer-rows-than-min', async () => {
+        // `executeDelete(min)` with count < min raises
+        // `MINIMUM_ROWS_NOT_REACHED`.
         ctx.mockNext(0)
         let caught: unknown
         try {

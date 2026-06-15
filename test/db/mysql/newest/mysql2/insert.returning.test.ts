@@ -59,12 +59,33 @@ describe(ctx.label, () => {
     test('insert-project-returning-row', async () => {
         const expectedMock = { id: 100, name: 'Mobile app', slug: 'mobile' }
         ctx.mockNext(expectedMock)
+
         await ctx.withRollback(async () => {
             const inserted = await ctx.conn.insertInto(tProject)
-                .values({ organizationId: 1, name: 'Mobile app', slug: 'mobile' })
-                .returning({ id: tProject.id, name: tProject.name, slug: tProject.slug })
+                .values({
+                    organizationId: 1,
+                    name: 'Mobile app',
+                    slug: 'mobile',
+                })
+                .returning({
+                    id:   tProject.id,
+                    name: tProject.name,
+                    slug: tProject.slug,
+                })
                 .executeInsertOne()
-            // ... see other cells for the full body.
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof inserted, {
+                id: number
+                name: string
+                slug: string
+            }>>()
+
+            expect(inserted.name).toBe('Mobile app')
+            expect(inserted.slug).toBe('mobile')
+            expect(typeof inserted.id).toBe('number')
+            if (!ctx.realDbEnabled) expect(inserted.id).toBe(100)
         })
     })
     */
@@ -77,12 +98,22 @@ describe(ctx.label, () => {
     test('insert-many-organizations', async () => {
         const expectedMock = [{ id: 100 }, { id: 101 }]
         ctx.mockNext(expectedMock)
+
         await ctx.withRollback(async () => {
             const ids = await ctx.conn.insertInto(tOrganization)
-                .values([{ name: 'Acme East', plan: 'free' }, { name: 'Acme West', plan: 'pro' }])
+                .values([
+                    { name: 'Acme East', plan: 'free' },
+                    { name: 'Acme West', plan: 'pro' },
+                ])
                 .returning({ id: tOrganization.id })
                 .executeInsertMany()
-            // ... see other cells for the full body.
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof ids, Array<{ id: number }>>>()
+
+            expect(ids).toHaveLength(2)
+            if (!ctx.realDbEnabled) expect(ids).toEqual(expectedMock)
         })
     })
     */

@@ -109,12 +109,10 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
     test('union-with-insensitive-order-by', async () => {
-        // Compound (union) ordered case-insensitively. A compound ORDER BY may
-        // reference only result-column names / ordinal positions on the strict
-        // engines (PostgreSQL, SQL Server, Oracle — and SQLite for the `lower()`
-        // form), so the builder wraps the whole compound in `select * from (...)`
-        // and orders on the plain wrapper; MySQL/MariaDB (and SQLite for
-        // `collate`) order inline.
+        // Compound (union) ordered case-insensitively. A compound's ORDER
+        // BY may reference only result-column names / ordinal positions
+        // (no expressions), so the builder wraps the whole compound in
+        // `select * from (...)` and applies `lower(...)` on the plain wrapper.
         const expected = [
             { label: 'Document /v2/users' },
             { label: 'Internal tools' },

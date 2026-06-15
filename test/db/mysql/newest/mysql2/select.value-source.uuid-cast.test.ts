@@ -15,7 +15,6 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('uuid-asString-on-const', async () => {
-        // Runs end-to-end here — see file header.
         ctx.mockNext(UUID_VALUE)
         // Opt into the `'binary'` uuid strategy explicitly so this test
         // keeps asserting the `bin_to_uuid(uuid_to_bin(?))` shape.

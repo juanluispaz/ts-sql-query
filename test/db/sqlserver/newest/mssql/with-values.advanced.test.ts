@@ -146,6 +146,7 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{ pid: number; newName?: string }>>>()
+        // Projects 1 and 2 exist; only project 1 has a patch row → project 2's newName is absent.
         expect(rows).toEqual([
             { pid: 1, newName: 'one' },
             { pid: 2 },
@@ -153,11 +154,8 @@ describe(ctx.label, () => {
     })
 
     test('values-optional-column-allows-undefined-per-row', async () => {
-        // `optionalColumn('string')` constructs a `DBColumnImpl` flagged
-        // optional (L113-118 of `Values.ts`). Per-row `undefined` is
-        // accepted in the data, emitted as `NULL` in the VALUES
-        // tuple, and the projection surfaces the field as
-        // `string | undefined`.
+        // An optional column accepts per-row null/undefined, emitted as NULL
+        // in the VALUES tuple, and the projection surfaces it as optional.
         ctx.mockNext([
             { id: 1, newName: 'one'   },
             { id: 2, newName: undefined },
@@ -182,6 +180,7 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number; newName?: string }>>>()
+        // Row 2's null newName surfaces as an absent (undefined) field.
         expect(rows).toEqual([
             { id: 1, newName: 'one' },
             { id: 2 },
@@ -194,11 +193,9 @@ describe(ctx.label, () => {
         // `VIssueBilling` view above route through the
         // `typeof adapter === 'string'` branch of Values.ts:94-99 /
         // 128-133 — the only branch reached when the user passes a
-        // typeName. The emitted VALUES tuple still casts placeholders
-        // (`customInt` and `customDouble` are not enumerated in the
-        // postgres switch, so the fallback in
-        // `PostgreSqlConnection.transformPlaceholder` picks the cast
-        // from `typeof valueSentToDB` — `int4` / `float8`).
+        // typeName. The emitted VALUES tuple casts the placeholders for
+        // the custom-typed columns; the exact cast each dialect emits is
+        // pinned by the snapshot.
         ctx.mockNext([
             { issueId: 101 as IssueId, amount: 19.99 as Money },
             { issueId: 102 as IssueId, amount: undefined        },

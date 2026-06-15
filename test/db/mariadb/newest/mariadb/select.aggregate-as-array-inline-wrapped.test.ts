@@ -1,4 +1,4 @@
-// Coverage of `_appendAggragateArrayWrappedColumns` — reached when an
+// Coverage of the inline-aggregate wrapped path — reached when an
 // inline aggregate subquery (`forUseAsInlineAggregatedArrayValue()`)
 // also carries `group by`, `having`, a compound operator, or — on
 // engines that don't support `order by` / `limit` inside the aggregate
@@ -405,7 +405,7 @@ describe(ctx.label, () => {
         // source (ValueSourceImpl.ts:2145 —
         // AggregateSelectValueSource.asRequiredInOptionalObject) makes the
         // subquery the gate of an optional inner object. If the subquery
-        // aggregates no rows, json_agg returns NULL and the inner
+        // aggregates no rows, the array aggregate returns NULL and the inner
         // `meta` object is dropped from the row.
         ctx.mockNext([
             { pid: 3, 'meta.issues': [{ id: 4, title: 'Document /v2/users' }] },
@@ -484,13 +484,7 @@ describe(ctx.label, () => {
         }>>>()
         expect(rows).toEqual([{ pid: 3 }, { pid: 4 }])
     })
-
     test('inline-aggregate-order-by-asc-nulls-last', async () => {
-        // MariaDB-only path: when an inline aggregate carries an
-        // orderBy with `'asc nulls last'`,
-        // `_buildAggregateArrayOrderBy` (AbstractMySqlMariaBDSqlBuilder.ts:158-159)
-        // emits `<expr> is null, <expr> asc` INSIDE `json_arrayagg(...)`.
-        // Other dialects either wrap the subquery or skip this path.
         ctx.mockNext({
             id: 1, name: 'Acme Corp',
             projectNames: JSON.stringify(['Internal tools', 'Marketing site']),
@@ -523,9 +517,6 @@ describe(ctx.label, () => {
     })
 
     test('inline-aggregate-order-by-desc-nulls-first', async () => {
-        // Twin of the above for `'desc nulls first'`
-        // (AbstractMySqlMariaBDSqlBuilder.ts:161-162): emits
-        // `<expr> is not null, <expr> desc`.
         ctx.mockNext({
             id: 1, name: 'Acme Corp',
             projectNames: JSON.stringify(['Marketing site', 'Internal tools']),
@@ -558,15 +549,6 @@ describe(ctx.label, () => {
     })
 
     test('inline-aggregate-order-by-asc-insensitive', async () => {
-        // `'asc insensitive'` reaches the insensitive branch
-        // (AbstractMySqlMariaBDSqlBuilder.ts:167-169) and calls
-        // `_appendOrderByColumnExpressionInsensitive`. Under the default
-        // connection (`insensitiveCollation` undefined), the helper
-        // (L202-218) returns the plain expression — so the inline
-        // aggregate's order-by clause is bytewise identical to a plain
-        // `'asc'`. Pinning the snapshot here means a future change that
-        // introduces a default collation would surface as a snapshot
-        // diff.
         ctx.mockNext({
             id: 1, name: 'Acme Corp',
             projectNames: JSON.stringify(['Internal tools', 'Marketing site']),
@@ -599,12 +581,6 @@ describe(ctx.label, () => {
     })
 
     test('inline-aggregate-order-by-asc-nulls-last-insensitive', async () => {
-        // The combined case
-        // (AbstractMySqlMariaBDSqlBuilder.ts:175-176): the plain
-        // expression goes first for the `is null` tie-breaker, then the
-        // insensitive variant for the actual sort. Under the default
-        // connection both halves emit the same bytes, but the line
-        // exists as a distinct switch arm.
         ctx.mockNext({
             id: 1, name: 'Acme Corp',
             projectNames: JSON.stringify(['Internal tools', 'Marketing site']),
@@ -635,5 +611,6 @@ describe(ctx.label, () => {
         }>>()
         expect(row).toEqual({ id: 1, projectNames: ['Internal tools', 'Marketing site'] })
     })
+
 
 })

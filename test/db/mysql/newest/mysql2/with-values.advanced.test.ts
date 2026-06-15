@@ -5,26 +5,31 @@
 //
 // Specifically:
 //
-//   - `.as(alias)`: clones the values view under a new alias, copying
-//     `__values` and `__source` so the WITH clause keeps emitting the
-//     original name once.
-//   - `.forUseInLeftJoin()` / `.forUseInLeftJoinAs(alias)`: marks the
-//     cloned values view as left-joinable; columns become
-//     `originallyRequired` via `__setColumnsForLeftJoin`.
-//   - `.optionalColumn(...)`: the optional sibling of `column(...)`.
-//     Each row may legitimately set the field to `undefined`, and the
-//     typed projection surfaces it as `T | undefined`.
-//   - `.virtualColumnFromFragment(...)`: declares a computed column
-//     derived from a fragment over the values row; reading the field
-//     inlines the fragment SQL wherever it's selected.
-//   - `Values.create(type, name, [])`: empty values list throws
-//     `TsSqlProcessingError` with reason
+//   - `.as(alias)` (L47-53): clones the values view under a new
+//     alias, copying `__values` and `__source` so the WITH clause
+//     keeps emitting the original name once.
+//   - `.forUseInLeftJoin()` / `.forUseInLeftJoinAs(alias)` (L54-65):
+//     marks the cloned values view as left-joinable; columns become
+//     `originallyRequired` via `__setColumnsForLeftJoin`. Using the
+//     alias in a `selectFrom(other).leftJoin(vJoined).on(...)`
+//     produces `WITH name(...) AS (...) … LEFT JOIN name alias ON …`.
+//   - `.optionalColumn(...)` (L113-118): the optional sibling of
+//     `column(...)`. Each row may legitimately set the field to
+//     `undefined`, and the typed projection surfaces it as
+//     `T | undefined`.
+//   - `.virtualColumnFromFragment(...)` (L198-205): declares a
+//     computed column derived from a fragment over the values row.
+//     The column is not emitted as a VALUES tuple member; instead,
+//     reading `vRow.derived` lands the fragment SQL inline wherever
+//     it's selected.
+//   - `Values.create(type, name, [])` (L272-279): empty values list
+//     throws `TsSqlProcessingError` with reason
 //     `CONSTANT_VALUES_VIEW_CANNOT_BE_EMPTY`.
 //
-// MySQL 8.0.19+ (verified on mysql:9, server 9.7) supports table value
-// constructors, but only via the `VALUES ROW(...)` row syntax — the
-// builder emits that form (see `MySqlSqlBuilder._withValuesRowConstructorKeyword`),
-// so each test runs against the real engine.
+// `Values` is only typed on PostgreSQL / SQLite / SQL Server / Oracle
+// / noopDB connections. MariaDB and MySQL cells comment out the file
+// body with the same reason as the existing
+// [`with-values.test.ts`](./with-values.test.ts).
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -45,13 +50,25 @@ class VProjectPatchOptional extends Values<DBConnection, 'projectPatchOpt'> {
 
 // Branded-type ergonomics that production apps commonly want at the
 // edges of typed SQL: an `IssueId` newtype + a `Money` newtype.
+// The values view models a batch upload of issue financial summaries
+// from an external system.
 type IssueId    = number & { readonly __brand: 'IssueId' }
 type Money      = number & { readonly __brand: 'Money' }
 type OrderState = 'open' | 'paid' | 'void'
 
 class VIssueBilling extends Values<DBConnection, 'issueBilling'> {
+    // `column<T>('customInt', 'IssueId')` reaches Values.ts:96 — the
+    // `typeof adapter === 'string'` branch of the column impl.
     issueId  = this.column<IssueId>('customInt', 'IssueId')
+    // `optionalColumn<T>('customDouble', 'Money')` reaches Values.ts:130 —
+    // the optional sibling of the same branch.
     amount   = this.optionalColumn<Money>('customDouble', 'Money')
+    // `virtualColumnFromFragment` / `optionalVirtualColumnFromFragment`
+    // declare computed columns over the values row. They are NOT emitted
+    // as VALUES tuple members; reading the field inlines the fragment SQL
+    // wherever it's selected. The fragments are bare literals (no `${…}`
+    // interpolation) — the canonical shape now that the overload
+    // resolution accepts a no-table-required fragment source.
     state     = this.virtualColumnFromFragment<OrderState>('enum', 'OrderState', fragment => fragment.sql`'open'`)
     billingRef = this.optionalVirtualColumnFromFragment<string>('customUuid', 'BillingRef', fragment => fragment.sql`null`)
 }
@@ -174,8 +191,11 @@ describe(ctx.label, () => {
         // `column<T>('customInt', 'IssueId')` and
         // `optionalColumn<T>('customDouble', 'Money')` on the
         // `VIssueBilling` view above route through the
-        // `typeof adapter === 'string'` branch of the column impl — the
-        // only branch reached when the user passes a typeName.
+        // `typeof adapter === 'string'` branch of Values.ts:94-99 /
+        // 128-133 — the only branch reached when the user passes a
+        // typeName. The emitted VALUES tuple casts the placeholders for
+        // the custom-typed columns; the exact cast each dialect emits is
+        // pinned by the snapshot.
         ctx.mockNext([
             { issueId: 101 as IssueId, amount: 19.99 as Money },
             { issueId: 102 as IssueId, amount: undefined        },
@@ -211,9 +231,9 @@ describe(ctx.label, () => {
 
     test('values-virtual-column-from-fragment-with-custom-type-emits-inline-fragment', async () => {
         // `virtualColumnFromFragment<T>('enum', 'OrderState', fn)` reaches
-        // the `typeof arg1 === 'string'` branch. The column does NOT
-        // appear in the VALUES tuple; the fragment SQL is inlined wherever
-        // `billing.state` is selected.
+        // Values.ts:162-168 — the `typeof arg1 === 'string'` branch. The
+        // column does NOT appear in the VALUES tuple; the fragment SQL
+        // is inlined wherever `billing.state` is selected.
         ctx.mockNext([
             { issueId: 101 as IssueId, state: 'open' as OrderState },
             { issueId: 102 as IssueId, state: 'open' as OrderState },
@@ -249,8 +269,9 @@ describe(ctx.label, () => {
 
     test('values-optional-virtual-column-from-fragment-with-custom-type-emits-inline-fragment', async () => {
         // `optionalVirtualColumnFromFragment<T>('customUuid', 'BillingRef', fn)`
-        // reaches the same dispatch branch as the required-virtual-column
-        // test above; the projection surfaces `string | undefined`.
+        // reaches Values.ts:198-205. Same dispatch branch as the
+        // required-virtual-column test above; the projection surfaces
+        // `string | undefined`.
         ctx.mockNext([
             { issueId: 101 as IssueId, billingRef: undefined },
             { issueId: 102 as IssueId, billingRef: undefined },
@@ -285,7 +306,7 @@ describe(ctx.label, () => {
     })
 
     test('values-create-with-empty-list-throws-cannot-be-empty', () => {
-        // `Values.create(type, name, [])` reaches the empty-list guard
+        // `Values.create(type, name, [])` reaches the guard at L272-275
         // and throws a `TsSqlProcessingError` with reason
         // `CONSTANT_VALUES_VIEW_CANNOT_BE_EMPTY`. Pure compile-time
         // type-check still admits the call shape; the runtime guard

@@ -1,7 +1,8 @@
-// Coverage of `.asString()` on a UUID value source. PostgreSQL has a
-// native `uuid` type with no strategy helper, so the cast renders as
-// `$1::text` and runs against the real engine without any extension —
-// the param binds as a uuid and comes back as its canonical string.
+// Coverage of `.asString()` on a UUID value source — the only call
+// site for the `_asString` emitter on every dialect's SqlBuilder. The
+// existing `select.value-source.casts.test.ts` notes UUID is not in
+// the seed schema and explicitly skips this surface; the per-dialect
+// `_asString` paths are therefore unreached by the rest of the suite.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { ctx } from './setup.js'

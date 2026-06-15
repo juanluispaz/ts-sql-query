@@ -104,12 +104,10 @@ describe(ctx.label, () => {
         expect(reasonsInChain(caught)).toContain('NOT_IN_TRANSACTION')
     })
 
-    // Pins the nested-transaction hook-stack behaviour (outer hooks saved
-    // and restored across the inner transaction). The library does not
-    // implement nested transactions for MariaDB — there is no savepoint
-    // emulation; only pg/pglite report nestedTransactionsSupported() (and
-    // only when constructed with allowNestedTransactions). So a real nested
-    // transaction throws NESTED_TRANSACTION_NOT_SUPPORTED here.
+    // Pins the nested-transaction hook-stack behaviour (outer hooks
+    // saved and restored across the inner transaction). The matrix
+    // runner is built without `allowNestedTransactions`, so a real
+    // nested transaction throws NESTED_TRANSACTION_NOT_SUPPORTED.
     test('nested-transaction-preserves-and-restores-outer-after-commit-hook', async () => {
         const connection = ctx.conn
         const events: string[] = []

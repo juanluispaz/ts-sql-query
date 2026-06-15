@@ -1,9 +1,9 @@
 // Coverage of `executeProcedure` / `executeFunction`, exposed through the
 // domain wrappers on DBConnection (callRefreshStats, callArchiveProject,
-// callCountOpenIssues, callProjectName, callProjectNameOrNull). PostgreSQL
-// emits `call name(...)` for procedures and `select name(...)` for
-// functions. The procedures/functions are defined in the domain schema, so
-// these run against the real engine.
+// callCountOpenIssues, callProjectName, callProjectNameOrNull). Each dialect
+// emits its own procedure/function call form (pinned by the snapshot). The
+// procedures/functions are defined in the domain schema, so these run
+// against the real engine.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { ctx } from './setup.js'

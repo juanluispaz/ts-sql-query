@@ -54,8 +54,9 @@ describe(ctx.label, () => {
 
     test('docs:recursive/parents-chain-full-inner', async () => {
         // Section "Recursive select looking for parents" — first snippet,
-        // where the recursive arm is spelled out as a full `selectFrom(...).join(child).on(...).select({...})`
-        // instead of the shortcut `recursiveUnionAllOn`.
+        // where the recursive arm is spelled out as a full select+join
+        // instead of the shortcut `recursiveUnionAllOn`. No parent_id is
+        // seeded, so the chain stops at the starting issue (id=2).
         const expected = [
             { id: 2, title: 'Redesign navbar', parentId: undefined },
         ]

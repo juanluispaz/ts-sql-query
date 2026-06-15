@@ -1,6 +1,5 @@
-// Coverage of `.in([])` / `.notIn([])` short-circuit branches. On SQL
-// Server an empty array produces a constant `(0=1)` (for `in`) or
-// `(1=1)` (for `notIn`) predicate, so the query runs unconditionally.
+// Coverage of `.in([])` / `.notIn([])` short-circuit branches: an empty
+// array produces a constant `false` (for `in`) or `true` (for `not in`).
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { tIssue } from '../../domain/connection.js'
@@ -12,8 +11,7 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('where-in-empty-array', async () => {
-        // SQL Server emits a constant false predicate `(0=1)` for an
-        // empty `in (...)`.
+        // `in []` short-circuits to a constant false → no rows.
         ctx.mockNext([])
         await ctx.conn.selectFrom(tIssue)
             .where(tIssue.id.in([]))
@@ -24,7 +22,7 @@ describe(ctx.label, () => {
     })
 
     test('where-not-in-empty-array', async () => {
-        // Symmetric to the `in` case: short-circuit to constant true.
+        // `not in []` short-circuits to a constant true → all rows.
         const expected = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]
         ctx.mockNext(expected)
         const rows = await ctx.conn.selectFrom(tIssue)

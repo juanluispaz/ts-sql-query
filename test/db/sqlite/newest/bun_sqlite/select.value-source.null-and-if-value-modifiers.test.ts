@@ -157,9 +157,8 @@ describe(ctx.label, () => {
     test('lessThanIfValue-and-greaterThanIfValue-mixed', async () => {
         // Combines two IfValue predicates AND-joined. One is elided
         // (undefined), one fires (concrete value). The emitted WHERE
-        // contains only the fired predicate.
-        // `priority > 1` matches the seeded issues with priority 2 or 3:
-        // id 1 (p2), id 3 (p3), id 4 (p2). id 2 (p1) is excluded.
+        // contains only the fired predicate (priority > 1): issues 1, 3, 4
+        // have priority 2, 3, 2; issue 2 (priority 1) is excluded.
         const expected = [
             { id: 1 },
             { id: 3 },

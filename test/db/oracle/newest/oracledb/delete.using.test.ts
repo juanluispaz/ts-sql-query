@@ -1,7 +1,5 @@
-// Coverage of `DELETE … USING other-table`. Oracle Database 23ai
-// (23.1+) added support for the ANSI form; ts-sql-query exposes it
-// on `OracleConnection` alongside the other dialects that have always
-// accepted it (PostgreSQL, SQL Server, MariaDB, MySQL).
+// Coverage of `DELETE … USING other-table` (PostgreSQL/SQL Server/
+// MariaDB/MySQL syntax). SQLite and Oracle don't support it.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'

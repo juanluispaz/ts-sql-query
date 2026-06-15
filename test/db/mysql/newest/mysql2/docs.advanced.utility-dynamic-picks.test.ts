@@ -116,7 +116,7 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         // Pick<ProjectInformation, 'name' | 'id'> → { id, name }, both required.
         assertType<Extends<typeof result, Array<{ id: number; name: string }>>>()
-        // No WHERE clause — all four seeded projects come back ordered by id.
+        // No WHERE: returns all four seed projects ordered by id.
         expect(result).toEqual([
             { id: 1, name: 'Marketing site' },
             { id: 2, name: 'Internal tools' },

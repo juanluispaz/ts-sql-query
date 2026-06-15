@@ -1,7 +1,6 @@
-// Coverage of `INSERT ... SELECT` (subquery-as-source) — `.from(select)`
-// path through `_buildInsertFromSelect`. MySQL has no `RETURNING`, so
-// this cell drops the returning clause and asserts the affected-row
-// count instead. The other dialects carry the returning variant.
+// Coverage of `INSERT ... SELECT` (subquery-as-source) via `.from(select)`,
+// combined with `.returning(...)` for inserts driven by a select rather
+// than literal `VALUES`.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -17,7 +16,7 @@ describe(ctx.label, () => {
         ctx.mockNext(2)
 
         await ctx.withRollback(async () => {
-            // Clone every issue on project 1 as a draft copy on project 2.
+            // Clone every issue on project 3 as a draft copy on project 4.
             const source = ctx.conn.selectFrom(tIssue)
                 .where(tIssue.projectId.equals(3))
                 .select({

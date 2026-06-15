@@ -53,8 +53,6 @@ describe(ctx.label, () => {
     })
 
     test('order-by-from-string', async () => {
-        // priority desc, id desc:
-        //   prio 3 → issue 3; prio 2 → issues 4, 1 (id desc); prio 1 → issue 2.
         const expected = [
             { id: 3, priority: 3 },
             { id: 4, priority: 2 },
@@ -94,12 +92,6 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ id: number }>>>()
         expect(result).toEqual([{ id: 2 }, { id: 3 }])
     })
-
-    // Not applicable: the synthetic ORDER BY when `limit/offset` is used
-    // without `.orderBy(...)` is SqlServer-only (SqlServerSqlBuilder.ts:256-271).
-    // Every other dialect accepts limit/offset on an unordered query and
-    // emits the clause directly; no fake ORDER BY is needed. Body copied
-    // verbatim from the canonical mssql cell for cross-cell diff parity.
     test('limit-offset-without-order-by-pk-in-projection', async () => {
         const expected = [{ status: 'in_progress', id: 2 }]
         ctx.mockNext(expected)
@@ -121,11 +113,6 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-    // Not applicable: the synthetic ORDER BY when `limit/offset` is used
-    // without `.orderBy(...)` is SqlServer-only (SqlServerSqlBuilder.ts:256-271).
-    // Every other dialect accepts limit/offset on an unordered query and
-    // emits the clause directly; no fake ORDER BY is needed. Body copied
-    // verbatim from the canonical mssql cell for cross-cell diff parity.
     test('limit-offset-without-order-by-no-pk-in-projection', async () => {
         const expected = [{ status: 'in_progress' }]
         ctx.mockNext(expected)
@@ -147,14 +134,9 @@ describe(ctx.label, () => {
     })
 
     test('offset-without-limit', async () => {
-        // `.offset(n)` is only reachable after a `.limit*()` call at the
-        // type level; `.limitIfValue(undefined)` drops the limit at
-        // runtime and is the only way to hit the dialect-specific
-        // "offset without limit" workaround in the SQL builder:
-        //   - sqlite / mariadb / mysql emit `limit 2147483647 offset N`
-        //     because their grammar requires `LIMIT` before `OFFSET`.
-        //   - postgres / sqlserver / oracle emit a bare `OFFSET N` (or
-        //     `OFFSET N ROWS` for the latter two).
+        // `.offset(n)` with the limit elided (limitIfValue(undefined)):
+        // each dialect emits its own offset-without-limit form, pinned by
+        // the snapshot.
         const expected = [{ id: 2 }, { id: 3 }, { id: 4 }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssue)

@@ -3,7 +3,7 @@
 // column map, a non-leaf expression operand, and the two factory paths
 // into the NULL variant (onlyWhenOrNull(false) / ignoreWhenAsNull(true)).
 //
-// json_agg has no ORDER BY, so the array order is not deterministic on the
+// the array aggregate has no ORDER BY, so the array order is not deterministic on the
 // real engine — value assertions sort the array before comparing.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'

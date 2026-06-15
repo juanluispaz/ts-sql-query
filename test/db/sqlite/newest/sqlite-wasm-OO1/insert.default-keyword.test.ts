@@ -7,17 +7,20 @@
 // `Default` branch in [src/expressions/insert.ts](../../../../../src/expressions/insert.ts)
 // and `src/expressions/update.ts`.
 //
-// Not applicable on `SQLite`: `SqliteConnection` does not expose
-// `default()` — SQLite's grammar rejects `DEFAULT` as a value expression
-// in INSERT VALUES / UPDATE SET / ON CONFLICT DO UPDATE SET (the keyword
-// is only accepted in CREATE TABLE / ALTER TABLE column definitions,
-// see https://www.sqlite.org/lang_insert.html). Omit the column
-// instead; SQLite applies the DDL default automatically. The
+// `default-on-custom-boolean-column` covers the boolean-remap
+// short-circuit: the SqlBuilder detects the `Default` sentinel inside
+// `_appendCustomBooleanRemapForColumnIfRequired` and emits the bare
+// `default` keyword instead of wrapping it in
+// `case when default then 'Y' else 'N' end` (which every dialect
+// rejects at execution time).
+//
+// SQLite is not exercised here — `SqliteConnection` does not expose
+// `default()` (SQLite's grammar rejects DEFAULT as a value expression
+// in INSERT VALUES / UPDATE SET / ON CONFLICT DO UPDATE SET). The
 // compile-time negative lives at
-// [test/db/sqlite/types.negative/insert.test.ts](../../../types.negative/insert.test.ts)
-// and [update.test.ts](../../../types.negative/update.test.ts); this file
-// is kept here only for cross-cell symmetry per DESIGN §4 — every test
-// is wrapped in `/* … */`.
+// [test/db/sqlite/types.negative/insert.test.ts](../../../../sqlite/types.negative/insert.test.ts);
+// the sqlite cells keep `insert.default-keyword.test.ts` for cross-cell
+// symmetry per DESIGN §4 with every test commented out.
 
 import { afterAll, beforeAll, describe } from '../../../../lib/testRunner.js'
 import { ctx } from './setup.js'

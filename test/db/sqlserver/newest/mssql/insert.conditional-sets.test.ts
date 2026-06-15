@@ -1,13 +1,10 @@
 // Coverage of INSERT's "has value" / "if value" / "when" setter
-// families plus the multi-row `setForAllIf*` branches. Together they
-// make up the bulk of the dynamic-set surface in
-// [src/queryBuilders/InsertQueryBuilder.ts](../../../../../src/queryBuilders/InsertQueryBuilder.ts).
+// families plus the multi-row `setForAllIf*` branches.
 //
 // The shape is parallel to [update.conditional-sets.test.ts](./update.conditional-sets.test.ts)
 // with two extras specific to INSERT:
 //
-//   - `__multiple` branches: when `.values([row1, row2])` is used the
-//     setter family routes through `__getSetsForMultipleInsert()` and
+//   - multi-row: when `.values([row1, row2])` is used the setter family
 //     loops over each row.
 //   - `setForAllIfSet` / `setForAllIfNotSet` / `setForAllIfHasValue`
 //     / `setForAllIfHasNoValue` (+ `IfValue` and `When` flavours):
@@ -132,14 +129,8 @@ describe(ctx.label, () => {
     })
 
     test('set-if-has-value-if-value-and-has-no-value-if-value-cover-both-gates', async () => {
-        // The `*IfHasValueIfValue` / `*IfHasNoValueIfValue` variants
-        // need BOTH gates to flip in the same direction:
-        //   - `title` is staged with a value and the incoming value is
-        //     non-empty → overwritten.
-        //   - `body` is staged null → `setIfHasValueIfValue` skips it,
-        //     then `setIfHasNoValueIfValue` backfills it.
-        //   - the empty-string incoming `title: ''` is rejected by the
-        //     incoming-value gate, so the backfill leaves `title` intact.
+        // The `*IfHasValueIfValue` / `*IfHasNoValueIfValue` variants need
+        // BOTH gates to flip in the same direction.
         ctx.mockNext(1)
         await ctx.withRollback(async () => {
             await ctx.conn.insertInto(tIssue)
@@ -171,11 +162,9 @@ describe(ctx.label, () => {
 
     test('ignore-if-has-value-drops-only-populated-sets', async () => {
         // `ignoreIfHasValue(col, ...)` deletes a staged column only if
-        // its value PASSES `_isValue`. Single-row branch at
-        // [InsertQueryBuilder.ts:805](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L805).
-        // Restricted to nullable columns (`body`, `assigneeId`) so the
-        // resulting INSERT remains satisfiable against the real DB
-        // even after the drops.
+        // its value passes the value gate. Restricted to nullable columns
+        // (`body`, `assigneeId`) so the resulting INSERT remains
+        // satisfiable against the real DB even after the drops.
         ctx.mockNext(1)
         await ctx.withRollback(async () => {
             await ctx.conn.insertInto(tIssue)
@@ -206,8 +195,7 @@ describe(ctx.label, () => {
     })
 
     test('ignore-if-has-no-value-drops-only-empty-sets', async () => {
-        // Mirror of `ignoreIfHasValue`; single-row branch at
-        // [InsertQueryBuilder.ts:836](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L836).
+        // Mirror of `ignoreIfHasValue`, single-row.
         ctx.mockNext(1)
         await ctx.withRollback(async () => {
             await ctx.conn.insertInto(tIssue)
@@ -237,9 +225,9 @@ describe(ctx.label, () => {
     })
 
     test('ignore-any-set-with-no-value-sweeps-single-row', async () => {
-        // Single-row branch of `ignoreAnySetWithNoValue` (line 867).
-        // Both empty staged columns (`body: null`, `assigneeId: null`)
-        // are nullable, so the trimmed INSERT still satisfies NOT NULL.
+        // Single-row branch of `ignoreAnySetWithNoValue`. Both empty
+        // staged columns (`body: null`, `assigneeId: null`) are nullable,
+        // so the trimmed INSERT still satisfies NOT NULL.
         ctx.mockNext(1)
         await ctx.withRollback(async () => {
             await ctx.conn.insertInto(tIssue)
@@ -310,9 +298,9 @@ describe(ctx.label, () => {
 
     test('set-for-all-if-set-if-value-and-if-not-set-if-value-skip-empty-incoming', async () => {
         // The `setForAllIfSetIfValue` / `setForAllIfNotSetIfValue`
-        // branches at lines 976 and 1031 require the incoming value to
-        // pass `_isValue` as well. An `undefined` incoming is a no-op
-        // even when the row state would otherwise match.
+        // variants require the incoming value to pass the value gate as
+        // well. An `undefined` incoming is a no-op even when the row state
+        // would otherwise match.
         ctx.mockNext(2)
         await ctx.withRollback(async () => {
             await ctx.conn.insertInto(tIssue)
@@ -345,10 +333,9 @@ describe(ctx.label, () => {
     })
 
     test('set-for-all-if-has-value-and-if-has-no-value-route-per-row', async () => {
-        // Multi-row variants of the `*HasValue` gates from
-        // [InsertQueryBuilder.ts:1061](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L1061)
-        // and 1116. Row 0's `body` has value → updated; row 1's `body`
-        // is null → setForAllIfHasNoValue fills it.
+        // Multi-row variants of the `*HasValue` gates. Row 0's `body` has
+        // value → updated; row 1's `body` is null → setForAllIfHasNoValue
+        // fills it.
         ctx.mockNext(2)
         await ctx.withRollback(async () => {
             await ctx.conn.insertInto(tIssue)
@@ -381,12 +368,11 @@ describe(ctx.label, () => {
     })
 
     test('multi-row-ignore-if-has-value-and-has-no-value-route-per-row', async () => {
-        // Multi-row branches of `ignoreIfHasValue` (line 811) and
-        // `ignoreIfHasNoValue` (line 842): per-row delete decisions.
-        // Row 0's `body` has value → `ignoreIfHasValue('body')` drops
-        // it; row 1's `body` is null → it survives the sweep. The
-        // dropped column is nullable so the result stays valid
-        // against real DBs.
+        // Multi-row branches of `ignoreIfHasValue` and `ignoreIfHasNoValue`:
+        // per-row delete decisions. Row 0's `body` has value →
+        // `ignoreIfHasValue('body')` drops it; row 1's `body` is null → it
+        // survives the sweep. The dropped column is nullable so the result
+        // stays valid against real DBs.
         ctx.mockNext(2)
         await ctx.withRollback(async () => {
             await ctx.conn.insertInto(tIssue)
@@ -418,10 +404,10 @@ describe(ctx.label, () => {
     })
 
     test('multi-row-ignore-any-set-with-no-value-prunes-per-row', async () => {
-        // Multi-row branch of `ignoreAnySetWithNoValue` at line 873.
-        // Each row is swept independently: row 0 keeps `body` (valid)
-        // and drops `assigneeId` (null); row 1 drops both because both
-        // fail `_isValue`. Both dropped columns are nullable.
+        // Multi-row branch of `ignoreAnySetWithNoValue`. Each row is swept
+        // independently: row 0 keeps `body` (valid) and drops `assigneeId`
+        // (null); row 1 drops both because both fail the value gate. Both
+        // dropped columns are nullable.
         ctx.mockNext(2)
         await ctx.withRollback(async () => {
             await ctx.conn.insertInto(tIssue)
@@ -454,9 +440,7 @@ describe(ctx.label, () => {
 
     test('set-when-and-set-if-value-when-toggle-cleanly', async () => {
         // `*When` wrappers: false branch is a no-op, true branch
-        // delegates. Covers `setWhen` and `setIfValueWhen` from
-        // [InsertQueryBuilder.ts:1395](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L1395)
-        // and 1401.
+        // delegates. Covers `setWhen` and `setIfValueWhen`.
         ctx.mockNext(1)
         await ctx.withRollback(async () => {
             await ctx.conn.insertInto(tIssue)
@@ -488,9 +472,8 @@ describe(ctx.label, () => {
     })
 
     test('disallow-if-value-and-no-value-throw-synchronously', () => {
-        // `disallowIfValue` / `disallowIfNoValue` (lines 1250, 1289)
-        // both throw a `TsSqlProcessingError` keyed by the offending
-        // property. No SQL is ever built.
+        // `disallowIfValue` / `disallowIfNoValue` both throw an error
+        // keyed by the offending property. No SQL is ever built.
         expect(() => {
             ctx.conn.insertInto(tIssue)
                 .set({ projectId: 1, number: 211, title: 'X', status: 'closed', priority: 1 })

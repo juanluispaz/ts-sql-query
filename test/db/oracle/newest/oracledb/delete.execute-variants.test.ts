@@ -80,17 +80,15 @@ describe(ctx.label, () => {
     })
 
     test('execute-delete-none-or-one-with-returning-one-column', async () => {
-        // `executeDeleteNoneOrOne()` + `returningOneColumn(col)` lands
-        // on the `__oneColumn` branch and returns the single value or
-        // null. Oracle supports DELETE … RETURNING, so this runs on the
-        // real DB too; engines that don't support it at all (MySQL)
-        // comment the test out in their cell.
+        // `executeDeleteNoneOrOne()` + `returningOneColumn(col)` returns
+        // the single value or null. Deletes issue 1 (status='open').
         ctx.mockNext('open')
         await ctx.withRollback(async () => {
             const result = await ctx.conn.deleteFrom(tIssue)
                 .where(tIssue.id.equals(1))
                 .returningOneColumn(tIssue.status)
                 .executeDeleteNoneOrOne()
+
             expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where id = :0 returning status into :1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
@@ -101,7 +99,6 @@ describe(ctx.label, () => {
                 },
               ]
             `)
-            // Seed issue id=1 has status 'open'; Oracle DELETE … RETURNING gives it back.
             expect(result).toBe('open')
         })
     })

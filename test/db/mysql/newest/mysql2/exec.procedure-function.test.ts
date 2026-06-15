@@ -1,22 +1,9 @@
-// Coverage of `executeProcedure` / `executeFunction` — the two
-// protected entry points on every `AbstractConnection` subclass that
-// land on `_buildCallProcedure` / `_buildCallFunction` in the
-// dialect's SqlBuilder. Each dialect emits a distinct form:
-//
-//   - sqlite / postgres / mysql / mariadb (default):
-//       procedure → `call name(...)`
-//       function  → `select name(...)`
-//   - sqlserver: procedure → `exec name ...` (positional, no parens)
-//   - oracle:    procedure → `begin name(...); end;`
-//                function  → `select name(...) from dual`
-//
-// The protected `executeProcedure` / `executeFunction` are exposed
-// here through thin domain wrappers on `DBConnection`
-// (`callRefreshStats`, `callArchiveProject`, `callCountOpenIssues`,
-// `callProjectName`, `callProjectNameOrNull`) — that's the
-// documented user-facing pattern. The procedures / functions are
-// defined in the MySQL domain schema, so these run against the real
-// engine.
+// Coverage of `executeProcedure` / `executeFunction`, exposed through the
+// domain wrappers on DBConnection (callRefreshStats, callArchiveProject,
+// callCountOpenIssues, callProjectName, callProjectNameOrNull). Each dialect
+// emits its own procedure/function call form (pinned by the snapshot). The
+// procedures/functions are defined in the domain schema, so these run
+// against the real engine.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { ctx } from './setup.js'
@@ -94,17 +81,12 @@ describe(ctx.label, () => {
         `)
         expect(name).toBeNull()
     })
+
     test('execute-function-required-throws-mandatory-when-driver-returns-null', async () => {
-        // Required-typed function call where the driver hands back
-        // `null` — the lib throws `MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE`
-        // (`AbstractConnection.ts:685-687`). The 'optional' overload
-        // above accepts null silently; this is the gating branch for
-        // the 'required' flavour.
-        //
-        // §18 mock-only: justified — `count_open_issues` is declared
-        // to return a non-null integer, so a real-DB call never returns
-        // null. The branch only fires when a driver / function pair
-        // misbehaves, which we simulate via the mock.
+        // A required-typed function call whose driver returns null throws
+        // MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE. A real
+        // count_open_issues never returns null, so this misbehaviour is
+        // simulated via the mock (mock-only by design).
         if (ctx.realDbEnabled) return
         ctx.mockNext(null)
         let thrown: unknown
@@ -119,15 +101,9 @@ describe(ctx.label, () => {
     })
 
     test('execute-function-throws-no-result-when-driver-returns-undefined', async () => {
-        // The `NO_RESULT` branch fires when the underlying driver hands
-        // back raw `undefined` for a function call
-        // (`AbstractConnection.ts:682-684`). A well-behaved driver
-        // returns either a row's value or `null`, never `undefined`;
-        // the guard exists for misbehaving drivers.
-        //
-        // §18 mock-only: justified — no real driver returns raw
-        // `undefined` here. Asserting against a real-DB cell would
-        // require breaking the driver intentionally.
+        // A driver returning raw undefined for a function call throws
+        // NO_RESULT. No real driver returns undefined here, so it's
+        // simulated via the mock (mock-only by design).
         if (ctx.realDbEnabled) return
         ctx.mockNext(undefined)
         let thrown: unknown
@@ -139,5 +115,4 @@ describe(ctx.label, () => {
         expect(thrown).toBeInstanceOf(Error)
         expect((thrown as Error).message).toMatch(/No result returned/)
     })
-
 })

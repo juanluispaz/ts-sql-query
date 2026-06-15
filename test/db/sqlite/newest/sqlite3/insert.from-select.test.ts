@@ -1,10 +1,6 @@
-// Coverage of `INSERT ... SELECT` (subquery-as-source) — `.from(select)`
-// path through `_buildInsertFromSelect`. Combined with `.returning(...)`
-// it also exercises the `_buildInsertReturning` branch for inserts
-// driven by a select (vs. literal `VALUES`).
-//
-// MySQL has no `RETURNING`; the from-select form still works, so the
-// MySQL cell carries the test without the returning clause.
+// Coverage of `INSERT ... SELECT` (subquery-as-source) via `.from(select)`,
+// combined with `.returning(...)` for inserts driven by a select rather
+// than literal `VALUES`.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -26,8 +22,6 @@ describe(ctx.label, () => {
 
         await ctx.withRollback(async () => {
             // Clone every issue on project 3 as a draft copy on project 4.
-            // Project 4 has no seeded issues, so the unique
-            // (project_id, number) key isn't violated under real DB.
             const source = ctx.conn.selectFrom(tIssue)
                 .where(tIssue.projectId.equals(3))
                 .select({

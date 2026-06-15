@@ -213,14 +213,9 @@ describe(ctx.label, () => {
         expect(caught).toBe(thrown)
     })
 
-    // `attachRollbackError` is wired by the managed transaction runner
-    // when the body's error AND the subsequent rollback both throw. The
-    // mock runner swallows the rollback error without chaining, and the
-    // real driver runners have no injection hook to force a rollback
-    // failure without breaking the underlying connection. The helper is
-    // still exercised through real-driver integration tests outside this
-    // matrix.
-    // NOT-APPLICABLE: cannot force a body-error + rollback-error collision through either the mock or the real driver runners in this cell.
+    // TODO[LIMITATION]: `attachRollbackError` needs both the body error and the
+    // rollback to throw; the mock swallows the rollback error and the real
+    // runners can't force one, so this path isn't drivable in this matrix.
     /*
     test('rollback-driver-failure-attaches-rollback-error', async () => {
         // would force `e instanceof TsSqlQueryExecutionError` body

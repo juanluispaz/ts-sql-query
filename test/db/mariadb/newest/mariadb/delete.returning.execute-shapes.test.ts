@@ -19,9 +19,8 @@
 //      `delete.using.variants.test.ts` test 3 which puts the CTE in
 //      USING; here the CTE lives in a WHERE-in-subquery).
 //
-// MariaDB supports DELETE ... RETURNING; only the WITH-prefixed DELETE
-// (test 5) is commented out — MariaDB rejects WITH as a prefix for a
-// DELETE statement (see the marker on that block).
+// MySQL has no RETURNING; all five tests are commented out in its cell
+// for symmetry.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -120,9 +119,8 @@ describe(ctx.label, () => {
 
     test('delete-returning-one-column-many-result', async () => {
         // `returningOneColumn(col)` + `executeDeleteMany()` — pins
-        // the one-column-many path of `executeDeleteMany`. The WHERE
-        // matches no rows (id=99999), so both the mock and the real DB
-        // yield an empty array — deterministic on both sides.
+        // the one-column-many path. WHERE id=99999 matches no rows, so
+        // the RETURNING result is empty.
         ctx.mockNext([])
         await ctx.withRollback(async () => {
             const statuses = await ctx.conn.deleteFrom(tIssue)
@@ -141,11 +139,6 @@ describe(ctx.label, () => {
         })
     })
 
-    // MariaDB accepts the `WITH cte AS (...) DELETE FROM ... WHERE x IN
-    // (SELECT ... FROM cte) ... RETURNING ...` form the library emits
-    // (verified against the mariadb:latest image, 12.3.2 — MariaDB 12.3
-    // added the WITH prefix for DELETE, and DELETE ... RETURNING has
-    // shipped since 10.0.5; earlier 12.x rejected the WITH prefix).
     test('delete-cte-in-where-in-subquery-with-returning', async () => {
         // The DELETE consumes a `.forUseInQueryAs(...)` CTE inside a
         // WHERE-in-subquery (not in USING — that case is exercised by

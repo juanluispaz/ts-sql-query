@@ -1,7 +1,5 @@
-// Coverage of `.in([])` / `.notIn([])` short-circuit branches in the
-// SQL builders. MariaDB overrides the abstract path so that an empty
-// array produces a constant `false` (for `_in`) or `true` (for
-// `_notIn`).
+// Coverage of `.in([])` / `.notIn([])` short-circuit branches: an empty
+// array produces a constant `false` (for `in`) or `true` (for `not in`).
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { tIssue } from '../../domain/connection.js'

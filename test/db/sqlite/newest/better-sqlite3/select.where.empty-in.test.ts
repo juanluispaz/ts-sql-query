@@ -1,10 +1,5 @@
-// Coverage of `.in([])` / `.notIn([])` short-circuit branches in the
-// SQL builders. Every dialect overrides the abstract path so that an
-// empty array produces a constant `false` (for `_in`) or `true`
-// (for `_notIn`) — see `_falseValueForCondition` /
-// `_trueValueForCondition` in PostgreSqlSqlBuilder, AbstractMySqlMariaBDSqlBuilder,
-// OracleSqlBuilder, SqlServerSqlBuilder and SqliteSqlBuilder. On
-// SQLite the constants are emitted as `0` / `1`.
+// Coverage of `.in([])` / `.notIn([])` short-circuit branches: an empty
+// array produces a constant `false` (for `in`) or `true` (for `not in`).
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { tIssue } from '../../domain/connection.js'
@@ -16,7 +11,7 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('where-in-empty-array', async () => {
-        // Short-circuits to the false constant — matches every other dialect.
+        // `in []` short-circuits to a constant false → no rows.
         ctx.mockNext([])
         await ctx.conn.selectFrom(tIssue)
             .where(tIssue.id.in([]))
@@ -27,7 +22,7 @@ describe(ctx.label, () => {
     })
 
     test('where-not-in-empty-array', async () => {
-        // Symmetric to the `in` case: short-circuits to the true constant.
+        // `not in []` short-circuits to a constant true → all rows.
         const expected = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]
         ctx.mockNext(expected)
         const rows = await ctx.conn.selectFrom(tIssue)

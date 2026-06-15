@@ -193,7 +193,7 @@ describe(ctx.label, () => {
     test('column-level-object-valued-extension-rule-dispatches-nested', async () => {
         // A column whose extension entry is an OBJECT of rules (not a single
         // function): the inner leaf rule (`above`) dispatches and is
-        // and-joined into the column's predicate — `id > $1`.
+        // and-joined into the column's predicate (`id > <param>`).
         ctx.mockNext([])
         const connection = ctx.conn
         const selectFields = { id: tIssue.id }

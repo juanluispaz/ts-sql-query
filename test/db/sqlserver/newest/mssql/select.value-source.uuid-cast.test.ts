@@ -15,9 +15,6 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('uuid-asString-on-const', async () => {
-        // On SQL Server the UUID const + `.asString()` emits a bare
-        // parameter (`@0`) — native `uniqueidentifier`, no helper needed
-        // — so it runs end-to-end on the real DB.
         ctx.mockNext(UUID_VALUE)
         const connection = ctx.conn
         const result = await connection.selectFromNoTable()

@@ -453,8 +453,6 @@ describe(ctx.label, () => {
         // For the like/insensitive operator family the builder rewrites a
         // uuid value source through `.asString()` before dispatching
         // (useAsStringInUuid). The reference spells that rewrite out.
-        // Under the test connection's `'string'` uuid strategy `.asString()`
-        // renders as the bare column (no `uuid_str` wrapper).
         ctx.mockNext([])
         await ctx.conn.selectFrom(tIssue)
             .where(tIssue.externalRef.asString().containsInsensitive('abc'))

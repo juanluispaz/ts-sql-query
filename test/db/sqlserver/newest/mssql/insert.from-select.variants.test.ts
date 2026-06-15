@@ -161,11 +161,40 @@ describe(ctx.label, () => {
 
     // NOT-APPLICABLE: SQL Server has no INSERT…ON CONFLICT (uses MERGE);
     // `.onConflictDoNothing` is not typed on the from-select insert for
-    // SqlServerConnection. See the canonical cell for the full body.
+    // SqlServerConnection.
     /*
     test('insert-from-select-with-on-conflict-do-nothing', async () => {
-        // ... see other cells for the full body — uses
-        // `.onConflictDoNothing()` which is not typed on SQL Server.
+        // `CustomizableExecutableInsertFromSelectOnConflictOptional` —
+        // ON CONFLICT chained off `from(select)`. Distinct from the
+        // VALUES-based on-conflict in `insert.on-conflict.test.ts`;
+        // here the row source is a select, so the SqlBuilder uses the
+        // `__from` rendering branch and *then* appends the ON CONFLICT
+        // suffix. Comment-out cells: Oracle / SQL Server (no ON
+        // CONFLICT in the dialect).
+        ctx.mockNext(0)
+        await ctx.withRollback(async () => {
+            // Try to clone every project as `(orgId=org, slug=existing-slug)`
+            // — the unique (org, slug) constraint would fire, but
+            // DO NOTHING swallows it.
+            const source = ctx.conn.selectFrom(tProject)
+                .where(tProject.organizationId.equals(1))
+                .select({
+                    organizationId: tProject.organizationId,
+                    slug:           tProject.slug,
+                    name:           tProject.name,
+                })
+
+            const affected = await ctx.conn.insertInto(tProject)
+                .from(source)
+                .onConflictDoNothing()
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof affected, number>>()
+            if (!ctx.realDbEnabled) expect(affected).toBe(0)
+            else expect(typeof affected).toBe('number')
+        })
     })
     */
 })

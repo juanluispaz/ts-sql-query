@@ -14,9 +14,11 @@
 //   - uuid:   the shared test connection defaults to the `'string'` uuid
 //             strategy (see test/db/sqlite/domain/connection.ts), so uuid
 //             columns round-trip as plain TEXT on every sqlite connector —
-//             no `uuid_blob` / `uuid_str` helper is needed. (The binary
-//             `'uuid-extension'` emission is pinned mock-only in
-//             config.uuid-strategy.test.ts / select.value-source.uuid-cast.test.ts.)
+//             no `uuid_blob` / `uuid_str` helper is needed. (SQLite's binary
+//             `'uuid-extension'` emission — which only better-sqlite3 /
+//             node:sqlite / sqlite-wasm-OO1 can run end-to-end; sqlite3 and
+//             bun:sqlite lack the user-defined-function API — is pinned
+//             mock-only in the sqlite cells' config.uuid-strategy.test.ts.)
 //
 // Bodies run inside `ctx.withRollback(...)`. The value assertion is
 // identical in both modes: `expected` carries the exact JS values

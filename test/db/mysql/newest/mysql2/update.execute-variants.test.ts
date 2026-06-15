@@ -1,26 +1,16 @@
 // Coverage of the UPDATE executor variants the other UPDATE tests
 // don't exercise:
 //
-//   - `executeUpdate(min, max)` — min-/max-row guards in
-//     [UpdateQueryBuilder.ts:50](../../../../../src/queryBuilders/UpdateQueryBuilder.ts#L50)
-//     (throws `MINIMUM_ROWS_NOT_REACHED` / `MAXIMUM_ROWS_EXCEEDED`).
+//   - `executeUpdate(min, max)` — min-/max-row guards (throw
+//     `MINIMUM_ROWS_NOT_REACHED` / `MAXIMUM_ROWS_EXCEEDED`).
 //   - `executeUpdateNoneOrOne()` with `returningOneColumn(...)` — the
-//     `__oneColumn` branch in
-//     [UpdateQueryBuilder.ts:93](../../../../../src/queryBuilders/UpdateQueryBuilder.ts#L93)
-//     plus its `value === undefined → null` coercion path.
+//     single-column branch plus its `value === undefined → null`
+//     coercion path.
 //   - `executeUpdateMany(min, max)` — the same min/max guards on the
 //     RETURNING-many path.
 //
-// The two `min`/`max`-only tests don't need RETURNING and run on
-// MySQL identically to every other dialect. The other four tests
-// (every variant that uses `.returning(...)` or
-// `.returningOneColumn(...)`) are commented out: MySQL does not
-// support `UPDATE … RETURNING` in any released version, and the
-// fluent surface in
-// [src/expressions/update.ts:521-531](../../../../../src/expressions/update.ts#L521-L531)
-// narrows those methods to `never` for `mysql` exactly to encode that
-// limitation in the type system — so the test would not even
-// type-check on this cell.
+// Mock-only for the min/max throw cases. The other tests use real-DB
+// where possible; `withRollback` keeps cells clean.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -33,6 +23,8 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('execute-update-with-min-max-passes-when-count-in-range', async () => {
+        // `executeUpdate(2, 5)` accepts any row-count in [2, 5]. The
+        // WHERE matches 4 seeded issues (all priorities ≥ 1).
         ctx.mockNext(4)
         await ctx.withRollback(async () => {
             const affected = await ctx.conn.update(tIssue)
@@ -53,6 +45,9 @@ describe(ctx.label, () => {
     })
 
     test('execute-update-throws-when-fewer-rows-than-min', async () => {
+        // `executeUpdate(min)` with count < min raises
+        // `MINIMUM_ROWS_NOT_REACHED`. Filter on a non-existing
+        // priority so real-DB also yields 0 updates.
         ctx.mockNext(0)
         let caught: unknown
         try {
@@ -102,11 +97,9 @@ describe(ctx.label, () => {
     // NOT-APPLICABLE: MySQL has no UPDATE ... RETURNING; `returning`/`returningOneColumn` are typed `never` on the mysql dialect (a permanent compile-time frontier, asserted in test/db/mysql/types.negative/update.test.ts). The body runs in the dialects that support RETURNING (postgres, sqlite, mariadb, sqlserver, oracle).
     /*
     test('execute-update-none-or-one-with-returning-one-column-empty-result', async () => {
-        // Same path as the previous test but the engine returns no
-        // row -> the `__oneColumn` branch coerces missing to `null`
-        // (see [UpdateQueryBuilder.ts:140](../../../../../src/queryBuilders/UpdateQueryBuilder.ts#L140)).
-        // Filter on a non-existing id so real-DB also yields no row
-        // from RETURNING.
+        // Same path as the previous test but the engine returns no row →
+        // the single-column result coerces missing to `null`. Filter on a
+        // non-existing id so real-DB also yields no row from RETURNING.
         ctx.mockNext(undefined)
         await ctx.withRollback(async () => {
             const result = await ctx.conn.update(tIssue)
@@ -181,10 +174,9 @@ describe(ctx.label, () => {
     */
 
     test('execute-update-with-no-sets-resolves-zero', async () => {
-        // `dynamicSet()` with no columns set leaves `__sets` empty, so
-        // every executor short-circuits before touching the database
-        // (UpdateQueryBuilder.ts:55). `executeUpdate()` resolves 0 and
-        // emits no query — no SQL snapshot, identical on every dialect.
+        // `dynamicSet()` with no columns set leaves the SET list empty, so
+        // every executor short-circuits before touching the database.
+        // `executeUpdate()` resolves 0 and emits no query.
         const affected = await ctx.conn.update(tIssue)
             .dynamicSet()
             .where(tIssue.id.equals(1))
@@ -197,10 +189,13 @@ describe(ctx.label, () => {
     /*
     test('execute-update-none-or-one-with-no-sets-resolves-null', async () => {
         // Same empty-set short-circuit on the none-or-one path: with no
-        // columns set, the executor resolves null and emits no query.
-        // `executeUpdateNoneOrOne` is a RETURNING executor reached through
-        // `returningOneColumn`; the short-circuit fires before the projection
-        // matters, so null still comes back without touching the database.
+        // columns set, the executor resolves null and emits no query. By
+        // design `executeUpdateNoneOrOne` is a RETURNING executor (it returns
+        // the projected value), so it is reached through `returningOneColumn`;
+        // the empty-set short-circuit fires before the projection matters, so
+        // null still comes back without touching the database. (A bare
+        // dynamicSet, no returning, only exposes the count-only `executeUpdate`
+        // — locked in the dialect's `types.negative/update.test.ts`.)
         const result = await ctx.conn.update(tIssue)
             .dynamicSet()
             .where(tIssue.id.equals(1))
@@ -215,7 +210,7 @@ describe(ctx.label, () => {
     /*
     test('execute-update-one-with-no-sets-throws-no-column-sets', async () => {
         // The one-row path cannot resolve "no row" as success, so the
-        // empty-`__sets` short-circuit throws NO_COLUMN_SETS instead —
+        // empty-set short-circuit throws NO_COLUMN_SETS instead — again
         // reached through the RETURNING path (`executeUpdateOne` is a
         // returning executor), with the short-circuit firing first.
         let caught: unknown
@@ -239,7 +234,8 @@ describe(ctx.label, () => {
     // NOT-APPLICABLE: MySQL has no UPDATE ... RETURNING; `returning`/`returningOneColumn` are typed `never` on the mysql dialect (a permanent compile-time frontier, asserted in test/db/mysql/types.negative/update.test.ts). The body runs in the dialects that support RETURNING (postgres, sqlite, mariadb, sqlserver, oracle).
     /*
     test('execute-update-many-with-no-sets-resolves-empty-array', async () => {
-        // See sqlite / postgres cells for the active body.
+        // Empty-set short-circuit on the returning-many path: resolves [],
+        // no query emitted.
         const rows = await ctx.conn.update(tIssue)
             .dynamicSet()
             .where(tIssue.id.equals(1))

@@ -1,8 +1,5 @@
-// Coverage of `UPDATE … FROM other-table`. Useful when the SET clause
-// references another table. Oracle Database 23ai (23.1+) added support
-// for this ANSI form; ts-sql-query exposes it on `OracleConnection`
-// alongside the other dialects that have always accepted it
-// (PostgreSQL, SQLite, SQL Server, MariaDB, MySQL).
+// Coverage of `UPDATE … FROM other-table`: the SET clause references a
+// column of the joined-in table.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'

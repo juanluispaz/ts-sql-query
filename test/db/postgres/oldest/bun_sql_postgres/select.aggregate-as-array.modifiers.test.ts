@@ -4,7 +4,7 @@
 // disallowWhen, projectingOptionalValuesAsNullable, and the same modifiers
 // on the NULL variant from onlyWhenOrNull(false).
 //
-// json_agg has no ORDER BY, so the array order is not deterministic on the
+// the array aggregate has no ORDER BY, so the array order is not deterministic on the
 // real engine — value assertions sort the array before comparing.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
@@ -38,7 +38,7 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{ pid: number; titles: string[] }>>>()
-        // json_agg has no ORDER BY, so the array order is not deterministic
+        // the array aggregate has no ORDER BY, so the array order is not deterministic
         // on the real engine — sort it before comparing.
         expect(rows.map(r => ({ pid: r.pid, titles: [...r.titles].sort() })))
             .toEqual([{ pid: 1, titles: ['Redesign navbar', 'Update hero copy'] }])
@@ -235,7 +235,7 @@ describe(ctx.label, () => {
 
     test('aggregate-as-array-as-required-in-optional-object', async () => {
         // `asRequiredInOptionalObject()` makes the aggregate the gate of an
-        // optional inner object: when the group is empty (json_agg returns
+        // optional inner object: when the group is empty (the array aggregate returns
         // NULL) the inner object is dropped. Project 3 (org 2) has one
         // issue, project 4 has none; only project 3's `meta` survives.
         ctx.mockNext([

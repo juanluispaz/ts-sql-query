@@ -104,13 +104,10 @@ describe(ctx.label, () => {
         expect(reasonsInChain(caught)).toContain('NOT_IN_TRANSACTION')
     })
 
-    // Nested `transaction(...)` requires the runner to report
-    // `nestedTransactionsSupported() === true`. The MockQueryRunner does;
-    // among real connectors only pg/pglite do, and only when constructed
-    // with `allowNestedTransactions` (the matrix runners don't set it). The
-    // mysql2 runner does NOT, so a real nested transaction throws
-    // NESTED_TRANSACTION_NOT_SUPPORTED — asserted here in real mode. In mock
-    // mode the same body pins the push/pop hook-stack ordering.
+    // Pins the nested-transaction hook-stack behaviour (outer hooks
+    // saved and restored across the inner transaction). The matrix
+    // runner is built without `allowNestedTransactions`, so a real
+    // nested transaction throws NESTED_TRANSACTION_NOT_SUPPORTED.
     test('nested-transaction-preserves-and-restores-outer-after-commit-hook', async () => {
         const connection = ctx.conn
         const events: string[] = []
@@ -126,7 +123,8 @@ describe(ctx.label, () => {
             } catch (e) { caught = e }
         })
         if (ctx.realDbEnabled) {
-            // The real mysql2 runner rejects the nested transaction.
+            // The matrix runner is constructed without allowNestedTransactions,
+            // so the real engine rejects the nested transaction.
             expect(reasonsInChain(caught)).toContain('NESTED_TRANSACTION_NOT_SUPPORTED')
         } else {
             // Inner commit fires its hook first; the outer hook, saved on the

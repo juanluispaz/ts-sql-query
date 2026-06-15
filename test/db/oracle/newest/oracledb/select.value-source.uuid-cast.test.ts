@@ -3,12 +3,6 @@
 // existing `select.value-source.casts.test.ts` notes UUID is not in
 // the seed schema and explicitly skips this surface; the per-dialect
 // `_asString` paths are therefore unreached by the rest of the suite.
-//
-// Oracle's default `'built-in'` uuidStrategy emits
-// `raw_to_uuid(uuid_to_raw(:0))`, which runs against the real DB. The
-// constant must be a v4 UUID: Oracle's built-in `UUID_TO_RAW` accepts
-// only version 4 (it rejects v1/v7 with `ORA-62432`), so other versions
-// need the `'custom-functions'` strategy.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { ctx } from './setup.js'

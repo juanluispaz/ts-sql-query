@@ -1,9 +1,6 @@
-// Coverage of `.in(select)` / `.notIn(select)` — the subquery overload
-// of `IN` / `NOT IN`. Different code path from `.in([array])` (which is
-// covered in select.where.empty-in.test.ts and select.where.operators.test.ts):
-// `_inSelect` / `_notInSelect` emit `col in (select ...)` instead of a
-// `col in (?, ?, ?)` placeholder list, so dialect-specific subquery
-// rendering is exercised.
+// Coverage of `.in(select)` / `.notIn(select)` — the subquery overload of
+// `IN` / `NOT IN`, emitting `col in (select ...)` rather than a placeholder
+// list (the `.in([array])` form is covered elsewhere).
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'

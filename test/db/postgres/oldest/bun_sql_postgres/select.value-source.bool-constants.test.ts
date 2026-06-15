@@ -1,6 +1,7 @@
 // Coverage of `connection.true()` / `connection.false()`. Each has a
 // value form (projected as a column) and a condition form (used inside
-// WHERE); PostgreSQL emits `true` / `false` in both.
+// WHERE); the exact boolean literal each dialect emits is pinned by the
+// SQL snapshots.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { tOrganization } from '../../domain/connection.js'

@@ -193,11 +193,9 @@ describe(ctx.label, () => {
         // `VIssueBilling` view above route through the
         // `typeof adapter === 'string'` branch of Values.ts:94-99 /
         // 128-133 — the only branch reached when the user passes a
-        // typeName. The emitted VALUES tuple still casts placeholders
-        // (`customInt` and `customDouble` are not enumerated in the
-        // postgres switch, so the fallback in
-        // `PostgreSqlConnection.transformPlaceholder` picks the cast
-        // from `typeof valueSentToDB` — `int4` / `float8`).
+        // typeName. The emitted VALUES tuple casts the placeholders for
+        // the custom-typed columns; the exact cast each dialect emits is
+        // pinned by the snapshot.
         ctx.mockNext([
             { issueId: 101 as IssueId, amount: 19.99 as Money },
             { issueId: 102 as IssueId, amount: undefined        },

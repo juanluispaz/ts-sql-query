@@ -162,14 +162,16 @@ describe(ctx.label, () => {
 
     test('execute-insert-none-or-one-with-returning-one-column', async () => {
         // `executeInsertNoneOrOne()` + `returningOneColumn(col)` lands
-        // on the `__oneColumn` branch and returns the single value or
-        // null.
+        // on the `__oneColumn` branch and returns the single value.
+        // The inserted row always exists, so the result is the
+        // engine-assigned id (never null on the real DB).
         ctx.mockNext(500)
         await ctx.withRollback(async () => {
             const result = await ctx.conn.insertInto(tOrganization)
                 .values({ name: 'Umbrella Corp', plan: 'pro' })
                 .returningOneColumn(tOrganization.id)
                 .executeInsertNoneOrOne()
+
             expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into "organization" (name, "plan") values (:0, :1) returning id into :2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
@@ -209,16 +211,16 @@ describe(ctx.label, () => {
     */
 
     test('execute-insert-one-with-returning-one-column', async () => {
-        // `executeInsertOne()` + `returningOneColumn(col)` lands on the
-        // same `__oneColumn` shape but throws `NO_RESULT` when the
-        // engine returns undefined. The happy-path test covers the
-        // value branch.
+        // `executeInsertOne()` + `returningOneColumn(col)` covers the
+        // value branch of the `__oneColumn` shape. The inserted row
+        // always exists, so the result is the engine-assigned id.
         ctx.mockNext(777)
         await ctx.withRollback(async () => {
             const result = await ctx.conn.insertInto(tOrganization)
                 .values({ name: 'LexCorp', plan: 'pro' })
                 .returningOneColumn(tOrganization.id)
                 .executeInsertOne()
+
             expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into "organization" (name, "plan") values (:0, :1) returning id into :2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [

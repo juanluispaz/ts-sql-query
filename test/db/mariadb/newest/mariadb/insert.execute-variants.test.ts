@@ -233,7 +233,8 @@ describe(ctx.label, () => {
 
     test('execute-insert-one-throws-no-result-when-row-missing', async () => {
         // `executeInsertOne()` raises `NO_RESULT` when the engine
-        // returns no row.
+        // returns no row (see
+        // [InsertQueryBuilder.ts:253](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L253)).
         // Mock-only: real INSERT always returns the inserted row.
         if (ctx.realDbEnabled) return
         ctx.mockNext(undefined)

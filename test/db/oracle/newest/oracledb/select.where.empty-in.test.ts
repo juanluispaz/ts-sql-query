@@ -1,10 +1,5 @@
-// Coverage of `.in([])` / `.notIn([])` short-circuit branches in the
-// SQL builders. Most dialects override the abstract path so that an
-// empty array produces a constant `false` (for `_in`) or `true`
-// (for `_notIn`) — see e.g. `_falseValueForCondition` /
-// `_trueValueForCondition` in PostgreSqlSqlBuilder, AbstractMySqlMariaBDSqlBuilder,
-// OracleSqlBuilder and SqlServerSqlBuilder. Oracle emits the constant
-// predicate, so the query runs and returns the expected rows.
+// Coverage of `.in([])` / `.notIn([])` short-circuit branches: an empty
+// array produces a constant `false` (for `in`) or `true` (for `not in`).
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { tIssue } from '../../domain/connection.js'
@@ -30,7 +25,7 @@ describe(ctx.label, () => {
     })
 
     test('where-not-in-empty-array', async () => {
-        // Symmetric to the `in` case: short-circuit to constant true.
+        // `not in []` short-circuits to a constant true → all rows.
         const expected = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]
         ctx.mockNext(expected)
         const rows = await ctx.conn.selectFrom(tIssue)

@@ -42,15 +42,8 @@ describe(ctx.label, () => {
         // join even though the seed has none here. Returns the two
         // distinct {id, name} objects.
         //
-        // On PostgreSQL the emission is
-        // `json_agg(distinct jsonb_build_object(...))` — building each
-        // row with `jsonb_build_object` gives DISTINCT an equality
-        // operator (PG's `json` type has no equality on any version, so
-        // the abstract `json_agg(distinct json_build_object(...))`
-        // rejects with "could not identify an equality operator for
-        // type json"). `json_agg` accepts any element type and keeps
-        // the result as `json`, matching the non-distinct sibling and
-        // the value-typed contract.
+        // Each dialect renders the distinct object-array in its own shape
+        // (see the file header) — the exact SQL is pinned by the snapshot.
         const expected = {
             id: 2, name: 'Globex Ltd',
             projects: [

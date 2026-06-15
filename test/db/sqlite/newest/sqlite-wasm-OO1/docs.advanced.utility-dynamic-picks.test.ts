@@ -104,7 +104,6 @@ describe(ctx.label, () => {
             return expandTypeFromDynamicPickPaths(availableFields, fields, projects, ['id'])
         }
 
-        // No WHERE → all four projects, ordered by id.
         ctx.mockNext([
             { id: 1, name: 'Marketing site' },
             { id: 2, name: 'Internal tools' },
@@ -117,6 +116,7 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         // Pick<ProjectInformation, 'name' | 'id'> → { id, name }, both required.
         assertType<Extends<typeof result, Array<{ id: number; name: string }>>>()
+        // No WHERE: returns all four seed projects ordered by id.
         expect(result).toEqual([
             { id: 1, name: 'Marketing site' },
             { id: 2, name: 'Internal tools' },

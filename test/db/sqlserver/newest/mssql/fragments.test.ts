@@ -47,9 +47,9 @@ describe(ctx.label, () => {
     })
 
     test('fragment-in-select-with-column-arg', async () => {
-        // A string-length fragment in the projection list. SQL
-        // Server exposes this as `len(...)` (no `length` builtin);
-        // every other dialect uses `length(...)`.
+        // A `length(...)` fragment in the projection list. `length`
+        // is portable across every dialect — that's why the docs
+        // page uses it.
         const expected = [{ id: 1, len: 16 }]
         ctx.mockNext(expected)
         const connection = ctx.conn
@@ -73,7 +73,7 @@ describe(ctx.label, () => {
     })
 
     test('fragment-optional-flag-widens-result', async () => {
-        // The same `len(...)` fragment with `'optional'` widens the
+        // The same `length(...)` fragment with `'optional'` widens the
         // projected property to `len?: number`. The SQL is identical,
         // only the result type narrows differently.
         ctx.mockNext([{ id: 1, len: 16 }])

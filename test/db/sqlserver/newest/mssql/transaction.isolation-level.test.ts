@@ -1,21 +1,17 @@
 // Coverage of `connection.isolationLevel(...)` — the per-connection
-// builder that turns an isolation level into the
-// `TransactionIsolationLevel` opts passed to `transaction(...)` /
-// `beginTransaction(...)`. It was entirely uncovered: the only
-// isolation test in the suite (docs.transaction `isolation-level`) is
-// commented out because its canonical body uses a SQLite-incompatible
-// form.
+// builder that turns an isolation level / access mode into the
+// opts passed to `transaction(...)` / `beginTransaction(...)`. The three
+// overload branches (level-only, level+accessMode, accessMode-only).
 //
-// The test runs a read-only transaction with the built isolation and
-// asserts `ctx.lastTransactionOpts` — the array `isolationLevel(...)`
-// built, captured at the `CaptureInterceptor` layer BEFORE any
-// per-runner handling, so the assertion is mode-agnostic.
+// Each test runs a read-only transaction with the built isolation and
+// asserts:
+//   - `ctx.lastTransactionOpts` — the array `isolationLevel(...)` built,
+//     captured BEFORE any per-runner handling, so the assertion works for
+//     every connector (including the ones whose real-DB runner manages
+//     the transaction internally and never fire a `beginTransaction`
+//     query).
+//   - the transaction result.
 //
-// SqlServerConnection.isolationLevel (SqlServerConnection.ts:36-38) takes
-// only an isolation level — no access mode — and its body is a single
-// `return [level]`, so the level-only test fully covers it (a
-// `'snapshot'` variant would hit the same line and additionally needs
-// the database-level ALLOW_SNAPSHOT_ISOLATION option, so it is not run).
 // Docs: docs/queries/transaction.md (section "Transaction isolation").
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
@@ -38,7 +34,7 @@ describe(ctx.label, () => {
 
     test('isolation-level-only-builds-level-opts', async () => {
         // `isolationLevel('serializable')` → opts `['serializable']`
-        // (SqlServerConnection.ts:37).
+        // (the level-only branch).
         ctx.mockNext(1)
         const result = await runReadOnlyTransaction(ctx.conn.isolationLevel('serializable'))
         expect(ctx.lastTransactionOpts).toEqual(['serializable'])
@@ -49,6 +45,9 @@ describe(ctx.label, () => {
     // NOT-APPLICABLE: SQL Server's `isolationLevel` takes only a level, no access mode, so neither the level+accessMode form nor the access-mode-only form exists.
     /*
     test('isolation-level-with-access-mode-builds-pair-opts', async () => {
+        // `isolationLevel('repeatable read', 'read write')` → opts
+        // `['repeatable read', 'read write']` (the level+accessMode
+        // branch).
         ctx.mockNext(1)
         const result = await runReadOnlyTransaction(ctx.conn.isolationLevel('repeatable read', 'read write'))
         expect(ctx.lastTransactionOpts).toEqual(['repeatable read', 'read write'])
@@ -60,6 +59,8 @@ describe(ctx.label, () => {
     // NOT-APPLICABLE: SQL Server's `isolationLevel` takes only a level, no access mode, so neither the level+accessMode form nor the access-mode-only form exists.
     /*
     test('isolation-access-mode-only-builds-access-mode-opts', async () => {
+        // The single-arg access-mode overload — opts
+        // `[undefined, 'read only']`.
         ctx.mockNext(1)
         const result = await runReadOnlyTransaction(ctx.conn.isolationLevel('read only'))
         expect(ctx.lastTransactionOpts).toEqual([undefined, undefined])

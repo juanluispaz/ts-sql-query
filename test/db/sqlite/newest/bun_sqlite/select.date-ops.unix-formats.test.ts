@@ -2,21 +2,10 @@
 // (`.getFullYear / .getMonth / .getDate / .getDay / .getHours /
 // .getMinutes / .getSeconds / .getMilliseconds / .getTime`) under the
 // `Unix time seconds as integer` and `Unix time milliseconds as integer`
-// formats. Each function emits a different SQL shape per
-// `dateTimeFormat` (SqliteSqlBuilder.ts:301-377); the default-text
-// branch is already covered by `select.date-ops.test.ts`, the Unix
-// branches were not. The Julian-day format reuses the same emissions as
-// the text branch for these functions, so it is already covered.
-//
-// The input is a `const(...)` localDateTime literal rather than a real
-// column: under a non-text format the seed (stored as text) would
-// produce NULL extractions that the int return type rejects via
-// MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE. The const literal is
-// marshalled through `transformValueToDB` for the active format
-// (a unix-seconds or unix-millis integer, captured in `lastParams`) so
-// the strftime / unixepoch SQL receives a representation it can parse —
-// real sqlite returns correct values, mock receives no rows to process.
-// This also pins the per-format toDB marshalling of `localDateTime`.
+// formats. These formats are SQLite-specific (driven by `dateTimeFormat`
+// on SqliteConnection); the active implementation lives in the sqlite
+// cells. Kept here with every test commented out for cross-cell symmetry
+// per DESIGN §"Symmetry rule".
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { ctx } from './setup.js'

@@ -1,17 +1,8 @@
-// Coverage of `_appendAggragateArrayWrappedColumns` — reached when an
+// Coverage of the inline-aggregate wrapped path — reached when an
 // inline aggregate subquery (`forUseAsInlineAggregatedArrayValue()`)
-// also carries `group by`, `having`, a compound operator, or — on
-// engines that don't support `order by` / `limit` inside the aggregate
-// function — those clauses too. `_needAgggregateArrayWrapper` returns
-// true and the builder wraps the inner select with the dialect's
-// "select aggregate from (subquery)" form.
-//
-// The existing docs.aggregate-as-object-array tests exercise the
-// non-wrapped path. Adding the wrapped path here lights up the wrapped
-// branch in the SQL Server builder: a `for json path` subquery whose
-// inner select carries `group by` / `having`. The JSON the real DB
-// returns is re-parsed by the type adapter into the same shape the mock
-// supplies.
+// also carries `group by`, `having`, or a compound operator, forcing the
+// builder to wrap the inner select with the "select aggregate from
+// (subquery)" form.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -119,6 +110,7 @@ describe(ctx.label, () => {
           ]
         `)
     })
+
     test('inline-aggregate-use-empty-array-for-no-value-explicit', async () => {
         // `forUseAsInlineAggregatedArrayValue()` already defaults to a
         // required array; `useEmptyArrayForNoValue()` on the inline value
@@ -386,7 +378,7 @@ describe(ctx.label, () => {
         // source (ValueSourceImpl.ts:2145 —
         // AggregateSelectValueSource.asRequiredInOptionalObject) makes the
         // subquery the gate of an optional inner object. If the subquery
-        // aggregates no rows, json_agg returns NULL and the inner
+        // aggregates no rows, the array aggregate returns NULL and the inner
         // `meta` object is dropped from the row.
         ctx.mockNext([
             { pid: 3, 'meta.issues': [{ id: 4, title: 'Document /v2/users' }] },
@@ -465,11 +457,6 @@ describe(ctx.label, () => {
         }>>>()
         expect(rows).toEqual([{ pid: 3 }, { pid: 4 }])
     })
-
-    // SQL Server wraps the inline aggregated-array subquery, so the
-    // order-by lives in the wrapper, not inside the aggregate function
-    // (only MariaDB keeps ORDER BY inside `json_arrayagg(...)`). Bodies
-    // copied verbatim from the canonical mariadb cell for parity.
     test('inline-aggregate-order-by-asc-nulls-last', async () => {
         ctx.mockNext({
             id: 1, name: 'Acme Corp',
@@ -502,10 +489,6 @@ describe(ctx.label, () => {
         expect(row).toEqual({ id: 1, projectNames: ['Internal tools', 'Marketing site'] })
     })
 
-    // SQL Server wraps the inline aggregated-array subquery, so the
-    // order-by lives in the wrapper, not inside the aggregate function
-    // (only MariaDB keeps ORDER BY inside `json_arrayagg(...)`). Bodies
-    // copied verbatim from the canonical mariadb cell for parity.
     test('inline-aggregate-order-by-desc-nulls-first', async () => {
         ctx.mockNext({
             id: 1, name: 'Acme Corp',
@@ -538,10 +521,6 @@ describe(ctx.label, () => {
         expect(row).toEqual({ id: 1, projectNames: ['Marketing site', 'Internal tools'] })
     })
 
-    // SQL Server wraps the inline aggregated-array subquery, so the
-    // order-by lives in the wrapper, not inside the aggregate function
-    // (only MariaDB keeps ORDER BY inside `json_arrayagg(...)`). Bodies
-    // copied verbatim from the canonical mariadb cell for parity.
     test('inline-aggregate-order-by-asc-insensitive', async () => {
         ctx.mockNext({
             id: 1, name: 'Acme Corp',
@@ -574,10 +553,6 @@ describe(ctx.label, () => {
         expect(row).toEqual({ id: 1, projectNames: ['Internal tools', 'Marketing site'] })
     })
 
-    // SQL Server wraps the inline aggregated-array subquery, so the
-    // order-by lives in the wrapper, not inside the aggregate function
-    // (only MariaDB keeps ORDER BY inside `json_arrayagg(...)`). Bodies
-    // copied verbatim from the canonical mariadb cell for parity.
     test('inline-aggregate-order-by-asc-nulls-last-insensitive', async () => {
         ctx.mockNext({
             id: 1, name: 'Acme Corp',

@@ -1,19 +1,9 @@
-// Coverage of `executeProcedure` / `executeFunction` — the two
-// protected entry points on every `AbstractConnection` subclass that
-// land on `_buildCallProcedure` / `_buildCallFunction` in the
-// dialect's SqlBuilder.
-//
-// On SQLite the entire wave is a no-op: the engine has no concept of
-// SQL-side stored procedures, and user-defined functions are
-// registered through the driver C API rather than declared with
-// `CREATE FUNCTION`. The library exposes `executeProcedure` /
-// `executeFunction` on `SqliteConnection` for symmetry (a wrapper app
-// can still call into a driver-registered function via
-// `select my_fn(?)`), but exercising the full round-trip needs DDL
-// the seed schema cannot ship. The five tests are kept commented for
-// symmetry with the other dialect cells; see e.g.
-// `postgres/newest/pg/exec.procedure-function.test.ts` for the
-// active bodies.
+// Coverage of `executeProcedure` / `executeFunction`, exposed through the
+// domain wrappers on DBConnection (callRefreshStats, callArchiveProject,
+// callCountOpenIssues, callProjectName, callProjectNameOrNull). Each dialect
+// emits its own procedure/function call form (pinned by the snapshot). The
+// procedures/functions are defined in the domain schema, so these run
+// against the real engine.
 
 import { afterAll, beforeAll, beforeEach, describe } from '../../../../lib/testRunner.js'
 import { ctx } from './setup.js'

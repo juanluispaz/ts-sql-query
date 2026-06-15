@@ -1,20 +1,11 @@
 // `UPDATE … FROM …` combined with `oldValues()` and a RETURNING
 // projection that references **multiple** columns of the joined-in
-// table forces the sort comparator inside `_buildOldValuesForUpdate`
-// to actually fire. That comparator at
-// [src/sqlBuilders/AbstractSqlBuilder.ts:2205-2228](../../../../../src/sqlBuilders/AbstractSqlBuilder.ts#L2205-L2228)
-// orders the synthesised `_old_` subquery's additional column list by
-// `(tableName, columnName)` so the emitted SQL is deterministic across
-// runs — irrelevant when only one extra column is extracted, but
-// load-bearing as soon as two or more land in the same subquery.
-//
-// The sibling `update.with-old-values-and-from.test.ts` only projects
-// ONE additional column (`organization.name`) so the sort never runs.
-// This file adds a second extracted column from the same joined-in
-// table to exercise the `t1Name === t2Name` tiebreak branch
-// (L2221-2226), plus a third column from a SECOND joined-in table to
-// also exercise the `t1Name !== t2Name` table-comparison branch
-// (L2215-2220).
+// table forces the synthesised `old.` subquery to order its extra
+// column list by `(tableName, columnName)` so the emitted SQL is
+// deterministic. With only one extra column the ordering never matters;
+// this file extracts two columns from the same FROM table (exercising
+// the column-name tiebreak) and one from a second FROM table
+// (exercising the table-name comparison).
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'

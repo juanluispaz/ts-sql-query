@@ -88,10 +88,6 @@ describe(ctx.label, () => {
         })
     })
 
-    // MariaDB accepts the `WITH cte AS (...) DELETE FROM a USING a, cte
-    // WHERE ...` form the library emits (verified against the
-    // mariadb:latest image, 12.3.2 — MariaDB 12.3 added WITH-prefixed
-    // multi-table DELETE; earlier 12.x rejected it with a parse error).
     test('delete-using-cte-source', async () => {
         // USING target is a `.forUseInQueryAs(...)` view (a CTE). The
         // emitted SQL must lead with `with active_projects as (...)`
@@ -134,8 +130,11 @@ describe(ctx.label, () => {
         // instead of throwing NO_RESULT when no rows match — the
         // snapshot assertions then run unconditionally. Projects only
         // columns from the *target* table so the snapshot is portable
-        // across dialects. The `where` filters by an impossible id so the
-        // test does not delete seed rows under real DB.
+        // across dialects (SqlServer's `output deleted.*` and Oracle's
+        // `returning ... into` both project the deleted row). MySQL has
+        // no RETURNING and the cell comments this test out. The `where`
+        // filters by an impossible id so the test does not delete seed
+        // rows under real DB.
         const expectedMock = { id: -1, title: 'X' }
         ctx.mockNext(expectedMock)
         await ctx.withRollback(async () => {

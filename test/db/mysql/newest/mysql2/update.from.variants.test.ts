@@ -117,8 +117,44 @@ describe(ctx.label, () => {
     // canonical body.
     /*
     test('update-from-with-returning-one-row', async () => {
-        // ... see other cells for the full body — uses `.returning({...})`
-        // on `update.from()` which is not typed on MySqlConnection.
+        // RETURNING combined with FROM. Pins
+        // `_buildUpdateReturning` (PG/SQLite/MariaDB), the SqlServer
+        // `output inserted.*` branch and Oracle's `returning ... into`
+        // override — all on top of a USING-list. MySQL has no RETURNING
+        // and the cell comments this test out. The projection only
+        // references columns from the *target* table: SQLite's
+        // RETURNING clause cannot project columns from the FROM table,
+        // and SqlServer's OUTPUT projects `inserted.*` rows, which
+        // likewise mirror the target table.
+        const expectedMock = { id: 1, newName: 'Acme Corp', slug: 'mktg-site' }
+        ctx.mockNext(expectedMock)
+        await ctx.withRollback(async () => {
+            const row = await ctx.conn.update(tProject)
+                .from(tOrganization)
+                .set({ name: tOrganization.name })
+                .where(tProject.id.equals(1))
+                .and(tProject.organizationId.equals(tOrganization.id))
+                .returning({
+                    id:      tProject.id,
+                    newName: tProject.name,
+                    slug:    tProject.slug,
+                })
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof row, {
+                id:      number
+                newName: string
+                slug:    string
+            }>>()
+            if (!ctx.realDbEnabled) expect(row).toEqual(expectedMock)
+            else {
+                expect(row.id).toBe(1)
+                expect(row.slug).toBe('mktg-site')
+                expect(row.newName).toBe('Acme Corp')
+            }
+        })
     })
     */
 })

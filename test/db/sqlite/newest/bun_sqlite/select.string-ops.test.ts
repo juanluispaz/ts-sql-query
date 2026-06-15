@@ -34,12 +34,8 @@ describe(ctx.label, () => {
     })
 
     test('concat-chain-with-conditional-flattens', async () => {
-        // Chains `.concat(...)` and `.concatIfValue(...)` together. With
-        // every ifValue argument present, all segments are included.
-        // MySQL/MariaDB's `_appendMaybeInnerConcat` collapses the chain
-        // into a single `concat(a, b, c, …)` call instead of nesting,
-        // taking the `SqlOperation1ValueSourceIfValueOrIgnore` branch.
-        // SQLite / PostgreSQL emit the chain through `||`.
+        // Chains `.concat(...)` and `.concatIfValue(...)` with every ifValue
+        // argument present, so all segments are included.
         const expected = [{ label: 'ada@acme.test (verified) [main]' }]
         ctx.mockNext(expected)
         const tag: string | undefined = 'verified'
@@ -68,9 +64,7 @@ describe(ctx.label, () => {
     })
 
     test('concat-chain-conditional-skip-undefined', async () => {
-        // `.concatIfValue(undefined)` drops the segment, so the chain
-        // collapses to `email || ' (' || ')'`. The flatten branch in
-        // MySQL/MariaDB skips the optional segment as well.
+        // `.concatIfValue(undefined)` drops that segment from the chain.
         const expected = [{ label: 'ada@acme.test (verified)' }]
         ctx.mockNext(expected)
         const tag: string | undefined = 'verified'
@@ -216,8 +210,7 @@ describe(ctx.label, () => {
     })
 
     test('trim-left-right', async () => {
-        // 'Ada Lovelace' has no leading/trailing whitespace, so ltrim/rtrim
-        // return it unchanged.
+        // full_name has no surrounding whitespace → ltrim/rtrim are no-ops.
         const expected = [{ id: 1, l: 'Ada Lovelace', r: 'Ada Lovelace' }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tAppUser)
@@ -304,16 +297,10 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof result, Array<{ id: number; sub: string }>>>()
-        // substr('Update hero copy', 1, 3) = 'Upd'.
         expect(result).toEqual(expected)
     })
-
     test('substring-to-end', async () => {
-        // `.substringToEnd(start)` reaches the `_substringToEnd` branch
-        // (no length argument). Each builder picks a slightly different
-        // SQL — SQLite/Oracle drop the length argument from `substr`,
-        // PostgreSQL uses `substring(x from start+1)`, SqlServer uses
-        // `substring(x, start+1, len(x))`.
+        // `.substringToEnd(start)` omits the length argument.
         const expected = [{ id: 1, sub: 'ate hero copy' }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssue)
@@ -331,15 +318,11 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof result, Array<{ id: number; sub: string }>>>()
-        // substr('Update hero copy', 4) = 'ate hero copy'.
         expect(result).toEqual(expected)
     })
 
     test('substr-to-end', async () => {
-        // `.substrToEnd(start)` — the JS-style sibling of
-        // substringToEnd(start). The emitted SQL is identical on
-        // most dialects (both fall back to `substr(x, start+1)` on
-        // SQLite/Oracle); the test still pins the param shape per cell.
+        // `.substrToEnd(start)` — JS-style sibling of `.substringToEnd(start)`.
         const expected = [{ id: 1, sub: 'ate hero copy' }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssue)
@@ -357,13 +340,12 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof result, Array<{ id: number; sub: string }>>>()
-        // substr('Update hero copy', 4) = 'ate hero copy'.
         expect(result).toEqual(expected)
     })
+
     test('substring-with-value-source-start', async () => {
-        // `.substring(valueSource, end)` — `start` is a column ref
-        // rather than a number literal. Issue 1 has priority=2, so
-        // `substr('Update hero copy', 2 + 1, 5 - 2)` = substr(.., 3, 3) = 'dat'.
+        // `.substring(valueSource, end)` — start is a column ref, not a literal.
+        // issue 1: title='Update hero copy', priority=2 → substring(2, 5) = 'dat'.
         const expected = [{ id: 1, sub: 'dat' }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssue)
@@ -385,12 +367,8 @@ describe(ctx.label, () => {
     })
 
     test('substr-two-arg', async () => {
-        // `.substr(start, count)` — the JS-style two-argument form
-        // (start + count), distinct from `.substring(start, end)`. It is
-        // not exercised anywhere else in the suite, so it is the only
-        // caller of the base `_substr` two-argument branch on the
-        // dialects that inherit it (MySQL/MariaDB/SQLite/Oracle/Postgres
-        // emit `substr(...)`; SqlServer overrides to `substring(...)`).
+        // `.substr(start, count)` — JS-style two-argument form (start + count),
+        // distinct from `.substring(start, end)`.
         const expected = [{ id: 1, sub: 'Upd' }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssue)
@@ -409,16 +387,13 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof result, Array<{ id: number; sub: string }>>>()
-        // substr('Update hero copy', 1, 3) = 'Upd'.
         expect(result).toEqual(expected)
     })
 
     test('substring-numeric-start-value-source-end', async () => {
         // `.substring(numericStart, valueSourceEnd)` — start is a literal,
-        // end is a column ref. Reaches the base `_substring` arm where
-        // `value` is numeric but `value2` is not (the count becomes
-        // `value2 - value`). Issue 1 has priority=2, so
-        // `substr('Update hero copy', 1, 2 - 0)` = 'Up'.
+        // end is a column ref.
+        // issue 1: title='Update hero copy', priority=2 → substring(0, 2) = 'Up'.
         const expected = [{ id: 1, sub: 'Up' }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssue)

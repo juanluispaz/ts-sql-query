@@ -33,9 +33,8 @@
 //   2. The trailing reseed resets the sequence counters that
 //      `nextval()` bumps. Sequences are non-transactional on every
 //      supported engine, so a `withRollback` would leave the bump
-//      behind — and on PG specifically `issue_id_seq` is the implicit
-//      SERIAL sequence behind `issue.id`, so the leak would shift
-//      every subsequent insert id.
+//      behind — and the implicit sequence behind `issue.id` would
+//      then shift every subsequent insert id.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { ctx } from './setup.js'

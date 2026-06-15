@@ -132,7 +132,8 @@ describe(ctx.label, () => {
 
     test('offset-without-limit', async () => {
         // `.offset(n)` with the limit elided (limitIfValue(undefined)):
-        // PostgreSQL emits a bare `offset`.
+        // each dialect emits its own offset-without-limit form, pinned by
+        // the snapshot.
         const expected = [{ id: 2 }, { id: 3 }, { id: 4 }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssue)

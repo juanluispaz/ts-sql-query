@@ -105,7 +105,7 @@ describe(ctx.label, () => {
     })
 
     // Pins the nested-transaction hook-stack behaviour (outer hooks
-    // saved and restored across the inner transaction). The matrix `pg`
+    // saved and restored across the inner transaction). The matrix
     // runner is built without `allowNestedTransactions`, so a real
     // nested transaction throws NESTED_TRANSACTION_NOT_SUPPORTED.
     test('nested-transaction-preserves-and-restores-outer-after-commit-hook', async () => {

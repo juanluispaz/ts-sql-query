@@ -103,9 +103,7 @@ describe(ctx.label, () => {
         // Section "Update returning old values" — `tTable.oldValues()`
         // yields a reference whose columns resolve to the PRE-update row.
         // Supported on PostgreSQL, modern MariaDB and SQL Server. SQLite,
-        // MySQL and Oracle don't support it. At `newest` the SqlBuilder
-        // emits `RETURNING old.<col>`, which needs PostgreSQL 18+; pglite
-        // 0.5.2 ships PostgreSQL 18.3, so it accepts the form (verified).
+        // MySQL and Oracle don't support it.
         ctx.mockNext({ oldName: 'Marketing site', newName: 'Marketing site (v2)' })
 
         await ctx.withRollback(async () => {

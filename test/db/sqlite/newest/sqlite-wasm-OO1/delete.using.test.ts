@@ -1,6 +1,5 @@
 // Coverage of `DELETE … USING other-table` (PostgreSQL/SQL Server/
-// MariaDB/MySQL syntax). SQLite and Oracle don't support it; their
-// cells comment the test out for symmetry.
+// MariaDB/MySQL syntax). SQLite and Oracle don't support it.
 
 import { afterAll, beforeAll, beforeEach, describe } from '../../../../lib/testRunner.js'
 import { ctx } from './setup.js'

@@ -40,10 +40,11 @@ describe(ctx.label, () => {
     */
 
     test('minus-routes-through-the-dialect-alias', async () => {
-        // `.minus(...)` is typed on `sqlite`; the default
-        // `_appendCompoundOperator` rewrites it to ` except ` so the
-        // engine accepts the emitted SQL. id<=2 → {open, in_progress};
-        // all → {open, in_progress, open, closed}; minus → {closed}.
+        // `.minus(...)` renders as the dialect's set-difference operator
+        // (`except` on most dialects, `minus` on Oracle), deduplicated —
+        // the exact keyword is pinned by the snapshot. Distinct left statuses
+        // {open, in_progress, closed} minus right (id <= 2)
+        // {open, in_progress} leaves {closed}.
         const expected = [{ status: 'closed' }]
         ctx.mockNext(expected)
         const all = ctx.conn.selectFrom(tIssue)

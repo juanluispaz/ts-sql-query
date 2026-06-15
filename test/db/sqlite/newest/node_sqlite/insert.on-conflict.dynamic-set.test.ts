@@ -10,7 +10,8 @@
 //     dropped before the SET clause is emitted.
 //   - The bare-form siblings (`.onConflictDoUpdateDynamicSet({…?})` and
 //     `.onConflictDoUpdateSetIfValue({...})`) are mariadb/mysql/sqlite only
-//     and are commented in this PG file for symmetry.
+//     and are commented out for symmetry in the cells whose dialect does
+//     not type them.
 //
 // The static `.onConflictDoUpdateSet({...})` / `.doUpdateSet({...})` paths
 // are already pinned by `insert.on-conflict.test.ts`; this file only

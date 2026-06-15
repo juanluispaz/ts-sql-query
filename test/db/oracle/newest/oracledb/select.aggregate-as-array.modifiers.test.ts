@@ -1,22 +1,11 @@
-// Coverage of the aggregate-as-array optional/gate modifiers that the
-// existing `select.aggregate-as-array.*` files don't reach:
-//   - `useEmptyArrayForNoValue()` (the explicit default → required array)
-//   - `asOptionalNonEmptyArray()` (no value → undefined, optional array)
-//   - `onlyWhenOrNull(true)` / `ignoreWhenAsNull(false)` (the pass-through
-//     branches that return the same regular value source)
-//   - `disallowWhen(true|false, …)` (the disallow gate, distinct from the
-//     already-covered `allowWhen`)
-//   - `projectingOptionalValuesAsNullable()` (optional object props become
-//     `T | null` instead of `T?`)
-//   - the same modifiers on the NULL variant produced by
-//     `onlyWhenOrNull(false)`
-// These land on AggregateSelectValueSource / NullAggregateSelectValueSource
-// in src/internal/ValueSourceImpl.ts.
+// Coverage of the aggregate-as-array optional/gate modifiers the other
+// select.aggregate-as-array.* files don't reach: useEmptyArrayForNoValue,
+// asOptionalNonEmptyArray, onlyWhenOrNull / ignoreWhenAsNull pass-through,
+// disallowWhen, projectingOptionalValuesAsNullable, and the same modifiers
+// on the NULL variant from onlyWhenOrNull(false).
 //
-// `json_agg` has no ORDER BY here, so the real engine's array order is not
-// deterministic; the value assertion is therefore mock-only (the SQL +
-// params + type assertions still run in both modes), mirroring the
-// existing aggregate-as-array tests.
+// the array aggregate has no ORDER BY, so the array order is not deterministic on the
+// real engine — value assertions sort the array before comparing.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -74,7 +63,6 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{ pid: number; titles?: string[] }>>>()
-        // json_arrayagg has no ORDER BY → sort the inner array before comparing.
         expect(rows.map(r => ({ pid: r.pid, titles: [...r.titles!].sort() })))
             .toEqual([{ pid: 1, titles: ['Redesign navbar', 'Update hero copy'] }])
     })
@@ -101,7 +89,6 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{ pid: number; titles?: string[] }>>>()
-        // json_arrayagg has no ORDER BY → sort the inner array before comparing.
         expect(rows.map(r => ({ pid: r.pid, titles: [...r.titles!].sort() })))
             .toEqual([{ pid: 1, titles: ['Redesign navbar', 'Update hero copy'] }])
     })
@@ -127,7 +114,6 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{ pid: number; titles?: string[] }>>>()
-        // json_arrayagg has no ORDER BY → sort the inner array before comparing.
         expect(rows.map(r => ({ pid: r.pid, titles: [...r.titles!].sort() })))
             .toEqual([{ pid: 1, titles: ['Redesign navbar', 'Update hero copy'] }])
     })
@@ -180,7 +166,6 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{ pid: number; titles: string[] }>>>()
-        // json_arrayagg has no ORDER BY → sort the inner array before comparing.
         expect(rows.map(r => ({ pid: r.pid, titles: [...r.titles].sort() })))
             .toEqual([{ pid: 1, titles: ['Redesign navbar', 'Update hero copy'] }])
     })
@@ -245,17 +230,14 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{ pid: number; titles: string[] }>>>()
-        // The Null variant emits literal `null`, so `useEmptyArrayForNoValue`
-        // yields the empty array in both modes regardless of the seed.
         expect(rows).toEqual([{ pid: 1, titles: [] }])
     })
+
     test('aggregate-as-array-as-required-in-optional-object', async () => {
-        // `asRequiredInOptionalObject()` on an aggregate (ValueSourceImpl.ts:2515
-        // — AggregateValueAsArrayValueSource.asRequiredInOptionalObject) makes
-        // it the gate of an optional inner object: when the aggregate yields
-        // no value (empty group → json_agg returns NULL), the whole inner
-        // object is dropped. Project 3 (org 2) has one issue, project 4
-        // has none; only project 3's `meta` survives.
+        // `asRequiredInOptionalObject()` makes the aggregate the gate of an
+        // optional inner object: when the group is empty (the array aggregate returns
+        // NULL) the inner object is dropped. Project 3 (org 2) has one
+        // issue, project 4 has none; only project 3's `meta` survives.
         ctx.mockNext([
             { pid: 3, 'meta.titles': ['Document /v2/users'] },
             { pid: 4, 'meta.titles': null },
@@ -291,11 +273,9 @@ describe(ctx.label, () => {
     })
 
     test('null-aggregate-as-array-as-required-in-optional-object', async () => {
-        // The Null variant — `onlyWhenOrNull(false)` chained with
-        // `asRequiredInOptionalObject()` exercises ValueSourceImpl.ts:2631
-        // (NullAggregateValueAsArrayValueSource.asRequiredInOptionalObject).
-        // The column emits literal `null` regardless of the join, so the
-        // gate is always null and `meta` is always absent.
+        // The Null variant: `onlyWhenOrNull(false)` emits literal `null`
+        // regardless of the join, so the gate is always null and `meta` is
+        // always absent.
         ctx.mockNext([
             { pid: 3, 'meta.titles': null },
             { pid: 4, 'meta.titles': null },
@@ -328,5 +308,4 @@ describe(ctx.label, () => {
         }>>>()
         expect(rows).toEqual([{ pid: 3 }, { pid: 4 }])
     })
-
 })

@@ -1,24 +1,17 @@
 // Coverage of `connection.isolationLevel(...)` — the per-connection
 // builder that turns an isolation level / access mode into the
-// `TransactionIsolationLevel` opts passed to `transaction(...)` /
-// `beginTransaction(...)`. The three overload branches
-// (MariaDBConnection.ts:77-87) were entirely uncovered: the only
-// isolation test in the suite (docs.transaction `isolation-level`) is
-// commented out because its canonical body uses a SQLite-incompatible
-// form.
+// opts passed to `transaction(...)` / `beginTransaction(...)`. The three
+// overload branches (level-only, level+accessMode, accessMode-only).
 //
 // Each test runs a read-only transaction with the built isolation and
 // asserts:
 //   - `ctx.lastTransactionOpts` — the array `isolationLevel(...)` built,
-//     captured at the `CaptureInterceptor` layer BEFORE any per-runner
-//     handling, so the assertion is mode-agnostic and works for every
-//     connector (including the ones whose real-DB runner manages the
-//     transaction internally — Porsager's `postgres`, Bun's `sql`,
-//     `oracledb`'s autocommit flip — which never fire the
-//     `beginTransaction` query type the `ctx.history` entry depends on).
+//     captured BEFORE any per-runner handling, so the assertion works for
+//     every connector (including the ones whose real-DB runner manages
+//     the transaction internally and never fire a `beginTransaction`
+//     query).
 //   - the transaction result.
 //
-// Not applicable on SQLite (no `isolationLevel` on SqliteConnection).
 // Docs: docs/queries/transaction.md (section "Transaction isolation").
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
@@ -42,7 +35,7 @@ describe(ctx.label, () => {
 
     test('isolation-level-only-builds-level-opts', async () => {
         // `isolationLevel('serializable')` → opts `['serializable']`
-        // (MariaDBConnection.ts:86, the level-only branch).
+        // (the level-only branch).
         ctx.mockNext(1)
         const result = await runReadOnlyTransaction(ctx.conn.isolationLevel('serializable'))
         expect(ctx.lastTransactionOpts).toEqual(['serializable'])
@@ -52,7 +45,7 @@ describe(ctx.label, () => {
     test('isolation-level-with-access-mode-builds-pair-opts', async () => {
         // `isolationLevel('repeatable read', 'read write')` → opts
         // `['repeatable read', 'read write']` (the level+accessMode
-        // branch, MariaDBConnection.ts:84).
+        // branch).
         ctx.mockNext(1)
         const result = await runReadOnlyTransaction(ctx.conn.isolationLevel('repeatable read', 'read write'))
         expect(ctx.lastTransactionOpts).toEqual(['repeatable read', 'read write'])
@@ -60,8 +53,8 @@ describe(ctx.label, () => {
     })
 
     test('isolation-access-mode-only-builds-access-mode-opts', async () => {
-        // The single-arg access-mode overload (MariaDBConnection.ts:82)
-        // — opts `[undefined, 'read only']`, matching Oracle's body.
+        // The single-arg access-mode overload — opts
+        // `[undefined, 'read only']`.
         ctx.mockNext(1)
         const result = await runReadOnlyTransaction(ctx.conn.isolationLevel('read only'))
         expect(ctx.lastTransactionOpts).toEqual([undefined, 'read only'])

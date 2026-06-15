@@ -1,17 +1,20 @@
 // Coverage of the `ForceTypeCast` type adapter
-// ([`src/TypeAdapter.ts`](../../../../../src/TypeAdapter.js)).
-// ForceTypeCast forces a placeholder cast on **PostgreSQL**, which cannot
-// always infer a bound parameter's type correctly (see
-// `PostgreSqlConnection.transformPlaceholder`). On every OTHER dialect it
-// is an intentional **NO-OP**: those engines infer the parameter type
-// fine, so wrapping a column in ForceTypeCast emits SQL identical to an
-// unwrapped column (no cast, no error). This is by design — NOT a dialect
-// boundary — so these tests run here too and pin the no-op; the
-// `::<type>` cast variant is asserted in the postgres cells.
+// ([`src/TypeAdapter.ts`](../../../../../src/TypeAdapter.ts)).
+// A column wrapped with this adapter unconditionally forces
+// `transformPlaceholder(... forceTypeCast = true)`, so every bound
+// parameter for that column carries the dialect's placeholder cast —
+// independently of where in the query it is used (WHERE, projection,
+// INSERT VALUES, etc.). On dialects that need it (PostgreSQL) this emits
+// a `::<type>` cast; on dialects that infer parameter types fine it is an
+// intentional no-op. The exact emitted SQL is pinned per cell by the
+// snapshots.
 //
-// The fixture is a local `Table` re-mapped over the existing `project`
-// table (same columns/rows as `tProject`), with `id`/`name` wrapped in a
-// ForceTypeCast adapter.
+// The fixture is a local `Table` that re-maps over the existing
+// `project` table (same columns, same row shape as the shared
+// `tProject`), with `id` and `name` wrapped in a `ForceTypeCast`
+// adapter. Using the same physical table keeps real-DB execution
+// trivial; the only observable behaviour change is the bound
+// placeholder syntax.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { ForceTypeCast } from '../../../../../src/TypeAdapter.js'
@@ -34,10 +37,9 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('force-type-cast-adapter-on-int-column-in-where', async () => {
-        // `tProjectFC.id` is wrapped in ForceTypeCast. On this
-        // (non-PostgreSQL) dialect the adapter is an intentional no-op, so
-        // the emitted SQL is the plain comparison with no placeholder cast —
-        // the `::<type>` cast only appears on PostgreSQL.
+        // `tProjectFC.id` is wrapped in a `ForceTypeCast`; comparing it
+        // to a literal forces the dialect's placeholder cast on the bound
+        // param (a no-op where the engine infers types — see the snapshot).
         ctx.mockNext([{ id: 1 }])
         const rows = await ctx.conn.selectFrom(tProjectFC)
             .where(tProjectFC.id.equals(1))
@@ -53,8 +55,9 @@ describe(ctx.label, () => {
     })
 
     test('force-type-cast-adapter-on-string-column-in-where', async () => {
-        // Same no-op on a string column: ForceTypeCast leaves the
-        // comparison uncast on every dialect except PostgreSQL.
+        // `tProjectFC.name` is wrapped in a `ForceTypeCast`; the
+        // comparison forces the dialect's placeholder cast on the bound
+        // param (a no-op where the engine infers types — see the snapshot).
         ctx.mockNext([{ id: 1 }])
         const rows = await ctx.conn.selectFrom(tProjectFC)
             .where(tProjectFC.name.equals('Marketing site'))

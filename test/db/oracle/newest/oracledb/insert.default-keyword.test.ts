@@ -7,20 +7,20 @@
 // `Default` branch in [src/expressions/insert.ts](../../../../../src/expressions/insert.ts)
 // and `src/expressions/update.ts`.
 //
-// Oracle does NOT support `INSERT … ON CONFLICT` syntax — the
-// `on-conflict-do-update-with-default-keyword` test is commented out
-// here for parity with the postgres/mariadb/mysql cells.
-//
-// Oracle's `_buildInsertMultiple` emits a `begin ... end` block with
-// one `insert` statement per row instead of the standard
-// `values (...), (...)` form.
-//
 // `default-on-custom-boolean-column` covers the boolean-remap
 // short-circuit: the SqlBuilder detects the `Default` sentinel inside
 // `_appendCustomBooleanRemapForColumnIfRequired` and emits the bare
 // `default` keyword instead of wrapping it in
 // `case when default then 'Y' else 'N' end` (which every dialect
 // rejects at execution time).
+//
+// SQLite is not exercised here — `SqliteConnection` does not expose
+// `default()` (SQLite's grammar rejects DEFAULT as a value expression
+// in INSERT VALUES / UPDATE SET / ON CONFLICT DO UPDATE SET). The
+// compile-time negative lives at
+// [test/db/sqlite/types.negative/insert.test.ts](../../../../sqlite/types.negative/insert.test.ts);
+// the sqlite cells keep `insert.default-keyword.test.ts` for cross-cell
+// symmetry per DESIGN §4 with every test commented out.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -112,9 +112,10 @@ describe(ctx.label, () => {
 
     test('multi-row-insert-with-default-in-some-rows', async () => {
         // Multi-row insert where one row uses an explicit value for the
-        // default column and the other uses `default()`. Oracle wraps
-        // every row in a separate `insert` inside a `begin ... end`
-        // block; the snapshot pins that dialect-specific shape.
+        // default column and the other uses `default()`. Every row in
+        // the values list keeps the same column order, so the SQL has
+        // `default` sitting next to the bound placeholder for the row
+        // that supplies a value.
         ctx.mockNext(2)
         await ctx.withRollback(async () => {
             const connection = ctx.conn

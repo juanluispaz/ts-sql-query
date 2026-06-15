@@ -119,9 +119,8 @@ describe(ctx.label, () => {
 
     test('delete-returning-one-column-many-result', async () => {
         // `returningOneColumn(col)` + `executeDeleteMany()` — pins
-        // the one-column-many path of `executeDeleteMany`. The WHERE
-        // matches no rows (id=99999), so both the mock and the real DB
-        // yield an empty array — deterministic on both sides.
+        // the one-column-many path. WHERE id=99999 matches no rows, so
+        // the RETURNING result is empty.
         ctx.mockNext([])
         await ctx.withRollback(async () => {
             const statuses = await ctx.conn.deleteFrom(tIssue)

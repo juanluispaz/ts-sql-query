@@ -1,43 +1,10 @@
-// Coverage of the per-rule branches inside
-// [src/internal/DBColumnImpl.ts:161-297](../../../../../src/internal/DBColumnImpl.ts#L161-L297) —
-// `createColumnsFromInnerObject` + `getInnerObjetRuleToApply`. These
-// fire when a SELECT inside a `forUseInQueryAs(...)` CTE has nested
-// object properties in its projection (the constructor of
-// `WithViewImpl` calls `createColumnsFrom`, which recurses into
-// `createColumnsFromInnerObject` for every non-value-source property).
-//
-// The three reachable rules at L177-198 each rewrite the cloned
-// column's `__optionalType` differently, which downstream complex
-// projection logic uses to decide whether a `null` in a group should
-// surface the whole inner object as `undefined` (left-join semantics)
-// or as a leaf `T | undefined`. Without the cases above firing, the
-// shape of nested projections inside a CTE silently collapses to the
-// default — a regression the existing CTE tests would not catch.
-//
-//   - Rule 3 ("there is a required property"): plain SELECT with a
-//     nested object whose columns are `required` columns of the source
-//     table. Each leaf optionalType is rewritten to `optional` (L188-192).
-//   - Rule 2 ("all from the same left join"): nested object whose
-//     columns are all `originallyRequired` AND share the same
-//     left-joined table. Each leaf optionalType becomes
-//     `requiredInOptionalObject` (L183-187) — the marker the
-//     downstream projector reads to make the whole inner group
-//     undefined when any column comes back null.
-//   - Rule 1 ("there is requiredInOptionalObject"): a two-level CTE
-//     chain where the inner CTE already ran Rule 2 (so its nested
-//     columns carry `requiredInOptionalObject`); the outer CTE then
-//     re-projects those into a new nested object, and L178-182
-//     downgrades them to `optional`.
-//
-//   - Rule 4 ("the general rule"): a nested object whose columns
-//     are all `optional` and which contains no required inner
-//     objects. `getInnerObjetRuleToApply` returns 4 and the matching
-//     case at L193-198 rewrites every leaf to `optional` (no-op since
-//     they were already optional). The resulting view-column shape is
-//     observably identical to Rule 3 today — both rule cases produce
-//     the same leaf rewrites — but the rule number cascades up
-//     correctly when an outer recursive call inspects this group via
-//     `=== 3`.
+// Coverage of how nested-object properties projected inside a
+// `forUseInQueryAs(...)` CTE keep their optional/left-join shape:
+//   - required leaves → the inner object is required, leaves optional.
+//   - all-left-join leaves → the whole inner object becomes optional
+//     (undefined when the join misses), leaves required-when-present.
+//   - a two-level CTE chain re-projecting the left-join object.
+//   - all-optional leaves → object dropped only when every leaf is null.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -265,4 +232,5 @@ describe(ctx.label, () => {
             { iid: 4, opt: { body: 'See ADR-014', assigneeId: 3 } },
         ])
     })
+
 })

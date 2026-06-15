@@ -7,7 +7,7 @@
 //      Lands on `_appendAggragateArrayColumns(distinct=true, columns=object)`
 //      on every dialect's SqlBuilder — each builder overrides the
 //      method and renders distinct + json-object together in its own
-//      shape (PostgreSQL: `json_agg(distinct json_build_object(...))`,
+//      shape (PostgreSQL: `json_agg(distinct jsonb_build_object(...))`,
 //      SQLite: `json_group_array(distinct json_object(...))`,
 //      MySQL/MariaDB: `json_arrayagg(distinct json_object(...))`,
 //      Oracle: `json_arrayagg(distinct json_object(...))`, SQL Server:

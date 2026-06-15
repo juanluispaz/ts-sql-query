@@ -81,10 +81,6 @@ describe(ctx.label, () => {
         })
     })
 
-    // MariaDB accepts the `WITH cte AS (...) UPDATE a, cte SET ...` form
-    // the library emits (verified against the mariadb:latest image,
-    // 12.3.2 — MariaDB 12.3 added WITH-prefixed multi-table UPDATE;
-    // earlier 12.x rejected it with a parse error).
     test('update-from-cte-source', async () => {
         // FROM target is a `.forUseInQueryAs(...)` view (a CTE). The
         // emitted SQL must lead with `with verified_orgs as (...)`
@@ -125,9 +121,15 @@ describe(ctx.label, () => {
     // TODO[LIMITATION]: see LIMITATIONS.md — UPDATE ... RETURNING needs MariaDB 13.0.1+ and is not accepted on a multi-table UPDATE as of 12.3.2
     /*
     test('update-from-with-returning-one-row', async () => {
-        // RETURNING combined with FROM. Pins `_buildUpdateReturning` on
-        // top of a multi-table UPDATE. The projection only references
-        // columns from the *target* table.
+        // RETURNING combined with FROM. Pins
+        // `_buildUpdateReturning` (PG/SQLite/MariaDB), the SqlServer
+        // `output inserted.*` branch and Oracle's `returning ... into`
+        // override — all on top of a USING-list. MySQL has no RETURNING
+        // and the cell comments this test out. The projection only
+        // references columns from the *target* table: SQLite's
+        // RETURNING clause cannot project columns from the FROM table,
+        // and SqlServer's OUTPUT projects `inserted.*` rows, which
+        // likewise mirror the target table.
         const expectedMock = { id: 1, newName: 'Acme Corp', slug: 'mktg-site' }
         ctx.mockNext(expectedMock)
         await ctx.withRollback(async () => {

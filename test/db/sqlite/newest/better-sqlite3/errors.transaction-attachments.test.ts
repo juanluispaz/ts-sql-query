@@ -213,20 +213,9 @@ describe(ctx.label, () => {
         expect(caught).toBe(thrown)
     })
 
-    // Not applicable in any cell: `attachRollbackError` (L449-463 of
-    // `TsSqlError.ts`) is wired by `ManagedTransactionQueryRunner.executeInTransaction`
-    // (L13-22 of `ManagedTransactionQueryRunner.ts`) when the body's
-    // error AND the subsequent rollback both throw. The mock-mode
-    // `MockQueryRunner.executeInTransaction` (L517-533 of
-    // `MockQueryRunner.ts`) deliberately swallows the rollback error
-    // without chaining, so the attach helper is unreachable through
-    // the mock — and the real driver runners (`PgQueryRunner`,
-    // `PostgresQueryRunner`, etc.) have no injection hook that would
-    // let us force a rollback failure without breaking the underlying
-    // connection. Left as a documented gap; the helper is still
-    // exercised through real-driver integration tests outside this
-    // matrix.
-    // TODO[LIMITATION]: see LIMITATIONS.md — `attachRollbackError` needs both the body error and the rollback to throw; the mock swallows the rollback error and the real runners can't force one, so this path isn't drivable in this matrix.
+    // TODO[LIMITATION]: `attachRollbackError` needs both the body error and the
+    // rollback to throw; the mock swallows the rollback error and the real
+    // runners can't force one, so this path isn't drivable in this matrix.
     /*
     test('rollback-driver-failure-attaches-rollback-error', async () => {
         // would force `e instanceof TsSqlQueryExecutionError` body

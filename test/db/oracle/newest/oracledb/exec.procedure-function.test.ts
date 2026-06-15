@@ -1,9 +1,9 @@
 // Coverage of `executeProcedure` / `executeFunction`, exposed through the
 // domain wrappers on DBConnection (callRefreshStats, callArchiveProject,
-// callCountOpenIssues, callProjectName, callProjectNameOrNull). Oracle
-// emits `begin name(...); end;` for procedures and
-// `select name(...) from dual` for functions. The procedures/functions are
-// defined in the domain schema, so these run against the real engine.
+// callCountOpenIssues, callProjectName, callProjectNameOrNull). Each dialect
+// emits its own procedure/function call form (pinned by the snapshot). The
+// procedures/functions are defined in the domain schema, so these run
+// against the real engine.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { ctx } from './setup.js'
@@ -44,7 +44,6 @@ describe(ctx.label, () => {
     test('execute-function-returning-int', async () => {
         // Function call returning an int. count_open_issues(1) counts the
         // open issues of project 1 → 1 (issue 1; issue 2 is in_progress).
-        // Oracle wraps the function call with `from dual`.
         ctx.mockNext(1)
         const count = await ctx.conn.callCountOpenIssues(1)
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select count_open_issues(:0) from dual"`)
@@ -82,6 +81,7 @@ describe(ctx.label, () => {
         `)
         expect(name).toBeNull()
     })
+
     test('execute-function-required-throws-mandatory-when-driver-returns-null', async () => {
         // A required-typed function call whose driver returns null throws
         // MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE. A real
@@ -115,5 +115,4 @@ describe(ctx.label, () => {
         expect(thrown).toBeInstanceOf(Error)
         expect((thrown as Error).message).toMatch(/No result returned/)
     })
-
 })

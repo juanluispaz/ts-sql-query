@@ -1,20 +1,8 @@
-// Trigonometric `SqlOperation0` paths on `ValueSourceImpl`:
-// `.acos()`, `.asin()`, `.atan()`, `.cos()`, `.cot()`, `.sin()`,
-// `.tan()` — each forwards to the corresponding `_acos`/`_asin`/…
-// emitter on [AbstractSqlBuilder.ts:L2688-L2708](../../../../../src/sqlBuilders/AbstractSqlBuilder.ts#L2688).
-// `.atan2(other)` (the 2-arg variant) is already covered by
-// `select.numeric-ops.test.ts`, so this file pins only the 1-arg
-// trig family.
-//
-// Oracle exposes `acos`/`asin`/… natively, so each cell executes
-// end-to-end against the real DB. The one exception is `.cot()`: Oracle
-// has no `COT` function, so the builder emits `1 / tan(x)` instead, which
-// runs end-to-end just the same.
-//
-// The scalar values pulled from `tIssue.priority` (range 1..3) are
-// inside the legal domain for every trig function exercised here
-// (acos/asin require |x| <= 1; we use `divide(10)` to land in
-// [0.1, 0.3]).
+// Trigonometric functions on numeric columns: acos, asin, atan, cos,
+// cot, sin, tan (the 1-arg family; atan2 is covered in
+// select.numeric-ops.test.ts). acos/asin need |x| <= 1, so priority
+// (issue 1 = 2) is divided by 10 to land in [0.1, 0.3]. Real results
+// are floats, so the real-DB branch asserts with toBeCloseTo.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -119,7 +107,6 @@ describe(ctx.label, () => {
     })
 
     test('cot', async () => {
-        // Oracle has no COT function; the builder emits 1 / tan(x).
         const expected = [{ id: 1, v: 1 / Math.tan(2) }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssue)

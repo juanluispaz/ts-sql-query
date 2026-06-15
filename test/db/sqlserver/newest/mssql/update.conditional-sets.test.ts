@@ -1,26 +1,22 @@
 // Coverage of UPDATE's "has value" / "if value" / "when" setter
-// families that the docs page leaves unexercised. Together they make
-// up the bulk of the dynamic-set surface in
-// [src/queryBuilders/UpdateQueryBuilder.ts](../../../../../src/queryBuilders/UpdateQueryBuilder.ts):
+// families that the docs page leaves unexercised:
 //
 //   - `setIfHasValue(...)` / `setIfHasNoValue(...)` — branch on whether
-//     the currently staged value passes `_isValue` (non-null, non-empty
-//     string/array, defined).
+//     the currently staged value passes the value gate (non-null,
+//     non-empty string/array, defined).
 //   - `setIfSetIfValue` / `setIfNotSetIfValue` /
 //     `setIfHasValueIfValue` / `setIfHasNoValueIfValue` — compose the
 //     previous gate with the incoming-value gate.
 //   - `ignoreIfHasValue(...)` / `ignoreIfHasNoValue(...)` — delete
 //     conditionally.
 //   - `disallowIfValue(...)` / `disallowIfNoValue(...)` — guard rules
-//     that throw a `TsSqlProcessingError` BEFORE the SQL ever runs.
+//     that throw BEFORE the SQL ever runs.
 //   - `*When(when, ...)` — every setter has a `When` flavour that
-//     no-ops when `when === false`; the negative branch is what is
-//     untouched today.
+//     no-ops when `when === false`.
 //
 // All cases are mock-only: the conditional logic resolves entirely in
-// the QueryBuilder, so the emitted SQL is exactly the SQL that would
-// run if the same `__sets` object were built by hand. No `withRollback`
-// is needed.
+// the query builder, so the emitted SQL is exactly the SQL that would
+// run if the same sets were built by hand. No `withRollback` is needed.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -57,7 +53,7 @@ describe(ctx.label, () => {
 
     test('set-if-has-no-value-fills-only-empty-slots', async () => {
         // Mirror of the above: `setIfHasNoValue` only assigns columns
-        // whose staged value FAILS `_isValue` (here `body: null`). The
+        // whose staged value fails the value gate (here `body: null`). The
         // already-valued `title` is left as-is.
         ctx.mockNext(1)
         await ctx.conn.update(tIssue)
@@ -78,7 +74,7 @@ describe(ctx.label, () => {
 
     test('set-if-set-if-value-requires-both-gates', async () => {
         // `setIfSetIfValue` writes only when (a) the column was already
-        // set AND (b) the incoming value passes `_isValue`. With
+        // set AND (b) the incoming value passes the value gate. With
         // `priority` already set and `title` not, only the priority
         // update lands; the null skip on priority is also a no-op.
         ctx.mockNext(1)
@@ -100,7 +96,7 @@ describe(ctx.label, () => {
 
     test('set-if-not-set-if-value-skips-empty-and-already-set', async () => {
         // `setIfNotSetIfValue` writes only when the column was NOT set
-        // before AND the incoming value passes `_isValue`. `status` is
+        // before AND the incoming value passes the value gate. `status` is
         // already set so the override is dropped; `body: ''` fails the
         // value gate; `title` is new and non-empty so it sticks.
         ctx.mockNext(1)
@@ -122,10 +118,10 @@ describe(ctx.label, () => {
 
     test('set-if-has-value-if-value-requires-both-current-and-incoming', async () => {
         // `setIfHasValueIfValue` updates only when BOTH the staged value
-        // and the incoming value pass `_isValue`. Staged `body` is null
-        // → skipped despite a valid new value; staged `title` is set and
-        // the incoming title is valid → updated. `priority` was set in
-        // the initial `.set` and is left untouched here.
+        // and the incoming value pass the value gate. Staged `body` is
+        // null → skipped despite a valid new value; staged `title` is set
+        // and the incoming title is valid → updated. Undefined incoming is
+        // rejected for `priority`.
         ctx.mockNext(1)
         await ctx.conn.update(tIssue)
             .set({ title: 'Triage', body: null, priority: 2 })
@@ -145,11 +141,9 @@ describe(ctx.label, () => {
     })
 
     test('set-if-has-no-value-if-value-fills-only-empty-with-real-value', async () => {
-        // Mirror of the above: only writes when the staged value FAILS
-        // `_isValue` AND the incoming value PASSES `_isValue`. `title`
-        // is never staged (so it has no value) → filled; `body` is
-        // staged null (has no value) but the empty-string incoming is
-        // rejected → it stays null.
+        // Mirror of the above: only writes when the staged value fails the
+        // gate AND the incoming value passes it. Empty incoming string for
+        // `body` is rejected; non-empty `title` fills the empty-staged slot.
         ctx.mockNext(1)
         await ctx.conn.update(tIssue)
             .set({ body: null })
@@ -169,7 +163,7 @@ describe(ctx.label, () => {
 
     test('ignore-if-has-value-drops-only-populated-sets', async () => {
         // `ignoreIfHasValue(col, ...)` deletes a previously-set column
-        // only if its staged value PASSES `_isValue`. `body: null`
+        // only if its staged value passes the value gate. `body: null`
         // survives the sweep because it doesn't have a value.
         ctx.mockNext(1)
         await ctx.conn.update(tIssue)
@@ -189,7 +183,7 @@ describe(ctx.label, () => {
 
     test('ignore-if-has-no-value-drops-only-empty-sets', async () => {
         // Mirror of the above: `ignoreIfHasNoValue` deletes only when
-        // the staged value FAILS `_isValue`. `title` survives.
+        // the staged value fails the value gate. `title` survives.
         ctx.mockNext(1)
         await ctx.conn.update(tIssue)
             .set({ title: 'Triage', body: null, priority: 9 })
@@ -209,7 +203,7 @@ describe(ctx.label, () => {
 
     test('disallow-if-value-throws-when-set-has-value', () => {
         // `disallowIfValue(msg, ...cols)` throws synchronously if any
-        // listed column's staged value PASSES `_isValue`. The error
+        // listed column's staged value passes the value gate. The error
         // shape carries `reason: 'DISALLOWED_BY_QUERY_RULE'` and the
         // offending property name.
         expect(() => {
@@ -222,7 +216,7 @@ describe(ctx.label, () => {
 
     test('disallow-if-no-value-throws-when-set-is-empty', () => {
         // Mirror: `disallowIfNoValue(msg, ...cols)` throws when the
-        // staged value FAILS `_isValue` (here `body: null`).
+        // staged value fails the value gate (here `body: null`).
         expect(() => {
             ctx.conn.update(tIssue)
                 .set({ body: null })

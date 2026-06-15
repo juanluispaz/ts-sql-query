@@ -192,7 +192,7 @@ describe(ctx.label, () => {
         // the empty-set short-circuit fires before the projection matters, so
         // null still comes back without touching the database. (A bare
         // dynamicSet, no returning, only exposes the count-only `executeUpdate`
-        // — locked in test/db/postgres/types.negative/update.test.ts.)
+        // — locked in the dialect's `types.negative/update.test.ts`.)
         const result = await ctx.conn.update(tIssue)
             .dynamicSet()
             .where(tIssue.id.equals(1))

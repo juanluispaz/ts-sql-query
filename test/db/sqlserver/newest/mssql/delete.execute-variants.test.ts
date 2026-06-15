@@ -80,10 +80,8 @@ describe(ctx.label, () => {
     })
 
     test('execute-delete-none-or-one-with-returning-one-column', async () => {
-        // `executeDeleteNoneOrOne()` + `returningOneColumn(col)` lands
-        // on the `__oneColumn` branch and returns the single value or
-        // null. SQL Server supports DELETE … OUTPUT, so this runs
-        // end-to-end on the real DB too.
+        // `executeDeleteNoneOrOne()` + `returningOneColumn(col)` returns
+        // the single value or null. Deletes issue 1 (status='open').
         ctx.mockNext('open')
         await ctx.withRollback(async () => {
             const result = await ctx.conn.deleteFrom(tIssue)

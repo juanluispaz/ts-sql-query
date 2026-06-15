@@ -83,6 +83,7 @@ describe(ctx.label, () => {
             name: string
             organization: { id: number; name: string }
         }>>>()
+        // project 1 (Marketing site) belongs to org 1 (Acme Corp).
         expect(rows).toEqual([
             { id: 1, name: 'Marketing site',
               organization: { id: 1, name: 'Acme Corp' } },
@@ -169,7 +170,7 @@ describe(ctx.label, () => {
         // differs by lib version. The runtime check below catches the
         // important contract: `meta` is present only when `body` is.
         assertType<Extends<typeof rows, Array<{ id: number }>>>()
-        // Issue 1 (project 1): body=null      → meta absent
+        // Issue 1 (project 1): body=null → meta absent (body is required-in-object)
         // Issue 2 (project 1): body='Use new tokens', assigneeId=2 → meta full
         expect(rows).toEqual([
             { id: 1 /* meta absent: body is null */ },

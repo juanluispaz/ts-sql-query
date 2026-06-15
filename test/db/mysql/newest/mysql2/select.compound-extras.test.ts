@@ -1,16 +1,8 @@
 // Coverage of the compound-operator variants
 // [select.compound.test.ts](./select.compound.test.ts) leaves on the
-// table: `intersectAll`, `exceptAll`, `minus`, `minusAll`. Each lands
-// on `_appendCompoundOperator` in
-// [src/sqlBuilders/AbstractSqlBuilder.ts](../../../../../src/sqlBuilders/AbstractSqlBuilder.ts).
-//
-// MySQL has no `MINUS` keyword (it is not an Oracle-mode dialect), so
-// the builder renders `.minus(...)` / `.minusAll(...)` as `except` /
-// `except all` (the same portable form PostgreSQL and MariaDB emit).
-// MySQL 8.0.31+ (verified on mysql:9, server 9.7) supports
-// `INTERSECT` / `EXCEPT` and their `ALL` variants, so each test runs
-// against the real engine asserting the result multiset (compound
-// order is engine-defined).
+// table: `intersectAll`, `exceptAll`, `minus`, `minusAll`. On dialects
+// that support them each runs against the real engine and asserts the
+// result multiset (compound order is engine-defined).
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { tIssue } from '../../domain/connection.js'
@@ -67,9 +59,11 @@ describe(ctx.label, () => {
     })
 
     test('minus-routes-through-the-dialect-alias', async () => {
-        // `.minus(...)` renders as ` except ` on MySQL (it has no MINUS
-        // keyword). Distinct left statuses {open, in_progress, closed}
-        // minus right (id <= 2) {open, in_progress} leaves {closed}.
+        // `.minus(...)` renders as the dialect's set-difference operator
+        // (`except` on most dialects, `minus` on Oracle), deduplicated —
+        // the exact keyword is pinned by the snapshot. Distinct left statuses
+        // {open, in_progress, closed} minus right (id <= 2)
+        // {open, in_progress} leaves {closed}.
         const expected = [{ status: 'closed' }]
         ctx.mockNext(expected)
         const all = ctx.conn.selectFrom(tIssue)
@@ -88,8 +82,8 @@ describe(ctx.label, () => {
     })
 
     test('minus-all-routes-through-the-dialect-alias', async () => {
-        // The `*All` flavour renders as ` except all ` (MySQL has no
-        // MINUS keyword). left = all statuses
+        // The `*All` flavour renders as ` except all ` (multiset
+        // difference). left = all statuses
         // (open, in_progress, open, closed); right (id <= 2) =
         // open, in_progress. Subtracting one of each leaves open, closed.
         const expected = [{ status: 'closed' }, { status: 'open' }]

@@ -1,8 +1,7 @@
 // Documentation snippets for the Passing tables/views as parameter
 // page (docs/advanced/tables-views-as-parameter.md). Demonstrates
 // the type-level utilities `TableOrViewOf`, `TableOrViewLeftJoinOf`
-// and `fromRef`, plus the full doc flow wiring those helpers into a
-// `subSelectUsing` inline value through a generic table reference.
+// and `fromRef`.
 
 import { beforeAll, afterAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import {
@@ -51,10 +50,9 @@ describe(ctx.label, () => {
         void recovered
     })
 
-    // Full doc-style pattern executed end-to-end through a generic
-    // table reference: the subquery is built via the typed `fromRef`
-    // helper (no casts), proving the source-tagging flow typechecks and
-    // emits the documented correlated sub-select.
+    // Smoke test of the full doc-style pattern executed end-to-end: the
+    // documented generic helper builds the correlated subquery, fully typed,
+    // and the outer query embeds it as an inline value.
     test('docs-extra:tables-views-as-parameter/helper-pattern-runtime-sql-emission', async () => {
         ctx.mockNext({ id: 1, name: 'Marketing site', issueCount: 2 })
 

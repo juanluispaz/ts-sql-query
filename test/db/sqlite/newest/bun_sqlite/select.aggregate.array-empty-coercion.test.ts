@@ -7,7 +7,7 @@
 //      Lands on `_appendAggragateArrayColumns(distinct=true, columns=object)`
 //      on every dialect's SqlBuilder — each builder overrides the
 //      method and renders distinct + json-object together in its own
-//      shape (PostgreSQL: `json_agg(distinct json_build_object(...))`,
+//      shape (PostgreSQL: `json_agg(distinct jsonb_build_object(...))`,
 //      SQLite: `json_group_array(distinct json_object(...))`,
 //      MySQL/MariaDB: `json_arrayagg(distinct json_object(...))`,
 //      Oracle: `json_arrayagg(distinct json_object(...))`, SQL Server:
@@ -41,6 +41,9 @@ describe(ctx.label, () => {
         // aggregate so the test is robust to row duplication from the
         // join even though the seed has none here. Returns the two
         // distinct {id, name} objects.
+        //
+        // Each dialect renders the distinct object-array in its own shape
+        // (see the file header) — the exact SQL is pinned by the snapshot.
         const expected = {
             id: 2, name: 'Globex Ltd',
             projects: [

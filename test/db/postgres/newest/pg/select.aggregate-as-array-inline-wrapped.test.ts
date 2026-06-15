@@ -20,7 +20,7 @@ describe(ctx.label, () => {
         // wraps the grouped select with the dialect's aggregate-over-
         // subquery form.
         // org 1 owns projects 1 (issues 1,2 → count 2) and 2 (issue 3 → count 1).
-        // The inner json_agg has no order by, so sort by id before comparing.
+        // The inner the array aggregate has no order by, so sort by id before comparing.
         ctx.mockNext({
             id: 1, name: 'Acme Corp',
             projectStats: JSON.stringify([
@@ -380,7 +380,7 @@ describe(ctx.label, () => {
         // source (ValueSourceImpl.ts:2145 —
         // AggregateSelectValueSource.asRequiredInOptionalObject) makes the
         // subquery the gate of an optional inner object. If the subquery
-        // aggregates no rows, json_agg returns NULL and the inner
+        // aggregates no rows, the array aggregate returns NULL and the inner
         // `meta` object is dropped from the row.
         ctx.mockNext([
             { pid: 3, 'meta.issues': [{ id: 4, title: 'Document /v2/users' }] },

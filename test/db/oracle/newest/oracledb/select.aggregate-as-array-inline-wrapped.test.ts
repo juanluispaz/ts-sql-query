@@ -1,23 +1,8 @@
-// Coverage of `_appendAggragateArrayWrappedColumns` — reached when an
+// Coverage of the inline-aggregate wrapped path — reached when an
 // inline aggregate subquery (`forUseAsInlineAggregatedArrayValue()`)
-// also carries `group by`, `having`, a compound operator, or — on
-// engines that don't support `order by` / `limit` inside the aggregate
-// function — those clauses too. `_needAgggregateArrayWrapper` returns
-// true and the builder wraps the inner select with the dialect's
-// "select aggregate from (subquery)" form.
-//
-// The existing docs.aggregate-as-object-array tests exercise the
-// non-wrapped path. Adding the wrapped path here lights up:
-//   - AbstractMySqlMariaBDSqlBuilder._appendAggragateArrayWrappedColumns
-//     (MariaDB falls through to it; MySQL overrides)
-//   - the wrapped branch in every other dialect's override
-//
-// Like other inline-aggregate tests, the JSON returned from the real
-// DB is a string that has to be re-parsed by the type adapter — we
-// gate the value assertion to mock mode and capture the SQL snapshot
-// per dialect. The runner is wrapped in try/catch because some
-// dialects reject the unusual compound-inside-aggregate form at
-// execution time.
+// also carries `group by`, `having`, or a compound operator, forcing the
+// builder to wrap the inner select with the "select aggregate from
+// (subquery)" form.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -34,6 +19,8 @@ describe(ctx.label, () => {
         // wrap (`group by` ≠ identity over the subquery), so the builder
         // wraps the grouped select with the dialect's aggregate-over-
         // subquery form.
+        // org 1 owns projects 1 (issues 1,2 → count 2) and 2 (issue 3 → count 1).
+        // The inner the array aggregate has no order by, so sort by id before comparing.
         ctx.mockNext({
             id: 1, name: 'Acme Corp',
             projectStats: JSON.stringify([
@@ -64,8 +51,6 @@ describe(ctx.label, () => {
             name:         string
             projectStats: Array<{ id: number; count: number }>
         }>>()
-        // Both seeded projects of org 1 have issues (project 1 → 2, project 2 → 1),
-        // so the inner join keeps both grouped rows; sort the engine-unstable order.
         expect({ ...row, projectStats: [...row.projectStats].sort((a, b) => a.id - b.id) }).toEqual({
             id: 1, name: 'Acme Corp',
             projectStats: [
@@ -85,6 +70,8 @@ describe(ctx.label, () => {
         // `having` is one of the wrap triggers in
         // `_needAgggregateArrayWrapper`. A `group by` is required before
         // a `having` clause, so the query carries both.
+        // Only project 1 has more than one issue (count 2), so having count>1
+        // leaves a single grouped row.
         ctx.mockNext({
             id: 1, name: 'Acme Corp',
             busyProjects: JSON.stringify([{ id: 1, count: 2 }]),
@@ -113,8 +100,6 @@ describe(ctx.label, () => {
             name:         string
             busyProjects: Array<{ id: number; count: number }>
         }>>()
-        // Only project 1 has more than one issue (count 2), so having count>1
-        // leaves a single grouped row — the type adapter re-parses the JSON.
         expect(row).toEqual({
             id: 1, name: 'Acme Corp',
             busyProjects: [{ id: 1, count: 2 }],
@@ -127,6 +112,7 @@ describe(ctx.label, () => {
           ]
         `)
     })
+
     test('inline-aggregate-use-empty-array-for-no-value-explicit', async () => {
         // `forUseAsInlineAggregatedArrayValue()` already defaults to a
         // required array; `useEmptyArrayForNoValue()` on the inline value
@@ -394,7 +380,7 @@ describe(ctx.label, () => {
         // source (ValueSourceImpl.ts:2145 —
         // AggregateSelectValueSource.asRequiredInOptionalObject) makes the
         // subquery the gate of an optional inner object. If the subquery
-        // aggregates no rows, json_agg returns NULL and the inner
+        // aggregates no rows, the array aggregate returns NULL and the inner
         // `meta` object is dropped from the row.
         ctx.mockNext([
             { pid: 3, 'meta.issues': [{ id: 4, title: 'Document /v2/users' }] },
@@ -473,12 +459,6 @@ describe(ctx.label, () => {
         }>>>()
         expect(rows).toEqual([{ pid: 3 }, { pid: 4 }])
     })
-
-    // Not applicable: only MariaDB supports ORDER BY inside `json_arrayagg(...)`
-    // for inline aggregated arrays (`_supportOrderByWhenAggregateArray = true`
-    // in MariaDBSqlBuilder; every other dialect wraps the subquery, so the
-    // order-by lives there instead). Bodies copied verbatim from the
-    // canonical mariadb cell for cross-cell diff parity.
     test('inline-aggregate-order-by-asc-nulls-last', async () => {
         ctx.mockNext({
             id: 1, name: 'Acme Corp',
@@ -511,11 +491,6 @@ describe(ctx.label, () => {
         expect(row).toEqual({ id: 1, projectNames: ['Internal tools', 'Marketing site'] })
     })
 
-    // Not applicable: only MariaDB supports ORDER BY inside `json_arrayagg(...)`
-    // for inline aggregated arrays (`_supportOrderByWhenAggregateArray = true`
-    // in MariaDBSqlBuilder; every other dialect wraps the subquery, so the
-    // order-by lives there instead). Bodies copied verbatim from the
-    // canonical mariadb cell for cross-cell diff parity.
     test('inline-aggregate-order-by-desc-nulls-first', async () => {
         ctx.mockNext({
             id: 1, name: 'Acme Corp',
@@ -548,11 +523,6 @@ describe(ctx.label, () => {
         expect(row).toEqual({ id: 1, projectNames: ['Marketing site', 'Internal tools'] })
     })
 
-    // Not applicable: only MariaDB supports ORDER BY inside `json_arrayagg(...)`
-    // for inline aggregated arrays (`_supportOrderByWhenAggregateArray = true`
-    // in MariaDBSqlBuilder; every other dialect wraps the subquery, so the
-    // order-by lives there instead). Bodies copied verbatim from the
-    // canonical mariadb cell for cross-cell diff parity.
     test('inline-aggregate-order-by-asc-insensitive', async () => {
         ctx.mockNext({
             id: 1, name: 'Acme Corp',
@@ -585,11 +555,6 @@ describe(ctx.label, () => {
         expect(row).toEqual({ id: 1, projectNames: ['Internal tools', 'Marketing site'] })
     })
 
-    // Not applicable: only MariaDB supports ORDER BY inside `json_arrayagg(...)`
-    // for inline aggregated arrays (`_supportOrderByWhenAggregateArray = true`
-    // in MariaDBSqlBuilder; every other dialect wraps the subquery, so the
-    // order-by lives there instead). Bodies copied verbatim from the
-    // canonical mariadb cell for cross-cell diff parity.
     test('inline-aggregate-order-by-asc-nulls-last-insensitive', async () => {
         ctx.mockNext({
             id: 1, name: 'Acme Corp',

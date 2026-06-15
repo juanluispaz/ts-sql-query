@@ -1,4 +1,4 @@
-// Negative-path coverage of InsertQueryBuilder guards the rest of the
+// Negative-path coverage of insert-builder guards the rest of the
 // insert.* suite never trips:
 //
 //   - The `INTERNAL` / "illegal state" guards on `.where()` / `.and()` /
@@ -7,15 +7,12 @@
 //     defensive invariant reached only by misusing the builder past its
 //     type guard — hence the `as any` casts).
 //   - `INVALID_SHAPE_OVERRIDE` when `extendShape` re-declares a key the
-//     shape already maps (the existing docs tests only ADD new keys).
+//     shape already maps.
 //   - The empty `values([])` short-circuit: it resolves without touching
 //     the database (0, or [] when returning the last inserted id).
 //
-// All reasons are surfaced by src/queryBuilders/InsertQueryBuilder.ts
-// (not the dialect SqlBuilder), so the behaviour is identical on every
-// dialect and this file is byte-identical across all 17 cells. No SQL
-// snapshots: the guards throw before execution and the empty-values case
-// emits no query.
+// No SQL snapshots: the guards throw before execution and the empty-values
+// case emits no query.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { TsSqlError } from '../../../../../src/TsSqlError.js'

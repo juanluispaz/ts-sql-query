@@ -32,9 +32,7 @@ describe(ctx.label, () => {
     })
 
     test('random', async () => {
-        // Non-deterministic; only the SQL/params are pinned and the
-        // real-DB assertion just verifies the column comes back as
-        // a number.
+        // Non-deterministic but bounded to [0, 1).
         const expected = [{ r: 0.5 }]
         ctx.mockNext(expected)
         const rows = await ctx.conn.selectFromNoTable()

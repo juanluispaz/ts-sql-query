@@ -10,11 +10,9 @@
 //   - `.asInt()` / `.asBigint()` on an int — typed-only noop in SQL
 //
 // `.asString()` is only typed on UUID/CustomUuid value sources, so it
-// is not exercised here. The `_asString` emitter is covered directly by
-// `select.value-source.uuid-cast.test.ts` and `config.uuid-strategy.test.ts`,
-// both of which pin the `'uuid-extension'` strategy where `.asString()`
-// emits `uuid_str(...)`. Under this connection's default `'string'`
-// strategy `.asString()` is a SQL no-op.
+// is not exercised here; the seed schema has no UUID column. The wider
+// `_asString` path is covered indirectly through aggregation tests
+// (`select.aggregation*` for UUID dialects when added).
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'

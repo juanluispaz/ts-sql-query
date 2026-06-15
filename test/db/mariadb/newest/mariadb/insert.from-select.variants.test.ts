@@ -115,10 +115,9 @@ describe(ctx.label, () => {
 
     test('insert-from-select-source-with-cte', async () => {
         // The source SELECT exposes a CTE via `.forUseInQueryAs(...)`.
-        // MariaDB rejects the leading `WITH ... INSERT` form, so the builder
-        // emits the CTE *inside* the INSERT's SELECT (`insert into issue
-        // (cols) with active_projects as (...) select ...`) — see
-        // `MariaDBSqlBuilder._useInsertSupportWith`.
+        // The expected SQL starts with `with active_projects as (...)`
+        // because `__addWiths` walks through the select source and the
+        // INSERT statement bubbles it up to the top level.
         ctx.mockNext(0)
         await ctx.withRollback(async () => {
             const activeProjects = ctx.conn.selectFrom(tProject)

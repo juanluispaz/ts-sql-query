@@ -1,7 +1,11 @@
-// MySQL does not support `UPDATE ... RETURNING`; the library
-// type-excludes it for MySQL connections. The active body lives in the
-// SQLite / PostgreSQL / MariaDB / SqlServer / Oracle cells. Kept here
-// for symmetry with the other dialects.
+// Coverage of `UPDATE ... RETURNING` / `OUTPUT inserted.*` paths.
+// Lights up `_buildUpdateReturning` (PostgreSQL/MariaDB/SQLite),
+// `_buildUpdateOutput` (SqlServer) and Oracle's `RETURNING ... INTO`
+// override. MySQL has no equivalent, so its cell keeps the test
+// commented out for symmetry.
+//
+// Each mutation runs inside `ctx.withRollback(...)`. Snapshots can be
+// refreshed with `bun run tests <cell> --use-vitest -u`.
 
 import { afterAll, beforeAll, beforeEach, describe } from '../../../../lib/testRunner.js'
 import { ctx } from './setup.js'

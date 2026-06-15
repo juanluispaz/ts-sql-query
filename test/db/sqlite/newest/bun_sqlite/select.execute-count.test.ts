@@ -1,16 +1,9 @@
-// `executeSelectPage()` always invokes
-// [SelectQueryBuilder.__buildSelectCount](../../../../../src/queryBuilders/SelectQueryBuilder.ts#L665-L713)
-// to produce the unpaginated count. Two emission shapes:
-//
-//   - **Fast path** (no `DISTINCT`, no `GROUP BY`): emits a plain
-//     `select count(*) from t [where ...]` — already pinned by
-//     `docs.select-page.test.ts` `docs:select-page/projects-paginated`.
-//   - **CTE-wrap path** (`__distinct || __groupBy.length > 0`):
-//     [SelectQueryBuilder.ts:671-694](../../../../../src/queryBuilders/SelectQueryBuilder.ts#L671-L694)
-//     copies the SELECT data, drops LIMIT/OFFSET, then wraps the result
-//     into a `WithViewImpl` (`result_for_count`) and counts the CTE.
-//     This file pins the wrap path for the three triggers it has
-//     (`distinct`, `groupBy`, and the combination of both).
+// `executeSelectPage()` emits a count query alongside the data query.
+// With DISTINCT or GROUP BY it can't use a plain `count(*)`, so it wraps
+// the data query (minus LIMIT/OFFSET) in a `result_for_count` CTE and
+// counts that. This file pins the wrap path for distinct, groupBy, and
+// both together. (The plain `count(*)` fast path is covered by
+// docs.select-page.test.ts.)
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -23,10 +16,7 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('count-after-distinct-wraps-query-in-result-for-count-cte', async () => {
-        // `selectDistinctFrom(tIssue)` sets `__distinct = true`, so the
-        // count emission goes through the CTE-wrap branch even though
-        // there's no GROUP BY. The inner CTE keeps the SELECT columns
-        // (no LIMIT / OFFSET) and the outer query is `select count(*) from result_for_count`.
+        // DISTINCT triggers the CTE-wrap even without GROUP BY.
         ctx.mockNext([{ status: 'open' }, { status: 'closed' }])
         ctx.mockNext(3)
 
@@ -51,14 +41,13 @@ describe(ctx.label, () => {
             data:  Array<{ status: string }>
             count: number
         }>>()
+        // 3 distinct statuses in the seed: open, in_progress, closed.
         expect(page.count).toBe(3)
     })
 
     test('count-after-group-by-wraps-query-in-result-for-count-cte', async () => {
-        // `.groupBy('status')` makes `__groupBy.length > 0`, so the
-        // count emission goes through the CTE-wrap branch. The inner
-        // CTE keeps the aggregate projection (count(id)) and the outer
-        // count(*) totals the number of distinct groups, not rows.
+        // GROUP BY triggers the CTE-wrap; the outer count(*) totals the
+        // groups, not the rows.
         ctx.mockNext([
             { status: 'open',   total: 3 },
             { status: 'closed', total: 4 },
@@ -90,13 +79,12 @@ describe(ctx.label, () => {
             data:  Array<{ status: string; total: number }>
             count: number
         }>>()
+        // 3 status groups: open, in_progress, closed.
         expect(page.count).toBe(3)
     })
 
     test('count-after-distinct-and-group-by-still-wraps-in-cte', async () => {
-        // Both `__distinct` AND `__groupBy.length > 0` — the wrap
-        // happens for either trigger; this pin asserts the
-        // combination doesn't double-wrap or otherwise misbehave.
+        // DISTINCT and GROUP BY together still wrap once.
         ctx.mockNext([
             { status: 'open',   priority: 1 },
             { status: 'closed', priority: 2 },
@@ -128,6 +116,7 @@ describe(ctx.label, () => {
             data:  Array<{ status: string; priority: number }>
             count: number
         }>>()
+        // 4 distinct (status, priority) combinations in the seed.
         expect(page.count).toBe(4)
     })
 })

@@ -10,7 +10,8 @@
 //     dropped before the SET clause is emitted.
 //   - The bare-form siblings (`.onConflictDoUpdateDynamicSet({…?})` and
 //     `.onConflictDoUpdateSetIfValue({...})`) are mariadb/mysql/sqlite only
-//     and are commented in this PG file for symmetry.
+//     and are commented out for symmetry in the cells whose dialect does
+//     not type them.
 //
 // The static `.onConflictDoUpdateSet({...})` / `.doUpdateSet({...})` paths
 // are already pinned by `insert.on-conflict.test.ts`; this file only
@@ -81,10 +82,10 @@ describe(ctx.label, () => {
     })
 
     test('do-update-dynamic-set-with-initial-columns-then-set-if-value', async () => {
-        // Initial-columns form: `onConflictDoUpdateDynamicSet({...})` at
-        // [InsertQueryBuilder.ts:1660-1673](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L1660-L1673)
+        // Initial-columns form: `doUpdateDynamicSet({...})` at
+        // [InsertQueryBuilder.ts:1761-1773](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L1761-L1773)
         // seeds the on-conflict update-set in one shot (delegates to
-        // `onConflictDoUpdateSet`); the chained `setIfValue({slug: undefined})`
+        // `doUpdateSet`); the chained `setIfValue({slug: undefined})`
         // is dropped via `_isValue`
         // ([InsertQueryBuilder.ts:448-478](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L448-L478)).
         // Same emitted SQL as the no-arg variant above; the difference

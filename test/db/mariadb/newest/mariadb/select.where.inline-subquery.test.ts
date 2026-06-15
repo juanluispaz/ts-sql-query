@@ -1,7 +1,6 @@
 // Coverage of an inline subquery wrapped via `forUseAsInlineQueryValue()`
 // used directly as a boolean condition (in `.where(...)`), including its
-// negation. MariaDB takes the AbstractSqlBuilder default, emitting the
-// `(published = 't')` adapter shape inline.
+// negation.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -39,10 +38,9 @@ describe(ctx.label, () => {
     })
 
     test('negated-boolean-inline-subquery-as-condition', async () => {
-        // Reaches `_inlineSelectAsValueForCondition` via `_negate(...)`
-        // — `.negate()` calls `_appendConditionSql` on the wrapped
-        // inline-select value source. Project 1 is published (true), so
-        // `not true` is constant false → no rows.
+        // `.negate()` wraps the inline-select condition in `not (...)`.
+        // Project 1 is published (true), so `not true` is constant false →
+        // no rows.
         const expected: Array<{ id: number }> = []
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tProject)

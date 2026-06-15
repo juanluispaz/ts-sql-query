@@ -1,19 +1,9 @@
-// Coverage of the `connection.stringConcat(...)` and
-// `connection.stringConcatDistinct(...)` aggregate operators, including
-// the three separator branches of the SQL emitter (undefined, '', and a
-// real string). Aggregates run inside a single-row select so the test
-// remains deterministic without grouping.
-//
-// Dialect emission:
-//   - sqlite                          → group_concat(v[, sep])
-//   - mariadb / mysql                 → group_concat(v[ separator sep])
-//   - postgres                        → string_agg(v, sep | ',')
-//   - sqlserver                       → string_agg(v, sep | ',')
-//   - oracle                          → listagg(v[, sep]) within group (order by v)
-//
-// The set returned by the aggregate is unordered without an explicit
-// ORDER BY inside it (covered by select.aggregate-as-array.ordered),
-// so real-DB assertions split-and-sort rather than comparing strings.
+// Coverage of `connection.stringConcat(...)` / `stringConcatDistinct(...)`,
+// including the three separator branches (undefined, '', a real string).
+// Each dialect emits its own concat-aggregate (pinned by the snapshot),
+// defaulting to a ',' separator. The aggregate is unordered without an
+// explicit ORDER BY, so value assertions split-and-sort rather than
+// comparing the concatenated string directly.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { tAppUser, tIssue } from '../../domain/connection.js'
@@ -25,9 +15,7 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('string-concat-no-separator', async () => {
-        // Three seeded users: Ada Lovelace, Grace Hopper, Alan Turing.
-        // No explicit separator: postgres/sqlserver fall back to ',',
-        // sqlite/mysql/mariadb emit no separator argument at all.
+        // Three seeded users; no explicit separator → the default ','.
         ctx.mockNext('Ada Lovelace,Grace Hopper,Alan Turing')
         const row = await ctx.conn.selectFrom(tAppUser)
             .selectOneColumn(ctx.conn.stringConcat(tAppUser.fullName))
@@ -98,7 +86,7 @@ describe(ctx.label, () => {
     })
 
     test('string-concat-distinct-empty-separator', async () => {
-        // Edge case for the third separator branch of _stringConcatDistinct.
+        // Edge case: the empty-separator branch with distinct.
         ctx.mockNext('openin_progressclosed')
         const row = await ctx.conn.selectFrom(tIssue)
             .selectOneColumn(ctx.conn.stringConcatDistinct(tIssue.status, ''))

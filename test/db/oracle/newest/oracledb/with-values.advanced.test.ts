@@ -146,6 +146,7 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{ pid: number; newName?: string }>>>()
+        // Projects 1 and 2 exist; only project 1 has a patch row → project 2's newName is absent.
         expect(rows).toEqual([
             { pid: 1, newName: 'one' },
             { pid: 2 },
@@ -153,11 +154,8 @@ describe(ctx.label, () => {
     })
 
     test('values-optional-column-allows-undefined-per-row', async () => {
-        // `optionalColumn('string')` constructs a `DBColumnImpl` flagged
-        // optional (L113-118 of `Values.ts`). Per-row `undefined` is
-        // accepted in the data, emitted as `NULL` in the VALUES
-        // tuple, and the projection surfaces the field as
-        // `string | undefined`.
+        // An optional column accepts per-row null/undefined, emitted as NULL
+        // in the VALUES tuple, and the projection surfaces it as optional.
         ctx.mockNext([
             { id: 1, newName: 'one'   },
             { id: 2, newName: undefined },
@@ -182,6 +180,7 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number; newName?: string }>>>()
+        // Row 2's null newName surfaces as an absent (undefined) field.
         expect(rows).toEqual([
             { id: 1, newName: 'one' },
             { id: 2 },
@@ -194,18 +193,9 @@ describe(ctx.label, () => {
         // `VIssueBilling` view above route through the
         // `typeof adapter === 'string'` branch of Values.ts:94-99 /
         // 128-133 — the only branch reached when the user passes a
-        // typeName.
-        //
-        // The nullable `amount` (customDouble) column mixes a NUMBER
-        // (row 1 = 19.99) with a NULL (row 2) in the same multi-row VALUES
-        // tuple. `oracledb` binds a JS NULL as a non-numeric type, so without
-        // a cast Oracle would reject the row with `ORA-01790: expression must
-        // have same datatype as corresponding expression`.
-        // `OracleSqlBuilder._appendValueForColumn` casts the NULL cell of the
-        // numeric column to `number` (`cast(:3 as number)`); the non-null
-        // cells stay bare because `oracledb` infers their type correctly. This
-        // is the mirror image of PostgreSQL, which casts the non-null cells
-        // and leaves the NULL bare.
+        // typeName. The emitted VALUES tuple casts the placeholders for
+        // the custom-typed columns; the exact cast each dialect emits is
+        // pinned by the snapshot.
         ctx.mockNext([
             { issueId: 101 as IssueId, amount: 19.99 as Money },
             { issueId: 102 as IssueId, amount: undefined        },

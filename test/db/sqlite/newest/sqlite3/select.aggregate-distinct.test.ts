@@ -30,7 +30,6 @@ describe(ctx.label, () => {
         expect(row.totalPriority).toBe(6)
     })
 
-
     test('avg-distinct-from-aggregation-group-by', async () => {
         // averageDistinct over an integer column. The library promotes
         // the result type from `int` → `double` (see
@@ -39,7 +38,6 @@ describe(ctx.label, () => {
         // for `AVG(int)` deserialise without tripping the int parser.
         const expectedMock = { avgDistinctPriority: 2 }
         ctx.mockNext(expectedMock)
-
 
         const row = await ctx.conn.selectFrom(tIssue)
             .select({

@@ -82,13 +82,9 @@ describe(ctx.label, () => {
     })
 
     test('on-conflict-do-update-with-default-keyword', async () => {
-        // The `default()` literal also survives through MariaDB's
-        // `ON DUPLICATE KEY UPDATE` arm — same dispatch as a plain
-        // update set, stitched after the conflict glue. MariaDB/MySQL
-        // use the bare `.onConflictDoUpdateSet(...)` shorthand instead
-        // of the `.onConflictOn(...).doUpdateSet(...)` chain that
-        // PostgreSQL/SQLite use; the surface is narrowed at the
-        // connection-type level.
+        // The `default()` literal also survives through the
+        // ON CONFLICT … DO UPDATE SET arm. Same dispatch as plain
+        // update set, just stitched after the conflict glue.
         ctx.mockNext(1)
         await ctx.withRollback(async () => {
             const connection = ctx.conn

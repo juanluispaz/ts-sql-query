@@ -1,15 +1,13 @@
 // Multi-row INSERT (`values([row1, row2, …])`) chained with the
-// `__multiple`-aware set-rule family in
-// [InsertQueryBuilder.ts:609-1411](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L609-L1411):
-// `ignoreIfSet`, `keepOnly`, `disallowIfSet`, `disallowIfNotSet`,
-// `disallowIfValue`, `disallowIfNoValue`, `disallowAnyOtherSet`.
+// multi-row set-rule family: `ignoreIfSet`, `keepOnly`, `disallowIfSet`,
+// `disallowIfNotSet`, `disallowIfValue`, `disallowIfNoValue`,
+// `disallowAnyOtherSet`.
 //
 // The single-row branches of these methods are pinned by
-// `insert.conditional-sets.test.ts`; the array-of-rows branch routes
-// through `__getSetsForMultipleInsert()` and reports any thrown error
-// with the offending `disallowedRowIndex` — that index is the SOLE
-// observable difference from the single-row throw shape, so each
-// expect-throws assertion below also reads it off the error object.
+// `insert.conditional-sets.test.ts`; the array-of-rows branch reports any
+// thrown error with the offending row index — the sole observable
+// difference from the single-row throw shape, so each expect-throws
+// assertion below also reads it off the error object.
 //
 // The SQL-emitting tests deliberately drop only nullable columns
 // (`body`, `assigneeId`, `archivedAt`) so the trimmed multi-row INSERT
@@ -25,10 +23,8 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('ignore-if-set-drops-named-columns-from-every-row', async () => {
-        // Multi-row branch of `ignoreIfSet` at
-        // [InsertQueryBuilder.ts:615-624](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L615-L624)
-        // — loops the staged rows and `delete item[column]` per row.
-        // Both rows stage `body`; `ignoreIfSet('body')` drops it
+        // Multi-row branch of `ignoreIfSet`: drops the named column from
+        // every row. Both rows stage `body`; `ignoreIfSet('body')` drops it
         // everywhere, so the emitted column list omits `body` entirely.
         ctx.mockNext(2)
         await ctx.withRollback(async () => {
@@ -59,12 +55,10 @@ describe(ctx.label, () => {
     })
 
     test('keep-only-prunes-every-row-to-allowed-columns', async () => {
-        // Multi-row branch of `keepOnly` at
-        // [InsertQueryBuilder.ts:639-656](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L639-L656)
-        // — per-row sweep that deletes anything not in the allow set.
-        // Only required columns are listed, so the trimmed INSERT
-        // still satisfies the schema. The `body` (nullable) staged in
-        // both rows gets pruned away.
+        // Multi-row branch of `keepOnly`: per-row sweep that deletes
+        // anything not in the allow set. Only required columns are listed,
+        // so the trimmed INSERT still satisfies the schema. The `body`
+        // (nullable) staged in both rows gets pruned away.
         ctx.mockNext(2)
         await ctx.withRollback(async () => {
             await ctx.conn.insertInto(tIssue)
@@ -198,10 +192,9 @@ describe(ctx.label, () => {
     })
 
     test('disallow-any-other-set-permits-rows-when-every-set-is-allowed', async () => {
-        // Multi-row companion to the row-1-extra throw above
-        // ([InsertQueryBuilder.ts:1341-1366](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L1341-L1366)):
-        // when every staged column is in the allow-list the loop
-        // completes silently and the INSERT proceeds.
+        // Multi-row companion to the row-1-extra throw above: when every
+        // staged column is in the allow-list the loop completes silently
+        // and the INSERT proceeds.
         ctx.mockNext(2)
         await ctx.withRollback(async () => {
             await ctx.conn.insertInto(tProject)

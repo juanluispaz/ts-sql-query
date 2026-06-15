@@ -1,8 +1,8 @@
 // Coverage of the compound-operator variants
 // [select.compound.test.ts](./select.compound.test.ts) leaves on the
-// table: `intersectAll`, `exceptAll`, `minus`, `minusAll`. PostgreSQL
-// accepts all four natively, so each runs against the real engine and
-// asserts the result multiset (compound order is engine-defined).
+// table: `intersectAll`, `exceptAll`, `minus`, `minusAll`. On dialects
+// that support them each runs against the real engine and asserts the
+// result multiset (compound order is engine-defined).
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { tIssue } from '../../domain/connection.js'
@@ -59,8 +59,9 @@ describe(ctx.label, () => {
     })
 
     test('minus-routes-through-the-dialect-alias', async () => {
-        // On PostgreSQL `.minus(...)` renders as ` except ` (set
-        // difference, deduplicated). Distinct left statuses
+        // `.minus(...)` renders as the dialect's set-difference operator
+        // (`except` on most dialects, `minus` on Oracle), deduplicated —
+        // the exact keyword is pinned by the snapshot. Distinct left statuses
         // {open, in_progress, closed} minus right (id <= 2)
         // {open, in_progress} leaves {closed}.
         const expected = [{ status: 'closed' }]

@@ -25,11 +25,6 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('insert default values', async () => {
-        // The table is intentionally absent from the schema — it exists only
-        // to pin the DEFAULT VALUES SQL form — so the real DB rejects
-        // execution referencing the missing table. We assert that error in
-        // real mode and the mocked row count in mock mode; either way the
-        // emitted SQL is captured before execution and checked.
         ctx.mockNext(99)
         let caught: unknown
         try {

@@ -48,7 +48,6 @@ describe(ctx.label, () => {
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", assignee_id as "assigneeId" from issue order by "assigneeId" asc nulls last, "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
-        // Issue 3 (assignee_id null) goes last.
         expect(result).toEqual(expected)
     })
 
@@ -69,7 +68,6 @@ describe(ctx.label, () => {
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", priority as "priority" from issue order by "priority" desc, "id" desc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
-        // priority desc, id desc → 3 first (prio=3), then prio=2 desc id, then prio=1
         expect(result).toEqual(expected)
     })
 
@@ -133,13 +131,9 @@ describe(ctx.label, () => {
     })
 
     test('offset-without-limit', async () => {
-        // `.offset(n)` without a preceding `.limit(n)` exercises the
-        // dialect-specific workaround in the SQL builder:
-        //   - sqlite / mariadb / mysql emit `limit 2147483647 offset N`
-        //     because their grammar requires `LIMIT` before `OFFSET`.
-        //   - postgres accepts a bare `offset N`.
-        //   - sqlserver uses `OFFSET N ROWS` (FETCH is optional in TS).
-        //   - oracle uses `OFFSET N ROWS`.
+        // `.offset(n)` with the limit elided (limitIfValue(undefined)):
+        // each dialect emits its own offset-without-limit form, pinned by
+        // the snapshot.
         const expected = [{ id: 2 }, { id: 3 }, { id: 4 }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssue)

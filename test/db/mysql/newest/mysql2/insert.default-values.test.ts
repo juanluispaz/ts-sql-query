@@ -31,11 +31,6 @@ describe(ctx.label, () => {
     // NOT-APPLICABLE: on MySQL the id of a `.defaultValues()` insert can't be returned through the typed surface. `.returning(...)`/`.returningOneColumn(...)` are `never` (MySQL has no RETURNING clause), and `.returningLastInsertedId()` is `never` too: `.defaultValues()` reuses the post-on-conflict returning surface, whose `returningLastInsertedId` (`OnConflictReturningLastInsertedIdType`) excludes MySQL on purpose — `LAST_INSERT_ID()` after `ON DUPLICATE KEY UPDATE` is ambiguous, whereas MariaDB is allowed there because it returns the id via a `RETURNING` clause. The DEFAULT VALUES form is covered in the postgres/sqlite/mariadb cells.
     /*
     test('insert default values', async () => {
-        // The table is intentionally absent from the schema — it exists only
-        // to pin the DEFAULT VALUES SQL form — so the real DB rejects
-        // execution referencing the missing table. We assert that error in
-        // real mode and the mocked row count in mock mode; either way the
-        // emitted SQL is captured before execution and checked.
         ctx.mockNext(99)
         let caught: unknown
         try {

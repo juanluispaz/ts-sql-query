@@ -1,13 +1,11 @@
 // Coverage of the UPDATE executor variants the other UPDATE tests
 // don't exercise:
 //
-//   - `executeUpdate(min, max)` — min-/max-row guards in
-//     [UpdateQueryBuilder.ts:50](../../../../../src/queryBuilders/UpdateQueryBuilder.ts#L50)
-//     (throws `MINIMUM_ROWS_NOT_REACHED` / `MAXIMUM_ROWS_EXCEEDED`).
+//   - `executeUpdate(min, max)` — min-/max-row guards (throw
+//     `MINIMUM_ROWS_NOT_REACHED` / `MAXIMUM_ROWS_EXCEEDED`).
 //   - `executeUpdateNoneOrOne()` with `returningOneColumn(...)` — the
-//     `__oneColumn` branch in
-//     [UpdateQueryBuilder.ts:93](../../../../../src/queryBuilders/UpdateQueryBuilder.ts#L93)
-//     plus its `value === undefined → null` coercion path.
+//     single-column branch plus its `value === undefined → null`
+//     coercion path.
 //   - `executeUpdateMany(min, max)` — the same min/max guards on the
 //     RETURNING-many path.
 //
@@ -84,12 +82,8 @@ describe(ctx.label, () => {
     })
 
     test('execute-update-none-or-one-with-returning-one-column', async () => {
-        // `executeUpdateNoneOrOne()` + `returningOneColumn(col)` lands
-        // on the `__oneColumn` branch and returns the single value or
-        // null. Engines that don't support UPDATE … RETURNING (MariaDB
-        // ≤ 12) reject the SQL but the interceptor still captures the
-        // dialect-specific emission; engines that don't support it at
-        // all (MySQL) comment the test out in their cell.
+        // `executeUpdateNoneOrOne()` + `returningOneColumn(col)` returns
+        // the single updated value. Sets issue 1's status to 'reviewed'.
         ctx.mockNext('reviewed')
         await ctx.withRollback(async () => {
             let result: string | null = null
@@ -124,11 +118,9 @@ describe(ctx.label, () => {
     // TODO[LIMITATION]: see LIMITATIONS.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
     /*
     test('execute-update-none-or-one-with-returning-one-column-empty-result', async () => {
-        // Same path as the previous test but the engine returns no
-        // row -> the `__oneColumn` branch coerces missing to `null`
-        // (see [UpdateQueryBuilder.ts:140](../../../../../src/queryBuilders/UpdateQueryBuilder.ts#L140)).
-        // Filter on a non-existing id so real-DB also yields no row
-        // from RETURNING.
+        // Same path as the previous test but the engine returns no row →
+        // the single-column result coerces missing to `null`. Filter on a
+        // non-existing id so real-DB also yields no row from RETURNING.
         ctx.mockNext(undefined)
         await ctx.withRollback(async () => {
             const result = await ctx.conn.update(tIssue)
@@ -202,10 +194,9 @@ describe(ctx.label, () => {
     */
 
     test('execute-update-with-no-sets-resolves-zero', async () => {
-        // `dynamicSet()` with no columns set leaves `__sets` empty, so
-        // every executor short-circuits before touching the database
-        // (UpdateQueryBuilder.ts:55). `executeUpdate()` resolves 0 and
-        // emits no query — no SQL snapshot, identical on every dialect.
+        // `dynamicSet()` with no columns set leaves the SET list empty, so
+        // every executor short-circuits before touching the database.
+        // `executeUpdate()` resolves 0 and emits no query.
         const affected = await ctx.conn.update(tIssue)
             .dynamicSet()
             .where(tIssue.id.equals(1))
@@ -220,7 +211,9 @@ describe(ctx.label, () => {
         // design `executeUpdateNoneOrOne` is a RETURNING executor (it returns
         // the projected value), so it is reached through `returningOneColumn`;
         // the empty-set short-circuit fires before the projection matters, so
-        // null still comes back without touching the database.
+        // null still comes back without touching the database. (A bare
+        // dynamicSet, no returning, only exposes the count-only `executeUpdate`
+        // — locked in the dialect's `types.negative/update.test.ts`.)
         const result = await ctx.conn.update(tIssue)
             .dynamicSet()
             .where(tIssue.id.equals(1))
@@ -248,10 +241,9 @@ describe(ctx.label, () => {
         expect(String(caught)).toMatch(/NO_COLUMN_SETS|No values to update/)
     })
 
-
     test('execute-update-many-with-no-sets-resolves-empty-array', async () => {
-        // Empty-`__sets` short-circuit on the returning-many path
-        // (UpdateQueryBuilder.ts:168): resolves [], no query emitted.
+        // Empty-set short-circuit on the returning-many path: resolves [],
+        // no query emitted.
         const rows = await ctx.conn.update(tIssue)
             .dynamicSet()
             .where(tIssue.id.equals(1))

@@ -140,6 +140,10 @@ describe(ctx.label, () => {
     })
 
     test('round', async () => {
+        // priority(id=2) is 1 → 1/2 = 0.5 → round(0.5) = 1. Ties break
+        // away from zero by default on every supported dialect; the exact
+        // cast/round form each builder emits to get there is pinned by the
+        // snapshot.
         const expected = [{ id: 2, r: 1 }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssue)
@@ -312,6 +316,9 @@ describe(ctx.label, () => {
     })
 
     test('logn', async () => {
+        // Two-argument logarithm `log(base, x)`. Each builder emits its
+        // own two-arg log form (with whatever casts the engine's overload
+        // resolution needs) — pinned by the snapshot.
         const expected = [{ id: 1, l: 3 }]
         ctx.mockNext(expected)
         // log base 2 of 8 = 3

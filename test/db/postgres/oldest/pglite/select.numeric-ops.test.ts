@@ -140,12 +140,10 @@ describe(ctx.label, () => {
     })
 
     test('round', async () => {
-        // priority(id=2) is 1 → 1/2 = 0.5 → round(0.5) = 1.
-        // The PostgreSQL builder wraps the operand of `.round()` in
-        // `::numeric` so ties break away from zero, matching every other
-        // supported dialect. Set `usePlatformDependentRound = true`
-        // on the connection to opt into PostgreSQL's native
-        // `round(double precision)` (platform-dependent / round-to-even).
+        // priority(id=2) is 1 → 1/2 = 0.5 → round(0.5) = 1. Ties break
+        // away from zero by default on every supported dialect; the exact
+        // cast/round form each builder emits to get there is pinned by the
+        // snapshot.
         const expected = [{ id: 2, r: 1 }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssue)
@@ -313,11 +311,9 @@ describe(ctx.label, () => {
     })
 
     test('logn', async () => {
-        // The PostgreSQL builder casts both arguments of `log(b, x)` to
-        // `numeric` so the two-argument logarithm overload resolves: PG only
-        // defines `log(numeric, numeric)` and the implicit numeric → double
-        // cast does not apply to the base parameter (which is emitted as an
-        // unbound `unknown`).
+        // Two-argument logarithm `log(base, x)`. Each builder emits its
+        // own two-arg log form (with whatever casts the engine's overload
+        // resolution needs) — pinned by the snapshot.
         const expected = [{ id: 1, l: 3 }]
         ctx.mockNext(expected)
         // log base 2 of 8 = 3

@@ -1,29 +1,26 @@
-// `DynamicConditionBuilder.processColumnFilter` at
-// [src/queryBuilders/DynamicConditionBuilder.ts:109-129](../../../../../src/queryBuilders/DynamicConditionBuilder.ts#L109-L129)
-// has its own extension-callback path — separate from the top-level
-// `processFilter` extension path covered by
-// [`dynamic-condition.nested-extension.test.ts`](./dynamic-condition.nested-extension.test.ts).
-// It fires when the user supplies an extension whose key matches a
-// per-column RULE name (e.g. a custom operator override). The function
-// receives the per-rule value and must return a boolean ValueSource;
-// the two error paths short-circuit otherwise:
+// The per-column extension-callback path of the dynamic-condition
+// builder — separate from the top-level extension path covered by
+// `dynamic-condition.nested-extension.test.ts`. It fires when the user
+// supplies an extension whose key matches a per-column RULE name (e.g.
+// a custom operator override). The callback receives the per-rule value
+// and must return a boolean ValueSource; two runtime guards short-circuit
+// otherwise:
 //
-//   - L114-121: returns a non-ValueSource → throws with
-//     `extensionResult`, `processedValue`, `path` and `rule` attached.
-//   - L122-129: returns a real ValueSource whose value type is not
-//     `boolean` → throws with `returnedTypeName` additionally.
+//   - a non-ValueSource return → throws with `extensionResult`,
+//     `processedValue`, `path` and `rule` attached.
+//   - a real ValueSource whose value type is not `boolean` → throws and
+//     additionally carries the returned type name in the message.
 //
 // Both are reached by passing an extension keyed by a rule name and a
-// filter shape that hands the rule to `processColumnFilter`.
+// filter shape that hands the rule to the per-column path.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import type { DynamicCondition } from '../../../../../src/dynamic/condition.js'
 import { tIssue } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
-// A real boolean value source type, so the rule callbacks satisfy the
-// `DynamicConditionRule` constraint at the type level while the test
-// returns a deliberately-wrong value at runtime (cast at the body).
+// A boolean value source as produced by the public API — the type an
+// extension rule callback is contractually required to return.
 type BooleanResult = ReturnType<typeof tIssue.id.equals>
 
 describe(ctx.label, () => {
@@ -32,12 +29,11 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('column-rule-extension-returning-non-value-source-throws-with-rule-and-path', async () => {
-        // Custom rule `withinRange` registered at the extension's
-        // TOP level — `processColumnFilter` sees it as `extension[key]`
-        // when iterating filter rules for the `id` column.
-        // The callback returns a plain string (not a ValueSource), so
-        // L114-121 fires. The thrown error carries `path = 'id'` and
-        // `rule = 'withinRange'`.
+        // Custom rule `withinRange` registered at the extension's TOP
+        // level — the per-column path sees it when iterating filter rules
+        // for the `id` column. The callback returns a plain string (not a
+        // ValueSource), so the first guard fires. The thrown error carries
+        // `path = 'id'` and `rule = 'withinRange'`.
         const connection = ctx.conn
         const selectFields = { id: tIssue.id }
         const extension = {
@@ -65,9 +61,9 @@ describe(ctx.label, () => {
 
     test('column-rule-extension-returning-non-boolean-value-source-throws-with-type-name', async () => {
         // Same shape as above, but the callback returns a REAL
-        // ValueSource whose value type is `string`, not `boolean`.
-        // L122-129 fires; the thrown error additionally carries
-        // `returnedTypeName` (asserted via the message).
+        // ValueSource whose value type is `string`, not `boolean`. The
+        // second guard fires; the thrown error message names the returned
+        // type.
         const connection = ctx.conn
         const selectFields = { id: tIssue.id }
         const extension = {

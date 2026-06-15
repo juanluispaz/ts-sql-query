@@ -366,6 +366,7 @@ describe(ctx.label, () => {
             title: string
             assignee?: { id: number; fullName: string }
         }>>>()
+        // Only issue 1's assignee (Ada Lovelace) matches the ilike '%Ada%' filter.
         expect(rows).toEqual([
             { id: 1, title: 'Update hero copy', assignee: { id: 1, fullName: 'Ada Lovelace' } },
         ])

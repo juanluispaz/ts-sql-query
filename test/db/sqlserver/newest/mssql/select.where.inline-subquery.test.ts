@@ -1,14 +1,6 @@
 // Coverage of an inline subquery wrapped via `forUseAsInlineQueryValue()`
-// that is itself used as a boolean condition (in `.where(...)`,
-// `.and(...)`, etc.). On SQL Server a boolean one-column select is
-// wrapped as `((<select>) = 1)` to coerce its bit storage back to a SQL
-// condition.
-//
-// `published` carries a CustomBooleanTypeAdapter ('t'/'f'); the emitted
-// `cast(case when published = 't' then 1 else 0 end as bit)` plus the
-// `= 1` coercion round-trips it back to a SQL condition, so the result
-// is validated against the real engine in both directions (verified
-// under --docker).
+// used directly as a boolean condition (in `.where(...)`), including its
+// negation.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -21,8 +13,8 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('boolean-inline-subquery-as-condition', async () => {
-        // project 1's `published` (='t') coerces to a constant-true condition,
-        // so every seeded project is returned.
+        // The subquery yields project 1's published flag (true), so the
+        // condition is constant true → every project is returned.
         const expected = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tProject)
@@ -46,9 +38,9 @@ describe(ctx.label, () => {
     })
 
     test('negated-boolean-inline-subquery-as-condition', async () => {
-        // `.negate()` on the wrapped inline-select value source emits a
-        // leading `not (...)` around the same coerced condition. Project 1
-        // is published (true), so `not true` is constant-false → no rows.
+        // `.negate()` wraps the inline-select condition in `not (...)`.
+        // Project 1 is published (true), so `not true` is constant false →
+        // no rows.
         const expected: Array<{ id: number }> = []
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tProject)

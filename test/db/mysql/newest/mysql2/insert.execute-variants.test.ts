@@ -4,7 +4,24 @@
 //   - `executeInsert(min, max)` — min-/max-row guards in
 //     [InsertQueryBuilder.ts:164](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L164).
 //     Plain inserts (no RETURNING) compare `min`/`max` against the
-//     engine's reported rowCount.
+//     engine's reported rowCount; the `.returningLastInsertedId()` path
+//     compares against `result.length` (multi-row) or 0/1 based on the
+//     id being null/non-null (single-row).
+//   - `.values([...]).returningLastInsertedId().executeInsert()` — the
+//     multi-row last-inserted-id path
+//     ([InsertQueryBuilder.ts:114](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L114))
+//     that dispatches through
+//     `_queryRunner.executeInsertReturningMultipleLastInsertedId`.
+//   - `executeInsertNoneOrOne()` + `returningOneColumn(...)` — the
+//     `__oneColumn` branch in
+//     [InsertQueryBuilder.ts:200](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L200)
+//     plus its `value === undefined → null` coercion path.
+//   - `executeInsertOne()` + `returningOneColumn(...)` — same shape, but
+//     throws `NO_RESULT` when the engine returns nothing
+//     ([InsertQueryBuilder.ts:241](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L241)).
+//   - `executeInsertMany(min, max)` with `returningOneColumn(...)` and
+//     with `returning({...})` — covers both `__oneColumn` and row-shape
+//     branches of the many-returning path.
 //
 // MySQL does not support `INSERT … RETURNING` in any released version,
 // and the fluent surface narrows `returning` / `returningOneColumn` to
@@ -149,25 +166,72 @@ describe(ctx.label, () => {
     // for symmetry.
     /*
     test('execute-insert-none-or-one-with-returning-one-column', async () => {
+        // `executeInsertNoneOrOne()` + `returningOneColumn(col)` lands
+        // on the `__oneColumn` branch and returns the single value.
+        // The inserted row always exists, so the result is the
+        // engine-assigned id (never null on the real DB).
         ctx.mockNext(500)
-        // ... see other cells for the full body.
+        await ctx.withRollback(async () => {
+            const result = await ctx.conn.insertInto(tOrganization)
+                .values({ name: 'Umbrella Corp', plan: 'pro' })
+                .returningOneColumn(tOrganization.id)
+                .executeInsertNoneOrOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof result, number | null>>()
+            if (ctx.realDbEnabled) expect(typeof result).toBe('number')
+            else expect(result).toBe(500)
+        })
     })
     */
 
     // NOT-APPLICABLE: MySQL has no RETURNING — .returningOneColumn(...) narrows to `never`.
     /*
     test('execute-insert-none-or-one-with-returning-one-column-empty-result', async () => {
-        if (ctx.realDbEnabled) return
-        ctx.mockNext(undefined)
-        // ... see other cells for the full body.
+        // A 0-row `INSERT ... SELECT` (the source select matches no row) inserts
+        // nothing, so `RETURNING` yields no row and `executeInsertNoneOrOne()`'s
+        // `__oneColumn` branch coerces the missing value to `null`. Driving it
+        // through a never-matching select reaches that coercion on the REAL
+        // engine, not only the mock.
+        await ctx.withRollback(async () => {
+            ctx.mockNext(undefined)
+            // "Clone" the organizations matching a never-true filter: the source
+            // select yields no row, so nothing is inserted and RETURNING is empty.
+            const source = ctx.conn.selectFrom(tOrganization)
+                .where(tOrganization.id.equals(-1))
+                .select({ name: tOrganization.name, plan: tOrganization.plan })
+            const result = await ctx.conn.insertInto(tOrganization)
+                .from(source)
+                .returningOneColumn(tOrganization.id)
+                .executeInsertNoneOrOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            expect(result).toBeNull()
+        })
     })
     */
 
     // NOT-APPLICABLE: MySQL has no RETURNING — .returningOneColumn(...) narrows to `never`.
     /*
     test('execute-insert-one-with-returning-one-column', async () => {
+        // `executeInsertOne()` + `returningOneColumn(col)` covers the
+        // value branch of the `__oneColumn` shape. The inserted row
+        // always exists, so the result is the engine-assigned id.
         ctx.mockNext(777)
-        // ... see other cells for the full body.
+        await ctx.withRollback(async () => {
+            const result = await ctx.conn.insertInto(tOrganization)
+                .values({ name: 'LexCorp', plan: 'pro' })
+                .returningOneColumn(tOrganization.id)
+                .executeInsertOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof result, number>>()
+            if (ctx.realDbEnabled) expect(typeof result).toBe('number')
+            else expect(result).toBe(777)
+        })
     })
     */
 
@@ -175,9 +239,22 @@ describe(ctx.label, () => {
     // symmetry.
     /*
     test('execute-insert-one-throws-no-result-when-row-missing', async () => {
+        // `executeInsertOne()` raises `NO_RESULT` when the engine
+        // returns no row (see
+        // [InsertQueryBuilder.ts:253](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L253)).
+        // Mock-only: real INSERT always returns the inserted row.
         if (ctx.realDbEnabled) return
         ctx.mockNext(undefined)
-        // ... see other cells for the full body.
+        let caught: unknown
+        try {
+            await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, name: 'Customer portal', slug: 'customer-portal' })
+                .returning({ id: tProject.id })
+                .executeInsertOne()
+        } catch (e) {
+            caught = e
+        }
+        expect(String(caught)).toMatch(/NO_RESULT|No result returned/)
     })
     */
 

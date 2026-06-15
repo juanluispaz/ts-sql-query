@@ -16,8 +16,8 @@
 //      DO NOTHING (the bare `onConflictDoNothing` is already covered
 //      by `insert.on-conflict.test.ts`).
 //
-// Every test uses `onConflictOn(cols)` explicit inference — PostgreSQL
-// rejects bare `ON CONFLICT DO UPDATE` without it.
+// Every test uses `onConflictOn(cols)` explicit inference (required by
+// PostgreSQL, accepted by the other dialects) so one body runs everywhere.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'

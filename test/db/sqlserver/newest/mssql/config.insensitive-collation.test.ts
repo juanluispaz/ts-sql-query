@@ -1,6 +1,5 @@
 // Per-connection coverage of the three branches every insensitive
-// comparison operator in
-// gates on `_connectionConfiguration.insensitiveCollation`:
+// comparison operator gates on `_connectionConfiguration.insensitiveCollation`:
 //
 //   - `collation` set to a non-empty string: emits the native form
 //     plus ` collate <name>`.

@@ -18,8 +18,8 @@ export const ctx = createPgTestContext({
             shutdown: () => pool.end(),
         }
     },
-    // PgPoolQueryRunner supports allowNestedTransactions (SAVEPOINT-based
-    // nesting), so the nesting-works test runs against the real engine here.
+    // PgPoolQueryRunner supports allowNestedTransactions, so the
+    // nesting-works test runs against the real engine here.
     createNestedTxRunner(uri) {
         const pool = new Pool({ connectionString: uri })
         return {

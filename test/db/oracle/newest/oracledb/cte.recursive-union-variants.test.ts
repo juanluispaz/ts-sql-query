@@ -64,8 +64,8 @@ describe(ctx.label, () => {
     */
 
     // `.recursiveUnion` is typed as `never` on Oracle - same reason as
-    // above; use `.recursiveUnionAll`. Body kept verbatim from the sqlite
-    // cell for cross-cell diff parity.
+    // above; use `.recursiveUnionAll`. Body kept verbatim for cross-cell
+    // diff parity.
     // NOT-APPLICABLE: Oracle rejects UNION in the recursive arm of WITH RECURSIVE (ORA-32040), so .recursiveUnion is typed never
     /*
     test('recursive-union-fn-variant-with-explicit-join', async () => {

@@ -134,15 +134,15 @@ describe(ctx.label, () => {
         }
     })
 
-    // Only the pg / pglite connectors (PgPoolQueryRunner / PgLiteQueryRunner) can enable
-    // SAVEPOINT-based nesting on the real engine; this connector's runner cannot, so the
-    // nesting-works case is validated in the pg/pglite cells (the throw-when-not-enabled
-    // case above still runs on the real engine here).
+    // This connector's query runner cannot enable nested transactions
+    // on the real engine, so the nesting-works case can only be validated
+    // where the runner supports it (the throw-when-not-enabled case above
+    // still runs on the real engine here).
     // NOT-APPLICABLE: this connector's query runner does not support allowNestedTransactions.
     /*
     test('nested-transaction-works-with-allow-nested-transactions-enabled', async () => {
         // Builds a flag-on connection via ctx.nestedTransactionConn() and asserts
-        // inner-before-outer after-commit hook order; see the pg / pglite cells.
+        // inner-before-outer after-commit hook order.
     })
     */
 })

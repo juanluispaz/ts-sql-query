@@ -63,7 +63,7 @@ describe(ctx.label, () => {
     test('custom-numeric/customint-rounding-and-abs', async () => {
         // customInt operand keeps the customInt result type through
         // ceil/floor/round (the customInt||customDouble arm) and abs.
-        // bun's SQLite returns ceil/floor/round/abs of an integer as a
+        // This SQLite build returns ceil/floor/round/abs of an integer as a
         // plain integer, so the value round-trips in both modes.
         const score = ctx.conn.const(7, 'customInt', 'Score')
         const expected = [{ id: 1, c: 7, f: 7, r: 7, a: 7 }]
@@ -175,7 +175,7 @@ describe(ctx.label, () => {
         }
     })
 
-    // NOT-APPLICABLE: bun's SQLite build has no `cot()` function (the rest
+    // NOT-APPLICABLE: this SQLite build has no `cot()` function (the rest
     // of the trig family — acos/asin/atan/cos/sin/tan — exists), so the
     // whole query throws "no such function: cot".
     /*
@@ -218,11 +218,10 @@ describe(ctx.label, () => {
 
     test('custom-numeric/customdouble-operation1-math', async () => {
         // The 5 `SqlOperation1` customDouble arms — `power`, `logn`,
-        // `roundn`, `divide`, `atan2` — at / 635
-        // / 642 / 649 / 678. `customdouble-math` covers the
+        // `roundn`, `divide`, `atan2`. `customdouble-math` covers the
         // `SqlOperation0` arms (sqrt/cbrt/exp/ln/log10); these take an
         // additional operand and route through a different dispatch arm.
-        // bun's SQLite build provides log(b,x)/atan2/round(x,n), so the
+        // This SQLite build provides log(b,x)/atan2/round(x,n), so the
         // query runs; at2 is floating-point, the others come back exact.
         const v = ctx.conn.const(8, 'customDouble', 'Score')
         const o = ctx.conn.const(2, 'customDouble', 'Score')

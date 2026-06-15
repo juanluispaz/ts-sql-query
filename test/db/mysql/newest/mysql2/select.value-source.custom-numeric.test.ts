@@ -233,8 +233,7 @@ describe(ctx.label, () => {
 
     test('custom-numeric/customdouble-operation1-math', async () => {
         // The 5 `SqlOperation1` customDouble arms — `power`, `logn`,
-        // `roundn`, `divide`, `atan2` — at / 635
-        // / 642 / 649 / 678. `customdouble-math` covers the
+        // `roundn`, `divide`, `atan2`. `customdouble-math` covers the
         // `SqlOperation0` arms (sqrt/cbrt/exp/ln/log10); these take an
         // additional operand and route through a different dispatch arm.
         // MySQL provides log(b,x)/atan2/round(x,n), so the query runs;

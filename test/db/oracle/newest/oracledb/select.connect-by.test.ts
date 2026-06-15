@@ -1,9 +1,7 @@
-// Oracle's hierarchical query syntax: `START WITH … CONNECT BY [NOCYCLE]
+// Hierarchical query syntax: `START WITH … CONNECT BY [NOCYCLE]
 // PRIOR …`. The fluent shape is `.startWith(cond).connectBy(prior =>
-// …)` /  `.connectByNoCycle(prior => …)`, defined
-// The rendering path lives
-// On every other dialect (`postgreSql`, `sqlServer`, `mariaDB`,
-// `mySql`, `sqlite`) these methods are typed `never`; the equivalent
+// …)` / `.connectByNoCycle(prior => …)`. On the dialects whose grammar
+// has no CONNECT BY these methods are typed `never`; the equivalent
 // pattern is a recursive CTE — see
 // [cte.recursive-union-variants.test.ts](./cte.recursive-union-variants.test.ts).
 //

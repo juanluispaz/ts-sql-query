@@ -62,7 +62,8 @@ describe(ctx.label, () => {
         // Runs end-to-end here — see file header. The emitted
         // `uuid_str(uuid_blob(?))` executes against the real engine
         // because this connector provides the `uuid` extension
-        // functions (only the `sqlite3` npm connector stays mock-only).
+        // functions (the connectors without a user-defined-function API
+        // stay mock-only).
         const conn = ctx.withUuidStrategy('uuid-extension')
         ctx.mockNext(UUID_VALUE)
         await conn.selectFromNoTable()

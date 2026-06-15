@@ -255,7 +255,7 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-    // NOT-APPLICABLE: bun's SQLite build has no `reverse()` function.
+    // NOT-APPLICABLE: this SQLite build has no `reverse()` function.
     /*
     test('reverse', async () => {
         const expected = [{ id: 1, t: 'tset.emca@ada' }]

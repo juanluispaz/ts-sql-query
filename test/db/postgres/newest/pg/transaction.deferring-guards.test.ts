@@ -139,10 +139,10 @@ describe(ctx.label, () => {
         // allowNestedTransactions) makes the real engine reject nesting. Here
         // `ctx.nestedTransactionConn()` is backed by a runner constructed WITH
         // allowNestedTransactions (real mode), so nesting works: the inner
-        // transaction is a SAVEPOINT, its after-commit hook fires first, and the
-        // outer hook — saved on the stack across the nested transaction — fires
-        // after the outer commit. In mock mode this is `ctx.conn` (the mock
-        // already reports nestedTransactionsSupported()).
+        // transaction's after-commit hook fires first, and the outer hook —
+        // saved on the stack across the nested transaction — fires after the
+        // outer commit. In mock mode this is `ctx.conn` (the mock already
+        // reports nestedTransactionsSupported()).
         const connection = ctx.nestedTransactionConn()
         const events: string[] = []
         await connection.transaction(async () => {

@@ -44,6 +44,10 @@ function _typeNegatives() {
     // Rule: the `and` conjunction takes an array of filters, not a bare filter.
     // @ts-expect-error and expects an array of filters
     void connection.dynamicConditionFor(selectFields).withValues({ and: { priority: { equals: 1 } } })
+
+    // Rule: an extension rule callback must return a boolean value source.
+    // @ts-expect-error extension rule returns a non-boolean value source
+    void connection.dynamicConditionFor(selectFields, { custom: (_v: number) => tIssue.title })
 }
 
 test('dynamic-condition-negative-types', () => {

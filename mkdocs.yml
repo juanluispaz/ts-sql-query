@@ -5,12 +5,42 @@ repo_name: juanluispaz/ts-sql-query
 copyright: >
     Copyright &copy; Juan Luis Paz Rojas
     <span style="color: var(--md-footer-fg-color--lighter);"> · Released under the </span><a href="https://opensource.org/licenses/MIT" target="_blank">MIT License</a>.
+    <span style="color: var(--md-footer-fg-color--lighter);"> · </span><a href="#__consent">Change cookie settings</a>
 extra:
   social:
     - icon: fontawesome/brands/github
       link: https://www.github.com/juanluispaz
     - icon: fontawesome/brands/linkedin
       link: https://www.linkedin.com/in/juanluispaz/en
+  analytics:
+    provider: google
+    property: G-P1JM246C1P
+    feedback:
+      title: Was this page helpful?
+      ratings:
+        - icon: material/emoticon-happy-outline
+          name: This page was helpful
+          data: 1
+          note: >-
+            Thanks for your feedback!
+        - icon: material/emoticon-sad-outline
+          name: This page could be improved
+          data: 0
+          note: >-
+            Thanks for your feedback! Help us improve this page by
+            <a href="https://github.com/juanluispaz/ts-sql-query/issues/new/?labels=documentation&title=[Feedback]+{title}+-+{url}" target="_blank" rel="noopener">opening an issue on GitHub</a>
+            and telling us what was missing, unclear, or could be better.
+  consent:
+    title: Cookie consent
+    description: >-
+      We use cookies to recognize your repeated visits and preferences, as well
+      as to measure the effectiveness of our documentation and whether users
+      find what they're searching for. With your consent, you're helping us to
+      make our documentation better.
+    actions:
+      - accept
+      - reject
+      - manage
 plugins:
   # https://squidfunk.github.io/mkdocs-material/setup/setting-up-site-search/#+search.separator + ' (escaped as '') + \- moved at the end of group, added +*<>@{}
   - search:

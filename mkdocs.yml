@@ -2,6 +2,9 @@ site_name: ts-sql-query
 site_description: Type-safe SQL query builder for TypeScript.
 repo_url: https://github.com/juanluispaz/ts-sql-query
 repo_name: juanluispaz/ts-sql-query
+# Theme overrides live under docs/overrides (theme.custom_dir); exclude them from the built site.
+exclude_docs: |
+  overrides/
 copyright: >
     Copyright &copy; Juan Luis Paz Rojas
     <span style="color: var(--md-footer-fg-color--lighter);"> · Released under the </span><a href="https://opensource.org/licenses/MIT" target="_blank">MIT License</a>.
@@ -45,8 +48,9 @@ plugins:
   # https://squidfunk.github.io/mkdocs-material/setup/setting-up-site-search/#+search.separator + ' (escaped as '') + \- moved at the end of group, added +*<>@{}
   - search:
       separator: '[\s,:!=\[\]()"\''/\-+*<>@{}]+|(?!\b)(?=[A-Z][a-z])|\.(?!\d)|&[lg]t;'
-theme: 
+theme:
   name: material
+  custom_dir: docs/overrides
   language: en
   icon:
     logo: material/shield-half-full

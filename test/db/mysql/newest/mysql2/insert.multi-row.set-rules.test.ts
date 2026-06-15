@@ -102,7 +102,7 @@ describe(ctx.label, () => {
         try {
             ctx.conn.insertInto(tIssue)
                 .values([
-                    { projectId: 1, number: 304, title: 'A',                  status: 'open', priority: 1 } as any,
+                    { projectId: 1, number: 304, title: 'A',                  status: 'open', priority: 1 },
                     { projectId: 1, number: 305, title: 'B', body: 'leaked',  status: 'open', priority: 1 },
                 ])
                 .disallowIfSet('body must never be staged from the API', 'body')

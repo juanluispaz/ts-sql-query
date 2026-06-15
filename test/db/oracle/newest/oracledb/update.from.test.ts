@@ -12,7 +12,13 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('update-from-other-table', async () => {
-        ctx.mockNext(2)
+        // Acme Corp is the only `pro` org; its projects are 1 and 2.
+        const updatedProjects = [
+            { id: 1, name: 'Marketing site / Acme Corp' },
+            { id: 2, name: 'Internal tools / Acme Corp' },
+        ]
+        ctx.mockNext(2)               // affected rows from the UPDATE
+        ctx.mockNext(updatedProjects) // rows from the verification SELECT
 
         await ctx.withRollback(async () => {
             // Append the organization name to each project's name where
@@ -34,21 +40,19 @@ describe(ctx.label, () => {
               ]
             `)
             assertType<Exact<typeof affected, number>>()
+            // oracledb's affected-row count for the emulated UPDATE … FROM is
+            // not reliably 2, so under a real DB only assert it is numeric.
             if (ctx.realDbEnabled) {
                 expect(typeof affected).toBe('number')
-                // Acme Corp is the only `pro` org; its projects are 1 and 2.
-                const projects = await ctx.conn.selectFrom(tProject)
-                    .where(tProject.organizationId.equals(1))
-                    .select({ id: tProject.id, name: tProject.name })
-                    .orderBy('id')
-                    .executeSelectMany()
-                expect(projects).toEqual([
-                    { id: 1, name: 'Marketing site / Acme Corp' },
-                    { id: 2, name: 'Internal tools / Acme Corp' },
-                ])
             } else {
                 expect(affected).toBe(2)
             }
+            const projects = await ctx.conn.selectFrom(tProject)
+                .where(tProject.organizationId.equals(1))
+                .select({ id: tProject.id, name: tProject.name })
+                .orderBy('id')
+                .executeSelectMany()
+            expect(projects).toEqual(updatedProjects)
         })
     })
 })

@@ -75,8 +75,7 @@ describe(ctx.label, () => {
             `)
             assertType<Exact<typeof newName, string>>()
 
-            if (!ctx.realDbEnabled) expect(newName).toBe('Renamed Acme')
-            else expect(newName).toBe('Renamed Acme')
+            expect(newName).toBe('Renamed Acme')
         })
     })
 

@@ -17,6 +17,13 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../.
 import { tIssue, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
+// The disallow rules throw a `TsSqlProcessingError` (an `Error`) onto which
+// the InsertQueryBuilder attaches the runtime-only `disallowedProperty` /
+// `disallowedIndex` fields (set via direct assignment in src, not part of the
+// public typed surface). This shape narrows the caught `unknown` so the
+// assertions read those fields without an `any` local.
+type DisallowError = Error & { disallowedProperty?: unknown; disallowedIndex?: unknown }
+
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
     afterAll(() => ctx.down(), ctx.timeoutMs)
@@ -101,7 +108,7 @@ describe(ctx.label, () => {
                 .disallowIfSet('body must never be staged from the API', 'body')
         } catch (e) { thrown = e }
         expect(thrown).toBeInstanceOf(Error)
-        const err = thrown as Error & { disallowedProperty: unknown, disallowedIndex: unknown }
+        const err = thrown as DisallowError
         expect(err.message).toContain('body must never be staged from the API')
         expect(err.disallowedProperty).toBe('body')
         expect(err.disallowedIndex).toBe(1)
@@ -121,7 +128,7 @@ describe(ctx.label, () => {
                 .disallowIfNotSet('title is mandatory in bulk import', 'title')
         } catch (e) { thrown = e }
         expect(thrown).toBeInstanceOf(Error)
-        const err = thrown as Error & { disallowedProperty: unknown, disallowedIndex: unknown }
+        const err = thrown as DisallowError
         expect(err.message).toContain('title is mandatory in bulk import')
         expect(err.disallowedProperty).toBe('title')
         expect(err.disallowedIndex).toBe(1)
@@ -141,7 +148,7 @@ describe(ctx.label, () => {
                 .disallowIfValue('body must be staged by the workflow', 'body')
         } catch (e) { thrown = e }
         expect(thrown).toBeInstanceOf(Error)
-        const err = thrown as Error & { disallowedProperty: unknown, disallowedIndex: unknown }
+        const err = thrown as DisallowError
         expect(err.message).toContain('body must be staged by the workflow')
         expect(err.disallowedProperty).toBe('body')
         expect(err.disallowedIndex).toBe(1)
@@ -161,7 +168,7 @@ describe(ctx.label, () => {
                 .disallowIfNoValue('body is required for every row', 'body')
         } catch (e) { thrown = e }
         expect(thrown).toBeInstanceOf(Error)
-        const err = thrown as Error & { disallowedProperty: unknown, disallowedIndex: unknown }
+        const err = thrown as DisallowError
         expect(err.message).toContain('body is required for every row')
         expect(err.disallowedProperty).toBe('body')
         expect(err.disallowedIndex).toBe(1)
@@ -185,7 +192,7 @@ describe(ctx.label, () => {
                 )
         } catch (e) { thrown = e }
         expect(thrown).toBeInstanceOf(Error)
-        const err = thrown as Error & { disallowedProperty: unknown, disallowedIndex: unknown }
+        const err = thrown as DisallowError
         expect(err.message).toContain('only org/name/slug may be bulk-imported')
         expect(err.disallowedProperty).toBe('published')
         expect(err.disallowedIndex).toBe(1)

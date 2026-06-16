@@ -9,26 +9,30 @@ export class FragmentQueryBuilder {
     __typeName: string
     __adapter: TypeAdapter | undefined
     __optionalType: OptionalType
+    __isAggregate: boolean
 
-    constructor(type: ValueType, typeName: string, optionalType: OptionalType, adapter: TypeAdapter | undefined) {
+    constructor(type: ValueType, typeName: string, optionalType: OptionalType, adapter: TypeAdapter | undefined, isAggregate: boolean = false) {
         this.__type = type
         this.__typeName = typeName
         this.__adapter = adapter
         this.__optionalType = optionalType
+        this.__isAggregate = isAggregate
     }
 
     sql(sql: TemplateStringsArray, ...params: AnyValueSource[]): AnyValueSource {
-        return new FragmentValueSource(sql, params, this.__type, this.__typeName, this.__optionalType, this.__adapter)
+        return new FragmentValueSource(sql, params, this.__type, this.__typeName, this.__optionalType, this.__adapter, this.__isAggregate)
     }
 }
 
 export class FragmentFunctionBuilder {
     definitions: Argument<any, any, any, any>[]
+    isAggregate: boolean
 
-    constructor(definitions: Argument<any, any, any, any>[]) {
+    constructor(definitions: Argument<any, any, any, any>[], isAggregate: boolean = false) {
         this.definitions = definitions
+        this.isAggregate = isAggregate
     }
-    
+
     as(impl: (...vs: AnyValueSource[]) => AnyValueSource): ((...args: any[]) => AnyValueSource) {
         return (...args: any[]): AnyValueSource => {
             const newArgs: AnyValueSource[] = []
@@ -42,7 +46,11 @@ export class FragmentFunctionBuilder {
                     newArgs.push(newArg)
                 }
             }
-            return impl.apply(undefined, newArgs)
+            const result = impl.apply(undefined, newArgs)
+            if (this.isAggregate) {
+                __getValueSourcePrivate(result).__isAggregate = true
+            }
+            return result
         }
     }
 }
@@ -54,12 +62,14 @@ export interface SqlBuilderSource {
 export class FragmentFunctionBuilderIfValue {
     definitions: Argument<any, any, any, any>[]
     sqlBuilderSource: SqlBuilderSource
+    isAggregate: boolean
 
-    constructor(sqlBuilderSource: SqlBuilderSource, definitions: Argument<any, any, any, any>[]) {
+    constructor(sqlBuilderSource: SqlBuilderSource, definitions: Argument<any, any, any, any>[], isAggregate: boolean = false) {
         this.sqlBuilderSource = sqlBuilderSource
         this.definitions = definitions
+        this.isAggregate = isAggregate
     }
-    
+
     as(impl: (...vs: AnyValueSource[]) => AnyValueSource): ((...args: any[]) => AnyValueSource) {
         return (...args: any[]): AnyValueSource => {
             const newArgs: AnyValueSource[] = []
@@ -80,7 +90,11 @@ export class FragmentFunctionBuilderIfValue {
                     newArgs.push(newArg)
                 }
             }
-            return impl.apply(undefined, newArgs)
+            const result = impl.apply(undefined, newArgs)
+            if (this.isAggregate) {
+                __getValueSourcePrivate(result).__isAggregate = true
+            }
+            return result
         }
     }
 }
@@ -88,10 +102,12 @@ export class FragmentFunctionBuilderIfValue {
 export class FragmentFunctionBuilderMaybeOptional {
     definitions: Argument<any, any, any, any>[]
     sqlBuilderSource: SqlBuilderSource
+    isAggregate: boolean
 
-    constructor(sqlBuilderSource: SqlBuilderSource, definitions: Argument<any, any, any, any>[]) {
+    constructor(sqlBuilderSource: SqlBuilderSource, definitions: Argument<any, any, any, any>[], isAggregate: boolean = false) {
         this.sqlBuilderSource = sqlBuilderSource
         this.definitions = definitions
+        this.isAggregate = isAggregate
     }
 
     as(impl: (...vs: AnyValueSource[]) => AnyValueSource): ((...args: any[]) => AnyValueSource) {
@@ -118,6 +134,9 @@ export class FragmentFunctionBuilderMaybeOptional {
             }
             const result = impl.apply(undefined, newArgs)
             __getValueSourcePrivate(result).__optionalType = optionalType
+            if (this.isAggregate) {
+                __getValueSourcePrivate(result).__isAggregate = true
+            }
             return result
         }
     }

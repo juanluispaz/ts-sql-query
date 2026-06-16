@@ -14,6 +14,7 @@ The following mechanisms are supported:
 - `buildFragmentWithArgs`: defines reusable fragments with arguments.
 - `buildFragmentWithArgsIfValue`: adds conditional logic to omit fragments based on null or undefined inputs.
 - `buildFragmentWithMaybeOptionalArgs`: infers nullability of the result based on the arguments provided.
+- `aggregateFragmentWithType` / `buildAggregateFragmentWithArgs` / `buildAggregateFragmentWithArgsIfValue` / `buildAggregateFragmentWithMaybeOptionalArgs`: the aggregate counterparts of the four mechanisms above, for fragments that wrap an aggregate function.
 - `rawFragment`: inserts raw SQL without type guarantees.
 - `createTableOrViewCustomization`: defines alternative renderings for table or view references.
 - `customizeQuery`: customizes the generated SQL for `SELECT`, `INSERT`, `UPDATE`, and `DELETE` statements.
@@ -426,6 +427,35 @@ const companiesUsingCustomFunctionFragment: Promise<{
     idMultiplyBy2?: number;
 }[]>
 ```
+
+### Aggregate fragments
+
+When the SQL expression you inject is an **aggregate function** (one that collapses many rows into a single value, like `COUNT`, `SUM` or a database-specific aggregate `ts-sql-query` doesn't expose), use the aggregate variants of the fragment mechanisms:
+
+- `aggregateFragmentWithType` — the aggregate counterpart of `fragmentWithType`.
+- `buildAggregateFragmentWithArgs` — the aggregate counterpart of `buildFragmentWithArgs`.
+- `buildAggregateFragmentWithArgsIfValue` — the aggregate counterpart of `buildFragmentWithArgsIfValue`.
+- `buildAggregateFragmentWithMaybeOptionalArgs` — the aggregate counterpart of `buildFragmentWithMaybeOptionalArgs`.
+
+They behave exactly like their non-aggregate versions, but the value they produce is **marked as an aggregate**. As with the built-in aggregate functions (`count`, `sum`, `avg`, …), the compiler then rejects the result wherever SQL does not allow an aggregate — in a `where(...)` / `.and(...)` / `.or(...)` filter, in `groupBy(...)`, or in a join `on(...)` condition — and accepts it where SQL expects one: `having(...)`, the `select({...})` projection and `orderBy(...)`. This turns a misplaced custom aggregate into a compile-time error instead of a runtime database error.
+
+```ts
+import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
+
+class DBConnection extends PostgreSqlConnection<'DBConnection'> {
+
+    // A custom aggregate not exposed by the default API.
+    countFilteredPositive = this.buildAggregateFragmentWithArgs(
+        this.arg('int', 'required')
+    ).as((value) => {
+        return this.aggregateFragmentWithType('int', 'required').sql`count(*) filter (where ${value} > 0)`
+    })
+}
+```
+
+You then use the defined function like any aggregate: it is accepted in `having(...)`, in the `select({...})` projection and in `orderBy(...)`, and rejected at compile time in `where(...)` / `.and(...)` / `.or(...)`, in `groupBy(...)` and in join `on(...)` conditions — so misplacing it is caught by the compiler instead of failing at the database.
+
+For a one-off aggregate you don't need a reusable function: `connection.aggregateFragmentWithType('int', 'optional').sql` followed by the SQL template produces a marked aggregate inline, the same way `fragmentWithType` does for non-aggregate expressions.
 
 ### Raw fragments
 

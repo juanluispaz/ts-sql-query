@@ -36,7 +36,8 @@
  * - NValuesForInsert:        $DB_TYPE:DB_$NAME/valuesForInsert:$NAME/
  * - NRecursive:              $DB_TYPE:DB_$NAME/recursive/
  * - NCompoundable (select):  $DB_TYPE:DB_$NAME/compoundable/
- * 
+ * - NAggregate:              $DB_TYPE:DB_$NAME/aggregate/
+ *
  * Customized tables or views:
  * The original $NAME will be extended with +customizedAs~$CUSTOMIZATION_NAME
  */
@@ -70,6 +71,9 @@ export type NRecursive<DB extends string /* IDB */> = `${DB}recursive/`
 export type NRecursiveFrom<SOURCE extends NSource> = NRecursive<NGetDBFrom<SOURCE>>
 export type NCompoundable<DB extends string /* IDB */> = `${DB}compoundable/`
 export type NCompoundableFrom<SOURCE extends NSource> = NRecursive<NGetDBFrom<SOURCE>>
+export type NAggregate<DB extends string /* IDB */> = `${DB}aggregate/`
+export type NAggregateFrom<SOURCE extends NSource> = NAggregate<NGetDBFrom<SOURCE>>
+export type NSourceAllowingAggregate<SOURCE extends NSource> = SOURCE | NAggregateFrom<SOURCE>
 export type NSource = string // Combines all source type in table, view, values, etc.
 export type NType = 'table' | 'view' | 'values' | 'with' /* Specia types with name: */ | 'oldValues' | 'valuesForInsert'
 export type NJoinType = 'leftJoin'

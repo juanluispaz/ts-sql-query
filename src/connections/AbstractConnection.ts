@@ -26,7 +26,7 @@ import type { RawFragment } from '../utils/RawFragment.js'
 import { RawFragmentImpl } from '../internal/RawFragmentImpl.js'
 import type { CustomizedTableOrView } from '../utils/tableOrViewUtils.js'
 import { __setQueryMetadata } from '../queryBuilders/AbstractQueryBuilder.js'
-import type { NDB, NNoTableOrViewRequired, NSource, NWithDB } from '../utils/sourceName.js'
+import type { NAggregate, NDB, NNoTableOrViewRequired, NSource, NWithDB } from '../utils/sourceName.js'
 import type { DataToProject, GetDataToProjectSource } from '../complexProjections/dataToProject.js'
 import type { ResultObjectValuesForAggregatedArray } from '../complexProjections/resultWithOptionalsAsUndefined.js'
 import type { ResultObjectValuesProjectedAsNullableForAggregatedArray } from '../complexProjections/resultWithOptionalsAsNull.js'
@@ -882,7 +882,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         }
     }
 
-    protected buildFragmentWithArgs(): FragmentBuilder0<DB>
+    protected buildFragmentWithArgs(): FragmentBuilder0<NNoTableOrViewRequired<DB>>
     protected buildFragmentWithArgs<A1 extends Argument<any, any, any, any>>(a1: A1): FragmentBuilder1<NNoTableOrViewRequired<DB>, A1>
     protected buildFragmentWithArgs<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>>(a1: A1, a2: A2): FragmentBuilder2<NNoTableOrViewRequired<DB>, A1, A2>
     protected buildFragmentWithArgs<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>, A3 extends Argument<any, any, any, any>>(a1: A1, a2: A2, a3: A3): FragmentBuilder3<NNoTableOrViewRequired<DB>, A1, A2, A3>
@@ -892,7 +892,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         return new FragmentFunctionBuilder(args)
     }
 
-    protected buildFragmentWithArgsIfValue(): FragmentBuilder0IfValue<DB>
+    protected buildFragmentWithArgsIfValue(): FragmentBuilder0IfValue<NNoTableOrViewRequired<DB>>
     protected buildFragmentWithArgsIfValue<A1 extends Argument<any, any, any, any>>(a1: A1): FragmentBuilder1IfValue<NNoTableOrViewRequired<DB>, A1>
     protected buildFragmentWithArgsIfValue<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>>(a1: A1, a2: A2): FragmentBuilder2IfValue<NNoTableOrViewRequired<DB>, A1, A2>
     protected buildFragmentWithArgsIfValue<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>, A3 extends Argument<any, any, any, any>>(a1: A1, a2: A2, a3: A3): FragmentBuilder3IfValue<NNoTableOrViewRequired<DB>, A1, A2, A3>
@@ -902,7 +902,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         return new FragmentFunctionBuilderIfValue(this as any, args) // make this protected fields as public
     }
 
-    protected buildFragmentWithMaybeOptionalArgs(): FragmentBuilderMaybeOptional0<DB>
+    protected buildFragmentWithMaybeOptionalArgs(): FragmentBuilderMaybeOptional0<NNoTableOrViewRequired<DB>>
     protected buildFragmentWithMaybeOptionalArgs<A1 extends Argument<any, any, any, any>>(a1: A1): FragmentBuilderMaybeOptional1<NNoTableOrViewRequired<DB>, A1>
     protected buildFragmentWithMaybeOptionalArgs<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>>(a1: A1, a2: A2): FragmentBuilderMaybeOptional2<NNoTableOrViewRequired<DB>, A1, A2>
     protected buildFragmentWithMaybeOptionalArgs<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>, A3 extends Argument<any, any, any, any>>(a1: A1, a2: A2, a3: A3): FragmentBuilderMaybeOptional3<NNoTableOrViewRequired<DB>, A1, A2, A3>
@@ -910,6 +910,105 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     protected buildFragmentWithMaybeOptionalArgs<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>, A3 extends Argument<any, any, any, any>, A4 extends Argument<any, any, any, any>, A5 extends Argument<any, any, any, any>>(a1: A1, a2: A2, a3: A3, a4: A4, a5: A5): FragmentBuilderMaybeOptional5<NNoTableOrViewRequired<DB>, A1, A2, A3, A4, A5>
     protected buildFragmentWithMaybeOptionalArgs(...args: Argument<any, any, any, any>[]): any {
         return new FragmentFunctionBuilderMaybeOptional(this as any, args)
+    }
+
+    // --- Aggregate fragment variants ---
+    // Same shape as the non-aggregate fragment builders, but the produced
+    // value source carries the aggregate marker (NAggregate<DB> in its source
+    // + __isAggregate at runtime), so a custom aggregate written as a fragment
+    // is rejected outside aggregate-legal clauses, just like a built-in aggregate.
+    aggregateFragmentWithType(type: 'boolean', required: 'required', adapter?: TypeAdapter): BooleanFragmentExpression<NNoTableOrViewRequired<DB>, 'required', NAggregate<DB>>
+    aggregateFragmentWithType(type: 'boolean', required: 'optional', adapter?: TypeAdapter): BooleanFragmentExpression<NNoTableOrViewRequired<DB>, 'optional', NAggregate<DB>>
+    aggregateFragmentWithType(type: 'int', required: 'required', adapter?: TypeAdapter): NumberFragmentExpression<NNoTableOrViewRequired<DB>, 'required', NAggregate<DB>>
+    aggregateFragmentWithType(type: 'int', required: 'optional', adapter?: TypeAdapter): NumberFragmentExpression<NNoTableOrViewRequired<DB>, 'optional', NAggregate<DB>>
+    aggregateFragmentWithType(type: 'bigint', required: 'required', adapter?: TypeAdapter): BigintFragmentExpression<NNoTableOrViewRequired<DB>, 'required', NAggregate<DB>>
+    aggregateFragmentWithType(type: 'bigint', required: 'optional', adapter?: TypeAdapter): BigintFragmentExpression<NNoTableOrViewRequired<DB>, 'optional', NAggregate<DB>>
+    aggregateFragmentWithType(type: 'double', required: 'required', adapter?: TypeAdapter): NumberFragmentExpression<NNoTableOrViewRequired<DB>, 'required', NAggregate<DB>>
+    aggregateFragmentWithType(type: 'double', required: 'optional', adapter?: TypeAdapter): NumberFragmentExpression<NNoTableOrViewRequired<DB>, 'optional', NAggregate<DB>>
+    aggregateFragmentWithType(type: 'string', required: 'required', adapter?: TypeAdapter): StringFragmentExpression<NNoTableOrViewRequired<DB>, 'required', NAggregate<DB>>
+    aggregateFragmentWithType(type: 'string', required: 'optional', adapter?: TypeAdapter): StringFragmentExpression<NNoTableOrViewRequired<DB>, 'optional', NAggregate<DB>>
+    aggregateFragmentWithType(type: 'uuid', required: 'required', adapter?: TypeAdapter): UuidFragmentExpression<NNoTableOrViewRequired<DB>, 'required', NAggregate<DB>>
+    aggregateFragmentWithType(type: 'uuid', required: 'optional', adapter?: TypeAdapter): UuidFragmentExpression<NNoTableOrViewRequired<DB>, 'optional', NAggregate<DB>>
+    aggregateFragmentWithType(type: 'localDate', required: 'required', adapter?: TypeAdapter):  LocalDateFragmentExpression<NNoTableOrViewRequired<DB>, 'required', NAggregate<DB>>
+    aggregateFragmentWithType(type: 'localDate', required: 'optional', adapter?: TypeAdapter):  LocalDateFragmentExpression<NNoTableOrViewRequired<DB>, 'optional', NAggregate<DB>>
+    aggregateFragmentWithType(type: 'localTime', required: 'required', adapter?: TypeAdapter): LocalTimeFragmentExpression<NNoTableOrViewRequired<DB>, 'required', NAggregate<DB>>
+    aggregateFragmentWithType(type: 'localTime', required: 'optional', adapter?: TypeAdapter): LocalTimeFragmentExpression<NNoTableOrViewRequired<DB>, 'optional', NAggregate<DB>>
+    aggregateFragmentWithType(type: 'localDateTime', required: 'required', adapter?: TypeAdapter): LocalDateTimeFragmentExpression<NNoTableOrViewRequired<DB>, 'required', NAggregate<DB>>
+    aggregateFragmentWithType(type: 'localDateTime', required: 'optional', adapter?: TypeAdapter): LocalDateTimeFragmentExpression<NNoTableOrViewRequired<DB>, 'optional', NAggregate<DB>>
+    aggregateFragmentWithType<T, TYPE_NAME extends string>(type: 'customInt', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): CustomIntFragmentExpression<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'required', NAggregate<DB>>
+    aggregateFragmentWithType<T, TYPE_NAME extends string>(type: 'customInt', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): CustomIntFragmentExpression<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'optional', NAggregate<DB>>
+    aggregateFragmentWithType<T, TYPE_NAME extends string>(type: 'customDouble', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): CustomDoubleFragmentExpression<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'required', NAggregate<DB>>
+    aggregateFragmentWithType<T, TYPE_NAME extends string>(type: 'customDouble', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): CustomDoubleFragmentExpression<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'optional', NAggregate<DB>>
+    aggregateFragmentWithType<T, TYPE_NAME extends string>(type: 'customUuid', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): CustomUuidFragmentExpression<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'required', NAggregate<DB>>
+    aggregateFragmentWithType<T, TYPE_NAME extends string>(type: 'customUuid', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): CustomUuidFragmentExpression<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'optional', NAggregate<DB>>
+    aggregateFragmentWithType<T, TYPE_NAME extends string>(type: 'customLocalDate', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): CustomLocalDateFragmentExpression<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'required', NAggregate<DB>>
+    aggregateFragmentWithType<T, TYPE_NAME extends string>(type: 'customLocalDate', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): CustomLocalDateFragmentExpression<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'optional', NAggregate<DB>>
+    aggregateFragmentWithType<T, TYPE_NAME extends string>(type: 'customLocalTime', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): CustomLocalTimeFragmentExpression<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'required', NAggregate<DB>>
+    aggregateFragmentWithType<T, TYPE_NAME extends string>(type: 'customLocalTime', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): CustomLocalTimeFragmentExpression<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'optional', NAggregate<DB>>
+    aggregateFragmentWithType<T, TYPE_NAME extends string>(type: 'customLocalDateTime', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): CustomLocalDateTimeFragmentExpression<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'required', NAggregate<DB>>
+    aggregateFragmentWithType<T, TYPE_NAME extends string>(type: 'customLocalDateTime', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): CustomLocalDateTimeFragmentExpression<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'optional', NAggregate<DB>>
+    aggregateFragmentWithType<T, TYPE_NAME extends string>(type: 'enum', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): EqualableFragmentExpression<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'required', NAggregate<DB>>
+    aggregateFragmentWithType<T, TYPE_NAME extends string>(type: 'enum', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): EqualableFragmentExpression<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'optional', NAggregate<DB>>
+    aggregateFragmentWithType<T, TYPE_NAME extends string>(type: 'custom', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): EqualableFragmentExpression<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'required', NAggregate<DB>>
+    aggregateFragmentWithType<T, TYPE_NAME extends string>(type: 'custom', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): EqualableFragmentExpression<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'optional', NAggregate<DB>>
+    aggregateFragmentWithType<T, TYPE_NAME extends string>(type: 'customComparable', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): ComparableFragmentExpression<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'required', NAggregate<DB>>
+    aggregateFragmentWithType<T, TYPE_NAME extends string>(type: 'customComparable', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): ComparableFragmentExpression<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'optional', NAggregate<DB>>
+    aggregateFragmentWithType<T>(type: 'customInt', typeName: string, required: 'required', adapter?: TypeAdapter): CustomIntFragmentExpression<NNoTableOrViewRequired<DB>, T, T, 'required', NAggregate<DB>>
+    aggregateFragmentWithType<T>(type: 'customInt', typeName: string, required: 'optional', adapter?: TypeAdapter): CustomIntFragmentExpression<NNoTableOrViewRequired<DB>, T, T, 'optional', NAggregate<DB>>
+    aggregateFragmentWithType<T>(type: 'customDouble', typeName: string, required: 'required', adapter?: TypeAdapter): CustomDoubleFragmentExpression<NNoTableOrViewRequired<DB>, T, T, 'required', NAggregate<DB>>
+    aggregateFragmentWithType<T>(type: 'customDouble', typeName: string, required: 'optional', adapter?: TypeAdapter): CustomDoubleFragmentExpression<NNoTableOrViewRequired<DB>, T, T, 'optional', NAggregate<DB>>
+    aggregateFragmentWithType<T>(type: 'customUuid', typeName: string, required: 'required', adapter?: TypeAdapter): CustomUuidFragmentExpression<NNoTableOrViewRequired<DB>, T, T, 'required', NAggregate<DB>>
+    aggregateFragmentWithType<T>(type: 'customUuid', typeName: string, required: 'optional', adapter?: TypeAdapter): CustomUuidFragmentExpression<NNoTableOrViewRequired<DB>, T, T, 'optional', NAggregate<DB>>
+    aggregateFragmentWithType<T>(type: 'customLocalDate', typeName: string, required: 'required', adapter?: TypeAdapter): CustomLocalDateFragmentExpression<NNoTableOrViewRequired<DB>, T, T, 'required', NAggregate<DB>>
+    aggregateFragmentWithType<T>(type: 'customLocalDate', typeName: string, required: 'optional', adapter?: TypeAdapter): CustomLocalDateFragmentExpression<NNoTableOrViewRequired<DB>, T, T, 'optional', NAggregate<DB>>
+    aggregateFragmentWithType<T>(type: 'customLocalTime', typeName: string, required: 'required', adapter?: TypeAdapter): CustomLocalTimeFragmentExpression<NNoTableOrViewRequired<DB>, T, T, 'required', NAggregate<DB>>
+    aggregateFragmentWithType<T>(type: 'customLocalTime', typeName: string, required: 'optional', adapter?: TypeAdapter): CustomLocalTimeFragmentExpression<NNoTableOrViewRequired<DB>, T, T, 'optional', NAggregate<DB>>
+    aggregateFragmentWithType<T>(type: 'customLocalDateTime', typeName: string, required: 'required', adapter?: TypeAdapter): CustomLocalDateTimeFragmentExpression<NNoTableOrViewRequired<DB>, T, T, 'required', NAggregate<DB>>
+    aggregateFragmentWithType<T>(type: 'customLocalDateTime', typeName: string, required: 'optional', adapter?: TypeAdapter): CustomLocalDateTimeFragmentExpression<NNoTableOrViewRequired<DB>, T, T, 'optional', NAggregate<DB>>
+    aggregateFragmentWithType<T>(type: 'enum', typeName: string, required: 'required', adapter?: TypeAdapter): EqualableFragmentExpression<NNoTableOrViewRequired<DB>, T, T, 'required', NAggregate<DB>>
+    aggregateFragmentWithType<T>(type: 'enum', typeName: string, required: 'optional', adapter?: TypeAdapter): EqualableFragmentExpression<NNoTableOrViewRequired<DB>, T, T, 'optional', NAggregate<DB>>
+    aggregateFragmentWithType<T>(type: 'custom', typeName: string, required: 'required', adapter?: TypeAdapter): EqualableFragmentExpression<NNoTableOrViewRequired<DB>, T, T, 'required', NAggregate<DB>>
+    aggregateFragmentWithType<T>(type: 'custom', typeName: string, required: 'optional', adapter?: TypeAdapter): EqualableFragmentExpression<NNoTableOrViewRequired<DB>, T, T, 'optional', NAggregate<DB>>
+    aggregateFragmentWithType<T>(type: 'customComparable', typeName: string, required: 'required', adapter?: TypeAdapter): ComparableFragmentExpression<NNoTableOrViewRequired<DB>, T, T, 'required', NAggregate<DB>>
+    aggregateFragmentWithType<T>(type: 'customComparable', typeName: string, required: 'optional', adapter?: TypeAdapter): ComparableFragmentExpression<NNoTableOrViewRequired<DB>, T, T, 'optional', NAggregate<DB>>
+    aggregateFragmentWithType(type: string, required: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any {
+        if (typeof adapter === 'string') {
+            type = required
+            required = adapter
+        } else {
+            adapter2 = adapter
+        }
+        return new FragmentQueryBuilder(type as ValueType, type, required as any, adapter2, true)
+    }
+
+    protected buildAggregateFragmentWithArgs(): FragmentBuilder0<NNoTableOrViewRequired<DB>, NAggregate<DB>>
+    protected buildAggregateFragmentWithArgs<A1 extends Argument<any, any, any, any>>(a1: A1): FragmentBuilder1<NNoTableOrViewRequired<DB>, A1, NAggregate<DB>>
+    protected buildAggregateFragmentWithArgs<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>>(a1: A1, a2: A2): FragmentBuilder2<NNoTableOrViewRequired<DB>, A1, A2, NAggregate<DB>>
+    protected buildAggregateFragmentWithArgs<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>, A3 extends Argument<any, any, any, any>>(a1: A1, a2: A2, a3: A3): FragmentBuilder3<NNoTableOrViewRequired<DB>, A1, A2, A3, NAggregate<DB>>
+    protected buildAggregateFragmentWithArgs<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>, A3 extends Argument<any, any, any, any>, A4 extends Argument<any, any, any, any>>(a1: A1, a2: A2, a3: A3, a4: A4): FragmentBuilder4<NNoTableOrViewRequired<DB>, A1, A2, A3, A4, NAggregate<DB>>
+    protected buildAggregateFragmentWithArgs<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>, A3 extends Argument<any, any, any, any>, A4 extends Argument<any, any, any, any>, A5 extends Argument<any, any, any, any>>(a1: A1, a2: A2, a3: A3, a4: A4, a5: A5): FragmentBuilder5<NNoTableOrViewRequired<DB>, A1, A2, A3, A4, A5, NAggregate<DB>>
+    protected buildAggregateFragmentWithArgs(...args: Argument<any, any, any, any>[]): any {
+        return new FragmentFunctionBuilder(args, true)
+    }
+
+    protected buildAggregateFragmentWithArgsIfValue(): FragmentBuilder0IfValue<NNoTableOrViewRequired<DB>, NAggregate<DB>>
+    protected buildAggregateFragmentWithArgsIfValue<A1 extends Argument<any, any, any, any>>(a1: A1): FragmentBuilder1IfValue<NNoTableOrViewRequired<DB>, A1, NAggregate<DB>>
+    protected buildAggregateFragmentWithArgsIfValue<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>>(a1: A1, a2: A2): FragmentBuilder2IfValue<NNoTableOrViewRequired<DB>, A1, A2, NAggregate<DB>>
+    protected buildAggregateFragmentWithArgsIfValue<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>, A3 extends Argument<any, any, any, any>>(a1: A1, a2: A2, a3: A3): FragmentBuilder3IfValue<NNoTableOrViewRequired<DB>, A1, A2, A3, NAggregate<DB>>
+    protected buildAggregateFragmentWithArgsIfValue<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>, A3 extends Argument<any, any, any, any>, A4 extends Argument<any, any, any, any>>(a1: A1, a2: A2, a3: A3, a4: A4): FragmentBuilder4IfValue<NNoTableOrViewRequired<DB>, A1, A2, A3, A4, NAggregate<DB>>
+    protected buildAggregateFragmentWithArgsIfValue<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>, A3 extends Argument<any, any, any, any>, A4 extends Argument<any, any, any, any>, A5 extends Argument<any, any, any, any>>(a1: A1, a2: A2, a3: A3, a4: A4, a5: A5): FragmentBuilder5IfValue<NNoTableOrViewRequired<DB>, A1, A2, A3, A4, A5, NAggregate<DB>>
+    protected buildAggregateFragmentWithArgsIfValue(...args: Argument<any, any, any, any>[]): any {
+        return new FragmentFunctionBuilderIfValue(this as any, args, true) // make this protected fields as public
+    }
+
+    protected buildAggregateFragmentWithMaybeOptionalArgs(): FragmentBuilderMaybeOptional0<NNoTableOrViewRequired<DB>, NAggregate<DB>>
+    protected buildAggregateFragmentWithMaybeOptionalArgs<A1 extends Argument<any, any, any, any>>(a1: A1): FragmentBuilderMaybeOptional1<NNoTableOrViewRequired<DB>, A1, NAggregate<DB>>
+    protected buildAggregateFragmentWithMaybeOptionalArgs<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>>(a1: A1, a2: A2): FragmentBuilderMaybeOptional2<NNoTableOrViewRequired<DB>, A1, A2, NAggregate<DB>>
+    protected buildAggregateFragmentWithMaybeOptionalArgs<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>, A3 extends Argument<any, any, any, any>>(a1: A1, a2: A2, a3: A3): FragmentBuilderMaybeOptional3<NNoTableOrViewRequired<DB>, A1, A2, A3, NAggregate<DB>>
+    protected buildAggregateFragmentWithMaybeOptionalArgs<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>, A3 extends Argument<any, any, any, any>, A4 extends Argument<any, any, any, any>>(a1: A1, a2: A2, a3: A3, a4: A4): FragmentBuilderMaybeOptional4<NNoTableOrViewRequired<DB>, A1, A2, A3, A4, NAggregate<DB>>
+    protected buildAggregateFragmentWithMaybeOptionalArgs<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>, A3 extends Argument<any, any, any, any>, A4 extends Argument<any, any, any, any>, A5 extends Argument<any, any, any, any>>(a1: A1, a2: A2, a3: A3, a4: A4, a5: A5): FragmentBuilderMaybeOptional5<NNoTableOrViewRequired<DB>, A1, A2, A3, A4, A5, NAggregate<DB>>
+    protected buildAggregateFragmentWithMaybeOptionalArgs(...args: Argument<any, any, any, any>[]): any {
+        return new FragmentFunctionBuilderMaybeOptional(this as any, args, true)
     }
 
     rawFragment(sql: TemplateStringsArray): RawFragment<NNoTableOrViewRequired<DB>>
@@ -959,35 +1058,35 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     }
 
     // Agregate functions
-    countAll(): NumberValueSource<NNoTableOrViewRequired<DB>, 'required'> {
+    countAll(): NumberValueSource<NNoTableOrViewRequired<DB> | NAggregate<DB>, 'required'> {
         return new AggregateFunctions0ValueSource('_countAll', 'int', 'int', 'required', undefined)
     }
-    count<SOURCE extends NSource>(value: ValueSourceOf<SOURCE> & SameDB<DB>): NumberValueSource<SOURCE, 'required'> {
+    count<SOURCE extends NSource>(value: ValueSourceOf<SOURCE> & SameDB<DB>): NumberValueSource<SOURCE | NAggregate<DB>, 'required'> {
         return new AggregateFunctions1ValueSource('_count', value, 'int', 'int', 'required', undefined)
     }
-    countDistinct<SOURCE extends NSource>(value: ValueSourceOf<SOURCE> & SameDB<DB>): NumberValueSource<SOURCE, 'required'> {
+    countDistinct<SOURCE extends NSource>(value: ValueSourceOf<SOURCE> & SameDB<DB>): NumberValueSource<SOURCE | NAggregate<DB>, 'required'> {
         return new AggregateFunctions1ValueSource('_countDistinct', value, 'int', 'int', 'required', undefined)
     }
-    max<TYPE extends IComparableValueSource<any, any, any, any>>(value: TYPE & SameDB<DB>): RemapValueSourceTypeWithOptionalType<TYPE[typeof source], TYPE, 'optional'> {
+    max<TYPE extends IComparableValueSource<any, any, any, any>>(value: TYPE & SameDB<DB>): RemapValueSourceTypeWithOptionalType<TYPE[typeof source] | NAggregate<DB>, TYPE, 'optional'> {
         const valuePrivate = __getValueSourcePrivate(value)
         return (new AggregateFunctions1ValueSource('_max', value, valuePrivate.__valueType, valuePrivate.__valueTypeName, 'optional', valuePrivate.__typeAdapter)) as any
     }
-    min<TYPE extends IComparableValueSource<NSource, any, any, any>>(value: TYPE & SameDB<DB>): RemapValueSourceTypeWithOptionalType<TYPE[typeof source], TYPE, 'optional'> {
+    min<TYPE extends IComparableValueSource<NSource, any, any, any>>(value: TYPE & SameDB<DB>): RemapValueSourceTypeWithOptionalType<TYPE[typeof source] | NAggregate<DB>, TYPE, 'optional'> {
         const valuePrivate = __getValueSourcePrivate(value)
         return (new AggregateFunctions1ValueSource('_min', value, valuePrivate.__valueType, valuePrivate.__valueTypeName, 'optional', valuePrivate.__typeAdapter)) as any
     }
-    sum<SOURCE extends NSource>(value: INumberValueSource<SOURCE, any> & SameDB<DB>): NumberValueSource<SOURCE, 'optional'>
-    sum<SOURCE extends NSource>(value: IBigintValueSource<SOURCE, any> & SameDB<DB>): BigintValueSource<SOURCE, 'optional'>
-    sum<TYPE extends ICustomIntValueSource<any, any, any, any>>(value: TYPE & SameDB<DB>): CustomIntValueSource<TYPE[typeof source], TYPE[typeof valueType], TYPE[typeof typeName], 'optional'>
-    sum<TYPE extends ICustomDoubleValueSource<any, any, any, any>>(value: TYPE & SameDB<DB>): CustomDoubleValueSource<TYPE[typeof source], TYPE[typeof valueType], TYPE[typeof typeName], 'optional'>
+    sum<SOURCE extends NSource>(value: INumberValueSource<SOURCE, any> & SameDB<DB>): NumberValueSource<SOURCE | NAggregate<DB>, 'optional'>
+    sum<SOURCE extends NSource>(value: IBigintValueSource<SOURCE, any> & SameDB<DB>): BigintValueSource<SOURCE | NAggregate<DB>, 'optional'>
+    sum<TYPE extends ICustomIntValueSource<any, any, any, any>>(value: TYPE & SameDB<DB>): CustomIntValueSource<TYPE[typeof source] | NAggregate<DB>, TYPE[typeof valueType], TYPE[typeof typeName], 'optional'>
+    sum<TYPE extends ICustomDoubleValueSource<any, any, any, any>>(value: TYPE & SameDB<DB>): CustomDoubleValueSource<TYPE[typeof source] | NAggregate<DB>, TYPE[typeof valueType], TYPE[typeof typeName], 'optional'>
     sum(value: ValueSourceOf<any>): ValueSourceOf<any> {
         const valuePrivate = __getValueSourcePrivate(value)
         return new AggregateFunctions1ValueSource('_sum', value, valuePrivate.__valueType, valuePrivate.__valueTypeName, 'optional', valuePrivate.__typeAdapter)
     }
-    sumDistinct<SOURCE extends NSource>(value: INumberValueSource<SOURCE, any> & SameDB<DB>): NumberValueSource<SOURCE, 'optional'>
-    sumDistinct<SOURCE extends NSource>(value: IBigintValueSource<SOURCE, any> & SameDB<DB>): BigintValueSource<SOURCE, 'optional'>
-    sumDistinct<TYPE extends ICustomIntValueSource<any, any, any, any>>(value: TYPE & SameDB<DB>): CustomIntValueSource<TYPE[typeof source], TYPE[typeof valueType], TYPE[typeof typeName], 'optional'>
-    sumDistinct<TYPE extends ICustomDoubleValueSource<any, any, any, any>>(value: TYPE & SameDB<DB>): CustomDoubleValueSource<TYPE[typeof source], TYPE[typeof valueType], TYPE[typeof typeName], 'optional'>
+    sumDistinct<SOURCE extends NSource>(value: INumberValueSource<SOURCE, any> & SameDB<DB>): NumberValueSource<SOURCE | NAggregate<DB>, 'optional'>
+    sumDistinct<SOURCE extends NSource>(value: IBigintValueSource<SOURCE, any> & SameDB<DB>): BigintValueSource<SOURCE | NAggregate<DB>, 'optional'>
+    sumDistinct<TYPE extends ICustomIntValueSource<any, any, any, any>>(value: TYPE & SameDB<DB>): CustomIntValueSource<TYPE[typeof source] | NAggregate<DB>, TYPE[typeof valueType], TYPE[typeof typeName], 'optional'>
+    sumDistinct<TYPE extends ICustomDoubleValueSource<any, any, any, any>>(value: TYPE & SameDB<DB>): CustomDoubleValueSource<TYPE[typeof source] | NAggregate<DB>, TYPE[typeof valueType], TYPE[typeof typeName], 'optional'>
     sumDistinct(value: ValueSourceOf<any>): ValueSourceOf<any> {
         const valuePrivate = __getValueSourcePrivate(value)
         return new AggregateFunctions1ValueSource('_sumDistinct', value, valuePrivate.__valueType, valuePrivate.__valueTypeName, 'optional', valuePrivate.__typeAdapter)
@@ -1004,18 +1103,18 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     // emits a cast inside `_average` / `_averageDistinct` so the engine
     // also returns a fractional scalar — homogenising behaviour across
     // every dialect.
-    average<SOURCE extends NSource>(value: (INumberValueSource<SOURCE, any> | IBigintValueSource<SOURCE, any> | ICustomIntValueSource<SOURCE, any, any, any> | ICustomDoubleValueSource<SOURCE, any, any, any>) & SameDB<DB>): NumberValueSource<SOURCE, 'optional'>
+    average<SOURCE extends NSource>(value: (INumberValueSource<SOURCE, any> | IBigintValueSource<SOURCE, any> | ICustomIntValueSource<SOURCE, any, any, any> | ICustomDoubleValueSource<SOURCE, any, any, any>) & SameDB<DB>): NumberValueSource<SOURCE | NAggregate<DB>, 'optional'>
     average(value: ValueSourceOf<any>): ValueSourceOf<any> {
         const valuePrivate = __getValueSourcePrivate(value)
         return new AggregateFunctions1ValueSource('_average', value, 'double', 'double', 'optional', valuePrivate.__typeAdapter)
     }
-    averageDistinct<SOURCE extends NSource>(value: (INumberValueSource<SOURCE, any> | IBigintValueSource<SOURCE, any> | ICustomIntValueSource<SOURCE, any, any, any> | ICustomDoubleValueSource<SOURCE, any, any, any>) & SameDB<DB>): NumberValueSource<SOURCE, 'optional'>
+    averageDistinct<SOURCE extends NSource>(value: (INumberValueSource<SOURCE, any> | IBigintValueSource<SOURCE, any> | ICustomIntValueSource<SOURCE, any, any, any> | ICustomDoubleValueSource<SOURCE, any, any, any>) & SameDB<DB>): NumberValueSource<SOURCE | NAggregate<DB>, 'optional'>
     averageDistinct(value: ValueSourceOf<any>): ValueSourceOf<any> {
         const valuePrivate = __getValueSourcePrivate(value)
         return new AggregateFunctions1ValueSource('_averageDistinct', value, 'double', 'double', 'optional', valuePrivate.__typeAdapter)
     }
-    stringConcat<SOURCE extends NSource>(value: IStringValueSource<SOURCE, any> & SameDB<DB>): StringValueSource<SOURCE, 'optional'>
-    stringConcat<SOURCE extends NSource>(value: IStringValueSource<SOURCE, any> & SameDB<DB>, separator: string): StringValueSource<SOURCE, 'optional'>
+    stringConcat<SOURCE extends NSource>(value: IStringValueSource<SOURCE, any> & SameDB<DB>): StringValueSource<SOURCE | NAggregate<DB>, 'optional'>
+    stringConcat<SOURCE extends NSource>(value: IStringValueSource<SOURCE, any> & SameDB<DB>, separator: string): StringValueSource<SOURCE | NAggregate<DB>, 'optional'>
     stringConcat(value: ValueSourceOf<any>, separator?: string): ValueSourceOf<any> {
         const valuePrivate = __getValueSourcePrivate(value)
         return new AggregateFunctions1or2ValueSource('_stringConcat', separator, value, valuePrivate.__valueType, valuePrivate.__valueTypeName, 'optional', valuePrivate.__typeAdapter)
@@ -1026,10 +1125,10 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     // SqlServerConnection, whose STRING_AGG rejects DISTINCT entirely. See
     // each `<DB>Connection.ts` for the per-dialect declaration.
 
-    aggregateAsArray<COLUMNS extends AggregatedArrayColumns<DB>>(columns: COLUMNS): AggregatedArrayValueSourceProjectableAsNullable<SourceOfAggregatedArray<COLUMNS>, Array<{ [P in keyof ResultObjectValuesForAggregatedArray<COLUMNS>]: ResultObjectValuesForAggregatedArray<COLUMNS>[P] }>, Array<{ [P in keyof ResultObjectValuesProjectedAsNullableForAggregatedArray<COLUMNS>]: ResultObjectValuesProjectedAsNullableForAggregatedArray<COLUMNS>[P] }>, 'required'> {
+    aggregateAsArray<COLUMNS extends AggregatedArrayColumns<DB>>(columns: COLUMNS): AggregatedArrayValueSourceProjectableAsNullable<SourceOfAggregatedArray<COLUMNS> | NAggregate<DB>, Array<{ [P in keyof ResultObjectValuesForAggregatedArray<COLUMNS>]: ResultObjectValuesForAggregatedArray<COLUMNS>[P] }>, Array<{ [P in keyof ResultObjectValuesProjectedAsNullableForAggregatedArray<COLUMNS>]: ResultObjectValuesProjectedAsNullableForAggregatedArray<COLUMNS>[P] }>, 'required'> {
         return new AggregateValueAsArrayValueSource(columns as QueryColumns, 'InnerResultObject', 'required', false)
     }
-    aggregateAsArrayOfOneColumn<VALUE extends IValueSource<any, any, any, any>>(value: VALUE): AggregatedArrayValueSource<VALUE[typeof source], Array<VALUE[typeof valueType]>, 'required'> {
+    aggregateAsArrayOfOneColumn<VALUE extends IValueSource<any, any, any, any>>(value: VALUE): AggregatedArrayValueSource<VALUE[typeof source] | NAggregate<DB>, Array<VALUE[typeof valueType]>, 'required'> {
         return new AggregateValueAsArrayValueSource(value, 'InnerResultObject', 'required', false)
     }
 

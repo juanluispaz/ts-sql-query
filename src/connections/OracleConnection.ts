@@ -1,4 +1,4 @@
-import type { NConnection, NSource } from '../utils/sourceName.js'
+import type { NAggregate, NConnection, NSource } from '../utils/sourceName.js'
 import type { QueryRunner } from '../queryRunners/QueryRunner.js'
 import { OracleSqlBuilder } from '../sqlBuilders/OracleSqlBuilder.js'
 import { AbstractAdvancedConnection } from './AbstractAdvancedConnection.js'
@@ -36,8 +36,8 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
         queryRunner.useDatabase('oracle')
     }
 
-    stringConcatDistinct<SOURCE extends NSource>(value: IStringValueSource<SOURCE, any> & SameDB<NConnection<'oracle', NAME>>): StringValueSource<SOURCE, 'optional'>
-    stringConcatDistinct<SOURCE extends NSource>(value: IStringValueSource<SOURCE, any> & SameDB<NConnection<'oracle', NAME>>, separator: string): StringValueSource<SOURCE, 'optional'>
+    stringConcatDistinct<SOURCE extends NSource>(value: IStringValueSource<SOURCE, any> & SameDB<NConnection<'oracle', NAME>>): StringValueSource<SOURCE | NAggregate<NConnection<'oracle', NAME>>, 'optional'>
+    stringConcatDistinct<SOURCE extends NSource>(value: IStringValueSource<SOURCE, any> & SameDB<NConnection<'oracle', NAME>>, separator: string): StringValueSource<SOURCE | NAggregate<NConnection<'oracle', NAME>>, 'optional'>
     stringConcatDistinct(value: ValueSourceOf<any>, separator?: string): ValueSourceOf<any> {
         const valuePrivate = __getValueSourcePrivate(value)
         return new AggregateFunctions1or2ValueSource('_stringConcatDistinct', separator, value, valuePrivate.__valueType, valuePrivate.__valueTypeName, 'optional', valuePrivate.__typeAdapter)

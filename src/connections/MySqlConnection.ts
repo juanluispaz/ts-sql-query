@@ -1,4 +1,4 @@
-import type { NConnection, NSource } from '../utils/sourceName.js'
+import type { NAggregate, NConnection, NSource } from '../utils/sourceName.js'
 import type { QueryRunner } from '../queryRunners/QueryRunner.js'
 import { MySqlSqlBuilder } from '../sqlBuilders/MySqlSqlBuilder.js'
 import type { TransactionIsolationLevel } from './AbstractConnection.js'
@@ -39,8 +39,8 @@ export abstract class MySqlConnection</*in|out*/ NAME extends string> extends Ab
         queryRunner.useDatabase('mySql')
     }
 
-    stringConcatDistinct<SOURCE extends NSource>(value: IStringValueSource<SOURCE, any> & SameDB<NConnection<'mySql', NAME>>): StringValueSource<SOURCE, 'optional'>
-    stringConcatDistinct<SOURCE extends NSource>(value: IStringValueSource<SOURCE, any> & SameDB<NConnection<'mySql', NAME>>, separator: string): StringValueSource<SOURCE, 'optional'>
+    stringConcatDistinct<SOURCE extends NSource>(value: IStringValueSource<SOURCE, any> & SameDB<NConnection<'mySql', NAME>>): StringValueSource<SOURCE | NAggregate<NConnection<'mySql', NAME>>, 'optional'>
+    stringConcatDistinct<SOURCE extends NSource>(value: IStringValueSource<SOURCE, any> & SameDB<NConnection<'mySql', NAME>>, separator: string): StringValueSource<SOURCE | NAggregate<NConnection<'mySql', NAME>>, 'optional'>
     stringConcatDistinct(value: ValueSourceOf<any>, separator?: string): ValueSourceOf<any> {
         const valuePrivate = __getValueSourcePrivate(value)
         return new AggregateFunctions1or2ValueSource('_stringConcatDistinct', separator, value, valuePrivate.__valueType, valuePrivate.__valueTypeName, 'optional', valuePrivate.__typeAdapter)

@@ -82,6 +82,25 @@ export function isAllowedQueryColumns(columns: QueryColumns, sqlBuilder: HasIsVa
     return true
 }
 
+export function hasAggregationQueryColumns(columns: QueryColumns, sqlBuilder: HasIsValue): boolean {
+    for (let prop in columns) {
+        const column = columns[prop]!
+        if (!isUsableValue(prop, column, columns)) {
+            continue
+        }
+        if (isValueSource(column)) {
+            if (__getValueSourcePrivate(column).__hasAggregation(sqlBuilder)) {
+                return true
+            }
+        } else {
+            if (hasAggregationQueryColumns(column, sqlBuilder)) {
+                return true
+            }
+        }
+    }
+    return false
+}
+
 export function isUsableValue(prop: string, value: any, _columns: QueryColumns) {
     if (prop.startsWith('__')) {
         return false

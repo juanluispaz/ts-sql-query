@@ -9,6 +9,8 @@ search:
 **New features**:
 
 - Unused CTEs (`with` clauses) are no longer included in the generated SQL: a common table expression that the final query doesn't actually use — for example one referenced only by an optional join that ends up pruned — is now dropped instead of being emitted for nothing.
+- **Aggregate functions are now type-checked against the clause where you use them.** An aggregate (`count`, `sum`, `average`, `min`, `max`, `stringConcat`, `aggregateAsArray`, their `Distinct` variants, or any expression built from one) no longer compiles inside `where` / `and` / `or`, `groupBy` or a join `on` — only in `having`, `select` and `orderBy`, as SQL requires. Misplacing an aggregate is now a TypeScript error instead of a database error at runtime. Compile-time-only breaking change; the generated SQL is unchanged.
+- **Custom aggregates as SQL fragments.** New `aggregateFragmentWithType` / `buildAggregateFragmentWithArgs` / `buildAggregateFragmentWithArgsIfValue` / `buildAggregateFragmentWithMaybeOptionalArgs` let you mark a fragment that wraps a database-specific aggregate as an aggregate, so it gets the same clause checking. See [SQL fragments → Aggregate fragments](queries/sql-fragments.md).
 
 ## v2.0.0-beta.1 (14 Jun 2026)
 

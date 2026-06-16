@@ -1,7 +1,7 @@
 import type { SqlBuilder, DeleteData, JoinData, ToSql, QueryColumns } from '../sqlBuilders/SqlBuilder.js'
-import { isAllowedQueryColumns } from '../sqlBuilders/SqlBuilder.js'
+import { hasAggregationQueryColumns, isAllowedQueryColumns } from '../sqlBuilders/SqlBuilder.js'
 import type { AnyTableOrView, ForUseInLeftJoin, IQueryDataDiscovery, HasIsValue, ITable, IWithView } from '../utils/ITableOrView.js'
-import { __addWiths, __getTableOrViewPrivate, __isAllowed } from '../utils/ITableOrView.js'
+import { __addWiths, __getTableOrViewPrivate, __hasAggregation, __isAllowed } from '../utils/ITableOrView.js'
 import type { IAnyBooleanValueSource, AnyValueSource, AlwaysIfValueSource } from '../expressions/values.js'
 import { isValueSource } from '../expressions/values.js'
 import type { DeleteExpression, ExecutableDelete, DynamicExecutableDeleteExpression, DeleteExpressionAllowingNoWhere, DeleteCustomization, CustomizableExecutableDelete, ComposableCustomizableExecutableDelete, ReturnableExecutableDelete, ExecutableDeleteReturning, DeleteReturningColumns, DeleteWhereExpression, DeleteWhereExpressionAllowingNoWhere, DeleteWhereJoinExpression, DynamicOnExpression, OnExpression, DeleteExpressionWithoutJoin, DeleteUsingExpression, DeleteWhereJoinExpressionAllowingNoWhere, DynamicOnExpressionAllowingNoWhere, OnExpressionAllowingNoWhere, DeleteExpressionWithoutJoinAllowingNoWhere, DeleteUsingExpressionAllowingNoWhere, CustomizableExecutableDeleteProjectableAsNullable } from '../expressions/delete.js'
@@ -485,5 +485,37 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         }
 
         return true
+    }
+    __hasAggregation(sqlBuilder: HasIsValue): boolean {
+        // Mirrors `__isAllowed`, but tables never carry an aggregate, so only
+        // the value-source-bearing clauses are walked (join conditions, where,
+        // returning columns, customization fragments).
+        const joins = this.__joins
+        if (joins) {
+            for (let i = 0, length = joins.length; i < length; i++) {
+                const join = joins[i]!
+                if (join.__on && __getValueSourcePrivate(join.__on).__hasAggregation(sqlBuilder)) {
+                    return true
+                }
+            }
+        }
+        if (this.__where && __getValueSourcePrivate(this.__where).__hasAggregation(sqlBuilder)) {
+            return true
+        }
+        if (this.__columns && hasAggregationQueryColumns(this.__columns, sqlBuilder)) {
+            return true
+        }
+        if (this.__customization) {
+            if (__hasAggregation(this.__customization.beforeQuery, sqlBuilder)) {
+                return true
+            }
+            if (__hasAggregation(this.__customization.afterDeleteKeyword, sqlBuilder)) {
+                return true
+            }
+            if (__hasAggregation(this.__customization.afterQuery, sqlBuilder)) {
+                return true
+            }
+        }
+        return false
     }
 }

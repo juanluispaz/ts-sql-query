@@ -95,6 +95,42 @@ function _typeNegatives() {
     // match the column's underlying type.
     // @ts-expect-error string passed where number | null | undefined expected
     void tIssue.priority.equalsIfValue('high')
+
+    // Rule: aggregate functions are not allowed in a WHERE clause. An
+    // aggregate carries an aggregate marker in its source that the FROM
+    // source does not include, so the condition is not assignable to where().
+    void connection.selectFrom(tIssue).where(
+        // @ts-expect-error sum(...) is an aggregate and cannot appear in WHERE
+        connection.sum(tIssue.priority).greaterThan(1)
+    )
+
+    // Rule: aggregate functions are not allowed in GROUP BY.
+    void connection.selectFrom(tIssue).groupBy(
+        // @ts-expect-error count(...) is an aggregate and cannot appear in GROUP BY
+        connection.count(tIssue.id)
+    )
+
+    // Rule: aggregate functions are not allowed in a JOIN ON condition.
+    void connection.selectFrom(tIssue).innerJoin(tProject).on(
+        // @ts-expect-error max(...) is an aggregate and cannot appear in ON
+        connection.max(tIssue.priority).equals(tProject.id)
+    )
+
+    // Rule: aggregateAsArray(...) / aggregateAsArrayOfOneColumn(...) are
+    // aggregates too — their result carries the aggregate marker, so they are
+    // rejected wherever a plain aggregate is (here: GROUP BY).
+    void connection.selectFrom(tIssue).groupBy(
+        // @ts-expect-error aggregateAsArrayOfOneColumn(...) is an aggregate and cannot appear in GROUP BY
+        connection.aggregateAsArrayOfOneColumn(tIssue.priority)
+    )
+
+    // Rule: an aggregate written as a SQL fragment (aggregateFragmentWithType /
+    // buildAggregateFragmentWith*) carries the aggregate marker too, so it is
+    // rejected outside aggregate-legal clauses — here, in WHERE.
+    void connection.selectFrom(tIssue).where(
+        // @ts-expect-error an aggregate SQL fragment cannot appear in WHERE
+        connection.aggregateFragmentWithType('int', 'optional').sql`sum(${tIssue.priority})`.greaterThan(1)
+    )
 }
 
 test('select-negative-types', () => {

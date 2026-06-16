@@ -1,4 +1,4 @@
-import type { NConnection, NSource } from '../utils/sourceName.js'
+import type { NAggregate, NConnection, NSource } from '../utils/sourceName.js'
 import type { QueryRunner } from '../queryRunners/QueryRunner.js'
 import { PostgreSqlSqlBuilder } from '../sqlBuilders/PostgreSqlSqlBuilder.js'
 import { AbstractAdvancedConnection } from './AbstractAdvancedConnection.js'
@@ -62,14 +62,14 @@ export abstract class PostgreSqlConnection<NAME extends string> extends Abstract
         queryRunner.useDatabase('postgreSql')
     }
 
-    aggregateAsArrayDistinct<COLUMNS extends AggregatedArrayColumns<NConnection<'postgreSql', NAME>>>(columns: COLUMNS): AggregatedArrayValueSourceProjectableAsNullable<SourceOfAggregatedArray<COLUMNS>, Array<{ [P in keyof ResultObjectValuesForAggregatedArray<COLUMNS>]: ResultObjectValuesForAggregatedArray<COLUMNS>[P] }>, Array<{ [P in keyof ResultObjectValuesProjectedAsNullableForAggregatedArray<COLUMNS>]: ResultObjectValuesProjectedAsNullableForAggregatedArray<COLUMNS>[P] }>, 'required'> {
+    aggregateAsArrayDistinct<COLUMNS extends AggregatedArrayColumns<NConnection<'postgreSql', NAME>>>(columns: COLUMNS): AggregatedArrayValueSourceProjectableAsNullable<SourceOfAggregatedArray<COLUMNS> | NAggregate<NConnection<'postgreSql', NAME>>, Array<{ [P in keyof ResultObjectValuesForAggregatedArray<COLUMNS>]: ResultObjectValuesForAggregatedArray<COLUMNS>[P] }>, Array<{ [P in keyof ResultObjectValuesProjectedAsNullableForAggregatedArray<COLUMNS>]: ResultObjectValuesProjectedAsNullableForAggregatedArray<COLUMNS>[P] }>, 'required'> {
         return new AggregateValueAsArrayValueSource(columns as QueryColumns, 'InnerResultObject', 'required', true)
     }
-    aggregateAsArrayOfOneColumnDistinct<VALUE extends IValueSource<any, any, any, any>>(value: VALUE): AggregatedArrayValueSource<VALUE[typeof source], Array<VALUE[typeof valueType]>, 'required'> {
+    aggregateAsArrayOfOneColumnDistinct<VALUE extends IValueSource<any, any, any, any>>(value: VALUE): AggregatedArrayValueSource<VALUE[typeof source] | NAggregate<NConnection<'postgreSql', NAME>>, Array<VALUE[typeof valueType]>, 'required'> {
         return new AggregateValueAsArrayValueSource(value, 'InnerResultObject', 'required', true)
     }
-    stringConcatDistinct<SOURCE extends NSource>(value: IStringValueSource<SOURCE, any> & SameDB<NConnection<'postgreSql', NAME>>): StringValueSource<SOURCE, 'optional'>
-    stringConcatDistinct<SOURCE extends NSource>(value: IStringValueSource<SOURCE, any> & SameDB<NConnection<'postgreSql', NAME>>, separator: string): StringValueSource<SOURCE, 'optional'>
+    stringConcatDistinct<SOURCE extends NSource>(value: IStringValueSource<SOURCE, any> & SameDB<NConnection<'postgreSql', NAME>>): StringValueSource<SOURCE | NAggregate<NConnection<'postgreSql', NAME>>, 'optional'>
+    stringConcatDistinct<SOURCE extends NSource>(value: IStringValueSource<SOURCE, any> & SameDB<NConnection<'postgreSql', NAME>>, separator: string): StringValueSource<SOURCE | NAggregate<NConnection<'postgreSql', NAME>>, 'optional'>
     stringConcatDistinct(value: ValueSourceOf<any>, separator?: string): ValueSourceOf<any> {
         const valuePrivate = __getValueSourcePrivate(value)
         return new AggregateFunctions1or2ValueSource('_stringConcatDistinct', separator, value, valuePrivate.__valueType, valuePrivate.__valueTypeName, 'optional', valuePrivate.__typeAdapter)

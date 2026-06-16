@@ -104,4 +104,8 @@ export class WithViewImpl implements IWithView<any>, WithSelectData, __ITableOrV
         // CompoundSelectQueryBuilder, which do.
         return (this.__selectData as unknown as { __isAllowed(sqlBuilder: HasIsValue): boolean }).__isAllowed(sqlBuilder)
     }
+    __hasAggregation(sqlBuilder: HasIsValue): boolean {
+        // Mirror `__isAllowed`: an aggregate inside the CTE body propagates up.
+        return (this.__selectData as unknown as { __hasAggregation(sqlBuilder: HasIsValue): boolean }).__hasAggregation(sqlBuilder)
+    }
 }

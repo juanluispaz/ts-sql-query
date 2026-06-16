@@ -1,4 +1,4 @@
-import type { NConnection, NSource } from '../utils/sourceName.js'
+import type { NAggregate, NConnection, NSource } from '../utils/sourceName.js'
 import type { QueryRunner } from '../queryRunners/QueryRunner.js'
 import { SqliteSqlBuilder } from '../sqlBuilders/SqliteSqlBuilder.js'
 import type { AggregatedArrayColumns, SourceOfAggregatedArray } from './AbstractConnection.js'
@@ -23,10 +23,10 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
         queryRunner.useDatabase('sqlite')
     }
 
-    aggregateAsArrayDistinct<COLUMNS extends AggregatedArrayColumns<NConnection<'sqlite', NAME>>>(columns: COLUMNS): AggregatedArrayValueSourceProjectableAsNullable<SourceOfAggregatedArray<COLUMNS>, Array<{ [P in keyof ResultObjectValuesForAggregatedArray<COLUMNS>]: ResultObjectValuesForAggregatedArray<COLUMNS>[P] }>, Array<{ [P in keyof ResultObjectValuesProjectedAsNullableForAggregatedArray<COLUMNS>]: ResultObjectValuesProjectedAsNullableForAggregatedArray<COLUMNS>[P] }>, 'required'> {
+    aggregateAsArrayDistinct<COLUMNS extends AggregatedArrayColumns<NConnection<'sqlite', NAME>>>(columns: COLUMNS): AggregatedArrayValueSourceProjectableAsNullable<SourceOfAggregatedArray<COLUMNS> | NAggregate<NConnection<'sqlite', NAME>>, Array<{ [P in keyof ResultObjectValuesForAggregatedArray<COLUMNS>]: ResultObjectValuesForAggregatedArray<COLUMNS>[P] }>, Array<{ [P in keyof ResultObjectValuesProjectedAsNullableForAggregatedArray<COLUMNS>]: ResultObjectValuesProjectedAsNullableForAggregatedArray<COLUMNS>[P] }>, 'required'> {
         return new AggregateValueAsArrayValueSource(columns as QueryColumns, 'InnerResultObject', 'required', true)
     }
-    aggregateAsArrayOfOneColumnDistinct<VALUE extends IValueSource<any, any, any, any>>(value: VALUE): AggregatedArrayValueSource<VALUE[typeof source], Array<VALUE[typeof valueType]>, 'required'> {
+    aggregateAsArrayOfOneColumnDistinct<VALUE extends IValueSource<any, any, any, any>>(value: VALUE): AggregatedArrayValueSource<VALUE[typeof source] | NAggregate<NConnection<'sqlite', NAME>>, Array<VALUE[typeof valueType]>, 'required'> {
         return new AggregateValueAsArrayValueSource(value, 'InnerResultObject', 'required', true)
     }
     /**
@@ -39,7 +39,7 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
      * default separator is `,`) or `stringConcat(value, separator)` if you do
      * not need distinct.
      */
-    stringConcatDistinct<SOURCE extends NSource>(value: IStringValueSource<SOURCE, any> & SameDB<NConnection<'sqlite', NAME>>): StringValueSource<SOURCE, 'optional'>
+    stringConcatDistinct<SOURCE extends NSource>(value: IStringValueSource<SOURCE, any> & SameDB<NConnection<'sqlite', NAME>>): StringValueSource<SOURCE | NAggregate<NConnection<'sqlite', NAME>>, 'optional'>
     stringConcatDistinct(value: IStringValueSource<any, any>): StringValueSource<any, 'optional'> {
         const valuePrivate = __getValueSourcePrivate(value)
         return new AggregateFunctions1or2ValueSource('_stringConcatDistinct', undefined, value, valuePrivate.__valueType, valuePrivate.__valueTypeName, 'optional', valuePrivate.__typeAdapter)

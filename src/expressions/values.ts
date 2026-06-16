@@ -114,6 +114,15 @@ export interface __ValueSourcePrivate extends IQueryDataDiscovery {
     __optionalType: OptionalType
     __typeAdapter?: TypeAdapter | undefined
     __isBooleanForCondition?: boolean | undefined
+    /**
+     * `true` when this value source is itself an aggregate function call
+     * (`count` / `sum` / `avg` / `min` / `max` / `stringConcat` /
+     * `aggregateAsArray` / ... and their `Distinct` variants). Absent on every
+     * other value source. The recursive `__hasAggregation` walker (paralleling
+     * `__isAllowed`) uses it to report whether a built expression contains an
+     * aggregation anywhere. Runtime-only metadata for future introspection.
+     */
+    __isAggregate?: boolean | undefined
     __aggregatedArrayColumns?: __AggregatedArrayColumns | AnyValueSource | undefined
     __aggregatedArrayMode?: __AggregatedArrayMode | undefined
     __aggreagtedProjectingOptionalValuesAsNullable?: boolean | undefined

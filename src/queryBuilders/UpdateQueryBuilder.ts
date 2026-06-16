@@ -1,7 +1,7 @@
 import type { JoinData, QueryColumns, SqlBuilder, ToSql, UpdateData } from '../sqlBuilders/SqlBuilder.js'
-import { isAllowedQueryColumns } from '../sqlBuilders/SqlBuilder.js'
+import { hasAggregationQueryColumns, isAllowedQueryColumns } from '../sqlBuilders/SqlBuilder.js'
 import type { AnyTableOrView, ForUseInLeftJoin, IQueryDataDiscovery, HasIsValue, ITable, IWithView } from '../utils/ITableOrView.js'
-import { __getTableOrViewPrivate, __isAllowed } from '../utils/ITableOrView.js'
+import { __getTableOrViewPrivate, __hasAggregation, __isAllowed } from '../utils/ITableOrView.js'
 import type { AlwaysIfValueSource, AnyValueSource, IAnyBooleanValueSource } from '../expressions/values.js'
 import { isValueSource } from '../expressions/values.js'
 import type { UpdateExpression, ExecutableUpdate, ExecutableUpdateExpression, DynamicExecutableUpdateExpression, UpdateExpressionAllowingNoWhere, NotExecutableUpdateExpression, CustomizableExecutableUpdate, UpdateCustomization, CustomizableExecutableUpdateReturning, ReturnableExecutableUpdate, ExecutableUpdateReturning, UpdateReturningColumns, UpdateSetExpression, UpdateSetExpressionAllowingNoWhere, UpdateSetJoinExpression, DynamicOnExpression, OnExpression, UpdateExpressionWithoutJoin, UpdateFromExpression, UpdateSetJoinExpressionAllowingNoWhere, DynamicOnExpressionAllowingNoWhere, OnExpressionAllowingNoWhere, UpdateExpressionWithoutJoinAllowingNoWhere, UpdateFromExpressionAllowingNoWhere, ShapedUpdateSetExpression, ShapedUpdateSetExpressionAllowingNoWhere, ShapedExecutableUpdateExpression, ShapedNotExecutableUpdateExpression, CustomizableExecutableUpdateProjectableAsNullable } from '../expressions/update.js'
@@ -1073,5 +1073,43 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         }
 
         return true
+    }
+    __hasAggregation(sqlBuilder: HasIsValue): boolean {
+        // Mirrors `__isAllowed`, skipping the tables (which never carry an
+        // aggregate): the set values, join conditions, where, returning
+        // columns and customization fragments are the value-source clauses.
+        const sets = this.__sets
+        for (let prop in sets) {
+            if (__hasAggregation(sets[prop]!, sqlBuilder)) {
+                return true
+            }
+        }
+        const joins = this.__joins
+        if (joins) {
+            for (let i = 0, length = joins.length; i < length; i++) {
+                const join = joins[i]!
+                if (join.__on && __getValueSourcePrivate(join.__on).__hasAggregation(sqlBuilder)) {
+                    return true
+                }
+            }
+        }
+        if (this.__where && __getValueSourcePrivate(this.__where).__hasAggregation(sqlBuilder)) {
+            return true
+        }
+        if (this.__columns && hasAggregationQueryColumns(this.__columns, sqlBuilder)) {
+            return true
+        }
+        if (this.__customization) {
+            if (__hasAggregation(this.__customization.beforeQuery, sqlBuilder)) {
+                return true
+            }
+            if (__hasAggregation(this.__customization.afterUpdateKeyword, sqlBuilder)) {
+                return true
+            }
+            if (__hasAggregation(this.__customization.afterQuery, sqlBuilder)) {
+                return true
+            }
+        }
+        return false
     }
 }

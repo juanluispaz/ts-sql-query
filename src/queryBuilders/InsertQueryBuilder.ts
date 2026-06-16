@@ -1,7 +1,7 @@
 import type { SqlBuilder, InsertData, SelectData, ToSql, QueryColumns } from '../sqlBuilders/SqlBuilder.js'
-import { isAllowedQueryColumns } from '../sqlBuilders/SqlBuilder.js'
+import { hasAggregationQueryColumns, isAllowedQueryColumns } from '../sqlBuilders/SqlBuilder.js'
 import type { AnyTableOrView, IQueryDataDiscovery, HasIsValue, ITable, IWithView } from '../utils/ITableOrView.js'
-import { __getTableOrViewPrivate, __isAllowed } from '../utils/ITableOrView.js'
+import { __getTableOrViewPrivate, __hasAggregation, __isAllowed } from '../utils/ITableOrView.js'
 import type { InsertExpression, ExecutableInsertExpression, ExecutableInsert, ExecutableInsertReturning, CustomizableExecutableMultipleInsert, CustomizableExecutableInsertFromSelect,/*MissingKeysInsertExpression, ShapedMissingKeysInsertExpression, MissingKeysMultipleInsertExpression, ShapedMissingKeysMultipleInsertExpression*/ InsertCustomization, CustomizableExecutableInsertReturningLastInsertedId, CustomizableExecutableSimpleInsert, ComposableCustomizableExecutableInsert, ExecutableInsertReturningLastInsertedId, InsertReturningColumns, CustomizableExecutableInsert, OnConflictDoMultipleInsert, InsertOnConflictSetsExpression, DynamicOnConflictWhereExpression, OnConflictOnColumnWhere, CustomizableExecutableInsertFromSelectOnConflict, CustomizableExecutableSimpleInsertOnConflict, OnConflictDoSimpleInsert, CustomizableExecutableMultipleInsertOnConfict, CustomizableExecutableInsertFromSelectOnConflictOptional, CustomizableExecutableSimpleInsertOnConflictOptional, CustomizableExecutableMultipleInsertOnConfictOptional, ExecutableMultipleInsertExpression, ShapedExecutableInsertExpression, ShapedExecutableMultipleInsertExpression, ShapedInsertExpression, ShapedInsertOnConflictSetsExpression, ComposableCustomizableExecutableInsertProjectableAsNullable, ComposableCustomizableExecutableInsertOptionalProjectableAsNullable, OnConflictDoInsertFromSelect } from '../expressions/insert.js'
 import type { DBColumn } from '../utils/Column.js'
 import { isColumn } from '../utils/Column.js'
@@ -2039,6 +2039,67 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         }
 
         return true
+    }
+    __hasAggregation(sqlBuilder: HasIsValue): boolean {
+        // Mirrors `__isAllowed`, skipping the target table. The insert source
+        // (`__from`, possibly a select), the set values, the on-conflict
+        // expressions, the returning columns and the customization fragments
+        // are the value-source-bearing clauses.
+        if (__hasAggregation(this.__from, sqlBuilder)) {
+            return true
+        }
+        const sets = this.__sets
+        for (let prop in sets) {
+            if (__hasAggregation(sets[prop]!, sqlBuilder)) {
+                return true
+            }
+        }
+        const multiple = this.__multiple
+        if (multiple) {
+            for (let i = 0, length = multiple.length; i < length; i++) {
+                const multipleSets = multiple[i]!
+                for (let prop in multipleSets) {
+                    if (__hasAggregation(multipleSets[prop]!, sqlBuilder)) {
+                        return true
+                    }
+                }
+            }
+        }
+        if (this.__columns && hasAggregationQueryColumns(this.__columns, sqlBuilder)) {
+            return true
+        }
+        if (__hasAggregation(this.__onConflictOnConstraint, sqlBuilder)) {
+            return true
+        }
+        if (__hasAggregation(this.__onConflictOnColumns, sqlBuilder)) {
+            return true
+        }
+        if (__hasAggregation(this.__onConflictOnColumnsWhere, sqlBuilder)) {
+            return true
+        }
+        const updateSets = this.__onConflictUpdateSets
+        if (updateSets) {
+            for (let prop in updateSets) {
+                if (__hasAggregation(updateSets[prop]!, sqlBuilder)) {
+                    return true
+                }
+            }
+        }
+        if (__hasAggregation(this.__onConflictUpdateWhere, sqlBuilder)) {
+            return true
+        }
+        if (this.__customization) {
+            if (__hasAggregation(this.__customization.beforeQuery, sqlBuilder)) {
+                return true
+            }
+            if (__hasAggregation(this.__customization.afterInsertKeyword, sqlBuilder)) {
+                return true
+            }
+            if (__hasAggregation(this.__customization.afterQuery, sqlBuilder)) {
+                return true
+            }
+        }
+        return false
     }
 }
 

@@ -1,8 +1,8 @@
 import type { SqlBuilder, JoinData, ToSql, SelectData, CompoundOperator, CompoundSelectData, PlainSelectData, QueryColumns, OrderByEntry } from '../sqlBuilders/SqlBuilder.js'
-import { isAllowedQueryColumns } from '../sqlBuilders/SqlBuilder.js'
+import { hasAggregationQueryColumns, isAllowedQueryColumns } from '../sqlBuilders/SqlBuilder.js'
 import type { SelectExpression, SelectColumns, OrderByMode, SelectExpressionSubquery, ExecutableSelectExpressionWithoutWhere, DynamicWhereExecutableSelectExpression, GroupByOrderByExecutableSelectExpression, OffsetExecutableSelectExpression, DynamicWhereExpressionWithoutSelect, /*SelectExpressionFromNoTable,*/ SelectWhereJoinExpression, DynamicOnExpression, OnExpression, SelectExpressionWithoutJoin, SelectWhereExpression, OrderByExecutableSelectExpression, GroupByOrderByHavingExecutableSelectExpression, DynamicHavingExecutableSelectExpression, GroupByOrderHavingByExpressionWithoutSelect, DynamicHavingExpressionWithoutSelect, ICompoundableSelect, CompoundableCustomizableExecutableSelectExpression, CompoundedExecutableSelectExpression, ExecutableSelect, WithableExecutableSelect, SelectCustomization, WhereableExecutableSelectExpressionWithGroupBy, DynamicWhereExecutableSelectExpressionWithGroupBy, GroupByOrderByHavingExecutableSelectExpressionWithoutWhere, DynamicHavingExecutableSelectExpressionWithoutWhere, DynamicWhereSelectExpressionWithoutSelect, CompoundableExecutableSelectExpression, CompoundedOrderByExecutableSelectExpression, CompoundedOffsetExecutableSelectExpression, CompoundedCustomizableExecutableSelect, OrderableExecutableSelectExpressionWithoutWhere, OrderByExecutableSelectExpressionWithoutWhere, OffsetExecutableSelectExpressionWithoutWhere, CompoundableCustomizableExpressionWithoutWhere, DynamicWhereLimitExecutableSelectExpression, DynamicWhereCompoundableCustomizableExecutableSelectExpression, WithableExecutableSelectWithoutWhere, CompoundableExecutableSelectExpressionWithoutWhere, CompoundableCustomizableExecutableSelectExpressionWitoutWhere, WhereableCompoundableExecutableSelectExpressionWithoutWhere, RecursivelyConnectedExecutableSelectExpression, RecursivelyConnectedExpressionWithoutSelect, RecursivelyConnectedExecutableSelectExpressionWithoutWhere, CompoundedLimitExecutableSelectExpression, CompoundedOrderedExecutableSelectExpression, LimitExecutableSelectExpression, OrderedExecutableSelectExpression, LimitExecutableSelectExpressionWithoutWhere, OrderedExecutableSelectExpressionWithoutWhere, RecursivelyConnectedSelectWhereExpression, ConnectByExpression, OrderByExecutableSelectExpressionProjectableAsNullable, GroupByOrderByExecutableSelectExpressionProjectableAsNullable, WhereableExecutableSelectExpressionWithGroupByProjectableAsNullable, ExecutableSelectExpressionWithoutWhereProjectableAsNullable, DynamicWhereLastCompoundableCustomizableExecutableSelectExpression } from '../expressions/select.js'
 import type { AnyTableOrView, ForUseInLeftJoin, IQueryDataDiscovery, HasIsValue, IWithView } from '../utils/ITableOrView.js'
-import { __getOldValues, __getValuesForInsert, __isAllowed, __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
+import { __getOldValues, __getValuesForInsert, __hasAggregation, __isAllowed, __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
 import type { IAnyBooleanValueSource, IBooleanValueSource, INumberValueSource, IExecutableSelectQuery, AnyValueSource, AlwaysIfValueSource } from '../expressions/values.js'
 import { isValueSource } from '../expressions/values.js'
 import { __addWiths, __getTableOrViewPrivate } from '../utils/ITableOrView.js'
@@ -523,6 +523,7 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
         return undefined
     }
     abstract __isAllowed(sqlBuilder: HasIsValue): boolean
+    abstract __hasAggregation(sqlBuilder: HasIsValue): boolean
 
     abstract __asSelectData(): SelectData & AbstractSelect
     __toSql(sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
@@ -1284,6 +1285,63 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
 
         return true
     }
+    __hasAggregation(sqlBuilder: HasIsValue): boolean {
+        // Mirrors `__isAllowed`, skipping the tables/views (which never carry
+        // an aggregate). Walks join conditions, where, having, group by, order
+        // by, projected columns, limit/offset and customization fragments,
+        // recursing into subqueries so an aggregate at any depth is reported.
+        const joins = this.__joins
+        if (joins) {
+            for (let i = 0, length = joins.length; i < length; i++) {
+                const join = joins[i]!
+                if (join.__on && __getValueSourcePrivate(join.__on).__hasAggregation(sqlBuilder)) {
+                    return true
+                }
+            }
+        }
+        if (this.__where && __getValueSourcePrivate(this.__where).__hasAggregation(sqlBuilder)) {
+            return true
+        }
+        if (this.__having && __getValueSourcePrivate(this.__having).__hasAggregation(sqlBuilder)) {
+            return true
+        }
+        const groupBy = this.__groupBy
+        if (groupBy) {
+            for (let i = 0, length = groupBy.length; i < length; i++) {
+                if (__getValueSourcePrivate(groupBy[i]!).__hasAggregation(sqlBuilder)) {
+                    return true
+                }
+            }
+        }
+        const orderBy = this.__orderBy
+        if (orderBy) {
+            for (let i = 0, length = orderBy.length; i < length; i++) {
+                const entry = orderBy[i]!
+                if (typeof entry.expression !== 'string' && __hasAggregation(entry.expression, sqlBuilder)) {
+                    return true
+                }
+            }
+        }
+        if (this.__columns && hasAggregationQueryColumns(this.__columns, sqlBuilder)) {
+            return true
+        }
+        if (__hasAggregation(this.__limit, sqlBuilder) || __hasAggregation(this.__offset, sqlBuilder)) {
+            return true
+        }
+        const c = this.__customization
+        if (c) {
+            if (__hasAggregation(c.beforeWithQuery, sqlBuilder)) { return true }
+            if (__hasAggregation(c.beforeQuery, sqlBuilder)) { return true }
+            if (__hasAggregation(c.afterSelectKeyword, sqlBuilder)) { return true }
+            if (__hasAggregation(c.beforeColumns, sqlBuilder)) { return true }
+            if (__hasAggregation(c.customWindow, sqlBuilder)) { return true }
+            if (__hasAggregation(c.beforeOrderByItems, sqlBuilder)) { return true }
+            if (__hasAggregation(c.afterOrderByItems, sqlBuilder)) { return true }
+            if (__hasAggregation(c.afterQuery, sqlBuilder)) { return true }
+            if (__hasAggregation(c.afterWithQuery, sqlBuilder)) { return true }
+        }
+        return false
+    }
 }
 
 export class CompoundSelectQueryBuilder extends AbstractSelect implements ToSql, CompoundSelectData {
@@ -1482,5 +1540,37 @@ export class CompoundSelectQueryBuilder extends AbstractSelect implements ToSql,
         }
 
         return true
+    }
+    __hasAggregation(sqlBuilder: HasIsValue): boolean {
+        // Mirrors `__isAllowed`: a compound select aggregates when either
+        // member query (or an order-by / customization expression) does.
+        if (__hasAggregation(this.__firstQuery, sqlBuilder) || __hasAggregation(this.__secondQuery, sqlBuilder)) {
+            return true
+        }
+        const orderBy = this.__orderBy
+        if (orderBy) {
+            for (let i = 0, length = orderBy.length; i < length; i++) {
+                const entry = orderBy[i]!
+                if (typeof entry.expression !== 'string' && __hasAggregation(entry.expression, sqlBuilder)) {
+                    return true
+                }
+            }
+        }
+        if (__hasAggregation(this.__limit, sqlBuilder) || __hasAggregation(this.__offset, sqlBuilder)) {
+            return true
+        }
+        const c = this.__customization
+        if (c) {
+            if (__hasAggregation(c.beforeWithQuery, sqlBuilder)) { return true }
+            if (__hasAggregation(c.beforeQuery, sqlBuilder)) { return true }
+            if (__hasAggregation(c.afterSelectKeyword, sqlBuilder)) { return true }
+            if (__hasAggregation(c.beforeColumns, sqlBuilder)) { return true }
+            if (__hasAggregation(c.customWindow, sqlBuilder)) { return true }
+            if (__hasAggregation(c.beforeOrderByItems, sqlBuilder)) { return true }
+            if (__hasAggregation(c.afterOrderByItems, sqlBuilder)) { return true }
+            if (__hasAggregation(c.afterQuery, sqlBuilder)) { return true }
+            if (__hasAggregation(c.afterWithQuery, sqlBuilder)) { return true }
+        }
+        return false
     }
 }

@@ -2,7 +2,7 @@ import type { IBooleanValueSource, INumberValueSource, IAnyBooleanValueSource, I
 import type { ForUseInLeftJoin, HasSource, IRawFragment, ITableOrView, NoTableOrViewRequiredOfSameDB, OfDB, OfSameDB } from '../utils/ITableOrView.js'
 import type { WithView } from '../utils/tableOrViewUtils.js'
 import type { resultType, compoundableColumns, valueType, from, using, source, selectColumnsType } from '../utils/symbols.js'
-import type { NAnyNoTableOrViewRequired, NDbType, NNoTableOrViewRequiredFrom, NRecursiveFrom, NSource, NWithFrom } from '../utils/sourceName.js'
+import type { NAnyNoTableOrViewRequired, NDbType, NNoTableOrViewRequiredFrom, NRecursiveFrom, NSource, NSourceAllowingAggregate, NWithFrom } from '../utils/sourceName.js'
 import type { DataToProject, RequiredColumnNames } from '../complexProjections/dataToProject.js'
 import type { ResultObjectValuesProjectedAsNullable } from '../complexProjections/resultWithOptionalsAsNull.js'
 import type { ResultObjectValues } from '../complexProjections/resultWithOptionalsAsUndefined.js'
@@ -179,7 +179,7 @@ export interface LimitExecutableSelectExpression</*in|out*/ FROM extends HasSour
 
 export interface OrderByExecutableSelectExpression</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends LimitExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
     orderBy(column: RequiredColumnNames<COLUMNS>, mode?: OrderByMode): OrderedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
-    orderBy(column: ValueSourceOf<FROM[typeof source]>, mode?: OrderByMode): OrderedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    orderBy(column: ValueSourceOf<NSourceAllowingAggregate<FROM[typeof source]>>, mode?: OrderByMode): OrderedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
     orderBy(column: IRawFragment<FROM[typeof source]>, mode?: OrderByMode): OrderedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
     orderByFromString(orderBy: string): OrderedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
     orderByFromStringIfValue(orderBy: string | null | undefined): OrderedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
@@ -208,7 +208,7 @@ export interface CompoundedExecutableSelectExpression</*in|out*/ FROM extends Ha
 
 export interface OrderableExecutableSelectExpressionWithoutWhere</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends CompoundableCustomizableExecutableSelectExpressionWitoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
     orderBy(column: RequiredColumnNames<COLUMNS>, mode?: OrderByMode): OrderedExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
-    orderBy(column: ValueSourceOf<FROM[typeof source]>, mode?: OrderByMode): OrderedExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    orderBy(column: ValueSourceOf<NSourceAllowingAggregate<FROM[typeof source]>>, mode?: OrderByMode): OrderedExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
     orderBy(column: IRawFragment<FROM[typeof source]>, mode?: OrderByMode): OrderedExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
     orderByFromString(orderBy: string): OrderedExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
     orderByFromStringIfValue(orderBy: string | null | undefined): OrderedExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
@@ -229,7 +229,7 @@ export interface LimitExecutableSelectExpressionWithoutWhere</*in|out*/ FROM ext
 
 export interface OrderByExecutableSelectExpressionWithoutWhere</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends LimitExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
     orderBy(column: RequiredColumnNames<COLUMNS>, mode?: OrderByMode): OrderedExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
-    orderBy(column: ValueSourceOf<FROM[typeof source]>, mode?: OrderByMode): OrderedExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    orderBy(column: ValueSourceOf<NSourceAllowingAggregate<FROM[typeof source]>>, mode?: OrderByMode): OrderedExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
     orderBy(column: IRawFragment<FROM[typeof source]>, mode?: OrderByMode): OrderedExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
     orderByFromString(orderBy: string): OrderedExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
     orderByFromStringIfValue(orderBy: string | null | undefined): OrderedExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
@@ -287,37 +287,37 @@ export interface GroupByOrderByHavingExecutableSelectExpression</*in|out*/ FROM 
     groupBy(...columns: ValueSourceOf<FROM[typeof source]>[]): GroupByOrderByHavingExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'groupBy'>
 
     dynamicHaving(): DynamicHavingExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
-    having(condition: IAnyBooleanValueSource<FROM[typeof source], any>): DynamicHavingExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    having(condition: IAnyBooleanValueSource<NSourceAllowingAggregate<FROM[typeof source]>, any>): DynamicHavingExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
 }
 
 export interface DynamicHavingExecutableSelectExpression</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
-    and(condition: IAnyBooleanValueSource<FROM[typeof source], any>): DynamicHavingExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
-    or(condition: IAnyBooleanValueSource<FROM[typeof source], any>): DynamicHavingExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    and(condition: IAnyBooleanValueSource<NSourceAllowingAggregate<FROM[typeof source]>, any>): DynamicHavingExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    or(condition: IAnyBooleanValueSource<NSourceAllowingAggregate<FROM[typeof source]>, any>): DynamicHavingExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
 }
 
 export interface GroupByOrderHavingByExpressionWithoutSelect</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ FEATURES> extends SelectExpressionBase<FROM, REQUIRED> {
     groupBy(...columns: ValueSourceOf<FROM[typeof source]>[]): GroupByOrderHavingByExpressionWithoutSelect<FROM, REQUIRED, FEATURES | 'groupBy'>
 
     dynamicHaving(): DynamicHavingExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
-    having(condition: IAnyBooleanValueSource<FROM[typeof source], any>): DynamicHavingExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
+    having(condition: IAnyBooleanValueSource<NSourceAllowingAggregate<FROM[typeof source]>, any>): DynamicHavingExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
 
     dynamicWhere(): DynamicWhereSelectExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
     where(condition: IAnyBooleanValueSource<FROM[typeof source], any>): DynamicWhereSelectExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
 
-    select<COLUMNS extends SelectColumns<FROM[typeof source]>>(columns: COLUMNS): WhereableExecutableSelectExpressionWithGroupByProjectableAsNullable<FROM, REQUIRED, COLUMNS, ResultObjectValues<COLUMNS>, FEATURES>
-    selectOneColumn<COLUMN extends ValueSourceOf<FROM[typeof source]>>(column: COLUMN): WhereableExecutableSelectExpressionWithGroupBy<FROM, REQUIRED, COLUMN, ValueSourceValueTypeForResult<COLUMN>, FEATURES>
+    select<COLUMNS extends SelectColumns<NSourceAllowingAggregate<FROM[typeof source]>>>(columns: COLUMNS): WhereableExecutableSelectExpressionWithGroupByProjectableAsNullable<FROM, REQUIRED, COLUMNS, ResultObjectValues<COLUMNS>, FEATURES>
+    selectOneColumn<COLUMN extends ValueSourceOf<NSourceAllowingAggregate<FROM[typeof source]>>>(column: COLUMN): WhereableExecutableSelectExpressionWithGroupBy<FROM, REQUIRED, COLUMN, ValueSourceValueTypeForResult<COLUMN>, FEATURES>
     selectCountAll(): WhereableExecutableSelectExpressionWithGroupBy<FROM, REQUIRED, INumberValueSource<NNoTableOrViewRequiredFrom<REQUIRED[typeof source]>, 'required'>, number, FEATURES | 'requiredResult'>
 }
 
 export interface DynamicHavingExpressionWithoutSelect</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ FEATURES> extends SelectExpressionBase<FROM, REQUIRED> {
-    and(condition: IAnyBooleanValueSource<FROM[typeof source], any>): DynamicHavingExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
-    or(condition: IAnyBooleanValueSource<FROM[typeof source], any>): DynamicHavingExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
+    and(condition: IAnyBooleanValueSource<NSourceAllowingAggregate<FROM[typeof source]>, any>): DynamicHavingExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
+    or(condition: IAnyBooleanValueSource<NSourceAllowingAggregate<FROM[typeof source]>, any>): DynamicHavingExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
 
     dynamicWhere(): DynamicWhereSelectExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
     where(condition: IAnyBooleanValueSource<FROM[typeof source], any>): DynamicWhereSelectExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
 
-    select<COLUMNS extends SelectColumns<FROM[typeof source]>>(columns: COLUMNS): WhereableExecutableSelectExpressionWithGroupByProjectableAsNullable<FROM, REQUIRED, COLUMNS, ResultObjectValues<COLUMNS>, FEATURES>
-    selectOneColumn<COLUMN extends ValueSourceOf<FROM[typeof source]>>(column: COLUMN): WhereableExecutableSelectExpressionWithGroupBy<FROM, REQUIRED, COLUMN, ValueSourceValueTypeForResult<COLUMN>, FEATURES>
+    select<COLUMNS extends SelectColumns<NSourceAllowingAggregate<FROM[typeof source]>>>(columns: COLUMNS): WhereableExecutableSelectExpressionWithGroupByProjectableAsNullable<FROM, REQUIRED, COLUMNS, ResultObjectValues<COLUMNS>, FEATURES>
+    selectOneColumn<COLUMN extends ValueSourceOf<NSourceAllowingAggregate<FROM[typeof source]>>>(column: COLUMN): WhereableExecutableSelectExpressionWithGroupBy<FROM, REQUIRED, COLUMN, ValueSourceValueTypeForResult<COLUMN>, FEATURES>
     selectCountAll(): WhereableExecutableSelectExpressionWithGroupBy<FROM, REQUIRED, INumberValueSource<NNoTableOrViewRequiredFrom<REQUIRED[typeof source]>, 'required'>, number, FEATURES | 'requiredResult'>
 }
 
@@ -325,16 +325,16 @@ export interface DynamicWhereSelectExpressionWithoutSelect</*in|out*/ FROM exten
     and(condition: IAnyBooleanValueSource<FROM[typeof source], any>): DynamicWhereSelectExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
     or(condition: IAnyBooleanValueSource<FROM[typeof source], any>): DynamicWhereSelectExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
 
-    select<COLUMNS extends SelectColumns<FROM[typeof source]>>(columns: COLUMNS): OrderByExecutableSelectExpressionProjectableAsNullable<FROM, REQUIRED, COLUMNS, ResultObjectValues<COLUMNS>, FEATURES>
-    selectOneColumn<COLUMN extends ValueSourceOf<FROM[typeof source]>>(column: COLUMN): OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMN, ValueSourceValueTypeForResult<COLUMN>, FEATURES>
+    select<COLUMNS extends SelectColumns<NSourceAllowingAggregate<FROM[typeof source]>>>(columns: COLUMNS): OrderByExecutableSelectExpressionProjectableAsNullable<FROM, REQUIRED, COLUMNS, ResultObjectValues<COLUMNS>, FEATURES>
+    selectOneColumn<COLUMN extends ValueSourceOf<NSourceAllowingAggregate<FROM[typeof source]>>>(column: COLUMN): OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMN, ValueSourceValueTypeForResult<COLUMN>, FEATURES>
     selectCountAll(): OrderByExecutableSelectExpression<FROM, REQUIRED, INumberValueSource<NNoTableOrViewRequiredFrom<REQUIRED[typeof source]>, 'required'>, number, FEATURES| 'requiredResult'>
 }
 
 export interface RecursivelyConnectedExpressionWithoutSelect</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ FEATURES> extends SelectExpressionBase<FROM, REQUIRED> {
     groupBy(...columns: ValueSourceOf<FROM[typeof source]>[]): GroupByOrderHavingByExpressionWithoutSelect<FROM, REQUIRED, FEATURES | 'groupBy'>
 
-    select<COLUMNS extends SelectColumns<FROM[typeof source]>>(columns: COLUMNS): GroupByOrderByExecutableSelectExpressionProjectableAsNullable<FROM, REQUIRED, COLUMNS, ResultObjectValues<COLUMNS>, FEATURES>
-    selectOneColumn<COLUMN extends ValueSourceOf<FROM[typeof source]>>(column: COLUMN): GroupByOrderByExecutableSelectExpression<FROM, REQUIRED, COLUMN, ValueSourceValueTypeForResult<COLUMN>, FEATURES>
+    select<COLUMNS extends SelectColumns<NSourceAllowingAggregate<FROM[typeof source]>>>(columns: COLUMNS): GroupByOrderByExecutableSelectExpressionProjectableAsNullable<FROM, REQUIRED, COLUMNS, ResultObjectValues<COLUMNS>, FEATURES>
+    selectOneColumn<COLUMN extends ValueSourceOf<NSourceAllowingAggregate<FROM[typeof source]>>>(column: COLUMN): GroupByOrderByExecutableSelectExpression<FROM, REQUIRED, COLUMN, ValueSourceValueTypeForResult<COLUMN>, FEATURES>
     selectCountAll(): GroupByOrderByExecutableSelectExpression<FROM, REQUIRED, INumberValueSource<NNoTableOrViewRequiredFrom<REQUIRED[typeof source]>, 'required'>, number, FEATURES | 'requiredResult'>
 }
 
@@ -371,12 +371,12 @@ export interface GroupByOrderByHavingExecutableSelectExpressionWithoutWhere</*in
     groupBy(...columns: ValueSourceOf<FROM[typeof source]>[]): GroupByOrderByHavingExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'groupBy'>
 
     dynamicHaving(): DynamicHavingExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
-    having(condition: IAnyBooleanValueSource<FROM[typeof source], any>): DynamicHavingExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    having(condition: IAnyBooleanValueSource<NSourceAllowingAggregate<FROM[typeof source]>, any>): DynamicHavingExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
 }
 
 export interface DynamicHavingExecutableSelectExpressionWithoutWhere</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends WhereableExecutableSelectExpressionWithGroupBy<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
-    and(condition: IAnyBooleanValueSource<FROM[typeof source], any>): DynamicHavingExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
-    or(condition: IAnyBooleanValueSource<FROM[typeof source], any>): DynamicHavingExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    and(condition: IAnyBooleanValueSource<NSourceAllowingAggregate<FROM[typeof source]>, any>): DynamicHavingExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    or(condition: IAnyBooleanValueSource<NSourceAllowingAggregate<FROM[typeof source]>, any>): DynamicHavingExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
 }
 
 export interface RecursivelyConnectedExecutableSelectExpressionWithoutWhere</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends OrderableExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
@@ -398,8 +398,8 @@ export interface ExecutableSelectExpressionWithoutWhereProjectableAsNullable</*i
 }
 
 export interface RecursivelyConnectedSelectWhereExpression</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ FEATURES> extends SelectExpressionBase<FROM, REQUIRED> {
-    select<COLUMNS extends SelectColumns<FROM[typeof source]>>(columns: COLUMNS): ExecutableSelectExpressionWithoutWhereProjectableAsNullable<FROM, REQUIRED, COLUMNS, ResultObjectValues<COLUMNS>, FEATURES>
-    selectOneColumn<COLUMN extends ValueSourceOf<FROM[typeof source]>>(column: COLUMN): ExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMN, ValueSourceValueTypeForResult<COLUMN>, FEATURES>
+    select<COLUMNS extends SelectColumns<NSourceAllowingAggregate<FROM[typeof source]>>>(columns: COLUMNS): ExecutableSelectExpressionWithoutWhereProjectableAsNullable<FROM, REQUIRED, COLUMNS, ResultObjectValues<COLUMNS>, FEATURES>
+    selectOneColumn<COLUMN extends ValueSourceOf<NSourceAllowingAggregate<FROM[typeof source]>>>(column: COLUMN): ExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMN, ValueSourceValueTypeForResult<COLUMN>, FEATURES>
     selectCountAll(): ExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, INumberValueSource<NNoTableOrViewRequiredFrom<REQUIRED[typeof source]>, 'required'>, number, FEATURES| 'requiredResult'>
     dynamicWhere(): DynamicWhereExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
     where(condition: IAnyBooleanValueSource<FROM[typeof source], any>): DynamicWhereExpressionWithoutSelect<FROM, REQUIRED, FEATURES>

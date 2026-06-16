@@ -42,6 +42,7 @@ export interface IQueryDataDiscovery {
     __getOldValues(sqlBuilder: HasIsValue): AnyTableOrView | undefined
     __getValuesForInsert(sqlBuilder: HasIsValue): AnyTableOrView | undefined
     __isAllowed(sqlBuilder: HasIsValue): boolean
+    __hasAggregation(sqlBuilder: HasIsValue): boolean
 }
 
 export function __addWiths(value: any, sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
@@ -99,6 +100,16 @@ export function __isAllowed(value: any, sqlBuilder: HasIsValue): boolean {
         return (value as IQueryDataDiscovery).__isAllowed(sqlBuilder)
     }
     return true
+}
+
+export function __hasAggregation(value: any, sqlBuilder: HasIsValue): boolean {
+    if (value === undefined || value === null) {
+        return false
+    }
+    if (typeof value === 'object' && typeof value.__hasAggregation === 'function') {
+        return (value as IQueryDataDiscovery).__hasAggregation(sqlBuilder)
+    }
+    return false
 }
 
 export interface __ITableOrViewPrivate extends IQueryDataDiscovery {

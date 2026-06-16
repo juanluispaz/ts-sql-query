@@ -5,7 +5,7 @@ import { isValueSource } from '../expressions/values.js'
 import type { TypeAdapter } from '../TypeAdapter.js'
 import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 import type { AnyTableOrView, IQueryDataDiscovery, HasIsValue, IWithView } from '../utils/ITableOrView.js'
-import { __getOldValues, __getTableOrViewPrivate, __getValuesForInsert, __isAllowed, __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
+import { __getOldValues, __getTableOrViewPrivate, __getValuesForInsert, __hasAggregation, __isAllowed, __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
 import { valueType as valueType_, optionalType as optionalType_ , booleanValueSource, comparableValueSource, localDateTimeValueSource, localDateValueSource, equalableValueSource, nullableValueSource, numberValueSource, stringValueSource, localTimeValueSource, ifValueSource, bigintValueSource, typeName, anyBooleanValueSource, isValueSourceObject, aggregatedArrayValueSource, isSelectQueryObject, uuidValueSource, customIntValueSource, customDoubleValueSource, customUuidValueSource, customLocalDateValueSource, customLocalTimeValueSource, customLocalDateTimeValueSource, source } from '../utils/symbols.js'
 import { __addWiths } from '../utils/ITableOrView.js'
 import { __getValueSourcePrivate } from '../expressions/values.js'
@@ -47,6 +47,7 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
     __optionalType: OptionalType
     __typeAdapter?: TypeAdapter | undefined
     __isBooleanForCondition?: boolean | undefined
+    __isAggregate?: boolean | undefined
     __aggregatedArrayColumns?: __AggregatedArrayColumns | AnyValueSource | undefined
     __aggregatedArrayMode?: __AggregatedArrayMode | undefined
     __uuidString?: boolean | undefined
@@ -85,6 +86,9 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
     }
     __isAllowed(_sqlBuilder: HasIsValue): boolean {
         return true
+    }
+    __hasAggregation(_sqlBuilder: HasIsValue): boolean {
+        return this.__isAggregate ?? false
     }
     isConstValue(): boolean {
         return false
@@ -782,6 +786,9 @@ export class BooleanValueWhenNoValueValueSource extends ValueSourceImpl implemen
     override __isAllowed(sqlBuilder: HasIsValue): boolean {
         return this.__valueSource.__isAllowed(sqlBuilder)
     }
+    override __hasAggregation(sqlBuilder: HasIsValue): boolean {
+        return this.__valueSource.__hasAggregation(sqlBuilder)
+    }
 }
 
 export class ValueWhenNoValueValueSource extends ValueSourceImpl {
@@ -832,6 +839,9 @@ export class ValueWhenNoValueValueSource extends ValueSourceImpl {
     override __isAllowed(sqlBuilder: HasIsValue): boolean {
         return this.__valueSource.__isAllowed(sqlBuilder) && this.__valueWhenNoValue.__isAllowed(sqlBuilder)
     }
+    override __hasAggregation(sqlBuilder: HasIsValue): boolean {
+        return this.__valueSource.__hasAggregation(sqlBuilder) || this.__valueWhenNoValue.__hasAggregation(sqlBuilder)
+    }
 }
 
 export class SqlOperationStatic1ValueSource extends ValueSourceImpl implements HasOperation {
@@ -863,6 +873,9 @@ export class SqlOperationStatic1ValueSource extends ValueSourceImpl implements H
     }
     override __isAllowed(sqlBuilder: HasIsValue): boolean {
         return __isAllowed(this.__value, sqlBuilder)
+    }
+    override __hasAggregation(sqlBuilder: HasIsValue): boolean {
+        return __hasAggregation(this.__value, sqlBuilder)
     }
 }
 
@@ -905,6 +918,9 @@ export class SqlOperationConstValueSource extends ValueSourceImpl implements Has
     override __isAllowed(sqlBuilder: HasIsValue): boolean {
         return __isAllowed(this.__value, sqlBuilder)
     }
+    override __hasAggregation(sqlBuilder: HasIsValue): boolean {
+        return __hasAggregation(this.__value, sqlBuilder)
+    }
 }
 
 export class SqlOperation0ValueSource extends ValueSourceImpl implements HasOperation {
@@ -937,6 +953,9 @@ export class SqlOperation0ValueSource extends ValueSourceImpl implements HasOper
     override __isAllowed(sqlBuilder: HasIsValue): boolean {
         return this.__valueSource.__isAllowed(sqlBuilder)
     }
+    override __hasAggregation(sqlBuilder: HasIsValue): boolean {
+        return this.__valueSource.__hasAggregation(sqlBuilder)
+    }
 }
 
 export class SqlOperationIsNullValueSource extends ValueSourceImpl implements HasOperation {
@@ -968,6 +987,9 @@ export class SqlOperationIsNullValueSource extends ValueSourceImpl implements Ha
     }
     override __isAllowed(sqlBuilder: HasIsValue): boolean {
         return this.__valueSource.__isAllowed(sqlBuilder)
+    }
+    override __hasAggregation(sqlBuilder: HasIsValue): boolean {
+        return this.__valueSource.__hasAggregation(sqlBuilder)
     }
 }
 
@@ -1005,6 +1027,9 @@ export class SqlOperation1ValueSource extends ValueSourceImpl implements HasOper
     }
     override __isAllowed(sqlBuilder: HasIsValue): boolean {
         return this.__valueSource.__isAllowed(sqlBuilder) && __isAllowed(this.__value, sqlBuilder)
+    }
+    override __hasAggregation(sqlBuilder: HasIsValue): boolean {
+        return this.__valueSource.__hasAggregation(sqlBuilder) || __hasAggregation(this.__value, sqlBuilder)
     }
 }
 
@@ -1113,6 +1138,21 @@ export class SqlOperationInValueSource extends ValueSourceImpl implements HasOpe
         }
         return true
     }
+    override __hasAggregation(sqlBuilder: HasIsValue): boolean {
+        if (this.__valueSource.__hasAggregation(sqlBuilder)) {
+            return true
+        }
+        const values = this.__value
+        if (Array.isArray(values)) {
+            for (let i = 0, length = values.length; i < length; i++) {
+                if (__hasAggregation(values[i], sqlBuilder)) {
+                    return true
+                }
+            }
+            return false
+        }
+        return __hasAggregation(values, sqlBuilder)
+    }
 }
 
 export class SqlOperationValueWhenNullValueSource extends ValueSourceImpl implements HasOperation {
@@ -1150,6 +1190,9 @@ export class SqlOperationValueWhenNullValueSource extends ValueSourceImpl implem
     override __isAllowed(sqlBuilder: HasIsValue): boolean {
         return this.__valueSource.__isAllowed(sqlBuilder) && __isAllowed(this.__value, sqlBuilder)
     }
+    override __hasAggregation(sqlBuilder: HasIsValue): boolean {
+        return this.__valueSource.__hasAggregation(sqlBuilder) || __hasAggregation(this.__value, sqlBuilder)
+    }
 }
 
 export class SqlOperation1NotOptionalValueSource extends ValueSourceImpl implements HasOperation {
@@ -1186,6 +1229,9 @@ export class SqlOperation1NotOptionalValueSource extends ValueSourceImpl impleme
     }
     override __isAllowed(sqlBuilder: HasIsValue): boolean {
         return this.__valueSource.__isAllowed(sqlBuilder) && __isAllowed(this.__value, sqlBuilder)
+    }
+    override __hasAggregation(sqlBuilder: HasIsValue): boolean {
+        return this.__valueSource.__hasAggregation(sqlBuilder) || __hasAggregation(this.__value, sqlBuilder)
     }
 }
 
@@ -1244,6 +1290,12 @@ export class SqlOperation1ValueSourceIfValueOrNoop extends ValueSourceImpl imple
             return true
         }
         return this.__valueSource.__isAllowed(sqlBuilder) && __isAllowed(this.__value, sqlBuilder)
+    }
+    override __hasAggregation(sqlBuilder: HasIsValue): boolean {
+        if (!sqlBuilder._isValue(this.__value)) {
+            return false
+        }
+        return this.__valueSource.__hasAggregation(sqlBuilder) || __hasAggregation(this.__value, sqlBuilder)
     }
 }
 
@@ -1369,6 +1421,24 @@ export class SqlOperationInValueSourceIfValueOrNoop extends ValueSourceImpl impl
         }
         return true
     }
+    override __hasAggregation(sqlBuilder: HasIsValue): boolean {
+        if (!sqlBuilder._isValue(this.__value)) {
+            return false
+        }
+        if (this.__valueSource.__hasAggregation(sqlBuilder)) {
+            return true
+        }
+        const values = this.__value
+        if (Array.isArray(values)) {
+            for (let i = 0, length = values.length; i < length; i++) {
+                if (__hasAggregation(values[i], sqlBuilder)) {
+                    return true
+                }
+            }
+            return false
+        }
+        return __hasAggregation(values, sqlBuilder)
+    }
 }
 
 export class SqlOperationValueSourceIfValueAlwaysNoop extends ValueSourceImpl {
@@ -1420,6 +1490,9 @@ export class SqlOperation1ValueSourceIfValueOrIgnore extends ValueSourceImpl imp
     override __isAllowed(sqlBuilder: HasIsValue): boolean {
         return this.__valueSource.__isAllowed(sqlBuilder) && __isAllowed(this.__value, sqlBuilder)
     }
+    override __hasAggregation(sqlBuilder: HasIsValue): boolean {
+        return this.__valueSource.__hasAggregation(sqlBuilder) || __hasAggregation(this.__value, sqlBuilder)
+    }
 }
 
 export class SqlOperation2ValueSource extends ValueSourceImpl implements HasOperation {
@@ -1461,6 +1534,9 @@ export class SqlOperation2ValueSource extends ValueSourceImpl implements HasOper
     }
     override __isAllowed(sqlBuilder: HasIsValue): boolean {
         return this.__valueSource.__isAllowed(sqlBuilder) && __isAllowed(this.__value, sqlBuilder) && __isAllowed(this.__value2, sqlBuilder)
+    }
+    override __hasAggregation(sqlBuilder: HasIsValue): boolean {
+        return this.__valueSource.__hasAggregation(sqlBuilder) || __hasAggregation(this.__value, sqlBuilder) || __hasAggregation(this.__value2, sqlBuilder)
     }
 }
 
@@ -1510,6 +1586,9 @@ export class SqlOperation2ValueSourceIfValueOrIgnore extends ValueSourceImpl imp
     override __isAllowed(sqlBuilder: HasIsValue): boolean {
         return this.__valueSource.__isAllowed(sqlBuilder) && __isAllowed(this.__value, sqlBuilder) && __isAllowed(this.__value2, sqlBuilder)
     }
+    override __hasAggregation(sqlBuilder: HasIsValue): boolean {
+        return this.__valueSource.__hasAggregation(sqlBuilder) || __hasAggregation(this.__value, sqlBuilder) || __hasAggregation(this.__value2, sqlBuilder)
+    }
 }
 
 export class NoopValueSource extends ValueSourceImpl {
@@ -1539,6 +1618,9 @@ export class NoopValueSource extends ValueSourceImpl {
     override __isAllowed(sqlBuilder: HasIsValue): boolean {
         return this.__valueSource.__isAllowed(sqlBuilder)
     }
+    override __hasAggregation(sqlBuilder: HasIsValue): boolean {
+        return this.__valueSource.__hasAggregation(sqlBuilder)
+    }
 }
 
 export class SequenceValueSource extends ValueSourceImpl {
@@ -1559,12 +1641,15 @@ export class FragmentValueSource extends ValueSourceImpl {
     __sql: TemplateStringsArray
     __sqlParams: AnyValueSource[]
 
-    constructor(sql: TemplateStringsArray, sqlParams: AnyValueSource[], valueType: ValueType, valueTypeName: string, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
+    constructor(sql: TemplateStringsArray, sqlParams: AnyValueSource[], valueType: ValueType, valueTypeName: string, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined, isAggregate?: boolean) {
         super(valueType, valueTypeName, optionalType, typeAdapter)
         this.__sql = sql
         this.__sqlParams = sqlParams
         if (valueTypeName === 'boolean') {
             this.__isBooleanForCondition = true
+        }
+        if (isAggregate) {
+            this.__isAggregate = true
         }
     }
     __toSql(sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
@@ -1624,6 +1709,21 @@ export class FragmentValueSource extends ValueSourceImpl {
         }
         return true
     }
+    override __hasAggregation(sqlBuilder: HasIsValue): boolean {
+        // A fragment can itself be an aggregate (built via the aggregate
+        // fragment variants) on top of (possibly) aggregating its params.
+        if (this.__isAggregate) {
+            return true
+        }
+        const sqlParams = this.__sqlParams
+        for (let i = 0, length = sqlParams.length; i < length; i++) {
+            const value = __getValueSourcePrivate(sqlParams[i]!)
+            if (value.__hasAggregation(sqlBuilder)) {
+                return true
+            }
+        }
+        return false
+    }
 }
 
 export class ValueSourceFromBuilder extends ValueSourceImpl {
@@ -1672,6 +1772,9 @@ export class ValueSourceFromBuilder extends ValueSourceImpl {
     }
     override __isAllowed(sqlBuilder: HasIsValue): boolean {
         return this.__getBuilderOutputPrivate().__isAllowed(sqlBuilder)
+    }
+    override __hasAggregation(sqlBuilder: HasIsValue): boolean {
+        return this.__getBuilderOutputPrivate().__hasAggregation(sqlBuilder)
     }
 }
 
@@ -1755,6 +1858,11 @@ export class AllowWhenValueSource extends ValueSourceImpl {
         }
         return this.__valueSource.__isAllowed(sqlBuilder)
     }
+    override __hasAggregation(sqlBuilder: HasIsValue): boolean {
+        // The `allowWhen`/`disallowWhen` gate is irrelevant to aggregation:
+        // a disallowed expression still structurally contains its aggregate.
+        return this.__valueSource.__hasAggregation(sqlBuilder)
+    }
 }
 
 export class AggregateFunctions0ValueSource extends ValueSourceImpl implements HasOperation {
@@ -1763,6 +1871,7 @@ export class AggregateFunctions0ValueSource extends ValueSourceImpl implements H
     constructor(operation: keyof AggregateFunctions0, valueType: ValueType, valueTypeName: string, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
         super(valueType, valueTypeName, optionalType, typeAdapter)
         this.__operation = operation
+        this.__isAggregate = true
     }
     __toSql(sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
         return sqlBuilder[this.__operation](params)
@@ -1791,6 +1900,7 @@ export class AggregateFunctions1ValueSource extends ValueSourceImpl implements H
         super(valueType, valueTypeName, optionalType, typeAdapter)
         this.__operation = operation
         this.__value = value
+        this.__isAggregate = true
     }
     __toSql(sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
         return sqlBuilder[this.__operation](params, this.__value)
@@ -1825,6 +1935,7 @@ export class AggregateFunctions1or2ValueSource extends ValueSourceImpl implement
         this.__operation = operation
         this.__separator = separator
         this.__value = value
+        this.__isAggregate = true
     }
     __toSql(sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
         return sqlBuilder[this.__operation](params, this.__separator, this.__value)
@@ -2000,6 +2111,9 @@ export class TableOrViewRawFragmentValueSource implements ValueSource<any, any, 
     __isAllowed(_sqlBuilder: HasIsValue): boolean {
         return true
     }
+    __hasAggregation(_sqlBuilder: HasIsValue): boolean {
+        return false
+    }
     __toSql(sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
         return sqlBuilder[this.__operation](params, this.__tableOrView)
     }
@@ -2064,6 +2178,9 @@ export class InlineSelectValueSource extends ValueSourceImpl implements HasOpera
     override __isAllowed(sqlBuilder: HasIsValue): boolean {
         return this.__selectData.__isAllowed(sqlBuilder)
     }
+    override __hasAggregation(sqlBuilder: HasIsValue): boolean {
+        return this.__selectData.__hasAggregation(sqlBuilder)
+    }
 }
 
 export class AggregateSelectValueSource implements ValueSource<any, any, any, any>, IAggregatedArrayValueSource<any, any, any>, AggregatedArrayValueSource<any, any, any>, AggregatedArrayValueSourceProjectableAsNullable<any, any, any, any>, __ValueSourcePrivate, ToSql {
@@ -2082,6 +2199,7 @@ export class AggregateSelectValueSource implements ValueSource<any, any, any, an
     __aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource
     __aggregatedArrayMode: __AggregatedArrayMode
     __aggreagtedProjectingOptionalValuesAsNullable?: boolean | undefined
+    __isAggregate = true
 
     constructor(selectData: InlineSelectData, aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode: __AggregatedArrayMode, _optionalType: OptionalType) {
         this.__selectData = selectData
@@ -2134,6 +2252,9 @@ export class AggregateSelectValueSource implements ValueSource<any, any, any, an
     }
     __isAllowed(sqlBuilder: HasIsValue): boolean {
         return this.__selectData.__isAllowed(sqlBuilder)
+    }
+    __hasAggregation(_sqlBuilder: HasIsValue): boolean {
+        return this.__isAggregate ?? false
     }
 
     useEmptyArrayForNoValue(): any {
@@ -2195,6 +2316,7 @@ export class NullAggregateSelectValueSource implements ValueSource<any, any, any
     [aggregatedArrayValueSource]!: 'AggregatedArrayValueSource'
 
     [isValueSourceObject]: true = true
+    __isAggregate = true
     __valueType: ValueType = 'aggregatedArray'
     __valueTypeName: string = 'aggregatedArray'
     __optionalType: OptionalType
@@ -2251,6 +2373,9 @@ export class NullAggregateSelectValueSource implements ValueSource<any, any, any
     }
     __isAllowed(_sqlBuilder: HasIsValue): boolean {
         return true
+    }
+    __hasAggregation(_sqlBuilder: HasIsValue): boolean {
+        return this.__isAggregate ?? false
     }
 
     useEmptyArrayForNoValue(): any {
@@ -2361,6 +2486,7 @@ export class AggregateValueAsArrayValueSource implements ValueSource<any, any, a
     [aggregatedArrayValueSource]!: 'AggregatedArrayValueSource'
 
     [isValueSourceObject]: true = true
+    __isAggregate = true
     __valueType: ValueType = 'aggregatedArray'
     __valueTypeName: string = 'aggregatedArray'
     __optionalType: OptionalType
@@ -2483,6 +2609,9 @@ export class AggregateValueAsArrayValueSource implements ValueSource<any, any, a
     __isAllowed(sqlBuilder: HasIsValue): boolean {
         return this.__isAllowedOf(sqlBuilder, this.__aggregatedArrayColumns)
     }
+    __hasAggregation(_sqlBuilder: HasIsValue): boolean {
+        return this.__isAggregate ?? false
+    }
     __isAllowedOf(sqlBuilder: HasIsValue, aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource | null | undefined): boolean {
         if (!aggregatedArrayColumns) {
             return true
@@ -2565,6 +2694,7 @@ export class NullAggregateValueAsArrayValueSource implements ValueSource<any, an
     [aggregatedArrayValueSource]!: 'AggregatedArrayValueSource'
 
     [isValueSourceObject]: true = true
+    __isAggregate = true
     __valueType: ValueType = 'aggregatedArray'
     __valueTypeName: string = 'aggregatedArray'
     __optionalType: OptionalType
@@ -2614,6 +2744,9 @@ export class NullAggregateValueAsArrayValueSource implements ValueSource<any, an
     }
     __isAllowed(_sqlBuilder: HasIsValue): boolean {
         return true
+    }
+    __hasAggregation(_sqlBuilder: HasIsValue): boolean {
+        return this.__isAggregate ?? false
     }
     __toSql(sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
         return sqlBuilder._asNullValue(params, this.__valueType, this.__valueTypeName, undefined)

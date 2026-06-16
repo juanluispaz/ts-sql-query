@@ -2,7 +2,7 @@ import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IE
 import type { SqlBuilder, ToSql } from '../sqlBuilders/SqlBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
 import type { AnyTableOrView, IQueryDataDiscovery, HasIsValue, IWithView } from '../utils/ITableOrView.js'
-import { __addWiths, __getOldValues, __getValuesForInsert, __isAllowed, __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
+import { __addWiths, __getOldValues, __getValuesForInsert, __hasAggregation, __isAllowed, __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
 import type { RawFragment } from '../utils/RawFragment.js'
 import { source, type } from '../utils/symbols.js'
 
@@ -71,5 +71,14 @@ export class RawFragmentImpl implements RawFragment<any>, IQueryDataDiscovery, T
             }
         }
         return true
+    }
+    __hasAggregation(sqlBuilder: HasIsValue): boolean {
+        const params = this.__params
+        for (let i = 0, length = params.length; i < length; i++) {
+            if (__hasAggregation(params[i], sqlBuilder)) {
+                return true
+            }
+        }
+        return false
     }
 }

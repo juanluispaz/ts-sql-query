@@ -1,6 +1,6 @@
 import type { JoinData, QueryColumns, SqlBuilder, ToSql, UpdateData } from '../sqlBuilders/SqlBuilder.js'
 import { isAllowedQueryColumns } from '../sqlBuilders/SqlBuilder.js'
-import type { AnyTableOrView, ForUseInLeftJoin, HasAddWiths, HasIsValue, ITable, IWithView } from '../utils/ITableOrView.js'
+import type { AnyTableOrView, ForUseInLeftJoin, IQueryDataDiscovery, HasIsValue, ITable, IWithView } from '../utils/ITableOrView.js'
 import { __getTableOrViewPrivate, __isAllowed } from '../utils/ITableOrView.js'
 import type { AlwaysIfValueSource, AnyValueSource, IAnyBooleanValueSource } from '../expressions/values.js'
 import { isValueSource } from '../expressions/values.js'
@@ -14,7 +14,7 @@ import { __setQueryMetadata, AbstractQueryBuilder } from './AbstractQueryBuilder
 import type { DBColumn } from '../utils/Column.js'
 import { isColumn } from '../utils/Column.js'
 
-export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWiths, ToSql, UpdateExpression<any, any>, UpdateExpressionAllowingNoWhere<any, any>, ExecutableUpdate<any, any>, CustomizableExecutableUpdate<any, any>, ExecutableUpdateExpression<any, any>, ShapedExecutableUpdateExpression<any, any, any>, NotExecutableUpdateExpression<any, any>, ShapedNotExecutableUpdateExpression<any, any, any>, DynamicExecutableUpdateExpression<any, any>, UpdateData, CustomizableExecutableUpdateReturning<any, any, any, any>, ReturnableExecutableUpdate<any, any>, ExecutableUpdateReturning<any, any, any, any>, UpdateSetExpression<any, any>, ShapedUpdateSetExpression<any, any, any>, UpdateSetExpressionAllowingNoWhere<any, any>, ShapedUpdateSetExpressionAllowingNoWhere<any, any, any>, UpdateSetJoinExpression<any, any>, DynamicOnExpression<any, any>, OnExpression<any, any>, UpdateExpressionWithoutJoin<any, any>, UpdateFromExpression<any, any>, UpdateSetJoinExpressionAllowingNoWhere<any, any>, DynamicOnExpressionAllowingNoWhere<any, any>, OnExpressionAllowingNoWhere<any, any>, UpdateExpressionWithoutJoinAllowingNoWhere<any, any>, UpdateFromExpressionAllowingNoWhere<any, any>, CustomizableExecutableUpdateProjectableAsNullable<any, any, any> {
+export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDataDiscovery, ToSql, UpdateExpression<any, any>, UpdateExpressionAllowingNoWhere<any, any>, ExecutableUpdate<any, any>, CustomizableExecutableUpdate<any, any>, ExecutableUpdateExpression<any, any>, ShapedExecutableUpdateExpression<any, any, any>, NotExecutableUpdateExpression<any, any>, ShapedNotExecutableUpdateExpression<any, any, any>, DynamicExecutableUpdateExpression<any, any>, UpdateData, CustomizableExecutableUpdateReturning<any, any, any, any>, ReturnableExecutableUpdate<any, any>, ExecutableUpdateReturning<any, any, any, any>, UpdateSetExpression<any, any>, ShapedUpdateSetExpression<any, any, any>, UpdateSetExpressionAllowingNoWhere<any, any>, ShapedUpdateSetExpressionAllowingNoWhere<any, any, any>, UpdateSetJoinExpression<any, any>, DynamicOnExpression<any, any>, OnExpression<any, any>, UpdateExpressionWithoutJoin<any, any>, UpdateFromExpression<any, any>, UpdateSetJoinExpressionAllowingNoWhere<any, any>, DynamicOnExpressionAllowingNoWhere<any, any>, OnExpressionAllowingNoWhere<any, any>, UpdateExpressionWithoutJoinAllowingNoWhere<any, any>, UpdateFromExpressionAllowingNoWhere<any, any>, CustomizableExecutableUpdateProjectableAsNullable<any, any, any> {
     [source]: any
     [from]: any
     [using]: any
@@ -27,6 +27,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
     __where?: AlwaysIfValueSource<any, any> | undefined
     __allowNoWhere: boolean
     __withs: Array<IWithView<any>> = []
+    __withsGenerated = false
     __customization?: UpdateCustomization<any, any> | undefined
     //__columns?: QueryColumns // declared at AbstractQueryBuilder
     __oldValues?: AnyTableOrView | undefined
@@ -43,7 +44,6 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
     constructor(sqlBuilder: SqlBuilder, table: ITable<any>, allowNoWhere: boolean) {
         super(sqlBuilder)
         this.__table = table
-        __getTableOrViewPrivate(table).__addWiths(sqlBuilder, this.__withs)
         this.__allowNoWhere = allowNoWhere
     }
 
@@ -219,6 +219,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         if (this.__query) {
             return this.__query
         }
+        this.__generateWiths()
         this.__query = this.__sqlBuilder._buildUpdate(this, this.__params)
         return this.__query
     }
@@ -230,6 +231,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
     }
 
     __toSql(_sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
+        this.__generateWiths()
         return this.__sqlBuilder._buildUpdate(this, params)
     }
     __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[], forceTypeCast: boolean): string {
@@ -290,7 +292,6 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
             }
             const value = columns[property]
             sets[property] = value
-            __addWiths(this.__sqlBuilder, value, this.__withs)
         }
         return this
     }
@@ -337,7 +338,6 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
             }
             const value = columns[property]
             sets[property] = value
-            __addWiths(this.__sqlBuilder, value, this.__withs)
         }
         return this
     }
@@ -387,7 +387,6 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
             }
             const value = columns[property]
             sets[property] = value
-            __addWiths(this.__sqlBuilder, value, this.__withs)
         }
         return this
     }
@@ -802,12 +801,10 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
             throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
         }
         this.__where = asAlwaysIfValueSource(condition)
-        __getValueSourcePrivate(condition).__addWiths(this.__sqlBuilder, this.__withs)
         return this
     }
     and(condition: IAnyBooleanValueSource<any, any>): this {
         this.__query = ''
-        __getValueSourcePrivate(condition).__addWiths(this.__sqlBuilder, this.__withs)
         if (this.__lastJoin) {
             if (this.__lastJoin.__on) {
                 this.__lastJoin.__on = this.__lastJoin.__on.and(asAlwaysIfValueSource(condition))
@@ -825,7 +822,6 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
     }
     or(condition: IAnyBooleanValueSource<any, any>): this {
         this.__query = ''
-        __getValueSourcePrivate(condition).__addWiths(this.__sqlBuilder, this.__withs)
         if (this.__lastJoin) {
             if (this.__lastJoin.__on) {
                 this.__lastJoin.__on = this.__lastJoin.__on.and(asAlwaysIfValueSource(condition))
@@ -851,7 +847,6 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
             this.__froms = []
         }
         this.__froms.push(table)
-        __getTableOrViewPrivate(table).__addWiths(this.__sqlBuilder, this.__withs)
         return this
     }
     join(table: AnyTableOrView): any {
@@ -864,7 +859,6 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
             __joinType: 'join',
             __tableOrView: table
         }
-        __getTableOrViewPrivate(table).__addWiths(this.__sqlBuilder, this.__withs)
         return this
     }
     innerJoin(table: AnyTableOrView): any {
@@ -877,7 +871,6 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
             __joinType: 'innerJoin',
             __tableOrView: table
         }
-        __getTableOrViewPrivate(table).__addWiths(this.__sqlBuilder, this.__withs)
         return this
     }
     leftJoin(source: ForUseInLeftJoin<any>): any {
@@ -890,7 +883,6 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
             __joinType: 'leftJoin',
             __tableOrView: source as any
         }
-        __getTableOrViewPrivate(source).__addWiths(this.__sqlBuilder, this.__withs)
         return this
     }
     leftOuterJoin(source: ForUseInLeftJoin<any>): any {
@@ -903,7 +895,6 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
             __joinType: 'leftOuterJoin',
             __tableOrView: source as any
         }
-        __getTableOrViewPrivate(source).__addWiths(this.__sqlBuilder, this.__withs)
         return this
     }
     dynamicOn(): any {
@@ -919,7 +910,6 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         if (!this.__joins) {
             this.__joins = []
         }
-        __getValueSourcePrivate(condition).__addWiths(this.__sqlBuilder, this.__withs)
         return this
     }
     __finishJoin() {
@@ -936,16 +926,12 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
 
     customizeQuery(customization: UpdateCustomization<any, any>): this {
         this.__customization = customization
-        __addWiths(customization.beforeQuery, this.__sqlBuilder, this.__withs)
-        __addWiths(customization.afterUpdateKeyword, this.__sqlBuilder, this.__withs)
-        __addWiths(customization.afterQuery, this.__sqlBuilder, this.__withs)
         return this
     }
 
     returning(columns: UpdateReturningColumns<any>): this {
         this.__query = ''
         this.__columns = columns as QueryColumns
-        this.__registerTableOrViewWithOfColumns(columns as QueryColumns, this.__withs)
         this.__oldValues = this.__getOldValueOfColumns(columns as QueryColumns)
         return this
     }
@@ -959,12 +945,48 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         this.__oneColumn = true
         this.__columns = { 'result': column }
         const columnPrivate = __getValueSourcePrivate(column)
-        columnPrivate.__addWiths(this.__sqlBuilder, this.__withs)
         this.__oldValues = columnPrivate.__getOldValues(this.__sqlBuilder)
         return this
     }
 
+    __generateWiths(): void {
+        this.__finishJoin()
+        if (this.__withsGenerated) {
+            return
+        }
+        this.__withsGenerated = true
+        const sqlBuilder = this.__sqlBuilder
+        const withs = this.__withs
+        __addWiths(this.__table, sqlBuilder, withs)
+        const sets = this.__sets
+        for (let prop in sets) {
+            __addWiths(sets[prop], sqlBuilder, withs)
+        }
+        const froms = this.__froms
+        if (froms) {
+            for (let i = 0, length = froms.length; i < length; i++) {
+                __addWiths(froms[i], sqlBuilder, withs)
+            }
+        }
+        const joins = this.__joins
+        if (joins) {
+            for (let i = 0, length = joins.length; i < length; i++) {
+                const join = joins[i]!
+                __addWiths(join.__tableOrView, sqlBuilder, withs)
+                __addWiths(join.__on, sqlBuilder, withs)
+            }
+        }
+        __addWiths(this.__where, sqlBuilder, withs)
+        this.__registerTableOrViewWithOfColumns(this.__columns, withs)
+        const customization = this.__customization
+        if (customization) {
+            __addWiths(customization.beforeQuery, sqlBuilder, withs)
+            __addWiths(customization.afterUpdateKeyword, sqlBuilder, withs)
+            __addWiths(customization.afterQuery, sqlBuilder, withs)
+        }
+    }
     __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
+        this.__generateWiths()
         const withViews = this.__withs
         for (let i = 0, length = withViews.length; i < length; i++) {
             const withView = withViews[i]!

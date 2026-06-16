@@ -1,6 +1,6 @@
 import type { SqlBuilder, DeleteData, JoinData, ToSql, QueryColumns } from '../sqlBuilders/SqlBuilder.js'
 import { isAllowedQueryColumns } from '../sqlBuilders/SqlBuilder.js'
-import type { AnyTableOrView, ForUseInLeftJoin, HasAddWiths, HasIsValue, ITable, IWithView } from '../utils/ITableOrView.js'
+import type { AnyTableOrView, ForUseInLeftJoin, IQueryDataDiscovery, HasIsValue, ITable, IWithView } from '../utils/ITableOrView.js'
 import { __addWiths, __getTableOrViewPrivate, __isAllowed } from '../utils/ITableOrView.js'
 import type { IAnyBooleanValueSource, AnyValueSource, AlwaysIfValueSource } from '../expressions/values.js'
 import { isValueSource } from '../expressions/values.js'
@@ -12,7 +12,7 @@ import { __getValueSourcePrivate } from '../expressions/values.js'
 import { AbstractQueryBuilder, __setQueryMetadata } from './AbstractQueryBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
 
-export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWiths, ToSql, DeleteExpression<any, any>, DeleteExpressionAllowingNoWhere<any, any>, CustomizableExecutableDelete<any, any>, ExecutableDelete<any, any>, DynamicExecutableDeleteExpression<any, any>, DeleteData, ComposableCustomizableExecutableDelete<any, any, any, any>, ReturnableExecutableDelete<any, any>, ExecutableDeleteReturning<any, any, any, any>, DeleteWhereExpression<any, any>, DeleteWhereExpressionAllowingNoWhere<any, any>, DeleteWhereJoinExpression<any, any>, DynamicOnExpression<any, any>, OnExpression<any, any>, DeleteExpressionWithoutJoin<any, any>, DeleteUsingExpression<any, any>, DeleteWhereJoinExpressionAllowingNoWhere<any, any>, DynamicOnExpressionAllowingNoWhere<any, any>, OnExpressionAllowingNoWhere<any, any>, DeleteExpressionWithoutJoinAllowingNoWhere<any, any>, DeleteUsingExpressionAllowingNoWhere<any, any>, CustomizableExecutableDeleteProjectableAsNullable<any, any, any> {
+export class DeleteQueryBuilder extends AbstractQueryBuilder implements IQueryDataDiscovery, ToSql, DeleteExpression<any, any>, DeleteExpressionAllowingNoWhere<any, any>, CustomizableExecutableDelete<any, any>, ExecutableDelete<any, any>, DynamicExecutableDeleteExpression<any, any>, DeleteData, ComposableCustomizableExecutableDelete<any, any, any, any>, ReturnableExecutableDelete<any, any>, ExecutableDeleteReturning<any, any, any, any>, DeleteWhereExpression<any, any>, DeleteWhereExpressionAllowingNoWhere<any, any>, DeleteWhereJoinExpression<any, any>, DynamicOnExpression<any, any>, OnExpression<any, any>, DeleteExpressionWithoutJoin<any, any>, DeleteUsingExpression<any, any>, DeleteWhereJoinExpressionAllowingNoWhere<any, any>, DynamicOnExpressionAllowingNoWhere<any, any>, OnExpressionAllowingNoWhere<any, any>, DeleteExpressionWithoutJoinAllowingNoWhere<any, any>, DeleteUsingExpressionAllowingNoWhere<any, any>, CustomizableExecutableDeleteProjectableAsNullable<any, any, any> {
     [source]: any
     [from]: any
     [using]: any
@@ -23,6 +23,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
     __where?: AlwaysIfValueSource<any, any> | undefined
     __allowNoWhere: boolean
     __withs: Array<IWithView<any>> = []
+    __withsGenerated = false
     __customization?: DeleteCustomization<any, any> | undefined
     //__columns?: QueryColumns // declared at AbstractQueryBuilder
     __using?: Array<AnyTableOrView> | undefined
@@ -38,7 +39,6 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
     constructor(sqlBuilder: SqlBuilder, table: ITable<any>, allowNoWhere: boolean) {
         super(sqlBuilder)
         this.__table = table
-        __getTableOrViewPrivate(table).__addWiths(this.__sqlBuilder, this.__withs)
         this.__allowNoWhere = allowNoWhere
     }
 
@@ -192,6 +192,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         if (this.__query) {
             return this.__query
         }
+        this.__generateWiths()
         this.__query = this.__sqlBuilder._buildDelete(this, this.__params)
         return this.__query
     }
@@ -204,6 +205,8 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
     }
 
     __toSql(_sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
+        this.__finishJoin()
+        this.__generateWiths()
         return this.__sqlBuilder._buildDelete(this, params)
     }
     __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[], forceTypeCast: boolean): string {
@@ -222,12 +225,10 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
             throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
         }
         this.__where = asAlwaysIfValueSource(condition)
-        __getValueSourcePrivate(condition).__addWiths(this.__sqlBuilder, this.__withs)
         return this
     }
     and(condition: IAnyBooleanValueSource<any, any>): this {
         this.__query = ''
-        __getValueSourcePrivate(condition).__addWiths(this.__sqlBuilder, this.__withs)
         if (this.__lastJoin) {
             if (this.__lastJoin.__on) {
                 this.__lastJoin.__on = this.__lastJoin.__on.and(asAlwaysIfValueSource(condition))
@@ -245,7 +246,6 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
     }
     or(condition: IAnyBooleanValueSource<any, any>): this {
         this.__query = ''
-        __getValueSourcePrivate(condition).__addWiths(this.__sqlBuilder, this.__withs)
         if (this.__lastJoin) {
             if (this.__lastJoin.__on) {
                 this.__lastJoin.__on = this.__lastJoin.__on.and(asAlwaysIfValueSource(condition))
@@ -271,7 +271,6 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
             this.__using = []
         }
         this.__using.push(table)
-        __getTableOrViewPrivate(table).__addWiths(this.__sqlBuilder, this.__withs)
         return this
     }
     join(table: AnyTableOrView): any {
@@ -284,7 +283,6 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
             __joinType: 'join',
             __tableOrView: table
         }
-        __getTableOrViewPrivate(table).__addWiths(this.__sqlBuilder, this.__withs)
         return this
     }
     innerJoin(table: AnyTableOrView): any {
@@ -297,7 +295,6 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
             __joinType: 'innerJoin',
             __tableOrView: table
         }
-        __getTableOrViewPrivate(table).__addWiths(this.__sqlBuilder, this.__withs)
         return this
     }
     leftJoin(source: ForUseInLeftJoin<any>): any {
@@ -310,7 +307,6 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
             __joinType: 'leftJoin',
             __tableOrView: source as any
         }
-        __getTableOrViewPrivate(source).__addWiths(this.__sqlBuilder, this.__withs)
         return this
     }
     leftOuterJoin(source: ForUseInLeftJoin<any>): any {
@@ -323,7 +319,6 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
             __joinType: 'leftOuterJoin',
             __tableOrView: source as any
         }
-        __getTableOrViewPrivate(source).__addWiths(this.__sqlBuilder, this.__withs)
         return this
     }
     dynamicOn(): any {
@@ -339,7 +334,6 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         if (!this.__joins) {
             this.__joins = []
         }
-        __getValueSourcePrivate(condition).__addWiths(this.__sqlBuilder, this.__withs)
         return this
     }
     __finishJoin() {
@@ -357,9 +351,6 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
     customizeQuery(customization: DeleteCustomization<any, any>): this {
         this.__finishJoin()
         this.__customization = customization
-        __addWiths(customization.beforeQuery, this.__sqlBuilder, this.__withs)
-        __addWiths(customization.afterDeleteKeyword, this.__sqlBuilder, this.__withs)
-        __addWiths(customization.afterQuery, this.__sqlBuilder, this.__withs)
         return this
     }
 
@@ -367,7 +358,6 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         this.__finishJoin()
         this.__query = ''
         this.__columns = columns as QueryColumns
-        this.__registerTableOrViewWithOfColumns(columns as QueryColumns, this.__withs)
         return this
     }
     projectingOptionalValuesAsNullable(): any {
@@ -380,11 +370,43 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         this.__query = ''
         this.__oneColumn = true
         this.__columns = { 'result': column }
-        __getValueSourcePrivate(column).__addWiths(this.__sqlBuilder, this.__withs)
         return this
     }
 
+    __generateWiths(): void {
+        if (this.__withsGenerated) {
+            return
+        }
+        this.__withsGenerated = true
+        const sqlBuilder = this.__sqlBuilder
+        const withs = this.__withs
+        __addWiths(this.__table, sqlBuilder, withs)
+        const using = this.__using
+        if (using) {
+            for (let i = 0, length = using.length; i < length; i++) {
+                __addWiths(using[i], sqlBuilder, withs)
+            }
+        }
+        const joins = this.__joins
+        if (joins) {
+            for (let i = 0, length = joins.length; i < length; i++) {
+                const join = joins[i]!
+                __addWiths(join.__tableOrView, sqlBuilder, withs)
+                __addWiths(join.__on, sqlBuilder, withs)
+            }
+        }
+        __addWiths(this.__where, sqlBuilder, withs)
+        this.__registerTableOrViewWithOfColumns(this.__columns, withs)
+        const customization = this.__customization
+        if (customization) {
+            __addWiths(customization.beforeQuery, sqlBuilder, withs)
+            __addWiths(customization.afterDeleteKeyword, sqlBuilder, withs)
+            __addWiths(customization.afterQuery, sqlBuilder, withs)
+        }
+    }
     __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
+        this.__finishJoin()
+        this.__generateWiths()
         const withViews = this.__withs
         for (let i = 0, length = withViews.length; i < length; i++) {
             const withView = withViews[i]!

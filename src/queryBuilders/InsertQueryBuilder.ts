@@ -1,6 +1,6 @@
 import type { SqlBuilder, InsertData, SelectData, ToSql, QueryColumns } from '../sqlBuilders/SqlBuilder.js'
 import { isAllowedQueryColumns } from '../sqlBuilders/SqlBuilder.js'
-import type { AnyTableOrView, HasAddWiths, HasIsValue, ITable, IWithView } from '../utils/ITableOrView.js'
+import type { AnyTableOrView, IQueryDataDiscovery, HasIsValue, ITable, IWithView } from '../utils/ITableOrView.js'
 import { __getTableOrViewPrivate, __isAllowed } from '../utils/ITableOrView.js'
 import type { InsertExpression, ExecutableInsertExpression, ExecutableInsert, ExecutableInsertReturning, CustomizableExecutableMultipleInsert, CustomizableExecutableInsertFromSelect,/*MissingKeysInsertExpression, ShapedMissingKeysInsertExpression, MissingKeysMultipleInsertExpression, ShapedMissingKeysMultipleInsertExpression*/ InsertCustomization, CustomizableExecutableInsertReturningLastInsertedId, CustomizableExecutableSimpleInsert, ComposableCustomizableExecutableInsert, ExecutableInsertReturningLastInsertedId, InsertReturningColumns, CustomizableExecutableInsert, OnConflictDoMultipleInsert, InsertOnConflictSetsExpression, DynamicOnConflictWhereExpression, OnConflictOnColumnWhere, CustomizableExecutableInsertFromSelectOnConflict, CustomizableExecutableSimpleInsertOnConflict, OnConflictDoSimpleInsert, CustomizableExecutableMultipleInsertOnConfict, CustomizableExecutableInsertFromSelectOnConflictOptional, CustomizableExecutableSimpleInsertOnConflictOptional, CustomizableExecutableMultipleInsertOnConfictOptional, ExecutableMultipleInsertExpression, ShapedExecutableInsertExpression, ShapedExecutableMultipleInsertExpression, ShapedInsertExpression, ShapedInsertOnConflictSetsExpression, ComposableCustomizableExecutableInsertProjectableAsNullable, ComposableCustomizableExecutableInsertOptionalProjectableAsNullable, OnConflictDoInsertFromSelect } from '../expressions/insert.js'
 import type { DBColumn } from '../utils/Column.js'
@@ -16,7 +16,7 @@ import type { RawFragment } from '../utils/RawFragment.js'
 
 // one implement ommited intentionally to don't confuse TypeScript
 
-export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWiths, ToSql, InsertExpression<any, any>, ShapedInsertExpression<any, any, any, any>, ExecutableInsertReturningLastInsertedId<any, any, any>, ExecutableInsert<any, any>, ExecutableInsertExpression<any, any>, ShapedExecutableInsertExpression<any, any, any>, ExecutableMultipleInsertExpression<any, any>, ShapedExecutableMultipleInsertExpression<any, any, any>, CustomizableExecutableMultipleInsert<any, any, any>, CustomizableExecutableInsertFromSelect<any, any, any>, CustomizableExecutableInsertReturningLastInsertedId<any, any, any>, CustomizableExecutableSimpleInsert<any, any, any>, /*MissingKeysInsertExpression<any, any>, ShapedMissingKeysInsertExpression<any, any, any>, MissingKeysMultipleInsertExpression<any, any>, ShapedMissingKeysMultipleInsertExpression<any, any, any>,*/ InsertData, ComposableCustomizableExecutableInsert<any, any, any, any>, ExecutableInsertReturning<any, any, any, any>, ExecutableInsert<any, any>, CustomizableExecutableInsert<any, any>, OnConflictDoMultipleInsert<any, any, any>, InsertOnConflictSetsExpression<any, any, any, any>, ShapedInsertOnConflictSetsExpression<any, any, any, any, any>, DynamicOnConflictWhereExpression<any, any, any>, OnConflictOnColumnWhere<any, any, any>, CustomizableExecutableInsertFromSelectOnConflict<any, any>, CustomizableExecutableSimpleInsertOnConflict<any, any>, OnConflictDoSimpleInsert<any, any, any>, CustomizableExecutableMultipleInsertOnConfict<any, any>, CustomizableExecutableInsertFromSelectOnConflictOptional<any, any>, CustomizableExecutableSimpleInsertOnConflictOptional<any, any>, CustomizableExecutableMultipleInsertOnConfictOptional<any, any>, ComposableCustomizableExecutableInsertProjectableAsNullable<any, any, any>, ComposableCustomizableExecutableInsertOptionalProjectableAsNullable<any, any, any>, OnConflictDoInsertFromSelect<any, any, any> {
+export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDataDiscovery, ToSql, InsertExpression<any, any>, ShapedInsertExpression<any, any, any, any>, ExecutableInsertReturningLastInsertedId<any, any, any>, ExecutableInsert<any, any>, ExecutableInsertExpression<any, any>, ShapedExecutableInsertExpression<any, any, any>, ExecutableMultipleInsertExpression<any, any>, ShapedExecutableMultipleInsertExpression<any, any, any>, CustomizableExecutableMultipleInsert<any, any, any>, CustomizableExecutableInsertFromSelect<any, any, any>, CustomizableExecutableInsertReturningLastInsertedId<any, any, any>, CustomizableExecutableSimpleInsert<any, any, any>, /*MissingKeysInsertExpression<any, any>, ShapedMissingKeysInsertExpression<any, any, any>, MissingKeysMultipleInsertExpression<any, any>, ShapedMissingKeysMultipleInsertExpression<any, any, any>,*/ InsertData, ComposableCustomizableExecutableInsert<any, any, any, any>, ExecutableInsertReturning<any, any, any, any>, ExecutableInsert<any, any>, CustomizableExecutableInsert<any, any>, OnConflictDoMultipleInsert<any, any, any>, InsertOnConflictSetsExpression<any, any, any, any>, ShapedInsertOnConflictSetsExpression<any, any, any, any, any>, DynamicOnConflictWhereExpression<any, any, any>, OnConflictOnColumnWhere<any, any, any>, CustomizableExecutableInsertFromSelectOnConflict<any, any>, CustomizableExecutableSimpleInsertOnConflict<any, any>, OnConflictDoSimpleInsert<any, any, any>, CustomizableExecutableMultipleInsertOnConfict<any, any>, CustomizableExecutableInsertFromSelectOnConflictOptional<any, any>, CustomizableExecutableSimpleInsertOnConflictOptional<any, any>, CustomizableExecutableMultipleInsertOnConfictOptional<any, any>, ComposableCustomizableExecutableInsertProjectableAsNullable<any, any, any>, ComposableCustomizableExecutableInsertOptionalProjectableAsNullable<any, any, any>, OnConflictDoInsertFromSelect<any, any, any> {
     [source]: any
     [from]: any
     [using]: any
@@ -32,6 +32,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
     __idColumn?: DBColumn | undefined
     __from?: SelectData | undefined
     __withs: Array<IWithView<any>> = []
+    __withsGenerated = false
     __customization?: InsertCustomization<any, any> | undefined
     //__columns?: QueryColumns // declared at AbstractQueryBuilder
     __onConflictOnConstraint?: RawFragment<any> | undefined
@@ -52,7 +53,6 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
     constructor(sqlBuilder: SqlBuilder, table: ITable<any>) {
         super(sqlBuilder)
         this.__table = table
-        __getTableOrViewPrivate(table).__addWiths(this.__sqlBuilder, this.__withs)
     }
 
     executeInsert(min?: number, max?: number): Promise<any> {
@@ -315,6 +315,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
             return this.__query
         }
 
+        this.__generateWiths()
         if (this.__from) {
             this.__query = this.__sqlBuilder._buildInsertFromSelect(this, this.__params)
         } else if (this.__multiple) {
@@ -334,6 +335,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
     }
 
     __toSql(_sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
+        this.__generateWiths()
         if (this.__from) {
             return this.__sqlBuilder._buildInsertFromSelect(this, params)
         } else if (this.__multiple) {
@@ -1592,15 +1594,11 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
     }
     from(select: IExecutableSelectQuery<any, any, any>): this {
         this.__from = select as any as SelectData
-        __addWiths(select, this.__sqlBuilder, this.__withs)
         return this
     }
 
     customizeQuery(customization: InsertCustomization<any, any>): this {
         this.__customization = customization
-        __addWiths(customization.beforeQuery, this.__sqlBuilder, this.__withs)
-        __addWiths(customization.afterInsertKeyword, this.__sqlBuilder, this.__withs)
-        __addWiths(customization.afterQuery, this.__sqlBuilder, this.__withs)
         return this
     }
 
@@ -1636,7 +1634,6 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
     returning(columns: InsertReturningColumns<any>): this {
         this.__query = ''
         this.__columns = columns as QueryColumns
-        this.__registerTableOrViewWithOfColumns(columns as QueryColumns, this.__withs)
         return this
     }
     projectingOptionalValuesAsNullable(): any {
@@ -1648,7 +1645,6 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         this.__query = ''
         this.__oneColumn = true
         this.__columns = { 'result': column }
-        __getValueSourcePrivate(column).__addWiths(this.__sqlBuilder, this.__withs)
         return this
     }
 
@@ -1738,9 +1734,6 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
             throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
         }
         this.__onConflictOnColumns = columns
-        for (let i = 0, length = columns.length; i < length; i++) {
-            __getValueSourcePrivate(columns[i]!).__addWiths(this.__sqlBuilder, this.__withs)
-        }
         return this
     }
     onConflictOnConstraint(constraint: RawFragment<any>): this {
@@ -1749,7 +1742,6 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
             throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
         }
         this.__onConflictOnConstraint = constraint
-        __addWiths(constraint, this.__sqlBuilder, this.__withs)
         return this
     }
 
@@ -1848,14 +1840,12 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
             }
             this.__onConflictUpdateWhere = asAlwaysIfValueSource(condition)
             const conditionPrivate = __getValueSourcePrivate(condition)
-            conditionPrivate.__addWiths(this.__sqlBuilder, this.__withs)
             this.__valuesForInsert = this.__valuesForInsert || conditionPrivate.__getValuesForInsert(this.__sqlBuilder)
         } else if (this.__onConflictOnColumns) {
             if (this.__onConflictOnColumnsWhere) {
                 throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
             }
             this.__onConflictOnColumnsWhere = asAlwaysIfValueSource(condition)
-            __getValueSourcePrivate(condition).__addWiths(this.__sqlBuilder, this.__withs)
         } else {
             throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
         }
@@ -1870,7 +1860,6 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                 this.__onConflictUpdateWhere = this.__onConflictUpdateWhere.and(asAlwaysIfValueSource(condition))
             }
             const conditionPrivate = __getValueSourcePrivate(condition)
-            conditionPrivate.__addWiths(this.__sqlBuilder, this.__withs)
             this.__valuesForInsert = this.__valuesForInsert || conditionPrivate.__getValuesForInsert(this.__sqlBuilder)
         } else if (this.__onConflictOnColumns) {
             if (!this.__onConflictOnColumnsWhere) {
@@ -1878,7 +1867,6 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
             } else {
                 this.__onConflictOnColumnsWhere = this.__onConflictOnColumnsWhere.and(asAlwaysIfValueSource(condition))
             }
-            __getValueSourcePrivate(condition).__addWiths(this.__sqlBuilder, this.__withs)
         } else {
             throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
         }
@@ -1893,7 +1881,6 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                 this.__onConflictUpdateWhere = this.__onConflictUpdateWhere.or(asAlwaysIfValueSource(condition))
             }
             const conditionPrivate = __getValueSourcePrivate(condition)
-            conditionPrivate.__addWiths(this.__sqlBuilder, this.__withs)
             this.__valuesForInsert = this.__valuesForInsert || conditionPrivate.__getValuesForInsert(this.__sqlBuilder)
         } else if (this.__onConflictOnColumns) {
             if (!this.__onConflictOnColumnsWhere) {
@@ -1901,14 +1888,59 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
             } else {
                 this.__onConflictOnColumnsWhere = this.__onConflictOnColumnsWhere.or(asAlwaysIfValueSource(condition))
             }
-            __getValueSourcePrivate(condition).__addWiths(this.__sqlBuilder, this.__withs)
         } else {
             throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
         }
         return this
     }
 
+    __generateWiths(): void {
+        if (this.__withsGenerated) {
+            return
+        }
+        this.__withsGenerated = true
+        const sqlBuilder = this.__sqlBuilder
+        const withs = this.__withs
+        __addWiths(this.__table, sqlBuilder, withs)
+        __addWiths(this.__from, sqlBuilder, withs)
+        const sets = this.__sets
+        for (let prop in sets) {
+            __addWiths(sets[prop], sqlBuilder, withs)
+        }
+        const multiple = this.__multiple
+        if (multiple) {
+            for (let i = 0, length = multiple.length; i < length; i++) {
+                const row = multiple[i]!
+                for (let prop in row) {
+                    __addWiths(row[prop], sqlBuilder, withs)
+                }
+            }
+        }
+        this.__registerTableOrViewWithOfColumns(this.__columns, withs)
+        __addWiths(this.__onConflictOnConstraint, sqlBuilder, withs)
+        const onConflictOnColumns = this.__onConflictOnColumns
+        if (onConflictOnColumns) {
+            for (let i = 0, length = onConflictOnColumns.length; i < length; i++) {
+                __addWiths(onConflictOnColumns[i], sqlBuilder, withs)
+            }
+        }
+        __addWiths(this.__onConflictOnColumnsWhere, sqlBuilder, withs)
+        const onConflictUpdateSets = this.__onConflictUpdateSets
+        if (onConflictUpdateSets) {
+            for (let prop in onConflictUpdateSets) {
+                __addWiths(onConflictUpdateSets[prop], sqlBuilder, withs)
+            }
+        }
+        __addWiths(this.__onConflictUpdateWhere, sqlBuilder, withs)
+        const customization = this.__customization
+        if (customization) {
+            __addWiths(customization.beforeQuery, sqlBuilder, withs)
+            __addWiths(customization.afterInsertKeyword, sqlBuilder, withs)
+            __addWiths(customization.afterQuery, sqlBuilder, withs)
+        }
+    }
     __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
+        this.__generateWiths()
         const withViews = this.__withs
         for (let i = 0, length = withViews.length; i < length; i++) {
             const withView = withViews[i]!
@@ -1977,12 +2009,14 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         if (!result) {
             return false
         }
-        const updateSets = this.__sets
-        for (let prop in updateSets) {
-            const set = updateSets[prop]!
-            const result = __isAllowed(set, sqlBuilder)
-            if (!result) {
-                return false
+        const updateSets = this.__onConflictUpdateSets
+        if (updateSets) {
+            for (let prop in updateSets) {
+                const set = updateSets[prop]!
+                const result = __isAllowed(set, sqlBuilder)
+                if (!result) {
+                    return false
+                }
             }
         }
         result = __isAllowed(this.__onConflictUpdateWhere, sqlBuilder)

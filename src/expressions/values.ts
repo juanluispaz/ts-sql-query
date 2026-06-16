@@ -1,4 +1,4 @@
-import type { HasAddWiths, HasSource, AnyTableOrView } from '../utils/ITableOrView.js'
+import type { IQueryDataDiscovery, HasSource, AnyTableOrView } from '../utils/ITableOrView.js'
 import type { TypeAdapter } from '../TypeAdapter.js'
 import type { aggregatedArrayValueSource, anyBooleanValueSource, bigintValueSource, booleanValueSource, columnsType, comparableValueSource, customDoubleValueSource, customIntValueSource, customLocalDateTimeValueSource, customLocalDateValueSource, customLocalTimeValueSource, customUuidValueSource, localDateTimeValueSource, localDateValueSource, equalableValueSource, ifValueSource, nullableValueSource, numberValueSource, optionalType, resultType, stringValueSource, localTimeValueSource, type, uuidValueSource, source } from '../utils/symbols.js'
 import { valueType, typeName, typeName as typeName_, isValueSourceObject } from '../utils/symbols.js'
@@ -107,7 +107,7 @@ export type ValueType = 'boolean'
 
 export type NativeValueType = Exclude<ValueType, 'enum' | 'custom' | 'customComparable' | 'aggregatedArray' | ''>
 
-export interface __ValueSourcePrivate extends HasAddWiths {
+export interface __ValueSourcePrivate extends IQueryDataDiscovery {
     [isValueSourceObject]: true
     __valueType: ValueType
     __valueTypeName: string

@@ -4,6 +4,12 @@ search:
 ---
 # Change Log
 
+## v2.0.0-beta.2 (Unreleased)
+
+**New features**:
+
+- Unused CTEs (`with` clauses) are no longer included in the generated SQL: a common table expression that the final query doesn't actually use — for example one referenced only by an optional join that ends up pruned — is now dropped instead of being emitted for nothing.
+
 ## v2.0.0-beta.1 (14 Jun 2026)
 
 This is the first **beta** of ts-sql-query 2.0: the 2.0 line is now feature-complete and entering stabilization ahead of the final release. v2 is the biggest step the library has taken since v1 — a modernized foundation, a new portable error model, broader and more uniform database support, more runtimes, and sharper types. The headline advances since v1:

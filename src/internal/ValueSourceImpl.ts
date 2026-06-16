@@ -4,7 +4,7 @@ import type { BooleanValueSource, NumberValueSource, StringValueSource, IValueSo
 import { isValueSource } from '../expressions/values.js'
 import type { TypeAdapter } from '../TypeAdapter.js'
 import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
-import type { AnyTableOrView, HasAddWiths, HasIsValue, IWithView } from '../utils/ITableOrView.js'
+import type { AnyTableOrView, IQueryDataDiscovery, HasIsValue, IWithView } from '../utils/ITableOrView.js'
 import { __getOldValues, __getTableOrViewPrivate, __getValuesForInsert, __isAllowed, __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
 import { valueType as valueType_, optionalType as optionalType_ , booleanValueSource, comparableValueSource, localDateTimeValueSource, localDateValueSource, equalableValueSource, nullableValueSource, numberValueSource, stringValueSource, localTimeValueSource, ifValueSource, bigintValueSource, typeName, anyBooleanValueSource, isValueSourceObject, aggregatedArrayValueSource, isSelectQueryObject, uuidValueSource, customIntValueSource, customDoubleValueSource, customUuidValueSource, customLocalDateValueSource, customLocalTimeValueSource, customLocalDateTimeValueSource, source } from '../utils/symbols.js'
 import { __addWiths } from '../utils/ITableOrView.js'
@@ -2030,7 +2030,7 @@ export class AllowWhenTableOrViewRawFragmentValueSource extends TableOrViewRawFr
     }
 }
 
-export type InlineSelectData = SelectData & HasAddWiths
+export type InlineSelectData = SelectData & IQueryDataDiscovery
 
 export class InlineSelectValueSource extends ValueSourceImpl implements HasOperation {
     __operation = '_inlineSelectAsValue' as const

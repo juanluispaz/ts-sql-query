@@ -180,4 +180,59 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof result, Array<{ projectId: number; leftId: number; rightId: number }>>>()
     })
+    test('cte-only-referenced-by-a-pruned-optional-join-is-omitted-from-with', async () => {
+        // A CTE used ONLY as the table of an optional join that ends up
+        // pruned (nothing in the surviving query requires it) must NOT be
+        // emitted in the WITH clause: withs are discovered over the
+        // surviving query structure, so a dead optional join drops its
+        // CTE along with the join itself (no `with`, no `left join`, and
+        // the CTE's own parameter disappears too).
+        ctx.mockNext([{ id: 10 }])
+        const connection = ctx.conn
+
+        const openIssues = connection.selectFrom(tIssue)
+            .where(tIssue.status.equals('open'))
+            .select({ id: tIssue.id, projectId: tIssue.projectId })
+            .forUseInQueryAs('open_issues')
+            .forUseInLeftJoin()
+
+        const result = await connection.selectFrom(tProject)
+            .optionalLeftJoin(openIssues).on(openIssues.projectId.equals(tProject.id))
+            .select({ id: tProject.id })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+    })
+
+    test('cte-behind-a-required-optional-join-is-emitted-in-with', async () => {
+        // The counterpart: when the optional join survives because a
+        // selected column references the CTE, both the join and its CTE
+        // are emitted — discovery follows the surviving structure.
+        ctx.mockNext([{ id: 10, openId: 1 }])
+        const connection = ctx.conn
+
+        const openIssues = connection.selectFrom(tIssue)
+            .where(tIssue.status.equals('open'))
+            .select({ id: tIssue.id, projectId: tIssue.projectId })
+            .forUseInQueryAs('open_issues')
+            .forUseInLeftJoin()
+
+        const result = await connection.selectFrom(tProject)
+            .optionalLeftJoin(openIssues).on(openIssues.projectId.equals(tProject.id))
+            .select({ id: tProject.id, openId: openIssues.id })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with open_issues as (select id as id, project_id as projectId from issue where status = :0) select project.id as "id", open_issues.id as "openId" from project left join open_issues on open_issues.projectId = project.id order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "open",
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; openId?: number }>>>()
+    })
+
 })

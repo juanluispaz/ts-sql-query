@@ -35,7 +35,7 @@ export interface HasIsValue {
     _isValue(value: any): boolean
 }
 
-export interface HasAddWiths {
+export interface IQueryDataDiscovery {
     __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void
     __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void
     __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void
@@ -49,7 +49,7 @@ export function __addWiths(value: any, sqlBuilder: HasIsValue, withs: Array<IWit
         return
     }
     if (typeof value === 'object' && typeof value.__addWiths === 'function') {
-        (value as HasAddWiths).__addWiths(sqlBuilder, withs)
+        (value as IQueryDataDiscovery).__addWiths(sqlBuilder, withs)
     }
 }
 
@@ -58,7 +58,7 @@ export function __registerTableOrView(value: any, sqlBuilder: HasIsValue, requir
         return
     }
     if (typeof value === 'object' && typeof value.__registerTableOrView === 'function') {
-        (value as HasAddWiths).__registerTableOrView(sqlBuilder, requiredTablesOrViews)
+        (value as IQueryDataDiscovery).__registerTableOrView(sqlBuilder, requiredTablesOrViews)
     }
 }
 
@@ -67,7 +67,7 @@ export function __registerRequiredColumn(value: any, sqlBuilder: HasIsValue, req
         return
     }
     if (typeof value === 'object' && typeof value.__registerRequiredColumn === 'function') {
-        (value as HasAddWiths).__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
+        (value as IQueryDataDiscovery).__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
     }
 }
 
@@ -76,7 +76,7 @@ export function __getOldValues(value: any, sqlBuilder: HasIsValue): AnyTableOrVi
         return undefined
     }
     if (typeof value === 'object' && typeof value.__getOldValues === 'function') {
-        return (value as HasAddWiths).__getOldValues(sqlBuilder)
+        return (value as IQueryDataDiscovery).__getOldValues(sqlBuilder)
     }
     return undefined
 }
@@ -86,7 +86,7 @@ export function __getValuesForInsert(value: any, sqlBuilder: HasIsValue): AnyTab
         return undefined
     }
     if (typeof value === 'object' && typeof value.__getValuesForInsert === 'function') {
-        return (value as HasAddWiths).__getValuesForInsert(sqlBuilder)
+        return (value as IQueryDataDiscovery).__getValuesForInsert(sqlBuilder)
     }
     return undefined
 }
@@ -96,12 +96,12 @@ export function __isAllowed(value: any, sqlBuilder: HasIsValue): boolean {
         return true
     }
     if (typeof value === 'object' && typeof value.__getValuesForInsert === 'function') {
-        return (value as HasAddWiths).__isAllowed(sqlBuilder)
+        return (value as IQueryDataDiscovery).__isAllowed(sqlBuilder)
     }
     return true
 }
 
-export interface __ITableOrViewPrivate extends HasAddWiths {
+export interface __ITableOrViewPrivate extends IQueryDataDiscovery {
     [isTableOrViewObject]: true
     __name: string
     __as?: string | undefined

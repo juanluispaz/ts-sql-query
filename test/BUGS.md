@@ -69,36 +69,7 @@ of that. Two minutes of triage and one paragraph is the bar.
 
 ---
 
-## SQL Server emits `convert(nvarchar, …)` with no length for uuid string ops — overflows on a non-null `uniqueidentifier`
-
-**Where**: `src/sqlBuilders/SqlServerSqlBuilder.ts` — every site that wraps a
-uuid-derived value in a string context emits `'convert(nvarchar, ' + … + ')'`
-with **no length**: `_appendSqlMaybeUuid` (used by `_trim*`, the `_substr*`
-family, `_stringConcat`), `_concat`, `_valueWhenNull`, `_fragment`,
-`_rawFragment`. Fires whenever the private `__uuidString` marker is set — i.e.
-`<uuidColumn>.asString()` and anything derived from it (dynamic conditions
-apply `.asString()` automatically when filtering a uuid through a `StringFilter`).
-
-**Reproduction**: the 8 `// TODO[BUG]`-wrapped tests in
-`test/db/sqlserver/newest/mssql/select.value-source.uuid-cast.test.ts`
-(`concat`, `trim`, `substring`, `as-valueWhenNull-value`, `stringConcat`,
-`in-typed-fragment`, `in-raw-fragment`, `through-cte`). Over the seeded
-non-null `uniqueidentifier` `tIssue.externalRef` (issues 1–2), e.g. concat
-emits `select convert(nvarchar, external_ref) + convert(nvarchar, external_ref) …`.
-Real SQL Server rejects it: **`Arithmetic overflow error converting expression
-to data type nvarchar`** (error 8115). `convert(nvarchar, …)` defaults to
-`nvarchar(30)`, and converting a `uniqueidentifier` to an nvarchar shorter than
-its 36-char text form **raises** (it does not truncate). Fix: emit
-`convert(nvarchar(36), …)` (or `convert(varchar(36), …)`). The convert over a
-NULL uuid does **not** overflow — which is why the `valueWhenNull-fallback`
-test (issue 3, NULL ref) and the insensitive-`like` family (no convert) stay
-live and green.
-
-**Current workaround in the suite**: the 8 convert-emitting tests are
-commented out behind `// TODO[BUG]` in the sqlserver `mssql` cell, with the full
-canonical body (the buggy `convert(nvarchar, …)` snapshot) preserved. Every
-other dialect runs them live. Once `src/` emits `convert(nvarchar(36), …)`,
-uncomment and re-bake the sqlserver snapshots.
+_None currently open._
 
 ---
 

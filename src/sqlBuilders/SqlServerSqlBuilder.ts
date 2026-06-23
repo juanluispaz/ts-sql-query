@@ -103,7 +103,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     }
     _appendSqlMaybeUuid(value: ToSql | AnyValueSource | IExecutableSelectQuery<any, any, any>, params: any[]): string {
         if (this._isUuid(value)) {
-            return 'convert(nvarchar, ' + this._appendSql(value, params, false) + ')'
+            return 'convert(nvarchar(36), ' + this._appendSql(value, params, false) + ')'
         } else {
             return this._appendSql(value, params, false)
         }
@@ -805,13 +805,13 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     override _valueWhenNull(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         let result = 'isnull('
         if (isValueSource(valueSource) && __getValueSourcePrivate(valueSource).__uuidString) {
-            result += 'convert(nvarchar, ' + this._appendSql(valueSource, params, false) + ')'
+            result += 'convert(nvarchar(36), ' + this._appendSql(valueSource, params, false) + ')'
         } else {
             result += this._appendSql(valueSource, params, false)
         }
         result += ', '
         if (isValueSource(value) && __getValueSourcePrivate(value).__uuidString) {
-            result += 'convert(nvarchar, ' + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, false) + ')'
+            result += 'convert(nvarchar(36), ' + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, false) + ')'
         } else {
             result += this._appendValue(value, params, columnType, columnTypeName, typeAdapter, false)
         }
@@ -954,13 +954,13 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     override _concat(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         let result = ''
         if (this._isUuid(valueSource)) {
-            result += 'convert(nvarchar, ' + this._appendSql(valueSource, params, false) + ')'
+            result += 'convert(nvarchar(36), ' + this._appendSql(valueSource, params, false) + ')'
         } else {
             result += this._appendSqlParenthesisExcluding(valueSource, params, '_concat', false)
         }
         result += ' + '
         if (this._isUuid(value)) {
-            result += 'convert(nvarchar, ' + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, false) + ')'
+            result += 'convert(nvarchar(36), ' + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, false) + ')'
         } else {
             result += this._appendValueParenthesisExcluding(value, params, columnType, columnTypeName, typeAdapter, '_concat', false)
         }
@@ -1249,13 +1249,20 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         case 'bigint':
         case 'customInt':
         case 'customDouble':
+            result = `'"' + convert(nvarchar, ` + this._appendSql(valueSource, params, false) + `) + '"'`
+            break
         case 'uuid':
         case 'customUuid':
-            result = `'"' + convert(nvarchar, ` + this._appendSql(valueSource, params, false) + `) + '"'`
+            // A uniqueidentifier's text form is 36 chars; the length-less
+            // convert defaults to nvarchar(30) and overflows. nvarchar(36)
+            // matches the upper-cased representation native FOR JSON emits.
+            result = `'"' + convert(nvarchar(36), ` + this._appendSql(valueSource, params, false) + `) + '"'`
             break
         case 'string':
         case 'aggregatedArray':
-            result = 'convert(nvarchar, ' + this._appendSql(valueSource, params, false) + ')'
+            // Strings are unbounded; the length-less convert defaults to
+            // nvarchar(30) and truncates. nvarchar(max) preserves the value.
+            result = 'convert(nvarchar(max), ' + this._appendSql(valueSource, params, false) + ')'
             result = 'string_escape(' + result + ", 'json')"
             result = `'"' + ` + result + ` + '"'`
             break
@@ -1269,7 +1276,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             result = `'"' + ` + result + ` + '"'`
             break
         default:
-            result = 'convert(nvarchar, ' + this._appendSql(valueSource, params, false) + ')'
+            result = 'convert(nvarchar(max), ' + this._appendSql(valueSource, params, false) + ')'
             result = 'string_escape(' + result + ", 'json')"
             result = `'"' + ` + result + ` + '"'`
         }
@@ -1329,13 +1336,20 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         case 'bigint':
         case 'customInt':
         case 'customDouble':
+            result = `'"' + convert(nvarchar, a_` + aggregateId + `_.` + this._escape(prop, true) + `) + '"'`
+            break
         case 'uuid':
         case 'customUuid':
-            result = `'"' + convert(nvarchar, a_` + aggregateId + `_.` + this._escape(prop, true) + `) + '"'`
+            // A uniqueidentifier's text form is 36 chars; the length-less
+            // convert defaults to nvarchar(30) and overflows. nvarchar(36)
+            // matches the upper-cased representation native FOR JSON emits.
+            result = `'"' + convert(nvarchar(36), a_` + aggregateId + `_.` + this._escape(prop, true) + `) + '"'`
             break
         case 'string':
         case 'aggregatedArray':
-            result = 'convert(nvarchar, a_' + aggregateId + '_.' + this._escape(prop, true) + ')'
+            // Strings are unbounded; the length-less convert defaults to
+            // nvarchar(30) and truncates. nvarchar(max) preserves the value.
+            result = 'convert(nvarchar(max), a_' + aggregateId + '_.' + this._escape(prop, true) + ')'
             result = 'string_escape(' + result + ", 'json')"
             result = `'"' + ` + result + ` + '"'`
             break
@@ -1349,7 +1363,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             result = `'"' + ` + result + ` + '"'`
             break
         default:
-            result = 'convert(nvarchar, a_' + aggregateId + '_.' + this._escape(prop, true) + ')'
+            result = 'convert(nvarchar(max), a_' + aggregateId + '_.' + this._escape(prop, true) + ')'
             result = 'string_escape(' + result + ", 'json')"
             result = `'"' + ` + result + ` + '"'`
         }
@@ -1369,7 +1383,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             result += sql[i]
             const value = sqlParams[i]!
             if (isValueSource(value) && __getValueSourcePrivate(value).__uuidString) {
-                result += 'convert(nvarchar, ' + this._appendConditionSql(sqlParams[i]!, params, false) + ')'
+                result += 'convert(nvarchar(36), ' + this._appendConditionSql(sqlParams[i]!, params, false) + ')'
             } else {
                 result += this._appendConditionSql(sqlParams[i]!, params, false)
             }
@@ -1386,7 +1400,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             result += sql[i]
             const value = sqlParams[i]!
             if (isValueSource(value) && __getValueSourcePrivate(value).__uuidString) {
-                result += 'convert(nvarchar, ' + this._appendSql(sqlParams[i]!, params, false) + ')'
+                result += 'convert(nvarchar(36), ' + this._appendSql(sqlParams[i]!, params, false) + ')'
             } else {
                 result += this._appendSql(sqlParams[i]!, params, false)
             }

@@ -4,7 +4,7 @@
 //
 // `.asString()` erases the value type from `uuid` to `string` but keeps a
 // private marker so SQL Server can still wrap the value in
-// `convert(nvarchar, …)` wherever a `uniqueidentifier` would otherwise be
+// `convert(nvarchar(36), …)` wherever a `uniqueidentifier` would otherwise be
 // fed to a string function (concat, trim, substring, string_agg,
 // valueWhenNull, typed/raw fragments) — and skip the `lower(…)`/collation
 // on the insensitive `like` family (a `uniqueidentifier` already compares

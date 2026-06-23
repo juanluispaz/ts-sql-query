@@ -2535,7 +2535,7 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push(`select id as id, name as name, (select concat('[', string_agg(concat('{', '"id": ', convert(nvarchar, id), ', "firstName": ', '"' + string_escape(convert(nvarchar, first_name), 'json') + '"', ', "lastName": ', '"' + string_escape(convert(nvarchar, last_name), 'json') + '"', '}'), ','), ']') as [result] from customer where company_id = company.id) as customers from company where id = @0`)
+    expectedQuery.push(`select id as id, name as name, (select concat('[', string_agg(concat('{', '"id": ', convert(nvarchar, id), ', "firstName": ', '"' + string_escape(convert(nvarchar(max), first_name), 'json') + '"', ', "lastName": ', '"' + string_escape(convert(nvarchar(max), last_name), 'json') + '"', '}'), ','), ']') as [result] from customer where company_id = company.id) as customers from company where id = @0`)
     expectedParams.push(`[1]`)
     expectedType.push(`selectOneRow`)
 
@@ -2573,7 +2573,7 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push(`select company.id as id, company.name as name, concat('[', string_agg(concat('{', '"id": ', isnull(convert(nvarchar, customer.id), 'null'), ', "firstName": ', isnull('"' + string_escape(convert(nvarchar, customer.first_name), 'json') + '"', 'null'), ', "lastName": ', isnull('"' + string_escape(convert(nvarchar, customer.last_name), 'json') + '"', 'null'), '}'), ','), ']') as customers from company left join customer on customer.company_id = company.id where company.id = @0 group by company.id`)
+    expectedQuery.push(`select company.id as id, company.name as name, concat('[', string_agg(concat('{', '"id": ', isnull(convert(nvarchar, customer.id), 'null'), ', "firstName": ', isnull('"' + string_escape(convert(nvarchar(max), customer.first_name), 'json') + '"', 'null'), ', "lastName": ', isnull('"' + string_escape(convert(nvarchar(max), customer.last_name), 'json') + '"', 'null'), '}'), ','), ']') as customers from company left join customer on customer.company_id = company.id where company.id = @0 group by company.id`)
     expectedParams.push(`[1]`)
     expectedType.push(`selectOneRow`)
 
@@ -2608,7 +2608,7 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push(`select id as id, name as name, (select concat('[', string_agg('"' + string_escape(convert(nvarchar, first_name + @0 + last_name), 'json') + '"', ','), ']') as [result] from customer where company_id = company.id) as customers from company where id = @1`)
+    expectedQuery.push(`select id as id, name as name, (select concat('[', string_agg('"' + string_escape(convert(nvarchar(max), first_name + @0 + last_name), 'json') + '"', ','), ']') as [result] from customer where company_id = company.id) as customers from company where id = @1`)
     expectedParams.push(`[" ",1]`)
     expectedType.push(`selectOneRow`)
 
@@ -2642,7 +2642,7 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push(`select company.id as id, company.name as name, concat('[', string_agg(isnull('"' + string_escape(convert(nvarchar, customer.first_name + @0 + customer.last_name), 'json') + '"', 'null'), ','), ']') as customers from company left join customer on customer.company_id = company.id where company.id = @1 group by company.id`)
+    expectedQuery.push(`select company.id as id, company.name as name, concat('[', string_agg(isnull('"' + string_escape(convert(nvarchar(max), customer.first_name + @0 + customer.last_name), 'json') + '"', 'null'), ','), ']') as customers from company left join customer on customer.company_id = company.id where company.id = @1 group by company.id`)
     expectedParams.push(`[" ",1]`)
     expectedType.push(`selectOneRow`)
 
@@ -2831,7 +2831,7 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push(`select id as id, name as name, (select concat('[', string_agg('"' + string_escape(convert(nvarchar, first_name + @0 + last_name), 'json') + '"', ','), ']') from customer where company_id = company.id) as customers from company where id = @1`)
+    expectedQuery.push(`select id as id, name as name, (select concat('[', string_agg('"' + string_escape(convert(nvarchar(max), first_name + @0 + last_name), 'json') + '"', ','), ']') from customer where company_id = company.id) as customers from company where id = @1`)
     expectedParams.push(`[" ",1]`)
     expectedType.push(`selectOneRow`)
 
@@ -2865,7 +2865,7 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push(`select id as id, name as name, (select concat('[', string_agg('"' + string_escape(convert(nvarchar, a_1_.[result]), 'json') + '"', ','), ']') from (select first_name + @0 + last_name as [result] from customer where company_id = company.id order by [result] offset 0 rows) as a_1_) as customers from company where id = @1`)
+    expectedQuery.push(`select id as id, name as name, (select concat('[', string_agg('"' + string_escape(convert(nvarchar(max), a_1_.[result]), 'json') + '"', ','), ']') from (select first_name + @0 + last_name as [result] from customer where company_id = company.id order by [result] offset 0 rows) as a_1_) as customers from company where id = @1`)
     expectedParams.push(`[" ",1]`)
     expectedType.push(`selectOneRow`)
 
@@ -2992,7 +2992,7 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push(`select id as id, name as name, (select concat('[', string_agg('"' + string_escape(convert(nvarchar, a_1_.[result]), 'json') + '"', ','), ']') from (select first_name + @0 + last_name as [result] from customer where company_id = company.id union select first_name + @1 + last_name as [result] from customer where company_id = company.id) as a_1_) as customers from company where id = @2`)
+    expectedQuery.push(`select id as id, name as name, (select concat('[', string_agg('"' + string_escape(convert(nvarchar(max), a_1_.[result]), 'json') + '"', ','), ']') from (select first_name + @0 + last_name as [result] from customer where company_id = company.id union select first_name + @1 + last_name as [result] from customer where company_id = company.id) as a_1_) as customers from company where id = @2`)
     expectedParams.push(`[" "," ",1]`)
     expectedType.push(`selectOneRow`)
 
@@ -3031,7 +3031,7 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push(`select id as id, name as name, (select concat('[', string_agg('"' + string_escape(convert(nvarchar, a_1_.[result]), 'json') + '"', ','), ']') from (select first_name + @0 + last_name as [result] from customer where company_id = company.id union select first_name + @1 + last_name as [result] from customer where company_id = company.id order by [result] offset 0 rows) as a_1_) as customers from company where id = @2`)
+    expectedQuery.push(`select id as id, name as name, (select concat('[', string_agg('"' + string_escape(convert(nvarchar(max), a_1_.[result]), 'json') + '"', ','), ']') from (select first_name + @0 + last_name as [result] from customer where company_id = company.id union select first_name + @1 + last_name as [result] from customer where company_id = company.id order by [result] offset 0 rows) as a_1_) as customers from company where id = @2`)
     expectedParams.push(`[" "," ",1]`)
     expectedType.push(`selectOneRow`)
 
@@ -3268,7 +3268,7 @@ async function main() {
 
     result = { records: [{ id: '89bf68fc-7002-11ec-90d6-0242ac120003', title: 'My voice memo' }] }
     expectedResult.push(result)
-    expectedQuery.push(`select concat('[', string_agg(concat('{', '"id": ', '"' + convert(nvarchar, id) + '"', ', "title": ', '"' + string_escape(convert(nvarchar, title), 'json') + '"', '}'), ','), ']') as records from record where id like ('%' + @0 + '%')`)
+    expectedQuery.push(`select concat('[', string_agg(concat('{', '"id": ', '"' + convert(nvarchar(36), id) + '"', ', "title": ', '"' + string_escape(convert(nvarchar(max), title), 'json') + '"', '}'), ','), ']') as records from record where id like ('%' + @0 + '%')`)
     expectedParams.push(`["7002"]`)
     expectedType.push(`selectOneRow`)
 
@@ -4407,7 +4407,7 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push(`select id as id, name as name, parent_id as parentId, (select concat('[', string_agg(concat('{', '"id": ', convert(nvarchar, id), ', "firstName": ', '"' + string_escape(convert(nvarchar, first_name), 'json') + '"', ', "lastName": ', '"' + string_escape(convert(nvarchar, last_name), 'json') + '"', ', "birthday": ', isnull('"' + convert(nvarchar, birthday, 127) + '"', 'null'), '}'), ','), ']') as [result] from customer where company_id = company.id) as customers from company where id = @0`)
+    expectedQuery.push(`select id as id, name as name, parent_id as parentId, (select concat('[', string_agg(concat('{', '"id": ', convert(nvarchar, id), ', "firstName": ', '"' + string_escape(convert(nvarchar(max), first_name), 'json') + '"', ', "lastName": ', '"' + string_escape(convert(nvarchar(max), last_name), 'json') + '"', ', "birthday": ', isnull('"' + convert(nvarchar, birthday, 127) + '"', 'null'), '}'), ','), ']') as [result] from customer where company_id = company.id) as customers from company where id = @0`)
     expectedParams.push(`[1]`)
     expectedType.push(`selectOneRow`)
 
@@ -4470,7 +4470,7 @@ async function main() {
             { id: 3, firstName: 'Jane', lastName: 'Doe' }
         ]
     })
-    expectedQuery.push(`select id as id, name as name, parent_id as parentId, (select concat('[', string_agg(concat('{', '"id": ', convert(nvarchar, id), ', "firstName": ', '"' + string_escape(convert(nvarchar, first_name), 'json') + '"', ', "lastName": ', '"' + string_escape(convert(nvarchar, last_name), 'json') + '"', ', "birthday": ', isnull('"' + convert(nvarchar, birthday, 127) + '"', 'null'), '}'), ','), ']') as [result] from customer where company_id = company.id) as customers from company where id = @0`)
+    expectedQuery.push(`select id as id, name as name, parent_id as parentId, (select concat('[', string_agg(concat('{', '"id": ', convert(nvarchar, id), ', "firstName": ', '"' + string_escape(convert(nvarchar(max), first_name), 'json') + '"', ', "lastName": ', '"' + string_escape(convert(nvarchar(max), last_name), 'json') + '"', ', "birthday": ', isnull('"' + convert(nvarchar, birthday, 127) + '"', 'null'), '}'), ','), ']') as [result] from customer where company_id = company.id) as customers from company where id = @0`)
     expectedParams.push(`[1]`)
     expectedType.push(`selectOneRow`)
 

@@ -139,7 +139,14 @@ bulk-inserted by [`build.ts`](build.ts) (which also writes the `meta` table dire
   **`commented`** flag (`implements` commented out in source, `/*Name,*/`, captured so a
   deliberate gap is distinguishable from a forgotten one) and a **`simplified`** flag
   (synthesised edges linking a builder to the simplified def it realizes — see *Three
-  tricky patterns* §3). Real analyses filter `commented=0 AND simplified=0`.
+  tricky patterns* §3). Real analyses filter `commented=0 AND simplified=0`. A **type alias
+  that composes named types** (`type AB = A & B`, `type X = AbstractConnection<DB>`) emits the
+  same `extends` edges from the alias to each top-level constituent (`emitAliasComposition`),
+  and inline object-literal parts (`type Y = A & { x }`) contribute their members to the alias
+  — so the surface/heritage closure flows THROUGH a `kind='type'` node instead of dead-ending on
+  it (an `interface Foo extends AB` / `class C implements AB` reaches A's and B's members).
+  Unions, mapped and conditional types carry no statically-knowable base/member set and are left
+  alone; edges to TS-lib / unindexed names join nothing downstream (a harmless no-op).
 - **reconcile** / **reconcile_gap** — the hand-maintained SIMPLIFIED definitions the docs
   render, mapped to the real code with a public-member diff (drift radar). `via`
   (`class`=collapsing query defs via a curated subtree map · `name`=same-name real symbol)

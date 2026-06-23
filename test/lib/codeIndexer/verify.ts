@@ -64,6 +64,15 @@ async function main(): Promise<void> {
     const symbolIds = new Set(src.symbols.map(s => s.id))
     allIn('member.symbol_id → symbol', src.members.map(m => m.symbol_id), symbolIds)
     allIn('heritage.symbol_id → symbol', src.heritage.map(h => h.symbol_id), symbolIds)
+
+    // ── composite type aliases feed the heritage closure (extractSrc.emitAliasComposition) ──
+    // `type AB = A & B` (and a simple alias `type X = Y`) decomposes into synthetic `extends` edges so an
+    // `interface Foo extends AB` / `class C implements AB` reaches A's and B's members through the
+    // surface/heritage closure instead of dead-ending on the member-less alias node. The `Connection`
+    // alias (= AbstractConnection<DB>) guarantees at least one such edge.
+    const typeAliasIds = new Set(src.symbols.filter(s => s.kind === 'type').map(s => s.id))
+    check('composite type aliases emit heritage edges', src.heritage.some(h => typeAliasIds.has(h.symbol_id)),
+        `${src.heritage.filter(h => typeAliasIds.has(h.symbol_id)).length}`)
     allIn('test_ref.test_block_id → test_block', tests.testRefs.map(r => r.test_block_id), new Set(tests.testBlocks.map(b => b.id)))
     allIn('doc_test_ref.doc_test_block_id → doc_test_block', docs.docTestRefs.map(r => r.doc_test_block_id), new Set(docs.docTestBlocks.map(b => b.id)))
     allIn('example_ref.example_block_id → example_block', examples.exampleRefs.map(r => r.example_block_id), new Set(examples.exampleBlocks.map(b => b.id)))

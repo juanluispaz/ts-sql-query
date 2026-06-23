@@ -201,6 +201,53 @@ function emitHeritage(node: ts.InterfaceDeclaration | ts.ClassDeclaration, symbo
     }
 }
 
+// A type alias can COMPOSE other types — `type AB = A & B`, `type X = AbstractConnection<DB>`,
+// `type Y = A & { x: number }`. emitHeritage covers interface/class `extends`/`implements`; this is the
+// alias counterpart, so the surface/heritage closure (which follows base_name → symbol.name with no
+// relation filter) can flow THROUGH the alias instead of dead-ending on a member-less `type` node — the
+// shape every `interface Foo extends AB` / `class C implements AB` relies on. We read the alias's type
+// node at its TOP LEVEL only (the same shallow stance emitHeritage takes — head identifiers, no deep
+// resolution; multi-hop composition `type ABC = AB & C` resolves through the closure, one alias per hop):
+//   - a named constituent (TypeReferenceNode) → a synthetic `extends` edge keyed on its head identifier.
+//     Generic ARGUMENTS are dropped (`A<string>`, `A<T>`, `A` all → `A`; `ns.A` → `A`), so the closure
+//     reaches that type's declared members regardless of instantiation — the index is name-based and never
+//     substitutes type args (a reached member's signature shows `T` as declared, not the resolved type).
+//     A generic alias transmitting its parameter to a NAMED base (`type AB<T> = A<T> & B<T>`) still links
+//     to A/B. Edges to TS-lib / unindexed names (`Partial`, `Array`, …) join nothing downstream — a
+//     harmless no-op.
+//   - a BARE TYPE PARAMETER used as a constituent (`type W<T> = T & Extra`) is SKIPPED: `T` is not a
+//     declared symbol, so what it contributes is unresolvable by a name-based index (it would need
+//     per-use-site instantiation, which we deliberately don't do), and an edge to `T` could falsely join a
+//     same-named real symbol. The named parts (`Extra`) still resolve.
+//   - an inline object type (TypeLiteralNode) → its members, emitted onto the alias itself, so the part
+//     that has no name still contributes its surface.
+// Nested intersections are flattened; any other shape (union, mapped, conditional, keyword, indexed
+// access, …) carries no statically-knowable base/member set here and is left alone.
+function emitAliasComposition(
+    node: ts.TypeAliasDeclaration, symbolId: number,
+    members: MemberRow[], heritage: HeritageRow[], ids: Ids, sf: ts.SourceFile, declMap: DeclMap,
+): void {
+    const typeParams = new Set((node.typeParameters ?? []).map(p => p.name.text))
+    const unwrap = (t: ts.TypeNode): ts.TypeNode => { while (ts.isParenthesizedTypeNode(t)) t = t.type; return t }
+    const parts: ts.TypeNode[] = []
+    const collect = (t: ts.TypeNode): void => {
+        const u = unwrap(t)
+        if (ts.isIntersectionTypeNode(u)) u.types.forEach(collect)
+        else parts.push(u)
+    }
+    collect(node.type)
+    for (const part of parts) {
+        if (ts.isTypeReferenceNode(part)) {
+            const tn = part.typeName
+            const base = ts.isIdentifier(tn) ? tn.text : tn.right.text   // EntityName = Identifier | QualifiedName
+            if (typeParams.has(base)) continue                           // a bare type parameter, not a declared type — unresolvable by name
+            heritage.push({ symbol_id: symbolId, base_name: base, relation: 'extends', commented: 0, simplified: 0 })
+        } else if (ts.isTypeLiteralNode(part)) {
+            emitMembers(part.members, symbolId, sf, members, ids, declMap)
+        }
+    }
+}
+
 // Walk one source file's full AST recording call sites as edges `enclosing-scope →
 // callee`. Enclosing scope is the nearest NAMED function / method / accessor / class;
 // module top-level when none. callee_name is the literal identifier/member name (the
@@ -302,10 +349,11 @@ function walkModule(
         let name: string | null = null
         let kind: string | null = null
         let decl: ts.InterfaceDeclaration | ts.ClassDeclaration | null = null
+        let aliasNode: ts.TypeAliasDeclaration | null = null
 
         if (ts.isInterfaceDeclaration(node)) { name = node.name.text; kind = 'interface'; decl = node }
         else if (ts.isClassDeclaration(node) && node.name) { name = node.name.text; kind = 'class'; decl = node }
-        else if (ts.isTypeAliasDeclaration(node)) { name = node.name.text; kind = 'type' }
+        else if (ts.isTypeAliasDeclaration(node)) { name = node.name.text; kind = 'type'; aliasNode = node }
         else if (ts.isEnumDeclaration(node)) { name = node.name.text; kind = 'enum' }
         else if (ts.isFunctionDeclaration(node) && node.name) { name = node.name.text; kind = 'function' }
         else if (ts.isModuleDeclaration(node) && node.body && ts.isModuleBlock(node.body)) {
@@ -345,6 +393,8 @@ function walkModule(
         if (decl) {
             emitMembers(decl.members, symId, sf, members, ids, declMap)
             emitHeritage(decl, symId, heritage, sf)
+        } else if (aliasNode) {
+            emitAliasComposition(aliasNode, symId, members, heritage, ids, sf, declMap)
         }
     }
 

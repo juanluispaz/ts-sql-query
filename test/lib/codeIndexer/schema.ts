@@ -63,7 +63,7 @@ CREATE TABLE member (
 
 CREATE TABLE heritage (
     symbol_id INTEGER NOT NULL REFERENCES symbol(id),
-    base_name TEXT NOT NULL,                -- extended/implemented type name (head identifier)
+    base_name TEXT NOT NULL,                -- extended/implemented type name (head identifier). Also each top-level named constituent of a COMPOSITE TYPE ALIAS (type AB = A & B yields an extends edge to A and to B), so the closure flows through the alias (emitAliasComposition).
     relation  TEXT NOT NULL,                -- extends|implements
     commented INTEGER NOT NULL,             -- 1 when the implements entry is commented out (/*Name<…>,*/) — a DELIBERATE gap (a type too complex for the compiler); these would otherwise be invisible. Closure/coverage uses commented=0; commented=1 marks "accounted for, not forgotten".
     simplified INTEGER NOT NULL             -- 1 when this is a SYNTHESISED edge: the class realizes a SIMPLIFIED definition (base_name is a simplified def name, area='simplified'), injected from the reconcile map so the simplified def shows up as "another implemented interface". Real analyses filter simplified=0 (like commented=0).

@@ -14,10 +14,16 @@ INSERT INTO project (id, organization_id, name, slug, published) VALUES (2, 1, '
 INSERT INTO project (id, organization_id, name, slug, published) VALUES (3, 2, 'Public API',      'public-api', 't');
 INSERT INTO project (id, organization_id, name, slug, published, archived_at) VALUES (4, 2, 'Legacy app', 'legacy', 'f', CURRENT_TIMESTAMP);
 
-INSERT INTO issue (id, project_id, "number", title, "body", status, priority, assignee_id) VALUES
-    (1, 1, 1, 'Update hero copy',     NULL,            'open',        2, 1);
-INSERT INTO issue (id, project_id, "number", title, "body", status, priority, assignee_id) VALUES
-    (2, 1, 2, 'Redesign navbar',      'Use new tokens', 'in_progress', 1, 2);
+-- Issues 1 and 2 carry a uuid `external_ref`; 3 and 4 leave it NULL. The
+-- column is RAW(16), so the seed stores the uuid via UUID_TO_RAW — the same
+-- built-in the default uuid strategy uses (RAW_TO_UUID reads it back). Both
+-- values are UUID v4, which UUID_TO_RAW requires. The two uuids differ in
+-- every substring the insensitive-`like` tests probe and neither contains the
+-- `abc` token the dynamic-condition tests filter on.
+INSERT INTO issue (id, project_id, "number", title, "body", status, priority, assignee_id, external_ref) VALUES
+    (1, 1, 1, 'Update hero copy',     NULL,            'open',        2, 1,    UUID_TO_RAW('0a8f9c1e-1111-4222-8333-444455556666'));
+INSERT INTO issue (id, project_id, "number", title, "body", status, priority, assignee_id, external_ref) VALUES
+    (2, 1, 2, 'Redesign navbar',      'Use new tokens', 'in_progress', 1, 2,   UUID_TO_RAW('7b3e9d20-2222-4c55-9b66-dddd00009999'));
 INSERT INTO issue (id, project_id, "number", title, "body", status, priority, assignee_id) VALUES
     (3, 2, 1, 'Migrate to ESM',       NULL,            'open',        3, NULL);
 INSERT INTO issue (id, project_id, "number", title, "body", status, priority, assignee_id) VALUES

@@ -373,9 +373,12 @@ export interface SqlFunctionStatic1 {
     _escapeLikeWildcard(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string
 }
 
-export interface SqlFunction0 {
+export interface SqlBoolean0 {
     // Boolean
     _negate(params: any[], valueSource: ToSql): string
+}
+
+export interface SqlFunction0 {
     // String
     _toLowerCase(params: any[], valueSource: ToSql): string
     _toUpperCase(params: any[], valueSource: ToSql): string
@@ -420,12 +423,15 @@ export interface SqlFunction0 {
     _prior(params: any[], valueSource: ToSql): string
 }
 
-export interface SqlFunction1 {
-    _valueWhenNull(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
-    _nullIfValue(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+export interface SqlBoolean1 {
     // Boolean
     _and(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
     _or(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+}
+
+export interface SqlFunction1 {
+    _valueWhenNull(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _nullIfValue(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
     // String
     _concat(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
     _substrToEnd(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
@@ -490,10 +496,10 @@ export interface SqlOperationStatic0 extends SqlFunctionStatic0 {
 export interface SqlOperationStatic1 extends SqlFunctionStatic1 {
 }
 
-export interface SqlOperation0 extends SqlComparator0, SqlFunction0 {
+export interface SqlOperation0 extends SqlComparator0, SqlBoolean0, SqlFunction0 {
 }
 
-export interface SqlOperation1 extends SqlComparator1, SqlFunction1 {
+export interface SqlOperation1 extends SqlComparator1, SqlBoolean1, SqlFunction1 {
 }
 
 export interface SqlOperation2 extends SqlComparator2, SqlFunction2 {

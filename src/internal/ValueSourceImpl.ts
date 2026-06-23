@@ -1,4 +1,4 @@
-import type { SqlBuilder, SqlOperationStatic0, SqlOperationStatic1, SqlOperation1, SqlOperation2, ToSql, HasOperation, SqlSequenceOperation, SqlFragmentOperation, AggregateFunctions0, AggregateFunctions1, AggregateFunctions1or2, SqlFunction0, SqlComparator0, SelectData } from '../sqlBuilders/SqlBuilder.js'
+import type { SqlBuilder, SqlOperationStatic0, SqlOperationStatic1, SqlOperation1, SqlOperation2, ToSql, HasOperation, SqlSequenceOperation, SqlFragmentOperation, AggregateFunctions0, AggregateFunctions1, AggregateFunctions1or2, SqlFunction0, SqlComparator0, SelectData, SqlBoolean0 } from '../sqlBuilders/SqlBuilder.js'
 import { hasToSql } from '../sqlBuilders/SqlBuilder.js'
 import type { BooleanValueSource, NumberValueSource, StringValueSource, IValueSource, NullableValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, __ValueSourcePrivate, IfValueSource, BigintValueSource, AlwaysIfValueSource, IAnyBooleanValueSource, AnyValueSource, ValueSource, OptionalType, IAggregatedArrayValueSource, AggregatedArrayValueSource, __AggregatedArrayColumns, __AggregatedArrayMode, UuidValueSource, AggregatedArrayValueSourceProjectableAsNullable, ValueType, CustomIntValueSource, CustomDoubleValueSource, CustomUuidValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource, CustomLocalDateTimeValueSource } from '../expressions/values.js'
 import { isValueSource } from '../expressions/values.js'
@@ -925,9 +925,9 @@ export class SqlOperationConstValueSource extends ValueSourceImpl implements Has
 
 export class SqlOperation0ValueSource extends ValueSourceImpl implements HasOperation {
     __valueSource: ValueSourceImpl
-    __operation: keyof SqlFunction0
+    __operation: keyof SqlFunction0 | keyof SqlBoolean0
 
-    constructor(operation: keyof SqlFunction0, valueSource: ValueSourceImpl, valueType: ValueType, valueTypeName: string, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
+    constructor(operation: keyof SqlFunction0 | keyof SqlBoolean0, valueSource: ValueSourceImpl, valueType: ValueType, valueTypeName: string, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
         super(valueType, valueTypeName, optionalType, typeAdapter)
         this.__valueSource = valueSource
         this.__operation = operation

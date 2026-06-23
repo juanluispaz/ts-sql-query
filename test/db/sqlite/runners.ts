@@ -107,6 +107,20 @@ export interface SqliteTestContext extends TestContext<DBConnection> {
     withUuidStrategy(strategy: 'string' | 'uuid-extension'): DBConnection
     /** A `DBConnection` whose `getDateTimeFormat()` is pinned to `format`. */
     withDateTimeFormat(format: SqliteDateTimeFormat): DBConnection
+    /**
+     * A `DBConnection` whose `getDateTimeFormat()` is pinned to `format`
+     * AND whose "unexpected value" detection flags are pinned — the
+     * defensive branches `SqliteConnection.transformValueFromDB` takes
+     * when the value the db hands back does not match the configured
+     * format (a number under a text format, a string under a numeric
+     * format). A real engine in `format` never returns the mismatched
+     * type, so these branches are only reachable through the mock.
+     */
+    withDateTimeFlags(format: SqliteDateTimeFormat, flags: {
+        treatUnexpectedIntegerDateTimeAsJulian?: boolean
+        treatUnexpectedStringDateTimeAsUTC?: boolean
+        unexpectedUnixDateTimeAreMilliseconds?: boolean
+    }): DBConnection
 }
 
 /**
@@ -133,6 +147,19 @@ function decorateSqliteContext(base: TestContext<DBConnection>): SqliteTestConte
         withDateTimeFormat(format: SqliteDateTimeFormat): DBConnection {
             class C extends DBConnection {
                 protected override getDateTimeFormat(): SqliteDateTimeFormat { return format }
+            }
+            return new C(base.conn.queryRunner)
+        },
+        withDateTimeFlags(format: SqliteDateTimeFormat, flags: {
+            treatUnexpectedIntegerDateTimeAsJulian?: boolean
+            treatUnexpectedStringDateTimeAsUTC?: boolean
+            unexpectedUnixDateTimeAreMilliseconds?: boolean
+        }): DBConnection {
+            class C extends DBConnection {
+                protected override getDateTimeFormat(): SqliteDateTimeFormat { return format }
+                protected override treatUnexpectedIntegerDateTimeAsJulian = flags.treatUnexpectedIntegerDateTimeAsJulian ?? false
+                protected override treatUnexpectedStringDateTimeAsUTC = flags.treatUnexpectedStringDateTimeAsUTC ?? false
+                protected override unexpectedUnixDateTimeAreMilliseconds = flags.unexpectedUnixDateTimeAreMilliseconds ?? false
             }
             return new C(base.conn.queryRunner)
         },

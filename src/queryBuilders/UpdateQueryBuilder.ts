@@ -824,7 +824,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         this.__query = ''
         if (this.__lastJoin) {
             if (this.__lastJoin.__on) {
-                this.__lastJoin.__on = this.__lastJoin.__on.and(asAlwaysIfValueSource(condition))
+                this.__lastJoin.__on = this.__lastJoin.__on.or(asAlwaysIfValueSource(condition))
             } else {
                 this.__lastJoin.__on = asAlwaysIfValueSource(condition)
             }

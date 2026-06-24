@@ -67,45 +67,7 @@ of that. Two minutes of triage and one paragraph is the bar.
 
 ## Open Bugs
 
----
-
-## `.or(...)` on a DELETE/UPDATE join `on`-clause emits `AND` instead of `OR`
-
-**Where**: `DeleteQueryBuilder.or` at `src/queryBuilders/DeleteQueryBuilder.ts:251`
-and `UpdateQueryBuilder.or` at `src/queryBuilders/UpdateQueryBuilder.ts:827`.
-Both, in the `this.__lastJoin.__on` branch, call
-`this.__lastJoin.__on.and(...)` instead of `.or(...)`. The sibling
-`SelectQueryBuilder.or` at `src/queryBuilders/SelectQueryBuilder.ts:921`
-correctly uses `.or(...)` in the same branch, and the matching `and(...)`
-methods on all three builders are correct — so this is a copy-paste slip
-isolated to the `or` overrides of the DELETE and UPDATE builders.
-
-**Reproduction**: a multi-table DELETE (MariaDB/MySQL/SqlServer/Oracle —
-the dialects where `innerJoin` on DELETE is typed) whose join predicate is
-built with `.dynamicOn().or(a).or(b)`:
-
-```ts
-ctx.conn.deleteFrom(tIssue)
-    .innerJoin(tProject).dynamicOn()
-        .or(tProject.id.equals(tIssue.projectId))
-        .or(tProject.slug.equals('never-matches'))
-    .where(tProject.slug.equals('mktg-site'))
-    .executeDelete()
-```
-
-Emits `... inner join project on project.id = issue.project_id and project.slug = ? where ...`
-(an `and`). Verified against real MariaDB 12.3.2 (`--docker`): with the
-spurious `and project.slug = 'never-matches'` no project row joins, so the
-DELETE removes **0** rows; the intended `or` form would delete the 2
-`mktg-site` issues. Same defect path on `UPDATE ... join ... or(...)`.
-
-**Current workaround in the suite**: the test
-`delete-with-dynamic-on-builds-compound-join-condition-via-or` in
-`test/db/mariadb/newest/mariadb/delete.join.test.ts` (and the symmetric
-NOT-APPLICABLE copies in the other DELETE-join cells) is block-commented
-with `// TODO[BUG]: see test/BUGS.md` preserving the full canonical body.
-
----
+_None currently open._
 
 ## Common bug shapes (for the fixing agent)
 

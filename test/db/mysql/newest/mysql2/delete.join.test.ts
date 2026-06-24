@@ -134,10 +134,6 @@ describe(ctx.label, () => {
         })
     })
 
-    // TODO[BUG]: see test/BUGS.md — `.or(...)` on a DELETE join on-clause emits `AND` instead of `OR`
-    // (DeleteQueryBuilder.or uses `__lastJoin.__on.and(...)`), so the real DELETE removes 0 rows
-    // instead of 2. Body below is what the corrected builder would run.
-    /*
     test('delete-with-dynamic-on-builds-compound-join-condition-via-or', async () => {
         // `innerJoin(...).dynamicOn()` opens an empty join predicate that
         // the following `.or(...)` calls accumulate into the JOIN's `on`
@@ -167,5 +163,4 @@ describe(ctx.label, () => {
             expect(affected).toBe(2)
         })
     })
-    */
 })

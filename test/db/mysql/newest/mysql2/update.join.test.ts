@@ -18,7 +18,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tProject } from '../../domain/connection.js'
+import { tAppUser, tIssue, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -122,4 +122,69 @@ describe(ctx.label, () => {
             }
         })
     })
+
+    test('update-with-left-join-targets-rows-with-no-match', async () => {
+        // Anti-join update: LEFT JOIN the assignee onto each issue and
+        // bump the priority of the rows where no user matched
+        // (`assignee_id` is NULL). Pins the `leftJoin(...).on(...)` setter
+        // branch on UPDATE, which the `innerJoin` tests above don't reach.
+        // Seed: issue 3 has `assignee_id = NULL` (unassigned); issues 1,
+        // 2, 4 are assigned → exactly 1 row updated on real DB.
+        ctx.mockNext(1)
+
+        await ctx.withRollback(async () => {
+            const tAssignee = tAppUser.forUseInLeftJoin()
+            const affected = await ctx.conn.update(tIssue)
+                .leftJoin(tAssignee).on(tAssignee.id.equals(tIssue.assigneeId))
+                .set({ priority: 9 })
+                .where(tAssignee.id.isNull())
+                .executeUpdate()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue left join app_user on app_user.id = issue.assignee_id set issue.priority = ? where app_user.id is null"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                9,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(1)
+        })
+    })
+
+    // TODO[BUG]: see test/BUGS.md — `.or(...)` on an UPDATE join on-clause emits `AND` instead of `OR`
+    // (UpdateQueryBuilder.or uses `__lastJoin.__on.and(...)`), so the real UPDATE touches 0 rows
+    // instead of 2. Body below is what the corrected builder would run.
+    /*
+    test('update-with-dynamic-on-builds-compound-join-condition-via-or', async () => {
+        // `innerJoin(...).dynamicOn()` opens an empty join predicate that
+        // the following `.or(...)` calls accumulate into the JOIN's `on`
+        // clause (not the outer WHERE). Pins the `dynamicOn()` branch plus
+        // the `or(...)`-on-`__lastJoin` branch on UPDATE. The compound
+        // predicate matches a project when EITHER its id pairs with the
+        // issue OR its slug is 'never-matches'; combined with the WHERE it
+        // updates issues of the 'mktg-site' project (issues 1, 2) → 2 rows.
+        ctx.mockNext(2)
+
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.update(tIssue)
+                .innerJoin(tProject).dynamicOn()
+                    .or(tProject.id.equals(tIssue.projectId))
+                    .or(tProject.slug.equals('never-matches'))
+                .set({ priority: 5 })
+                .where(tProject.slug.equals('mktg-site'))
+                .executeUpdate()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue inner join project on project.id = issue.project_id or project.slug = ? set issue.priority = ? where project.slug = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "never-matches",
+                5,
+                "mktg-site",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(2)
+        })
+    })
+    */
 })

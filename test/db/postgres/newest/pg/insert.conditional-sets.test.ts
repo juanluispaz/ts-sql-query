@@ -403,6 +403,45 @@ describe(ctx.label, () => {
         })
     })
 
+    test('multi-row-ignore-if-has-no-value-routes-per-row', async () => {
+        // Multi-row branch of `ignoreIfHasNoValue` (distinct from the
+        // `ignoreIfHasValue` multi-row branch above — same `.values([...])`
+        // shape, opposite gate). Per-row delete decisions: row 0's `body`
+        // is null → dropped; row 1's `body` has value → kept. The dropped
+        // column is nullable so the unioned INSERT stays valid. Two rows
+        // are inserted regardless of the per-row pruning.
+        ctx.mockNext(2)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.insertInto(tIssue)
+                .values([
+                    { projectId: 1, number: 220, title: 'A', body: null,             status: 'open', priority: 1 },
+                    { projectId: 1, number: 221, title: 'B', body: 'Use new tokens', status: 'open', priority: 1 },
+                ])
+                .ignoreIfHasNoValue('body')
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, body) values ($1, $2, $3, $4, $5, $6), ($7, $8, $9, $10, $11, $12)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                220,
+                "A",
+                "open",
+                1,
+                null,
+                1,
+                221,
+                "B",
+                "open",
+                1,
+                "Use new tokens",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(2)
+        })
+    })
+
     test('multi-row-ignore-any-set-with-no-value-prunes-per-row', async () => {
         // Multi-row branch of `ignoreAnySetWithNoValue`. Each row is swept
         // independently: row 0 keeps `body` (valid) and drops `assigneeId`

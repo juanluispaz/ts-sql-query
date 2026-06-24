@@ -134,4 +134,36 @@ describe(ctx.label, () => {
         })
     })
 
+    test('ignore-if-has-no-value-prunes-the-on-conflict-update-set', async () => {
+        // `ignoreIfHasNoValue(...)` chained after `onConflictDoUpdateDynamicSet({...})`
+        // operates on the ON CONFLICT update-set (`__onConflictUpdateSets`),
+        // not the INSERT sets — the distinct routing branch that the
+        // single-row / multi-row INSERT cases don't reach. The staged
+        // `archivedAt` is null so it is pruned from the SET clause; the
+        // real-valued `name` survives. Seed: (org 1, 'mktg-site') already
+        // exists, so the conflict fires and the row is updated. MySQL/MariaDB
+        // count an `ON DUPLICATE KEY UPDATE` that updates an existing row as
+        // 2 affected rows (1 attempted insert + 1 update) — the documented
+        // engine semantics, verified against the real container.
+        ctx.mockNext(2)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, slug: 'mktg-site', name: 'ignored' })
+                .onConflictDoUpdateDynamicSet({ name: 'Reactivated', archivedAt: null })
+                .ignoreIfHasNoValue('archivedAt')
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on duplicate key update name = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "mktg-site",
+                "ignored",
+                "Reactivated",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(2)
+        })
+    })
 })

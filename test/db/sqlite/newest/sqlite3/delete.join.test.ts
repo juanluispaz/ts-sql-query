@@ -117,4 +117,62 @@ describe(ctx.label, () => {
         })
     })
     */
+    // NOT-APPLICABLE: SQLite does not support multi-table DELETE; `.innerJoin` / `.leftJoin` on DELETE are typed `never` for sqlite. On SQLite use `DELETE FROM t WHERE id IN (SELECT …)` — see `delete.where-in-subquery.test.ts`.
+    /*
+    test('delete-with-left-join-removes-issues-with-no-matching-assignee', async () => {
+        // Anti-join delete: LEFT JOIN the assignee onto each issue and
+        // delete the rows where no user matched (`assignee_id` is NULL).
+        // Pins the `leftJoin(...).on(...)` branch on DELETE, which the
+        // `innerJoin` tests above don't reach. Seed: issue 3 has
+        // `assignee_id = NULL` (unassigned); issues 1, 2, 4 are assigned
+        // → exactly 1 row removed on real DB.
+        ctx.mockNext(1)
+
+        await ctx.withRollback(async () => {
+            const tAssignee = tAppUser.forUseInLeftJoin()
+            const affected = await ctx.conn.deleteFrom(tIssue)
+                .leftJoin(tAssignee).on(tAssignee.id.equals(tIssue.assigneeId))
+                .where(tAssignee.id.isNull())
+                .executeDelete()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using issue left join app_user on app_user.id = issue.assignee_id where app_user.id is null"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(1)
+        })
+    })
+    */
+
+    // NOT-APPLICABLE: SQLite does not support multi-table DELETE; `.innerJoin` / `.leftJoin` on DELETE are typed `never` for sqlite. On SQLite use `DELETE FROM t WHERE id IN (SELECT …)` — see `delete.where-in-subquery.test.ts`.
+    /*
+    test('delete-with-dynamic-on-builds-compound-join-condition-via-or', async () => {
+        // `innerJoin(...).dynamicOn()` opens an empty join predicate that
+        // the following `.or(...)` calls accumulate into the JOIN's `on`
+        // clause (not the outer WHERE). Pins the `dynamicOn()` branch plus
+        // the `or(...)`-on-`__lastJoin` branch on DELETE. The compound
+        // predicate matches a project when EITHER its id pairs with the
+        // issue OR its slug is 'never-matches'; combined with the WHERE it
+        // deletes issues of the 'mktg-site' project (issues 1, 2) → 2 rows.
+        ctx.mockNext(2)
+
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.deleteFrom(tIssue)
+                .innerJoin(tProject).dynamicOn()
+                    .or(tProject.id.equals(tIssue.projectId))
+                    .or(tProject.slug.equals('never-matches'))
+                .where(tProject.slug.equals('mktg-site'))
+                .executeDelete()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using issue inner join project on project.id = issue.project_id or project.slug = ? where project.slug = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "never-matches",
+                "mktg-site",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(2)
+        })
+    })
+    */
 })

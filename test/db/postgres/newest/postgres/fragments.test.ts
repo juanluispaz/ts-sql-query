@@ -197,4 +197,36 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof result, Array<{ id: number; padded: number }>>>()
     })
+    test('aggregate-fragment-with-type-as-inline-aggregate-in-projection', async () => {
+        // `aggregateFragmentWithType(...)` is the aggregate counterpart of
+        // `fragmentWithType(...)`: the value it produces is MARKED as an
+        // aggregate, so it's accepted in `select({...})` / `having` /
+        // `orderBy` and rejected by the compiler in `where` / `groupBy` /
+        // join `on` (the rejection is locked by types.negative/select.ts).
+        // Here it computes the total priority weight per project with a
+        // one-off inline `sum(...)`, grouped by project. Seed: project 1 ->
+        // issues 1,2 (priority 2+1=3), project 2 -> issue 3 (3), project 3 ->
+        // issue 4 (2).
+        const expected = [
+            { projectId: 1, totalWeight: 3 },
+            { projectId: 2, totalWeight: 3 },
+            { projectId: 3, totalWeight: 2 },
+        ]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+        const result = await connection.selectFrom(tIssue)
+            .groupBy(tIssue.projectId)
+            .select({
+                projectId:   tIssue.projectId,
+                totalWeight: connection.aggregateFragmentWithType('int', 'required')
+                    .sql`sum(${tIssue.priority})`,
+            })
+            .orderBy('projectId')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", sum(priority) as "totalWeight" from issue group by project_id order by "projectId""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ projectId: number; totalWeight: number }>>>()
+        expect(result).toEqual(expected)
+    })
 })

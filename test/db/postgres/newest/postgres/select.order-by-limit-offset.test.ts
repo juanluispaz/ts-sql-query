@@ -151,4 +151,45 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ id: number }>>>()
         expect(result).toEqual(expected)
     })
+
+    test('offset-if-value-applies-when-value-present', async () => {
+        // `.offsetIfValue(n)` with a real value behaves like `.offset(n)`.
+        const expected = [{ id: 2 }, { id: 3 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .limit(2)
+            .offsetIfValue(1)
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by id limit $1 offset $2"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('offset-if-value-elides-offset-when-undefined', async () => {
+        // `.offsetIfValue(undefined)` drops the OFFSET clause entirely.
+        const expected = [{ id: 1 }, { id: 2 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .limit(2)
+            .offsetIfValue(undefined)
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by id limit $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+        expect(result).toEqual(expected)
+    })
 })

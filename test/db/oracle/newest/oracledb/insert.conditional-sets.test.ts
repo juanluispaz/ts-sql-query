@@ -367,6 +367,77 @@ describe(ctx.label, () => {
         })
     })
 
+    test('set-for-all-if-has-value-if-value-and-if-has-no-value-if-value-route-per-row', async () => {
+        // The `*HasValueIfValue` variants add an incoming value-gate on top
+        // of the per-row `*HasValue` gate. With real incoming values they
+        // behave like the plain `*HasValue` variants: row 0's `body` has
+        // value → overwritten; row 1's `body` is null → backfilled.
+        ctx.mockNext(2)
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tIssue)
+                .values([
+                    { projectId: 1, number: 240, title: 'A', body: 'present', status: 'open', priority: 1 },
+                    { projectId: 1, number: 241, title: 'B', body: null,      status: 'open', priority: 1 },
+                ])
+                .setForAllIfHasValueIfValue({ body: 'overwritten' })
+                .setForAllIfHasNoValueIfValue({ body: 'backfilled' })
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"begin insert into issue (project_id, "number", title, "body", status, priority) values (:0, :1, :2, :3, :4, :5); insert into issue (project_id, "number", title, "body", status, priority) values (:6, :7, :8, :9, :10, :11); end;"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                240,
+                "A",
+                "overwritten",
+                "open",
+                1,
+                1,
+                241,
+                "B",
+                "backfilled",
+                "open",
+                1,
+              ]
+            `)
+        })
+    })
+
+    test('set-for-all-if-has-value-if-value-undefined-incoming-is-a-no-op', async () => {
+        // The incoming value-gate: an `undefined` incoming makes both
+        // `*HasValueIfValue` variants no-ops even when the per-row `*HasValue`
+        // gate would otherwise match, so every row keeps its staged `body`.
+        ctx.mockNext(2)
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tIssue)
+                .values([
+                    { projectId: 1, number: 242, title: 'A', body: 'present', status: 'open', priority: 1 },
+                    { projectId: 1, number: 243, title: 'B', body: null,      status: 'open', priority: 1 },
+                ])
+                .setForAllIfHasValueIfValue({ body: undefined })
+                .setForAllIfHasNoValueIfValue({ body: undefined })
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"begin insert into issue (project_id, "number", title, "body", status, priority) values (:0, :1, :2, :3, :4, :5); insert into issue (project_id, "number", title, "body", status, priority) values (:6, :7, :8, :9, :10, :11); end;"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                242,
+                "A",
+                "present",
+                "open",
+                1,
+                1,
+                243,
+                "B",
+                null,
+                "open",
+                1,
+              ]
+            `)
+        })
+    })
+
     test('multi-row-ignore-if-has-value-and-has-no-value-route-per-row', async () => {
         // Multi-row branches of `ignoreIfHasValue` and `ignoreIfHasNoValue`:
         // per-row delete decisions. Row 0's `body` has value →

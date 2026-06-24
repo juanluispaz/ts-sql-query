@@ -227,6 +227,13 @@ export abstract class AbstractQueryRunner implements QueryRunner {
             return /\sreturning\s/.test(query)
         }
     }
+    // The affected-row count the SqlBuilder recorded for a statement whose
+    // driver can't report it at execution time (set via
+    // AbstractSqlBuilder._setForcedAffectedRowCount — Oracle's multi-row INSERT
+    // PL/SQL block). `undefined` when the driver's own count should be used.
+    protected getForcedAffectedRowCount(params: any[]): number | undefined {
+        return (params as any)._forcedAffectedRowCount
+    }
     protected executeMutationReturning(query: string, params: any[]): Promise<any[]> {
         return this.executeQueryReturning(query, params)
     }

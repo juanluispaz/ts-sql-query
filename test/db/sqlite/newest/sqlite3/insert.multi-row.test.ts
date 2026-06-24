@@ -51,6 +51,7 @@ describe(ctx.label, () => {
               ]
             `)
             assertType<Exact<typeof inserted, number>>()
+            expect(inserted).toBe(2)
         })
     })
 

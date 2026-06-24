@@ -796,6 +796,15 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
 
         insertQuery += 'end;'
 
+        // The multi-row INSERT is emitted as an anonymous PL/SQL block (one
+        // INSERT per provided row), and Oracle drivers don't report rowsAffected
+        // for PL/SQL blocks. Record the affected-row count for the query runner:
+        // the block inserts exactly one row per provided value (Oracle has no
+        // INSERT … ON CONFLICT, so no row is skipped). Only consumed on the
+        // non-returning execution route (executeMutation); the returning routes
+        // derive the count from the rows they return.
+        this._setForcedAffectedRowCount(params, multiple.length)
+
         return insertQuery
     }
     override _buildInsertDefaultValues(query: InsertData, params: any[]): string {

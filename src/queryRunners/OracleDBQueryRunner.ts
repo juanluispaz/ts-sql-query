@@ -37,7 +37,16 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
         return this.connection.execute(query, params, {outFormat: oracleDb.OUT_FORMAT_OBJECT}).then((result) => result.rows || [])
     }
     protected executeMutation(query: string, params: any[]): Promise<number> {
-        return this.connection.execute(query, params).then((result) => result.rowsAffected || 0)
+        return this.connection.execute(query, params).then((result) => {
+            // A multi-row INSERT is executed as an anonymous PL/SQL block, for
+            // which Oracle doesn't populate rowsAffected; the SqlBuilder recorded
+            // the affected-row count instead (see OracleSqlBuilder._buildInsertMultiple).
+            const forced = this.getForcedAffectedRowCount(params)
+            if (forced !== undefined) {
+                return forced
+            }
+            return result.rowsAffected || 0
+        })
     }
     protected override executeMutationReturning(query: string, params: any[] = []): Promise<any[]> {
         return this.connection.execute(query, params).then((result) => {

@@ -190,6 +190,20 @@ export class AbstractSqlBuilder implements SqlBuilder {
             configurable: true
         })
     }
+    // Read in the query runner (see AbstractQueryRunner.getForcedAffectedRowCount).
+    // Set when the affected-row count is known while building the query but the
+    // driver can't report it at execution time (Oracle's multi-row INSERT, which
+    // is emitted as an anonymous PL/SQL block — Oracle drivers don't populate
+    // rowsAffected for PL/SQL blocks). The query runner returns this value as the
+    // affected-row count instead of the driver's (absent) one.
+    _setForcedAffectedRowCount(params: any[], value: number | undefined): void {
+        Object.defineProperty(params, '_forcedAffectedRowCount', {
+            value: value,
+            writable: true,
+            enumerable: false,
+            configurable: true
+        })
+    }
     _ensureRootQuery(query: SelectData | InsertData | UpdateData | DeleteData, params: any[]) {
         const rootQuery = (params as any)._rootQuery
         if (!rootQuery) {

@@ -204,7 +204,7 @@ describe(ctx.label, () => {
         // and the INSERT proceeds.
         ctx.mockNext(2)
         await ctx.withRollback(async () => {
-            await ctx.conn.insertInto(tProject)
+            const inserted = await ctx.conn.insertInto(tProject)
                 .values([
                     { organizationId: 1, name: 'A', slug: 'a' },
                     { organizationId: 1, name: 'B', slug: 'b' },
@@ -226,6 +226,7 @@ describe(ctx.label, () => {
                 "b",
               ]
             `)
+            expect(inserted).toBe(2)
         })
     })
 
@@ -235,12 +236,11 @@ describe(ctx.label, () => {
         // no violation, returns the builder unchanged so the multi-row INSERT
         // proceeds. `body`/`assigneeId` are unstaged in both rows so
         // `disallowIfValue`/`disallowIfSet` pass; the core columns are present
-        // with values so `disallowIfNoValue`/`disallowIfNotSet` pass. As with
-        // the companion above, the multi-row affected count is
-        // dialect-dependent, so the SQL + params are the asserted contract.
+        // with values so `disallowIfNoValue`/`disallowIfNotSet` pass. Both
+        // rows are inserted, so the affected count comes back as 2.
         ctx.mockNext(2)
         await ctx.withRollback(async () => {
-            await ctx.conn.insertInto(tIssue)
+            const inserted = await ctx.conn.insertInto(tIssue)
                 .values([
                     { projectId: 1, number: 230, title: 'Bulk A', status: 'open', priority: 1 },
                     { projectId: 1, number: 231, title: 'Bulk B', status: 'open', priority: 2 },
@@ -266,6 +266,7 @@ describe(ctx.label, () => {
                 2,
               ]
             `)
+            expect(inserted).toBe(2)
         })
     })
 })

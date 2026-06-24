@@ -333,8 +333,8 @@ export interface BooleanValueSource</*in|out*/ SOURCE extends NSource, /*in|out*
     and<VALUE extends IAnyBooleanValueSource<any, any>>(value: VALUE): BooleanValueSource<SOURCE | VALUE[typeof source], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     or(value: boolean): BooleanValueSource<SOURCE, OPTIONAL_TYPE>
     or<VALUE extends IAnyBooleanValueSource<any, any>>(value: VALUE): BooleanValueSource<SOURCE | VALUE[typeof source], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
-    onlyWhen(condition: boolean): IIfValueSource<SOURCE, OPTIONAL_TYPE>
-    ignoreWhen(condition: boolean): IIfValueSource<SOURCE, OPTIONAL_TYPE>
+    onlyWhen(condition: boolean): IfValueSource<SOURCE, OPTIONAL_TYPE>
+    ignoreWhen(condition: boolean): IfValueSource<SOURCE, OPTIONAL_TYPE>
     // Redefined methods
     valueWhenNull(value: boolean): BooleanValueSource<SOURCE, 'required'>
     valueWhenNull<VALUE extends IValueSource<any, boolean, this[typeof typeName], any>>(value: VALUE): BooleanValueSource<SOURCE | VALUE[typeof source], VALUE[typeof optionalType]>
@@ -351,20 +351,20 @@ export interface IIfValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ OP
 }
 
 export interface IfValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends IIfValueSource<SOURCE, OPTIONAL_TYPE> {
-    negate(): IIfValueSource<SOURCE, OPTIONAL_TYPE>
+    negate(): IfValueSource<SOURCE, OPTIONAL_TYPE>
     and(value: boolean): BooleanValueSource<SOURCE, OPTIONAL_TYPE>
     and<VALUE extends IBooleanValueSource<any, any>>(value: VALUE): BooleanValueSource<SOURCE | VALUE[typeof source], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     and<VALUE extends IAnyBooleanValueSource<any, any>>(value: VALUE): IfValueSource<SOURCE | VALUE[typeof source], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     or(value: boolean): BooleanValueSource<SOURCE, OPTIONAL_TYPE>
     or<VALUE extends IBooleanValueSource<any, any>>(value: VALUE): BooleanValueSource<SOURCE | VALUE[typeof source], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     or<VALUE extends IAnyBooleanValueSource<any, any>>(value: VALUE): IfValueSource<SOURCE | VALUE[typeof source], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
-    onlyWhen(condition: boolean): IIfValueSource<SOURCE, OPTIONAL_TYPE>
-    ignoreWhen(condition: boolean): IIfValueSource<SOURCE, OPTIONAL_TYPE>
+    onlyWhen(condition: boolean): IfValueSource<SOURCE, OPTIONAL_TYPE>
+    ignoreWhen(condition: boolean): IfValueSource<SOURCE, OPTIONAL_TYPE>
     trueWhenNoValue(): BooleanValueSource<SOURCE, OPTIONAL_TYPE>
     falseWhenNoValue(): BooleanValueSource<SOURCE, OPTIONAL_TYPE>
     valueWhenNoValue(value: boolean): BooleanValueSource<SOURCE, OPTIONAL_TYPE>
     valueWhenNoValue<VALUE extends IBooleanValueSource<any, any>>(value: VALUE): BooleanValueSource<SOURCE | VALUE[typeof source], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
-    valueWhenNoValue<VALUE extends IAnyBooleanValueSource<any, any>>(value: VALUE): IIfValueSource<SOURCE | VALUE[typeof source], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    valueWhenNoValue<VALUE extends IAnyBooleanValueSource<any, any>>(value: VALUE): IfValueSource<SOURCE | VALUE[typeof source], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
 }
 
 export interface AlwaysIfValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/ OPTIONAL_TYPE extends OptionalType> extends IIfValueSource<SOURCE, OPTIONAL_TYPE> {

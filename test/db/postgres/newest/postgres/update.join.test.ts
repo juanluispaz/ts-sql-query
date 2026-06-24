@@ -194,4 +194,67 @@ describe(ctx.label, () => {
         }})
     }})
     */
+
+    // NOT-APPLICABLE: `.innerJoin` / `.leftJoin` / `.leftOuterJoin` on UPDATE are typed `never` on PostgreSQL (its grammar has no JOIN-on-UPDATE form); the equivalent pattern is `.update(t).from(j).set(...).where(...)`.
+    /*
+    test('update-with-left-outer-join-targets-rows-with-no-match', async () => {
+        // Same anti-join as the `leftJoin` test, written with the explicit
+        // `leftOuterJoin(...)` alias — pins the `leftOuterJoin(...).on(...)`
+        // setter branch on UPDATE, which emits `left outer join` rather than
+        // `left join`. Seed: issue 3 is unassigned (`assignee_id` NULL);
+        // issues 1, 2, 4 are assigned → exactly 1 row updated.
+        ctx.mockNext(1)
+
+        await ctx.withRollback(async () => {
+            const tAssignee = tAppUser.forUseInLeftJoin()
+            const affected = await ctx.conn.update(tIssue)
+                .leftOuterJoin(tAssignee).on(tAssignee.id.equals(tIssue.assigneeId))
+                .set({ priority: 9 })
+                .where(tAssignee.id.isNull())
+                .executeUpdate()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue left outer join app_user on app_user.id = issue.assignee_id set issue.priority = ? where app_user.id is null"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                9,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(1)
+        })
+    })
+    */
+
+    // NOT-APPLICABLE: `.innerJoin` / `.leftJoin` / `.leftOuterJoin` on UPDATE are typed `never` on PostgreSQL (its grammar has no JOIN-on-UPDATE form); the equivalent pattern is `.update(t).from(j).set(...).where(...)`.
+    /*
+    test('update-with-dynamic-on-then-and-builds-join-condition', async () => {
+        // `innerJoin(...).dynamicOn()` opens an empty join predicate; the
+        // first `.and(...)` becomes the initial `on` condition (the
+        // empty-`on` branch — distinct from `.on(...)`, which sets it
+        // directly, and from `.on(...).and(...)`, which starts from a
+        // populated `on`). Updates the 'mktg-site' project's issues
+        // (1, 2) → 2 rows.
+        ctx.mockNext(2)
+
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.update(tIssue)
+                .innerJoin(tProject).dynamicOn()
+                    .and(tProject.id.equals(tIssue.projectId))
+                .set({ priority: 5 })
+                .where(tProject.slug.equals('mktg-site'))
+                .executeUpdate()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue inner join project on project.id = issue.project_id set issue.priority = ? where project.slug = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                5,
+                "mktg-site",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(2)
+        })
+    })
+    */
+
 })

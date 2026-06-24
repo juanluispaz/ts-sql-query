@@ -228,4 +228,45 @@ describe(ctx.label, () => {
             `)
         })
     })
+
+    test('disallow-guards-permit-multi-row-insert-when-no-row-violates', async () => {
+        // Multi-row companion to `disallow-any-other-set-permits-rows...`
+        // above: each `disallow*` guard walks every staged row and, finding
+        // no violation, returns the builder unchanged so the multi-row INSERT
+        // proceeds. `body`/`assigneeId` are unstaged in both rows so
+        // `disallowIfValue`/`disallowIfSet` pass; the core columns are present
+        // with values so `disallowIfNoValue`/`disallowIfNotSet` pass. As with
+        // the companion above, the multi-row affected count is
+        // dialect-dependent, so the SQL + params are the asserted contract.
+        ctx.mockNext(2)
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tIssue)
+                .values([
+                    { projectId: 1, number: 230, title: 'Bulk A', status: 'open', priority: 1 },
+                    { projectId: 1, number: 231, title: 'Bulk B', status: 'open', priority: 2 },
+                ])
+                .disallowIfValue('body must stay unset', 'body')
+                .disallowIfNoValue('title is required', 'title')
+                .disallowIfSet('assignee is set later', 'assigneeId')
+                .disallowIfNotSet('title is required', 'title')
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values ($1, $2, $3, $4, $5), ($6, $7, $8, $9, $10)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                230,
+                "Bulk A",
+                "open",
+                1,
+                1,
+                231,
+                "Bulk B",
+                "open",
+                2,
+              ]
+            `)
+        })
+    })
+
 })

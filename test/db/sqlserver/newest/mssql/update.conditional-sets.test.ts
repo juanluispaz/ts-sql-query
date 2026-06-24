@@ -286,4 +286,37 @@ describe(ctx.label, () => {
                 .where(tIssue.id.equals(1))
         }).not.toThrow()
     })
+
+    test('disallow-guards-allow-the-update-when-no-rule-is-violated', async () => {
+        // The mirror of the throwing tests above: each `disallow*` guard
+        // returns the builder unchanged (no throw) when its condition is
+        // not met, so a valid UPDATE proceeds. Only `title` is staged, so
+        // `disallowIfNotSet`/`disallowIfNoValue` pass (title is set with a
+        // value), `disallowIfSet`/`disallowIfValue` pass (the columns they
+        // guard are absent), and `disallowAnyOtherSet` passes (title is the
+        // sole staged column). The guards leave no trace in the emitted SQL.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.update(tIssue)
+                .set({ title: 'Renamed issue' })
+                .disallowIfValue('status must stay unset', 'status')
+                .disallowIfNoValue('title is required', 'title')
+                .disallowIfSet('body cannot change here', 'body')
+                .disallowIfNotSet('title is required', 'title')
+                .disallowAnyOtherSet('only title may change', 'title')
+                .where(tIssue.id.equals(1))
+                .executeUpdate()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = @0 where id = @1"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Renamed issue",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(1)
+        })
+    })
+
 })

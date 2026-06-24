@@ -175,4 +175,60 @@ describe(ctx.label, () => {
         })
     })
     */
+
+    // NOT-APPLICABLE: `.innerJoin` / `.leftJoin` on DELETE are typed `never` on PostgreSQL (its grammar has no JOIN-on-DELETE form); use `.using(table).where(...)` instead.
+    /*
+    test('delete-with-left-outer-join-removes-issues-with-no-matching-assignee', async () => {
+        // Same anti-join as the `leftJoin` test, written with the explicit
+        // `leftOuterJoin(...)` alias — pins the `leftOuterJoin(...).on(...)`
+        // branch on DELETE, which emits `left outer join` rather than
+        // `left join`. Seed: issue 3 is unassigned (`assignee_id` NULL);
+        // issues 1, 2, 4 are assigned → exactly 1 row removed.
+        ctx.mockNext(1)
+
+        await ctx.withRollback(async () => {
+            const tAssignee = tAppUser.forUseInLeftJoin()
+            const affected = await ctx.conn.deleteFrom(tIssue)
+                .leftOuterJoin(tAssignee).on(tAssignee.id.equals(tIssue.assigneeId))
+                .where(tAssignee.id.isNull())
+                .executeDelete()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using issue left outer join app_user on app_user.id = issue.assignee_id where app_user.id is null"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(1)
+        })
+    })
+    */
+
+    // NOT-APPLICABLE: `.innerJoin` / `.leftJoin` on DELETE are typed `never` on PostgreSQL (its grammar has no JOIN-on-DELETE form); use `.using(table).where(...)` instead.
+    /*
+    test('delete-with-dynamic-on-then-and-builds-join-condition', async () => {
+        // `innerJoin(...).dynamicOn()` opens an empty join predicate; the
+        // first `.and(...)` becomes the initial `on` condition (the
+        // empty-`on` branch — distinct from `.on(...)`, which sets it
+        // directly, and from `.on(...).and(...)`, which starts from a
+        // populated `on`). Deletes the 'mktg-site' project's issues
+        // (1, 2) → 2 rows.
+        ctx.mockNext(2)
+
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.deleteFrom(tIssue)
+                .innerJoin(tProject).dynamicOn()
+                    .and(tProject.id.equals(tIssue.projectId))
+                .where(tProject.slug.equals('mktg-site'))
+                .executeDelete()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using issue inner join project on project.id = issue.project_id where project.slug = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "mktg-site",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(2)
+        })
+    })
+    */
+
 })

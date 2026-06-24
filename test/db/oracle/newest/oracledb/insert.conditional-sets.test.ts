@@ -553,4 +553,39 @@ describe(ctx.label, () => {
             `)
         })
     })
+
+    test('disallow-guards-allow-the-insert-when-no-rule-is-violated', async () => {
+        // Mirror of `disallow-if-value-and-no-value-throw-synchronously`
+        // above: each `disallow*` guard returns the builder unchanged (no
+        // throw) when its condition is not met, so a valid INSERT proceeds.
+        // `body`/`assigneeId` are unstaged so `disallowIfValue`/`disallowIfSet`
+        // pass, the core columns are present so `disallowIfNoValue`/
+        // `disallowIfNotSet` pass, and only the core columns are staged so
+        // `disallowAnyOtherSet` passes. The guards leave no trace in the SQL.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.insertInto(tIssue)
+                .set({ projectId: 1, number: 214, title: 'New issue', status: 'open', priority: 5 })
+                .disallowIfValue('body must stay unset', 'body')
+                .disallowIfNoValue('title is required', 'title')
+                .disallowIfSet('assignee is set later', 'assigneeId')
+                .disallowIfNotSet('status is required', 'status')
+                .disallowAnyOtherSet('only core fields allowed', 'projectId', 'number', 'title', 'status', 'priority')
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, "number", title, status, priority) values (:0, :1, :2, :3, :4)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                214,
+                "New issue",
+                "open",
+                5,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(1)
+        })
+    })
+
 })

@@ -168,4 +168,386 @@ describe(ctx.label, () => {
             expect(affected).toBe(1)
         })
     })
+
+    // ── On-conflict update-set manipulation family ──────────────────────
+    // Each helper below, when chained after `doUpdateDynamicSet({...})`,
+    // routes into the ON CONFLICT update-set (`__onConflictUpdateSets`)
+    // instead of the regular INSERT `__sets` — the distinct branch the
+    // single-row / multi-row INSERT cases don't reach. The seed already
+    // holds (org 1, 'mktg-site'), so the conflict fires and the existing
+    // row is updated.
+
+    test('set-if-set-updates-only-already-staged-columns-on-conflict', async () => {
+        // `setIfSet(...)` overwrites a column only when its key is already
+        // present in the staged update-set. `name` was staged so it is
+        // overwritten; `slug` was never staged so it is skipped.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, slug: 'mktg-site', name: 'ignored' })
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doUpdateDynamicSet({ name: 'Reactivated' })
+                .setIfSet({ name: 'Renamed', slug: 'mktg-site-v2' })
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values ($1, $2, $3) on conflict (organization_id, slug) do update set name = $4"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "mktg-site",
+                "ignored",
+                "Renamed",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(1)
+        })
+    })
+
+    test('set-if-set-if-value-keeps-staged-slug-when-new-value-missing-on-conflict', async () => {
+        // `setIfSetIfValue(...)` overwrites a staged column only when the
+        // NEW value also passes `_isValue`. `name` gets a real new value so
+        // it is overwritten; `slug` is staged but its new value is
+        // `undefined`, so the staged 'mktg-site-keep' is kept untouched.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, slug: 'mktg-site', name: 'ignored' })
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doUpdateDynamicSet({ name: 'Reactivated', slug: 'mktg-site-keep' })
+                .setIfSetIfValue({ name: 'Renamed', slug: undefined })
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values ($1, $2, $3) on conflict (organization_id, slug) do update set name = $4, slug = $5"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "mktg-site",
+                "ignored",
+                "Renamed",
+                "mktg-site-keep",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(1)
+        })
+    })
+
+    test('set-if-not-set-fills-only-unstaged-columns-on-conflict', async () => {
+        // `setIfNotSet(...)` sets a column only when its key is NOT already
+        // present. `name` was staged so it is left as 'Reactivated'; `slug`
+        // was never staged so it is added.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, slug: 'mktg-site', name: 'ignored' })
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doUpdateDynamicSet({ name: 'Reactivated' })
+                .setIfNotSet({ name: 'ignored', slug: 'mktg-site-v2' })
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values ($1, $2, $3) on conflict (organization_id, slug) do update set name = $4, slug = $5"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "mktg-site",
+                "ignored",
+                "Reactivated",
+                "mktg-site-v2",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(1)
+        })
+    })
+
+    test('set-if-not-set-if-value-adds-unstaged-column-only-with-a-value-on-conflict', async () => {
+        // `setIfNotSetIfValue(...)` sets an unstaged column only when its
+        // new value passes `_isValue`. `slug` is unstaged with a real value
+        // so it is added; `archivedAt` is unstaged but `undefined` so it is
+        // dropped before the SET clause.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, slug: 'mktg-site', name: 'ignored' })
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doUpdateDynamicSet({ name: 'Reactivated' })
+                .setIfNotSetIfValue({ slug: 'mktg-site-v2', archivedAt: undefined })
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values ($1, $2, $3) on conflict (organization_id, slug) do update set name = $4, slug = $5"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "mktg-site",
+                "ignored",
+                "Reactivated",
+                "mktg-site-v2",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(1)
+        })
+    })
+
+    test('ignore-if-set-drops-a-staged-column-on-conflict', async () => {
+        // `ignoreIfSet(...)` removes a column from the update-set when its
+        // key is present, regardless of value. The staged `slug` is dropped;
+        // `name` survives.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, slug: 'mktg-site', name: 'ignored' })
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doUpdateDynamicSet({ name: 'Reactivated', slug: 'mktg-site-v2' })
+                .ignoreIfSet('slug')
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values ($1, $2, $3) on conflict (organization_id, slug) do update set name = $4"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "mktg-site",
+                "ignored",
+                "Reactivated",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(1)
+        })
+    })
+
+    test('keep-only-prunes-the-on-conflict-update-set-to-named-columns', async () => {
+        // `keepOnly(...)` drops every staged column except the named ones.
+        // Only `name` is kept; the staged `slug` is removed.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, slug: 'mktg-site', name: 'ignored' })
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doUpdateDynamicSet({ name: 'Reactivated', slug: 'mktg-site-v2' })
+                .keepOnly('name')
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values ($1, $2, $3) on conflict (organization_id, slug) do update set name = $4"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "mktg-site",
+                "ignored",
+                "Reactivated",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(1)
+        })
+    })
+
+    test('set-if-has-value-overwrites-only-columns-with-a-staged-value-on-conflict', async () => {
+        // `setIfHasValue(...)` overwrites a column only when its CURRENT
+        // staged value passes `_isValue`. `name` has a staged value so it is
+        // overwritten; `slug` was never staged (no value) so it is skipped.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, slug: 'mktg-site', name: 'ignored' })
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doUpdateDynamicSet({ name: 'Reactivated' })
+                .setIfHasValue({ name: 'Renamed', slug: 'mktg-site-v2' })
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values ($1, $2, $3) on conflict (organization_id, slug) do update set name = $4"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "mktg-site",
+                "ignored",
+                "Renamed",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(1)
+        })
+    })
+
+    test('set-if-has-value-if-value-keeps-staged-slug-when-new-value-missing-on-conflict', async () => {
+        // `setIfHasValueIfValue(...)` overwrites a column only when its
+        // staged value AND the new value both pass `_isValue`. `name` is
+        // overwritten; `slug` has a staged value but its new value is
+        // `undefined`, so the staged 'mktg-site-keep' survives.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, slug: 'mktg-site', name: 'ignored' })
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doUpdateDynamicSet({ name: 'Reactivated', slug: 'mktg-site-keep' })
+                .setIfHasValueIfValue({ name: 'Renamed', slug: undefined })
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values ($1, $2, $3) on conflict (organization_id, slug) do update set name = $4, slug = $5"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "mktg-site",
+                "ignored",
+                "Renamed",
+                "mktg-site-keep",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(1)
+        })
+    })
+
+    test('set-if-has-no-value-fills-only-columns-lacking-a-value-on-conflict', async () => {
+        // `setIfHasNoValue(...)` sets a column only when its current staged
+        // value has NO value. `name` has a staged value so it is left
+        // unchanged; `slug` was never staged (no value) so it is filled.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, slug: 'mktg-site', name: 'ignored' })
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doUpdateDynamicSet({ name: 'Reactivated' })
+                .setIfHasNoValue({ name: 'ignored', slug: 'mktg-site-v2' })
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values ($1, $2, $3) on conflict (organization_id, slug) do update set name = $4, slug = $5"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "mktg-site",
+                "ignored",
+                "Reactivated",
+                "mktg-site-v2",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(1)
+        })
+    })
+
+    test('set-if-has-no-value-if-value-fills-unvalued-column-only-with-a-value-on-conflict', async () => {
+        // `setIfHasNoValueIfValue(...)` fills a no-value column only when the
+        // new value passes `_isValue`. `slug` (no staged value) gets a real
+        // value; `archivedAt` (no staged value) is offered `undefined`, which
+        // fails the value gate and is dropped.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, slug: 'mktg-site', name: 'ignored' })
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doUpdateDynamicSet({ name: 'Reactivated' })
+                .setIfHasNoValueIfValue({ slug: 'mktg-site-v2', archivedAt: undefined })
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values ($1, $2, $3) on conflict (organization_id, slug) do update set name = $4, slug = $5"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "mktg-site",
+                "ignored",
+                "Reactivated",
+                "mktg-site-v2",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(1)
+        })
+    })
+
+    test('ignore-if-has-value-drops-a-column-with-a-staged-value-on-conflict', async () => {
+        // `ignoreIfHasValue(...)` removes a column from the update-set when
+        // its staged value passes `_isValue`. The staged `slug` is dropped;
+        // `name` survives.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, slug: 'mktg-site', name: 'ignored' })
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doUpdateDynamicSet({ name: 'Reactivated', slug: 'mktg-site-v2' })
+                .ignoreIfHasValue('slug')
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values ($1, $2, $3) on conflict (organization_id, slug) do update set name = $4"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "mktg-site",
+                "ignored",
+                "Reactivated",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(1)
+        })
+    })
+
+    test('ignore-any-set-with-no-value-prunes-all-unvalued-entries-on-conflict', async () => {
+        // `ignoreAnySetWithNoValue()` removes every staged entry whose value
+        // has no value. The staged `archivedAt` is null (no value) so it is
+        // pruned; the real-valued `name` survives. Distinct from
+        // `ignoreIfHasNoValue('archivedAt')` above: it names no column and
+        // sweeps the whole set.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, slug: 'mktg-site', name: 'ignored' })
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doUpdateDynamicSet({ name: 'Reactivated', archivedAt: null })
+                .ignoreAnySetWithNoValue()
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values ($1, $2, $3) on conflict (organization_id, slug) do update set name = $4"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "mktg-site",
+                "ignored",
+                "Reactivated",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(1)
+        })
+    })
+
+    test('disallow-guards-allow-the-on-conflict-update-when-no-rule-is-violated', async () => {
+        // The `disallow*` guards route into the ON CONFLICT update-set
+        // (`__onConflictUpdateSets`) when chained after `doUpdateDynamicSet(...)`,
+        // the same distinct branch the set-manipulation family above exercises.
+        // Each guard's condition is unmet, so none throws and the upsert
+        // proceeds: only `name` is in the conflict update-set, so
+        // `disallowIfNotSet`/`disallowIfNoValue` pass (name is set with a
+        // value), `disallowIfSet`/`disallowIfValue` pass (slug/archivedAt are
+        // absent from the set), and `disallowAnyOtherSet` passes (name is the
+        // sole entry). Seed (org 1, 'mktg-site') exists → the conflict fires
+        // and the row is updated → 1 row.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, slug: 'mktg-site', name: 'ignored' })
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doUpdateDynamicSet({ name: 'Reactivated' })
+                .disallowIfValue('archivedAt must stay unset', 'archivedAt')
+                .disallowIfNoValue('name is required', 'name')
+                .disallowIfSet('slug is fixed on conflict', 'slug')
+                .disallowIfNotSet('name is required', 'name')
+                .disallowAnyOtherSet('only name may change on conflict', 'name')
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values ($1, $2, $3) on conflict (organization_id, slug) do update set name = $4"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "mktg-site",
+                "ignored",
+                "Reactivated",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(1)
+        })
+    })
+
 })

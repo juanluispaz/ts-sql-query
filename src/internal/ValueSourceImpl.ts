@@ -1970,7 +1970,7 @@ function mergeOptional(op1: OptionalType, op2: OptionalType): OptionalType {
             return op2
         }
     } else if (op1 === 'originallyRequired') {
-        if (op2 === 'required') {
+        if (op2 === 'required' || op2 === 'requiredInOptionalObject') {
             return 'originallyRequired'
         } else {
             return op2

@@ -178,4 +178,41 @@ describe(ctx.label, () => {
             else expect(inserted.id).toBeGreaterThan(4)
         })
     })
+    test('insert-returning-nested-object-projecting-optional-values-as-nullable', async () => {
+        // A nested-object returning under projectingOptionalValuesAsNullable.
+        // The `meta` group is all-optional, so the nullable projector makes the
+        // whole group `{...} | null` — null when every leaf is null. archivedAt
+        // is left unset on the inserted row.
+        const expectedMock = { id: 100, meta: null }
+        ctx.mockNext(expectedMock)
+
+        await ctx.withRollback(async () => {
+            const inserted = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, name: 'Nested nullable', slug: 'nested-nullable' })
+                .returning({
+                    id:   tProject.id,
+                    meta: { archivedAt: tProject.archivedAt },
+                })
+                .projectingOptionalValuesAsNullable()
+                .executeInsertOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) output inserted.id as id, inserted.archived_at as [meta.archivedAt] values (@0, @1, @2)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "Nested nullable",
+                "nested-nullable",
+              ]
+            `)
+            assertType<Exact<typeof inserted, {
+                id: number
+                meta: { archivedAt: Date | null } | null
+            }>>()
+
+            expect(inserted.meta).toBeNull()
+            expect(typeof inserted.id).toBe('number')
+            if (!ctx.realDbEnabled) expect(inserted.id).toBe(100)
+            else expect(inserted.id).toBeGreaterThan(4)
+        })
+    })
 })

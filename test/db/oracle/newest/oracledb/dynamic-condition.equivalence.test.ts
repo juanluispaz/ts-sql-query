@@ -915,4 +915,64 @@ describe(ctx.label, () => {
           ]
         `)
     })
+    test('equivalence/custom-comparable-ifvalue-dispatch', async () => {
+        // The customComparable (`version`/'Semver') comparison surface via the
+        // dynamic dispatcher, proven equal to the direct *IfValue calls
+        // (lessOrEqual + in, both present so the IfValue twin emits the same as
+        // the plain op).
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.version.lessOrEqualIfValue('1.3.0')
+                .and(tProjectRelease.version.inIfValue(['1.2.0', '0.9.0'])))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(ctx.conn.dynamicConditionFor({ version: tProjectRelease.version })
+                .withValues({ version: { lessOrEqual: '1.3.0', in: ['1.2.0', '0.9.0'] } }))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as "id" from project_release where version <= :0 and version in (:1, :2) order by "id""`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            "1.3.0",
+            "1.2.0",
+            "0.9.0",
+          ]
+        `)
+    })
+
+    test('equivalence/custom-equality-ifvalue-dispatch', async () => {
+        // The equality-only (`channel`/'ReleaseChannel') comparison surface via
+        // the dynamic dispatcher, equal to the direct *IfValue calls
+        // (notEquals + in).
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.channel.notEqualsIfValue('canary')
+                .and(tProjectRelease.channel.inIfValue(['stable', 'beta'])))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(ctx.conn.dynamicConditionFor({ channel: tProjectRelease.channel })
+                .withValues({ channel: { notEquals: 'canary', in: ['stable', 'beta'] } }))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as "id" from project_release where channel <> :0 and channel in (:1, :2) order by "id""`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            "canary",
+            "stable",
+            "beta",
+          ]
+        `)
+    })
 })

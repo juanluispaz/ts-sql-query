@@ -186,4 +186,73 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ r?: number | undefined }>>>()
         expect(rows).toEqual(expected)
     })
+    test('build-fragment-with-args-arity-1-over-bigint-arg', async () => {
+        // A 1-ary `buildFragmentWithArgs` whose single arg is a `bigint` —
+        // exercises the bigint arg coercion. abs(-5) = 5n.
+        ctx.mockNext([{ r: 5n }])
+        const rows = await ctx.conn.selectFromNoTable()
+            .select({ r: ctx.conn.bigintAbs(-5n) })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select abs(?) as \`r\`"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            -5n,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ r: bigint }>>>()
+        expect(rows).toEqual([{ r: 5n }])
+    })
+
+    test('build-fragment-with-args-if-value-arity-1-emits-when-present', async () => {
+        // A 1-ary `buildFragmentWithArgsIfValue` over a `valueArg`. Value 5 is
+        // present -> `_isValue` true -> the predicate is emitted.
+        ctx.mockNext([{ x: 1 }])
+        await ctx.conn.selectFromNoTable()
+            .select({ x: ctx.conn.const(1, 'int') })
+            .where(ctx.conn.intIsPositiveIfValue(5))
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as \`x\` where ? > 0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            5,
+          ]
+        `)
+    })
+
+    test('build-fragment-with-args-if-value-arity-1-skips-on-undefined', async () => {
+        // The same 1-ary IfValue with `undefined` -> `_isValue` false -> the
+        // whole predicate drops, leaving a bare valid SELECT.
+        ctx.mockNext([{ x: 1 }])
+        await ctx.conn.selectFromNoTable()
+            .select({ x: ctx.conn.const(1, 'int') })
+            .where(ctx.conn.intIsPositiveIfValue(undefined))
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as \`x\`"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+    })
+
+    test('build-fragment-with-maybe-optional-args-arity-3-over-string', async () => {
+        // A 3-ary `buildFragmentWithMaybeOptionalArgs` over `string` args. The
+        // middle arg is `undefined` -> bound NULL and the merged optionalType
+        // degrades to optional; coalesce('a', NULL, 'c') = 'a'.
+        ctx.mockNext([{ r: 'a' }])
+        const rows = await ctx.conn.selectFromNoTable()
+            .select({ r: ctx.conn.coalesce3('a', undefined, 'c') })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select coalesce(?, ?, ?) as \`r\`"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "a",
+            null,
+            "c",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ r?: string | undefined }>>>()
+        expect(rows).toEqual([{ r: 'a' }])
+    })
 })

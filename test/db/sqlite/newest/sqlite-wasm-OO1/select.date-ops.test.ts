@@ -4,7 +4,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tOrganization } from '../../domain/connection.js'
+import { tIssue, tOrganization, tIssueWorklog, tProjectRelease } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -205,5 +205,87 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
         // Both seeded orgs were created before "now".
         expect(rows.map(r => r.id).sort()).toEqual([1, 2])
+    })
+    test('localDate-getters', async () => {
+        // LocalDateValueSource exposes getFullYear/getMonth/getDate/getDay.
+        // work_date is a pure `localDate` column; worklog 1 is 2024-03-04 (a
+        // Monday). getMonth follows JS semantics (0 = January) and getDay
+        // follows JS semantics (0 = Sunday) on every dialect.
+        const expected = [{ y: 2024, mo: 2, d: 4, dow: 1 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .select({
+                y:   tIssueWorklog.workDate.getFullYear(),
+                mo:  tIssueWorklog.workDate.getMonth(),
+                d:   tIssueWorklog.workDate.getDate(),
+                dow: tIssueWorklog.workDate.getDay(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%Y', work_date) as integer) as "y", cast(strftime('%m', work_date) as integer) - 1 as mo, cast(strftime('%d', work_date) as integer) as "d", cast(strftime('%w',work_date) as integer) as dow from issue_worklog where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ y: number; mo: number; d: number; dow: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('localTime-getters-optional', async () => {
+        // LocalTimeValueSource exposes getHours/getMinutes/getSeconds/
+        // getMilliseconds. started_at is an OPTIONAL localTime column, so each
+        // getter carries the 'optional' marker through to a `number | undefined`
+        // leaf. Worklog 1 started at 09:15:00.
+        const expected = [{ h: 9, m: 15, s: 0, ms: 0 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .select({
+                h:  tIssueWorklog.startedAt.getHours(),
+                m:  tIssueWorklog.startedAt.getMinutes(),
+                s:  tIssueWorklog.startedAt.getSeconds(),
+                ms: tIssueWorklog.startedAt.getMilliseconds(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%H', started_at) as integer) as "h", cast(strftime('%M', started_at) as integer) as "m", cast(strftime('%S', started_at) as integer) as "s", strftime('%f', started_at) * 1000 % 1000 as ms from issue_worklog where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ h?: number | undefined; m?: number | undefined; s?: number | undefined; ms?: number | undefined }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('custom-temporal-getters-and-compare', async () => {
+        // The date/time getters and comparison on the custom temporal columns.
+        // releasedOn (customLocalDate, required) -> getFullYear; cutoffTime
+        // (customLocalTime, required) -> getHours; signedOffAt
+        // (customLocalDateTime, optional) -> getTime (the custom getter encodes
+        // the optional leaf as `t?: number`, not `number | undefined`); and
+        // releasedOn.lessThan(date) -> boolean. Release 1: released_on
+        // 2024-01-15, cutoff_time 17:00:00, signed_off_at 2024-01-14 12:30:00.
+        const epoch = new Date(Date.UTC(2024, 0, 14, 12, 30, 0)).getTime()
+        const expected = [{ y: 2024, h: 17, t: epoch, before: true }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .select({
+                y:      tProjectRelease.releasedOn.getFullYear(),
+                h:      tProjectRelease.cutoffTime.getHours(),
+                t:      tProjectRelease.signedOffAt.getTime(),
+                before: tProjectRelease.releasedOn.lessThan(new Date(Date.UTC(2024, 1, 1, 10, 0, 0))),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%Y', released_on) as integer) as "y", cast(strftime('%H', cutoff_time) as integer) as "h", round(unixepoch(signed_off_at, 'subsec') * 1000) as "t", released_on < ? as "before" from project_release where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2024-02-01",
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ y: number; h: number; t?: number; before: boolean }>>>()
+        expect(rows).toEqual(expected)
     })
 })

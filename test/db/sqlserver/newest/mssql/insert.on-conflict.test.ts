@@ -107,4 +107,26 @@ describe(ctx.label, () => {
         })
     })
     */
+    // NOT-APPLICABLE: SQL Server has no INSERT…ON CONFLICT (uses MERGE)
+    /*
+    test('on-conflict-on-columns-do-update-set-value-source-with-values-for-insert', async () => {
+        // `doUpdateSet` accepts a value-source RHS referencing both the
+        // existing column and the attempted-insert row via `valuesForInsert()`
+        // (PG renders the latter as `excluded.<col>`). On conflict, `name`
+        // becomes the old name concatenated with the row that tried to insert.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, slug: 'mktg-site', name: '+v2' })
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doUpdateSet({ name: tProject.name.concat(tProject.valuesForInsert().name) })
+                .executeInsert()
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof affected, number>>()
+            if (ctx.realDbEnabled) expect(typeof affected).toBe('number')
+            else expect(affected).toBe(1)
+        })
+    })
+    */
 })

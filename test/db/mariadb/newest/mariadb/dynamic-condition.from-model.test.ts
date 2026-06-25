@@ -291,4 +291,15 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, project.name as name, organization.id as \`organization.id\`, organization.name as \`organization.name\` from project left outer join organization as organization on organization.id = project.organization_id order by \`organization.name\` is null, \`organization.name\` asc, name desc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
     })
+    test('from-model/forwards-the-extension-type-argument', () => {
+        // DynamicConditionForModel forwards its second EXTENSION type arg to
+        // DynamicCondition unchanged — it is sugar for
+        // DynamicCondition<DynamicDefinitionForModel<M>, EXT>.
+        interface SimpleModel { id: number; title: string }
+        type Ext = { byName: (rules: string | null | undefined) => ReturnType<typeof ctx.conn.noValueBoolean> }
+        assertType<Exact<
+            DynamicConditionForModel<SimpleModel, Ext>,
+            DynamicCondition<DynamicDefinitionForModel<SimpleModel>, Ext>
+        >>()
+    })
 })

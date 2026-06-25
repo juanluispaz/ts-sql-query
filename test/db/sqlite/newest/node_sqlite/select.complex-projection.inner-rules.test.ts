@@ -251,4 +251,36 @@ describe(ctx.label, () => {
         }>>>()
         expect(rows).toEqual(expected)
     })
+    test('rule-1-nested-object-under-projecting-optional-values-as-nullable', async () => {
+        // `projectingOptionalValuesAsNullable()` over a requiredInOptionalObject
+        // nested object: the nested object becomes `{...} | null`, the
+        // requiredInOptionalObject `flag` stays required inside it, and the
+        // plain-optional `assigneeId` surfaces as `number | null` (not
+        // `| undefined`). Issue 1: priority 2, id 1 -> flag false; assignee 1.
+        const expected = { iid: 1, meta: { flag: false, assigneeId: 1 } }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                iid: tIssue.id,
+                meta: {
+                    flag:       tIssue.priority.asRequiredInOptionalObject().equals(tIssue.id),
+                    assigneeId: tIssue.assigneeId,
+                },
+            })
+            .projectingOptionalValuesAsNullable()
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, priority = id as "meta.flag", assignee_id as "meta.assigneeId" from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            iid:  number
+            meta: { flag: boolean; assigneeId: number | null } | null
+        }>>()
+        expect(row).toEqual(expected)
+    })
 })

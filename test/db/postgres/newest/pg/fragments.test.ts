@@ -16,7 +16,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tAppUser } from '../../domain/connection.js'
+import { tIssue, tAppUser, tProjectRelease } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -228,6 +228,123 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", sum(priority) as "totalWeight" from issue group by project_id order by "projectId""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{ projectId: number; totalWeight: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('fragment-with-type-bigint-required-and-optional', async () => {
+        // The `bigint` return-type arm of `fragmentWithType`, in both the
+        // 'required' and 'optional' forms — same emitted SQL, the optional flag
+        // only widens the result type. view_count is 0 -> abs(0) = 0n.
+        const expected = [{ id: 1, b: 0n, ob: 0n }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+        const result = await connection.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                b:  connection.fragmentWithType('bigint', 'required').sql`abs(${tIssue.viewCount})`,
+                ob: connection.fragmentWithType('bigint', 'optional').sql`abs(${tIssue.viewCount})`,
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs(view_count) as "b", abs(view_count) as ob from issue where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; b: bigint; ob?: bigint }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('fragment-with-type-uuid-and-custom-comparable', async () => {
+        // The `uuid` arm (-> string leaf) and the `customComparable` arm
+        // (-> string leaf, carrying the 'Semver' TYPE_NAME). The uuid fragment
+        // coalesces release 1's signing key; the comparable fragment surfaces
+        // its version.
+        const REF1 = '0a8f9c1e-1111-4222-8333-444455556666'
+        const expected = [{ u: REF1, v: '1.2.0' }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+        const result = await connection.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .select({
+                u: connection.fragmentWithType('uuid', 'required')
+                    .sql`coalesce(${tProjectRelease.signingKey}, ${tProjectRelease.signingKey})`,
+                v: connection.fragmentWithType<string, 'Semver'>('customComparable', 'Semver', 'required')
+                    .sql`${tProjectRelease.version}`,
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select coalesce(signing_key, signing_key) as "u", version as "v" from project_release where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ u: string; v: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('aggregate-fragment-with-type-bigint-and-optional-arms', async () => {
+        // `aggregateFragmentWithType` for a `bigint` return family and an
+        // 'optional' arm. `max(view_count)` is a bigint aggregate (0n);
+        // `max(priority)` is an optional int aggregate (3). One row (no group by).
+        const expected = { mx: 0n, omx: 3 }
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+        const result = await connection.selectFrom(tIssue)
+            .select({
+                mx:  connection.aggregateFragmentWithType('bigint', 'required').sql`max(${tIssue.viewCount})`,
+                omx: connection.aggregateFragmentWithType('int', 'optional').sql`max(${tIssue.priority})`,
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(view_count) as mx, max(priority) as omx from issue"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, { mx: bigint; omx?: number }>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('raw-fragment-with-many-interpolations', async () => {
+        // `rawFragment` with four interpolated value sources spliced as
+        // order-by items — the RawFragment carries the widened source union;
+        // the emitted SQL pins the rendering.
+        ctx.mockNext([{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }])
+        const connection = ctx.conn
+        const result = await connection.selectFrom(tIssue)
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .customizeQuery({
+                beforeOrderByItems: connection.rawFragment`${tIssue.priority} desc, ${tIssue.status} asc, ${tIssue.projectId} asc, ${tIssue.number} desc`,
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by issue.priority desc, issue.status asc, issue.project_id asc, issue.number desc, id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+    })
+
+    test('custom-typed-fragment-then-operator', async () => {
+        // A `customInt` typed fragment is a first-class value source —
+        // applying `.add(...)` keeps the customInt brand. `IssueId` is
+        // marshalled to int, so it surfaces a clean number. Issue 1 priority
+        // 2 -> priority + 1 = 3.
+        const expected = [{ id: 1, n: 3 }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+        const result = await connection.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                n:  connection.fragmentWithType<number, 'IssueId'>('customInt', 'IssueId', 'required')
+                        .sql`${tIssue.priority}`.add(1),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (priority) + $1 as "n" from issue where id = $2"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; n: number }>>>()
         expect(result).toEqual(expected)
     })
 })

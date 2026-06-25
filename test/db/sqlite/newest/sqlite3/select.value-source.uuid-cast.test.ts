@@ -19,12 +19,14 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue } from '../../domain/connection.js'
+import { tIssue, tProjectRelease } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 const UUID_VALUE = 'f47ac10b-58cc-4372-a567-0e02b2c3d479'
 const REF1 = '0a8f9c1e-1111-4222-8333-444455556666' // issue 1
 const REF2 = '7b3e9d20-2222-4c55-9b66-dddd00009999' // issue 2
+const SIGNING_KEY1 = '0a8f9c1e-1111-4222-8333-444455556666' // release 1
+const SIGNING_KEY3 = '7b3e9d20-2222-4c55-9b66-dddd00009999' // release 3
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -364,5 +366,47 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof ref, string | null>>()
         expect(ref).toEqual(expected)
+    })
+    test('customuuid-asString-on-optional-column', async () => {
+        // `.asString()` on a branded `customUuid` column erases both the brand
+        // and the uuid value type to a plain `string`. `signing_key` is optional,
+        // so the single-column select resolves to `string | null`. Release 1
+        // carries a signing key.
+        ctx.mockNext(SIGNING_KEY1)
+        const key = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .selectOneColumn(tProjectRelease.signingKey.asString())
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select signing_key as result from project_release where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof key, string | null>>()
+        expect(key).toEqual(SIGNING_KEY1)
+    })
+
+    test('customuuid-comparison-surface-in-where', async () => {
+        // notEquals / in on an equality-only `customUuid` column filter the
+        // rows. Release 3's signing key matches the IN list and differs from
+        // release 1's key.
+        const expected = [{ id: 3 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.signingKey.notEquals(SIGNING_KEY1))
+              .and(tProjectRelease.signingKey.in([SIGNING_KEY3]))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key <> ? and signing_key in (?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "0a8f9c1e-1111-4222-8333-444455556666",
+            "7b3e9d20-2222-4c55-9b66-dddd00009999",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
     })
 })

@@ -272,4 +272,119 @@ describe(ctx.label, () => {
             { id: 3, version: '0.9.0' },
         ])
     })
+    test('custom-comparable-comparison-surface', async () => {
+        // lessOrEqual / between / in / notEquals on a `customComparable` column
+        // all yield a plain boolean (the brand does not survive a predicate),
+        // projected as boolean columns. Release 1 version '1.2.0' satisfies all
+        // four.
+        ctx.mockNext([{ id: 1, le: true, bt: true, isin: true, ne: true }])
+        const rows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .select({
+                id:   tProjectRelease.id,
+                le:   tProjectRelease.version.lessOrEqual('1.3.0'),
+                bt:   tProjectRelease.version.between('0.9.0', '1.3.0'),
+                isin: tProjectRelease.version.in(['1.2.0', '0.9.0']),
+                ne:   tProjectRelease.version.notEquals('0.9.0'),
+            })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, version <= ? as le, version between ? and ? as bt, version in (?, ?) as isin, version <> ? as ne from project_release where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "1.3.0",
+            "0.9.0",
+            "1.3.0",
+            "1.2.0",
+            "0.9.0",
+            "0.9.0",
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; le: boolean; bt: boolean; isin: boolean; ne: boolean }>>>()
+        expect(rows).toEqual([{ id: 1, le: true, bt: true, isin: true, ne: true }])
+    })
+
+    test('custom-equality-only-non-equals-surface', async () => {
+        // in / notIn / notEquals on an equality-only `custom` column all yield
+        // a plain boolean. Release 1 channel 'stable' is in {stable,beta}, not
+        // in {canary}, and != 'canary'.
+        ctx.mockNext([{ id: 1, isin: true, notin: true, ne: true }])
+        const rows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .select({
+                id:    tProjectRelease.id,
+                isin:  tProjectRelease.channel.in(['stable', 'beta']),
+                notin: tProjectRelease.channel.notIn(['canary']),
+                ne:    tProjectRelease.channel.notEquals('canary'),
+            })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, channel in (?, ?) as isin, channel not in (?) as notin, channel <> ? as ne from project_release where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "stable",
+            "beta",
+            "canary",
+            "canary",
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; isin: boolean; notin: boolean; ne: boolean }>>>()
+        expect(rows).toEqual([{ id: 1, isin: true, notin: true, ne: true }])
+    })
+
+    test('custom-brand-survives-nullable-and-optionality-modifiers', async () => {
+        // valueWhenNull / asOptional return the same branded value source,
+        // flipping only optionality. valueWhenNull on the optional customUuid
+        // `signingKey` makes it required (leaf `string`); asOptional on the
+        // required customLocalDate `releasedOn` makes it optional (leaf `Date`,
+        // projected `ro?: Date`). Release 2 has a NULL signing_key (so the
+        // fallback wins) and released_on 2024-02-20 (normalised to 10:00 UTC).
+        const NIL_UUID = '00000000-0000-0000-0000-000000000000'
+        const ro = new Date(Date.UTC(2024, 1, 20, 10, 0, 0))
+        ctx.mockNext([{ id: 2, key: NIL_UUID, ro }])
+        const rows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(2))
+            .select({
+                id:  tProjectRelease.id,
+                key: tProjectRelease.signingKey.valueWhenNull(NIL_UUID),
+                ro:  tProjectRelease.releasedOn.asOptional(),
+            })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(signing_key, ?) as "key", released_on as ro from project_release where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "00000000-0000-0000-0000-000000000000",
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; key: string; ro?: Date }>>>()
+        expect(rows).toEqual([{ id: 2, key: NIL_UUID, ro }])
+    })
+    test('const-sourced-custom-comparable-operator', async () => {
+        // An operator on a const-sourced custom value: a `customComparable`
+        // const is the receiver, compared to the typed `version` column to keep
+        // the SQL resolvable on every engine ('0.5.0' < version). Release 1
+        // version 1.2.0 -> true.
+        ctx.mockNext([{ id: 1, lt: true }])
+        const rows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .select({
+                id: tProjectRelease.id,
+                lt: ctx.conn.const<string, 'Semver'>('0.5.0', 'customComparable', 'Semver')
+                    .lessThan(tProjectRelease.version),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ? < version as lt from project_release where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "0.5.0",
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; lt: boolean }>>>()
+        expect(rows).toEqual([{ id: 1, lt: true }])
+    })
 })

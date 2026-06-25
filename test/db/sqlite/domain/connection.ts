@@ -93,6 +93,23 @@ export class DBConnection extends SqliteConnection<'DBConnection'> {
         this.arg('int', 'optional')
     ).as((a, b) => this.fragmentWithType('int', 'optional').sql`${a} + ${b}`)
 
+    // A 1-ary `buildFragmentWithArgs` over a `bigint` arg. abs(...) is portable.
+    bigintAbs = this.buildFragmentWithArgs(
+        this.arg('bigint', 'required')
+    ).as((a) => this.fragmentWithType('bigint', 'required').sql`abs(${a})`)
+
+    // A 1-ary `buildFragmentWithArgsIfValue` over a `valueArg`.
+    intIsPositiveIfValue = this.buildFragmentWithArgsIfValue(
+        this.valueArg('int', 'optional')
+    ).as((a) => this.fragmentWithType('boolean', 'required').sql`${a} > 0`)
+
+    // A 3-ary `buildFragmentWithMaybeOptionalArgs` over `string` args.
+    coalesce3 = this.buildFragmentWithMaybeOptionalArgs(
+        this.arg('string', 'optional'),
+        this.arg('string', 'optional'),
+        this.arg('string', 'optional')
+    ).as((a, b, c) => this.fragmentWithType('string', 'optional').sql`coalesce(${a}, ${b}, ${c})`)
+
     // Table/view customizations — `createTableOrViewCustomization`
     // produces a function that wraps a table reference with a
     // user-defined raw fragment in the FROM clause (docs:

@@ -78,4 +78,29 @@ describe(ctx.label, () => {
         })
     })
     */
+
+    // NOT-APPLICABLE: MySQL has no RETURNING
+    /*
+    test('delete-returning-projecting-optional-values-as-nullable', async () => {
+        // D3: optional RETURNING columns become a present `| null` via
+        // `projectingOptionalValuesAsNullable()` on a DELETE builder. issue 3
+        // has body = NULL (and is not referenced as a parent by any other
+        // issue), so the returned value is null (present), not absent.
+        const expectedMock = { id: 3, body: null }
+        ctx.mockNext(expectedMock)
+
+        await ctx.withRollback(async () => {
+            const removed = await ctx.conn.deleteFrom(tIssue)
+                .where(tIssue.id.equals(3))
+                .returning({ id: tIssue.id, body: tIssue.body })
+                .projectingOptionalValuesAsNullable()
+                .executeDeleteOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof removed, { id: number; body: string | null }>>()
+            expect(removed).toEqual({ id: 3, body: null })
+        })
+    })
+    */
 })

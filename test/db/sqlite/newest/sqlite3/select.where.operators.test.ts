@@ -149,4 +149,46 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ id: number }>>>()
         expect(result).toEqual(expected)
     })
-})
+    test('and-with-literal-boolean-operand', async () => {
+        // B6: `.and(boolean)` — the compile-time boolean-constant overload,
+        // distinct from the value-source overload every other and/or test
+        // uses. It routes the literal through `_appendValue` as a bound
+        // boolean param. `priority = ? and true` keeps the priority=2 rows.
+        const expected = [{ id: 1 }, { id: 4 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.priority.equals(2).and(true))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where priority = ? and ? order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+            true,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('or-with-literal-boolean-operand', async () => {
+        // B6: `.or(boolean)` — the literal-boolean overload of `or`.
+        // `priority = ? or false` keeps just the priority=2 rows.
+        const expected = [{ id: 1 }, { id: 4 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.priority.equals(2).or(false))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where priority = ? or ? order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+            false,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+        expect(result).toEqual(expected)
+    })})

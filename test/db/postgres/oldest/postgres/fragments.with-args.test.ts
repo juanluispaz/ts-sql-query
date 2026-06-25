@@ -26,6 +26,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
+import { tIssue } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -124,6 +125,8 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFromNoTable()
             .select({ r: ctx.conn.intPlus(3, 4) })
             .executeSelectMany()
+        // A5: both args present → MergeOptionalUnion collapses to required.
+        assertType<Exact<typeof rows, Array<{ r: number }>>>()
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::int + $2::int as "r""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -144,6 +147,8 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFromNoTable()
             .select({ r: ctx.conn.intPlus(undefined, 5) })
             .executeSelectMany()
+        // A5: one arg undefined → MergeOptionalUnion degrades to optional.
+        assertType<Exact<typeof rows, Array<{ r?: number | undefined }>>>()
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::int + $2::int as "r""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -156,5 +161,29 @@ describe(ctx.label, () => {
         // a NULL (NULL + 5 = NULL) yields the column as `undefined`
         // instead of throwing MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE.
         expect(rows).toEqual([{ r: undefined }])
+    })
+
+    test('build-fragment-with-maybe-optional-args-reads-optional-from-value-source-argument', async () => {
+        // A5: the maybe-optional result optionality can come from a VALUE-SOURCE
+        // argument's optionalType, not only from a present/absent literal.
+        // `conn.const(3,'int')` is required, `tIssue.assigneeId` is optional →
+        // MergeOptionalUnion yields an optional result. Row id=1 has
+        // assignee_id=1, so r = 3 + 1 = 4.
+        const expected = [{ r: 4 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({ r: ctx.conn.intPlus(ctx.conn.const(3, 'int'), tIssue.assigneeId) })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::int + assignee_id::int as "r" from issue where id = $2"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ r?: number | undefined }>>>()
+        expect(rows).toEqual(expected)
     })
 })

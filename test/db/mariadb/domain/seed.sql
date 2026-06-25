@@ -27,3 +27,18 @@ INSERT INTO issue (id, project_id, `number`, title, body, status, priority, assi
     (2, 1, 2, 'Redesign navbar',      'Use new tokens', 'in_progress', 1, 2,   '7b3e9d20-2222-4c55-9b66-dddd00009999'),
     (3, 2, 1, 'Migrate to ESM',       NULL,            'open',        3, NULL,  NULL),
     (4, 3, 1, 'Document /v2/users',   'See ADR-014',   'closed',      2, 3,    NULL);
+
+INSERT INTO country (code, name, region) VALUES
+    ('US', 'United States',  'Americas'),
+    ('GB', 'United Kingdom', 'Europe'),
+    ('JP', 'Japan',          'Asia');
+
+INSERT INTO issue_worklog (id, issue_id, work_date, started_at, minutes, duration_ms, billable, activity) VALUES
+    (1, 1, '2024-03-04', '09:15:00', 90,   5400000, 1,    'coding'),
+    (2, 2, '2024-03-05', '14:00:00', NULL, NULL,    0,    'review'),
+    (3, 1, '2024-03-06', '10:30:00', 30,   1800000, NULL, 'meeting');
+
+INSERT INTO project_release (id, project_id, version, channel, signing_key, released_on, cutoff_time, signed_off_at) VALUES
+    (1, 1, '1.2.0',        'stable', '0a8f9c1e-1111-4222-8333-444455556666', '2024-01-15', '17:00:00', '2024-01-14 12:30:00'),
+    (2, 1, '1.3.0-beta.1', 'beta',   NULL,     '2024-02-20', '18:30:00', NULL),
+    (3, 2, '0.9.0',        'canary', '7b3e9d20-2222-4c55-9b66-dddd00009999', '2024-03-01', '16:00:00', '2024-02-28 09:00:00');

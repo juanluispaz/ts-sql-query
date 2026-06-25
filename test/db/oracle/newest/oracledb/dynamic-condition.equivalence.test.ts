@@ -34,7 +34,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import type { DynamicCondition } from '../../../../../src/dynamic/condition.js'
-import { tIssue, tProject } from '../../domain/connection.js'
+import { tIssue, tIssueWorklog, tProject, tProjectRelease } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 const selectFields = {
@@ -737,4 +737,185 @@ describe(ctx.label, () => {
           ]
         `)
     })
+
+    test('equivalence/enum-descriptor-dispatch', async () => {
+        // The `['enum', T]` descriptor maps to an EqualableFilter<T>. Only the
+        // *type* mapping is pinned elsewhere (from-model); this runs an enum
+        // filter through `withValues` and proves it emits exactly what the
+        // direct equalable calls do. `tIssue.status` stores the enum values in
+        // a plain string column, so the field map dispatches the enum filter
+        // through the string value source.
+        type StatusFilter = DynamicCondition<{ id: 'int', status: ['enum', 'open' | 'closed'] }>
+        const filter: StatusFilter = {
+            status: { equals: 'open', in: ['open', 'closed'], notEquals: 'closed' },
+        }
+        const statusFields = { id: tIssue.id, status: tIssue.status }
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.status.equals('open')
+                .and(tIssue.status.in(['open', 'closed']))
+                .and(tIssue.status.notEquals('closed')))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor(statusFields).withValues(filter))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as "id" from issue where status = :0 and status in (:1, :2) and status <> :3 order by "id""`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            "open",
+            "open",
+            "closed",
+            "closed",
+          ]
+        `)
+    })
+
+    test('equivalence/custom-comparable-descriptor-dispatch', async () => {
+        // F1: the `['customComparable', T]` descriptor maps to a
+        // ComparableFilter<T>. tProjectRelease.version is a branded
+        // customComparable column; the dynamic filter must emit exactly the
+        // direct comparable calls. The model path cannot reach custom arms
+        // (it can't map adapters), so the descriptor map is the only route.
+        type ReleaseFilter = DynamicCondition<{ id: 'int', version: ['customComparable', string] }>
+        const filter: ReleaseFilter = { version: { greaterThan: '0.5.0', lessThan: '1.3.0', equals: '1.2.0' } }
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.version.greaterThan('0.5.0')
+                .and(tProjectRelease.version.lessThan('1.3.0'))
+                .and(tProjectRelease.version.equals('1.2.0')))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(ctx.conn.dynamicConditionFor({ id: tProjectRelease.id, version: tProjectRelease.version }).withValues(filter))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as "id" from project_release where version > :0 and version < :1 and version = :2 order by "id""`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            "0.5.0",
+            "1.3.0",
+            "1.2.0",
+          ]
+        `)
+    })
+
+    test('equivalence/custom-uuid-descriptor-dispatch', async () => {
+        // F1: the `['customUuid', T]` descriptor maps to CustomUuidFilter<T> —
+        // a bespoke equality + like/affix interface over the branded uuid.
+        // signingKey is an optional customUuid column. The like-family
+        // operators route through the same `asString()` rewrite the plain
+        // uuid path uses (useAsStringInUuid).
+        type ReleaseFilter = DynamicCondition<{ id: 'int', signingKey: ['customUuid', string] }>
+        const filter: ReleaseFilter = {
+            signingKey: { equals: '0a8f9c1e-1111-4222-8333-444455556666', contains: 'abc', startsWith: '0a8f' },
+        }
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.signingKey.equals('0a8f9c1e-1111-4222-8333-444455556666')
+                .and(tProjectRelease.signingKey.asString().contains('abc'))
+                .and(tProjectRelease.signingKey.asString().startsWith('0a8f')))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(ctx.conn.dynamicConditionFor({ id: tProjectRelease.id, signingKey: tProjectRelease.signingKey }).withValues(filter))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as "id" from project_release where signing_key = uuid_to_raw(:0) and raw_to_uuid(signing_key) like ('%' || :1 || '%') escape '\\' and raw_to_uuid(signing_key) like (:2 || '%') escape '\\' order by "id""`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            "0a8f9c1e-1111-4222-8333-444455556666",
+            "abc",
+            "0a8f",
+          ]
+        `)
+    })
+
+    test('equivalence/local-date-descriptor-dispatch', async () => {
+        // F2: the `'localDate'` descriptor maps to a DateFilter. workDate is a
+        // plain localDate column; the comparable filter emits the same SQL +
+        // params as the direct comparable calls (date-only literal encoding,
+        // distinct from localDateTime). TZ=UTC forced by the suite.
+        type WorklogFilter = DynamicCondition<{ id: 'int', workDate: 'localDate' }>
+        const lo = new Date(Date.UTC(2024, 2, 1, 0, 0, 0))
+        const hi = new Date(Date.UTC(2024, 2, 31, 0, 0, 0))
+        const filter: WorklogFilter = { workDate: { greaterOrEqual: lo, lessThan: hi } }
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.workDate.greaterOrEqual(lo).and(tIssueWorklog.workDate.lessThan(hi)))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssueWorklog.id, workDate: tIssueWorklog.workDate }).withValues(filter))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as "id" from issue_worklog where work_date >= :0 and work_date < :1 order by "id""`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            2024-03-01T00:00:00.000Z,
+            2024-03-31T00:00:00.000Z,
+          ]
+        `)
+    })
+
+    // TODO[BUG]: see BUGS.md — binding a localTime value as a query parameter sends it as a string that Oracle reads as a date (ORA-01843: an invalid month was specified); localDate / localDateTime bind fine.
+    /*
+    test('equivalence/local-time-descriptor-dispatch', async () => {
+        // F3: the `'localTime'` descriptor maps to a TimeFilter. startedAt is a
+        // plain localTime column; the comparable filter emits the same SQL +
+        // params as the direct calls (time-only literal encoding, distinct
+        // from both localDate and localDateTime).
+        type WorklogFilter = DynamicCondition<{ id: 'int', startedAt: 'localTime' }>
+        const lo = new Date(Date.UTC(1970, 0, 1, 9, 0, 0))
+        const hi = new Date(Date.UTC(1970, 0, 1, 17, 0, 0))
+        const filter: WorklogFilter = { startedAt: { greaterOrEqual: lo, lessThan: hi } }
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.startedAt.greaterOrEqual(lo).and(tIssueWorklog.startedAt.lessThan(hi)))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssueWorklog.id, startedAt: tIssueWorklog.startedAt }).withValues(filter))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as "id" from issue_worklog where started_at >= :0 and started_at < :1 order by "id""`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            "09:00:00",
+            "17:00:00",
+          ]
+        `)
+    })
+    */
 })

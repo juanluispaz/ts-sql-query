@@ -206,4 +206,24 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
         expect(rows).toEqual(expected)
     })
-})
+    test('valueWhenNull-required-receiver-optional-default-becomes-optional', async () => {
+        // A2: the `valueWhenNull(VALUE)` overload REPLACES the receiver's
+        // optionality with the default's. `title` is required, `body` is
+        // optional → the result is optional, even though at runtime `title`
+        // is never null so the coalesce always yields it.
+        const expected = [{ x: 'Update hero copy' }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({ x: tIssue.title.valueWhenNull(tIssue.body) })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select nvl(title, "body") as "x" from issue where id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ x?: string | undefined }>>>()
+        expect(result).toEqual(expected)
+    })})

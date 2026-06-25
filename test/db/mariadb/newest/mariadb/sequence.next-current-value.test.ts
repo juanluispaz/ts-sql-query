@@ -24,6 +24,8 @@
 //      then shift every subsequent insert id.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
+import { assertType, type Exact } from '../../../../lib/assertType.js'
+import type { ReleaseTag } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -91,6 +93,27 @@ describe(ctx.label, () => {
             expect(ctx.lastSql).toMatchInlineSnapshot(`"select nextval(audit_tag_seq) as result"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
             expect(typeof next === 'bigint' || typeof next === 'string' || typeof next === 'number').toBe(true)
+        })
+    })
+
+    test('sequence-custom-int-value-type', async () => {
+        await ctx.withCommit(async () => {
+            // G2: the sequence value-type fan-out. `release_tag_seq` is declared
+            // over a branded `customInt` (`ReleaseTag`) rather than the plain
+            // int / bigint of the sequences above. The emitted SQL is identical
+            // to the int form (the value type only changes the type adapter);
+            // the assertion pins that `nextValue()` projects the branded
+            // CustomIntValueSource.
+            ctx.mockNext(7)
+            const next = await ctx.conn.selectFromNoTable()
+                .selectOneColumn(ctx.conn.releaseTagSeq.nextValue())
+                .executeSelectOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select nextval(release_tag_seq) as result"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+            assertType<Exact<typeof next, ReleaseTag>>()
+            if (!ctx.realDbEnabled) expect(next).toBe(7 as ReleaseTag)
+            else expect(typeof next).toBe('number')
         })
     })
 })

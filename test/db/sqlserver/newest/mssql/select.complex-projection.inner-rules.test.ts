@@ -181,4 +181,74 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
+
+    test('projecting-optional-values-as-nullable-on-plain-select-makes-left-join-object-nullable', async () => {
+        // D1: `projectingOptionalValuesAsNullable()` on a plain (non-aggregate)
+        // select projects a left-joined nested object as `{...} | null` instead
+        // of the default `org?: {...}`. The helper was only ever exercised on
+        // flat objects or inside aggregateAsArray before. Project 1 →
+        // organization 1 ('Acme Corp'), so the join hits and `org` is present;
+        // the `| null` arm is the type promise the assertion pins.
+        const expected = { pid: 1, org: { id: 1, name: 'Acme Corp' } }
+        ctx.mockNext(expected)
+        const tOrgLeft = tOrganization.forUseInLeftJoin()
+        const row = await ctx.conn.selectFrom(tProject)
+            .leftJoin(tOrgLeft).on(tOrgLeft.id.equals(tProject.organizationId))
+            .where(tProject.id.equals(1))
+            .select({ pid: tProject.id, org: { id: tOrgLeft.id, name: tOrgLeft.name } })
+            .projectingOptionalValuesAsNullable()
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, organization.id as [org.id], organization.name as [org.name] from project left join organization on organization.id = project.organization_id where project.id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { pid: number; org: { id: number; name: string } | null }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('merge-optional-requiredInOptionalObject-is-preserved-through-an-operator', async () => {
+        // A4: `requiredInOptionalObject` is a middle row of the MergeOptional
+        // lattice that is only reachable through an OPERATOR here.
+        // `priority.asRequiredInOptionalObject()` carries that state; the
+        // `.equals(id)` operator (against a required operand) merges to
+        // `requiredInOptionalObject` again, so the `flag` leaf stays "required
+        // when the optional `meta` object is present" — distinct from the
+        // optional `assigneeId` sibling that surfaces as `| undefined`. issues
+        // 1,2 (project 1): flag = (priority == id) is false for both;
+        // assigneeId is 1 and 2.
+        const expected = [
+            { iid: 1, meta: { flag: false, assigneeId: 1 } },
+            { iid: 2, meta: { flag: false, assigneeId: 2 } },
+        ]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.projectId.equals(1))
+            .select({
+                iid: tIssue.id,
+                meta: {
+                    flag:       tIssue.priority.asRequiredInOptionalObject().equals(tIssue.id),
+                    assigneeId: tIssue.assigneeId,
+                },
+            })
+            .orderBy('iid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, cast(case when priority = id then 1 when not (priority = id) then 0 else null end as bit) as [meta.flag], assignee_id as [meta.assigneeId] from issue where project_id = @0 order by iid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        // `flag` stays REQUIRED inside the optional `meta` object (the operator
+        // preserved requiredInOptionalObject), whereas the plain-optional
+        // `assigneeId` sibling surfaces as `| undefined`.
+        assertType<Exact<typeof rows, Array<{
+            iid:   number
+            meta?: { flag: boolean; assigneeId: number | undefined }
+        }>>>()
+        expect(rows).toEqual(expected)
+    })
 })

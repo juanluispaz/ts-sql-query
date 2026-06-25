@@ -135,4 +135,28 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
+
+    test('compound-with-optional-seed-column-yields-optional-result', async () => {
+        // D4: the compound result optionality is decided by the SEED (first)
+        // query. Here the seed projects the optional column `archivedAt`, so
+        // the merged column stays optional (`a?`) — distinct from every other
+        // compound test, which seeds a required column. Both branches filter to
+        // the NULL-archivedAt projects so the union dedups to a single absent
+        // value (project 4's archived_at is a non-deterministic
+        // CURRENT_TIMESTAMP, so it is excluded).
+        const expected = [{}]
+        ctx.mockNext(expected)
+        const optSeed = ctx.conn.selectFrom(tProject)
+            .where(tProject.archivedAt.isNull())
+            .select({ a: tProject.archivedAt })
+        const other = ctx.conn.selectFrom(tProject)
+            .where(tProject.archivedAt.isNull())
+            .select({ a: tProject.archivedAt })
+        const result = await optSeed.union(other).executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select archived_at as "a" from project where archived_at is null union select archived_at as "a" from project where archived_at is null"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ a?: Date | undefined }>>>()
+        expect(result).toEqual(expected)
+    })
 })

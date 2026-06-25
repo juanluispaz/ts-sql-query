@@ -116,4 +116,66 @@ describe(ctx.label, () => {
             if (!ctx.realDbEnabled) expect(ids).toEqual(expectedMock)
         })
     })
+
+    test('insert-returning-projecting-optional-values-as-nullable', async () => {
+        // D3: optional RETURNING columns become a present `| null` via
+        // `projectingOptionalValuesAsNullable()` on a mutation builder — the
+        // helper was only ever called on selects / aggregate-as-array before.
+        // `archivedAt` is an optionalColumn left unset, so it returns null
+        // (present), not absent.
+        const expectedMock = { id: 100, archivedAt: null }
+        ctx.mockNext(expectedMock)
+
+        await ctx.withRollback(async () => {
+            const inserted = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, name: 'Nullable demo', slug: 'nullable-demo' })
+                .returning({ id: tProject.id, archivedAt: tProject.archivedAt })
+                .projectingOptionalValuesAsNullable()
+                .executeInsertOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?, ?, ?) returning id as id, archived_at as archivedAt"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "Nullable demo",
+                "nullable-demo",
+              ]
+            `)
+            assertType<Exact<typeof inserted, { id: number; archivedAt: Date | null }>>()
+
+            expect(inserted.archivedAt).toBeNull()
+            expect(typeof inserted.id).toBe('number')
+            if (!ctx.realDbEnabled) expect(inserted.id).toBe(100)
+            else expect(inserted.id).toBeGreaterThan(4) // seed reserves project ids 1-4
+        })
+    })
+
+    test('insert-returning-without-helper-keeps-optional', async () => {
+        // D3 contrast: the SAME returning WITHOUT the helper keeps the optional
+        // column as `archivedAt?: Date` (default optionals-as-undefined), so a
+        // null value surfaces as an absent key — proving the helper flips it.
+        const expectedMock = { id: 101 }
+        ctx.mockNext(expectedMock)
+
+        await ctx.withRollback(async () => {
+            const inserted = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, name: 'Optional demo', slug: 'optional-demo' })
+                .returning({ id: tProject.id, archivedAt: tProject.archivedAt })
+                .executeInsertOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?, ?, ?) returning id as id, archived_at as archivedAt"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "Optional demo",
+                "optional-demo",
+              ]
+            `)
+            assertType<Exact<typeof inserted, { id: number; archivedAt?: Date }>>()
+
+            expect(inserted.archivedAt).toBeUndefined()
+            if (!ctx.realDbEnabled) expect(inserted.id).toBe(101)
+            else expect(inserted.id).toBeGreaterThan(4)
+        })
+    })
 })

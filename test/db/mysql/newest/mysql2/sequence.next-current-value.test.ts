@@ -95,4 +95,28 @@ describe(ctx.label, () => {
         expect(typeof next === 'bigint' || typeof next === 'string' || typeof next === 'number').toBe(true)
     })
     */
+
+    // NOT-APPLICABLE: MySQL has no sequences; `connection.sequence(...)` is not typed on MySqlConnection.
+    /*
+    test('sequence-custom-int-value-type', async () => {
+        await ctx.withCommit(async () => {
+            // G2: the sequence value-type fan-out. `release_tag_seq` is declared
+            // over a branded `customInt` (`ReleaseTag`) rather than the plain
+            // int / bigint of the sequences above. The emitted SQL is identical
+            // to the int form (the value type only changes the type adapter);
+            // the assertion pins that `nextValue()` projects the branded
+            // CustomIntValueSource.
+            ctx.mockNext(7)
+            const next = await ctx.conn.selectFromNoTable()
+                .selectOneColumn(ctx.conn.releaseTagSeq.nextValue())
+                .executeSelectOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof next, ReleaseTag>>()
+            if (!ctx.realDbEnabled) expect(next).toBe(7 as ReleaseTag)
+            else expect(typeof next).toBe('number')
+        })
+    })
+    */
 })

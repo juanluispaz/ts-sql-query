@@ -3,6 +3,11 @@
 -- having DROP IF EXISTS lets you re-apply by hand for debugging.
 
 DROP VIEW IF EXISTS project_overview;
+DROP VIEW IF EXISTS release_overview;
+DROP TABLE IF EXISTS project_release CASCADE;
+DROP TABLE IF EXISTS audit_entry CASCADE;
+DROP TABLE IF EXISTS issue_worklog CASCADE;
+DROP TABLE IF EXISTS country CASCADE;
 DROP TABLE IF EXISTS issue CASCADE;
 DROP TABLE IF EXISTS project CASCADE;
 DROP TABLE IF EXISTS app_user CASCADE;
@@ -62,6 +67,36 @@ CREATE TABLE issue (
     UNIQUE (project_id, number)
 );
 
+CREATE TABLE country (
+    code VARCHAR(2) PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    region VARCHAR(32) NOT NULL
+);
+
+CREATE TABLE issue_worklog (
+    id SERIAL PRIMARY KEY,
+    issue_id INTEGER NOT NULL REFERENCES issue(id),
+    work_date DATE NOT NULL,
+    started_at TIME,
+    minutes INTEGER DEFAULT 0,
+    duration_ms BIGINT,
+    billable BOOLEAN,
+    activity VARCHAR(16) NOT NULL
+);
+
+CREATE TABLE project_release (
+    id SERIAL PRIMARY KEY,
+    project_id INTEGER NOT NULL REFERENCES project(id),
+    version VARCHAR(32) NOT NULL,
+    channel VARCHAR(16) NOT NULL,
+    signing_key VARCHAR(36),
+    released_on DATE NOT NULL,
+    cutoff_time TIME NOT NULL,
+    signed_off_at TIMESTAMP,
+    notes VARCHAR(255) GENERATED ALWAYS AS ('release-' || version) STORED,
+    UNIQUE (project_id, version)
+);
+
 -- Stored procedures and functions exercised by
 -- `exec.procedure-function.test.ts`. Each body is intentionally
 -- trivial: the tests only assert on the SQL the SqlBuilder emits and
@@ -94,6 +129,19 @@ LANGUAGE sql AS $$
     SELECT name FROM project WHERE id = p_id
 $$;
 
+DROP FUNCTION IF EXISTS total_view_count(integer);
+DROP FUNCTION IF EXISTS latest_issue_at(integer);
+DROP FUNCTION IF EXISTS estimated_total(integer);
+
+CREATE FUNCTION total_view_count(p_id integer) RETURNS bigint
+LANGUAGE sql AS $$ SELECT COALESCE(SUM(view_count), 0)::bigint FROM issue WHERE project_id = p_id $$;
+
+CREATE FUNCTION latest_issue_at(p_id integer) RETURNS timestamp
+LANGUAGE sql AS $$ SELECT MAX(created_at) FROM issue WHERE project_id = p_id $$;
+
+CREATE FUNCTION estimated_total(p_id integer) RETURNS double precision
+LANGUAGE sql AS $$ SELECT COALESCE(SUM(estimated_hours), 0)::double precision FROM issue WHERE project_id = p_id $$;
+
 -- Sequences exercised by `sequence.next-current-value.test.ts`.
 -- `issueIdSeq` (typed `'int'`) reuses the sequence implicitly
 -- created by `issue.id SERIAL` (PostgreSQL names it `issue_id_seq`);
@@ -106,9 +154,17 @@ DROP SEQUENCE IF EXISTS audit_tag_seq;
 
 CREATE SEQUENCE audit_tag_seq START 1;
 
+DROP SEQUENCE IF EXISTS release_tag_seq;
+CREATE SEQUENCE release_tag_seq START 1;
+
 -- A class-based SQL view exercised by `view.basic.test.ts`. A plain
 -- join of project + organization (no aggregation, no casts) so the
 -- same shape is portable across every dialect.
+CREATE TABLE audit_entry (
+    id integer PRIMARY KEY,
+    action VARCHAR(255) NOT NULL
+);
+
 CREATE VIEW project_overview AS
 SELECT p.id AS id,
        p.organization_id AS organization_id,
@@ -118,3 +174,14 @@ SELECT p.id AS id,
        o.plan AS organization_plan
 FROM project p
 INNER JOIN organization o ON o.id = p.organization_id;
+
+-- View side of the release columns (see vReleaseOverview in connection.ts).
+CREATE VIEW release_overview AS
+SELECT r.id AS id,
+       r.project_id AS project_id,
+       r.version AS version,
+       r.released_on AS released_on,
+       r.signed_off_at AS signed_off_at,
+       p.name AS project_name
+FROM project_release r
+INNER JOIN project p ON p.id = r.project_id;

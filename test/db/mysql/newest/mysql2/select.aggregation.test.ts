@@ -36,6 +36,21 @@ describe(ctx.label, () => {
         expect(result.statuses).toBe(3)
     })
 
+    test('count-of-optional-column-stays-required', async () => {
+        // A6: `count` of an OPTIONAL column is still `required` — the result
+        // optionality is decoupled from the input (unlike sum/average, which
+        // are optional). `assignee_id` is an optionalColumn; seeded values are
+        // 1, 2, NULL, 3, so count counts the 3 non-null rows.
+        ctx.mockNext({ assigned: 3 })
+        const result = await ctx.conn.selectFrom(tIssue)
+            .select({ assigned: ctx.conn.count(tIssue.assigneeId) })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(assignee_id) as assigned from issue"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, { assigned: number }>>()
+        expect(result.assigned).toBe(3)
+    })
+
     test('sum-priority', async () => {
         ctx.mockNext({ totalPriority: 8 })
         const result = await ctx.conn.selectFrom(tIssue)

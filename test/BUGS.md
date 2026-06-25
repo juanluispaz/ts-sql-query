@@ -67,7 +67,43 @@ of that. Two minutes of triage and one paragraph is the bar.
 
 ## Open Bugs
 
-_None currently open._
+## Binding a `localTime` value as a query parameter is rejected by the Oracle and SQL Server drivers
+
+**Where**: the `localTime` parameter-marshalling path (`transformValueToDB` /
+the per-dialect param encoding reached from `OracleSqlBuilder` /
+`SqlServerSqlBuilder`). Surfaced under `--docker`.
+
+**Reproduction**: bind a `localTime` *value* as a parameter — an
+`INSERT … VALUES`, an `UPDATE … SET`, or a `WHERE col < ?` comparison — against
+a real Oracle or SQL Server engine. `localDate` and `localDateTime` parameters
+bind cleanly, and **reading** a `localTime` column works on every dialect, so
+the defect is specific to the time-only **write/parameter** path.
+- **Oracle** raises `ORA-01843: an invalid month was specified` — the library
+  sends the parameter as a bare time string (e.g. `'09:00:00'`) and Oracle
+  applies its implicit string→`DATE` conversion, which has no month component.
+- **SQL Server** raises `Invalid time` (`EPARAM`) — `tedious` validates the
+  value against its `TIME` parameter type and rejects the library's encoding.
+
+The minimal in-suite repro is the dynamic-condition test
+`equivalence/local-time-descriptor-dispatch`, which builds
+`tIssueWorklog.startedAt.greaterOrEqual(t).and(.lessThan(t))` (a `localTime`
+`WHERE` predicate) and runs live on postgres / mariadb / mysql / sqlite.
+
+**Current workaround in the suite**:
+- `equivalence/local-time-descriptor-dispatch` (in
+  `dynamic-condition.equivalence.test.ts`) is block-commented with the full
+  canonical body and a `// TODO[BUG]: see BUGS.md — binding a localTime value
+  …` reason line in `oracle/newest/oracledb` and `sqlserver/newest/mssql`; it
+  runs live in the other cells.
+- The shared domain's `issue_worklog.started_at` is
+  `optionalColumn(..., 'localTime')`, so the `optional-column-with-default-value-…`
+  insert test in `select.column-factory-types.test.ts` omits it (binding no
+  `localTime` parameter) and runs live on every cell. Reading the column is
+  unaffected, so the `local-date-and-local-time-columns-…` projection test runs
+  live everywhere too.
+
+Reactivate the two commented cells once a `localTime` parameter is encoded in a
+form both drivers accept.
 
 ## Common bug shapes (for the fixing agent)
 

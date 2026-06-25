@@ -126,4 +126,39 @@ describe(ctx.label, () => {
             expect(rows.slice().sort((a, b) => a.id - b.id)).toEqual(expected)
         })
     })
+
+    test('update-returning-projecting-optional-values-as-nullable', async () => {
+        // D3: optional RETURNING columns become a present `| null` via
+        // `projectingOptionalValuesAsNullable()` on an UPDATE builder. issue 3
+        // has body = NULL, so the returned value is null (present), not absent.
+        const expectedMock = { id: 3, body: null }
+        ctx.mockNext(expectedMock)
+
+        await ctx.withRollback(async () => {
+            const updated = await ctx.conn.update(tIssue)
+                .set({ status: 'in_progress' })
+                .where(tIssue.id.equals(3))
+                .returning({ id: tIssue.id, body: tIssue.body })
+                .projectingOptionalValuesAsNullable()
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = :0 where id = :1 returning id, "body" into :2, :3"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "in_progress",
+                3,
+                {
+                  "as": "id",
+                  "dir": 3003,
+                },
+                {
+                  "as": "body",
+                  "dir": 3003,
+                },
+              ]
+            `)
+            assertType<Exact<typeof updated, { id: number; body: string | null }>>()
+            expect(updated).toEqual({ id: 3, body: null })
+        })
+    })
 })

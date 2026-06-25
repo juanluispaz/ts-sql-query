@@ -125,4 +125,34 @@ describe(ctx.label, () => {
         const trimmed = deepOmit(customer, ['company.id'])
         expect(trimmed).toEqual({ id: 1, firstName: 'John', lastName: 'Doe', company: null })
     })
+
+    test('docs-extra:deep-utilities/deep-pick-required-intermediate-object', () => {
+        // The other models carry an optional `company?`; this pins the
+        // required-intermediate case — a non-optional nested object stays
+        // non-optional through a deep pick and a deep omit.
+        interface Account {
+            id:  number
+            org: { id: number; name: string }
+        }
+        assertType<Exact<DeepPick<Account, 'org.name'>, { org: { name: string } }>>()
+        assertType<Exact<DeepOmit<Account, 'org.id'>, { id: number; org: { name: string } }>>()
+    })
+
+    test('docs-extra:deep-utilities/deep-pick-depth-3-path', () => {
+        // The other models are at most 2 levels deep; this pins a 3-level
+        // dotted path through DeepPickPaths and DeepPick.
+        interface Deep3 {
+            a: { b: { c: number; d: string } }
+        }
+        type Paths = DeepPickPaths<Deep3>
+        assertType<Exact<Paths, 'a' | 'a.b' | 'a.b.c' | 'a.b.d'>>()
+        assertType<Exact<DeepPick<Deep3, 'a.b.c'>, { a: { b: { c: number } } }>>()
+    })
+
+    test('docs-extra:deep-utilities/deep-pick-two-leaves-of-one-nested-object', () => {
+        // Two leaves of the same nested object merge into a single nested
+        // object carrying both; the optional `company?` is preserved.
+        assertType<Exact<DeepPick<CustomerWithCompany, 'company.id' | 'company.name'>,
+            { company?: { id: number; name: string } }>>()
+    })
 })

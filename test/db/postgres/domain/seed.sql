@@ -27,9 +27,26 @@ INSERT INTO issue (id, project_id, number, title, body, status, priority, assign
     (3, 2, 1, 'Migrate to ESM',       NULL,            'open',        3, NULL,  NULL),
     (4, 3, 1, 'Document /v2/users',   'See ADR-014',   'closed',      2, 3,    NULL);
 
+INSERT INTO country (code, name, region) VALUES
+    ('US', 'United States',  'Americas'),
+    ('GB', 'United Kingdom', 'Europe'),
+    ('JP', 'Japan',          'Asia');
+
+INSERT INTO issue_worklog (id, issue_id, work_date, started_at, minutes, duration_ms, billable, activity) VALUES
+    (1, 1, '2024-03-04', '09:15:00', 90,   5400000, TRUE,  'coding'),
+    (2, 2, '2024-03-05', '14:00:00', NULL, NULL,    FALSE, 'review'),
+    (3, 1, '2024-03-06', '10:30:00', 30,   1800000, NULL,  'meeting');
+
+INSERT INTO project_release (id, project_id, version, channel, signing_key, released_on, cutoff_time, signed_off_at) VALUES
+    (1, 1, '1.2.0',        'stable', '0a8f9c1e-1111-4222-8333-444455556666', '2024-01-15', '17:00:00', '2024-01-14 12:30:00'),
+    (2, 1, '1.3.0-beta.1', 'beta',   NULL,                                   '2024-02-20', '18:30:00', NULL),
+    (3, 2, '0.9.0',        'canary', '7b3e9d20-2222-4c55-9b66-dddd00009999', '2024-03-01', '16:00:00', '2024-02-28 09:00:00');
+
 -- Bump serial sequences past the manually-assigned IDs so subsequent INSERTs
 -- without explicit id pick up where we left off.
 SELECT setval(pg_get_serial_sequence('organization', 'id'), (SELECT MAX(id) FROM organization));
 SELECT setval(pg_get_serial_sequence('app_user',     'id'), (SELECT MAX(id) FROM app_user));
 SELECT setval(pg_get_serial_sequence('project',      'id'), (SELECT MAX(id) FROM project));
 SELECT setval(pg_get_serial_sequence('issue',        'id'), (SELECT MAX(id) FROM issue));
+SELECT setval(pg_get_serial_sequence('issue_worklog',   'id'), (SELECT MAX(id) FROM issue_worklog));
+SELECT setval(pg_get_serial_sequence('project_release', 'id'), (SELECT MAX(id) FROM project_release));

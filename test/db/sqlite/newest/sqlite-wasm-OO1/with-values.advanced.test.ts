@@ -71,6 +71,19 @@ class VIssueBilling extends Values<DBConnection, 'issueBilling'> {
     billingRef = this.optionalVirtualColumnFromFragment<string>('customUuid', 'BillingRef', fragment => fragment.sql`null`)
 }
 
+// C13: the BASE-TYPE (non-custom) `optionalVirtualColumnFromFragment`
+// overloads — `'int'` / `'string'` / … with no typeName, contrast with
+// `VIssueBilling.billingRef` which uses the `customUuid` form. Each projects
+// as `T | undefined` and, like every virtual column, is NOT a VALUES tuple
+// member: only the real `column(...)` fields appear in the `name(cols)`
+// list, while reading a virtual field inlines its fragment SQL.
+class VBatchRow extends Values<DBConnection, 'batchRow'> {
+    id    = this.column('int')
+    label = this.column('string')
+    rank  = this.optionalVirtualColumnFromFragment('int', fragment => fragment.sql`null`)
+    note  = this.optionalVirtualColumnFromFragment('string', fragment => fragment.sql`null`)
+}
+
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
     afterAll(() => ctx.down(), ctx.timeoutMs)
@@ -318,5 +331,39 @@ describe(ctx.label, () => {
         expect(thrown).toBeInstanceOf(TsSqlProcessingError)
         expect((thrown as TsSqlProcessingError).errorReason.reason)
             .toBe('CONSTANT_VALUES_VIEW_CANNOT_BE_EMPTY')
+    })
+
+    test('values-base-type-optional-virtual-column-projects-optional-and-is-not-a-tuple-member', async () => {
+        // C13: the base-type `optionalVirtualColumnFromFragment('int' | 'string',
+        // …)` overloads. The data tuples only supply the real `column(...)`
+        // fields (id, label) — `rank` / `note` are virtual, so they are absent
+        // from both the `batchRow(id, label)` column list and the VALUES rows;
+        // reading them inlines their fragment (`null`). They project as
+        // `T | undefined`.
+        const expected = [
+            { id: 1, label: 'a' },
+            { id: 2, label: 'b' },
+        ]
+        ctx.mockNext(expected)
+        const batch = Values.create(VBatchRow, 'batchRow', [
+            { id: 1, label: 'a' },
+            { id: 2, label: 'b' },
+        ])
+        const rows = await ctx.conn.selectFrom(batch)
+            .select({ id: batch.id, label: batch.label, rank: batch.rank, note: batch.note })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with batchRow(id, label) as (values (?, ?), (?, ?)) select id as id, label as label, null as rank, null as note from batchRow order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            "a",
+            2,
+            "b",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; label: string; rank?: number; note?: string }>>>()
+        expect(rows).toEqual(expected)
     })
 })

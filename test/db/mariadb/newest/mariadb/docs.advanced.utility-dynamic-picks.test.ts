@@ -5,7 +5,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact, type Extends } from '../../../../lib/assertType.js'
-import { dynamicPick, dynamicPickPaths, expandTypeFromDynamicPickPaths, type DynamicPick, type DynamicPickPaths, type PickValuesPath, type PickValuesPathWitAllProperties } from '../../../../../src/dynamic/pick.js'
+import { dynamicPick, dynamicPickPaths, expandTypeFromDynamicPickPaths, type DynamicPick, type DynamicPickPaths, type PickValuesPath, type PickValuesPathWitAllProperties, type PickValuesPathProjectedAsNullable, type PickValuesPathWitAllPropertiesProjectedAsNullable } from '../../../../../src/dynamic/pick.js'
 import { type DeepPick, type DeepPickPaths } from '../../../../../src/extras/deepUtilities.js'
 import { tProject, tOrganization } from '../../domain/connection.js'
 import { ctx } from './setup.js'
@@ -160,6 +160,33 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         // DeepPick<ProjectWithOrg, 'name' | 'organization.name' | 'id'>
         assertType<Extends<typeof result, Array<{ id: number; name: string; organization?: { name: string } }>>>()
+    })
+
+    // Field map that includes an optional column (tProject.archivedAt) so the
+    // nullable projection is observable.
+    const fieldsWithNullable = {
+        id:         tProject.id,
+        name:       tProject.name,
+        archivedAt: tProject.archivedAt,
+    }
+
+    test('docs-extra:utility-dynamic-picks/pick-values-path-projected-as-nullable', () => {
+        // The …ProjectedAsNullable sibling of PickValuesPath projects an
+        // optional picked leaf as a present `T | null` instead of `?: T`.
+        type ResultNullable = PickValuesPathProjectedAsNullable<typeof fieldsWithNullable, 'name' | 'archivedAt'>
+        assertType<Exact<ResultNullable, { name: string; archivedAt: Date | null }>>()
+        // Contrast with the non-nullable twin, where archivedAt stays optional.
+        type ResultPlain = PickValuesPath<typeof fieldsWithNullable, 'name' | 'archivedAt'>
+        assertType<Exact<ResultPlain, { name: string; archivedAt?: Date }>>()
+    })
+
+    test('docs-extra:utility-dynamic-picks/pick-values-path-with-all-properties-projected-as-nullable', () => {
+        // The …WitAllPropertiesProjectedAsNullable sibling keeps the picked
+        // leaf required; unpicked properties stay optional (`?:`) as in the
+        // non-nullable twin, and the nullable projection additionally adds
+        // `| null` to the VALUE of the originally-optional column (archivedAt).
+        type ResultNullable = PickValuesPathWitAllPropertiesProjectedAsNullable<typeof fieldsWithNullable, 'name'>
+        assertType<Exact<ResultNullable, { name: string; id?: number; archivedAt?: Date | null }>>()
     })
 
 })

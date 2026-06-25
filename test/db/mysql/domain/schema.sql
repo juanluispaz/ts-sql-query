@@ -3,6 +3,10 @@
 -- having DROP IF EXISTS lets you re-apply by hand for debugging.
 
 DROP VIEW IF EXISTS project_overview;
+DROP VIEW IF EXISTS release_overview;
+DROP TABLE IF EXISTS project_release;
+DROP TABLE IF EXISTS issue_worklog;
+DROP TABLE IF EXISTS country;
 DROP TABLE IF EXISTS issue;
 DROP TABLE IF EXISTS project;
 DROP TABLE IF EXISTS app_user;
@@ -69,6 +73,38 @@ CREATE TABLE issue (
     UNIQUE (project_id, `number`)
 );
 
+CREATE TABLE country (
+    code VARCHAR(2) PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    region VARCHAR(32) NOT NULL
+);
+
+CREATE TABLE issue_worklog (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    issue_id INT NOT NULL,
+    work_date DATE NOT NULL,
+    started_at TIME,
+    minutes INT DEFAULT 0,
+    duration_ms BIGINT NULL,
+    billable TINYINT(1) NULL,
+    activity VARCHAR(16) NOT NULL,
+    FOREIGN KEY (issue_id) REFERENCES issue(id)
+);
+
+CREATE TABLE project_release (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    project_id INT NOT NULL,
+    version VARCHAR(32) NOT NULL,
+    channel VARCHAR(16) NOT NULL,
+    signing_key BINARY(16) NULL,
+    released_on DATE NOT NULL,
+    cutoff_time TIME NOT NULL,
+    signed_off_at DATETIME NULL,
+    notes VARCHAR(255) GENERATED ALWAYS AS (CONCAT('release-', version)) STORED,
+    FOREIGN KEY (project_id) REFERENCES project(id),
+    UNIQUE (project_id, version)
+);
+
 -- Stored procedures and functions exercised by
 -- `exec.procedure-function.test.ts`. Each body is intentionally
 -- trivial AND single-statement so the `splitStatements` helper (which
@@ -81,6 +117,12 @@ CREATE PROCEDURE refresh_stats() SELECT 1;
 CREATE PROCEDURE archive_project(IN p_id INT, IN p_reason VARCHAR(255)) UPDATE project SET archived_at = CURRENT_TIMESTAMP, name = CONCAT(name, ' [archived: ', p_reason, ']') WHERE id = p_id;
 CREATE FUNCTION count_open_issues(p_id INT) RETURNS INT DETERMINISTIC RETURN (SELECT COUNT(*) FROM issue WHERE project_id = p_id AND status = 'open');
 CREATE FUNCTION project_name(p_id INT) RETURNS VARCHAR(255) DETERMINISTIC RETURN (SELECT name FROM project WHERE id = p_id);
+DROP FUNCTION IF EXISTS total_view_count;
+DROP FUNCTION IF EXISTS latest_issue_at;
+DROP FUNCTION IF EXISTS estimated_total;
+CREATE FUNCTION total_view_count(p_id INT) RETURNS BIGINT DETERMINISTIC RETURN (SELECT COALESCE(SUM(view_count),0) FROM issue WHERE project_id = p_id);
+CREATE FUNCTION latest_issue_at(p_id INT) RETURNS DATETIME DETERMINISTIC RETURN (SELECT MAX(created_at) FROM issue WHERE project_id = p_id);
+CREATE FUNCTION estimated_total(p_id INT) RETURNS DOUBLE DETERMINISTIC RETURN (SELECT COALESCE(SUM(estimated_hours),0) FROM issue WHERE project_id = p_id);
 
 -- A class-based SQL view exercised by `view.basic.test.ts`. A plain
 -- join of project + organization (no aggregation, no casts), portable
@@ -94,3 +136,14 @@ SELECT p.id AS id,
        o.plan AS organization_plan
 FROM project p
 INNER JOIN organization o ON o.id = p.organization_id;
+
+-- View side of the release columns (see vReleaseOverview in connection.ts).
+CREATE VIEW release_overview AS
+SELECT r.id AS id,
+       r.project_id AS project_id,
+       r.version AS version,
+       r.released_on AS released_on,
+       r.signed_off_at AS signed_off_at,
+       p.name AS project_name
+FROM project_release r
+INNER JOIN project p ON p.id = r.project_id;

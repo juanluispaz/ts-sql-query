@@ -50,6 +50,16 @@ describe(ctx.label, () => {
         void recovered
     })
 
+    test('docs-extra:tables-views-as-parameter/table-or-view-of-default-alias-arm', () => {
+        // The default (no-alias) arm: with ALIAS defaulting to '' the type is
+        // the table/view itself, so the unaliased table is assignable. Only
+        // the explicit-alias arm is exercised by the tests above.
+        const ref: TableOrViewOf<typeof tProject> = tProject
+        void ref
+        const refLJ: TableOrViewLeftJoinOf<typeof tIssue> = tIssue.forUseInLeftJoin()
+        void refLJ
+    })
+
     // Smoke test of the full doc-style pattern executed end-to-end: the
     // documented generic helper builds the correlated subquery, fully typed,
     // and the outer query embeds it as an inline value.

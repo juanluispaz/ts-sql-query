@@ -412,4 +412,83 @@ describe(ctx.label, () => {
         `)
     })
 
+    test('substr-to-end-with-value-source-start', async () => {
+        // B3: `.substrToEnd(valueSource)` — the boundary is a number value
+        // source, not a literal. issue 1: title='Update hero copy',
+        // priority=2 → substr from 0-based offset 2 → 'date hero copy'.
+        const expected = [{ id: 1, sub: 'date hero copy' }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({ id: tIssue.id, sub: tIssue.title.substrToEnd(tIssue.priority) })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, substring(title, priority + 1) as sub from issue where id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; sub: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('substring-to-end-with-value-source-start', async () => {
+        // B3: `.substringToEnd(valueSource)` — the SQL-style sibling of
+        // substrToEnd, same boundary supplied as a value source.
+        const expected = [{ id: 1, sub: 'date hero copy' }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({ id: tIssue.id, sub: tIssue.title.substringToEnd(tIssue.priority) })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, substring(title, priority + 1) as sub from issue where id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; sub: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('substr-two-arg-with-value-source-boundaries', async () => {
+        // B3: `.substr(valueSourceStart, valueSourceCount)` — both boundaries
+        // are number value sources. issue 1: priority=2, id=1 → substr from
+        // 0-based offset 2, length 1 → 'd'.
+        const expected = [{ id: 1, sub: 'd' }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({ id: tIssue.id, sub: tIssue.title.substr(tIssue.priority, tIssue.id) })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, substring(title, priority + 1, id) as sub from issue where id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; sub: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('replaceAll-with-value-source-find-and-replace', async () => {
+        // B4: `.replaceAll(find, replace)` with both operands as string value
+        // sources → replace(title, body, title), no params. issue 2:
+        // title='Redesign navbar', body='Use new tokens' — body is not a
+        // substring of title, so the value is unchanged.
+        const expected = [{ id: 2, t: 'Redesign navbar' }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(2))
+            .select({ id: tIssue.id, t: tIssue.title.replaceAll(tIssue.body, tIssue.title) })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(title, body, title) as [t] from issue where id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; t?: string }>>>()
+        expect(result).toEqual(expected)
+    })
 })

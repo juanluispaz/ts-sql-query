@@ -268,7 +268,7 @@
         "validate": "tsc --noEmit",
         "validate:tsgo": "tsgo --noEmit",
         "validate:tests": "tsgo -p test/tsconfig.json --noEmit",
-        "validate:tests:tsc": "tsc -p test/tsconfig.tsc.json --noEmit",
+        "validate:tests:tsc": "NODE_OPTIONS=\"--max-old-space-size=8192\" tsc -p test/tsconfig.tsc.json --noEmit",
         "tests": "bash scripts/tests.sh",
         "tests:audit": "bash scripts/tests-audit.sh",
         "tests:index": "bash scripts/tests-index.sh",

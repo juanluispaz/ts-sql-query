@@ -204,4 +204,34 @@ describe(ctx.label, () => {
         })
     })
     */
+
+    test('on-conflict-do-nothing-returning-last-inserted-id-is-nullable', async () => {
+        // D2: chaining returningLastInsertedId() after onConflictDoNothing()
+        // makes the last id optional (`number | null`) — a conflict may
+        // suppress the insert, so there may be no id to return. (No unique key
+        // actually collides here, so the insert succeeds and a real id comes
+        // back; the `| null` arm is the type promise this pins.)
+        const expectedMock = 100
+        ctx.mockNext(expectedMock)
+
+        await ctx.withRollback(async () => {
+            const id = await ctx.conn.insertInto(tOrganization)
+                .values({ name: 'Conflict demo', plan: 'free' })
+                .onConflictDoNothing()
+                .returningLastInsertedId()
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?, ?) on conflict do nothing returning id"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Conflict demo",
+                "free",
+              ]
+            `)
+            assertType<Exact<typeof id, number | null>>()
+
+            if (!ctx.realDbEnabled) expect(id).toBe(100)
+            else expect(id).toBeGreaterThan(2) // seed reserves org ids 1, 2
+        })
+    })
 })

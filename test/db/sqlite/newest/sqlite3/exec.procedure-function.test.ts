@@ -47,4 +47,19 @@ describe(ctx.label, () => {
     /*
     test('execute-function-throws-no-result-when-driver-returns-undefined', async () => {})
     */
+
+    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
+    /*
+    test('execute-function-returning-bigint', async () => {})
+    */
+
+    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
+    /*
+    test('execute-function-returning-optional-local-date-time', async () => {})
+    */
+
+    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
+    /*
+    test('execute-function-returning-custom-double', async () => {})
+    */
 })

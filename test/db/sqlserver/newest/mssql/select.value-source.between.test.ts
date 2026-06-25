@@ -149,4 +149,24 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ id: number }>>>()
         expect(result).toEqual(expected)
     })
-})
+    test('between-with-optional-value-source-bound-projected-is-optional', async () => {
+        // A3: `priority.between(assigneeId, number)` with the lower bound an
+        // optionalColumn → the projected boolean is optional
+        // (MergeOptional through both bounds). Row id=1: priority=2,
+        // assignee_id=1, number=1 → 2 between 1 and 1 → false. SQL param-free.
+        const expected = [{ b: false }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({ b: tIssue.priority.between(tIssue.assigneeId, tIssue.number) })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(case when priority between assignee_id and number then 1 when not priority between assignee_id and number then 0 else null end as bit) as [b] from issue where id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ b?: boolean | undefined }>>>()
+        expect(result).toEqual(expected)
+    })})

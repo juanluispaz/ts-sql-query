@@ -171,6 +171,49 @@ describe(ctx.label, () => {
         // types.negative/dynamic-condition.from-model.test.ts.
     })
 
+    test('from-model/order-by-admits-every-mode-form', () => {
+        // OrderByForModel<M> admits the bare path plus all 13 OrderByMode
+        // suffixes — asc/desc × {∅ | nulls first | nulls last} × {∅ |
+        // insensitive} — i.e. 14 forms per orderable leaf. The clause-type
+        // test above only spot-checks a few; this pins the whole set on a
+        // top-level leaf and on a nested dotted path. (The other modes are
+        // otherwise reached only through the 2-arg `.orderBy(col, mode)` API.)
+        const priorityModes: OrderByForModel<IssueOrderModel>[] = [
+            'priority',
+            'priority asc',
+            'priority desc',
+            'priority asc nulls first',
+            'priority asc nulls last',
+            'priority desc nulls first',
+            'priority desc nulls last',
+            'priority insensitive',
+            'priority asc insensitive',
+            'priority desc insensitive',
+            'priority asc nulls first insensitive',
+            'priority asc nulls last insensitive',
+            'priority desc nulls first insensitive',
+            'priority desc nulls last insensitive',
+        ]
+        const nestedModes: OrderByForModel<IssueOrderModel>[] = [
+            'author.id',
+            'author.id asc',
+            'author.id desc',
+            'author.id asc nulls first',
+            'author.id asc nulls last',
+            'author.id desc nulls first',
+            'author.id desc nulls last',
+            'author.id insensitive',
+            'author.id asc insensitive',
+            'author.id desc insensitive',
+            'author.id asc nulls first insensitive',
+            'author.id asc nulls last insensitive',
+            'author.id desc nulls first insensitive',
+            'author.id desc nulls last insensitive',
+        ]
+        expect(priorityModes).toHaveLength(14)
+        expect(nestedModes).toHaveLength(14)
+    })
+
     test('from-model/order-by-string-feeds-orderByFromString', async () => {
         // The typed clauses are joined into the plain string `orderByFromString` takes;
         // the order-by column names are matched against the projected (model) names.

@@ -203,4 +203,75 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
+    // B1: the value-source (column) RHS overload of the insensitive operators.
+    // Every test above uses a string LITERAL on the right; these pin the
+    // param-free `lower(col) … lower(col2)` emission path. Row id=1: email
+    // 'ada@acme.test', full_name 'Ada Lovelace' — not equal/prefix/suffix/
+    // substring of each other, so every positive op is false and every
+    // negative op is true.
+    test('equals-and-not-equals-insensitive-column-rhs', async () => {
+        const expected = [{ eq: false, neq: true }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tAppUser)
+            .where(tAppUser.id.equals(1))
+            .select({
+                eq:  tAppUser.email.equalsInsensitive(tAppUser.fullName),
+                neq: tAppUser.email.notEqualsInsensitive(tAppUser.fullName),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select lower(email) = lower(full_name) as eq, lower(email) <> lower(full_name) as neq from app_user where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ eq: boolean; neq: boolean }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('like-and-not-like-insensitive-column-rhs', async () => {
+        const expected = [{ lk: false, nlk: true }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tAppUser)
+            .where(tAppUser.id.equals(1))
+            .select({
+                lk:  tAppUser.email.likeInsensitive(tAppUser.fullName),
+                nlk: tAppUser.email.notLikeInsensitive(tAppUser.fullName),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select email ilike full_name as lk, email not ilike full_name as nlk from app_user where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ lk: boolean; nlk: boolean }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('affix-insensitive-column-rhs', async () => {
+        const expected = [{ sw: false, nsw: true, ew: false, new: true, ct: false, nct: true }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tAppUser)
+            .where(tAppUser.id.equals(1))
+            .select({
+                sw:  tAppUser.email.startsWithInsensitive(tAppUser.fullName),
+                nsw: tAppUser.email.notStartsWithInsensitive(tAppUser.fullName),
+                ew:  tAppUser.email.endsWithInsensitive(tAppUser.fullName),
+                new: tAppUser.email.notEndsWithInsensitive(tAppUser.fullName),
+                ct:  tAppUser.email.containsInsensitive(tAppUser.fullName),
+                nct: tAppUser.email.notContainsInsensitive(tAppUser.fullName),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select email ilike (replace(replace(replace(full_name, '\\', '\\\\'), '%', '\\%'), '_', '\\_') || '%') as sw, email not ilike (replace(replace(replace(full_name, '\\', '\\\\'), '%', '\\%'), '_', '\\_') || '%') as nsw, email ilike ('%' || replace(replace(replace(full_name, '\\', '\\\\'), '%', '\\%'), '_', '\\_')) as ew, email not ilike ('%' || replace(replace(replace(full_name, '\\', '\\\\'), '%', '\\%'), '_', '\\_')) as new, email ilike ('%' || replace(replace(replace(full_name, '\\', '\\\\'), '%', '\\%'), '_', '\\_') || '%') as ct, email not ilike ('%' || replace(replace(replace(full_name, '\\', '\\\\'), '%', '\\%'), '_', '\\_') || '%') as nct from app_user where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{
+            sw: boolean; nsw: boolean; ew: boolean; new: boolean; ct: boolean; nct: boolean
+        }>>>()
+        expect(result).toEqual(expected)
+    })
 })

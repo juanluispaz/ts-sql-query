@@ -82,7 +82,7 @@ describe(ctx.label, () => {
     // NOT-APPLICABLE: MySQL has no RETURNING
     /*
     test('delete-returning-projecting-optional-values-as-nullable', async () => {
-        // D3: optional RETURNING columns become a present `| null` via
+        // optional RETURNING columns become a present `| null` via
         // `projectingOptionalValuesAsNullable()` on a DELETE builder. issue 3
         // has body = NULL (and is not referenced as a parent by any other
         // issue), so the returned value is null (present), not absent.

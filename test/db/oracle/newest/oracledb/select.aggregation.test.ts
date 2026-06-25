@@ -50,7 +50,7 @@ describe(ctx.label, () => {
     })
 
     test('count-of-optional-column-stays-required', async () => {
-        // A6: `count` of an OPTIONAL column is still `required` — the result
+        // `count` of an OPTIONAL column is still `required` — the result
         // optionality is decoupled from the input (unlike sum/average, which
         // are optional). `assignee_id` is an optionalColumn; seeded values are
         // 1, 2, NULL, 3, so count counts the 3 non-null rows.

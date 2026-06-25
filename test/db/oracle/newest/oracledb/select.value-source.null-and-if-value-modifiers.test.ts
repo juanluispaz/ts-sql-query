@@ -207,7 +207,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
     test('valueWhenNull-required-receiver-optional-default-becomes-optional', async () => {
-        // A2: the `valueWhenNull(VALUE)` overload REPLACES the receiver's
+        // the `valueWhenNull(VALUE)` overload REPLACES the receiver's
         // optionality with the default's. `title` is required, `body` is
         // optional → the result is optional, even though at runtime `title`
         // is never null so the coalesce always yields it.

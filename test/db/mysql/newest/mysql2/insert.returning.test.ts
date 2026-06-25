@@ -121,7 +121,7 @@ describe(ctx.label, () => {
     // NOT-APPLICABLE: MySQL has no RETURNING
     /*
     test('insert-returning-projecting-optional-values-as-nullable', async () => {
-        // D3: optional RETURNING columns become a present `| null` via
+        // optional RETURNING columns become a present `| null` via
         // `projectingOptionalValuesAsNullable()` on a mutation builder — the
         // helper was only ever called on selects / aggregate-as-array before.
         // `archivedAt` is an optionalColumn left unset, so it returns null
@@ -151,7 +151,7 @@ describe(ctx.label, () => {
     // NOT-APPLICABLE: MySQL has no RETURNING
     /*
     test('insert-returning-without-helper-keeps-optional', async () => {
-        // D3 contrast: the SAME returning WITHOUT the helper keeps the optional
+        // contrast: the SAME returning WITHOUT the helper keeps the optional
         // column as `archivedAt?: Date` (default optionals-as-undefined), so a
         // null value surfaces as an absent key — proving the helper flips it.
         const expectedMock = { id: 101 }

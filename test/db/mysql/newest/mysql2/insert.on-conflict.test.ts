@@ -213,7 +213,7 @@ describe(ctx.label, () => {
     // NOT-APPLICABLE: returningLastInsertedId() after onConflictDoNothing() is not typed on MySqlConnection (no RETURNING)
     /*
     test('on-conflict-do-nothing-returning-last-inserted-id-is-nullable', async () => {
-        // D2: chaining returningLastInsertedId() after onConflictDoNothing()
+        // chaining returningLastInsertedId() after onConflictDoNothing()
         // makes the last id optional (`number | null`) — a conflict may
         // suppress the insert, so there may be no id to return. (No unique key
         // actually collides here, so the insert succeeds and a real id comes

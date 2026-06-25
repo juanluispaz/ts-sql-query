@@ -416,7 +416,7 @@ describe(ctx.label, () => {
     })
 
     test('substr-to-end-with-value-source-start', async () => {
-        // B3: `.substrToEnd(valueSource)` — the boundary is a number value
+        // `.substrToEnd(valueSource)` — the boundary is a number value
         // source, not a literal. issue 1: title='Update hero copy',
         // priority=2 → substr from 0-based offset 2 → 'date hero copy'.
         const expected = [{ id: 1, sub: 'date hero copy' }]
@@ -436,7 +436,7 @@ describe(ctx.label, () => {
     })
 
     test('substring-to-end-with-value-source-start', async () => {
-        // B3: `.substringToEnd(valueSource)` — the SQL-style sibling of
+        // `.substringToEnd(valueSource)` — the SQL-style sibling of
         // substrToEnd, same boundary supplied as a value source.
         const expected = [{ id: 1, sub: 'date hero copy' }]
         ctx.mockNext(expected)
@@ -455,7 +455,7 @@ describe(ctx.label, () => {
     })
 
     test('substr-two-arg-with-value-source-boundaries', async () => {
-        // B3: `.substr(valueSourceStart, valueSourceCount)` — both boundaries
+        // `.substr(valueSourceStart, valueSourceCount)` — both boundaries
         // are number value sources. issue 1: priority=2, id=1 → substr from
         // 0-based offset 2, length 1 → 'd'.
         const expected = [{ id: 1, sub: 'd' }]
@@ -475,7 +475,7 @@ describe(ctx.label, () => {
     })
 
     test('replaceAll-with-value-source-find-and-replace', async () => {
-        // B4: `.replaceAll(find, replace)` with both operands as string value
+        // `.replaceAll(find, replace)` with both operands as string value
         // sources → replace(title, body, title), no params. issue 2:
         // title='Redesign navbar', body='Use new tokens' — body is not a
         // substring of title, so the value is unchanged.

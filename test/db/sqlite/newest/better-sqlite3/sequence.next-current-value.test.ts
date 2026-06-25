@@ -104,7 +104,7 @@ describe(ctx.label, () => {
     /*
     test('sequence-custom-int-value-type', async () => {
         await ctx.withCommit(async () => {
-            // G2: the sequence value-type fan-out. `release_tag_seq` is declared
+            // `release_tag_seq` is declared
             // over a branded `customInt` (`ReleaseTag`) rather than the plain
             // int / bigint of the sequences above. The emitted SQL is identical
             // to the int form (the value type only changes the type adapter);

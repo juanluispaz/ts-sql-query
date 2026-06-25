@@ -1,4 +1,4 @@
-// C12: per-type ValueSource dispatch on a VIEW source rather than a Table.
+// per-type ValueSource dispatch on a VIEW source rather than a Table.
 // `vReleaseOverview` is a `class extends View` whose columns are mapped with
 // the branded `customComparable` (version) / `customLocalDate` (releasedOn)
 // kinds, an optional `customLocalDateTime` (signedOffAt) and a

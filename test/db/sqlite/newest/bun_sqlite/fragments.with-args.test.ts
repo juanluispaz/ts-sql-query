@@ -125,7 +125,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFromNoTable()
             .select({ r: ctx.conn.intPlus(3, 4) })
             .executeSelectMany()
-        // A5: both args present → MergeOptionalUnion collapses to required.
+        // both args present → MergeOptionalUnion collapses to required.
         assertType<Exact<typeof rows, Array<{ r: number }>>>()
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? + ? as "r""`)
@@ -148,7 +148,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFromNoTable()
             .select({ r: ctx.conn.intPlus(undefined, 5) })
             .executeSelectMany()
-        // A5: one arg undefined → MergeOptionalUnion degrades to optional.
+        // one arg undefined → MergeOptionalUnion degrades to optional.
         assertType<Exact<typeof rows, Array<{ r?: number | undefined }>>>()
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? + ? as "r""`)
@@ -169,7 +169,7 @@ describe(ctx.label, () => {
     })
 
     test('build-fragment-with-maybe-optional-args-reads-optional-from-value-source-argument', async () => {
-        // A5: the maybe-optional result optionality can come from a VALUE-SOURCE
+        // the maybe-optional result optionality can come from a VALUE-SOURCE
         // argument's optionalType, not only from a present/absent literal.
         // `conn.const(3,'int')` is required, `tIssue.assigneeId` is optional →
         // MergeOptionalUnion yields an optional result. Row id=1 has

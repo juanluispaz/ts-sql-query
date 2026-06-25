@@ -1,14 +1,14 @@
 // Coverage of column-factory overloads the original four domain tables
 // don't exercise, declared on the real `issue_worklog` / `project_release`
 // fixtures:
-//   - date-only (`localDate`) / time-only (`localTime`) columns        (C8)
-//   - a nullable plain boolean with NO adapter                         (C9)
-//   - a nullable bigint                                                (C10)
-//   - a plain `enum` column (not virtual)                             (C11)
-//   - an `optionalColumnWithDefaultValue` (omittable + nullable)       (C4)
-//   - branded `customLocalDate/Time/DateTime` columns                  (C5)
-//   - a `custom` (equality-only) column                               (C6)
-//   - a `customComparable` column (confers `<` / between / orderBy)    (C7)
+//   - date-only (`localDate`) / time-only (`localTime`) columns
+//   - a nullable plain boolean with NO adapter
+//   - a nullable bigint
+//   - a plain `enum` column (not virtual)
+//   - an `optionalColumnWithDefaultValue` (omittable + nullable)
+//   - branded `customLocalDate/Time/DateTime` columns
+//   - a `custom` (equality-only) column
+//   - a `customComparable` column (confers `<` / between / orderBy)
 //
 // Each round-trips: the projected TYPE (`assertType`), the emitted SQL
 // (snapshot) and — where the value is driver-stable — the runtime value.
@@ -29,7 +29,7 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('local-date-and-local-time-columns-project-as-date', async () => {
-        // C8: `column(name, 'localDate')` and `column(name, 'localTime')`
+        // `column(name, 'localDate')` and `column(name, 'localTime')`
         // project as a JS Date. Worklog 1: work_date 2024-03-04,
         // started_at 09:15:00.
         // sqlite normalises a date-only value to 10:00 UTC and a time-only
@@ -61,7 +61,7 @@ describe(ctx.label, () => {
     })
 
     test('optional-plain-boolean-column-projects-as-optional-boolean', async () => {
-        // C9: `optionalColumn(name, 'boolean')` with NO adapter →
+        // `optionalColumn(name, 'boolean')` with NO adapter →
         // `boolean | undefined`, marshalled from the native 0/1 storage
         // (distinct from the Y/N CustomBooleanTypeAdapter columns). Worklog
         // 1 billable=true, 2 false, 3 NULL (absent).
@@ -86,7 +86,7 @@ describe(ctx.label, () => {
     })
 
     test('optional-bigint-column-projects-as-optional-bigint', async () => {
-        // C10: `optionalColumn(name, 'bigint')` → `bigint | undefined`.
+        // `optionalColumn(name, 'bigint')` → `bigint | undefined`.
         // Worklog 1 duration_ms 5400000, worklog 2 NULL (absent).
         ctx.mockNext([
             { id: 1, durationMs: 5400000n },
@@ -113,9 +113,8 @@ describe(ctx.label, () => {
     })
 
     test('plain-enum-column-projects-as-the-enum-union', async () => {
-        // C11: `column(name, 'enum', 'WorklogActivity')` — the plain (non
-        // virtual) enum overload. Projects as the enum value union, distinct
-        // from the only-covered `virtualColumnFromFragment('enum', …)`.
+        // `column(name, 'enum', 'WorklogActivity')` — a plain (non-virtual)
+        // enum column. Projects as the enum value union.
         ctx.mockNext([
             { id: 1, activity: 'coding' },
             { id: 2, activity: 'review' },
@@ -137,7 +136,7 @@ describe(ctx.label, () => {
     })
 
     test('optional-column-with-default-value-projects-optional-and-is-omittable-on-insert', async () => {
-        // C4: `optionalColumnWithDefaultValue(name, 'int')` →
+        // `optionalColumnWithDefaultValue(name, 'int')` →
         // `'optional' & ColumnWithDefaultValue`: projects as `number |
         // undefined`, AND is omittable on insert (the DB DEFAULT applies).
         // Worklog 2 left minutes running → NULL (absent).
@@ -165,9 +164,8 @@ describe(ctx.label, () => {
         ])
 
         // Omittable on insert: a values object without `minutes` typechecks
-        // (the column has a default). `startedAt` (optional localTime) is also
-        // omitted so no localTime value is bound on insert — binding a
-        // localTime parameter is not supported on every dialect (see BUGS.md).
+        // (the column has a DB default). `startedAt` is also omitted — it is an
+        // optional column, so leaving it out of the insert is valid.
         await ctx.withRollback(async () => {
             ctx.mockNext(99)
             const inserted = await ctx.conn.insertInto(tIssueWorklog)
@@ -188,7 +186,7 @@ describe(ctx.label, () => {
     })
 
     test('custom-local-date-time-columns-project-as-date', async () => {
-        // C5: branded `customLocalDate` / `customLocalTime` /
+        // branded `customLocalDate` / `customLocalTime` /
         // `customLocalDateTime` columns project as JS Date (the optional one
         // as `Date | undefined`). Release 1: released_on 2024-01-15,
         // cutoff_time 17:00:00, signed_off_at 2024-01-14 12:30:00.
@@ -224,7 +222,7 @@ describe(ctx.label, () => {
     })
 
     test('custom-equality-only-column-projects-as-its-branded-type', async () => {
-        // C6: `column(name, 'custom', 'ReleaseChannel')` → a TypeAdapter
+        // `column(name, 'custom', 'ReleaseChannel')` → a TypeAdapter
         // backed EqualableValueSource carrying the branded `ReleaseChannel`
         // type; equality is the available operator. Release 1 channel
         // 'stable'.
@@ -245,7 +243,7 @@ describe(ctx.label, () => {
     })
 
     test('custom-comparable-column-confers-ordering-operators', async () => {
-        // C7: `column(name, 'customComparable', 'Semver')` → a
+        // `column(name, 'customComparable', 'Semver')` → a
         // ComparableValueSource: `lessThan` / `between` / `orderBy` are all
         // available at the column site (an `EqualableValueSource` could not
         // express them). Versions below 1.3.0: release 1 (1.2.0) and 3

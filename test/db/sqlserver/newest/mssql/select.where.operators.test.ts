@@ -150,7 +150,7 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
     test('and-with-literal-boolean-operand', async () => {
-        // B6: `.and(boolean)` — the compile-time boolean-constant overload,
+        // `.and(boolean)` — the compile-time boolean-constant overload,
         // distinct from the value-source overload every other and/or test
         // uses. It routes the literal through `_appendValue` as a bound
         // boolean param. `priority = ? and true` keeps the priority=2 rows.
@@ -173,7 +173,7 @@ describe(ctx.label, () => {
     })
 
     test('or-with-literal-boolean-operand', async () => {
-        // B6: `.or(boolean)` — the literal-boolean overload of `or`.
+        // `.or(boolean)` — the literal-boolean overload of `or`.
         // `priority = ? or false` keeps just the priority=2 rows.
         const expected = [{ id: 1 }, { id: 4 }]
         ctx.mockNext(expected)

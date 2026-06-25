@@ -182,11 +182,10 @@ describe(ctx.label, () => {
     })
 
     test('projecting-optional-values-as-nullable-on-plain-select-makes-left-join-object-nullable', async () => {
-        // D1: `projectingOptionalValuesAsNullable()` on a plain (non-aggregate)
+        // `projectingOptionalValuesAsNullable()` on a plain (non-aggregate)
         // select projects a left-joined nested object as `{...} | null` instead
-        // of the default `org?: {...}`. The helper was only ever exercised on
-        // flat objects or inside aggregateAsArray before. Project 1 →
-        // organization 1 ('Acme Corp'), so the join hits and `org` is present;
+        // of the default `org?: {...}`. Project 1 → organization 1 ('Acme
+        // Corp'), so the join hits and `org` is present;
         // the `| null` arm is the type promise the assertion pins.
         const expected = { pid: 1, org: { id: 1, name: 'Acme Corp' } }
         ctx.mockNext(expected)
@@ -209,7 +208,7 @@ describe(ctx.label, () => {
     })
 
     test('merge-optional-requiredInOptionalObject-is-preserved-through-an-operator', async () => {
-        // A4: `requiredInOptionalObject` is a middle row of the MergeOptional
+        // `requiredInOptionalObject` is a middle row of the MergeOptional
         // lattice that is only reachable through an OPERATOR here.
         // `priority.asRequiredInOptionalObject()` carries that state; the
         // `.equals(id)` operator (against a required operand) merges to

@@ -203,7 +203,7 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-    // B1: the value-source (column) RHS overload of the insensitive operators.
+    // the value-source (column) RHS overload of the insensitive operators.
     // Every test above uses a string LITERAL on the right; these pin the
     // param-free `lower(col) … lower(col2)` emission path. Row id=1: email
     // 'ada@acme.test', full_name 'Ada Lovelace' — not equal/prefix/suffix/

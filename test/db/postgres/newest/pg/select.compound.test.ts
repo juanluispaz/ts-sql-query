@@ -137,7 +137,7 @@ describe(ctx.label, () => {
 
 
     test('compound-with-optional-seed-column-yields-optional-result', async () => {
-        // D4: the compound result optionality is decided by the SEED (first)
+        // the compound result optionality is decided by the SEED (first)
         // query. Here the seed projects the optional column `archivedAt`, so
         // the merged column stays optional (`a?`) — distinct from every other
         // compound test, which seeds a required column. Both branches filter to

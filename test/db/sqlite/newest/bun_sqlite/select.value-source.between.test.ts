@@ -151,7 +151,7 @@ describe(ctx.label, () => {
     })
 
     test('between-with-optional-value-source-bound-projected-is-optional', async () => {
-        // A3: `priority.between(assigneeId, number)` with the lower bound an
+        // `priority.between(assigneeId, number)` with the lower bound an
         // optionalColumn → the projected boolean is optional
         // (MergeOptional through both bounds). Row id=1: priority=2,
         // assignee_id=1, number=1 → 2 between 1 and 1 → false. SQL param-free.

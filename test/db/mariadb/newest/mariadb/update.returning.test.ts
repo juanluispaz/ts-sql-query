@@ -118,7 +118,7 @@ describe(ctx.label, () => {
     // TODO[LIMITATION]: see LIMITATIONS.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
     /*
     test('update-returning-projecting-optional-values-as-nullable', async () => {
-        // D3: optional RETURNING columns become a present `| null` via
+        // optional RETURNING columns become a present `| null` via
         // `projectingOptionalValuesAsNullable()` on an UPDATE builder. issue 3
         // has body = NULL, so the returned value is null (present), not absent.
         const expectedMock = { id: 3, body: null }

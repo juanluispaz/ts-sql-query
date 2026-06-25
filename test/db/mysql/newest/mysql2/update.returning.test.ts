@@ -110,7 +110,7 @@ describe(ctx.label, () => {
     // NOT-APPLICABLE: MySQL has no RETURNING
     /*
     test('update-returning-projecting-optional-values-as-nullable', async () => {
-        // D3: optional RETURNING columns become a present `| null` via
+        // optional RETURNING columns become a present `| null` via
         // `projectingOptionalValuesAsNullable()` on an UPDATE builder. issue 3
         // has body = NULL, so the returned value is null (present), not absent.
         const expectedMock = { id: 3, body: null }

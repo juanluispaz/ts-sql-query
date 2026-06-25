@@ -779,7 +779,7 @@ describe(ctx.label, () => {
     })
 
     test('equivalence/custom-comparable-descriptor-dispatch', async () => {
-        // F1: the `['customComparable', T]` descriptor maps to a
+        // the `['customComparable', T]` descriptor maps to a
         // ComparableFilter<T>. tProjectRelease.version is a branded
         // customComparable column; the dynamic filter must emit exactly the
         // direct comparable calls. The model path cannot reach custom arms
@@ -814,7 +814,7 @@ describe(ctx.label, () => {
     })
 
     test('equivalence/custom-uuid-descriptor-dispatch', async () => {
-        // F1: the `['customUuid', T]` descriptor maps to CustomUuidFilter<T> —
+        // the `['customUuid', T]` descriptor maps to CustomUuidFilter<T> —
         // a bespoke equality + like/affix interface over the branded uuid.
         // signingKey is an optional customUuid column. The like-family
         // operators route through the same `asString()` rewrite the plain
@@ -851,7 +851,7 @@ describe(ctx.label, () => {
     })
 
     test('equivalence/local-date-descriptor-dispatch', async () => {
-        // F2: the `'localDate'` descriptor maps to a DateFilter. workDate is a
+        // the `'localDate'` descriptor maps to a DateFilter. workDate is a
         // plain localDate column; the comparable filter emits the same SQL +
         // params as the direct comparable calls (date-only literal encoding,
         // distinct from localDateTime). TZ=UTC forced by the suite.
@@ -884,7 +884,7 @@ describe(ctx.label, () => {
     })
 
     test('equivalence/local-time-descriptor-dispatch', async () => {
-        // F3: the `'localTime'` descriptor maps to a TimeFilter. startedAt is a
+        // the `'localTime'` descriptor maps to a TimeFilter. startedAt is a
         // plain localTime column; the comparable filter emits the same SQL +
         // params as the direct calls (time-only literal encoding, distinct
         // from both localDate and localDateTime).

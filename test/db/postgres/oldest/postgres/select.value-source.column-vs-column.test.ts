@@ -191,7 +191,7 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
     test('merge-optional-from-value-source-argument-projected', async () => {
-        // A1: the optional flag of a binary op can arrive from the VALUE-SOURCE
+        // the optional flag of a binary op can arrive from the VALUE-SOURCE
         // argument, not only the receiver. `assignee_id` is an optionalColumn;
         // mixing it (either side) with the required `priority` yields an
         // optional projected leaf — distinct from receiver-optional and
@@ -218,9 +218,8 @@ describe(ctx.label, () => {
     })
 
     test('numeric-operators-column-rhs', async () => {
-        // B2: the value-source (column) RHS overload of the numeric operators
+        // the value-source (column) RHS overload of the numeric operators
         // the existing tests only exercised with literals. add/multiply/modulo/
-        // minValue are already covered column-on-column; these are the rest.
         // Row id=2 has priority=1, id=2, number=2, so the results are clean.
         // `divide` upcasts to double (1/2 → 0.5); `atan2` is irrational.
         ctx.mockNext([{ sub: -1, div: 0.5, pw: 1, ln: 0, rnd: 1, at2: Math.atan2(1, 2), mx: 1 }])
@@ -257,7 +256,7 @@ describe(ctx.label, () => {
     })
 
     test('nullIfValue-with-column-argument', async () => {
-        // B5: the IValueSource (column) overload of `nullIfValue` → nullif(col,
+        // the IValueSource (column) overload of `nullIfValue` → nullif(col,
         // col2); the result stays optional. Sibling `valueWhenNull` already has
         // a column-arg test. Row id=2: body 'Use new tokens' ≠ title 'Redesign
         // navbar', so nullif returns the body.
@@ -282,7 +281,7 @@ describe(ctx.label, () => {
     })
 
     test('in-single-value-source', async () => {
-        // B7: the single-value-source `in` overload (not an array, not a
+        // the single-value-source `in` overload (not an array, not a
         // subquery) → `priority in (id)`. Only row id=3 has priority = id (3).
         const expected = [{ id: 3 }]
         ctx.mockNext(expected)
@@ -299,7 +298,7 @@ describe(ctx.label, () => {
     })
 
     test('inN-mixing-literal-and-value-source', async () => {
-        // B8: the `inN` value-source-element overload, mixing a literal and a
+        // the `inN` value-source-element overload, mixing a literal and a
         // column → `priority in (?, id)`. Rows where priority ∈ {1, id}:
         // id=2 (priority 1) and id=3 (priority 3 = id).
         const expected = [{ id: 2 }, { id: 3 }]

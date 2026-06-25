@@ -17,7 +17,7 @@ describe(ctx.label, () => {
 
     test('execute-procedure-with-no-args', async () => {
         // Procedure call with no arguments (refresh_stats is a no-op).
-        // G3: executeProcedure resolves to Promise<void> — distinct from
+        // executeProcedure resolves to Promise<void> — distinct from
         // executeFunction's Promise<T>. Pin the void return type.
         const refreshResult = await ctx.conn.callRefreshStats()
         assertType<Exact<typeof refreshResult, void>>()
@@ -123,9 +123,8 @@ describe(ctx.label, () => {
     })
 
     test('execute-function-returning-bigint', async () => {
-        // G1: executeFunction return-type fan-out — the `bigint` arm.
-        // total_view_count(1) sums project 1's issue view_count (all default
-        // 0) → 0n.
+        // total_view_count(1) returns a bigint: the sum of project 1's issue
+        // view_count (all default 0) → 0n.
         ctx.mockNext(0n)
         const total = await ctx.conn.callTotalViewCount(1)
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select total_view_count(:0) from dual"`)
@@ -139,11 +138,10 @@ describe(ctx.label, () => {
     })
 
     test('execute-function-returning-optional-local-date-time', async () => {
-        // G1: the `localDateTime` arm crossed with `optional` → Promise<Date |
-        // null>. latest_issue_at(1) = MAX(created_at) of project 1's issues (a
-        // real timestamp). created_at is seeded at insert time, so the exact
-        // value is non-deterministic — asserted via the mock, and structurally
-        // on the real DB.
+        // latest_issue_at(1) returns an optional localDateTime: MAX(created_at)
+        // of project 1's issues → Promise<Date | null>. created_at is seeded at
+        // insert time, so the exact value is non-deterministic — asserted via
+        // the mock, and structurally on the real DB.
         ctx.mockNext(new Date('2024-01-01T00:00:00Z'))
         const at = await ctx.conn.callLatestIssueAt(1)
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select latest_issue_at(:0) from dual"`)
@@ -160,9 +158,9 @@ describe(ctx.label, () => {
     })
 
     test('execute-function-returning-custom-double', async () => {
-        // G1: the `customDouble` arm carrying a branded type name (`Money`) →
-        // Promise<Money>. estimated_total(1) = COALESCE(SUM(estimated_hours),0)
-        // → 0 (the seed leaves estimated_hours null for project 1's issues).
+        // estimated_total(1) returns a branded customDouble (`Money`):
+        // COALESCE(SUM(estimated_hours),0) → 0 (the seed leaves estimated_hours
+        // null for project 1's issues).
         ctx.mockNext(0)
         const total = await ctx.conn.callEstimatedTotal(1)
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select estimated_total(:0) from dual"`)

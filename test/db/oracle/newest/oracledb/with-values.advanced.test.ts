@@ -71,7 +71,7 @@ class VIssueBilling extends Values<DBConnection, 'issueBilling'> {
     billingRef = this.optionalVirtualColumnFromFragment<string>('customUuid', 'BillingRef', fragment => fragment.sql`null`)
 }
 
-// C13: the BASE-TYPE (non-custom) `optionalVirtualColumnFromFragment`
+// the BASE-TYPE (non-custom) `optionalVirtualColumnFromFragment`
 // overloads — `'int'` / `'string'` / … with no typeName, contrast with
 // `VIssueBilling.billingRef` which uses the `customUuid` form. Each projects
 // as `T | undefined` and, like every virtual column, is NOT a VALUES tuple
@@ -334,7 +334,7 @@ describe(ctx.label, () => {
     })
 
     test('values-base-type-optional-virtual-column-projects-optional-and-is-not-a-tuple-member', async () => {
-        // C13: the base-type `optionalVirtualColumnFromFragment('int' | 'string',
+        // the base-type `optionalVirtualColumnFromFragment('int' | 'string',
         // …)` overloads. The data tuples only supply the real `column(...)`
         // fields (id, label) — `rank` / `note` are virtual, so they are absent
         // from both the `batchRow(id, label)` column list and the VALUES rows;

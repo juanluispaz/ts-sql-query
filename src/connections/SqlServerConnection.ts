@@ -40,4 +40,16 @@ export abstract class SqlServerConnection<NAME extends string> extends AbstractA
     default(): Default {
         return new DefaultImpl()
     }
+
+    protected override transformValueToDB(value: unknown, type: string): unknown {
+        if (type === 'localTime' && value instanceof Date && !isNaN(value.getTime())) {
+            // A localTime parameter is bound as the driver's TIME type, whose
+            // validator only accepts a Date — the default 'HH:MI:SS' string is
+            // rejected with EPARAM "Invalid time". Bind the Date directly; the
+            // TIME type keeps only the time-of-day (the date part is ignored),
+            // exactly as localDate / localDateTime already bind their Date values.
+            return value
+        }
+        return super.transformValueToDB(value, type)
+    }
 }

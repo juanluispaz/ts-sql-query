@@ -883,8 +883,6 @@ describe(ctx.label, () => {
         `)
     })
 
-    // TODO[BUG]: see BUGS.md — binding a localTime value as a query parameter is rejected by the driver's TIME parameter type ("Invalid time"); localDate / localDateTime bind fine.
-    /*
     test('equivalence/local-time-descriptor-dispatch', async () => {
         // F3: the `'localTime'` descriptor maps to a TimeFilter. startedAt is a
         // plain localTime column; the comparable filter emits the same SQL +
@@ -912,10 +910,9 @@ describe(ctx.label, () => {
         expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at >= @0 and started_at < @1 order by id"`)
         expect(refParams).toMatchInlineSnapshot(`
           [
-            "09:00:00",
-            "17:00:00",
+            1970-01-01T09:00:00.000Z,
+            1970-01-01T17:00:00.000Z,
           ]
         `)
     })
-    */
 })

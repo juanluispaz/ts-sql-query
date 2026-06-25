@@ -175,7 +175,7 @@ describe(ctx.label, () => {
         // doc-start
         const names = extractProvidedIdColumnNamesFrom(tOrganization)
         // doc-end
-        assertType<Extends<typeof names, string[]>>()
+        assertType<Exact<typeof names, never[]>>()
         expect(names).toEqual([])
     })
 

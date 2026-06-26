@@ -97,14 +97,14 @@ type ResultObjectValues2<COLUMNS> = TransformOptionalProperties<
                 COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
                 ? ValueSourceValueTypeForRequiredInOptionalObject<NonNullable<COLUMNS[P]>>
                 : ResultObjectValues3<NonNullable<COLUMNS[P]>>
-        } | null
+        } | undefined
     : AllFromSameLeftJoinWithOriginallyRequired<COLUMNS> extends true ?
         {
             [P in UsableKeyOf<COLUMNS>]: 
                 COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
                 ? ValueSourceValueTypeForOptionalObjectResultSameOuterJoin<NonNullable<COLUMNS[P]>>
                 : ResultObjectValues3<NonNullable<COLUMNS[P]>>
-        } | null
+        } | undefined
     : ContainsRequired<COLUMNS> extends true ? 
         {
             [P in UsableKeyOf<COLUMNS>]: 
@@ -117,7 +117,7 @@ type ResultObjectValues2<COLUMNS> = TransformOptionalProperties<
             COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
             ? ValueSourceValueTypeForObjectResult<NonNullable<COLUMNS[P]>>
             : ResultObjectValues3<NonNullable<COLUMNS[P]>>
-    } | null
+    } | undefined
 >
 
 type ResultObjectValues3<COLUMNS> = TransformOptionalProperties<
@@ -127,14 +127,14 @@ type ResultObjectValues3<COLUMNS> = TransformOptionalProperties<
                 COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
                 ? ValueSourceValueTypeForRequiredInOptionalObject<NonNullable<COLUMNS[P]>>
                 : ResultObjectValues4<NonNullable<COLUMNS[P]>>
-        } | null
+        } | undefined
     : AllFromSameLeftJoinWithOriginallyRequired<COLUMNS> extends true ?
         {
             [P in UsableKeyOf<COLUMNS>]: 
                 COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
                 ? ValueSourceValueTypeForOptionalObjectResultSameOuterJoin<NonNullable<COLUMNS[P]>>
                 : ResultObjectValues4<NonNullable<COLUMNS[P]>>
-        } | null
+        } | undefined
     : ContainsRequired<COLUMNS> extends true ? 
         {
             [P in UsableKeyOf<COLUMNS>]: 
@@ -147,7 +147,7 @@ type ResultObjectValues3<COLUMNS> = TransformOptionalProperties<
             COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
             ? ValueSourceValueTypeForObjectResult<NonNullable<COLUMNS[P]>>
             : ResultObjectValues4<NonNullable<COLUMNS[P]>>
-    } | null
+    } | undefined
 >
 
 type ResultObjectValues4<COLUMNS> = TransformOptionalProperties<
@@ -157,14 +157,14 @@ type ResultObjectValues4<COLUMNS> = TransformOptionalProperties<
                 COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
                 ? ValueSourceValueTypeForRequiredInOptionalObject<NonNullable<COLUMNS[P]>>
                 : ResultObjectValues5<NonNullable<COLUMNS[P]>>
-        } | null
+        } | undefined
     : AllFromSameLeftJoinWithOriginallyRequired<COLUMNS> extends true ?
         {
             [P in UsableKeyOf<COLUMNS>]: 
                 COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
                 ? ValueSourceValueTypeForOptionalObjectResultSameOuterJoin<NonNullable<COLUMNS[P]>>
                 : ResultObjectValues5<NonNullable<COLUMNS[P]>>
-        } | null
+        } | undefined
     : ContainsRequired<COLUMNS> extends true ? 
         {
             [P in UsableKeyOf<COLUMNS>]: 
@@ -177,7 +177,7 @@ type ResultObjectValues4<COLUMNS> = TransformOptionalProperties<
             COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
             ? ValueSourceValueTypeForObjectResult<NonNullable<COLUMNS[P]>>
             : ResultObjectValues5<NonNullable<COLUMNS[P]>>
-    } | null
+    } | undefined
 >
 
 type ResultObjectValues5<COLUMNS> = TransformOptionalProperties<
@@ -187,14 +187,14 @@ type ResultObjectValues5<COLUMNS> = TransformOptionalProperties<
                 COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
                 ? ValueSourceValueTypeForRequiredInOptionalObject<NonNullable<COLUMNS[P]>>
                 : never // Stop recursion here
-        } | null
+        } | undefined
     : AllFromSameLeftJoinWithOriginallyRequired<COLUMNS> extends true ?
         {
             [P in UsableKeyOf<COLUMNS>]: 
                 COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
                 ? ValueSourceValueTypeForOptionalObjectResultSameOuterJoin<NonNullable<COLUMNS[P]>>
                 : never // Stop recursion here
-        } | null
+        } | undefined
     : ContainsRequired<COLUMNS> extends true ? 
         {
             [P in UsableKeyOf<COLUMNS>]: 
@@ -207,7 +207,7 @@ type ResultObjectValues5<COLUMNS> = TransformOptionalProperties<
             COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
             ? ValueSourceValueTypeForObjectResult<NonNullable<COLUMNS[P]>>
             : never // Stop recursion here
-    } | null
+    } | undefined
 >
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

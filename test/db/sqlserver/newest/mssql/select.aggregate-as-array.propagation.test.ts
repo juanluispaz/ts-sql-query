@@ -48,7 +48,7 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{
-            issues: Array<{ issue?: { id: number; title: string } | null }>
+            issues: Array<{ issue?: { id: number; title: string } | undefined }>
             pid:    number
         }>>>()
         // Project 1 has issues 1 ('Update hero copy') and 2 ('Redesign

@@ -86,7 +86,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{
             id:     number
-            group?: { sub?: { priority?: number; status?: string } | null }
+            group?: { sub?: { priority?: number; status?: string } | undefined }
         }>>>()
         expect(rows).toEqual(expected)
     })
@@ -122,7 +122,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{
             id:     number
-            group?: { sub?: { priority?: number; status?: string } | null }
+            group?: { sub?: { priority?: number; status?: string } | undefined }
         }>>>()
         expect(rows).toEqual(expected)
     })

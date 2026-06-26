@@ -182,6 +182,44 @@ describe(ctx.label, () => {
     })
 
 
+    test('plain-select-nested-object-of-only-optional-columns-applies-rule-4', async () => {
+        // The inline sibling of the CTE rule-4 test above: the nested object is
+        // built directly in the select, with no intermediate CTE. Two optional
+        // columns -> the inner object is optional and dropped only when every
+        // one of its leaves is null; it is never set to null. Pins the
+        // documented `opt?: { ... }` shape (no `| null`) for the plain-select
+        // path -- the projectingOptionalValuesAsNullable() mode below is what
+        // turns an absent nested object into `null` instead.
+        ctx.mockNext([
+            { iid: 1, 'opt.body': null,             'opt.assigneeId': 1 },
+            { iid: 2, 'opt.body': 'Use new tokens', 'opt.assigneeId': 2 },
+            { iid: 3, 'opt.body': null,             'opt.assigneeId': null },
+            { iid: 4, 'opt.body': 'See ADR-014',    'opt.assigneeId': 3 },
+        ])
+        const expected = [
+            { iid: 1, opt: { assigneeId: 1 } },
+            { iid: 2, opt: { body: 'Use new tokens', assigneeId: 2 } },
+            { iid: 3 },
+            { iid: 4, opt: { body: 'See ADR-014', assigneeId: 3 } },
+        ]
+
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .select({
+                iid: tIssue.id,
+                opt: { body: tIssue.body, assigneeId: tIssue.assigneeId },
+            })
+            .orderBy('iid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as \`opt.body\`, assignee_id as \`opt.assigneeId\` from issue order by iid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{
+            iid:  number
+            opt?: { body: string | undefined; assigneeId: number | undefined }
+        }>>>()
+        expect(rows).toEqual(expected)
+    })
+
     test('projecting-optional-values-as-nullable-on-plain-select-makes-left-join-object-nullable', async () => {
         // `projectingOptionalValuesAsNullable()` on a plain (non-aggregate)
         // select projects a left-joined nested object as `{...} | null` instead

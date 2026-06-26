@@ -48,7 +48,7 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{
-            issues: Array<{ issue?: { id: number; title: string } | null }>
+            issues: Array<{ issue?: { id: number; title: string } | undefined }>
             pid:    number
         }>>>()
         expect(rows.map(r => ({

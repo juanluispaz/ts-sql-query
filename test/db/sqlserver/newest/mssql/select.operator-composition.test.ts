@@ -202,4 +202,32 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { id: number; flag?: boolean }>>()
         expect(row).toEqual(expected)
     })
+
+    test('if-value-or-boolean-collapses-to-projectable-boolean', async () => {
+        // `IfValueSource.or(BooleanValueSource)` collapses to a
+        // `BooleanValueSource` (not an `IfValueSource`) — the `.or` twin of
+        // the `.and` collapse above. Only a `BooleanValueSource` is
+        // projectable as a boolean leaf, so this select compiles and yields a
+        // `boolean`. Issue 1: priority 2 == 2, so the disjunction is true.
+        const expected = { id: 1, flag: true }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id:   tIssue.id,
+                flag: tIssue.priority.equalsIfValue(2).or(tIssue.title.contains('hero')),
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(case when priority = @0 or title like ('%' + @1 + '%') then 1 else 0 end as bit) as flag from issue where id = @2"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+            "hero",
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; flag: boolean }>>()
+        expect(row).toEqual(expected)
+    })
 })

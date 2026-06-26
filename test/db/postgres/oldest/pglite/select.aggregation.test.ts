@@ -215,4 +215,25 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, { ci?: number | undefined }>>()
         expect(result).toEqual({ ci: 8 })
     })
+
+    test('average-and-average-distinct-over-bigint', async () => {
+        // `average` / `averageDistinct` over a BIGINT operand (durationMs). The
+        // avg of the two non-null
+        // durations {5400000, 1800000} (worklog 2 is NULL, excluded) is
+        // 3600000; the two values are distinct so averageDistinct matches.
+        // (sum/average over a customDouble operand has no fixture column —
+        // Money is only produced by executeFunction — so that arm is omitted.)
+        ctx.mockNext({ avg: 3600000, avgD: 3600000 })
+        const row = await ctx.conn.selectFrom(tIssueWorklog)
+            .select({
+                avg:  ctx.conn.average(tIssueWorklog.durationMs),
+                avgD: ctx.conn.averageDistinct(tIssueWorklog.durationMs),
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select avg(duration_ms) as avg, avg(distinct duration_ms) as "avgD" from issue_worklog"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof row, { avg?: number | undefined; avgD?: number | undefined }>>()
+        expect(row).toEqual({ avg: 3600000, avgD: 3600000 })
+    })
 })

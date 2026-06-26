@@ -448,4 +448,36 @@ describe(ctx.label, () => {
         }>>>()
         expect(result).toEqual(expected)
     })
+
+    test('custom-numeric/customdouble-roundn-with-number-value-source-precision', async () => {
+        // `roundn` on a customDouble receiver has two overloads: the literal
+        // precision (`v.roundn(2)`, covered in customdouble-operation1-math)
+        // and the NumberValueSource precision arm exercised here — the second
+        // argument is a column value source (`tIssue.priority`), so the
+        // emitted SQL rounds to a column-driven number of decimals.
+        // round(8, priority=2) = 8 > 7 → true. The comparison keeps the result
+        // a boolean (a customDouble result leaks per-driver string/number, so
+        // wrapping it in a predicate gives one cross-dialect value assertion).
+        const v = ctx.conn.const(8, 'customDouble', 'Score')
+        const expected = { id: 1, big: true }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id:  tIssue.id,
+                big: v.roundn(tIssue.priority).greaterThan(7),
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(case when round(@0, priority) > @1 then 1 else 0 end as bit) as big from issue where id = @2"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            8,
+            7,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; big: boolean }>>()
+        expect(row).toEqual(expected)
+    })
 })

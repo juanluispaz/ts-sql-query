@@ -7,7 +7,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tProject } from '../../domain/connection.js'
+import { tIssue, tOrganization, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -120,5 +120,35 @@ describe(ctx.label, () => {
             name: string
         }>>>()
         expect(result).toEqual(expected)
+    })
+
+    test('sub-select-using-two-correlated-tables', async () => {
+        // subSelectUsing with TWO correlated outer tables (tOrganization +
+        // tProject): the subquery counts issues in the joined project, gated by
+        // the org↔project link, so it references both correlated tables.
+        const expected = [
+            { projectId: 1, issueCount: 2 },
+            { projectId: 2, issueCount: 1 },
+            { projectId: 3, issueCount: 1 },
+            { projectId: 4, issueCount: 0 },
+        ]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tOrganization)
+            .innerJoin(tProject).on(tProject.organizationId.equals(tOrganization.id))
+            .select({
+                projectId:  tProject.id,
+                issueCount: ctx.conn.subSelectUsing(tOrganization, tProject).from(tIssue)
+                    .where(tIssue.projectId.equals(tProject.id)
+                        .and(tProject.organizationId.equals(tOrganization.id)))
+                    .selectCountAll()
+                    .forUseAsInlineQueryValue(),
+            })
+            .orderBy('projectId')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as "projectId", (select count(*) as "result" from issue where project_id = project.id and project.organization_id = "organization".id) as "issueCount" from "organization" inner join project on project.organization_id = "organization".id order by "projectId""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ projectId: number; issueCount: number }>>>()
+        expect(rows).toEqual(expected)
     })
 })

@@ -7,9 +7,20 @@ import { PostgreSqlConnection } from '../../../../src/connections/PostgreSqlConn
 import type { QueryRunner } from '../../../../src/queryRunners/QueryRunner.js'
 import { Table } from '../../../../src/Table.js'
 import { View } from '../../../../src/View.js'
-import { CustomBooleanTypeAdapter } from '../../../../src/TypeAdapter.js'
+import { CustomBooleanTypeAdapter, type TypeAdapter } from '../../../../src/TypeAdapter.js'
 
 const verifiedAdapter  = new CustomBooleanTypeAdapter('Y', 'N')
+// A trailing TypeAdapter for virtualColumnFromFragment that brackets the read
+// value so the adapter's effect is observable in the result.
+const bracketAdapter: TypeAdapter = {
+    transformValueFromDB(value, type, next) {
+        const v = next.transformValueFromDB(value, type)
+        return typeof v === 'string' ? '[' + v + ']' : v
+    },
+    transformValueToDB(value, type, next) {
+        return next.transformValueToDB(value, type)
+    },
+}
 const publishedAdapter = new CustomBooleanTypeAdapter('t', 'f')
 // Nullable custom-boolean adapter — the optional sibling of verified/published.
 const approvedAdapter  = new CustomBooleanTypeAdapter('A', 'R')
@@ -223,6 +234,117 @@ export class DBConnection extends PostgreSqlConnection<'DBConnection'> {
         this.valueArg('string', 'optional')
     ).as((col, val) => this.fragmentWithType('boolean', 'required').sql`${col} = ${val}`)
 
+    // Fragment builders at extra arities and over extra arg/valueArg types.
+    // All bodies are portable (no per-dialect casts): aggregates run over
+    // columns, non-aggregates use coalesce/string `=`, so the same field works
+    // on every dialect and only the placeholder syntax differs per cell.
+
+    // buildFragmentWithArgs at arities 3 and 5.
+    frag3Args = this.buildFragmentWithArgs(
+        this.arg('string', 'required'), this.arg('string', 'required'), this.arg('string', 'required')
+    ).as((a, b, c) => this.fragmentWithType('string', 'required').sql`coalesce(${a}, ${b}, ${c})`)
+    frag5Args = this.buildFragmentWithArgs(
+        this.arg('string', 'required'), this.arg('string', 'required'), this.arg('string', 'required'),
+        this.arg('string', 'required'), this.arg('string', 'required')
+    ).as((a, b, c, d, e) => this.fragmentWithType('string', 'required').sql`coalesce(${a}, ${b}, ${c}, ${d}, ${e})`)
+
+    // buildFragmentWithArgsIfValue at arities 0, 3, 4, 5.
+    frag0IfValue = this.buildFragmentWithArgsIfValue(
+    ).as(() => this.fragmentWithType('boolean', 'required').sql`1 = 1`)
+    frag3IfValue = this.buildFragmentWithArgsIfValue(
+        this.arg('string', 'required'), this.arg('string', 'required'), this.valueArg('string', 'optional')
+    ).as((a, b, v) => this.fragmentWithType('boolean', 'required').sql`coalesce(${a}, ${b}) = ${v}`)
+    frag4IfValue = this.buildFragmentWithArgsIfValue(
+        this.arg('string', 'required'), this.arg('string', 'required'), this.arg('string', 'required'), this.valueArg('string', 'optional')
+    ).as((a, b, c, v) => this.fragmentWithType('boolean', 'required').sql`coalesce(${a}, ${b}, ${c}) = ${v}`)
+    frag5IfValue = this.buildFragmentWithArgsIfValue(
+        this.arg('string', 'required'), this.arg('string', 'required'), this.arg('string', 'required'), this.arg('string', 'required'), this.valueArg('string', 'optional')
+    ).as((a, b, c, d, v) => this.fragmentWithType('boolean', 'required').sql`coalesce(${a}, ${b}, ${c}, ${d}) = ${v}`)
+
+    // buildFragmentWithMaybeOptionalArgs at arities 0, 4, 5.
+    frag0MaybeOptional = this.buildFragmentWithMaybeOptionalArgs(
+    ).as(() => this.fragmentWithType('int', 'required').sql`42`)
+    frag4MaybeOptional = this.buildFragmentWithMaybeOptionalArgs(
+        this.arg('string', 'optional'), this.arg('string', 'optional'), this.arg('string', 'optional'), this.arg('string', 'optional')
+    ).as((a, b, c, d) => this.fragmentWithType('string', 'optional').sql`coalesce(${a}, ${b}, ${c}, ${d})`)
+    frag5MaybeOptional = this.buildFragmentWithMaybeOptionalArgs(
+        this.arg('string', 'optional'), this.arg('string', 'optional'), this.arg('string', 'optional'), this.arg('string', 'optional'), this.arg('string', 'optional')
+    ).as((a, b, c, d, e) => this.fragmentWithType('string', 'optional').sql`coalesce(${a}, ${b}, ${c}, ${d}, ${e})`)
+
+    // buildAggregateFragmentWithArgs at arities 0, 2, 3, 4, 5.
+    agg0Count = this.buildAggregateFragmentWithArgs(
+    ).as(() => this.aggregateFragmentWithType('int', 'required').sql`count(*)`)
+    agg2Sum = this.buildAggregateFragmentWithArgs(
+        this.arg('int', 'required'), this.arg('int', 'required')
+    ).as((a, b) => this.aggregateFragmentWithType('int', 'required').sql`sum(${a} + ${b})`)
+    agg3Sum = this.buildAggregateFragmentWithArgs(
+        this.arg('int', 'required'), this.arg('int', 'required'), this.arg('int', 'required')
+    ).as((a, b, c) => this.aggregateFragmentWithType('int', 'required').sql`sum(${a} + ${b} + ${c})`)
+    agg4Sum = this.buildAggregateFragmentWithArgs(
+        this.arg('int', 'required'), this.arg('int', 'required'), this.arg('int', 'required'), this.arg('int', 'required')
+    ).as((a, b, c, d) => this.aggregateFragmentWithType('int', 'required').sql`sum(${a} + ${b} + ${c} + ${d})`)
+    agg5Sum = this.buildAggregateFragmentWithArgs(
+        this.arg('int', 'required'), this.arg('int', 'required'), this.arg('int', 'required'), this.arg('int', 'required'), this.arg('int', 'required')
+    ).as((a, b, c, d, e) => this.aggregateFragmentWithType('int', 'required').sql`sum(${a} + ${b} + ${c} + ${d} + ${e})`)
+
+    // buildAggregateFragmentWithMaybeOptionalArgs at arities 0, 2, 3, 4, 5.
+    aggMO0Count = this.buildAggregateFragmentWithMaybeOptionalArgs(
+    ).as(() => this.aggregateFragmentWithType('int', 'required').sql`count(*)`)
+    aggMO2Max = this.buildAggregateFragmentWithMaybeOptionalArgs(
+        this.arg('int', 'optional'), this.arg('int', 'optional')
+    ).as((a, b) => this.aggregateFragmentWithType('int', 'optional').sql`max(${a} + ${b})`)
+    aggMO3Max = this.buildAggregateFragmentWithMaybeOptionalArgs(
+        this.arg('int', 'optional'), this.arg('int', 'optional'), this.arg('int', 'optional')
+    ).as((a, b, c) => this.aggregateFragmentWithType('int', 'optional').sql`max(${a} + ${b} + ${c})`)
+    aggMO4Max = this.buildAggregateFragmentWithMaybeOptionalArgs(
+        this.arg('int', 'optional'), this.arg('int', 'optional'), this.arg('int', 'optional'), this.arg('int', 'optional')
+    ).as((a, b, c, d) => this.aggregateFragmentWithType('int', 'optional').sql`max(${a} + ${b} + ${c} + ${d})`)
+    aggMO5Max = this.buildAggregateFragmentWithMaybeOptionalArgs(
+        this.arg('int', 'optional'), this.arg('int', 'optional'), this.arg('int', 'optional'), this.arg('int', 'optional'), this.arg('int', 'optional')
+    ).as((a, b, c, d, e) => this.aggregateFragmentWithType('int', 'optional').sql`max(${a} + ${b} + ${c} + ${d} + ${e})`)
+
+    // buildAggregateFragmentWithArgsIfValue at arities 0, 1, 3, 4, 5.
+    aggIV0Predicate = this.buildAggregateFragmentWithArgsIfValue(
+    ).as(() => this.aggregateFragmentWithType('boolean', 'required').sql`count(*) > 0`)
+    aggIV1Count = this.buildAggregateFragmentWithArgsIfValue(
+        this.valueArg('int', 'optional')
+    ).as((v) => this.aggregateFragmentWithType('boolean', 'required').sql`count(*) > ${v}`)
+    aggIV3Sum = this.buildAggregateFragmentWithArgsIfValue(
+        this.arg('int', 'required'), this.arg('int', 'required'), this.valueArg('int', 'optional')
+    ).as((a, b, v) => this.aggregateFragmentWithType('boolean', 'required').sql`sum(${a} + ${b}) > ${v}`)
+    aggIV4Sum = this.buildAggregateFragmentWithArgsIfValue(
+        this.arg('int', 'required'), this.arg('int', 'required'), this.arg('int', 'required'), this.valueArg('int', 'optional')
+    ).as((a, b, c, v) => this.aggregateFragmentWithType('boolean', 'required').sql`sum(${a} + ${b} + ${c}) > ${v}`)
+    aggIV5Sum = this.buildAggregateFragmentWithArgsIfValue(
+        this.arg('int', 'required'), this.arg('int', 'required'), this.arg('int', 'required'), this.arg('int', 'required'), this.valueArg('int', 'optional')
+    ).as((a, b, c, d, v) => this.aggregateFragmentWithType('boolean', 'required').sql`sum(${a} + ${b} + ${c} + ${d}) > ${v}`)
+
+    // arg / valueArg keyword arms — one `${col} = ${value}` fragment per
+    // still-uncovered argument type (column context keeps the SQL portable).
+    // arg/valueArg int + string are covered by intEqualsIfValue / equalsStringIfValue.
+    doubleEq = this.buildFragmentWithArgsIfValue(
+        this.arg('double', 'optional'), this.valueArg('double', 'optional')
+    ).as((c, v) => this.fragmentWithType('boolean', 'required').sql`${c} = ${v}`)
+    customComparableEq = this.buildFragmentWithArgsIfValue(
+        this.arg<string, 'Semver'>('customComparable', 'Semver', 'optional'), this.valueArg<string, 'Semver'>('customComparable', 'Semver', 'optional')
+    ).as((c, v) => this.fragmentWithType('boolean', 'required').sql`${c} = ${v}`)
+    customEq = this.buildFragmentWithArgsIfValue(
+        this.arg<ReleaseChannel, 'ReleaseChannel'>('custom', 'ReleaseChannel', 'optional'), this.valueArg<ReleaseChannel, 'ReleaseChannel'>('custom', 'ReleaseChannel', 'optional')
+    ).as((c, v) => this.fragmentWithType('boolean', 'required').sql`${c} = ${v}`)
+    enumEq = this.buildFragmentWithArgsIfValue(
+        this.arg<WorklogActivity, 'WorklogActivity'>('enum', 'WorklogActivity', 'optional'), this.valueArg<WorklogActivity, 'WorklogActivity'>('enum', 'WorklogActivity', 'optional')
+    ).as((c, v) => this.fragmentWithType('boolean', 'required').sql`${c} = ${v}`)
+    customUuidEq = this.buildFragmentWithArgsIfValue(
+        this.arg<string, 'SigningKey'>('customUuid', 'SigningKey', 'optional'), this.valueArg<string, 'SigningKey'>('customUuid', 'SigningKey', 'optional')
+    ).as((c, v) => this.fragmentWithType('boolean', 'required').sql`${c} = ${v}`)
+    // boolean arm — combined in a LOGICAL (condition) context so the
+    // library's boolean emulation renders each operand as a predicate
+    // (`(billable = 1) or ...` on engines without a native boolean), unlike a
+    // raw `=` value comparison which double-wraps and SQL Server rejects.
+    booleanOrFragment = this.buildFragmentWithArgsIfValue(
+        this.arg('boolean', 'optional'), this.valueArg('boolean', 'optional')
+    ).as((c, v) => this.fragmentWithType('boolean', 'required').sql`${c} or ${v}`)
+
     // Sequence references — exercised by sequence.next-current-value.test.ts.
     // Sequences are only typed on AbstractAdvancedConnection-derived
     // dialects (mariaDB ≥ 10.3, oracle, postgreSql, sqlServer); see
@@ -349,6 +471,15 @@ export const tIssueWorklog = new class TIssueWorklog extends Table<DBConnection,
     billable   = this.optionalColumn('billable', 'boolean')
     approved   = this.optionalColumn('approved', 'boolean', approvedAdapter)
     activity   = this.column<WorklogActivity, 'WorklogActivity'>('activity', 'enum', 'WorklogActivity')
+    // optionalVirtualColumnFromFragment on a Table (the optional
+    // sibling of the required virtual column; no DB column — computed inline).
+    activityUpper  = this.optionalVirtualColumnFromFragment('string', (fragment) => fragment.sql`upper(${this.activity})`)
+    // virtualColumnFromFragment with an explicit trailing TypeAdapter.
+    activityTagged = this.virtualColumnFromFragment('string', (fragment) => fragment.sql`upper(${this.activity})`, bracketAdapter)
+    // optionalComputedColumn — a NULLABLE DB-computed column,
+    // excluded from the writable shape (the required sibling is
+    // project_release.notes). The DB computes it from minutes + activity.
+    activityLabel  = this.optionalComputedColumn('activity_label', 'string')
     constructor() { super('issue_worklog') }
 }()
 
@@ -383,6 +514,8 @@ export const vReleaseOverview = new class VReleaseOverview extends View<DBConnec
     signedOffAt  = this.optionalColumn<Date, 'SignOffStamp'>('signed_off_at', 'customLocalDateTime', 'SignOffStamp')
     projectName  = this.column('project_name', 'string')
     versionUpper = this.virtualColumnFromFragment('string', (fragment) => fragment.sql`upper(${this.version})`)
+    // optionalVirtualColumnFromFragment on a View.
+    versionUpperOptional = this.optionalVirtualColumnFromFragment('string', (fragment) => fragment.sql`upper(${this.version})`)
     constructor() { super('release_overview') }
 }()
 
@@ -394,4 +527,26 @@ export const tAuditEntry = new class TAuditEntry extends Table<DBConnection, 'TA
     id     = this.autogeneratedPrimaryKeyBySequence('id', 'audit_tag_seq', 'int')
     action = this.column('action', 'string')
     constructor() { super('audit_entry') }
+}()
+
+
+// Enum used by tWebhookEvent.eventType's columnWithDefaultValue.
+export type WebhookEventType = 'created' | 'updated' | 'deleted'
+
+// A Table whose autogeneratedPrimaryKey is a bigint (the other tables use an
+// int IDENTITY/SERIAL PK).
+export const tWebhookEvent = new class TWebhookEvent extends Table<DBConnection, 'TWebhookEvent'> {
+    id        = this.autogeneratedPrimaryKey('id', 'bigint')
+    issueId   = this.column('issue_id', 'int')
+    // columnWithDefaultValue on an `enum` column (with a DB DEFAULT).
+    eventType = this.columnWithDefaultValue<WebhookEventType, 'WebhookEventType'>('event_type', 'enum', 'WebhookEventType')
+    constructor() { super('webhook_event') }
+}()
+
+// A Table whose caller-provided primaryKey is an int (tCountry.code is the
+// other provided PK, a string).
+export const tCalendarYear = new class TCalendarYear extends Table<DBConnection, 'TCalendarYear'> {
+    yearValue = this.primaryKey('year_value', 'int')
+    label = this.column('year_label', 'string')
+    constructor() { super('calendar_year') }
 }()

@@ -215,4 +215,38 @@ describe(ctx.label, () => {
             else expect(inserted.id).toBeGreaterThan(4)
         })
     })
+
+    test('insert-on-conflict-do-nothing-returning-projecting-optional-values-as-nullable', async () => {
+        // `projectingOptionalValuesAsNullable()` on the ON CONFLICT DO NOTHING
+        // optional-returning path. The helper is covered on plain
+        // insert/update/delete returning above; this pins it on the on-conflict
+        // returning builder. `archivedAt` is an optionalColumn left unset, so it
+        // returns a present `null`. No key actually collides, so the insert
+        // succeeds and a row comes back; the suppressed-insert `| null` arm is
+        // the type promise `executeInsertNoneOrOne` keeps.
+        const expectedMock = { id: 100, archivedAt: null }
+        ctx.mockNext(expectedMock)
+        await ctx.withRollback(async () => {
+            const inserted = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, name: 'On-conflict nullable demo', slug: 'on-conflict-nullable-demo' })
+                .onConflictDoNothing()
+                .returning({ id: tProject.id, archivedAt: tProject.archivedAt })
+                .projectingOptionalValuesAsNullable()
+                .executeInsertNoneOrOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert ignore into project (organization_id, name, slug) values (?, ?, ?) returning id as id, archived_at as archivedAt"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "On-conflict nullable demo",
+                "on-conflict-nullable-demo",
+              ]
+            `)
+            assertType<Exact<typeof inserted, { id: number; archivedAt: Date | null } | null>>()
+            expect(inserted).not.toBeNull()
+            expect(inserted!.archivedAt).toBeNull()
+            if (!ctx.realDbEnabled) expect(inserted!.id).toBe(100)
+            else expect(inserted!.id).toBeGreaterThan(4) // seed reserves project ids 1-4
+        })
+    })
 })

@@ -422,4 +422,84 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
         expect(rows).toEqual(expected)
     })
+
+    test('uuid-receiver-value-when-null-literal-on-null-row', async () => {
+        // `valueWhenNull(literal)` on the UUID receiver directly (NOT via
+        // `.asString()`) — the redefined uuid overload, result required.
+        // Issue 3 has a NULL external_ref → the literal uuid fallback wins.
+        ctx.mockNext(UUID_VALUE)
+        const ref = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(3))
+            .selectOneColumn(tIssue.externalRef.valueWhenNull(UUID_VALUE))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select isnull(external_ref, @0) as [result] from issue where id = @1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+            3,
+          ]
+        `)
+        assertType<Exact<typeof ref, string>>()
+        expect(ref).toEqual(UUID_VALUE)
+    })
+
+    test('uuid-receiver-null-if-value-literal', async () => {
+        // `nullIfValue(literal)` on the UUID receiver directly — the redefined
+        // uuid overload, result optional. Issue 2's ref (REF2) ≠ the probe
+        // (REF1), so the value is kept.
+        ctx.mockNext(REF2)
+        const ref = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(2))
+            .selectOneColumn(tIssue.externalRef.nullIfValue(REF1))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select nullif(external_ref, @0) as [result] from issue where id = @1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "0a8f9c1e-1111-4222-8333-444455556666",
+            2,
+          ]
+        `)
+        assertType<Exact<typeof ref, string | null>>()
+        expect(ref).toEqual(REF2)
+    })
+
+    test('custom-uuid-receiver-null-if-value-literal', async () => {
+        // `nullIfValue(literal)` on the CustomUuid receiver (signingKey /
+        // 'SigningKey') directly — result optional. Release 1's signing key
+        // (SIGNING_KEY1) ≠ the probe (SIGNING_KEY3), so the value is kept.
+        ctx.mockNext(SIGNING_KEY1)
+        const key = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .selectOneColumn(tProjectRelease.signingKey.nullIfValue(SIGNING_KEY3))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select nullif(signing_key, @0) as [result] from project_release where id = @1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "7b3e9d20-2222-4c55-9b66-dddd00009999",
+            1,
+          ]
+        `)
+        assertType<Exact<typeof key, string | null>>()
+        expect(key).toEqual(SIGNING_KEY1)
+    })
+
+    test('custom-uuid-receiver-value-when-null-literal-on-null-row', async () => {
+        // `valueWhenNull(literal)` on the CustomUuid receiver directly —
+        // result required. Release 2 has a NULL signing_key → the literal
+        // fallback wins.
+        ctx.mockNext(UUID_VALUE)
+        const key = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(2))
+            .selectOneColumn(tProjectRelease.signingKey.valueWhenNull(UUID_VALUE))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select isnull(signing_key, @0) as [result] from project_release where id = @1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+            2,
+          ]
+        `)
+        assertType<Exact<typeof key, string>>()
+        expect(key).toEqual(UUID_VALUE)
+    })
 })

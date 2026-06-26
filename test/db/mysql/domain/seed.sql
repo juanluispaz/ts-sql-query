@@ -43,3 +43,6 @@ INSERT INTO project_release (id, project_id, version, channel, signing_key, rele
     (1, 1, '1.2.0',        'stable', UUID_TO_BIN('0a8f9c1e-1111-4222-8333-444455556666'), '2024-01-15', '17:00:00', '2024-01-14 12:30:00'),
     (2, 1, '1.3.0-beta.1', 'beta',   NULL,     '2024-02-20', '18:30:00', NULL),
     (3, 2, '0.9.0',        'canary', UUID_TO_BIN('7b3e9d20-2222-4c55-9b66-dddd00009999'), '2024-03-01', '16:00:00', '2024-02-28 09:00:00');
+
+INSERT INTO webhook_event (issue_id, event_type) VALUES (1, 'created'), (2, 'updated');
+INSERT INTO calendar_year (year_value, year_label) VALUES (2023, 'FY2023'), (2024, 'FY2024');

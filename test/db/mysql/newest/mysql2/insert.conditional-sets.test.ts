@@ -662,4 +662,38 @@ describe(ctx.label, () => {
         })
     })
 
+    test('chain-start-set-if-value-skips-empty-incoming', async () => {
+        // The chain-START `insertInto(t).setIfValue({...})` overload (no prior
+        // `.set(...)` / `.values(...)`) — distinct from the mid-chain setters
+        // above. It accepts the mandatory + optional insert shape and drops the
+        // columns whose incoming value is null/undefined: all required columns
+        // are present (so the insert is valid) while `assigneeId: undefined` is
+        // skipped, so assignee_id never reaches the column list.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.insertInto(tIssue)
+                .setIfValue({
+                    projectId:  1,
+                    number:     200,
+                    title:      'Chain start',
+                    status:     'open',
+                    priority:   2,
+                    assigneeId: undefined,
+                })
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, \`number\`, title, \`status\`, priority) values (?, ?, ?, ?, ?)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                200,
+                "Chain start",
+                "open",
+                2,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(1)
+        })
+    })
 })

@@ -116,4 +116,49 @@ describe(ctx.label, () => {
             else expect(typeof next).toBe('number')
         })
     })
+
+    test('sequence-bigint-current-value-emission', async () => {
+        await ctx.withCommit(async () => {
+            // `currentValue()` over a BIGINT sequence. The emitted SQL is the
+            // same `currval`/equivalent as the int form; the value type only
+            // changes the type adapter. currval is session-scoped, so a prior
+            // nextValue primes it on the real DB.
+            ctx.mockNext('9223372036854775000')
+            if (ctx.realDbEnabled) {
+                await ctx.conn.selectFromNoTable()
+                    .selectOneColumn(ctx.conn.auditTagSeq.nextValue())
+                    .executeSelectOne()
+            }
+            const curr = await ctx.conn.selectFromNoTable()
+                .selectOneColumn(ctx.conn.auditTagSeq.currentValue())
+                .executeSelectOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select current_value from sys.sequences where name = 'audit_tag_seq') as [result]"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+            expect(typeof curr === 'bigint' || typeof curr === 'string' || typeof curr === 'number').toBe(true)
+        })
+    })
+
+    test('sequence-custom-int-current-value-type', async () => {
+        await ctx.withCommit(async () => {
+            // `currentValue()` over a branded `customInt` sequence
+            // (release_tag_seq / ReleaseTag): the result is the branded
+            // CustomIntValueSource, like nextValue.
+            ctx.mockNext(7)
+            if (ctx.realDbEnabled) {
+                await ctx.conn.selectFromNoTable()
+                    .selectOneColumn(ctx.conn.releaseTagSeq.nextValue())
+                    .executeSelectOne()
+            }
+            const curr = await ctx.conn.selectFromNoTable()
+                .selectOneColumn(ctx.conn.releaseTagSeq.currentValue())
+                .executeSelectOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select current_value from sys.sequences where name = 'release_tag_seq') as [result]"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+            assertType<Exact<typeof curr, ReleaseTag>>()
+            if (!ctx.realDbEnabled) expect(curr).toBe(7 as ReleaseTag)
+            else expect(typeof curr).toBe('number')
+        })
+    })
 })

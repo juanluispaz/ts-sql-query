@@ -261,4 +261,39 @@ describe(ctx.label, () => {
         })
     })
     */
+
+    // NOT-APPLICABLE: MariaDB has no ON CONFLICT ON CONSTRAINT
+    /*
+    test('on-conflict-on-constraint-do-update', async () => {
+        // `.onConflictOnConstraint(rawFragment`name`).doUpdateSet({...})` — the
+        // DO UPDATE arm off a named-constraint conflict target. The do-nothing
+        // arm off a constraint is covered by `on-conflict-on-constraint-do-nothing`
+        // and the column-target do-update by `on-conflict-on-columns-do-update`;
+        // this pins the constraint-target × do-update combination. The unique
+        // constraint `app_user_email_key` is PostgreSQL's default name for the
+        // inline `email ... UNIQUE` declaration in domain/schema.sql.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'ada@acme.test', fullName: 'Ada Lovelace v2' })  // collides with seed
+                .onConflictOnConstraint(ctx.conn.rawFragment`app_user_email_key`)
+                .doUpdateSet({ fullName: 'Ada Lovelace v2' })
+                .executeInsert()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into app_user (email, full_name) values ($1, $2) on conflict on constraint app_user_email_key do update set full_name = $3"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "ada@acme.test",
+                "Ada Lovelace v2",
+                "Ada Lovelace v2",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            if (ctx.realDbEnabled) {
+                expect(typeof affected).toBe('number')
+            } else {
+                expect(affected).toBe(1)
+            }
+        })
+    })
+    */
 })

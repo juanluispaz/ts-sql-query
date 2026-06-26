@@ -117,4 +117,33 @@ describe(ctx.label, () => {
         }>>>()
         expect(result).toEqual(expected)
     })
+
+    test('left-join-with-dynamic-on-builds-join-condition', async () => {
+        // `leftJoin(...).dynamicOn()` opens an empty JOIN predicate that the
+        // following `.and(...)` accumulates into the ON clause — the SELECT
+        // builder's `dynamicOn` (the DELETE/UPDATE builders' dynamicOn is
+        // covered in delete.join / update.join). Issue 1 is assigned to
+        // app_user 1 (Ada Lovelace), so the join matches.
+        const expected = { id: 1, assigneeName: 'Ada Lovelace' }
+        ctx.mockNext(expected)
+        const assignee = tAppUser.forUseInLeftJoin()
+        const row = await ctx.conn.selectFrom(tIssue)
+            .leftJoin(assignee).dynamicOn()
+                .and(assignee.id.equals(tIssue.assigneeId))
+            .where(tIssue.id.equals(1))
+            .select({
+                id:           tIssue.id,
+                assigneeName: assignee.fullName,
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, app_user.full_name as assigneeName from issue left join app_user on app_user.id = issue.assignee_id where issue.id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; assigneeName?: string }>>()
+        expect(row).toEqual(expected)
+    })
 })

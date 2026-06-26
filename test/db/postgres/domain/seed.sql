@@ -50,3 +50,6 @@ SELECT setval(pg_get_serial_sequence('project',      'id'), (SELECT MAX(id) FROM
 SELECT setval(pg_get_serial_sequence('issue',        'id'), (SELECT MAX(id) FROM issue));
 SELECT setval(pg_get_serial_sequence('issue_worklog',   'id'), (SELECT MAX(id) FROM issue_worklog));
 SELECT setval(pg_get_serial_sequence('project_release', 'id'), (SELECT MAX(id) FROM project_release));
+
+INSERT INTO webhook_event (issue_id, event_type) VALUES (1, 'created'), (2, 'updated');
+INSERT INTO calendar_year (year_value, year_label) VALUES (2023, 'FY2023'), (2024, 'FY2024');

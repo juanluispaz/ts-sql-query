@@ -975,4 +975,158 @@ describe(ctx.label, () => {
           ]
         `)
     })
+
+    test('equivalence/is-and-is-not-with-explicit-null', async () => {
+        // `is` / `isNot` are special-cased in the builder's `_isValue` guard
+        // so they survive an explicit `null` value where the other
+        // non-`*IfValue` operators short-circuit. `{ col: { is: null } }`
+        // therefore still emits a null-safe predicate, identical to the
+        // direct `.is(null)` / `.isNot(null)` call.
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.body.is(null).and(tIssue.estimatedHours.isNot(null)))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor(selectFields).withValues({ body: { is: null }, estimatedHours: { isNot: null } }))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where body is ? and estimated_hours is not ? order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            null,
+            null,
+          ]
+        `)
+    })
+
+    test('equivalence/custom-local-date-descriptor-dispatch', async () => {
+        // the `['customLocalDate', T]` descriptor maps to CustomLocalDateFilter.
+        // releasedOn ('ReleaseDay') is a customLocalDate column; the comparable
+        // filter must emit exactly the direct comparable calls. The model path
+        // can't reach custom arms (it can't map adapters), so dynamicConditionFor
+        // over the column is the route. TZ=UTC forced by the suite.
+        const lo = new Date(Date.UTC(2024, 0, 1, 10, 0, 0))
+        const hi = new Date(Date.UTC(2024, 11, 31, 10, 0, 0))
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.releasedOn.greaterOrEqual(lo).and(tProjectRelease.releasedOn.lessThan(hi)))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(ctx.conn.dynamicConditionFor({ id: tProjectRelease.id, releasedOn: tProjectRelease.releasedOn })
+                .withValues({ releasedOn: { greaterOrEqual: lo, lessThan: hi } }))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where released_on >= ? and released_on < ? order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            "2024-01-01",
+            "2024-12-31",
+          ]
+        `)
+    })
+
+    test('equivalence/custom-local-time-descriptor-dispatch', async () => {
+        // the `['customLocalTime', T]` descriptor maps to CustomLocalTimeFilter.
+        // cutoffTime ('CutoffClock') is a customLocalTime column.
+        const lo = new Date(Date.UTC(1970, 0, 1, 9, 0, 0))
+        const hi = new Date(Date.UTC(1970, 0, 1, 20, 0, 0))
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.cutoffTime.greaterOrEqual(lo).and(tProjectRelease.cutoffTime.lessThan(hi)))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(ctx.conn.dynamicConditionFor({ id: tProjectRelease.id, cutoffTime: tProjectRelease.cutoffTime })
+                .withValues({ cutoffTime: { greaterOrEqual: lo, lessThan: hi } }))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where cutoff_time >= ? and cutoff_time < ? order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            "09:00:00",
+            "20:00:00",
+          ]
+        `)
+    })
+
+    test('equivalence/custom-local-date-time-descriptor-dispatch', async () => {
+        // the `['customLocalDateTime', T]` descriptor maps to
+        // CustomLocalDateTimeFilter. signedOffAt ('SignOffStamp') is an optional
+        // customLocalDateTime column.
+        const lo = new Date(Date.UTC(2024, 0, 1, 0, 0, 0))
+        const hi = new Date(Date.UTC(2024, 11, 31, 0, 0, 0))
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.signedOffAt.greaterOrEqual(lo).and(tProjectRelease.signedOffAt.lessThan(hi)))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(ctx.conn.dynamicConditionFor({ id: tProjectRelease.id, signedOffAt: tProjectRelease.signedOffAt })
+                .withValues({ signedOffAt: { greaterOrEqual: lo, lessThan: hi } }))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signed_off_at >= ? and signed_off_at < ? order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            "2024-01-01 00:00:00",
+            "2024-12-31 00:00:00",
+          ]
+        `)
+    })
+
+    test('equivalence/custom-double-descriptor-dispatch', async () => {
+        // the `['customDouble', T]` descriptor maps to CustomDoubleFilter. There
+        // is no filterable customDouble column in the domain (Money is only
+        // produced by executeFunction), so a customDouble const value source
+        // ('Money') stands in as the dynamicConditionFor field — enough to prove
+        // the CustomDoubleFilter dispatch reaches the comparable operators
+        // identically to the direct calls.
+        const amount = ctx.conn.const(5, 'customDouble', 'Money')
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(amount.greaterThan(3).and(amount.lessThan(9)))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssue.id, amount })
+                .withValues({ amount: { greaterThan: 3, lessThan: 9 } }))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where ? > ? and ? < ? order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            5,
+            3,
+            5,
+            9,
+          ]
+        `)
+    })
 })

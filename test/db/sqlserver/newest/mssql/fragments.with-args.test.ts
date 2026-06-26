@@ -715,22 +715,19 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    // TODO[BUG]: see test/BUGS.md — SQL Server double-wraps a fragment boolean
-    // value to `((@0 = 1) = 1)` (predicate = int), rejected as "Incorrect syntax
-    // near '='"; other dialects emit a single valid wrap (direct `.or(bool)` too).
-    /*
     test('arg-keyword-boolean', async () => {
         // The fragment ORs the boolean column
         // with the boolean value (condition context), so the library's boolean
         // emulation renders each operand as a predicate and the SQL is portable
         // even on engines with no native boolean. `billable OR true` is true for
-        // every worklog.
+        // every worklog. The boolean value is a `bit` coerced to a predicate
+        // exactly once as `(@0 = 1)`.
         const expected = [{ id: 1 }, { id: 2 }, { id: 3 }]
         ctx.mockNext(expected)
         const rows = await ctx.conn.selectFrom(tIssueWorklog)
             .where(ctx.conn.booleanOrFragment(tIssueWorklog.billable, true))
             .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable or $1 order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where (billable = 1) or (@0 = 1) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             true,
@@ -738,5 +735,4 @@ describe(ctx.label, () => {
         `)
         expect(rows).toEqual(expected)
     })
-    */
 })

@@ -264,10 +264,11 @@ export class DBConnection extends SqliteConnection<'DBConnection'> {
     customUuidEq = this.buildFragmentWithArgsIfValue(
         this.arg<string, 'SigningKey'>('customUuid', 'SigningKey', 'optional'), this.valueArg<string, 'SigningKey'>('customUuid', 'SigningKey', 'optional')
     ).as((c, v) => this.fragmentWithType('boolean', 'required').sql`${c} = ${v}`)
-    // boolean arm — combined in a LOGICAL (condition) context so the
+    // boolean arm — combined in a LOGICAL (condition) context with `or` so the
     // library's boolean emulation renders each operand as a predicate
-    // (`(billable = 1) or ...` on engines without a native boolean), unlike a
-    // raw `=` value comparison which double-wraps and SQL Server rejects.
+    // (`(billable = 1) or ...` on engines without a native boolean). A raw `=`
+    // between two boolean operands would instead compare two predicates
+    // (`(x = 1) = (y = 1)`), which SQL Server rejects.
     booleanOrFragment = this.buildFragmentWithArgsIfValue(
         this.arg('boolean', 'optional'), this.valueArg('boolean', 'optional')
     ).as((c, v) => this.fragmentWithType('boolean', 'required').sql`${c} or ${v}`)

@@ -82,9 +82,20 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         if (isValueSource(value) && !isColumn(value) && hasToSql(value)) {
             const valueSourcePrivate = __getValueSourcePrivate(value)
             if (__isBooleanValueSource(valueSourcePrivate) && !valueSourcePrivate.__isBooleanForCondition) {
-                const sql = super._appendConditionSql(value, params, forceTypeCast)
-                if (!sql || sql === this._trueValueForCondition || sql === this._falseValueForCondition) {
+                // A boolean value used as a condition is a `bit`; coerce it to a
+                // predicate by appending `= 1` exactly once here. Source the bit
+                // VALUE form (`_appendSql`), not the condition form: a const or
+                // param boolean already renders its condition form as `(@0 = 1)`,
+                // so reusing it would double-wrap to `((@0 = 1) = 1)`, which SQL
+                // Server rejects. A literal `true`/`false` keeps the canonical
+                // `(1=1)`/`(0=1)`.
+                const sql = this._appendSql(value, params, forceTypeCast)
+                if (!sql) {
                     return sql
+                } else if (sql === this._trueValue) {
+                    return this._trueValueForCondition
+                } else if (sql === this._falseValue) {
+                    return this._falseValueForCondition
                 } else {
                     return '(' + sql + ' = 1)'
                 }

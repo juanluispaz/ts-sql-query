@@ -728,7 +728,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFrom(tIssueWorklog)
             .where(ctx.conn.booleanOrFragment(tIssueWorklog.billable, true))
             .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue_worklog where (billable = 1) or ((:0 = 1) = 1) order by "id""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue_worklog where (billable = 1) or (:0 = 1) order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

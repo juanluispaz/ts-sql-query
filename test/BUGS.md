@@ -67,22 +67,7 @@ of that. Two minutes of triage and one paragraph is the bar.
 
 ## Open Bugs
 
-## SQL Server: a boolean VALUE source interpolated in a fragment double-wraps to `((x = 1) = 1)`, which SQL Server rejects
-
-**Where**: `SqlServerSqlBuilder._appendConditionSql`
-([src/sqlBuilders/SqlServerSqlBuilder.ts:81](../src/sqlBuilders/SqlServerSqlBuilder.ts#L81)) — line 89 wraps
-`(<sql> = 1)` on top of a `super._appendConditionSql` that, for a non-column boolean value source, already
-returns `(@0 = 1)`.
-**Reproduction**: `fragments.with-args.test.ts` → `arg-keyword-boolean`. A fragment
-`fragmentWithType('boolean').sql\`${c} or ${v}\`` whose `v` is a `valueArg('boolean')` (a value source, not a
-column) emits on SQL Server `... or ((@0 = 1) = 1)` → `Incorrect syntax near '='` (a predicate compared to an
-integer). The direct value-source operator path emits the correct single-wrapped `(@0 = 1)` (see
-the `or(false)` test in `select.value-source.always-if-value` → `priority > @0 or (@1 = 1)`), so the defect is specific
-to the fragment-interpolation path; a boolean COLUMN in the same fragment renders correctly as `(billable = 1)`,
-only the non-column boolean value double-wraps. Oracle 23 emits the same `((:0 = 1) = 1)` but tolerates it
-(native boolean); SQL Server rejects it.
-**Current workaround in the suite**: `arg-keyword-boolean` runs live on every dialect except SQL Server, where it
-is block-commented with `// TODO[BUG]: see test/BUGS.md` and the full canonical body.
+_None currently open._
 
 ## Common bug shapes (for the fixing agent)
 

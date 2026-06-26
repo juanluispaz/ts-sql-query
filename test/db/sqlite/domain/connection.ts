@@ -16,6 +16,8 @@ import { CustomBooleanTypeAdapter } from '../../../../src/TypeAdapter.js'
 //   - `published` (project)               stored as 't' / 'f'
 const verifiedAdapter  = new CustomBooleanTypeAdapter('Y', 'N')
 const publishedAdapter = new CustomBooleanTypeAdapter('t', 'f')
+// Nullable custom-boolean adapter — the optional sibling of verified/published.
+const approvedAdapter  = new CustomBooleanTypeAdapter('A', 'R')
 
 export class DBConnection extends SqliteConnection<'DBConnection'> {
     constructor(queryRunner: QueryRunner, compatibilityVersion?: number) {
@@ -109,6 +111,44 @@ export class DBConnection extends SqliteConnection<'DBConnection'> {
         this.arg('string', 'optional'),
         this.arg('string', 'optional')
     ).as((a, b, c) => this.fragmentWithType('string', 'optional').sql`coalesce(${a}, ${b}, ${c})`)
+
+    // Fragment-builder helpers. All use column-typed args so the emitted SQL
+    // stays portable across every dialect (no per-dialect placeholder casts).
+
+    // Aggregate-fragment builders (the aggregate analogue of the
+    // buildFragmentWith* family above).
+    aggSumColumn = this.buildAggregateFragmentWithArgs(
+        this.arg('int', 'required')
+    ).as((col) => this.aggregateFragmentWithType('int', 'required').sql`sum(${col})`)
+    aggMaxColumnOptional = this.buildAggregateFragmentWithMaybeOptionalArgs(
+        this.arg('int', 'optional')
+    ).as((col) => this.aggregateFragmentWithType('int', 'optional').sql`max(${col})`)
+    aggSumAboveIfValue = this.buildAggregateFragmentWithArgsIfValue(
+        this.arg('int', 'required'),
+        this.valueArg('int', 'optional')
+    ).as((col, min) => this.aggregateFragmentWithType('boolean', 'required').sql`sum(${col}) > ${min}`)
+
+    // buildFragmentWith* at extra arities (0-ary and 4-ary Args, 1-ary
+    // MaybeOptionalArgs).
+    constFortyTwo = this.buildFragmentWithArgs(
+    ).as(() => this.fragmentWithType('int', 'required').sql`42`)
+    sumFourColumns = this.buildFragmentWithArgs(
+        this.arg('int', 'required'), this.arg('int', 'required'),
+        this.arg('int', 'required'), this.arg('int', 'required')
+    ).as((a, b, c, d) => this.fragmentWithType('int', 'required').sql`${a} + ${b} + ${c} + ${d}`)
+    negateMaybeOptional = this.buildFragmentWithMaybeOptionalArgs(
+        this.arg('int', 'optional')
+    ).as((a) => this.fragmentWithType('int', 'optional').sql`-${a}`)
+
+    // arg / valueArg over uuid and string keywords.
+    coalesceUuid = this.buildFragmentWithArgs(
+        this.arg('uuid', 'optional'),
+        this.arg('uuid', 'optional')
+    ).as((a, b) => this.fragmentWithType('uuid', 'optional').sql`coalesce(${a}, ${b})`)
+    equalsStringIfValue = this.buildFragmentWithArgsIfValue(
+        this.arg('string', 'required'),
+        this.valueArg('string', 'optional')
+    ).as((col, val) => this.fragmentWithType('boolean', 'required').sql`${col} = ${val}`)
 
     // Table/view customizations — `createTableOrViewCustomization`
     // produces a function that wraps a table reference with a
@@ -220,6 +260,7 @@ export const tIssueWorklog = new class TIssueWorklog extends Table<DBConnection,
     minutes    = this.optionalColumnWithDefaultValue('minutes', 'int')
     durationMs = this.optionalColumn('duration_ms', 'bigint')
     billable   = this.optionalColumn('billable', 'boolean')
+    approved   = this.optionalColumn('approved', 'boolean', approvedAdapter)
     activity   = this.column<WorklogActivity, 'WorklogActivity'>('activity', 'enum', 'WorklogActivity')
     constructor() { super('issue_worklog') }
 }()

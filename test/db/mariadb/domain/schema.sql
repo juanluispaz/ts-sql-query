@@ -85,6 +85,7 @@ CREATE TABLE issue_worklog (
     minutes INT DEFAULT 0,
     duration_ms BIGINT NULL,
     billable TINYINT(1) NULL,
+    approved VARCHAR(1) NULL,
     activity VARCHAR(16) NOT NULL,
     FOREIGN KEY (issue_id) REFERENCES issue(id)
 );

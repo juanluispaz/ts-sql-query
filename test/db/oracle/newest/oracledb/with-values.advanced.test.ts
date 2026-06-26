@@ -366,4 +366,51 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ id: number; label: string; rank?: number; note?: string }>>>()
         expect(rows).toEqual(expected)
     })
+
+    test('values-branded-column-through-for-use-in-left-join-as-keeps-the-brand', async () => {
+        // A branded `Values` (`VIssueBilling`, whose `issueId` leaf IS the brand
+        // `IssueId`) left-joined via `forUseInLeftJoinAs`: the left-joined
+        // `issueId` keeps the brand while widening to `?: IssueId`. The base view
+        // has issues 101 and 102; the joined view only has 101, so 102's joined
+        // leaf is absent.
+        class VIssueBillingJoin extends Values<DBConnection, 'issueBillingJoin'> {
+            issueId = this.column<IssueId>('customInt', 'IssueId')
+            amount  = this.optionalColumn<Money>('customDouble', 'Money')
+        }
+        const expected = [
+            { base: 101 as IssueId, joined: 101 as IssueId },
+            { base: 102 as IssueId },
+        ]
+        ctx.mockNext(expected)
+        const billing = Values.create(VIssueBilling, 'issueBilling', [
+            { issueId: 101 as IssueId, amount: 19.99 as Money },
+            { issueId: 102 as IssueId, amount: null },
+        ])
+        const billingJoin = Values.create(VIssueBillingJoin, 'issueBillingJoin', [
+            { issueId: 101 as IssueId, amount: 5 as Money },
+        ]).forUseInLeftJoinAs('ibj')
+
+        const rows = await ctx.conn.selectFrom(billing)
+            .leftJoin(billingJoin).on(billingJoin.issueId.equals(billing.issueId))
+            .select({
+                base:   billing.issueId,
+                joined: billingJoin.issueId,
+            })
+            .orderBy('base')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with issueBilling(issueId, amount) as (values (:0, :1), (:2, cast(:3 as number))), issueBillingJoin(issueId, amount) as (values (:4, :5)) select issueBilling.issueId as "base", ibj.issueId as "joined" from issueBilling left join issueBillingJoin ibj on ibj.issueId = issueBilling.issueId order by "base""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            101,
+            19.99,
+            102,
+            null,
+            101,
+            5,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ base: IssueId; joined?: IssueId }>>>()
+        expect(rows).toEqual(expected)
+    })
 })

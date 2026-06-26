@@ -41,10 +41,10 @@ INSERT INTO country (code, name, region) VALUES
     ('JP', 'Japan',          'Asia');
 
 SET IDENTITY_INSERT issue_worklog ON;
-INSERT INTO issue_worklog (id, issue_id, work_date, started_at, minutes, duration_ms, billable, activity) VALUES
-    (1, 1, '2024-03-04', '09:15:00', 90,   5400000, 1,    'coding'),
-    (2, 2, '2024-03-05', '14:00:00', NULL, NULL,    0,    'review'),
-    (3, 1, '2024-03-06', '10:30:00', 30,   1800000, NULL, 'meeting');
+INSERT INTO issue_worklog (id, issue_id, work_date, started_at, minutes, duration_ms, billable, activity, approved) VALUES
+    (1, 1, '2024-03-04', '09:15:00', 90,   5400000, 1,    'coding', 'A'),
+    (2, 2, '2024-03-05', '14:00:00', NULL, NULL,    0,    'review', 'R'),
+    (3, 1, '2024-03-06', '10:30:00', 30,   1800000, NULL, 'meeting', NULL);
 SET IDENTITY_INSERT issue_worklog OFF;
 
 SET IDENTITY_INSERT project_release ON;

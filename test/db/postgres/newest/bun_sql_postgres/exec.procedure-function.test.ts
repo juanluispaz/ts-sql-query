@@ -172,4 +172,66 @@ describe(ctx.label, () => {
         assertType<Exact<typeof total, Money>>()
         expect(total).toBe(0 as Money)
     })
+
+    test('execute-function-returning-optional-int', async () => {
+        // count_open_issues with the 'optional' flag -> `number | null`.
+        // Project 1 has 1 open issue.
+        ctx.mockNext(1)
+        const count = await ctx.conn.callCountOpenIssuesOptional(1)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count_open_issues($1)"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof count, number | null>>()
+        expect(count).toBe(1)
+    })
+
+    test('execute-function-returning-optional-bigint', async () => {
+        // total_view_count with the 'optional' flag -> `bigint | null`.
+        // Project 1's view_count sums to 0n.
+        ctx.mockNext(0n)
+        const total = await ctx.conn.callTotalViewCountOptional(1)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select total_view_count($1)"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof total, bigint | null>>()
+        expect(total).toBe(0n)
+    })
+
+    test('execute-function-returning-required-local-date-time', async () => {
+        // latest_issue_at with the 'required' flag -> `Date`. MAX(created_at) of
+        // project 1's issues is a real seed-time timestamp (non-deterministic);
+        // asserted structurally in both modes.
+        ctx.mockNext(new Date('2024-01-01T00:00:00Z'))
+        const at = await ctx.conn.callLatestIssueAtRequired(1)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select latest_issue_at($1)"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof at, Date>>()
+        expect(at).toBeInstanceOf(Date)
+    })
+
+    test('execute-function-returning-optional-custom-double', async () => {
+        // estimated_total with the 'optional' flag -> `Money | null` (branded).
+        // estimated_total(1) is COALESCE(SUM(...),0) = 0.
+        ctx.mockNext(0 as Money)
+        const total = await ctx.conn.callEstimatedTotalOptional(1)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select estimated_total($1)"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof total, Money | null>>()
+        expect(total).toBe(0 as Money)
+    })
+
 })

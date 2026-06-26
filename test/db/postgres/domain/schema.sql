@@ -81,6 +81,7 @@ CREATE TABLE issue_worklog (
     minutes INTEGER DEFAULT 0,
     duration_ms BIGINT,
     billable BOOLEAN,
+    approved VARCHAR(1),
     activity VARCHAR(16) NOT NULL
 );
 

@@ -92,6 +92,8 @@ CREATE TABLE issue_worklog (
     -- plain nullable boolean (0/1) — no CustomBooleanTypeAdapter, unlike
     -- organization/project.verified/published which store Y/N - t/f.
     billable INTEGER,
+    -- nullable custom-boolean stored as A/R (CustomBooleanTypeAdapter).
+    approved VARCHAR(1),
     activity VARCHAR(16) NOT NULL
 );
 

@@ -11,6 +11,8 @@ import { CustomBooleanTypeAdapter } from '../../../../src/TypeAdapter.js'
 
 const verifiedAdapter  = new CustomBooleanTypeAdapter('Y', 'N')
 const publishedAdapter = new CustomBooleanTypeAdapter('t', 'f')
+// Nullable custom-boolean adapter — the optional sibling of verified/published.
+const approvedAdapter  = new CustomBooleanTypeAdapter('A', 'R')
 
 // Branded newtype for the customDouble executeFunction wrapper (G1).
 export type Money = number & { readonly __brand: 'Money' }
@@ -115,6 +117,29 @@ export class DBConnection extends PostgreSqlConnection<'DBConnection'> {
         ], 'customDouble', 'Money', 'required')
     }
 
+    // The req/opt counterparts of the return-type functions above — reuse the
+    // SAME DB functions with the opposite optionality flag.
+    callCountOpenIssuesOptional(projectId: number): Promise<number | null> {
+        return this.executeFunction('count_open_issues', [
+            this.const(projectId, 'int'),
+        ], 'int', 'optional')
+    }
+    callTotalViewCountOptional(projectId: number): Promise<bigint | null> {
+        return this.executeFunction('total_view_count', [
+            this.const(projectId, 'int'),
+        ], 'bigint', 'optional')
+    }
+    callLatestIssueAtRequired(projectId: number): Promise<Date> {
+        return this.executeFunction('latest_issue_at', [
+            this.const(projectId, 'int'),
+        ], 'localDateTime', 'required')
+    }
+    callEstimatedTotalOptional(projectId: number): Promise<Money | null> {
+        return this.executeFunction<Money>('estimated_total', [
+            this.const(projectId, 'int'),
+        ], 'customDouble', 'Money', 'optional')
+    }
+
     // Reusable typed SQL fragments — exercised by
     // fragments.with-args.test.ts. One field per `buildFragmentWith*`
     // factory documented in docs/queries/sql-fragments.md.
@@ -159,6 +184,44 @@ export class DBConnection extends PostgreSqlConnection<'DBConnection'> {
         this.arg('string', 'optional'),
         this.arg('string', 'optional')
     ).as((a, b, c) => this.fragmentWithType('string', 'optional').sql`coalesce(${a}, ${b}, ${c})`)
+
+    // Fragment-builder helpers. All use column-typed args so the emitted SQL
+    // stays portable across every dialect (no per-dialect placeholder casts).
+
+    // Aggregate-fragment builders (the aggregate analogue of the
+    // buildFragmentWith* family above).
+    aggSumColumn = this.buildAggregateFragmentWithArgs(
+        this.arg('int', 'required')
+    ).as((col) => this.aggregateFragmentWithType('int', 'required').sql`sum(${col})`)
+    aggMaxColumnOptional = this.buildAggregateFragmentWithMaybeOptionalArgs(
+        this.arg('int', 'optional')
+    ).as((col) => this.aggregateFragmentWithType('int', 'optional').sql`max(${col})`)
+    aggSumAboveIfValue = this.buildAggregateFragmentWithArgsIfValue(
+        this.arg('int', 'required'),
+        this.valueArg('int', 'optional')
+    ).as((col, min) => this.aggregateFragmentWithType('boolean', 'required').sql`sum(${col}) > ${min}`)
+
+    // buildFragmentWith* at extra arities (0-ary and 4-ary Args, 1-ary
+    // MaybeOptionalArgs).
+    constFortyTwo = this.buildFragmentWithArgs(
+    ).as(() => this.fragmentWithType('int', 'required').sql`42`)
+    sumFourColumns = this.buildFragmentWithArgs(
+        this.arg('int', 'required'), this.arg('int', 'required'),
+        this.arg('int', 'required'), this.arg('int', 'required')
+    ).as((a, b, c, d) => this.fragmentWithType('int', 'required').sql`${a} + ${b} + ${c} + ${d}`)
+    negateMaybeOptional = this.buildFragmentWithMaybeOptionalArgs(
+        this.arg('int', 'optional')
+    ).as((a) => this.fragmentWithType('int', 'optional').sql`-${a}`)
+
+    // arg / valueArg over uuid and string keywords.
+    coalesceUuid = this.buildFragmentWithArgs(
+        this.arg('uuid', 'optional'),
+        this.arg('uuid', 'optional')
+    ).as((a, b) => this.fragmentWithType('uuid', 'optional').sql`coalesce(${a}, ${b})`)
+    equalsStringIfValue = this.buildFragmentWithArgsIfValue(
+        this.arg('string', 'required'),
+        this.valueArg('string', 'optional')
+    ).as((col, val) => this.fragmentWithType('boolean', 'required').sql`${col} = ${val}`)
 
     // Sequence references — exercised by sequence.next-current-value.test.ts.
     // Sequences are only typed on AbstractAdvancedConnection-derived
@@ -284,6 +347,7 @@ export const tIssueWorklog = new class TIssueWorklog extends Table<DBConnection,
     minutes    = this.optionalColumnWithDefaultValue('minutes', 'int')
     durationMs = this.optionalColumn('duration_ms', 'bigint')
     billable   = this.optionalColumn('billable', 'boolean')
+    approved   = this.optionalColumn('approved', 'boolean', approvedAdapter)
     activity   = this.column<WorklogActivity, 'WorklogActivity'>('activity', 'enum', 'WorklogActivity')
     constructor() { super('issue_worklog') }
 }()

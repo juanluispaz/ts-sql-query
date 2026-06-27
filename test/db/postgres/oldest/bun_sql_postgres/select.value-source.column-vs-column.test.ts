@@ -362,4 +362,31 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ x?: boolean | undefined }>>>()
         expect(result).toEqual(expected)
     })
+    test('is-and-isnot-over-two-optional-columns-project-required-boolean-leaf', async () => {
+        // `is` / `isNot` always return a required boolean, even when both
+        // operands are optional columns (unlike `equals` / `greaterOrEqual`,
+        // which carry the operands' optionality through), so `eqIs` / `neqIs`
+        // are typed without `?`. Issue id=1 has assignee_id=1 and
+        // parent_id=NULL, so the null-safe equality is false and the
+        // null-safe inequality is true.
+        const expected = { eqIs: false, neqIs: true }
+        ctx.mockNext(expected)
+        const r = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                eqIs:  tIssue.assigneeId.is(tIssue.parentId),
+                neqIs: tIssue.assigneeId.isNot(tIssue.parentId),
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select assignee_id is not distinct from parent_id as "eqIs", assignee_id is distinct from parent_id as "neqIs" from issue where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof r, { eqIs: boolean; neqIs: boolean }>>()
+        expect(r).toEqual(expected)
+    })
+
 })

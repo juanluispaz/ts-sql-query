@@ -1375,4 +1375,89 @@ describe(ctx.label, () => {
           ]
         `)
     })
+    test('equivalence/boolean-custom-adapter-notequals-and-in-dispatch', async () => {
+        // The custom-boolean adapter renders `published` as `(published = 't')`
+        // for every operator, not just `=`, so `notEquals` / `in` wrap it the
+        // same way.
+        const projectFields = { id: tProject.id, published: tProject.published }
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProject)
+            .where(tProject.published.notEquals(true).and(tProject.published.in([true, false])))
+            .select({ id: tProject.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProject)
+            .where(ctx.conn.dynamicConditionFor(projectFields).withValues({ published: { notEquals: true, in: [true, false] } }))
+            .select({ id: tProject.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project where (published = 't') <> ? and (published = 't') in (?, ?) order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            true,
+            true,
+            false,
+          ]
+        `)
+    })
+
+    test('equivalence/boolean-plain-column-is-and-is-null-dispatch', async () => {
+        // `billable` is a plain boolean column (no adapter). `is` is null-safe
+        // equality and `isNull` the unary null test.
+        const worklogFields = { id: tIssueWorklog.id, billable: tIssueWorklog.billable }
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.billable.is(true).and(tIssueWorklog.billable.isNull()))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(ctx.conn.dynamicConditionFor(worklogFields).withValues({ billable: { is: true, isNull: true } }))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable is ? and billable is null order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            true,
+          ]
+        `)
+    })
+
+    test('equivalence/boolean-descriptor-dispatch', async () => {
+        // The filter is typed via an explicit `DynamicCondition<{ billable:
+        // 'boolean' }>` descriptor instead of being inferred from the column.
+        type WorklogFilter = DynamicCondition<{ id: 'int', billable: 'boolean' }>
+        const filter: WorklogFilter = { billable: { notEquals: true, in: [true, false] } }
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.billable.notEquals(true).and(tIssueWorklog.billable.in([true, false])))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssueWorklog.id, billable: tIssueWorklog.billable }).withValues(filter))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable <> ? and billable in (?, ?) order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            true,
+            true,
+            false,
+          ]
+        `)
+    })
+
 })

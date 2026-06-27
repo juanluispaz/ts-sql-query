@@ -146,4 +146,31 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { id: number; assigneeName?: string }>>()
         expect(row).toEqual(expected)
     })
+    test('select-cross-join-comma-from', async () => {
+        // `.from(t2)` after `selectFrom(t1)` adds the second table to the
+        // FROM as a comma-join (cross join), correlated by the WHERE
+        // predicate. Project 1 (Marketing site) belongs to organization 1
+        // (Acme Corp).
+        const expected = { projectName: 'Marketing site', orgName: 'Acme Corp' }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tProject)
+            .from(tOrganization)
+            .where(tProject.organizationId.equals(tOrganization.id))
+              .and(tProject.id.equals(1))
+            .select({
+                projectName: tProject.name,
+                orgName:     tOrganization.name,
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.name as "projectName", "organization".name as "orgName" from project, "organization" where project.organization_id = "organization".id and project.id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { projectName: string; orgName: string }>>()
+        expect(row).toEqual(expected)
+    })
+
 })

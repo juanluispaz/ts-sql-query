@@ -187,4 +187,37 @@ describe(ctx.label, () => {
         })
     })
     */
+    // NOT-APPLICABLE: SQL Server has no INSERT…ON CONFLICT (uses MERGE)
+    /*
+    test('on-conflict-on-columns-do-update-returning-last-inserted-id-is-non-null', async () => {
+        // On the do-UPDATE conflict path `returningLastInsertedId()` is a
+        // non-null `number` (a DO UPDATE always affects a row), unlike the
+        // do-NOTHING path where it is `number | null`. Project
+        // (organization_id=1, slug='mktg-site') already exists as id=1, so the
+        // upsert conflicts, updates, and RETURNING gives back id=1.
+        const expectedId = 1
+        ctx.mockNext(expectedId)
+        await ctx.withRollback(async () => {
+            const id = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, slug: 'mktg-site', name: 'ignored' })
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doUpdateSet({ name: 'Marketing site v6' })
+                .returningLastInsertedId()
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values ($1, $2, $3) on conflict (organization_id, slug) do update set name = $4 returning id"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "mktg-site",
+                "ignored",
+                "Marketing site v6",
+              ]
+            `)
+            assertType<Exact<typeof id, number>>()
+            expect(id).toBe(expectedId)
+        })
+    })
+    */
+
 })

@@ -366,10 +366,10 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
     }
     // SqlComparator2
     between(value: any, value2: any): any {
-        return condition(new SqlOperation2ValueSource('_between', this, value, value2, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperation2ValueSource('_between', this, value, value2, 'boolean', 'boolean', getOptionalType3(this, value, value2), getTypeAdapter3(this, value, value2)))
     }
     notBetween(value: any, value2: any): any {
-        return condition(new SqlOperation2ValueSource('_notBetween', this, value, value2, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+        return condition(new SqlOperation2ValueSource('_notBetween', this, value, value2, 'boolean', 'boolean', getOptionalType3(this, value, value2), getTypeAdapter3(this, value, value2)))
     }
     // SqlFunctionStatic: never used here
     // SqlFunction0
@@ -2004,10 +2004,7 @@ function getOptionalType2(a: ValueSourceImpl, b: any): OptionalType {
 function getOptionalType3(a: ValueSourceImpl, b: any, c: any): OptionalType {
     let result = a.__optionalType
     if (isValueSource(b)) {
-        const bPrivate = __getValueSourcePrivate(b)
-        if (bPrivate.__typeAdapter) {
-            result = mergeOptional(result, bPrivate.__optionalType)
-        }
+        result = mergeOptional(result, __getValueSourcePrivate(b).__optionalType)
     }
     if (isValueSource(c)) {
         result = mergeOptional(result, __getValueSourcePrivate(c).__optionalType)

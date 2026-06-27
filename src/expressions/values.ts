@@ -565,20 +565,20 @@ export interface CustomIntValueSource</*in|out*/ SOURCE extends NSource, /*in|ou
     // roundn(value: TYPE): DoubleValueSource<SOURCE, OPTIONAL_TYPE>
     // roundn<VALUE extends CustomIntValueSource<TableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): DoubleValueSource<SOURCE | VALUE[typeof source], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     minValue(value: TYPE): CustomIntValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>
-    minValue<VALUE extends CustomIntValueSource<any, TYPE, TYPE_NAME, any>>(value: VALUE): CustomIntValueSource<SOURCE, TYPE, TYPE_NAME, MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    minValue<VALUE extends CustomIntValueSource<any, TYPE, TYPE_NAME, any>>(value: VALUE): CustomIntValueSource<SOURCE | VALUE[typeof source], TYPE, TYPE_NAME, MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     // minValue(value: double): DoubleValueSource<SOURCE, OPTIONAL_TYPE>
     // minValue<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<SOURCE | VALUE[typeof source], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     maxValue(value: TYPE): CustomIntValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>
-    maxValue<VALUE extends CustomIntValueSource<any, TYPE, TYPE_NAME, any>>(value: VALUE): CustomIntValueSource<SOURCE, TYPE, TYPE_NAME, MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    maxValue<VALUE extends CustomIntValueSource<any, TYPE, TYPE_NAME, any>>(value: VALUE): CustomIntValueSource<SOURCE | VALUE[typeof source], TYPE, TYPE_NAME, MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     // maxValue(value: double): DoubleValueSource<SOURCE, OPTIONAL_TYPE>
     // maxValue<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<SOURCE | VALUE[typeof source], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     // Number operators
     add(value: TYPE): CustomIntValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>
-    add<VALUE extends CustomIntValueSource<any, TYPE, TYPE_NAME, any>>(value: VALUE): CustomIntValueSource<SOURCE, TYPE, TYPE_NAME, MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    add<VALUE extends CustomIntValueSource<any, TYPE, TYPE_NAME, any>>(value: VALUE): CustomIntValueSource<SOURCE | VALUE[typeof source], TYPE, TYPE_NAME, MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     // add(value: double): DoubleValueSource<SOURCE, OPTIONAL_TYPE>
     // add<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<SOURCE | VALUE[typeof source], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     subtract(value: TYPE): CustomIntValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>
-    subtract<VALUE extends CustomIntValueSource<any, TYPE, TYPE_NAME, any>>(value: VALUE): CustomIntValueSource<SOURCE, TYPE, TYPE_NAME, MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    subtract<VALUE extends CustomIntValueSource<any, TYPE, TYPE_NAME, any>>(value: VALUE): CustomIntValueSource<SOURCE | VALUE[typeof source], TYPE, TYPE_NAME, MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     // subtract(value: double): DoubleValueSource<SOURCE, OPTIONAL_TYPE>
     // subtract<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<SOURCE | VALUE[typeof source], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     multiply(value: TYPE): CustomIntValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>
@@ -590,7 +590,7 @@ export interface CustomIntValueSource</*in|out*/ SOURCE extends NSource, /*in|ou
     // divide(value: double): DoubleValueSource<SOURCE, OPTIONAL_TYPE>
     // divide<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<SOURCE | VALUE[typeof source], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     modulo(value: TYPE): CustomIntValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>
-    modulo<VALUE extends CustomIntValueSource<any, TYPE, TYPE_NAME, any>>(value: VALUE): CustomIntValueSource<SOURCE, TYPE, TYPE_NAME, MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    modulo<VALUE extends CustomIntValueSource<any, TYPE, TYPE_NAME, any>>(value: VALUE): CustomIntValueSource<SOURCE | VALUE[typeof source], TYPE, TYPE_NAME, MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     // modulo(value: double): DoubleValueSource<SOURCE, OPTIONAL_TYPE>
     // modulo<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<SOURCE | VALUE[typeof source], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     // Trigonometric Functions

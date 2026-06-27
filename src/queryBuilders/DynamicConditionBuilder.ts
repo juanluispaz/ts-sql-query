@@ -302,6 +302,7 @@ const useAsStringInUuid: { [operation: string]: true | undefined } = {
     equalsInsensitiveIfValue: true,
     equalsInsensitive: true,
     notEqualsInsensitiveIfValue: true,
+    notEqualsInsensitive: true,
     likeIfValue: true,
     like: true,
     notLikeIfValue: true,

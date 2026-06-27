@@ -90,6 +90,7 @@ export interface CustomUuidFilter<TYPE> extends ComparableFilter<TYPE> {
     equalsInsensitiveIfValue?: TYPE | null | undefined
     equalsInsensitive?: TYPE
     notEqualsInsensitiveIfValue?: TYPE | null | undefined
+    notEqualsInsensitive?: TYPE
     likeIfValue?: TYPE | null | undefined
     like?: TYPE
     notLikeIfValue?: TYPE | null | undefined

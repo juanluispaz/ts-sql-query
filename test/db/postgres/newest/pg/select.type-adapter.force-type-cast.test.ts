@@ -8,7 +8,7 @@
 // intentional no-op. The exact emitted SQL is pinned per cell by the
 // snapshots.
 //
-// The fixture is a local `Table` that re-maps over the existing
+// The fixture re-maps the shared
 // `project` table (same columns, same row shape as the shared
 // `tProject`), with `id` and `name` wrapped in a `ForceTypeCast`
 // adapter. Using the same physical table keeps real-DB execution
@@ -21,12 +21,13 @@ import { Table } from '../../../../../src/Table.js'
 import { DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
-const fcInt    = new ForceTypeCast()
-const fcString = new ForceTypeCast()
+// A single ForceTypeCast instance is stateless (it only flips the
+// force-cast flag), so the same adapter can back every column.
+const forceCast = new ForceTypeCast()
 
-const tProjectFC = new class TProjectFC extends Table<DBConnection, 'TProjectFC'> {
-    id   = this.column('id',   'int',    fcInt)
-    name = this.column('name', 'string', fcString)
+const tProjectForcedCast = new class TProjectForcedCast extends Table<DBConnection, 'TProjectForcedCast'> {
+    id   = this.column('id',   'int',    forceCast)
+    name = this.column('name', 'string', forceCast)
     constructor() { super('project') }
 }()
 
@@ -36,13 +37,13 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('force-type-cast-adapter-on-int-column-in-where', async () => {
-        // `tProjectFC.id` is wrapped in a `ForceTypeCast`; comparing it
+        // `tProjectForcedCast.id` is wrapped in a `ForceTypeCast`; comparing it
         // to a literal forces the dialect's placeholder cast on the bound
         // param (a no-op where the engine infers types — see the snapshot).
         ctx.mockNext([{ id: 1 }])
-        const rows = await ctx.conn.selectFrom(tProjectFC)
-            .where(tProjectFC.id.equals(1))
-            .select({ id: tProjectFC.id })
+        const rows = await ctx.conn.selectFrom(tProjectForcedCast)
+            .where(tProjectForcedCast.id.equals(1))
+            .select({ id: tProjectForcedCast.id })
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project where id = $1::int4"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -54,13 +55,13 @@ describe(ctx.label, () => {
     })
 
     test('force-type-cast-adapter-on-string-column-in-where', async () => {
-        // `tProjectFC.name` is wrapped in a `ForceTypeCast`; the
+        // `tProjectForcedCast.name` is wrapped in a `ForceTypeCast`; the
         // comparison forces the dialect's placeholder cast on the bound
         // param (a no-op where the engine infers types — see the snapshot).
         ctx.mockNext([{ id: 1 }])
-        const rows = await ctx.conn.selectFrom(tProjectFC)
-            .where(tProjectFC.name.equals('Marketing site'))
-            .select({ id: tProjectFC.id })
+        const rows = await ctx.conn.selectFrom(tProjectForcedCast)
+            .where(tProjectForcedCast.name.equals('Marketing site'))
+            .select({ id: tProjectForcedCast.id })
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project where name = $1::text"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`

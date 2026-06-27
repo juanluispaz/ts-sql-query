@@ -287,4 +287,162 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ y: number; h: number; t?: number; before: boolean }>>>()
         expect(rows).toEqual(expected)
     })
+
+    test('temporal-equals-and-not-equals', async () => {
+        // Equalable members (`.equals` / `.notEquals`) on a temporal column.
+        // releasedOn (customLocalDate): release
+        // 1 → 2024-01-15, 2 → 2024-02-20, 3 → 2024-03-01. `.equals(2024-01-15)`
+        // matches release 1; `.notEquals(2024-01-15)` matches 2 and 3.
+        const target = new Date(Date.UTC(2024, 0, 15))
+        const expected = [{ id: 1 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.releasedOn.equals(target))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where released_on = :0 order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2024-01-15T00:00:00.000Z,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+
+        const expectedOthers = [{ id: 2 }, { id: 3 }]
+        ctx.mockNext(expectedOthers)
+        const others = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.releasedOn.notEquals(target))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where released_on <> :0 order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2024-01-15T00:00:00.000Z,
+          ]
+        `)
+        expect(others).toEqual(expectedOthers)
+    })
+
+    test('temporal-is-and-is-not', async () => {
+        // `.is` / `.isNot` — the null-safe equality arm on a temporal column
+        // (IS NOT DISTINCT FROM / IS DISTINCT FROM). For a non-null operand it
+        // behaves like equals/notEquals but the leaf is always required.
+        const target = new Date(Date.UTC(2024, 0, 15))
+        const expected = [{ id: 1 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.releasedOn.is(target))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where decode(released_on, :0, 1, 0 ) = 1 order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2024-01-15T00:00:00.000Z,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+
+        const expectedOthers = [{ id: 2 }, { id: 3 }]
+        ctx.mockNext(expectedOthers)
+        const others = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.releasedOn.isNot(target))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where decode(released_on, :0, 1, 0 ) = 0 order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2024-01-15T00:00:00.000Z,
+          ]
+        `)
+        expect(others).toEqual(expectedOthers)
+    })
+
+    test('temporal-in-and-in-n', async () => {
+        // `.in([d1, d2])` (array form) and `.inN(d1, d2)` (variadic form) on a
+        // plain localDate column. work_date: worklog 1 → 2024-03-04, 2 →
+        // 2024-03-05, 3 → 2024-03-06. `.in([03-04, 03-06])` matches 1 and 3;
+        // `.inN(03-04, 03-05)` matches 1 and 2.
+        const d1 = new Date(Date.UTC(2024, 2, 4))
+        const d2 = new Date(Date.UTC(2024, 2, 5))
+        const d3 = new Date(Date.UTC(2024, 2, 6))
+        const expectedIn = [{ id: 1 }, { id: 3 }]
+        ctx.mockNext(expectedIn)
+        const inRows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.workDate.in([d1, d3]))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue_worklog where work_date in (:0, :1) order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2024-03-04T00:00:00.000Z,
+            2024-03-06T00:00:00.000Z,
+          ]
+        `)
+        assertType<Exact<typeof inRows, Array<{ id: number }>>>()
+        expect(inRows).toEqual(expectedIn)
+
+        const expectedInN = [{ id: 1 }, { id: 2 }]
+        ctx.mockNext(expectedInN)
+        const inNRows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.workDate.inN(d1, d2))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue_worklog where work_date in (:0, :1) order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2024-03-04T00:00:00.000Z,
+            2024-03-05T00:00:00.000Z,
+          ]
+        `)
+        expect(inNRows).toEqual(expectedInN)
+    })
+
+    test('temporal-between-and-not-between', async () => {
+        // `.between(lo, hi)` / `.notBetween(lo, hi)` on a temporal column —
+        // the Comparable 3-arg arm with Date bounds. releasedOn between
+        // 2024-01-01 and 2024-02-28 matches releases 1 (01-15) and 2 (02-20);
+        // notBetween matches release 3 (03-01).
+        const lo = new Date(Date.UTC(2024, 0, 1))
+        const hi = new Date(Date.UTC(2024, 1, 28))
+        const expected = [{ id: 1 }, { id: 2 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.releasedOn.between(lo, hi))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where released_on between :0 and :1 order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2024-01-01T00:00:00.000Z,
+            2024-02-28T00:00:00.000Z,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+
+        const expectedOut = [{ id: 3 }]
+        ctx.mockNext(expectedOut)
+        const out = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.releasedOn.notBetween(lo, hi))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where released_on not between :0 and :1 order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2024-01-01T00:00:00.000Z,
+            2024-02-28T00:00:00.000Z,
+          ]
+        `)
+        expect(out).toEqual(expectedOut)
+    })
 })

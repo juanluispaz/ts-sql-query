@@ -169,4 +169,40 @@ describe(ctx.label, () => {
             }
         })
     })
+
+    // NOT-APPLICABLE: MySQL has no RETURNING
+    /*
+    test('insert-project-release-returning-branded-custom-column', async () => {
+        // INSERT … RETURNING of a branded custom column:
+        // `returningOneColumn(channel)` reads the value back as the branded
+        // `ReleaseChannel`, not a widened `string`. `channel` is used rather
+        // than `version` because `Semver` collapses to `string` structurally.
+        await ctx.withRollback(async () => {
+            ctx.mockNext('canary')
+            const channel = await ctx.conn.insertInto(tProjectRelease)
+                .values({
+                    projectId:  1,
+                    version:    '3.0.0',
+                    channel:    'canary',
+                    releasedOn: new Date(Date.UTC(2024, 6, 1, 10, 0, 0)),
+                    cutoffTime: new Date(Date.UTC(1970, 0, 1, 12, 0, 0)),
+                })
+                .returningOneColumn(tProjectRelease.channel)
+                .executeInsertOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project_release (project_id, version, channel, released_on, cutoff_time) values ($1, $2, $3, $4, $5) returning channel as result"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "3.0.0",
+                "canary",
+                2024-07-01T10:00:00.000Z,
+                "12:00:00",
+              ]
+            `)
+            assertType<Exact<typeof channel, ReleaseChannel>>()
+            expect(channel).toBe('canary')
+        })
+    })
+    */
 })

@@ -127,4 +127,136 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ id: number }>>>()
         expect(result).toEqual(expected)
     })
+
+    test('if-value-negate-only-when-ignore-when-stay-if-value', async () => {
+        // negate / onlyWhen / ignoreWhen applied to an IfValueSource (from
+        // `equalsIfValue`) return an IfValueSource again. The `let w`
+        // reassignment is the type lock: a non-If return type would fail to
+        // compile here. With a
+        // present value the predicate fires: `not (priority = 1)` keeps the
+        // priority != 1 rows (ids 1, 3, 4).
+        const expected = [{ id: 1 }, { id: 3 }, { id: 4 }]
+        ctx.mockNext(expected)
+        let w = tIssue.priority.equalsIfValue(1)
+        w = w.negate()
+        w = w.onlyWhen(true)
+        w = w.ignoreWhen(false)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(w)
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue where not (priority = :0) order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('if-value-or-if-value-stays-if-value', async () => {
+        // `IfValueSource.or(IfValueSource)` keeps the result an IfValueSource.
+        // `let w` pins the type. Both values present → `status = $1 or
+        // status = $2` (open ids 1,3 + closed id 4).
+        const expected = [{ id: 1 }, { id: 3 }, { id: 4 }]
+        ctx.mockNext(expected)
+        let w = tIssue.status.equalsIfValue('open')
+        w = w.or(tIssue.status.equalsIfValue('closed'))
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(w)
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue where status = :0 or status = :1 order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "open",
+            "closed",
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('if-value-and-or-both-no-value-elide-the-where', async () => {
+        // When BOTH operands of `IfValue.and/or(IfValue)` carry no value, the
+        // whole predicate elides — the WHERE clause is dropped. Both `.and` and
+        // `.or` collapse to no-clause → every row.
+        const noStatus: string | undefined = undefined
+        const noPriority: number | undefined = undefined
+
+        const expectedAnd = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]
+        ctx.mockNext(expectedAnd)
+        const andRows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.status.equalsIfValue(noStatus).and(tIssue.priority.equalsIfValue(noPriority)))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof andRows, Array<{ id: number }>>>()
+        expect(andRows).toEqual(expectedAnd)
+
+        const expectedOr = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]
+        ctx.mockNext(expectedOr)
+        const orRows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.status.equalsIfValue(noStatus).or(tIssue.priority.equalsIfValue(noPriority)))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(orRows).toEqual(expectedOr)
+    })
+
+    test('if-value-and-boolean-literal-collapses-to-boolean', async () => {
+        // `IfValueSource.and/or(boolean literal)` collapses to a
+        // BooleanValueSource. Projecting the result as a column is the type
+        // lock: an IfValueSource is NOT projectable, so this only compiles
+        // because the collapse produced a Boolean. issue 1 priority 2 →
+        // `(priority = 2) and true` → true.
+        const expected = [{ id: 1, flag: true }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({ id: tIssue.id, flag: tIssue.priority.equalsIfValue(2).and(true) })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", case when priority = :0 and (:1 = 1) then 1 else 0 end as "flag" from issue where id = :2"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+            1,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; flag: boolean }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('if-value-value-when-no-value-if-value-stays-if-value', async () => {
+        // `IfValueSource.valueWhenNoValue(IfValueSource)` stays an IfValueSource.
+        // The receiver carries no value (`equalsIfValue(undefined)`), so the
+        // fallback IfValue (`priority = 2`, which HAS a value) is what reaches
+        // the WHERE → ids 1 and 4. `let w` pins the stays-If type.
+        const expected = [{ id: 1 }, { id: 4 }]
+        ctx.mockNext(expected)
+        const noStatus: string | undefined = undefined
+        let w = tIssue.status.equalsIfValue(noStatus)
+        w = w.valueWhenNoValue(tIssue.priority.equalsIfValue(2))
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(w)
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue where priority = :0 order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+        expect(result).toEqual(expected)
+    })
 })

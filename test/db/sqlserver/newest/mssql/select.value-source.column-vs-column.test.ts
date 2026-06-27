@@ -389,4 +389,76 @@ describe(ctx.label, () => {
         expect(r).toEqual(expected)
     })
 
+
+    test('lessOrEqual-string-column-rhs', async () => {
+        // `lessOrEqual` with a STRING value-source RHS — the `<=` keyword path
+        // over text operands. `status <= status` is true for every row
+        // regardless of collation; projected for issue 1.
+        const expected = [{ le: true }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({ le: tIssue.status.lessOrEqual(tIssue.status) })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(case when status <= status then 1 else 0 end as bit) as le from issue where id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ le: boolean }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('notIn-and-notInN-value-source-elements', async () => {
+        // The `not` keyword path of the column-element `in` family.
+        // `priority not in (id)` keeps the rows whose priority != id:
+        // ids 1, 2, 4 (only id=3 has priority = id).
+        const expectedNotIn = [{ id: 1 }, { id: 2 }, { id: 4 }]
+        ctx.mockNext(expectedNotIn)
+        const notInRows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.priority.notIn(tIssue.id))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where priority not in (id) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof notInRows, Array<{ id: number }>>>()
+        expect(notInRows).toEqual(expectedNotIn)
+
+        // `priority not in ($1, id)` keeps rows whose priority is neither 1 nor
+        // its own id: id=1 (p2) and id=4 (p2).
+        const expectedNotInN = [{ id: 1 }, { id: 4 }]
+        ctx.mockNext(expectedNotInN)
+        const notInNRows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.priority.notInN(1, tIssue.id))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where priority not in (@0, id) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        expect(notInNRows).toEqual(expectedNotInN)
+    })
+
+    test('notBetween-column-bounds', async () => {
+        // `notBetween` with column bounds: `priority not between number and
+        // id` matches ids 1, 2 (the affirmative between matches 3, 4).
+        const expected = [{ id: 1 }, { id: 2 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.priority.notBetween(tIssue.number, tIssue.id))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where priority not between number and id order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+        expect(result).toEqual(expected)
+    })
 })

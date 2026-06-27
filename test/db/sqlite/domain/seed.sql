@@ -39,10 +39,10 @@ INSERT INTO country (code, name, region) VALUES
 -- Worklog 1 is a finished entry (billable); 2 is a still-running timer
 -- (minutes/duration NULL, billable false); 3 has an undecided billable
 -- flag (NULL boolean). Date/time values are fixed (no CURRENT_*).
-INSERT INTO issue_worklog (id, issue_id, work_date, started_at, minutes, duration_ms, billable, activity, approved) VALUES
-    (1, 1, '2024-03-04', '09:15:00',   90, 5400000, 1,    'coding', 'A'),
-    (2, 2, '2024-03-05', '14:00:00', NULL,    NULL, 0,    'review', 'R'),
-    (3, 1, '2024-03-06', '10:30:00',   30, 1800000, NULL, 'meeting', NULL);
+INSERT INTO issue_worklog (id, issue_id, work_date, started_at, minutes, duration_ms, billable, activity, approved, billed_amount, invoiced, cost_cents) VALUES
+    (1, 1, '2024-03-04', '09:15:00',   90, 5400000, 1,    'coding', 'A', 200, 1, 100),
+    (2, 2, '2024-03-05', '14:00:00', NULL,    NULL, 0,    'review', 'R', 50, 0, 100),
+    (3, 1, '2024-03-06', '10:30:00',   30, 1800000, NULL, 'meeting', NULL, 200, 1, 400);
 
 -- Releases. `notes` is a generated column, so it is never inserted.
 INSERT INTO project_release (id, project_id, version, channel, signing_key, released_on, cutoff_time, signed_off_at) VALUES

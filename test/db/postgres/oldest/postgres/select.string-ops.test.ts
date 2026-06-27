@@ -491,4 +491,99 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ id: number; t?: string }>>>()
         expect(result).toEqual(expected)
     })
+
+    test('replaceAll-first-arg-optional-null-row', async () => {
+        // `replaceAll(find, replace)` with an optional argument (`body`)
+        // projects an optional leaf (`t?: string`). On a row where body is
+        // NULL, `replace(title, body, title)` is NULL and the optional leaf is
+        // omitted at runtime by the optionals-as-undefined projector.
+        const expected = [{ id: 1 }]
+        ctx.mockNext([{ id: 1, t: null }])
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({ id: tIssue.id, t: tIssue.title.replaceAll(tIssue.body, tIssue.title) })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(title, body, title) as "t" from issue where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; t?: string }>>>()
+        expect(result).toEqual(expected)
+        expect(result[0]!.t).toBeUndefined()
+    })
+    test('string-predicate-on-optional-receiver-projects-optional-boolean', async () => {
+        // A string predicate on an OPTIONAL receiver (`body`) projects an
+        // OPTIONAL boolean leaf (`hasNeedle?: boolean`). issue 2 body='Use new
+        // tokens' → contains('token') is true.
+        const expected = [{ id: 2, hasNeedle: true }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(2))
+            .select({ id: tIssue.id, hasNeedle: tIssue.body.contains('token') })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, body like ('%' || $1 || '%') as "hasNeedle" from issue where id = $2"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "token",
+            2,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; hasNeedle?: boolean }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('string-transforms-on-optional-receiver', async () => {
+        // Transforms on an OPTIONAL string receiver (`body`): `.length()`
+        // shifts `string?` → `number?` and toUpperCase/toLowerCase/trimLeft/
+        // trimRight keep the optional marker as `string?`. issue 2 has
+        // body='Use new tokens'; the leaves stay optional because the receiver
+        // is, even though the value is present.
+        const expected = [{
+            up: 'USE NEW TOKENS', lo: 'use new tokens', len: 14,
+            tl: 'Use new tokens', tr: 'Use new tokens',
+        }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(2))
+            .select({
+                up:  tIssue.body.toUpperCase(),
+                lo:  tIssue.body.toLowerCase(),
+                len: tIssue.body.length(),
+                tl:  tIssue.body.trimLeft(),
+                tr:  tIssue.body.trimRight(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select upper(body) as up, lower(body) as lo, length(body) as len, ltrim(body) as tl, rtrim(body) as tr from issue where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{
+            up?: string | undefined; lo?: string | undefined; len?: number | undefined; tl?: string | undefined; tr?: string | undefined
+        }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('string-reverse-on-optional-receiver', async () => {
+        // `.reverse()` on an OPTIONAL string receiver keeps the optional marker
+        // (`rev?: string`). Kept separate because some SQLite builds have no
+        // `reverse()` function. issue 2 body='Use new tokens'.
+        const expected = [{ rev: 'snekot wen esU' }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(2))
+            .select({ rev: tIssue.body.reverse() })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select reverse(body) as rev from issue where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ rev?: string | undefined }>>>()
+        expect(result).toEqual(expected)
+    })
 })

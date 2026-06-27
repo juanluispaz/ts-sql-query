@@ -305,4 +305,44 @@ describe(ctx.label, () => {
         }>>>()
         expect(rows).toEqual([{ pid: 3 }, { pid: 4 }])
     })
+
+    test('null-projector-aggregate-as-array-as-required-in-optional-object', async () => {
+        // With `.projectingOptionalValuesAsNullable()`, the
+        // `asRequiredInOptionalObject()`-gated `meta` object is PRESENT-as-`null`
+        // on the empty group instead of absent (`{ titles } | null`). Project 3
+        // has one issue (meta present), project 4 none (meta null).
+        ctx.mockNext([
+            { pid: 3, 'meta.titles': ['Document /v2/users'] },
+            { pid: 4, 'meta.titles': null },
+        ])
+        const tIssueLeft = tIssue.forUseInLeftJoin()
+        const rows = await ctx.conn.selectFrom(tProject)
+            .leftJoin(tIssueLeft).on(tIssueLeft.projectId.equals(tProject.id))
+            .where(tProject.organizationId.equals(2))
+            .select({
+                pid: tProject.id,
+                meta: {
+                    titles: ctx.conn.aggregateAsArrayOfOneColumn(tIssueLeft.title).asRequiredInOptionalObject(),
+                },
+            })
+            .projectingOptionalValuesAsNullable()
+            .groupBy('pid')
+            .orderBy('pid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as "pid", json_arrayagg(issue.title) as "meta.titles" from project left join issue on issue.project_id = project.id where project.organization_id = :0 group by project.id order by "pid""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            pid:  number
+            meta: { titles: string[] } | null
+        }>>>()
+        expect(rows).toEqual([
+            { pid: 3, meta: { titles: ['Document /v2/users'] } },
+            { pid: 4, meta: null },
+        ])
+    })
 })

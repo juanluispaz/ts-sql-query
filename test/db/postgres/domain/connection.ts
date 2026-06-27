@@ -24,6 +24,9 @@ const bracketAdapter: TypeAdapter = {
 const publishedAdapter = new CustomBooleanTypeAdapter('t', 'f')
 // Nullable custom-boolean adapter — the optional sibling of verified/published.
 const approvedAdapter  = new CustomBooleanTypeAdapter('A', 'R')
+// Numeric-overload CustomBooleanTypeAdapter (true -> int 1, false -> int 0)
+// for the `invoiced` flag — the integer counterpart of the string adapters.
+const invoicedAdapter  = new CustomBooleanTypeAdapter(1, 0)
 
 // Branded newtype for the customDouble executeFunction wrapper (G1).
 export type Money = number & { readonly __brand: 'Money' }
@@ -51,6 +54,7 @@ export class DBConnection extends PostgreSqlConnection<'DBConnection'> {
     private static baseTypeForCustom(type: string): string {
         switch (type) {
             case 'IssueId':    return 'int'
+            case 'Cents':      return 'int'
             case 'Money':      return 'double'
             case 'ReleaseTag':   return 'int'
             case 'BillingRef': return 'uuid'
@@ -471,6 +475,14 @@ export const tIssueWorklog = new class TIssueWorklog extends Table<DBConnection,
     durationMs = this.optionalColumn('duration_ms', 'bigint')
     billable   = this.optionalColumn('billable', 'boolean')
     approved   = this.optionalColumn('approved', 'boolean', approvedAdapter)
+    // The amount billed for the worklog — a branded customDouble ('Money',
+    // marshalled to double). invoiced is a boolean stored as int 1/0 via the
+    // NUMERIC CustomBooleanTypeAdapter overload.
+    billedAmount = this.columnWithDefaultValue<number, 'Money'>('billed_amount', 'customDouble', 'Money')
+    invoiced     = this.columnWithDefaultValue('invoiced', 'boolean', invoicedAdapter)
+    // The internal cost of the worklog in integer cents — a branded
+    // customInt ('Cents', marshalled to int).
+    costCents    = this.columnWithDefaultValue<number, 'Cents'>('cost_cents', 'customInt', 'Cents')
     activity   = this.column<WorklogActivity, 'WorklogActivity'>('activity', 'enum', 'WorklogActivity')
     // optionalVirtualColumnFromFragment on a Table (the optional
     // sibling of the required virtual column; no DB column — computed inline).

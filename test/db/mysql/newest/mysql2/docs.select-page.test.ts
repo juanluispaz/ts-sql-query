@@ -149,4 +149,33 @@ describe(ctx.label, () => {
         }>>()
         expect(page.generatedAt).toBe('now')
     })
+
+    test('docs-extra:select-page/extras-with-count-and-data-fires-no-query', async () => {
+        // basic-query-structure.md / select-page.md prose: when EXTRAS provides
+        // BOTH `count` and `data`, NEITHER query runs — the page is assembled
+        // from the supplied values alone (the zero-query arm). No mockNext is
+        // primed because the runner is never touched.
+        const cached = [
+            { id: 1, name: 'Marketing site', slug: 'mktg-site' },
+        ]
+        const page = await ctx.conn.selectFrom(tProject)
+            .select({
+                id:   tProject.id,
+                name: tProject.name,
+                slug: tProject.slug,
+            })
+            .orderBy('id')
+            .limit(10)
+            .offset(0)
+            .executeSelectPage({ count: 7, data: cached })
+
+        // No query was fired at all.
+        expect(ctx.history.length).toBe(0)
+        assertType<Exact<typeof page, {
+            data:  Array<{ id: number; name: string; slug: string }>
+            count: number
+        }>>()
+        expect(page.data).toBe(cached)
+        expect(page.count).toBe(7)
+    })
 })

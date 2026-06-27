@@ -204,4 +204,40 @@ describe(ctx.label, () => {
         if (ctx.realDbEnabled) return
         expect(await fromDbValue(tIssue.body, '')).toBeUndefined()
     })
+
+    // ---- from-db-validation: aggregated-array JSON (mock-only, §18) ----
+
+    // `aggregateAsArray(...)` produces a JSON-aggregated column that
+    // `__transformAggregatedArray` parses. A real driver hands back a valid
+    // JSON array (or an already-parsed array), so the malformed / non-array
+    // shapes that trip the two INVALID_JSON throw-sites can only be injected
+    // through `mockNext` — mock-only by construction.
+    async function aggregatedArrayReason(badValue: unknown): Promise<string | undefined> {
+        ctx.mockNext([{ pid: 1, items: badValue }])
+        try {
+            await ctx.conn.selectFrom(tIssue)
+                .select({
+                    pid:   tIssue.projectId,
+                    items: ctx.conn.aggregateAsArray({ id: tIssue.id, title: tIssue.title }),
+                })
+                .groupBy('pid')
+                .executeSelectMany()
+            return undefined
+        } catch (e) {
+            return reasonOf(e)
+        }
+    }
+
+    test('marshalling/from-db-validation/aggregated-array-malformed-json-throws', async () => {
+        // A string that is not valid JSON trips the `JSON.parse` catch.
+        if (ctx.realDbEnabled) return
+        expect(await aggregatedArrayReason('{not valid json')).toBe('INVALID_JSON_RECEIVED_FROM_DATABASE')
+    })
+
+    test('marshalling/from-db-validation/aggregated-array-non-array-json-throws', async () => {
+        // Valid JSON that parses to a non-array (an object) trips the
+        // `!Array.isArray` guard.
+        if (ctx.realDbEnabled) return
+        expect(await aggregatedArrayReason('{"a":1}')).toBe('INVALID_JSON_RECEIVED_FROM_DATABASE')
+    })
 })

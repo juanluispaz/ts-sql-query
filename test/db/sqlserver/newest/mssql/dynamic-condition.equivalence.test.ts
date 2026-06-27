@@ -1455,4 +1455,95 @@ describe(ctx.label, () => {
         `)
     })
 
+
+    test('equivalence/bigint-descriptor-dispatch', async () => {
+        // The `'bigint'` descriptor maps to a ComparableFilter<bigint>.
+        // `viewCount` is a bigint column; the descriptor-typed filter emits
+        // exactly the same SQL + params as the direct comparable calls.
+        type IssueFilter = DynamicCondition<{ id: 'int', viewCount: 'bigint' }>
+        const filter: IssueFilter = { viewCount: { greaterThan: 10n, lessOrEqual: 99n } }
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.viewCount.greaterThan(10n).and(tIssue.viewCount.lessOrEqual(99n)))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssue.id, viewCount: tIssue.viewCount }).withValues(filter))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where view_count > @0 and view_count <= @1 order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            10n,
+            99n,
+          ]
+        `)
+    })
+
+    test('equivalence/uuid-not-equals-insensitive-rewrite', async () => {
+        // `notEqualsInsensitive` on a plain uuid column routes through the
+        // `asString()` text rewrite, like its `equalsInsensitive` sibling —
+        // `lower(external_ref::text) <> lower(...)` — so the comparison runs on
+        // text the engine accepts. `FilterTypeOf<'uuid'>` is StringFilter, so
+        // the operator is reachable through the typed dynamic-condition path.
+        type IssueFilter = DynamicCondition<{ id: 'int', externalRef: 'uuid' }>
+        const filter: IssueFilter = { externalRef: { notEqualsInsensitive: '0A8F9C1E-1111-4222-8333-444455556666' } }
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.externalRef.asString().notEqualsInsensitive('0A8F9C1E-1111-4222-8333-444455556666'))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssue.id, externalRef: tIssue.externalRef }).withValues(filter))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where lower(external_ref) <> lower(@0) order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            "0A8F9C1E-1111-4222-8333-444455556666",
+          ]
+        `)
+    })
+
+    test('equivalence/custom-uuid-not-equals-insensitive-rewrite', async () => {
+        // The customUuid filter accepts `notEqualsInsensitive` and routes it
+        // through `asString()` like the `equalsInsensitive` arm —
+        // `lower(signing_key::text) <> lower(...)`. `signingKey` is an optional
+        // customUuid column.
+        type ReleaseFilter = DynamicCondition<{ id: 'int', signingKey: ['customUuid', string] }>
+        const filter: ReleaseFilter = { signingKey: { notEqualsInsensitive: '0A8F9C1E-1111-4222-8333-444455556666' } }
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.signingKey.asString().notEqualsInsensitive('0A8F9C1E-1111-4222-8333-444455556666'))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(ctx.conn.dynamicConditionFor({ id: tProjectRelease.id, signingKey: tProjectRelease.signingKey }).withValues(filter))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where lower(signing_key) <> lower(@0) order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            "0A8F9C1E-1111-4222-8333-444455556666",
+          ]
+        `)
+    })
 })

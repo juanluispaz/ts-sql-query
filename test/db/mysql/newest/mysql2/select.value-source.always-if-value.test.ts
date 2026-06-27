@@ -292,4 +292,31 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
         expect(rows).toEqual(expected)
     })
+
+    test('always-if/or-value-source-keeps-both-conditions', async () => {
+        // The `.or(<value source>)` overload (non-literal): the value-source
+        // operand is OR-joined with the seed condition — `priority > 1` OR
+        // `priority < 2` covers every row.
+        const expected = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]
+        ctx.mockNext(expected)
+
+        let w = ctx.conn.dynamicBooleanExpressionUsing(tIssue)
+        w = w.and(tIssue.priority.greaterThan(1))
+        w = w.or(tIssue.priority.lessThan(2))
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(w)
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where priority > ? or priority < ? order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
 })

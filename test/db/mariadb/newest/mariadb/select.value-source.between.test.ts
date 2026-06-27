@@ -169,4 +169,47 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof result, Array<{ b?: boolean | undefined }>>>()
         expect(result).toEqual(expected)
-    })})
+    })
+    test('between-with-optional-upper-bound-projected-is-optional', async () => {
+        // A `.between(lo, hi)` whose upper bound is an optionalColumn
+        // (`assigneeId`) projects an OPTIONAL boolean — either bound's
+        // optionality flows into the result. Row id=3: priority=3, number=1,
+        // assignee_id=NULL → `3 between 1 and NULL` is UNKNOWN → the optional
+        // leaf is omitted at runtime.
+        const expected = [{}]
+        ctx.mockNext([{ b: null }])
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(3))
+            .select({ b: tIssue.priority.between(tIssue.number, tIssue.assigneeId) })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select priority between number and assignee_id as \`b\` from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ b?: boolean | undefined }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('notBetween-with-optional-upper-bound-projected-is-optional', async () => {
+        // The `.notBetween(...)` twin: same NULL upper bound → the projected
+        // optional boolean is omitted at runtime.
+        const expected = [{}]
+        ctx.mockNext([{ b: null }])
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(3))
+            .select({ b: tIssue.priority.notBetween(tIssue.number, tIssue.assigneeId) })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select priority not between number and assignee_id as \`b\` from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ b?: boolean | undefined }>>>()
+        expect(result).toEqual(expected)
+    })
+})

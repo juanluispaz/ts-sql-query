@@ -12,9 +12,8 @@
 // stored as t/f). This file exercises the comparisons across that pair.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
-import { tAppUser, tOrganization, tProject } from '../../domain/connection.js'
+import { tAppUser, tIssueWorklog, tOrganization, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
-
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
     afterAll(() => ctx.down(), ctx.timeoutMs)
@@ -166,6 +165,80 @@ describe(ctx.label, () => {
               ]
             `)
             if (!ctx.realDbEnabled) expect(inserted).toBe(1)
+        })
+    })
+
+    test('insert custom boolean then read it back round-trips to true', async () => {
+        // A CustomBooleanTypeAdapter value threaded write -> read end to end:
+        // inserting verified=true writes the adapter's 'Y' literal (the write
+        // remap), then re-selecting the column reads `(verified = 'Y')` back as
+        // a boolean (the read remap), round-tripping to `true`.
+        await ctx.withRollback(async () => {
+            ctx.mockNext(99)
+            const inserted = await ctx.conn.insertInto(tOrganization)
+                .values({ name: 'Initech', plan: 'pro', verified: true })
+                .executeInsert()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, [plan], verified) values (@0, @1, case when (@2 = 1) then 'Y' else 'N' end)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Initech",
+                "pro",
+                true,
+              ]
+            `)
+            expect(typeof inserted).toBe('number')
+
+            ctx.mockNext({ verified: true })
+            const row = await ctx.conn.selectFrom(tOrganization)
+                .where(tOrganization.name.equals('Initech'))
+                .select({ verified: tOrganization.verified })
+                .executeSelectOne()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(case when verified = 'Y' then 1 else 0 end as bit) as verified from organization where name = @0"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Initech",
+              ]
+            `)
+            expect(row.verified).toBe(true)
+        })
+    })
+
+    test('numeric custom boolean adapter reads as (col = trueValue)', async () => {
+        // The numeric CustomBooleanTypeAdapter overload (1/0 on `invoiced`) reads
+        // as `(invoiced = 1)` — the integer-literal shape, distinct from the
+        // string overload's `(verified = 'Y')`. invoiced {1,0,1} -> isInvoiced
+        // {true,false,true}.
+        const expected = [
+            { id: 1, isInvoiced: true }, { id: 2, isInvoiced: false }, { id: 3, isInvoiced: true },
+        ]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssueWorklog)
+            .select({ id: tIssueWorklog.id, isInvoiced: tIssueWorklog.invoiced })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(case when invoiced = 1 then 1 else 0 end as bit) as isInvoiced from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(rows).toEqual(expected)
+    })
+
+    test('numeric custom boolean adapter writes as case-when-then-trueValue', async () => {
+        // The write remap of the numeric overload: setting the boolean column
+        // from a boolean expression emits `case when ... then 1 else 0` (integer
+        // literals) rather than the string overload's `then 'Y' else 'N'`.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.update(tIssueWorklog)
+                .set({ invoiced: tIssueWorklog.id.greaterThan(0) })
+                .where(tIssueWorklog.id.equals(1))
+                .executeUpdate()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue_worklog set invoiced = case when id > @0 then 1 else 0 end where id = @1"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                0,
+                1,
+              ]
+            `)
+            if (!ctx.realDbEnabled) expect(affected).toBe(1)
         })
     })
 })

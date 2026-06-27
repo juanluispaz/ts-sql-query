@@ -33,12 +33,12 @@ INSERT INTO country (code, name, region) VALUES ('US', 'United States',  'Americ
 INSERT INTO country (code, name, region) VALUES ('GB', 'United Kingdom', 'Europe');
 INSERT INTO country (code, name, region) VALUES ('JP', 'Japan',          'Asia');
 
-INSERT INTO issue_worklog (id, issue_id, work_date, started_at, minutes, duration_ms, billable, activity, approved) VALUES
-    (1, 1, DATE '2024-03-04', TIMESTAMP '1970-01-01 09:15:00', 90, 5400000, 1, 'coding', 'A');
-INSERT INTO issue_worklog (id, issue_id, work_date, started_at, minutes, duration_ms, billable, activity, approved) VALUES
-    (2, 2, DATE '2024-03-05', TIMESTAMP '1970-01-01 14:00:00', NULL, NULL, 0, 'review', 'R');
-INSERT INTO issue_worklog (id, issue_id, work_date, started_at, minutes, duration_ms, billable, activity, approved) VALUES
-    (3, 1, DATE '2024-03-06', TIMESTAMP '1970-01-01 10:30:00', 30, 1800000, NULL, 'meeting', NULL);
+INSERT INTO issue_worklog (id, issue_id, work_date, started_at, minutes, duration_ms, billable, activity, approved, billed_amount, invoiced, cost_cents) VALUES
+    (1, 1, DATE '2024-03-04', TIMESTAMP '1970-01-01 09:15:00', 90, 5400000, 1, 'coding', 'A', 200, 1, 100);
+INSERT INTO issue_worklog (id, issue_id, work_date, started_at, minutes, duration_ms, billable, activity, approved, billed_amount, invoiced, cost_cents) VALUES
+    (2, 2, DATE '2024-03-05', TIMESTAMP '1970-01-01 14:00:00', NULL, NULL, 0, 'review', 'R', 50, 0, 100);
+INSERT INTO issue_worklog (id, issue_id, work_date, started_at, minutes, duration_ms, billable, activity, approved, billed_amount, invoiced, cost_cents) VALUES
+    (3, 1, DATE '2024-03-06', TIMESTAMP '1970-01-01 10:30:00', 30, 1800000, NULL, 'meeting', NULL, 200, 1, 400);
 
 INSERT INTO project_release (id, project_id, version, channel, signing_key, released_on, cutoff_time, signed_off_at) VALUES
     (1, 1, '1.2.0', 'stable', UUID_TO_RAW('0a8f9c1e-1111-4222-8333-444455556666'), DATE '2024-01-15', TIMESTAMP '1970-01-01 17:00:00', TIMESTAMP '2024-01-14 12:30:00');

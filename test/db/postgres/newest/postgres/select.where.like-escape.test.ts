@@ -65,4 +65,49 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
     })
+
+    test('not-like-column-argument', async () => {
+        // `notLike` with a column argument emits `body not like title`.
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.body.notLike(tIssue.title))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where body not like title order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+    })
+
+    test('not-contains-column-argument', async () => {
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.body.notContains(tIssue.title))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where body not like ('%' || replace(replace(replace(title, '\\', '\\\\'), '%', '\\%'), '_', '\\_') || '%') order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+    })
+
+    test('not-starts-with-column-argument', async () => {
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.body.notStartsWith(tIssue.title))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where body not like (replace(replace(replace(title, '\\', '\\\\'), '%', '\\%'), '_', '\\_') || '%') order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+    })
+
+    test('not-ends-with-column-argument', async () => {
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.body.notEndsWith(tIssue.title))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where body not like ('%' || replace(replace(replace(title, '\\', '\\\\'), '%', '\\%'), '_', '\\_')) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+    })
 })

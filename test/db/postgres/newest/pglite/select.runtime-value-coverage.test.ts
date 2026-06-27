@@ -176,4 +176,40 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
         expect(rows[0]!.issues[0]!.issue).toBeUndefined()
     })
+
+    test('aggregate-as-array-null-projector-left-join-miss-inner-object-is-null', async () => {
+        // `.projectingOptionalValuesAsNullable()` on the aggregate makes the
+        // inner `issue` object PRESENT-as-`null` on a join miss instead of
+        // absent (null vs undefined as a VALUE, inside an aggregate array).
+        // Project 4 has no issues, so the join misses; the element survives on
+        // its present `marker` sibling and its `issue` object is `null`.
+        const expected = [{ pid: 4, issues: [{ marker: 'legacy', issue: null }] }]
+        ctx.mockNext([{ pid: 4, issues: [{ marker: 'legacy', 'issue.id': null, 'issue.title': null }] }])
+        const tIssueLeft = tIssue.forUseInLeftJoin()
+        const rows = await ctx.conn.selectFrom(tProject)
+            .leftJoin(tIssueLeft).on(tIssueLeft.projectId.equals(tProject.id))
+            .where(tProject.id.equals(4))
+            .select({
+                pid:    tProject.id,
+                issues: ctx.conn.aggregateAsArray({
+                    marker: tProject.slug,
+                    issue:  { id: tIssueLeft.id, title: tIssueLeft.title },
+                }).projectingOptionalValuesAsNullable(),
+            })
+            .groupBy('pid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, json_agg(json_build_object('marker', project.slug, 'issue.id', issue.id, 'issue.title', issue.title)) as issues from project left join issue on issue.project_id = project.id where project.id = $1 group by project.id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            4,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            pid:    number
+            issues: Array<{ marker: string; issue: { id: number; title: string } | null }>
+        }>>>()
+        expect(rows).toEqual(expected)
+        expect(rows[0]!.issues[0]!.issue).toBeNull()
+    })
 })

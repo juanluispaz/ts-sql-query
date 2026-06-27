@@ -94,6 +94,11 @@ CREATE TABLE issue_worklog (
     duration_ms BIGINT NULL,
     billable BIT NULL,
     approved VARCHAR(1) NULL,
+    -- billed amount per worklog (customDouble 'Money') and an `invoiced`
+    -- flag stored as int 1/0 (numeric CustomBooleanTypeAdapter overload).
+    billed_amount FLOAT NOT NULL DEFAULT 0,
+    invoiced INT NOT NULL DEFAULT 0,
+    cost_cents INT NOT NULL DEFAULT 0,
     activity VARCHAR(16) NOT NULL,
     -- Nullable DB-computed column (a computed column AS expression).
     activity_label AS (CASE WHEN minutes IS NOT NULL THEN UPPER(activity) ELSE NULL END),

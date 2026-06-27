@@ -43,11 +43,13 @@ describe(ctx.label, () => {
         assertType<Exact<ColumnKeys<typeof tIssueWorklog>,
             'id' | 'issueId' | 'workDate' | 'startedAt' | 'minutes' | 'durationMs'
             | 'billable' | 'approved' | 'activity'
+            | 'billedAmount' | 'invoiced' | 'costCents'
             | 'activityUpper' | 'activityTagged' | 'activityLabel'>>()
         // …but NOT in WritableColumnKeys (computed/virtual columns are excluded
         // from the writable surface, which is otherwise non-empty).
         assertType<Exact<WritableColumnKeys<typeof tIssueWorklog>,
             'id' | 'issueId' | 'workDate' | 'startedAt' | 'minutes' | 'durationMs'
-            | 'billable' | 'approved' | 'activity'>>()
+            | 'billable' | 'approved' | 'activity'
+            | 'billedAmount' | 'invoiced' | 'costCents'>>()
     })
 })

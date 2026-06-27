@@ -750,12 +750,9 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     fragmentWithType<T>(type: 'customComparable', typeName: string, required: 'optional', adapter?: TypeAdapter): ComparableFragmentExpression<NNoTableOrViewRequired<DB>, T, T, 'optional'>
     fragmentWithType(type: string, required: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any {
         if (typeof adapter === 'string') {
-            type = required
-            required = adapter
-        } else {
-            adapter2 = adapter
+            return new FragmentQueryBuilder(type as ValueType, required, adapter as any, adapter2)
         }
-        return new FragmentQueryBuilder(type as ValueType, type, required as any, adapter2)
+        return new FragmentQueryBuilder(type as ValueType, type, required as any, adapter)
     }
 
     protected arg(type: 'boolean', required: 'required', adapter?: TypeAdapter): Argument<'boolean', 'required', 'combined', boolean>

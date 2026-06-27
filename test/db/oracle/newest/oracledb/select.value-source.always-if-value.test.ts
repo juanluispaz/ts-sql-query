@@ -243,7 +243,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue where (priority > :0 = 1) order by "id""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue where priority > :0 order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

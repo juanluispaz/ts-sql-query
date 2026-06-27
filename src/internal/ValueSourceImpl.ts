@@ -1446,6 +1446,19 @@ export class SqlOperationValueSourceIfValueAlwaysNoop extends ValueSourceImpl {
     constructor() {
         super('', '', 'required', undefined)
     }
+    override valueWhenNoValue(value: any): any {
+        // The neutral element of the four-valued dynamic-boolean system
+        // (true / false / null / neutral): the "ignore" value produced by
+        // `dynamicBooleanExpressionUsing(...)`, `onlyWhen(false)` and
+        // `ignoreWhen(true)`. It carries no value of its own, so
+        // `valueWhenNoValue(value)` — which substitutes a value wherever one is
+        // missing — always resolves to `value`, the expression placed in its
+        // stead. A bare `true` / `false` is not an expression, so it becomes
+        // the constant true / false condition.
+        if (value === true) return this.trueWhenNoValue()
+        if (value === false) return this.falseWhenNoValue()
+        return value
+    }
     __toSql(_sqlBuilder: SqlBuilder, _params: any[], _forceTypeCast: boolean): string {
         return ''
     }

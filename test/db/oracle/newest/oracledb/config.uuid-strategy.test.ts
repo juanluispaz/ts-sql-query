@@ -23,7 +23,11 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { ctx } from './setup.js'
 
-const UUID_VALUE = '123e4567-e89b-12d3-a456-426614174000'
+// A v4 uuid: Oracle 23ai's native `uuid_to_raw` (used by the `'built-in'`
+// and `'custom-functions'` strategies) accepts only RFC 4122 version-4
+// uuids and raises ORA-62432 on other versions, so the value must be v4 to
+// round-trip through the `custom-functions` path exercised below.
+const UUID_VALUE = '123e4567-e89b-42d3-a456-426614174000'
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -39,7 +43,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select :0 as "result" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "123e4567-e89b-12d3-a456-426614174000",
+            "123e4567-e89b-42d3-a456-426614174000",
           ]
         `)
     })
@@ -53,7 +57,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select raw_to_uuid(uuid_to_raw(:0)) as "result" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "123e4567-e89b-12d3-a456-426614174000",
+            "123e4567-e89b-42d3-a456-426614174000",
           ]
         `)
     })

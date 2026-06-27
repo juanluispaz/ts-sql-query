@@ -5,9 +5,9 @@
 // docs/queries/delete.md); `deleteAllowingNoWhereFrom` relaxes that guard.
 //
 // Both tests mutate, so they run inside `ctx.withRollback(...)`. The
-// no-WHERE DELETE removes every seeded issue; the seeded issues all have
-// `parent_id` NULL and nothing else references `issue`, so deleting all
-// rows trips no FK constraint on any engine.
+// no-WHERE DELETE removes every seeded issue; the worklog and webhook
+// rows that reference `issue` are declared `ON DELETE CASCADE`, so
+// removing all issues cascades to them and trips no FK constraint.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'

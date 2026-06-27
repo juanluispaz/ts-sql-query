@@ -7,6 +7,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { tCountry, tProjectRelease } from '../../domain/connection.js'
+import type { ReleaseChannel } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -35,6 +36,31 @@ describe(ctx.label, () => {
             `)
             assertType<Exact<typeof updated, number>>()
             expect(updated).toBe(1)
+        })
+    })
+
+    test('update-project-release-returning-branded-custom-column', async () => {
+        // `returningOneColumn(...)` preserves the column's branded value type,
+        // so reading `channel` back through RETURNING yields `ReleaseChannel`,
+        // not a widened `string`. `channel` is used rather than `version`
+        // because `Semver` collapses to `string` structurally.
+        await ctx.withRollback(async () => {
+            ctx.mockNext('beta')
+            const channel = await ctx.conn.update(tProjectRelease)
+                .set({ channel: 'beta' })
+                .where(tProjectRelease.id.equals(1))
+                .returningOneColumn(tProjectRelease.channel)
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project_release set channel = ? where id = ? returning channel as result"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "beta",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof channel, ReleaseChannel>>()
+            expect(channel).toBe('beta')
         })
     })
 

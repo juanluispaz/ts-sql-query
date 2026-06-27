@@ -252,4 +252,44 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
         expect(rows).toEqual(expected)
     })
+
+    test('always-if/value-when-no-value-literal-true-substitutes-on-empty', async () => {
+        // With no value on the seed, `valueWhenNoValue(true)` substitutes the
+        // literal `true` → the WHERE is unconditionally true → every row.
+        const expected = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]
+        ctx.mockNext(expected)
+
+        let w = ctx.conn.dynamicBooleanExpressionUsing(tIssue)
+        w = w.valueWhenNoValue(true)
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(w)
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where true order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('always-if/value-when-no-value-literal-false-substitutes-on-empty', async () => {
+        // With no value on the seed, `valueWhenNoValue(false)` substitutes the
+        // literal `false` → no row survives.
+        const expected: Array<{ id: number }> = []
+        ctx.mockNext(expected)
+
+        let w = ctx.conn.dynamicBooleanExpressionUsing(tIssue)
+        w = w.valueWhenNoValue(false)
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(w)
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where false order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
 })

@@ -35,6 +35,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import type { DynamicCondition } from '../../../../../src/dynamic/condition.js'
 import { tIssue, tIssueWorklog, tProject, tProjectRelease } from '../../domain/connection.js'
+import type { ReleaseChannel } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 const selectFields = {
@@ -1098,13 +1099,13 @@ describe(ctx.label, () => {
     })
 
     test('equivalence/custom-double-descriptor-dispatch', async () => {
-        // the `['customDouble', T]` descriptor maps to CustomDoubleFilter. There
-        // is no filterable customDouble column in the domain (Money is only
-        // produced by executeFunction), so a customDouble const value source
-        // ('Money') stands in as the dynamicConditionFor field — enough to prove
-        // the CustomDoubleFilter dispatch reaches the comparable operators
-        // identically to the direct calls.
+        // No filterable customDouble column exists in the domain, so a customDouble
+        // const value source stands in as the dynamicConditionFor field. The filter
+        // carries an explicit `DynamicCondition<...>` column-type (not an inline
+        // literal) so the comparable operators are checked against that column-type.
         const amount = ctx.conn.const(5, 'customDouble', 'Money')
+        type AmountFilter = DynamicCondition<{ id: 'int', amount: ['customDouble', number] }>
+        const filter: AmountFilter = { amount: { greaterThan: 3, lessThan: 9 } }
         ctx.mockNext([])
         await ctx.conn.selectFrom(tIssue)
             .where(amount.greaterThan(3).and(amount.lessThan(9)))
@@ -1115,7 +1116,7 @@ describe(ctx.label, () => {
         ctx.mockNext([])
         await ctx.conn.selectFrom(tIssue)
             .where(ctx.conn.dynamicConditionFor({ id: tIssue.id, amount })
-                .withValues({ amount: { greaterThan: 3, lessThan: 9 } }))
+                .withValues(filter))
             .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
 
         expect(ctx.lastSql).toBe(refSql)
@@ -1127,6 +1128,250 @@ describe(ctx.label, () => {
             3,
             5,
             9,
+          ]
+        `)
+    })
+
+    test('equivalence/uuid-descriptor-dispatch', async () => {
+        // uuid like/insensitive operators are emitted via the `asString()` text
+        // rewrite (see the direct equivalent). The filter carries an explicit
+        // `DynamicCondition<...>` column-type (not an inline literal).
+        type IssueFilter = DynamicCondition<{ id: 'int', externalRef: 'uuid' }>
+        const filter: IssueFilter = { externalRef: { containsInsensitive: 'abc' } }
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.externalRef.asString().containsInsensitive('abc'))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssue.id, externalRef: tIssue.externalRef }).withValues(filter))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref::text ilike ('%' || $1 || '%') order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            "abc",
+          ]
+        `)
+    })
+
+    test('equivalence/double-descriptor-dispatch', async () => {
+        // The filter carries an explicit `DynamicCondition<...>` column-type
+        // (a `'double'` column) rather than an inline literal.
+        type IssueFilter = DynamicCondition<{ id: 'int', estimatedHours: 'double' }>
+        const filter: IssueFilter = { estimatedHours: { greaterThan: 2.5 } }
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.estimatedHours.greaterThan(2.5))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssue.id, estimatedHours: tIssue.estimatedHours }).withValues(filter))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where estimated_hours > $1 order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            2.5,
+          ]
+        `)
+    })
+
+    test('equivalence/custom-int-descriptor-dispatch', async () => {
+        // No filterable customInt column exists in the domain, so a customInt const
+        // value source stands in as the dynamicConditionFor field. The filter
+        // carries an explicit `DynamicCondition<...>` column-type (not an inline
+        // literal).
+        const tag = ctx.conn.const(5, 'customInt', 'ReleaseTag')
+        type TagFilter = DynamicCondition<{ id: 'int', tag: ['customInt', number] }>
+        const filter: TagFilter = { tag: { greaterThan: 3, lessThan: 9 } }
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(tag.greaterThan(3).and(tag.lessThan(9)))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssue.id, tag }).withValues(filter))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where $1 > $2 and $3 < $4 order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            5,
+            3,
+            5,
+            9,
+          ]
+        `)
+    })
+
+    test('equivalence/custom-equality-descriptor-dispatch', async () => {
+        // `channel` is an equality-only `custom` column. The filter carries an
+        // explicit `DynamicCondition<...>` column-type (not an inline literal).
+        type ChannelFilter = DynamicCondition<{ id: 'int', channel: ['custom', ReleaseChannel] }>
+        const filter: ChannelFilter = { channel: { notEquals: 'canary', in: ['stable', 'beta'] } }
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.channel.notEquals('canary').and(tProjectRelease.channel.in(['stable', 'beta'])))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(ctx.conn.dynamicConditionFor({ id: tProjectRelease.id, channel: tProjectRelease.channel }).withValues(filter))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where channel <> $1 and channel in ($2, $3) order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            "canary",
+            "stable",
+            "beta",
+          ]
+        `)
+    })
+
+    test('equivalence/custom-local-date-descriptor-typed-dispatch', async () => {
+        // `releasedOn` is a customLocalDate column. The filter carries an explicit
+        // `DynamicCondition<...>` column-type (not an inline literal). TZ=UTC is
+        // forced by the suite.
+        const lo = new Date(Date.UTC(2024, 0, 1, 10, 0, 0))
+        const hi = new Date(Date.UTC(2024, 11, 31, 10, 0, 0))
+        type ReleaseFilter = DynamicCondition<{ id: 'int', releasedOn: ['customLocalDate', Date] }>
+        const filter: ReleaseFilter = { releasedOn: { greaterOrEqual: lo, lessThan: hi } }
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.releasedOn.greaterOrEqual(lo).and(tProjectRelease.releasedOn.lessThan(hi)))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(ctx.conn.dynamicConditionFor({ id: tProjectRelease.id, releasedOn: tProjectRelease.releasedOn }).withValues(filter))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where released_on >= $1 and released_on < $2 order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            2024-01-01T10:00:00.000Z,
+            2024-12-31T10:00:00.000Z,
+          ]
+        `)
+    })
+
+    test('equivalence/custom-local-time-descriptor-typed-dispatch', async () => {
+        // `cutoffTime` is a customLocalTime column. The filter carries an explicit
+        // `DynamicCondition<...>` column-type (not an inline literal).
+        const lo = new Date(Date.UTC(1970, 0, 1, 9, 0, 0))
+        const hi = new Date(Date.UTC(1970, 0, 1, 20, 0, 0))
+        type ReleaseFilter = DynamicCondition<{ id: 'int', cutoffTime: ['customLocalTime', Date] }>
+        const filter: ReleaseFilter = { cutoffTime: { greaterOrEqual: lo, lessThan: hi } }
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.cutoffTime.greaterOrEqual(lo).and(tProjectRelease.cutoffTime.lessThan(hi)))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(ctx.conn.dynamicConditionFor({ id: tProjectRelease.id, cutoffTime: tProjectRelease.cutoffTime }).withValues(filter))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where cutoff_time >= $1 and cutoff_time < $2 order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            "09:00:00",
+            "20:00:00",
+          ]
+        `)
+    })
+
+    test('equivalence/custom-local-date-time-descriptor-typed-dispatch', async () => {
+        // `signedOffAt` is an optional customLocalDateTime column. The filter carries
+        // an explicit `DynamicCondition<...>` column-type (not an inline literal).
+        const lo = new Date(Date.UTC(2024, 0, 1, 0, 0, 0))
+        const hi = new Date(Date.UTC(2024, 11, 31, 0, 0, 0))
+        type ReleaseFilter = DynamicCondition<{ id: 'int', signedOffAt: ['customLocalDateTime', Date] }>
+        const filter: ReleaseFilter = { signedOffAt: { greaterOrEqual: lo, lessThan: hi } }
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.signedOffAt.greaterOrEqual(lo).and(tProjectRelease.signedOffAt.lessThan(hi)))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(ctx.conn.dynamicConditionFor({ id: tProjectRelease.id, signedOffAt: tProjectRelease.signedOffAt }).withValues(filter))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signed_off_at >= $1 and signed_off_at < $2 order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            2024-01-01T00:00:00.000Z,
+            2024-12-31T00:00:00.000Z,
+          ]
+        `)
+    })
+
+    test('equivalence/uuid-equals-insensitive-rewrite', async () => {
+        // `equalsInsensitive` on a uuid source is emitted via the `asString()`
+        // text rewrite — `lower(signing_key::text) = lower(...)` (see the direct
+        // equivalent). `signingKey` is an optional customUuid column.
+        type ReleaseFilter = DynamicCondition<{ id: 'int', signingKey: ['customUuid', string] }>
+        const filter: ReleaseFilter = { signingKey: { equalsInsensitive: '0A8F9C1E-1111-4222-8333-444455556666' } }
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.signingKey.asString().equalsInsensitive('0A8F9C1E-1111-4222-8333-444455556666'))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(ctx.conn.dynamicConditionFor({ id: tProjectRelease.id, signingKey: tProjectRelease.signingKey }).withValues(filter))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where lower(signing_key::text) = lower($1) order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            "0A8F9C1E-1111-4222-8333-444455556666",
           ]
         `)
     })

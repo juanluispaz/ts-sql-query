@@ -11,11 +11,9 @@
 // Both also widen the TS-level result to `OPTIONAL`, so the projected
 // property becomes absent in the optional-as-undefined shape.
 //
-// The boolean siblings `.onlyWhen(...)` / `.ignoreWhen(...)` live on
-// `IBooleanValueSource` and act as WHERE-clause gates that drop the
-// predicate entirely when the gate is false; they are covered by the
-// existing `*If*Value*` tests under `select.conditional*` and the
-// `update.conditional-sets` family.
+// The boolean siblings `.onlyWhen(...)` / `.ignoreWhen(...)` on a boolean
+// value source are a WHERE-clause gate instead: they drop the predicate
+// entirely when the gate is not satisfied (no NULL substitution).
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -166,5 +164,69 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof result, Array<{ id: number; bumped?: number }>>>()
         expect(result).toEqual(expected)
+    })
+
+    test('boolean-only-when-gates-where', async () => {
+        // `.onlyWhen(...)` on a boolean value source (the predicate
+        // `priority > 1`) is a WHERE-gate: `true` keeps the predicate, `false`
+        // drops it entirely (no WHERE). Priorities are {2,1,3,2} for ids
+        // {1,2,3,4}, so `priority > 1` keeps 1, 3 and 4.
+        const kept = [{ id: 1 }, { id: 3 }, { id: 4 }]
+        ctx.mockNext(kept)
+        const keptRows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.priority.greaterThan(1).onlyWhen(true))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where priority > @0 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof keptRows, Array<{ id: number }>>>()
+        expect(keptRows).toEqual(kept)
+
+        const all = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]
+        ctx.mockNext(all)
+        const allRows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.priority.greaterThan(1).onlyWhen(false))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(allRows).toEqual(all)
+    })
+
+    test('boolean-ignore-when-gates-where', async () => {
+        // `.ignoreWhen(...)` is the inverse gate on a `BooleanValueSource`:
+        // `true` drops the predicate (no WHERE → every row); `false` keeps it.
+        const all = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]
+        ctx.mockNext(all)
+        const allRows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.priority.greaterThan(1).ignoreWhen(true))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof allRows, Array<{ id: number }>>>()
+        expect(allRows).toEqual(all)
+
+        const kept = [{ id: 1 }, { id: 3 }, { id: 4 }]
+        ctx.mockNext(kept)
+        const keptRows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.priority.greaterThan(1).ignoreWhen(false))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where priority > @0 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        expect(keptRows).toEqual(kept)
     })
 })

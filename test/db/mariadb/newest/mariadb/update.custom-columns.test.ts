@@ -38,6 +38,29 @@ describe(ctx.label, () => {
         })
     })
 
+    // TODO[LIMITATION]: see LIMITATIONS.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
+    /*
+    test('update-project-release-returning-branded-custom-column', async () => {
+        // `returningOneColumn(...)` preserves the column's branded value type,
+        // so reading `channel` back through RETURNING yields `ReleaseChannel`,
+        // not a widened `string`. `channel` is used rather than `version`
+        // because `Semver` collapses to `string` structurally.
+        await ctx.withRollback(async () => {
+            ctx.mockNext('beta')
+            const channel = await ctx.conn.update(tProjectRelease)
+                .set({ channel: 'beta' })
+                .where(tProjectRelease.id.equals(1))
+                .returningOneColumn(tProjectRelease.channel)
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof channel, ReleaseChannel>>()
+            expect(channel).toBe('beta')
+        })
+    })
+    */
+
     test('update-country-keyed-on-string-provided-primary-key', async () => {
         // An UPDATE whose WHERE is the provided string primary key
         // `tCountry.code` (no autogeneration). Exactly one row matches.

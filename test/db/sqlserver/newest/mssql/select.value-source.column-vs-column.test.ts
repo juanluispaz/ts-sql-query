@@ -317,4 +317,49 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof result, Array<{ id: number }>>>()
         expect(result).toEqual(expected)
-    })})
+    })
+
+    test('notEquals-and-greaterOrEqual-column-vs-column', async () => {
+        // Column-on-column (ValueSource RHS) `notEquals` / `greaterOrEqual`,
+        // both param-free (`… <> …` / `… >= …`). Of the four issues only id=3
+        // has priority = id (3), so it alone is both ≥ id and not ≠ id.
+        const expected = [{ id: 3 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.priority.notEquals(tIssue.id).negate()
+                .and(tIssue.priority.greaterOrEqual(tIssue.id)))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where not (priority <> id) and priority >= id order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('greaterOrEqual-column-vs-column-optional-propagation', async () => {
+        // optionality of the binary op propagates from the VALUE-SOURCE
+        // argument: `assignee_id` is an optionalColumn, so the required
+        // `priority` compared against it yields an optional projected leaf.
+        // SQL is param-free `priority >= assignee_id`. Issue id=1 has
+        // priority=2 and assignee_id=1, so the comparison is true.
+        const expected = [{ x: true }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                x: tIssue.priority.greaterOrEqual(tIssue.assigneeId),  // required >= optional → optional
+            })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(case when priority >= assignee_id then 1 when not (priority >= assignee_id) then 0 else null end as bit) as [x] from issue where id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ x?: boolean | undefined }>>>()
+        expect(result).toEqual(expected)
+    })
+})

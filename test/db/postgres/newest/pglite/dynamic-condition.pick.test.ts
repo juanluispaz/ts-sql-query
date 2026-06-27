@@ -14,8 +14,8 @@
 //     the reshaped result TYPE.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
-import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { dynamicPick, dynamicPickPaths, expandTypeProjectedAsNullableFromDynamicPickPaths } from '../../../../../src/dynamic/pick.js'
+import { assertType, type Exact, type Extends } from '../../../../lib/assertType.js'
+import { dynamicPick, dynamicPickPaths, expandTypeFromDynamicPickPaths, expandTypeProjectedAsNullableFromDynamicPickPaths } from '../../../../../src/dynamic/pick.js'
 import { tIssue } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
@@ -195,10 +195,10 @@ describe(ctx.label, () => {
 
     test('pick/expand-type-projected-as-nullable-passthrough', async () => {
         // Runtime passthrough: the helper returns its `result` argument
-        // unchanged; the value it adds is the nullable-projected TYPE. The
-        // call type-checking is the real assertion (it would not compile if
-        // the generic reshape were broken); the runtime check pins the
-        // passthrough.
+        // unchanged and only reshapes the TYPE. The `assertType` pins that
+        // reshape so a regression in the projected type can't pass silently.
+        // (`Extends`, not `Exact`: the reshaped type is an intersection that
+        // `Exact` does not reduce.)
         const availableFields = {
             id:    tIssue.id,
             title: tIssue.title,
@@ -210,7 +210,71 @@ describe(ctx.label, () => {
         const expanded = expandTypeProjectedAsNullableFromDynamicPickPaths(
             availableFields, ['meta.priority'], rows, ['id'])
 
+        assertType<Extends<typeof expanded, Array<{
+            id:     number
+            title?: string
+            meta?:  { priority?: number }
+        }>>>()
         expect(expanded).toBe(rows)
         expect(expanded).toEqual([{ id: 1, meta: { priority: 2 } }])
+    })
+
+    test('pick/expand-type-projected-as-nullable-shows-null-leaf', async () => {
+        // An OPTIONAL picked leaf is projected as a present `T | null` (not
+        // `?: T`). `body` is an optional column, so the reshaped type carries
+        // `body: string | null`.
+        const availableFields = { id: tIssue.id, body: tIssue.body }
+        const rows = [{ id: 1, body: null }, { id: 2, body: 'Use new tokens' }]
+        const expanded = expandTypeProjectedAsNullableFromDynamicPickPaths(
+            availableFields, ['body'], rows, ['id'])
+
+        assertType<Extends<typeof expanded, Array<{ id: number; body: string | null }>>>()
+        expect(expanded).toBe(rows)
+        expect(expanded).toEqual([{ id: 1, body: null }, { id: 2, body: 'Use new tokens' }])
+    })
+
+    test('pick/expand-type-from-page-paths', async () => {
+        // Piping an `executeSelectPage()` result through the helper: `count`
+        // is preserved and the `data` rows are reshaped to the picked type.
+        const availableFields = { id: tIssue.id, title: tIssue.title, body: tIssue.body }
+        const picked = dynamicPickPaths(availableFields, ['title'], ['id'])
+
+        ctx.mockNext([{ id: 1, title: 'Update hero copy' }])
+        ctx.mockNext(1)
+        const page = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select(picked)
+            .limit(10)
+            .offset(0)
+            .executeSelectPage()
+        const expanded = expandTypeFromDynamicPickPaths(availableFields, ['title'], page, ['id'])
+
+        assertType<Extends<typeof expanded, {
+            data:  Array<{ id: number; title?: string; body?: string }>
+            count: number
+        }>>()
+        // Runtime passthrough: the helper returns its `result` argument as-is.
+        expect(expanded).toBe(page)
+        expect(expanded.count).toBe(1)
+        expect(expanded.data).toEqual([{ id: 1, title: 'Update hero copy' }])
+    })
+
+    test('pick/expand-type-from-one-paths', async () => {
+        // Piping an `executeSelectOne()` result (a `RESULT | null`) through the
+        // helper: runtime passthrough, the type reshaped to the picked object.
+        const availableFields = { id: tIssue.id, title: tIssue.title, body: tIssue.body }
+        const picked = dynamicPickPaths(availableFields, ['title'], ['id'])
+
+        ctx.mockNext({ id: 1, title: 'Update hero copy' })
+        const one = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select(picked)
+            .executeSelectOne()
+        const expanded = expandTypeFromDynamicPickPaths(availableFields, ['title'], one, ['id'])
+
+        assertType<Extends<typeof expanded, { id: number; title?: string; body?: string } | null>>()
+        // Runtime passthrough.
+        expect(expanded).toBe(one)
+        expect(expanded).toEqual({ id: 1, title: 'Update hero copy' })
     })
 })

@@ -485,4 +485,58 @@ describe(ctx.label, () => {
         }>>>()
         expect(result).toEqual(expected)
     })
+
+    test('custom-numeric/custom-arithmetic-both-operand-optional', async () => {
+        // The custom-VALUE-SOURCE-RHS arithmetic overload merges the argument's
+        // optionality into the result while KEEPING the custom brand, so a
+        // `required-custom.add(optional-custom)` yields an OPTIONAL custom leaf
+        // (`?: number`). The optional operand is synthesized with `.asOptional()`
+        // on the same required column — still present at runtime, so the value
+        // is observed. Worklog 1: cost_cents 100 -> 200; billed_amount 200 -> 400.
+        const expected = [{ id: 1, ci: 200, cd: 400 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .select({
+                id: tIssueWorklog.id,
+                ci: tIssueWorklog.costCents.add(tIssueWorklog.costCents.asOptional()),
+                cd: tIssueWorklog.billedAmount.add(tIssueWorklog.billedAmount.asOptional()),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cost_cents + cost_cents as ci, billed_amount + billed_amount as cd from issue_worklog where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; ci?: number; cd?: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('custom-numeric/bigint-arithmetic-value-source-rhs', async () => {
+        // The bigint value-SOURCE-RHS arithmetic overload: add / subtract take
+        // a bigint value source as the right operand, and the `.asOptional()`
+        // RHS merges its optionality into the result (`?: bigint`). view_count
+        // is 0 (default) for issue 1, so every result is 0n (the optional leaf
+        // is still present).
+        const expected = [{ id: 1, a: 0n, s: 0n, o: 0n }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                a:  tIssue.viewCount.add(tIssue.viewCount),
+                s:  tIssue.viewCount.subtract(tIssue.viewCount),
+                o:  tIssue.viewCount.add(tIssue.viewCount.asOptional()),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, view_count + view_count as \`a\`, view_count - view_count as \`s\`, view_count + view_count as \`o\` from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; a: bigint; s: bigint; o?: bigint }>>>()
+        expect(result).toEqual(expected)
+    })
 })

@@ -271,4 +271,35 @@ describe(ctx.label, () => {
         if (!ctx.realDbEnabled) expect(rows).toEqual(expected)
         else expect(rows).toEqual(expected)
     })
+
+    test('value-when-no-value-boolean-value-source-as-selected-column', async () => {
+        // `valueWhenNoValue(BooleanValueSource)` projected as a column. The
+        // collapse to a BooleanValueSource is the type lock; the IfValue is
+        // elided so the fallback boolean expression is emitted. issue 1: filter
+        // undefined → `priority > 1` → 2 > 1 → true.
+        const expected = [{ id: 1, statusMatches: true }]
+        ctx.mockNext(expected)
+
+        const filter: string | undefined = undefined
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id:            tIssue.id,
+                statusMatches: tIssue.status.equalsIfValue(filter).valueWhenNoValue(tIssue.priority.greaterThan(1)),
+            })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority > $1 as "statusMatches" from issue where id = $2"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            id:            number
+            statusMatches: boolean
+        }>>>()
+        expect(rows).toEqual(expected)
+    })
 })

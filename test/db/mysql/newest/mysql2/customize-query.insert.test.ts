@@ -136,4 +136,31 @@ describe(ctx.label, () => {
             assertType<Exact<typeof inserted, number>>()
         })
     })
+
+    // NOT-APPLICABLE: MySQL has no RETURNING
+    // test('customize-insert-returning-object-with-hooks', async () => {
+    //     // `.returning({...})` yields a composable customizable executable, so
+    //     // the customize hook lands on the same statement while the RETURNING
+    //     // result type (an object) is preserved. The returned columns are exactly
+    //     // what was inserted, so the value is deterministic in both modes.
+    //     const expected = { organizationId: 1, name: 'Mobile app', slug: 'mobile-app' }
+    //     ctx.mockNext(expected)
+    //     const connection = ctx.conn
+    //     await ctx.withRollback(async () => {
+    //         const row = await connection.insertInto(tProject)
+    //             .values({ name: 'Mobile app', slug: 'mobile-app', organizationId: 1 })
+    //             .returning({
+    //                 organizationId: tProject.organizationId,
+    //                 name:           tProject.name,
+    //                 slug:           tProject.slug,
+    //             })
+    //             .customizeQuery({ afterInsertKeyword: connection.rawFragment`/*+ hint */` })
+    //             .executeInsertOne()
+    //
+    //         expect(ctx.lastSql).toMatchInlineSnapshot()
+    //         expect(ctx.lastParams).toMatchInlineSnapshot()
+    //         assertType<Exact<typeof row, { organizationId: number; name: string; slug: string }>>()
+    //         expect(row).toEqual(expected)
+    //     })
+    // })
 })

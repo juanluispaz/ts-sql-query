@@ -85,4 +85,28 @@ describe(ctx.label, () => {
             assertType<Exact<typeof affected, number>>()
         })
     })
+
+    // NOT-APPLICABLE: MySQL has no RETURNING on DELETE.
+    // test('customize-delete-returning-object-with-hooks', async () => {
+    //     // The object-RETURNING + `customizeQuery` arm on DELETE: `.returning({...})`
+    //     // yields a composable customizable executable, so the customize hook
+    //     // lands on the same statement while the RETURNING result type (an
+    //     // object) is preserved. Issue 1 is removed and its columns read back;
+    //     // the keyed id and the seeded title are deterministic in both modes.
+    //     const expected = { id: 1, title: 'Update hero copy' }
+    //     ctx.mockNext(expected)
+    //     const connection = ctx.conn
+    //     await ctx.withRollback(async () => {
+    //         const row = await connection.deleteFrom(tIssue)
+    //             .where(tIssue.id.equals(1))
+    //             .returning({ id: tIssue.id, title: tIssue.title })
+    //             .customizeQuery({ afterDeleteKeyword: connection.rawFragment`/*+ hint */` })
+    //             .executeDeleteOne()
+    //
+    //         expect(ctx.lastSql).toMatchInlineSnapshot()
+    //         expect(ctx.lastParams).toMatchInlineSnapshot()
+    //         assertType<Exact<typeof row, { id: number; title: string }>>()
+    //         expect(row).toEqual(expected)
+    //     })
+    // })
 })

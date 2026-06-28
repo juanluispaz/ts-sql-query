@@ -320,4 +320,34 @@ describe(ctx.label, () => {
         }>>()
         expect(row).toEqual(expected)
     })
+
+    test('rule-3-required-inner-object-with-optional-leaf-under-projecting-optional-values-as-nullable', async () => {
+        // Rule-3 under `projectingOptionalValuesAsNullable()`: a REQUIRED inner
+        // object (it carries a required leaf, `title`, so the object is always
+        // present — never nullable) whose OPTIONAL leaf (`body`) flips to
+        // `| null` (present as null, not absent). Issue 1: title 'Update hero
+        // copy', body NULL -> body is `null`.
+        const expected = { iid: 1, detail: { title: 'Update hero copy', body: null } }
+        ctx.mockNext({ iid: 1, 'detail.title': 'Update hero copy', 'detail.body': null })
+        const row = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                iid:    tIssue.id,
+                detail: { title: tIssue.title, body: tIssue.body },
+            })
+            .projectingOptionalValuesAsNullable()
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, title as \`detail.title\`, body as \`detail.body\` from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            iid:    number
+            detail: { title: string; body: string | null }
+        }>>()
+        expect(row).toEqual(expected)
+    })
 })

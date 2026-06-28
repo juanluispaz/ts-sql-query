@@ -6,8 +6,23 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
+import type { TypeAdapter } from '../../../../../src/TypeAdapter.js'
 import { tIssue, tIssueWorklog, tProjectRelease, type ReleaseChannel, type WorklogActivity } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+
+// A non-identity TypeAdapter: brackets any string read from the DB so the
+// adapter's effect is observable in the result value. Used to prove the
+// trailing `adapter?` argument of `fragmentWithType(...)` is threaded into
+// the value transform on read.
+const bracketAdapter: TypeAdapter = {
+    transformValueFromDB(value, type, next) {
+        const v = next.transformValueFromDB(value, type)
+        return typeof v === 'string' ? '[' + v + ']' : v
+    },
+    transformValueToDB(value, type, next) {
+        return next.transformValueToDB(value, type)
+    },
+}
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -184,5 +199,71 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof chRow, { maxChannel: ReleaseChannel }>>()
         expect(chRow).toEqual(expectedCh)
+    })
+
+    test('fragment-with-type-custom-double-and-local-date-time-arms', async () => {
+        // `fragmentWithType('customDouble', ...)` builds a CustomDoubleFragmentExpression
+        // carrying the 'Money' typeName (marshalled to double), and
+        // `fragmentWithType('localDateTime', 'required')` reads a full timestamp
+        // back. Worklog 1's billed_amount is 200; release 1's signed_off_at is
+        // 2024-01-14 12:30.
+        const c = ctx.conn
+        const expectedAmt = { amt: 200 }
+        ctx.mockNext(expectedAmt)
+        const amtRow = await c.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .select({
+                amt: c.fragmentWithType<number, 'Money'>('customDouble', 'Money', 'required').sql`${tIssueWorklog.billedAmount}`,
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select billed_amount as "amt" from issue_worklog where id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof amtRow, { amt: number }>>()
+        expect(amtRow).toEqual(expectedAmt)
+
+        const expectedSoff = { soff: new Date(Date.UTC(2024, 0, 14, 12, 30, 0)) }
+        ctx.mockNext(expectedSoff)
+        const soffRow = await c.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .select({
+                soff: c.fragmentWithType('localDateTime', 'required').sql`${tProjectRelease.signedOffAt}`,
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select signed_off_at as "soff" from project_release where id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof soffRow, { soff: Date }>>()
+        expect(soffRow).toEqual(expectedSoff)
+    })
+
+    test('fragment-with-type-threads-a-trailing-type-adapter', async () => {
+        // The trailing `adapter?` argument of `fragmentWithType(...)`: a
+        // non-identity adapter brackets the read value, so reading the string
+        // fragment back applies `transformValueFromDB` through the adapter. The
+        // mock is primed with the RAW db value; the adapter brackets it on the
+        // way out. Worklog 1: upper(activity) = 'CODING' -> '[CODING]'.
+        ctx.mockNext({ tagged: 'CODING' })
+        const expected = { tagged: '[CODING]' }
+        const row = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .select({
+                tagged: ctx.conn.fragmentWithType('string', 'required', bracketAdapter).sql`upper(${tIssueWorklog.activity})`,
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select upper(activity) as "tagged" from issue_worklog where id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { tagged: string }>>()
+        expect(row).toEqual(expected)
     })
 })

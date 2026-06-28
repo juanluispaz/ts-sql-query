@@ -238,4 +238,47 @@ describe(ctx.label, () => {
         if (!ctx.realDbEnabled) expect(rows).toEqual(expected)
         else expect(rows).toEqual(expected)
     })
+
+    test('compound-as-inline-query-value', async () => {
+        // A COMPOUND select fed to `forUseAsInlineQueryValue()`. The union of
+        // two identical single-row counts dedups to one row, so it is
+        // scalar-safe in the projection. There are 4 issues, so the inline
+        // value is 4.
+        const expected = [{ total: 4 }]
+        ctx.mockNext(expected)
+        const totalIssues = ctx.conn.selectFrom(tIssue).selectOneColumn(ctx.conn.count(tIssue.id))
+            .union(ctx.conn.selectFrom(tIssue).selectOneColumn(ctx.conn.count(tIssue.id)))
+            .forUseAsInlineQueryValue()
+        const rows = await ctx.conn.selectFromNoTable()
+            .select({ total: totalIssues })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select count(id) as result from issue union select count(id) as result from issue) as total"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ total?: number | undefined }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('compound-as-derived-table-via-for-use-in-query-as', async () => {
+        // A COMPOUND select fed to `forUseInQueryAs(...)` — used as a derived
+        // table / CTE the outer query selects from. The union of the open and
+        // closed statuses yields {'closed', 'open'} after dedup.
+        const expected = [{ s: 'closed' }, { s: 'open' }]
+        ctx.mockNext(expected)
+        const statuses = ctx.conn.selectFrom(tIssue).where(tIssue.status.equals('open')).select({ s: tIssue.status })
+            .union(ctx.conn.selectFrom(tIssue).where(tIssue.status.equals('closed')).select({ s: tIssue.status }))
+            .forUseInQueryAs('statuses')
+        const rows = await ctx.conn.selectFrom(statuses)
+            .select({ s: statuses.s })
+            .orderBy('s')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with statuses as (select status as "s" from issue where status = ? union select status as "s" from issue where status = ?) select "s" as "s" from statuses order by "s""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "open",
+            "closed",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ s: string }>>>()
+        expect(rows).toEqual(expected)
+    })
 })

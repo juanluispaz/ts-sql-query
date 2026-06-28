@@ -162,4 +162,59 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ a?: Date | undefined }>>>()
         expect(result).toEqual(expected)
     })
+
+    test('chained-compound-three-way-union', async () => {
+        // A second compound chained onto the first: `a.union(b).union(c)`. The
+        // RESULT type and the compound FEATURES carry through the 2nd compound.
+        // Three single-column queries unioned: project 1 'Marketing site',
+        // issue 1 'Update hero copy', issue 2 'Redesign navbar'.
+        const expected = [
+            { label: 'Marketing site' },
+            { label: 'Redesign navbar' },
+            { label: 'Update hero copy' },
+        ]
+        ctx.mockNext(expected)
+        const a = ctx.conn.selectFrom(tProject).where(tProject.id.equals(1)).select({ label: tProject.name })
+        const b = ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(1)).select({ label: tIssue.title })
+        const c = ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(2)).select({ label: tIssue.title })
+        const result = await a.union(b).union(c).orderBy('label').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project where id = ? union select title as label from issue where id = ? union select title as label from issue where id = ? order by label"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            1,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ label: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('chained-compound-union-then-union-all', async () => {
+        // A mixed chain: `a.union(b).unionAll(c)`. The first compound dedups
+        // (union), the second appends a duplicate (union all), proving the
+        // chained compound preserves the second op's set semantics. project 1
+        // 'Marketing site', issue 1 'Update hero copy', issue 1 again
+        // 'Update hero copy' (the union-all duplicate survives).
+        const expected = [
+            { label: 'Marketing site' },
+            { label: 'Update hero copy' },
+            { label: 'Update hero copy' },
+        ]
+        ctx.mockNext(expected)
+        const a = ctx.conn.selectFrom(tProject).where(tProject.id.equals(1)).select({ label: tProject.name })
+        const b = ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(1)).select({ label: tIssue.title })
+        const c = ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(1)).select({ label: tIssue.title })
+        const result = await a.union(b).unionAll(c).orderBy('label').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project where id = ? union select title as label from issue where id = ? union all select title as label from issue where id = ? order by label"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            1,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ label: string }>>>()
+        expect(result).toEqual(expected)
+    })
 })

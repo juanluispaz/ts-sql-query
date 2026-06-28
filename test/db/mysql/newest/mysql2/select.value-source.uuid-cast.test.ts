@@ -485,4 +485,24 @@ describe(ctx.label, () => {
         assertType<Exact<typeof key, string>>()
         expect(key).toEqual(UUID_VALUE)
     })
+
+    test('custom-uuid-receiver-value-when-null-optional-value-source', async () => {
+        // `valueWhenNull(optional value source)` on the CustomUuid receiver: the
+        // optional VS default keeps the result optional. The default is
+        // `.asOptional()` on the same column, present at runtime. Release 1's
+        // signing_key is non-null.
+        ctx.mockNext(REF1)
+        const key = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .selectOneColumn(tProjectRelease.signingKey.valueWhenNull(tProjectRelease.signingKey.asOptional()))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select bin_to_uuid(ifnull(signing_key, signing_key)) as result from project_release where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof key, string | null>>()
+        expect(key).toEqual(REF1)
+    })
 })

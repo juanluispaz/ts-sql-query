@@ -103,4 +103,27 @@ describe(ctx.label, () => {
         })
     })
     */
+
+    // NOT-APPLICABLE: MySQL has no RETURNING on DELETE.
+    /*
+    test('delete-project-release-returning-branded-custom-column', async () => {
+        // `returningOneColumn(...)` on a DELETE preserves the column's branded
+        // value type: reading `channel` back through RETURNING yields
+        // `ReleaseChannel`, not a widened `string`. Release 1's channel is
+        // 'stable'; nothing FKs into project_release, so the delete is
+        // referential-integrity-safe.
+        await ctx.withRollback(async () => {
+            ctx.mockNext('stable')
+            const channel = await ctx.conn.deleteFrom(tProjectRelease)
+                .where(tProjectRelease.id.equals(1))
+                .returningOneColumn(tProjectRelease.channel)
+                .executeDeleteOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof channel, ReleaseChannel>>()
+            expect(channel).toBe('stable')
+        })
+    })
+    */
 })

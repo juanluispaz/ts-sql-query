@@ -445,4 +445,81 @@ describe(ctx.label, () => {
         `)
         expect(out).toEqual(expectedOut)
     })
+
+    test('temporal-between-value-source-bounds-projected-is-optional', async () => {
+        // `between(temporalVS, temporalVS)` projecting the both-bound
+        // optional-boolean leaf. The optional lower bound is synthesized with
+        // `.asOptional()` on the same required custom-localDate column
+        // (asOptional preserves the TYPE_NAME), so the bound's optionality
+        // merges into the projected boolean (`?: boolean`). Release 1:
+        // released_on 2024-01-15 is between itself and itself -> true.
+        const expected = [{ id: 1, b: true }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .select({
+                id: tProjectRelease.id,
+                b:  tProjectRelease.releasedOn.between(tProjectRelease.releasedOn.asOptional(), tProjectRelease.releasedOn),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", case when released_on between released_on and released_on then 1 when not released_on between released_on and released_on then 0 else null end as "b" from project_release where id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; b?: boolean }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('temporal-comparison-value-source-column-overload', async () => {
+        // The temporal equals/notEquals/is/isNot VALUE-SOURCE-column overload:
+        // comparing the `released_on` column with itself, equals/is are true and
+        // notEquals/isNot are false. Both operands are required columns, so each
+        // leaf is a plain required boolean.
+        const expected = [{ id: 1, eq: true, ne: false, i: true, ni: false }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .select({
+                id: tProjectRelease.id,
+                eq: tProjectRelease.releasedOn.equals(tProjectRelease.releasedOn),
+                ne: tProjectRelease.releasedOn.notEquals(tProjectRelease.releasedOn),
+                i:  tProjectRelease.releasedOn.is(tProjectRelease.releasedOn),
+                ni: tProjectRelease.releasedOn.isNot(tProjectRelease.releasedOn),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", case when released_on = released_on then 1 else 0 end as "eq", case when released_on <> released_on then 1 else 0 end as "ne", case when decode(released_on, released_on, 1, 0 ) = 1 then 1 else 0 end as "i", case when decode(released_on, released_on, 1, 0 ) = 0 then 1 else 0 end as "ni" from project_release where id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; eq: boolean; ne: boolean; i: boolean; ni: boolean }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('temporal-value-when-null-with-optional-value-source-default', async () => {
+        // `valueWhenNull(optional value source)` on a temporal column — the
+        // optional VS default keeps the result optional (`?: Date`). The default
+        // is `.asOptional()` on the same column, present at runtime, so the value
+        // is observed. Release 1: signed_off_at 2024-01-14 12:30.
+        const expected = [{ id: 1, soff: new Date(Date.UTC(2024, 0, 14, 12, 30, 0)) }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .select({
+                id:   tProjectRelease.id,
+                soff: tProjectRelease.signedOffAt.valueWhenNull(tProjectRelease.signedOffAt.asOptional()),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", nvl(signed_off_at, signed_off_at) as "soff" from project_release where id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; soff?: Date }>>>()
+        expect(result).toEqual(expected)
+    })
 })

@@ -91,4 +91,33 @@ describe(ctx.label, () => {
             assertType<Exact<typeof affected, number>>()
         })
     })
+
+    test('customize-update-returning-object-with-hooks', async () => {
+        // The object-RETURNING + `customizeQuery` arm on UPDATE: `.returning({...})`
+        // yields a composable customizable executable, so the customize hook
+        // lands on the same statement while the RETURNING result type (an
+        // object) is preserved. Issue 1's title is patched and read back; the
+        // keyed id and the new title are deterministic in both modes.
+        const expected = { id: 1, title: 'Patched hero copy' }
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+        await ctx.withRollback(async () => {
+            const row = await connection.update(tIssue)
+                .set({ title: 'Patched hero copy' })
+                .where(tIssue.id.equals(1))
+                .returning({ id: tIssue.id, title: tIssue.title })
+                .customizeQuery({ afterUpdateKeyword: connection.rawFragment`/*+ hint */` })
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update /*+ hint */ issue set title = $1 where id = $2 returning id as id, title as title"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Patched hero copy",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof row, { id: number; title: string }>>()
+            expect(row).toEqual(expected)
+        })
+    })
 })

@@ -6,8 +6,11 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tCountry, tProjectRelease } from '../../domain/connection.js'
+import { tCountry, tIssueWorklog, tProjectRelease } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+
+// tIssueWorklog is referenced only by the commented-out test below.
+void tIssueWorklog
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -57,6 +60,31 @@ describe(ctx.label, () => {
             expect(ctx.lastParams).toMatchInlineSnapshot()
             assertType<Exact<typeof channel, ReleaseChannel>>()
             expect(channel).toBe('beta')
+        })
+    })
+    */
+
+    // TODO[LIMITATION]: see LIMITATIONS.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
+    /*
+    test('update-worklog-returning-adapter-virtual-column', async () => {
+        // `.returning(...)` of an adapter column: `activityTagged` is a virtual
+        // column carrying a non-identity TypeAdapter that brackets the read
+        // value, so reading it back through RETURNING applies
+        // `transformValueFromDB` through the adapter. The mock is primed with
+        // the RAW db value; the adapter brackets it on the way out. Worklog 1:
+        // upper(activity) = 'CODING' -> '[CODING]'.
+        await ctx.withRollback(async () => {
+            ctx.mockNext('CODING')
+            const tagged = await ctx.conn.update(tIssueWorklog)
+                .set({ minutes: 95 })
+                .where(tIssueWorklog.id.equals(1))
+                .returningOneColumn(tIssueWorklog.activityTagged)
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof tagged, string>>()
+            expect(tagged).toBe('[CODING]')
         })
     })
     */

@@ -212,4 +212,40 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
         expect(rows[0]!.issues[0]!.issue).toBeNull()
     })
+
+    test('aggregate-as-array-null-projector-single-leaf-inner-object-is-null', async () => {
+        // `projectingOptionalValuesAsNullable()` over an aggregate array whose
+        // inner `issue` object has a single left-joined leaf: on a join miss the
+        // inner object is PRESENT-as-`null` (not absent). Project 4 has no
+        // issues, so the join misses; the element survives on its present
+        // `marker` sibling.
+        const expected = [{ pid: 4, issues: [{ marker: 'legacy', issue: null }] }]
+        ctx.mockNext([{ pid: 4, issues: [{ marker: 'legacy', 'issue.id': null }] }])
+        const tIssueLeft = tIssue.forUseInLeftJoin()
+        const rows = await ctx.conn.selectFrom(tProject)
+            .leftJoin(tIssueLeft).on(tIssueLeft.projectId.equals(tProject.id))
+            .where(tProject.id.equals(4))
+            .select({
+                pid:    tProject.id,
+                issues: ctx.conn.aggregateAsArray({
+                    marker: tProject.slug,
+                    issue:  { id: tIssueLeft.id },
+                }).projectingOptionalValuesAsNullable(),
+            })
+            .groupBy('pid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, json_group_array(json_object('marker', project.slug, 'issue.id', issue.id)) as issues from project left join issue on issue.project_id = project.id where project.id = ? group by project.id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            4,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            pid:    number
+            issues: Array<{ marker: string; issue: { id: number } | null }>
+        }>>>()
+        expect(rows).toEqual(expected)
+        expect(rows[0]!.issues[0]!.issue).toBeNull()
+    })
 })

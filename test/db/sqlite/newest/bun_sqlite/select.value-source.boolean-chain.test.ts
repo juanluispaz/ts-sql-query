@@ -259,4 +259,26 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ id: number }>>>()
         expect(result).toEqual(expected)
     })
+
+    test('if-value-or-boolean-literal-collapses-to-boolean', async () => {
+        // `IfValueSource.or(boolean literal)` collapses to a BooleanValueSource.
+        // Projecting the result is the type lock (an IfValueSource is not
+        // projectable). issue 1 priority 2 → `(priority = 2) or false` → true.
+        const expected = [{ id: 1, flag: true }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({ id: tIssue.id, flag: tIssue.priority.equalsIfValue(2).or(false) })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority = ? or ? as flag from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+            0,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; flag: boolean }>>>()
+        expect(result).toEqual(expected)
+    })
 })

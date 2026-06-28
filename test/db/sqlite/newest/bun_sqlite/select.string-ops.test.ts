@@ -593,4 +593,62 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
     */
+
+    test('substr-family-with-optional-value-source-argument', async () => {
+        // When a substr/substring boundary is an OPTIONAL value source the
+        // argument's optionality merges into the result leaf (`?: string`).
+        // `assignee_id` (optional int) is the boundary; issue 1 has
+        // assignee_id = 1 (present), so the values are observed.
+        // title = 'Update hero copy'.
+        const expected = [{ id: 1, se: 'pdate hero copy', sse: 'pdate hero copy', s2: 'pda', sg: 'pdat' }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id:  tIssue.id,
+                se:  tIssue.title.substrToEnd(tIssue.assigneeId),
+                sse: tIssue.title.substringToEnd(tIssue.assigneeId),
+                s2:  tIssue.title.substr(tIssue.assigneeId, 3),
+                sg:  tIssue.title.substring(tIssue.assigneeId, 5),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, substr(title, assignee_id + 1) as se, substr(title, assignee_id + 1) as sse, substr(title, assignee_id + 1, ?) as s2, substr(title, assignee_id + 1, ? - assignee_id) as sg from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+            5,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; se?: string; sse?: string; s2?: string; sg?: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('concat-with-optional-value-source-argument-and-optional-receiver', async () => {
+        // Two concat optionality arms: (1) the VALUE-SOURCE-argument overload
+        // with an OPTIONAL argument (`title.concat(body)`) merges the argument's
+        // optionality into the result (`?: string`); (2) `concat` on an OPTIONAL
+        // RECEIVER (`body.concat('!')`) keeps the optional marker (`?: string`).
+        // issue 2 has body = 'Use new tokens' (present), so both values are
+        // observed.
+        const expected = [{ id: 2, j: 'Redesign navbarUse new tokens', r: 'Use new tokens!' }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(2))
+            .select({
+                id: tIssue.id,
+                j:  tIssue.title.concat(tIssue.body),
+                r:  tIssue.body.concat('!'),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title || body as "j", body || ? as "r" from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "!",
+            2,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; j?: string; r?: string }>>>()
+        expect(result).toEqual(expected)
+    })
 })

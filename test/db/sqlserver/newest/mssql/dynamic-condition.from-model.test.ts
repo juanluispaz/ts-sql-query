@@ -167,6 +167,17 @@ describe(ctx.label, () => {
         const ok5: Clause = 'author.name'          // nested scalar leaf
         const ok6: Clause = 'author.id desc'
         expect([ok1, ok2, ok3, ok4, ok5, ok6]).toHaveLength(6)
+        // The EXACT clause union for a single-leaf model: the bare path plus all
+        // 13 OrderByMode suffixes (asc/desc × {∅|nulls first|nulls last} ×
+        // {∅|insensitive}) — pinned so an extra/missing form is a type failure.
+        assertType<Exact<OrderByForModel<{ id: number }>,
+            | 'id' | 'id asc' | 'id desc'
+            | 'id asc nulls first' | 'id asc nulls last'
+            | 'id desc nulls first' | 'id desc nulls last'
+            | 'id insensitive' | 'id asc insensitive' | 'id desc insensitive'
+            | 'id asc nulls first insensitive' | 'id asc nulls last insensitive'
+            | 'id desc nulls first insensitive' | 'id desc nulls last insensitive'
+        >>()
         // Negative-type assertions (the rejected clauses) live in
         // types.negative/dynamic-condition.from-model.test.ts.
     })

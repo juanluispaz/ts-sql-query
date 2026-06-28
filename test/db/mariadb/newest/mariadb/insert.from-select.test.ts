@@ -50,4 +50,40 @@ describe(ctx.label, () => {
             for (const r of newIds) expect(typeof r.id).toBe('number')
         })
     })
+
+    test('insert-from-select-returning-last-inserted-id-array', async () => {
+        // `from(select).returningLastInsertedId()` returns `number[]` (the
+        // from-select path of the last-inserted-id type). project 3 has one
+        // issue (issue 4), so one id comes back. The ids are engine-assigned,
+        // so the value assertion is length-based on the real DB.
+        ctx.mockNext([101])
+        await ctx.withRollback(async () => {
+            const source = ctx.conn.selectFrom(tIssue)
+                .where(tIssue.projectId.equals(3))
+                .select({
+                    projectId: ctx.conn.const(4, 'int'),
+                    number:    tIssue.number,
+                    title:     tIssue.title,
+                    status:    ctx.conn.const('draft', 'string'),
+                    priority:  tIssue.priority,
+                })
+
+            const ids = await ctx.conn.insertInto(tIssue)
+                .from(source)
+                .returningLastInsertedId()
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) select ? as projectId, number as number, title as title, ? as status, priority as priority from issue where project_id = ? returning id"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                4,
+                "draft",
+                3,
+              ]
+            `)
+            assertType<Exact<typeof ids, number[]>>()
+            expect(ids.length).toBe(1)
+            if (!ctx.realDbEnabled) expect(ids).toEqual([101])
+        })
+    })
 })

@@ -230,4 +230,139 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { id: number; flag: boolean }>>()
         expect(row).toEqual(expected)
     })
+
+    test('boolean-and-if-value-present-collapses-to-projectable-boolean', async () => {
+        // `BooleanValueSource.and(IfValueSource)` returns a `BooleanValueSource`
+        // (not an IfValueSource) whose optionality is the merge of both
+        // operands; `status` is a required column so the merged leaf is a plain
+        // `boolean`. With the IfValue argument carrying a value both predicates
+        // are emitted. Issue 1: priority 2 == 2 and status == 'closed' is false.
+        const expected = { id: 1, flag: false }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id:   tIssue.id,
+                flag: tIssue.priority.equals(2).and(tIssue.status.equalsIfValue('closed')),
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", case when priority = :0 and status = :1 then 1 else 0 end as "flag" from issue where id = :2"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+            "closed",
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; flag: boolean }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('boolean-and-if-value-no-value-elides-to-just-the-boolean', async () => {
+        // The runtime fork: when the IfValue argument carries no value it
+        // elides and `BooleanValueSource.and(<no value>)` reduces to just the
+        // receiver — only `priority = $1` is emitted. The compile-time leaf
+        // is still `boolean` (the merged optionality is computed statically,
+        // independent of the runtime elision). Issue 1: priority 2 == 2 -> true.
+        const expected = { id: 1, flag: true }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id:   tIssue.id,
+                flag: tIssue.priority.equals(2).and(tIssue.status.equalsIfValue(undefined)),
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", case when priority = :0 then 1 else 0 end as "flag" from issue where id = :1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; flag: boolean }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('boolean-or-if-value-present-collapses-to-projectable-boolean', async () => {
+        // `BooleanValueSource.or(IfValueSource)` returns a `BooleanValueSource`
+        // (`boolean`); with a value present both predicates are emitted.
+        // Issue 1: priority 2 != 99 but status == 'open', so the disjunction
+        // is true.
+        const expected = { id: 1, flag: true }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id:   tIssue.id,
+                flag: tIssue.priority.equals(99).or(tIssue.status.equalsIfValue('open')),
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", case when priority = :0 or status = :1 then 1 else 0 end as "flag" from issue where id = :2"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            99,
+            "open",
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; flag: boolean }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('boolean-or-if-value-no-value-elides-to-just-the-boolean', async () => {
+        // The `.or` runtime fork: when the IfValue argument carries no value
+        // it elides and the OR reduces to just the receiver — only
+        // `priority = $1` is emitted. The leaf is still `boolean`. Issue 1:
+        // priority 2 != 99 -> false.
+        const expected = { id: 1, flag: false }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id:   tIssue.id,
+                flag: tIssue.priority.equals(99).or(tIssue.status.equalsIfValue(undefined)),
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", case when priority = :0 then 1 else 0 end as "flag" from issue where id = :1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            99,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; flag: boolean }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('boolean-or-merging-optional-operand-projected-as-optional', async () => {
+        // A required boolean `.or(...)` an OPTIONAL boolean operand merges to
+        // `optional`, so the leaf is `?: boolean`. `activity.equals(...)` is a
+        // required boolean; `billable` is a nullable boolean column. Worklog 1:
+        // activity 'coding' or billable TRUE -> true.
+        const expected = { id: 1, flag: true }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .select({
+                id:   tIssueWorklog.id,
+                flag: tIssueWorklog.activity.equals('coding').or(tIssueWorklog.billable),
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", case when activity = :0 or (billable = 1) then 1 when not (activity = :1 or (billable = 1)) then 0 else null end as "flag" from issue_worklog where id = :2"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "coding",
+            "coding",
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; flag?: boolean }>>()
+        expect(row).toEqual(expected)
+    })
 })

@@ -6,7 +6,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tCountry, tProjectRelease } from '../../domain/connection.js'
+import { tCountry, tIssueWorklog, tProjectRelease } from '../../domain/connection.js'
 import type { ReleaseChannel } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
@@ -61,6 +61,33 @@ describe(ctx.label, () => {
             `)
             assertType<Exact<typeof channel, ReleaseChannel>>()
             expect(channel).toBe('beta')
+        })
+    })
+
+    test('update-worklog-returning-adapter-virtual-column', async () => {
+        // `.returning(...)` of an adapter column: `activityTagged` is a virtual
+        // column carrying a non-identity TypeAdapter that brackets the read
+        // value, so reading it back through RETURNING applies
+        // `transformValueFromDB` through the adapter. The mock is primed with
+        // the RAW db value; the adapter brackets it on the way out. Worklog 1:
+        // upper(activity) = 'CODING' -> '[CODING]'.
+        await ctx.withRollback(async () => {
+            ctx.mockNext('CODING')
+            const tagged = await ctx.conn.update(tIssueWorklog)
+                .set({ minutes: 95 })
+                .where(tIssueWorklog.id.equals(1))
+                .returningOneColumn(tIssueWorklog.activityTagged)
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue_worklog set minutes = $1 where id = $2 returning upper(activity) as result"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                95,
+                1,
+              ]
+            `)
+            assertType<Exact<typeof tagged, string>>()
+            expect(tagged).toBe('[CODING]')
         })
     })
 

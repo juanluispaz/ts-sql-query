@@ -234,7 +234,6 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ id: number; flag: boolean }>>>()
         expect(result).toEqual(expected)
     })
-
     test('if-value-value-when-no-value-if-value-stays-if-value', async () => {
         // `IfValueSource.valueWhenNoValue(IfValueSource)` stays an IfValueSource.
         // The receiver carries no value (`equalsIfValue(undefined)`), so the
@@ -257,6 +256,28 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof result, Array<{ id: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('if-value-or-boolean-literal-collapses-to-boolean', async () => {
+        // `IfValueSource.or(boolean literal)` collapses to a BooleanValueSource.
+        // Projecting the result is the type lock (an IfValueSource is not
+        // projectable). issue 1 priority 2 → `(priority = 2) or false` → true.
+        const expected = [{ id: 1, flag: true }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({ id: tIssue.id, flag: tIssue.priority.equalsIfValue(2).or(false) })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority = $1 or $2 as flag from issue where id = $3"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+            false,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; flag: boolean }>>>()
         expect(result).toEqual(expected)
     })
 })

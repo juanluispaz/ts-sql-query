@@ -244,4 +244,58 @@ describe(ctx.label, () => {
             }
         })
     })
+
+    test('on-conflict-do-nothing-returning-one-column', async () => {
+        // `returningOneColumn(...)` after `onConflictDoNothing()` — the conflict
+        // arm may suppress the insert, so the column is None-or-One (`string |
+        // null`). No unique key actually collides here, so a real row inserts
+        // and its `name` comes back.
+        ctx.mockNext('Conflict demo')
+        await ctx.withRollback(async () => {
+            const name = await ctx.conn.insertInto(tOrganization)
+                .values({ name: 'Conflict demo', plan: 'free' })
+                .onConflictDoNothing()
+                .returningOneColumn(tOrganization.name)
+                .executeInsertNoneOrOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, plan) values ($1, $2) on conflict do nothing returning name as result"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Conflict demo",
+                "free",
+              ]
+            `)
+            assertType<Exact<typeof name, string | null>>()
+            expect(name).toBe('Conflict demo')
+        })
+    })
+
+    test('on-conflict-on-columns-do-update-returning-one-column', async () => {
+        // `returningOneColumn(...)` after `onConflictOn(...).doUpdateSet(...)` —
+        // the upsert always produces a row (insert or update), so the column is
+        // required (`string`). tProject has UNIQUE (organization_id, slug);
+        // (1, 'mktg-site') collides with the seed, so the row is updated and the
+        // new name is returned.
+        ctx.mockNext('Updated mktg')
+        await ctx.withRollback(async () => {
+            const name = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, slug: 'mktg-site', name: 'Updated mktg' })
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doUpdateSet({ name: 'Updated mktg' })
+                .returningOneColumn(tProject.name)
+                .executeInsertOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values ($1, $2, $3) on conflict (organization_id, slug) do update set name = $4 returning name as result"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "mktg-site",
+                "Updated mktg",
+                "Updated mktg",
+              ]
+            `)
+            assertType<Exact<typeof name, string>>()
+            expect(name).toBe('Updated mktg')
+        })
+    })
 })

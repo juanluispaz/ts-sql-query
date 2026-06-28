@@ -5,7 +5,8 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue } from '../../domain/connection.js'
+import { tIssue, tProjectRelease } from '../../domain/connection.js'
+import type { ReleaseChannel } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -101,6 +102,30 @@ describe(ctx.label, () => {
             `)
             assertType<Exact<typeof removed, { id: number; body: string | null }>>()
             expect(removed).toEqual({ id: 3, body: null })
+        })
+    })
+
+    test('delete-project-release-returning-branded-custom-column', async () => {
+        // `returningOneColumn(...)` on a DELETE preserves the column's branded
+        // value type: reading `channel` back through RETURNING yields
+        // `ReleaseChannel`, not a widened `string`. Release 1's channel is
+        // 'stable'; nothing FKs into project_release, so the delete is
+        // referential-integrity-safe.
+        await ctx.withRollback(async () => {
+            ctx.mockNext('stable')
+            const channel = await ctx.conn.deleteFrom(tProjectRelease)
+                .where(tProjectRelease.id.equals(1))
+                .returningOneColumn(tProjectRelease.channel)
+                .executeDeleteOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from project_release where id = ? returning channel as result"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof channel, ReleaseChannel>>()
+            expect(channel).toBe('stable')
         })
     })
 })

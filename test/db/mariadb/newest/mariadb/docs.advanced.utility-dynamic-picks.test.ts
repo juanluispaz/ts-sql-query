@@ -66,7 +66,9 @@ describe(ctx.label, () => {
         type FieldsToPick = DynamicPick<typeof availableFields, 'id'>
         // doc-end
         // 'id' is mandatory, so it's not part of FieldsToPick — only
-        // optional `name`/`slug` remain.
+        // optional `name`/`slug` remain. The exact picker shape (each
+        // pickable field an optional boolean flag) is pinned here.
+        assertType<Exact<FieldsToPick, { name?: boolean; slug?: boolean }>>()
         const probe: FieldsToPick = { name: true }
         expect(probe.name).toBe(true)
     })

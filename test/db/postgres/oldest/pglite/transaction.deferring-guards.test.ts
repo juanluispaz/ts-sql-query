@@ -69,6 +69,10 @@ describe(ctx.label, () => {
             } catch (e) { caught = e }
         })
         expect(reasonsInChain(caught)).toContain('NESTED_DEFERRING_IN_TRANSACTION_NOT_SUPPORTED')
+        // The hook throws while the before-commit list is draining, so the
+        // error surfaces wrapped as ERROR_EXECUTING_DEFERRED_IN_TRANSACTION
+        // (the original reason above is the cause carried in the chain).
+        expect(reasonsInChain(caught)).toContain('ERROR_EXECUTING_DEFERRED_IN_TRANSACTION')
     })
 
     test('deferring-from-inside-after-commit-hook-throws-not-in-transaction', async () => {

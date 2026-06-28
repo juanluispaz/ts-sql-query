@@ -138,4 +138,23 @@ describe(ctx.label, () => {
         const tampered = encrypted.slice(0, -1) + alt
         expect(isValidEncryptedID(tampered)).toBe(false)
     })
+
+    test('docs-extra:id-manipulation/decrypter-rejects-wrong-key-with-invalid-id', () => {
+        // A string encrypted with one key pair and decrypted with a DIFFERENT
+        // key pair. The PUBLIC checksum (last two chars) is key-independent — it
+        // only validates the string itself — so it passes; the wrong key then
+        // yields garbage plaintext whose INTERNAL checksum no longer matches the
+        // recovered id, so the deeper `ics/pcs !== cs` guard fires. This is a
+        // distinct rejection path from the public-checksum tamper test above,
+        // which never reaches the cipher.
+        const encA = new IDEncrypter('3zTvzr3p67VC61jm', '60iP0h6vJoEaJo8c')
+        // Same 16-char alphabets, password and IV swapped: a valid but
+        // different key pair.
+        const encB = new IDEncrypter('60iP0h6vJoEaJo8c', '3zTvzr3p67VC61jm')
+        const encrypted = encA.encrypt(1n)
+        // The string is well-formed: its public checksum validates regardless
+        // of the decryption key.
+        expect(isValidEncryptedID(encrypted)).toBe(true)
+        expect(() => encB.decrypt(encrypted)).toThrow(/Invalid id/)
+    })
 })

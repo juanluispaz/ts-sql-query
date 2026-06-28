@@ -1551,4 +1551,69 @@ describe(ctx.label, () => {
           ]
         `)
     })
+
+    test('equivalence/custom-int-column-inline-filter', async () => {
+        // The inline `MapValueSourceToFilter` arm for a customInt column: a real
+        // filterable customInt column (`cost_cents`, 'Cents') fed through
+        // `dynamicConditionFor(...).withValues({...})` with an INLINE literal —
+        // no `DynamicCondition<...>` annotation — so the filter type is inferred
+        // from the value source (ICustomIntValueSource extends
+        // IComparableValueSource, so the comparable operators are available).
+        // The sibling `custom-int-descriptor-dispatch` test covers the annotated
+        // FilterTypeOf path; this reaches the un-annotated inline mapping.
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.costCents.greaterThan(50).and(tIssueWorklog.costCents.lessThan(300)))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssueWorklog.id, costCents: tIssueWorklog.costCents })
+                .withValues({ costCents: { greaterThan: 50, lessThan: 300 } }))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where cost_cents > $1 and cost_cents < $2 order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            50,
+            300,
+          ]
+        `)
+    })
+
+    test('equivalence/custom-double-column-inline-filter', async () => {
+        // The inline `MapValueSourceToFilter` arm for a customDouble column: the
+        // real filterable customDouble column (`billed_amount`, 'Money') fed
+        // through an INLINE `withValues({...})` literal with no
+        // `DynamicCondition<...>` annotation. Sibling of the customInt inline
+        // test above; the `custom-double-descriptor-dispatch` test covers the
+        // annotated FilterTypeOf path.
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.billedAmount.greaterThan(100).and(tIssueWorklog.billedAmount.lessThan(500)))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssueWorklog.id, billedAmount: tIssueWorklog.billedAmount })
+                .withValues({ billedAmount: { greaterThan: 100, lessThan: 500 } }))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billed_amount > $1 and billed_amount < $2 order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            100,
+            500,
+          ]
+        `)
+    })
+
 })

@@ -371,7 +371,9 @@ function isWithinCastType(n: ts.Node): boolean {
 
 // The TypeAdapter interface methods whose `unknown` signature the library itself
 // mandates — a custom adapter overriding them is allowed to use `unknown`.
-const TYPE_ADAPTER_METHODS = new Set(['transformValueToDB', 'transformValueFromDB'])
+// `transformPlaceholder`'s `valueSentToDB: unknown` parameter is mandated the
+// same way (a class adapter override must annotate it `unknown`).
+const TYPE_ADAPTER_METHODS = new Set(['transformValueToDB', 'transformValueFromDB', 'transformPlaceholder'])
 // Public-API functions whose result is typed `unknown` by the library, so a
 // `const x: unknown = api(...)` annotation is required, not meaningless. Minimal
 // allow-list — keep it tiny, like FILE_SCOPED_AS_ANY.

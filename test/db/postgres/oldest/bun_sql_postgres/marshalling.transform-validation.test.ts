@@ -205,6 +205,18 @@ describe(ctx.label, () => {
         expect(await fromDbValue(tIssue.body, '')).toBeUndefined()
     })
 
+
+    test('marshalling/from-db-validation/required-column-null-throws-mandatory', async () => {
+        // A REQUIRED column receiving null from the DB trips the projector's
+        // MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE check — the required-column
+        // counterpart of the optional empty-string->undefined branch above.
+        // `tIssue.title` is required, so an absent value is rejected instead of
+        // surfacing as undefined. mock-only by construction (a real driver
+        // never hands back null for a NOT NULL column).
+        if (ctx.realDbEnabled) return
+        expect(await fromDbReason(tIssue.title, null)).toBe('MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE')
+    })
+
     // ---- from-db-validation: aggregated-array JSON (mock-only, §18) ----
 
     // `aggregateAsArray(...)` produces a JSON-aggregated column that

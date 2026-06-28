@@ -155,4 +155,31 @@ describe(ctx.label, () => {
         assertType<Exact<DeepPick<CustomerWithCompany, 'company.id' | 'company.name'>,
             { company?: { id: number; name: string } }>>()
     })
+
+    test('docs-extra:deep-utilities/deep-pick-runtime-whole-nested-object-by-bare-key', () => {
+        // A bare (undotted) key that names a whole nested object copies that
+        // object intact — the single-segment branch of deepPick, with no
+        // intermediate descent. Every other runtime deepPick test selects
+        // leaf / dotted paths, so the whole-object-key branch was unreached.
+        const customer = {
+            id: 1,
+            firstName: 'John',
+            lastName: 'Doe',
+            company: { id: 7, name: 'Acme', plan: 'pro' },
+        }
+        const picked = deepPick(customer, ['id', 'company'])
+        expect(picked).toEqual({ id: 1, company: { id: 7, name: 'Acme', plan: 'pro' } })
+    })
+
+    test('docs-extra:deep-utilities/deep-pick-runtime-leaf-absent-in-source-is-skipped', () => {
+        // A dotted path whose intermediate object IS reachable (not null) but
+        // whose leaf key is absent from the runtime value is skipped (the
+        // `leaf in src` guard), while a present sibling leaf is still copied.
+        // `plan` is declared optional on the type but omitted at runtime, so
+        // `company.plan` resolves to a reachable intermediate with no leaf.
+        const customer: { id: number; company?: { id: number; name: string; plan?: string } } =
+            { id: 1, company: { id: 7, name: 'Acme' } }
+        const picked = deepPick(customer, ['company.name', 'company.plan'])
+        expect(picked).toEqual({ company: { name: 'Acme' } })
+    })
 })

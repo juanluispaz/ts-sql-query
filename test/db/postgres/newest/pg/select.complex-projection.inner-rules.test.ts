@@ -350,4 +350,81 @@ describe(ctx.label, () => {
         }>>()
         expect(row).toEqual(expected)
     })
+
+    test('plain-select-rule-4-optional-object-under-projecting-optional-values-as-nullable-surfaces-null', async () => {
+        // The `projectingOptionalValuesAsNullable()` twin of the rule-4
+        // plain-select test above: an all-optional nested object becomes
+        // `{ ... } | null`. When EVERY leaf is null the object surfaces as
+        // `opt: null` at RUNTIME (the default asUndefined mode drops the key
+        // instead); the present rows carry their own `| null` leaves. This is
+        // the genuine null-vs-undefined value distinction the asUndefined
+        // sibling cannot stand in for.
+        // issue 1: body NULL, assignee 1 -> { body: null, assigneeId: 1 }.
+        // issue 3: body NULL, assignee NULL -> opt is null.
+        ctx.mockNext([
+            { iid: 1, 'opt.body': null,             'opt.assigneeId': 1 },
+            { iid: 2, 'opt.body': 'Use new tokens', 'opt.assigneeId': 2 },
+            { iid: 3, 'opt.body': null,             'opt.assigneeId': null },
+            { iid: 4, 'opt.body': 'See ADR-014',    'opt.assigneeId': 3 },
+        ])
+        const expected = [
+            { iid: 1, opt: { body: null, assigneeId: 1 } },
+            { iid: 2, opt: { body: 'Use new tokens', assigneeId: 2 } },
+            { iid: 3, opt: null },
+            { iid: 4, opt: { body: 'See ADR-014', assigneeId: 3 } },
+        ]
+
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .select({
+                iid: tIssue.id,
+                opt: { body: tIssue.body, assigneeId: tIssue.assigneeId },
+            })
+            .projectingOptionalValuesAsNullable()
+            .orderBy('iid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as "opt.body", assignee_id as "opt.assigneeId" from issue order by iid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{
+            iid: number
+            opt:  { body: string | null; assigneeId: number | null } | null
+        }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('plain-select-rule-2-same-left-join-object-with-optional-leaf-under-projecting-optional-values-as-nullable', async () => {
+        // Rule-2 (all leaves from the SAME left join, at least one
+        // originallyRequired) under `projectingOptionalValuesAsNullable()`, with
+        // an OPTIONAL leaf mixed in. The originallyRequired leaves (`id`, `name`)
+        // are treated as required-when-present, the genuinely-optional `archivedAt`
+        // leaf flips to `Date | null`, and the whole object is `{...} | null`
+        // (null only when the join misses). The aggregate projector pins this
+        // arm; this is its plain-select `assertType<Exact>` twin. Every issue has
+        // a project, so the left join hits: issue 1 -> project 1 (Marketing site,
+        // archived_at NULL), so the object is present and `archivedAt` is null.
+        const expected = { iid: 1, proj: { id: 1, name: 'Marketing site', archivedAt: null } }
+        ctx.mockNext({ iid: 1, 'proj.id': 1, 'proj.name': 'Marketing site', 'proj.archivedAt': null })
+        const tProjLeft = tProject.forUseInLeftJoin()
+        const row = await ctx.conn.selectFrom(tIssue)
+            .leftJoin(tProjLeft).on(tProjLeft.id.equals(tIssue.projectId))
+            .where(tIssue.id.equals(1))
+            .select({
+                iid:  tIssue.id,
+                proj: { id: tProjLeft.id, name: tProjLeft.name, archivedAt: tProjLeft.archivedAt },
+            })
+            .projectingOptionalValuesAsNullable()
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.id as "proj.id", project.name as "proj.name", project.archived_at as "proj.archivedAt" from issue left join project on project.id = issue.project_id where issue.id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            iid:  number
+            proj: { id: number; name: string; archivedAt: Date | null } | null
+        }>>()
+        expect(row).toEqual(expected)
+    })
 })

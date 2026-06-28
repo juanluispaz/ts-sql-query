@@ -539,4 +539,54 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ id: number; a: bigint; s: bigint; o?: bigint }>>>()
         expect(result).toEqual(expected)
     })
+
+    test('custom-numeric/value-when-null-and-null-if-value-on-bigint-customint-customdouble', async () => {
+        // `valueWhenNull` / `nullIfValue` are redefined on the bigint /
+        // customInt / customDouble leaves with a brand-keeping return branch:
+        // valueWhenNull re-imposes `required` (coalesce), nullIfValue re-imposes
+        // `optional` (nullif), and the carried bigint / customInt / customDouble
+        // type is preserved. The other tests only exercise the plain
+        // NumberValueSource versions of these two methods.
+        //
+        // Worklog 2 has duration_ms NULL, so coalesce(duration_ms, 0n) surfaces
+        // the 0n fallback (proving the required re-imposition fires) while
+        // nullif(duration_ms, 0n) stays NULL -> the optional `dni` leaf is
+        // absent. cost_cents 100 and billed_amount 50 are non-null marshalled
+        // columns (Cents -> int, Money -> double), so their nullIfValue(0)
+        // results come back present as clean numbers.
+        const expected = [{ id: 2, dwn: 0n, cwn: 100, cni: 100, bwn: 50, bni: 50 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(2))
+            .select({
+                id:  tIssueWorklog.id,
+                dwn: tIssueWorklog.durationMs.valueWhenNull(0n),
+                dni: tIssueWorklog.durationMs.nullIfValue(0n),
+                cwn: tIssueWorklog.costCents.valueWhenNull(0),
+                cni: tIssueWorklog.costCents.nullIfValue(0),
+                bwn: tIssueWorklog.billedAmount.valueWhenNull(0),
+                bni: tIssueWorklog.billedAmount.nullIfValue(0),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(duration_ms, ?) as dwn, nullif(duration_ms, ?) as dni, ifnull(cost_cents, ?) as cwn, nullif(cost_cents, ?) as cni, ifnull(billed_amount, ?) as bwn, nullif(billed_amount, ?) as bni from issue_worklog where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            0n,
+            0n,
+            0,
+            0,
+            0,
+            0,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{
+            id: number
+            dwn: bigint; dni?: bigint
+            cwn: number; cni?: number
+            bwn: number; bni?: number
+        }>>>()
+        expect(result).toEqual(expected)
+    })
+
 })

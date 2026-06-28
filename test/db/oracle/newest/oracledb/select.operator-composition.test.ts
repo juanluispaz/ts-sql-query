@@ -3,7 +3,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tIssueWorklog, tOrganization, tProject } from '../../domain/connection.js'
+import { tAppUser, tIssue, tIssueWorklog, tOrganization, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -365,4 +365,38 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { id: number; flag?: boolean }>>()
         expect(row).toEqual(expected)
     })
+
+    test('operator-on-originally-required-left-join-column-projected-as-nullable-leaf-on-miss', async () => {
+        // The `projectingOptionalValuesAsNullable()` twin of
+        // `operator-on-originally-required-left-join-column-projected-as-leaf`
+        // above. There the join HITS and the `originallyRequired` direct leaf
+        // is `orgPlus?: number`; here `projectingOptionalValuesAsNullable()`
+        // renders the same `originallyRequired` leaf as `number | null`, and
+        // the join MISSES at runtime so the value is actually `null`. Issue 3
+        // has no assignee (assignee_id NULL), so the left join to app_user
+        // finds no row and `app_user.id + 1` is NULL.
+        const tAssigneeLeft = tAppUser.forUseInLeftJoin()
+        const expected = { iid: 3, assigneePlus: null }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tIssue)
+            .leftJoin(tAssigneeLeft).on(tAssigneeLeft.id.equals(tIssue.assigneeId))
+            .where(tIssue.id.equals(3))
+            .select({
+                iid:          tIssue.id,
+                assigneePlus: tAssigneeLeft.id.add(1),
+            })
+            .projectingOptionalValuesAsNullable()
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as "iid", app_user.id + :0 as "assigneePlus" from issue left join app_user on app_user.id = issue.assignee_id where issue.id = :1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            3,
+          ]
+        `)
+        assertType<Exact<typeof row, { iid: number; assigneePlus: number | null }>>()
+        expect(row).toEqual(expected)
+    })
+
 })

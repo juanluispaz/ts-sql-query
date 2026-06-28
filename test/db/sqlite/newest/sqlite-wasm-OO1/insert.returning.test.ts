@@ -249,4 +249,43 @@ describe(ctx.label, () => {
             else expect(inserted!.id).toBeGreaterThan(4) // seed reserves project ids 1-4
         })
     })
+
+    test('insert-on-conflict-do-nothing-returning-object-execute-insert-many', async () => {
+        // The multi-row execute arm of the ON CONFLICT DO NOTHING
+        // object-returning builder (ExecutableInsertReturningOptional.
+        // executeInsertMany). Every other do-nothing object-returning test
+        // exits through executeInsertNoneOrOne; this pins the array-returning
+        // branch. Neither (name, plan) pair collides with a unique key, so both
+        // rows insert and both come back.
+        const expectedMock = [
+            { id: 100, name: 'Conflict many A' },
+            { id: 101, name: 'Conflict many B' },
+        ]
+        ctx.mockNext(expectedMock)
+        await ctx.withRollback(async () => {
+            const inserted = await ctx.conn.insertInto(tOrganization)
+                .values([
+                    { name: 'Conflict many A', plan: 'free' },
+                    { name: 'Conflict many B', plan: 'pro' },
+                ])
+                .onConflictDoNothing()
+                .returning({ id: tOrganization.id, name: tOrganization.name })
+                .executeInsertMany()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?, ?), (?, ?) on conflict do nothing returning id as id, name as name"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Conflict many A",
+                "free",
+                "Conflict many B",
+                "pro",
+              ]
+            `)
+            assertType<Exact<typeof inserted, Array<{ id: number; name: string }>>>()
+            expect(inserted).toHaveLength(2)
+            // Names are deterministic; the auto-assigned ids are not.
+            expect(inserted.map((r) => r.name).sort()).toEqual(['Conflict many A', 'Conflict many B'])
+            if (!ctx.realDbEnabled) expect(inserted).toEqual(expectedMock)
+        })
+    })
 })

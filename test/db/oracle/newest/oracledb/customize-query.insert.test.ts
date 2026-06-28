@@ -180,4 +180,35 @@ describe(ctx.label, () => {
             expect(row).toEqual(expected)
         })
     })
+
+    // NOT-APPLICABLE: Oracle has no INSERT…ON CONFLICT (uses MERGE)
+//     test('customize-insert-on-conflict-returning-object-with-hooks', async () => {
+//         // The ON CONFLICT returning × customizeQuery composition — the
+//         // returning×customize combination is covered for plain / from-select /
+//         // UPDATE / DELETE, but the on-conflict returning builder was the one
+//         // source whose returning×customize pairing was unasserted. The hook
+//         // lands on the same statement and the optional (None-or-One) result
+//         // type is preserved. No unique key collides, so the insert succeeds and
+//         // the row comes back.
+//         const expected = { organizationId: 1, name: 'Mobile app', slug: 'mobile-app' }
+//         ctx.mockNext(expected)
+//         const connection = ctx.conn
+//         await ctx.withRollback(async () => {
+//             const row = await connection.insertInto(tProject)
+//                 .values({ name: 'Mobile app', slug: 'mobile-app', organizationId: 1 })
+//                 .onConflictDoNothing()
+//                 .returning({
+//                     organizationId: tProject.organizationId,
+//                     name:           tProject.name,
+//                     slug:           tProject.slug,
+//                 })
+//                 .customizeQuery({ afterInsertKeyword: connection.rawFragment`/*+ hint */` })
+//                 .executeInsertNoneOrOne()
+
+//             expect(ctx.lastSql).toMatchInlineSnapshot()
+//             expect(ctx.lastParams).toMatchInlineSnapshot()
+//             assertType<Exact<typeof row, { organizationId: number; name: string; slug: string } | null>>()
+//             expect(row).toEqual(expected)
+//         })
+//     })
 })

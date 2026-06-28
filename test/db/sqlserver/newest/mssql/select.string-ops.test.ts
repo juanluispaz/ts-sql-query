@@ -645,4 +645,102 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ id: number; j?: string; r?: string }>>>()
         expect(result).toEqual(expected)
     })
+
+    test('replaceAll-single-value-source-overloads', async () => {
+        // The two single-value-source `replaceAll` overloads: (const, VS) and
+        // (VS, const). The (const,const) and (VS,VS) forms are covered above;
+        // these mixed arms emit the param/column the other way around. app_user
+        // 1: email 'ada@acme.test', full_name 'Ada Lovelace'.
+        const expected = {
+            id:  1,
+            cvs: 'adaAda Lovelaceacme.test', // replace '@' with full_name
+            vsc: 'ada@acme.test',            // full_name not present in email -> unchanged
+        }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tAppUser)
+            .where(tAppUser.id.equals(1))
+            .select({
+                id:  tAppUser.id,
+                cvs: tAppUser.email.replaceAll('@', tAppUser.fullName),
+                vsc: tAppUser.email.replaceAll(tAppUser.fullName, '-'),
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(email, @0, full_name) as cvs, replace(email, full_name, @1) as vsc from app_user where id = @2"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "@",
+            "-",
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; cvs: string; vsc: string }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('replaceAllIfValue-single-value-source-overloads', async () => {
+        // The `replaceAllIfValue` single-value-source overloads — (str, VS) and
+        // (VS, str). Both literal arguments carry a value, so the predicates are
+        // emitted exactly like `replaceAll` (the IfValue elision only triggers
+        // when a literal argument is null/undefined). app_user 1: email
+        // 'ada@acme.test', full_name 'Ada Lovelace'.
+        const expected = {
+            id:  1,
+            sv: 'adaAda Lovelaceacme.test', // replace '@' with full_name
+            vs: 'ada@acme.test',            // full_name not present in email -> unchanged
+        }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tAppUser)
+            .where(tAppUser.id.equals(1))
+            .select({
+                id: tAppUser.id,
+                sv: tAppUser.email.replaceAllIfValue('@', tAppUser.fullName),
+                vs: tAppUser.email.replaceAllIfValue(tAppUser.fullName, '-'),
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(email, @0, full_name) as sv, replace(email, full_name, @1) as vs from app_user where id = @2"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "@",
+            "-",
+            1,
+          ]
+        `)
+        // Both arguments are present (the receiver and the value-source arg are
+        // required), so the IfValue result stays a required `string`.
+        assertType<Exact<typeof row, { id: number; sv: string; vs: string }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('substr-numeric-start-value-source-count-and-substring-both-value-sources', async () => {
+        // Two more single-/double-value-source boundary overloads:
+        //   - substr(numericStart, valueSourceCount) — JS-style start+count with
+        //     a literal start and a value-source count.
+        //   - substring(valueSourceStart, valueSourceEnd) — both boundaries are
+        //     value sources (the (VS,num)/(num,VS) substring forms are covered
+        //     above). issue 1: title 'Update hero copy', id 1, priority 2.
+        const expected = {
+            id:  1,
+            sc:  'Up', // substr(0, priority=2) -> first 2 chars
+            ss:  'p',  // substring(id=1, priority=2) -> char at 0-based index 1
+        }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                sc: tIssue.title.substr(0, tIssue.priority),
+                ss: tIssue.title.substring(tIssue.id, tIssue.priority),
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, substring(title, @0, priority) as sc, substring(title, id + 1, priority - id) as ss from issue where id = @1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; sc: string; ss: string }>>()
+        expect(row).toEqual(expected)
+    })
+
 })

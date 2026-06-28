@@ -139,4 +139,31 @@ describe(ctx.label, () => {
         })
     })
     */
+
+    // TODO[LIMITATION]: see LIMITATIONS.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
+    /*
+    test('update-returning-object-none-or-one', async () => {
+        // `executeUpdateNoneOrOne()` with an OBJECT-shape returning yields
+        // `{...} | null`. Only the single-column branch (returningOneColumn) was
+        // asserted for UPDATE noneOrOne; INSERT and DELETE both cover their
+        // object noneOrOne — this pins the UPDATE object noneOrOne arm. Issue 1
+        // exists, so the update matches exactly one row and returns it (the
+        // `| null` arm is the type promise the None case would take).
+        const expectedMock = { id: 1, title: 'Reordered' }
+        ctx.mockNext(expectedMock)
+
+        await ctx.withRollback(async () => {
+            const row = await ctx.conn.update(tIssue)
+                .set({ title: 'Reordered' })
+                .where(tIssue.id.equals(1))
+                .returning({ id: tIssue.id, title: tIssue.title })
+                .executeUpdateNoneOrOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof row, { id: number; title: string } | null>>()
+            expect(row).toEqual(expectedMock)
+        })
+    })
+    */
 })

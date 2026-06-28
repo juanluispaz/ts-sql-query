@@ -495,10 +495,16 @@ describe(ctx.label, () => {
     test('replaceAll-first-arg-optional-null-row', async () => {
         // `replaceAll(find, replace)` with an optional argument (`body`)
         // projects an optional leaf (`t?: string`). On a row where body is
-        // NULL, `replace(title, body, title)` is NULL and the optional leaf is
-        // omitted at runtime by the optionals-as-undefined projector.
-        const expected = [{ id: 1 }]
-        ctx.mockNext([{ id: 1, t: null }])
+        // NULL the SQL is `replace(title, NULL, title)` — and here Oracle
+        // DIVERGES from the other engines: Oracle's REPLACE treats a NULL
+        // search string as "nothing to replace" and returns the first argument
+        // UNCHANGED (verified: `replace('abc', NULL, 'xyz')` → `'abc'`), rather
+        // than propagating NULL the way Postgres / MySQL / SQL Server / SQLite
+        // do. So on Oracle the leaf is the row's title, not an omitted NULL.
+        // The optional-leaf *type* (`t?: string`) is unchanged — only the
+        // runtime value differs by dialect, so the mock mirrors Oracle's result.
+        const expected = [{ id: 1, t: 'Update hero copy' }]
+        ctx.mockNext([{ id: 1, t: 'Update hero copy' }])
         const result = await ctx.conn.selectFrom(tIssue)
             .where(tIssue.id.equals(1))
             .select({ id: tIssue.id, t: tIssue.title.replaceAll(tIssue.body, tIssue.title) })
@@ -511,7 +517,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof result, Array<{ id: number; t?: string }>>>()
         expect(result).toEqual(expected)
-        expect(result[0]!.t).toBeUndefined()
+        expect(result[0]!.t).toBe('Update hero copy')
     })
     test('string-predicate-on-optional-receiver-projects-optional-boolean', async () => {
         // A string predicate on an OPTIONAL receiver (`body`) projects an

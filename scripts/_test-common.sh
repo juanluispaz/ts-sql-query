@@ -309,6 +309,66 @@ cell_mode() {
     esac
 }
 
+# Echo ONE representative real docker cell per engine — `<db>/<version>/<connector>`,
+# one per line, de-duplicated to the FIRST real docker cell of each engine.
+#
+# All connectors of an engine share a single container, so one cell is enough
+# to warm that engine. Used by `warmup_docker_engines` to feed
+# `test/lib/dockerPreflight.ts`. Reads the same globals `cell_mode` /
+# `list_cells_from_main_paths` read (MAIN_PATHS + the resolved DOCKER_* /
+# WASM_* / NATIVE_* selections), so the result tracks exactly which engines the
+# run will hit on a real container.
+real_docker_rep_cells() {
+    local cell verdict ann rest db connector seen=" "
+    while IFS= read -r cell; do
+        [ -n "$cell" ] || continue
+        cell="${cell%/}"
+        IFS=$'\t' read -r verdict ann < <(cell_mode "$cell")
+        [ "$verdict" = "real" ] || continue
+        # Keep only docker-backed engines; the annotation is `(docker)` for
+        # a real docker cell (wasm / native reals carry their own kind tag).
+        case "$ann" in *'(docker'*) ;; *) continue ;; esac
+        connector="${cell##*/}"
+        # Two connector kinds are unfit to DRIVE the warmup, even though
+        # cell_mode tags them docker:
+        #   · `documentation` — self-contained mock cells, no real container;
+        #     picking one would leave the engine's real container unwarmed.
+        #   · `bun_*` (e.g. bun_sql_postgres) — Bun-only drivers that import
+        #     `bun:sql`; under the tsx/node warmup path the import fails.
+        # Both share their engine's container with a node-safe sibling
+        # (pg / mariadb / mysql2 / …), so skipping them as reps loses no
+        # warmup coverage — the engine is still reached through that sibling.
+        case "$connector" in documentation|bun_*) continue ;; esac
+        rest="${cell#test/db/}"; db="${rest%%/*}"
+        case "$seen" in *" $db "*) continue ;; esac
+        seen="$seen$db "
+        printf '%s\n' "$rest"
+    done < <(list_cells_from_main_paths 2>/dev/null)
+}
+
+# Sequentially warm up the docker engines a `--docker` run will hit, after a
+# Docker resource check. REUSE MODE ONLY: a container started here survives to
+# the test workers only because reusable containers are exempt from Ryuk
+# reaping — under `--docker-mode no-reuse` the warmed container would be reaped
+# the moment this helper's process exits, so the caller must gate on reuse.
+#
+# Best-effort by contract: a warmup hiccup (slow image pull, transient daemon
+# error) returns non-zero but the caller treats only exit code 3 — the strict
+# resource-block from dockerPreflight.ts — as fatal. Everything else falls
+# through to the lazy per-cell acquire, which retries.
+#
+#   Args: <runtime> <rep-cell…>   (<runtime> = "bun" | "npm")
+warmup_docker_engines() {
+    local runtime="$1"; shift
+    [ "$#" -eq 0 ] && return 0
+    echo "Pre-warming docker engine(s) sequentially before the run: $*" >&2
+    if [ "$runtime" = "bun" ]; then
+        bun test/lib/dockerPreflight.ts "$@"
+    else
+        tsx test/lib/dockerPreflight.ts "$@"
+    fi
+}
+
 # Expand a set of coords (same coord rules) into cell keys
 # <db>/<version>/<connector>, IGNORING the --run-versions/--run-connectors
 # gating. One key per line. Reuses the coord machinery by re-resolving with

@@ -62,7 +62,14 @@ export interface TestContext<CONN> {
     down(): Promise<void>
     /** Forget captured state and mock queue. Call from `beforeEach`. */
     reset(): void
-    /** Re-apply schema + seed. No-op when real DB is off. */
+    /**
+     * Restore the seeded data baseline. Runs the per-engine DATA-ONLY reset
+     * (`test/db/<db>/domain/reset.sql` — TRUNCATE/DELETE + identity/sequence
+     * rewind, no DROP/CREATE) followed by the seed, so it leaves the exact same
+     * state a fresh schema rebuild would but without the catalog churn (the
+     * heavy DROP+CREATE lives only in the once-per-worker bootstrap). No-op when
+     * the real DB is off.
+     */
     reseed(): Promise<void>
     /**
      * Run a mutating test body so any data it writes never reaches the
@@ -138,8 +145,13 @@ export interface TestContextOptions<CONN> {
     /**
      * Build a real (driver-backed) runner. Called from `up()` when
      * `realDbEnabled` is true. Returns the runner plus a shutdown hook.
+     *
+     * `forceNew` (passed by the harness's poisoned-connection recovery)
+     * rebuilds a FRESH runner — clean transaction state — over the shared
+     * pool/connection, replacing the memoised one so later cells get it too.
+     * Engines wire it straight through to `memoizeSharedRunner(..., forceNew)`.
      */
-    createRealRunner?: (() => Promise<{ runner: QueryRunner; shutdown(): Promise<void> }>) | undefined
+    createRealRunner?: ((forceNew?: boolean) => Promise<{ runner: QueryRunner; shutdown(): Promise<void> }>) | undefined
     /**
      * Optional connector-specialised mock class. Falls back to
      * `MockQueryRunner` when not provided. Use this when the real
@@ -152,15 +164,18 @@ export interface TestContextOptions<CONN> {
     /** Optional one-shot seed step run during `up()` after the real runner is created. */
     onUp?: ((realInterceptor: CaptureInterceptor) => Promise<void>) | undefined
     /**
-     * Re-apply schema + seed. Called by `reseed()` between tests when the
-     * real backend is enabled. Receives the **underlying** `QueryRunner`
-     * (the one returned by `createRealRunner` — already unwrapped of the
-     * test-side `CaptureInterceptor`) so the implementation can reuse the
-     * runner's existing connection pool via `runner.getNativeRunner()`.
-     * Borrowing from the pool instead of opening a fresh driver-level
-     * connection per reseed avoids the auth handshake on every test that
-     * exercises a commit path — a real cost on Oracle / SQL Server under
-     * the parallel matrix.
+     * Restore the seeded data baseline (per-engine DATA-ONLY reset.sql +
+     * seed — TRUNCATE/DELETE + identity/sequence rewind, NOT a DROP+CREATE
+     * schema rebuild). Called by `reseed()` between tests when the real backend
+     * is enabled. Receives the **underlying** `QueryRunner` (the one returned by
+     * `createRealRunner` — already unwrapped of the test-side
+     * `CaptureInterceptor`) so the implementation can reuse the runner's
+     * existing connection pool via `runner.getNativeRunner()`. Borrowing from
+     * the pool instead of opening a fresh driver-level connection per reseed
+     * avoids the auth handshake on every test that exercises a commit path — a
+     * real cost on Oracle / SQL Server under the parallel matrix. The data-only
+     * reset further cuts the per-reseed cost and (Oracle especially) the
+     * shared-data-dictionary DDL contention the old schema rebuild caused.
      */
     onReseed?: ((runner: QueryRunner) => Promise<void>) | undefined
     /** Tear down anything `onUp` or `createRealRunner` allocated. */
@@ -228,6 +243,29 @@ export function createTestContext<CONN>(opts: TestContextOptions<CONN>): TestCon
     // Hold the unwrapped runner so `onReseed` can borrow from its pool
     // instead of opening a fresh driver-level connection per reseed.
     let realRunner: QueryRunner | null = null
+
+    // Recover from a poisoned connection. When a transaction's COMMIT fails
+    // mid-flight — e.g. the connection drops under load — the pool runner
+    // deliberately leaves its transaction counter > 0 ("commit failed → the
+    // transaction may still be open"; see AbstractPoolQueryRunner.executeCommit).
+    // Because the runner is shared per worker, that lingering state would make
+    // the NEXT test that opens a transaction trip the nested-transaction guard
+    // (NESTED_TRANSACTION_NOT_SUPPORTED) even though it did nothing wrong.
+    // Detect the lingering state and DISCARD the connection: rebuild a fresh
+    // runner (clean counter) over the shared pool via createRealRunner(forceNew),
+    // then rewire the capture interceptor + user-facing connection — so the
+    // contamination can't cascade. A no-op when the connection is clean (the
+    // common case) or the backend is the mock.
+    async function recreateRealRunnerIfPoisoned(): Promise<void> {
+        if (!opts.realDbEnabled || !opts.createRealRunner || conn === null) return
+        const c = conn as unknown as { isTransactionActive?: () => boolean }
+        if (typeof c.isTransactionActive !== 'function' || !c.isTransactionActive()) return
+        const created = await opts.createRealRunner(true)
+        shutdownReal = created.shutdown
+        realRunner = created.runner
+        capture = new CaptureInterceptor(created.runner)
+        conn = opts.buildConnection(capture, opts.compatibilityVersion)
+    }
 
     const ctx: TestContext<CONN> = {
         label: opts.label,
@@ -334,6 +372,11 @@ export function createTestContext<CONN>(opts: TestContextOptions<CONN>): TestCon
             } catch (e) {
                 if (e instanceof RollbackSignal) return
                 throw e
+            } finally {
+                // Rollback normally leaves the transaction counter at 0, but a
+                // dropped connection mid-flight could still poison it — discard
+                // the connection if so (no-op otherwise).
+                await recreateRealRunnerIfPoisoned()
             }
         },
 
@@ -351,8 +394,15 @@ export function createTestContext<CONN>(opts: TestContextOptions<CONN>): TestCon
             try {
                 await c.transaction(async () => { await fn() })
             } finally {
-                if (opts.realDbEnabled && opts.onReseed && realRunner) {
-                    await opts.onReseed(realRunner)
+                try {
+                    if (opts.realDbEnabled && opts.onReseed && realRunner) {
+                        await opts.onReseed(realRunner)
+                    }
+                } finally {
+                    // A failed commit (e.g. connection dropped under load) leaves
+                    // the runner's transaction counter poisoned; discard + rebuild
+                    // the connection so the next test doesn't inherit it.
+                    await recreateRealRunnerIfPoisoned()
                 }
             }
         },
@@ -367,8 +417,15 @@ export function createTestContext<CONN>(opts: TestContextOptions<CONN>): TestCon
             try {
                 await fn()
             } finally {
-                if (opts.realDbEnabled && opts.onReseed && realRunner) {
-                    await opts.onReseed(realRunner)
+                try {
+                    if (opts.realDbEnabled && opts.onReseed && realRunner) {
+                        await opts.onReseed(realRunner)
+                    }
+                } finally {
+                    // The body manages its own transaction; if its commit failed
+                    // mid-flight the runner's counter is poisoned — discard +
+                    // rebuild the connection so the next test starts clean.
+                    await recreateRealRunnerIfPoisoned()
                 }
             }
         },

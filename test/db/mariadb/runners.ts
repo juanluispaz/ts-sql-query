@@ -90,6 +90,10 @@ const DATABASE = 'mariadb'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const SCHEMA_PATH = resolve(__dirname, './domain/schema.sql')
 const SEED_PATH = resolve(__dirname, './domain/seed.sql')
+// Data-only reset used by the per-test reseed (onReseed) in place of the full
+// schema rebuild — see ./domain/reset.sql. schema.sql's DROP+CREATE is kept
+// only for the once-per-worker bootstrap.
+const RESET_PATH = resolve(__dirname, './domain/reset.sql')
 
 // `mariadb` (no tag) tracks the latest stable image, matching what the
 // `all-examples` script uses for the `newest` cell.
@@ -215,6 +219,18 @@ async function applySchemaAndSeedOnConnection(conn: import('mariadb').Connection
     for (const stmt of splitStatements(seedSql)) await conn.query(stmt)
 }
 
+// Data-only baseline restore used by the per-test reseed: reset.sql (TRUNCATE +
+// sequence rewind) instead of the heavy schema.sql, then the same seed. Leaves
+// the exact post-bootstrap state without the DROP+CREATE catalog churn.
+async function applyResetAndSeedOnConnection(conn: import('mariadb').Connection | import('mariadb').PoolConnection): Promise<void> {
+    const [resetSql, seedSql] = await Promise.all([
+        readFile(RESET_PATH, 'utf8'),
+        readFile(SEED_PATH, 'utf8'),
+    ])
+    for (const stmt of splitStatements(resetSql)) await conn.query(stmt)
+    for (const stmt of splitStatements(seedSql)) await conn.query(stmt)
+}
+
 // First-time setup: the runner's pool does not exist yet (the worker DB
 // must be created before the pool can authenticate against it). This path
 // opens a one-shot direct connection to bootstrap the worker DB and
@@ -255,11 +271,20 @@ async function bootstrapWorkerDbSchemaAndSeed(host: string, port: number): Promi
 }
 
 async function connectWithRetry(mariadb: typeof import('mariadb'), config: any): Promise<import('mariadb').Connection> {
-    const deadline = Date.now() + 30_000
+    // 90 s window (was 30 s). The one-shot validator/bootstrap connects run at
+    // the START of a worker's first acquire, but the worst contention is the
+    // END-OF-RUN convergence storm: once the fast engines finish, every
+    // remaining worker piles onto the few heavy containers (mariadb / mssql) at
+    // once and macOS Docker's userspace port-forward proxy briefly drops socket
+    // connects ("failed to create socket"). A 30 s window gave up mid-storm; 90 s
+    // (with a tight per-attempt connectTimeout so each failed attempt returns
+    // fast and we get ~many retries) rides the convergence out instead of
+    // failing the beforeAll hook.
+    const deadline = Date.now() + 90_000
     let lastError: unknown
     while (Date.now() < deadline) {
         try {
-            return await mariadb.createConnection(config)
+            return await mariadb.createConnection({ connectTimeout: 5_000, ...config })
         } catch (err) {
             lastError = err
             await new Promise(r => setTimeout(r, 500))
@@ -288,6 +313,29 @@ export function createMariaDBPoolTestContext(spec: MariaDBTestSpec): MariaDBTest
             user: 'root', password: ROOT_PASSWORD,
             database: params.workerDb,
             connectionLimit: 4,
+            // Open connections LAZILY (on first use) instead of eagerly. mariadb
+            // defaults `minimumIdle` to `connectionLimit`, so a bare pool opens
+            // 4 sockets the instant it's created — ×12 workers = 48 simultaneous
+            // connects against the just-warmed container at the start of the
+            // parallel pass, the connection storm that intermittently times out.
+            // Tests run sequentially within a worker (one at a time), so a worker
+            // needs only ~1-2 live connections; lazy creation cuts the startup
+            // peak ~4× with no downside.
+            minimumIdle: 0,
+            // Ride out the connection storm at the start of the parallel
+            // pass: ~12 workers build their pool AND bootstrap their worker
+            // DB against the just-warmed container at the same instant, so a
+            // socket connect or a pool acquire can briefly stall. Without
+            // patient timeouts the default ~2 s socket connect / 10 s acquire
+            // fail the test with "pool failed to retrieve a connection". These
+            // only make the pool wait longer before giving up — they never
+            // mask a genuinely dead container (the warmup already proved it
+            // up), they just absorb the thundering-herd transient — now sized
+            // for the END-OF-RUN convergence storm (workers piling onto the last
+            // heavy containers), matching the 90 s connectWithRetry window.
+            connectTimeout: 30_000,
+            acquireTimeout: 90_000,
+            initializationTimeout: 90_000,
         })
         return {
             runner: new MariaDBPoolQueryRunner(pool),
@@ -301,12 +349,14 @@ export function createMariaDBPoolTestContext(spec: MariaDBTestSpec): MariaDBTest
         compatibilityVersion: spec.compatibilityVersion,
         database: 'mariaDB',
         realDbEnabled,
-        async createRealRunner() {
+        async createRealRunner(forceNew = false) {
             const container = await acquireContainer()
             const host = container.getHost()
             const port = container.getMappedPort(3306)
             const workerDb = await bootstrapWorkerDbSchemaAndSeed(host, port)
-            return await buildRunner({ host, port, workerDb })
+            // `forceNew` rebuilds a fresh runner (clean transaction state) when
+            // the harness discards a connection poisoned by a failed commit.
+            return await buildRunner({ host, port, workerDb }, forceNew)
         },
         async onReseed(runner) {
             // Reuse the runner's existing mariadb pool. Borrowing a
@@ -314,7 +364,7 @@ export function createMariaDBPoolTestContext(spec: MariaDBTestSpec): MariaDBTest
             const pool = runner.getNativeRunner() as import('mariadb').Pool
             const conn = await pool.getConnection()
             try {
-                await applySchemaAndSeedOnConnection(conn)
+                await applyResetAndSeedOnConnection(conn)
             } finally {
                 await conn.release()  // releases back to pool
             }

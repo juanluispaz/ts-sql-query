@@ -91,6 +91,11 @@ const DATABASE = 'oracle'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const SCHEMA_PATH = resolve(__dirname, './domain/schema.sql')
 const SEED_PATH = resolve(__dirname, './domain/seed.sql')
+// Data-only reset used by the per-test reseed (onReseed) in place of the full
+// schema rebuild — see ./domain/reset.sql. schema.sql's DROP+CREATE is kept
+// only for the once-per-worker bootstrap. The reduction matters most here:
+// every worker user shares one instance's data dictionary.
+const RESET_PATH = resolve(__dirname, './domain/reset.sql')
 
 const ORACLE_IMAGE = 'gvenzl/oracle-free:23-slim-faststart'
 const ORACLE_PASSWORD = 'OracleTestPass1!'
@@ -355,6 +360,24 @@ async function applySchemaAndSeedToOpenedConnection(conn: import('oracledb').Con
     await conn.commit()
 }
 
+// Data-only baseline restore used by the per-test reseed: reset.sql (DELETE +
+// identity/sequence rewind) instead of the heavy schema.sql, then the same
+// seed. Leaves the exact post-bootstrap state without the DROP+CREATE
+// shared-dictionary churn.
+async function applyResetAndSeedToOpenedConnection(conn: import('oracledb').Connection): Promise<void> {
+    const [resetSql, seedSql] = await Promise.all([
+        readFile(RESET_PATH, 'utf8'),
+        readFile(SEED_PATH, 'utf8'),
+    ])
+    for (const stmt of splitStatements(resetSql)) {
+        await conn.execute(stmt)
+    }
+    for (const stmt of splitStatements(seedSql)) {
+        await conn.execute(stmt)
+    }
+    await conn.commit()
+}
+
 // First-time setup: the runner's pool does not exist yet because the worker
 // user must be created before the pool can authenticate against it. This
 // path opens a one-shot direct connection to bootstrap the schema/seed.
@@ -396,7 +419,14 @@ export function createOracleDBPoolTestContext(spec: OracleTestSpec): OracleTestC
             user: params.workerUser,
             password: APP_PASSWORD,
             connectString: `${params.host}:${params.port}/${SERVICE_NAME}`,
-            poolMin: 1,
+            // Open connections lazily (poolMin 0) instead of eagerly establishing
+            // one per worker at createPool time. With ~12 workers that is 12
+            // simultaneous Oracle auth handshakes against the shared instance at
+            // the start of the parallel pass; since tests run sequentially within
+            // a worker, the first query creates the connection just-in-time with
+            // no contention spike. poolMax unchanged for the rare multi-connection
+            // test (transaction + reseed borrow).
+            poolMin: 0,
             poolMax: 4,
         })
         return {
@@ -412,12 +442,14 @@ export function createOracleDBPoolTestContext(spec: OracleTestSpec): OracleTestC
         database: 'oracle',
         realDbEnabled,
         timeoutMs: 300_000,
-        async createRealRunner() {
+        async createRealRunner(forceNew = false) {
             const container = await acquireContainer()
             const host = container.getHost()
             const port = container.getMappedPort(1521)
             const workerUser = await bootstrapWorkerUserSchemaAndSeed(host, port)
-            return await buildRunner({ host, port, workerUser })
+            // `forceNew` rebuilds a fresh runner (clean transaction state) when
+            // the harness discards a connection poisoned by a failed commit.
+            return await buildRunner({ host, port, workerUser }, forceNew)
         },
         async onReseed(runner) {
             // Reuse the runner's existing oracledb pool instead of opening a
@@ -427,7 +459,7 @@ export function createOracleDBPoolTestContext(spec: OracleTestSpec): OracleTestC
             const pool = runner.getNativeRunner() as import('oracledb').Pool
             const conn = await pool.getConnection()
             try {
-                await applySchemaAndSeedToOpenedConnection(conn)
+                await applyResetAndSeedToOpenedConnection(conn)
             } finally {
                 await conn.close()  // releases back to pool
             }

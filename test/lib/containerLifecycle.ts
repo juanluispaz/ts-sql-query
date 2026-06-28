@@ -160,13 +160,21 @@ export const VALIDATE_LOCK_NAME = 'tssqlquery_validate'
  * Use this from inside every engine-specific factory in
  * `test/db/<engine>/runners.ts` so individual `setup.ts` files don't
  * have to grow per-connector memoisation state.
+ *
+ * `forceNew` rebuilds the cached resource from scratch (new pool + runner)
+ * and replaces the shared entry, so every later call sees the fresh one too.
+ * The previous resource is left to leak (consistent with the
+ * never-shutdown-the-pool model above; the OS reclaims it at process exit).
+ * The test harness uses this to DISCARD a connection whose transaction state
+ * was poisoned by a commit that failed mid-flight under load — see
+ * `recreateRealRunnerIfPoisoned` in `testContext.ts`.
  */
 export function memoizeSharedRunner<ARG, RUNNER>(
     factory: (arg: ARG) => Promise<{ runner: RUNNER; shutdown(): Promise<void> }>,
-): (arg: ARG) => Promise<{ runner: RUNNER; shutdown(): Promise<void> }> {
+): (arg: ARG, forceNew?: boolean) => Promise<{ runner: RUNNER; shutdown(): Promise<void> }> {
     let cached: { runner: RUNNER; shutdown(): Promise<void> } | null = null
-    return async (arg: ARG) => {
-        if (cached === null) {
+    return async (arg: ARG, forceNew = false) => {
+        if (cached === null || forceNew) {
             const built = await factory(arg)
             cached = {
                 runner: built.runner,

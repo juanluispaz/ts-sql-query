@@ -114,6 +114,10 @@ const DATABASE = 'postgres'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const SCHEMA_PATH = resolve(__dirname, './domain/schema.sql')
 const SEED_PATH = resolve(__dirname, './domain/seed.sql')
+// Data-only reset used by the per-test reseed (onReseed) instead of the full
+// schema rebuild — see ./domain/reset.sql. The DROP+CREATE schema.sql is kept
+// only for the once-per-worker bootstrap.
+const RESET_PATH = resolve(__dirname, './domain/reset.sql')
 
 const POSTGRES_IMAGE = 'postgres:18-alpine'
 
@@ -251,6 +255,7 @@ let workerDbEnsured = false
 let schemaSeedPool: Pool | null = null
 let schemaSql: string | null = null
 let seedSql: string | null = null
+let resetSql: string | null = null
 
 /**
  * Ensure schema+seed SQL strings are loaded into module state.
@@ -266,35 +271,53 @@ async function ensureSchemaAndSeedLoaded(): Promise<{ schema: string; seed: stri
 }
 
 /**
- * Borrow against the runner's native pg/postgres.js/bun:sql/pglite handle
- * to re-apply schema + seed. Dispatches by feature detection because the
- * factories below are shared across cells whose underlying driver shape
- * differs (`pg.Pool` has `.query`; `postgres.js`/`bun:sql` are
- * tagged-template functions exposing `.unsafe`; PGlite exposes `.exec`).
- * All four accept multi-statement SQL in a single call.
+ * Ensure reset+seed SQL strings are loaded into module state. The reset is the
+ * data-only baseline restore (TRUNCATE + sequence rewind), used by the per-test
+ * reseed in place of the heavy schema rebuild.
+ */
+async function ensureResetAndSeedLoaded(): Promise<{ reset: string; seed: string }> {
+    if (resetSql === null || seedSql === null) {
+        [resetSql, seedSql] = await Promise.all([
+            readFile(RESET_PATH, 'utf8'),
+            readFile(SEED_PATH, 'utf8'),
+        ])
+    }
+    return { reset: resetSql, seed: seedSql }
+}
+
+/**
+ * Borrow against the runner's native pg/postgres.js/bun:sql/pglite handle to
+ * restore the seeded baseline between tests. Runs the DATA-ONLY reset
+ * (./domain/reset.sql — TRUNCATE + sequence rewind, no DROP/CREATE) plus the
+ * seed, NOT the full schema rebuild: identical end state, far less catalog
+ * churn under the parallel matrix. Dispatches by feature detection because the
+ * factories below are shared across cells whose underlying driver shape differs
+ * (`pg.Pool` has `.query`; `postgres.js`/`bun:sql` are tagged-template
+ * functions exposing `.unsafe`; PGlite exposes `.exec`). All four accept the
+ * single-statement reset + multi-statement seed in one call.
  */
 async function reseedAgainstNativePostgresHandle(runner: QueryRunner): Promise<void> {
-    const { schema, seed } = await ensureSchemaAndSeedLoaded()
+    const { reset, seed } = await ensureResetAndSeedLoaded()
     const native = runner.getNativeRunner() as any
     // PGlite check must run BEFORE the duck-typed `.query`/`.unsafe` checks:
     // a PGlite instance also exposes `.query(text, params)` (PostgreSQL
     // extended protocol — single-statement only, rejects multi-statement
-    // schema with `cannot insert multiple commands into a prepared
+    // seed with `cannot insert multiple commands into a prepared
     // statement`). Only `.exec` routes through the simple query protocol
-    // that accepts the multi-statement schema/seed.
+    // that accepts the multi-statement seed.
     if (typeof native?.exec === 'function' && typeof native?.execProtocolRaw === 'function') {
         // PGlite (the extra `execProtocolRaw` check pins the brand —
         // postgres.js's tagged template also exposes a `.unsafe`, and
         // some pg drivers expose stray `.exec` methods.)
-        await native.exec(schema)
+        await native.exec(reset)
         await native.exec(seed)
     } else if (typeof native?.unsafe === 'function') {
         // postgres.js Sql or bun:sql SQL — tagged-template function with .unsafe()
-        await native.unsafe(schema)
+        await native.unsafe(reset)
         await native.unsafe(seed)
     } else if (typeof native?.query === 'function') {
         // pg.Pool
-        await native.query(schema)
+        await native.query(reset)
         await native.query(seed)
     } else {
         throw new Error('Unsupported native postgres runner shape; cannot reseed')
@@ -384,11 +407,13 @@ export function createPgTestContext(spec: PgTestSpec): PostgresTestContext {
         compatibilityVersion: spec.compatibilityVersion,
         database: 'postgreSql',
         realDbEnabled,
-        async createRealRunner() {
+        async createRealRunner(forceNew = false) {
             const container = await acquireContainer()
             const adminUri = container.getConnectionUri()
             workerUri = await bootstrapWorkerDbSchemaAndSeed(adminUri)
-            return await buildRunner(workerUri)
+            // `forceNew` rebuilds a fresh runner (clean transaction state) when
+            // the harness discards a connection poisoned by a failed commit.
+            return await buildRunner(workerUri, forceNew)
         },
         async onUp() {
             if (spec.createNestedTxRunner && workerUri) {

@@ -18,6 +18,7 @@ mutation safety contract that runs ON TOP of this infra see
 
 - [Container reuse](#container-reuse)
 - [Cross-invocation reuse](#cross-invocation-reuse)
+- [Docker preflight & sequential warmup](#docker-preflight--sequential-warmup)
 - [Narrowing the docker scope](#narrowing-the-docker-scope)
 - [Participation vs real/mock](#participation-vs-real-mock)
 - [Schema / seed change revalidation](#schema--seed-change-revalidation)
@@ -75,6 +76,59 @@ for comparison was ~228 s per run.
   every cell's `ctx.up()`, so stale data from a previous run is wiped.
 - **Reuse off**: Ryuk kills containers as soon as the process exits. The next
   run pays the full cold start cost.
+
+## Docker preflight & sequential warmup
+
+Container reuse keeps engines warm *between* runs, but the **first** real
+`--docker` run on a clean host still has to cold-start every selected engine.
+Left to the lazy path, all of them start **simultaneously** the instant the
+parallel pass begins — up to one worker per CPU, each calling `ctx.up()` at
+once. On a Docker host sized below the matrix's needs that memory spike gets
+the biggest container (usually SQL Server) OOM-killed, and the run dissolves
+into dozens of `Failed to connect` / pool-exhaustion / `beforeEach/afterEach
+hook timed out` failures that look like test bugs but are pure infrastructure
+starvation. (The full matrix wants ≈ 9 GiB of Docker memory; Docker Desktop
+defaults well below that.)
+
+To stop that, `tests.sh` runs a **preflight** before the test phases — only in
+reuse mode, and only when at least one docker cell is selected real. It lives
+in [`test/lib/dockerPreflight.ts`](./lib/dockerPreflight.ts), driven by the
+`real_docker_rep_cells` / `warmup_docker_engines` helpers in
+[`scripts/_test-common.sh`](../scripts/_test-common.sh). Two steps:
+
+1. **Resource check.** Read the Docker runtime's advertised memory
+   (`getContainerRuntimeClient().info`) and compare it to a conservative
+   estimate for the engines this run will actually use. When it's short this is
+   a **hard error that aborts the run** (exit 3) with the exact numbers and
+   platform-specific instructions for raising the memory — far better than
+   letting the run dissolve into 50 cryptic connection timeouts. The block is
+   on by default; set `TSSQLQUERY_DOCKER_MEMORY_STRICT=0` to downgrade it to a
+   warning and proceed anyway. A daemon whose info can't be read is never
+   blocked on (we don't fail on an unknown).
+
+2. **Sequential warmup.** Bring the needed containers up **one at a time**,
+   waiting for each to become healthy before the next, so the cold-start
+   memory cost is spread over time instead of stacked. The warmup drives a
+   representative cell's `ctx.up()` (then `ctx.down()`) per engine — that
+   reuses the *exact* container builder the runners use, so the reuse hash
+   matches and the workers attach to the container started here, and it
+   front-loads the once-per-container schema-hash validation too. All
+   connectors of an engine share one container, so one cell per engine is
+   enough.
+
+Why reuse-only: a container started in a separate preflight process survives
+to the test workers solely because reusable containers are exempt from Ryuk
+reaping. Under `--docker-mode no-reuse` it would be reaped the moment the
+preflight exits, so the warmup is skipped there (the cold-start storm is
+inherent to hermetic runs).
+
+The warmup is **best-effort**: a slow image pull or transient daemon hiccup
+warns but does not abort the run (the lazy per-cell acquire retries). The one
+fatal outcome is the resource block above — and it's fatal by design, because
+the single highest-impact fix for the underlying problem is **giving Docker
+more memory**. The preflight makes the shortfall obvious and the warmup softens
+the peak, but neither manufactures RAM the host doesn't have, so a short host is
+stopped up front rather than allowed to fail slowly.
 
 ## Narrowing the docker scope
 

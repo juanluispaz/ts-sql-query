@@ -90,6 +90,10 @@ const DATABASE = 'mysql'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const SCHEMA_PATH = resolve(__dirname, './domain/schema.sql')
 const SEED_PATH = resolve(__dirname, './domain/seed.sql')
+// Data-only reset used by the per-test reseed (onReseed) in place of the full
+// schema rebuild — see ./domain/reset.sql. schema.sql's DROP+CREATE is kept
+// only for the once-per-worker bootstrap.
+const RESET_PATH = resolve(__dirname, './domain/reset.sql')
 
 const MYSQL_IMAGE = 'mysql:9'
 const ROOT_PASSWORD = 'mysql-test-pass'
@@ -212,6 +216,19 @@ async function applySchemaAndSeedOnConnection(conn: import('mysql2/promise').Con
     for (const stmt of splitStatements(seedSql)) await conn.query(stmt)
 }
 
+// Data-only baseline restore used by the per-test reseed: reset.sql (TRUNCATE,
+// which also rewinds AUTO_INCREMENT) instead of the heavy schema.sql, then the
+// same seed. Leaves the exact post-bootstrap state without the DROP+CREATE
+// catalog churn.
+async function applyResetAndSeedOnConnection(conn: import('mysql2/promise').Connection | import('mysql2/promise').PoolConnection): Promise<void> {
+    const [resetSql, seedSql] = await Promise.all([
+        readFile(RESET_PATH, 'utf8'),
+        readFile(SEED_PATH, 'utf8'),
+    ])
+    for (const stmt of splitStatements(resetSql)) await conn.query(stmt)
+    for (const stmt of splitStatements(seedSql)) await conn.query(stmt)
+}
+
 // First-time setup: the runner's pool does not exist yet (the worker DB
 // must be created before the pool can authenticate against it). This path
 // opens a one-shot direct connection to bootstrap the worker DB and
@@ -287,6 +304,13 @@ export function createMySql2PoolTestContext(spec: MySqlTestSpec): MySqlTestConte
             user: 'root', password: ROOT_PASSWORD,
             database: params.workerDb,
             connectionLimit: 4,
+            // Be patient through the parallel-pass connection storm — see the
+            // mariadb runner for the full rationale. mysql2 queues acquires
+            // (it has no acquireTimeout — a waiter blocks until a connection
+            // frees up), so the only knob that matters here is the
+            // per-connection connectTimeout: raise it so the initial socket
+            // connect rides out the thundering herd instead of failing fast.
+            connectTimeout: 20_000,
         })
         return {
             runner: new MySql2PoolQueryRunner(pool),
@@ -300,12 +324,14 @@ export function createMySql2PoolTestContext(spec: MySqlTestSpec): MySqlTestConte
         compatibilityVersion: spec.compatibilityVersion,
         database: 'mySql',
         realDbEnabled,
-        async createRealRunner() {
+        async createRealRunner(forceNew = false) {
             const container = await acquireContainer()
             const host = container.getHost()
             const port = container.getMappedPort(3306)
             const workerDb = await bootstrapWorkerDbSchemaAndSeed(host, port)
-            return await buildRunner({ host, port, workerDb })
+            // `forceNew` rebuilds a fresh runner (clean transaction state) when
+            // the harness discards a connection poisoned by a failed commit.
+            return await buildRunner({ host, port, workerDb }, forceNew)
         },
         async onReseed(runner) {
             // Reuse the runner's existing mysql2 pool. The runner uses the
@@ -315,7 +341,7 @@ export function createMySql2PoolTestContext(spec: MySqlTestSpec): MySqlTestConte
             const pool = runner.getNativeRunner() as import('mysql2').Pool
             const conn = await pool.promise().getConnection()
             try {
-                await applySchemaAndSeedOnConnection(conn)
+                await applyResetAndSeedOnConnection(conn)
             } finally {
                 conn.release()  // returns to pool synchronously
             }

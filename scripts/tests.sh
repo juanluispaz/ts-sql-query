@@ -815,6 +815,29 @@ export TS_SQL_QUERY_DOCKER="$DOCKER_ENV"
 export TS_SQL_QUERY_NATIVE="$NATIVE_ENV"
 if [ "$DOCKER_MODE" = "reuse" ]; then export TESTCONTAINERS_REUSE_ENABLE=true; fi
 
+# Docker preflight + warmup (reuse mode only). Before the parallel pass kicks
+# every engine into a simultaneous cold start — a memory spike that OOM-kills
+# the biggest container on an under-provisioned host and cascades into dozens
+# of spurious "Failed to connect" / pool-exhaustion / hook-timeout failures —
+# check the host's memory budget and bring the needed containers up ONE AT A
+# TIME. Only meaningful in reuse mode: a container started in the preflight
+# survives to the workers solely because reusable containers are exempt from
+# Ryuk reaping (under no-reuse it would be reaped at the preflight's exit).
+# Gated on at least one real docker cell in the selection. Exit code 3 means
+# the strict resource check blocked the run; anything else is best-effort and
+# non-fatal (the lazy per-cell acquire retries).
+if [ "$DOCKER_MODE" = "reuse" ] && [ "$DOCKER_MODE_SEL" != "none" ]; then
+    WARMUP_REPS=()
+    while IFS= read -r _rep; do
+        [ -n "$_rep" ] && WARMUP_REPS+=("$_rep")
+    done < <(real_docker_rep_cells)
+    if [ "${#WARMUP_REPS[@]}" -gt 0 ]; then
+        warmup_docker_engines "$runtime" "${WARMUP_REPS[@]}"
+        _wec=$?
+        if [ "$_wec" -eq 3 ]; then exit 3; fi
+    fi
+fi
+
 # Fill in runtime-aware defaults for REPORT_FORMAT / COVERAGE_FORMAT
 # (and inject `default` alongside html under vitest so the user
 # isn't left staring at a silent prompt during the SPA boot).

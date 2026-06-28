@@ -82,6 +82,10 @@ const DATABASE = 'sqlserver'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const SCHEMA_PATH = resolve(__dirname, './domain/schema.sql')
 const SEED_PATH = resolve(__dirname, './domain/seed.sql')
+// Data-only reset used by the per-test reseed (onReseed) in place of the full
+// schema rebuild — see ./domain/reset.sql. schema.sql's DROP+CREATE is kept
+// only for the once-per-worker bootstrap.
+const RESET_PATH = resolve(__dirname, './domain/reset.sql')
 
 // Pin to 2025-latest to align with `all-examples`. SQL Server 2025
 // adds ANSI-compliant `LENGTH`, which the `docs.sql-fragments` test
@@ -226,18 +230,27 @@ async function validateOrResetForReuse(host: string, port: number): Promise<void
 }
 
 async function connectWithRetry(sql: typeof import('mssql'), config: any): Promise<import('mssql').ConnectionPool> {
-    // The container's "ready for client connections" log fires before
-    // the SA login is materialised, so the first few attempts ELOGIN
-    // until the init script finishes. mssql's own connect timeout is
-    // 15 s — at the default 30 s deadline that's only ~2 attempts.
-    // Cap each attempt at 5 s and stretch the outer window to 90 s so
-    // a slow host (especially the cold-start path under bun's
-    // 12-worker fan-out, where every worker hits the half-initialised
-    // container at once) still has ~18 retries to ride out.
-    const deadline = Date.now() + 90_000
+    // SQL Server has no arm64 image, so on Apple Silicon it runs EMULATED
+    // (amd64) and is markedly slower; under the end-of-run convergence storm
+    // (every remaining worker piling onto the heavy container at once through
+    // macOS Docker's userspace port proxy) it gets briefly unreachable.
+    //
+    // Two layers of tolerance: a 30 s per-attempt `connectionTimeout` (so a
+    // single connect is patient) AND a 180 s outer retry window. The patient
+    // per-attempt value matters beyond the INITIAL connect this loop guards —
+    // it is baked into the returned pool, so the connections the pool creates
+    // ON DEMAND later (e.g. the per-cell schema/seed apply, the runner pool's
+    // mid-test queries) are patient too; the old fast 5 s default made those
+    // fail with "Failed to connect in 5000ms" the moment the container
+    // stuttered. Warmup already absorbs the cold-start ELOGIN window, so a fast
+    // retry buys nothing. `requestTimeout` is likewise generous for the slow
+    // emulated engine. A caller can still override either (the runner pool
+    // tunes its pool sizing on top).
+    const deadline = Date.now() + 180_000
     let lastError: unknown
     while (Date.now() < deadline) {
-        const pool = new sql.ConnectionPool({ ...config, connectionTimeout: 5_000 })
+        // Defaults first so a value in `config` still wins.
+        const pool = new sql.ConnectionPool({ connectionTimeout: 30_000, requestTimeout: 60_000, ...config })
         try {
             await pool.connect()
             return pool
@@ -274,6 +287,19 @@ async function applySchemaAndSeedOnPool(pool: import('mssql').ConnectionPool): P
         readFile(SEED_PATH, 'utf8'),
     ])
     for (const stmt of splitBatch(schemaSql)) await pool.request().query(stmt)
+    for (const stmt of splitBatch(seedSql)) await pool.request().query(stmt)
+}
+
+// Data-only baseline restore used by the per-test reseed: reset.sql (DELETE +
+// DBCC CHECKIDENT + ALTER SEQUENCE RESTART) instead of the heavy schema.sql,
+// then the same seed. Leaves the exact post-bootstrap state without the
+// DROP+CREATE catalog churn.
+async function applyResetAndSeedOnPool(pool: import('mssql').ConnectionPool): Promise<void> {
+    const [resetSql, seedSql] = await Promise.all([
+        readFile(RESET_PATH, 'utf8'),
+        readFile(SEED_PATH, 'utf8'),
+    ])
+    for (const stmt of splitBatch(resetSql)) await pool.request().query(stmt)
     for (const stmt of splitBatch(seedSql)) await pool.request().query(stmt)
 }
 
@@ -325,13 +351,16 @@ async function bootstrapWorkerDbSchemaAndSeed(host: string, port: number): Promi
         workerDbEnsured = true
     }
 
-    const pool = new sql.ConnectionPool({
+    // Route the worker-DB bootstrap pool through the same retry helper as the
+    // master pool and the runner pool. This was the one remaining unguarded
+    // `connect()` — under the parallel-pass connection storm it could time out
+    // with no log line and surface as an unnamed beforeAll failure.
+    const pool = await connectWithRetry(sql, {
         server: host, port,
         user: 'sa', password: SA_PASSWORD,
         database: workerDb,
         options: { encrypt: false, trustServerCertificate: true },
     })
-    await pool.connect()
     try {
         await applySchemaAndSeedOnPool(pool)
     } finally {
@@ -365,6 +394,22 @@ export function createMssqlPoolTestContext(spec: MssqlTestSpec): SqlServerTestCo
             user: 'sa', password: SA_PASSWORD,
             database: params.workerDb,
             options: { encrypt: false, trustServerCertificate: true },
+            // Tolerance for OBTAINING a connection under the end-of-run
+            // convergence storm. This pool is long-lived and creates
+            // connections ON DEMAND mid-test (min: 0 / lazy), so the default
+            // fast 5 s connect would fail a query with "Failed to connect in
+            // 5000ms" the moment the emulated container is briefly saturated.
+            // Patient connect + request + pool-acquire timeouts ride it out;
+            // tests are sequential per worker, so max stays small.
+            connectionTimeout: 30_000,
+            requestTimeout: 60_000,
+            pool: {
+                max: 4,
+                min: 0,
+                acquireTimeoutMillis: 90_000,
+                createTimeoutMillis: 35_000,
+                idleTimeoutMillis: 30_000,
+            },
         })
         return {
             runner: new MssqlPoolQueryRunner(pool),
@@ -378,19 +423,21 @@ export function createMssqlPoolTestContext(spec: MssqlTestSpec): SqlServerTestCo
         compatibilityVersion: spec.compatibilityVersion,
         database: 'sqlServer',
         realDbEnabled,
-        async createRealRunner() {
+        async createRealRunner(forceNew = false) {
             const container = await acquireContainer()
             const host = container.getHost()
             const port = container.getMappedPort(1433)
             const workerDb = await bootstrapWorkerDbSchemaAndSeed(host, port)
-            return await buildRunner({ host, port, workerDb })
+            // `forceNew` rebuilds a fresh runner (clean transaction state) when
+            // the harness discards a connection poisoned by a failed commit.
+            return await buildRunner({ host, port, workerDb }, forceNew)
         },
         async onReseed(runner) {
             // Reuse the runner's existing mssql connection pool — its
             // `request()` calls borrow a backend from the pool. Avoids
             // standing up a brand new ConnectionPool per reseed.
             const pool = runner.getNativeRunner() as import('mssql').ConnectionPool
-            await applySchemaAndSeedOnPool(pool)
+            await applyResetAndSeedOnPool(pool)
         },
         async onDown() {
             await releaseContainer()

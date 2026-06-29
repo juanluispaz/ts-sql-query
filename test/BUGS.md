@@ -67,45 +67,7 @@ of that. Two minutes of triage and one paragraph is the bar.
 
 ## Open Bugs
 
-## Shaped INSERT … ON DUPLICATE KEY UPDATE drops the update set on MariaDB/MySQL
-
-**Where**: `src/sqlBuilders/AbstractMySqlMariaBDSqlBuilder.ts:281`
-(`_buildInsertOnConflictBeforeReturning`). The override iterates
-`query.__onConflictUpdateSets` and resolves each property directly with
-`__getColumnOfObject(table, property)`, never consulting
-`query.__onConflictUpdateShape`. The base
-`AbstractSqlBuilder._buildInsertOnConflictBeforeReturning`
-(`AbstractSqlBuilder.ts:2049-2097`, used by PostgreSQL/SQLite) has an
-`if (shape) { … }` branch that maps the shape-renamed key → real column; the
-MariaDB/MySQL override has no such branch.
-
-**Reproduction**: a SHAPED insert with an on-conflict update on MariaDB/MySQL —
-
-```
-insertInto(tProject)
-  .shapedAs({ orgId: 'organizationId', projectName: 'name', projectSlug: 'slug' })
-  .set({ orgId: 1, projectName: 'ignored', projectSlug: 'mktg-site' })
-  .onConflictDoUpdateDynamicSet()
-  .set({ projectName: 'Renamed via shape' })
-  .executeInsert()
-```
-
-The shape-renamed key `projectName` never resolves to a column, so the whole
-`on duplicate key update` clause is omitted. Emitted SQL:
-`insert into project (organization_id, name, slug) values (?, ?, ?)` (no update
-clause) instead of `… on duplicate key update name = ?`. Every shaped on-conflict
-update form is affected (`onConflictDoUpdateDynamicSet()`,
-`onConflictDoUpdateSet({…})`, `onConflictDoUpdateDynamicSet({…})`). On a real
-engine the missing clause turns the upsert into a plain insert that throws a
-duplicate-key error when the row exists. PostgreSQL/SQLite (via
-`onConflictOn(col).doUpdate*`) emit it correctly.
-
-**Current workaround in the suite**:
-`shaped-do-update-dynamic-set-maps-renamed-key-to-real-column` in
-`insert.on-conflict.dynamic-set.test.ts` is LIVE on postgres (8 cells) and sqlite
-(5 cells); commented with `// TODO[BUG]` (full canonical body) on
-`mariadb/newest/mariadb` and `mysql/newest/mysql2`; `// NOT-APPLICABLE` on
-oracle/sqlserver.
+_None._
 
 ## Common bug shapes (for the fixing agent)
 

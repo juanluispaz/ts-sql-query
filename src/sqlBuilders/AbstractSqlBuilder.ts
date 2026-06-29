@@ -2001,49 +2001,13 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _buildInsertOnConflictBeforeInto(_query: InsertData, _params: any[]): string {
         return ''
     }
-    _buildInsertOnConflictBeforeReturning(query: InsertData, params: any[]): string {
-        if (!query.__onConflictDoNothing && !query.__onConflictUpdateSets) {
-            return ''
-        }
-
-        let result = ' on conflict'
-
-        const onConflictOnColumns = query.__onConflictOnColumns
-        if (onConflictOnColumns) {
-            result += ' ('
-            for (let i = 0, length = onConflictOnColumns.length; i < length; i++) {
-                if (i > 0) {
-                    result += ', '
-                }
-                const column = onConflictOnColumns[i]!
-                result += this._appendSql(column, params, false)
-            }
-            result += ')'
-            const where = query.__onConflictOnColumnsWhere
-            if (where) {
-                result += ' where '
-                result += this._appendCondition(where, params)
-            }
-        }
-
-        const constraint = query.__onConflictOnConstraint
-        if (constraint) {
-            // The conflict target is a constraint **name** — a SQL identifier, not
-            // a scalar value. Binding it as a parameter (`$N`) is rejected by the
-            // server (`ERROR: syntax error at or near "$N"` on PostgreSQL). We
-            // emit the raw fragment verbatim; the API only accepts `RawFragment`
-            // for this argument precisely because the caller has to assemble it
-            // from database introspection rather than from a runtime value.
-            result += ' on constraint '
-            result += this._appendRawFragment(constraint, params)
-        }
-
-        if (query.__onConflictDoNothing) {
-            result += ' do nothing'
-        }
-
-        const oldSafeTableOrView = this._getSafeTableOrView(params)
-        this._setSafeTableOrView(params, undefined)
+    /*
+     * Builds the `<col> = <value>, ...` assignment list shared by the
+     * `do update set` (PostgreSQL/SQLite) and `on duplicate key update`
+     * (MariaDB/MySQL) clauses. Resolves shape-renamed keys back to their real
+     * column when an on-conflict shape is present, so every dialect honours it.
+     */
+    _buildInsertOnConflictUpdateSetColumns(query: InsertData, params: any[]): string {
         let columns = ''
         const table = query.__table
         const shape = query.__onConflictUpdateShape
@@ -2095,7 +2059,54 @@ export class AbstractSqlBuilder implements SqlBuilder {
                     columns += this._appendValueForColumn(column, value, params, false)
                 }
             }
-            
+        }
+        return columns
+    }
+    _buildInsertOnConflictBeforeReturning(query: InsertData, params: any[]): string {
+        if (!query.__onConflictDoNothing && !query.__onConflictUpdateSets) {
+            return ''
+        }
+
+        let result = ' on conflict'
+
+        const onConflictOnColumns = query.__onConflictOnColumns
+        if (onConflictOnColumns) {
+            result += ' ('
+            for (let i = 0, length = onConflictOnColumns.length; i < length; i++) {
+                if (i > 0) {
+                    result += ', '
+                }
+                const column = onConflictOnColumns[i]!
+                result += this._appendSql(column, params, false)
+            }
+            result += ')'
+            const where = query.__onConflictOnColumnsWhere
+            if (where) {
+                result += ' where '
+                result += this._appendCondition(where, params)
+            }
+        }
+
+        const constraint = query.__onConflictOnConstraint
+        if (constraint) {
+            // The conflict target is a constraint **name** — a SQL identifier, not
+            // a scalar value. Binding it as a parameter (`$N`) is rejected by the
+            // server (`ERROR: syntax error at or near "$N"` on PostgreSQL). We
+            // emit the raw fragment verbatim; the API only accepts `RawFragment`
+            // for this argument precisely because the caller has to assemble it
+            // from database introspection rather than from a runtime value.
+            result += ' on constraint '
+            result += this._appendRawFragment(constraint, params)
+        }
+
+        if (query.__onConflictDoNothing) {
+            result += ' do nothing'
+        }
+
+        const oldSafeTableOrView = this._getSafeTableOrView(params)
+        this._setSafeTableOrView(params, undefined)
+        const columns = this._buildInsertOnConflictUpdateSetColumns(query, params)
+        if (query.__onConflictUpdateSets) {
             if (!columns) {
                 return ''
             }

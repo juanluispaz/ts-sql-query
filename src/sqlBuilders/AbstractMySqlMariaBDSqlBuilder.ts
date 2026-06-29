@@ -6,7 +6,7 @@ import { isValueSource } from '../expressions/values.js'
 import { AbstractSqlBuilder } from './AbstractSqlBuilder.js'
 import { __getValueSourcePrivate } from '../expressions/values.js'
 import type { DBColumn } from '../utils/Column.js'
-import { isColumn, __getColumnOfObject, __getColumnPrivate } from '../utils/Column.js'
+import { isColumn, __getColumnPrivate } from '../utils/Column.js'
 import type { AnyTableOrView } from '../utils/ITableOrView.js'
 import { SqlOperation1ValueSource, SqlOperation1ValueSourceIfValueOrIgnore } from '../internal/ValueSourceImpl.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
@@ -279,30 +279,10 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         return ''
     }
     override _buildInsertOnConflictBeforeReturning(query: InsertData, params: any[]): string {
-        let columns = ''
-        const table = query.__table
-        const sets = query.__onConflictUpdateSets
-        if (sets) {
-            const properties = Object.getOwnPropertyNames(sets)
-            for (let i = 0, length = properties.length; i < length; i++) {
-                const property = properties[i]!
-                const column = __getColumnOfObject(table, property)
-                if (!column) {
-                    // Additional property provided in the value object
-                    // Skipped because it is not part of the table
-                    // This allows to have more complex objects used in the query
-                    continue
-                }
-
-                if (columns) {
-                    columns += ', '
-                }
-                const value = sets[property]
-                columns += this._appendColumnNameForUpdate(column, params)
-                columns += ' = '
-                columns += this._appendValueForColumn(column, value, params, false)
-            }
-        }
+        // MariaDB/MySQL emit the same shape-aware assignment list as the base
+        // `do update set`, just under a different keyword and with no conflict
+        // target or `where` clause.
+        const columns = this._buildInsertOnConflictUpdateSetColumns(query, params)
         if (columns) {
             return ' on duplicate key update ' + columns
         } else {

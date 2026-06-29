@@ -537,10 +537,6 @@ describe(ctx.label, () => {
         })
     })
 
-    // TODO[BUG]: see BUGS.md — shaped INSERT…ON DUPLICATE KEY UPDATE drops the update
-    //            set on MariaDB/MySQL (the SqlBuilder override ignores the on-conflict
-    //            shape, so the renamed key resolves to no column and the clause is dropped).
-    /*
     test('shaped-do-update-dynamic-set-maps-renamed-key-to-real-column', async () => {
         // `shapedAs({...})` renames the source-object keys to real columns; the
         // insert `.set({...})` supplies every required column under those renamed
@@ -568,12 +564,18 @@ describe(ctx.label, () => {
                 .set({ projectName: 'Renamed via shape' })
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot()
-            expect(ctx.lastParams).toMatchInlineSnapshot()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, \`name\`, slug) values (?, ?, ?) as _new_ on duplicate key update project.\`name\` = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "ignored",
+                "mktg-site",
+                "Renamed via shape",
+              ]
+            `)
             assertType<Exact<typeof affected, number>>()
             expect(affected).toBe(2)
         })
     })
-    */
 
 })

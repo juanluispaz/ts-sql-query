@@ -86,6 +86,22 @@ uses.
 | Catalogue of past failure modes with rules + gates | [`ANTIPATTERNS.md`](./ANTIPATTERNS.md) |
 | Find where a symbol lives / is reached / explained / tested; verify an API exists before proposing a wave (`tests:where-is`, builds on `tests:index`) | [`CODE_SEARCH.md`](./CODE_SEARCH.md) |
 
+### … detect missing tests from the type surface (agent-driven round)
+
+The complement to the coverage round: instead of *"which lines never executed?"*
+it asks *"which capability the types advertise is never asserted?"* — and finds
+the type-vs-impl bugs coverage is blind to (a reachable-but-untested overload
+whose emitted SQL / result type / value is wrong).
+
+| Want | Read |
+|---|---|
+| The runbook itself (type-driven, multi-agent missing-tests audit) | [`TYPE_AUDIT_RUNBOOK.md`](./TYPE_AUDIT_RUNBOOK.md) |
+| The unit (type-path) + the COVERED evidence bar | [`TYPE_AUDIT_RUNBOOK.md` § The unit](./TYPE_AUDIT_RUNBOOK.md#the-unit-the-type-path) |
+| The degeneracy bar (output-coincidence ≠ coverage) | [`TYPE_AUDIT_RUNBOOK.md` § The degeneracy bar](./TYPE_AUDIT_RUNBOOK.md#the-degeneracy-bar) |
+| Where the bugs hide (recurring themes to hunt) | [`TYPE_AUDIT_RUNBOOK.md` § Recurring themes](./TYPE_AUDIT_RUNBOOK.md#recurring-themes) |
+| The per-round findings (the audit's output — a transient working artifact, not kept in the repo) | `MISSING_TESTS_AUDIT_<N>.md` |
+| Turning a finding into a baked, propagated test (the generation half) | [`COVERAGE_RUNBOOK.md`](./COVERAGE_RUNBOOK.md) §5 onward (identical regardless of how the gap was found) |
+
 ### … find context fast (the searcher)
 
 `tests:where-is` answers *"where does this symbol live / get reached /

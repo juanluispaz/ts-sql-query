@@ -16,6 +16,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
+import { getQueryExecutionName, getQueryExecutionMetadata } from '../../../../../src/queryRunners/QueryRunner.js'
 import { tIssue, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
@@ -128,6 +129,36 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof result, Array<{ id: number }>>>()
+    })
+
+    test('customize-compound-carries-query-execution-name-and-metadata', async () => {
+        // `queryExecutionName` / `queryExecutionMetadata` are accepted on the
+        // customizeQuery of a compound query: they don't change the emitted SQL
+        // (the union snapshot is unchanged) but the metadata is attached to the
+        // execution and read back via the QueryRunner helpers.
+        const expected = [{ label: 'Marketing site' }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+        const result = await connection.selectFrom(tProject).where(tProject.id.equals(1)).select({ label: tProject.name })
+            .union(connection.selectFrom(tIssue).where(tIssue.id.equals(99999)).select({ label: tIssue.title }))
+            .orderBy('label')
+            .customizeQuery({
+                queryExecutionName:     'compound label query',
+                queryExecutionMetadata: { team: 'platform' },
+            })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project where id = $1 union select title as label from issue where id = $2 order by label"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            99999,
+          ]
+        `)
+        expect(getQueryExecutionName(ctx.lastSql, ctx.lastParams)).toBe('compound label query')
+        expect(getQueryExecutionMetadata(ctx.lastSql, ctx.lastParams)).toEqual({ team: 'platform' })
+        assertType<Exact<typeof result, Array<{ label: string }>>>()
+        expect(result).toEqual(expected)
     })
 
 })

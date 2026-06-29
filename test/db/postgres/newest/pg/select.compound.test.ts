@@ -214,4 +214,49 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ label: string }>>>()
         expect(result).toEqual(expected)
     })
+
+    test('compound-with-limit-and-offset', async () => {
+        // `.limit(...).offset(...)` chained after a compound. Union of project
+        // names + issue titles, ordered by label; offset 3 + limit 2 picks rows
+        // 4-5 ('Marketing site', 'Migrate to ESM').
+        const expected = [{ label: 'Marketing site' }, { label: 'Migrate to ESM' }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tProject).select({ label: tProject.name })
+            .union(ctx.conn.selectFrom(tIssue).select({ label: tIssue.title }))
+            .orderBy('label')
+            .limit(2)
+            .offset(3)
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project union select title as label from issue order by label limit $1 offset $2"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+            3,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ label: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('compound-with-limit-if-value-and-offset-if-value', async () => {
+        // `.limitIfValue(...).offsetIfValue(...)` chained after a compound; with
+        // present values both clauses emit. Same paged union → rows 4-5.
+        const expected = [{ label: 'Marketing site' }, { label: 'Migrate to ESM' }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tProject).select({ label: tProject.name })
+            .union(ctx.conn.selectFrom(tIssue).select({ label: tIssue.title }))
+            .orderBy('label')
+            .limitIfValue(2)
+            .offsetIfValue(3)
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project union select title as label from issue order by label limit $1 offset $2"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+            3,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ label: string }>>>()
+        expect(result).toEqual(expected)
+    })
 })

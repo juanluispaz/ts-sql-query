@@ -5,6 +5,7 @@
 // result multiset (compound order is engine-defined).
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
+import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { tIssue } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
@@ -26,6 +27,7 @@ describe(ctx.label, () => {
             .where(tIssue.priority.lessOrEqual(3))
             .select({ status: tIssue.status })
         const result = await left.intersectAll(right).executeSelectMany()
+        assertType<Exact<typeof result, Array<{ status: string }>>>()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as "status" from issue intersect all select status as "status" from issue where priority <= :0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
@@ -49,6 +51,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.lessOrEqual(2))
             .select({ status: tIssue.status })
         const result = await all.exceptAll(small).executeSelectMany()
+        assertType<Exact<typeof result, Array<{ status: string }>>>()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as "status" from issue minus all select status as "status" from issue where id <= :0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
@@ -93,6 +96,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.lessOrEqual(2))
             .select({ status: tIssue.status })
         const result = await all.minusAll(small).executeSelectMany()
+        assertType<Exact<typeof result, Array<{ status: string }>>>()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as "status" from issue minus all select status as "status" from issue where id <= :0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [

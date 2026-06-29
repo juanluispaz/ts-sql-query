@@ -120,4 +120,33 @@ describe(ctx.label, () => {
             expect(row).toEqual(expected)
         })
     })
+    test('customize-update-returning-one-column-with-hooks', async () => {
+        // The single-column RETURNING + `customizeQuery` arm on UPDATE:
+        // `.returningOneColumn(col)` yields a composable customizable executable,
+        // so the customize hook lands on the same statement while the SCALAR
+        // RETURNING result type survives the hook. Issue 1's status is patched and
+        // read back; the keyed id and the new status are deterministic in both
+        // modes.
+        ctx.mockNext('reviewed')
+        const connection = ctx.conn
+        await ctx.withRollback(async () => {
+            const status = await connection.update(tIssue)
+                .set({ status: 'reviewed' })
+                .where(tIssue.id.equals(1))
+                .returningOneColumn(tIssue.status)
+                .customizeQuery({ afterUpdateKeyword: connection.rawFragment`/*+ hint */` })
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update /*+ hint */ issue set status = ? where id = ? returning status as result"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "reviewed",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof status, string>>()
+            expect(status).toBe('reviewed')
+        })
+    })
+
 })

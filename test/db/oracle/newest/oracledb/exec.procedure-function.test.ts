@@ -234,4 +234,21 @@ describe(ctx.label, () => {
         expect(total).toBe(0 as Money)
     })
 
+    test('execute-function-with-trailing-type-adapter-brackets-result', async () => {
+        // executeFunction's trailing TypeAdapter OBJECT arg (the plain-type
+        // overload's optional `adapter`) routes the read through that adapter
+        // instead of the default one. bracketAdapter wraps the string result in
+        // [...], so project_name(1) ('Marketing site') comes back bracketed.
+        ctx.mockNext('Marketing site')
+        const name = await ctx.conn.callProjectNameBracketed(1)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_name(:0) from dual"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof name, string>>()
+        expect(name).toBe('[Marketing site]')
+    })
+
 })

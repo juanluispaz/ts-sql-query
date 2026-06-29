@@ -1616,4 +1616,128 @@ describe(ctx.label, () => {
         `)
     })
 
+
+    test('equivalence/local-date-value-source-map-dispatch', async () => {
+        // The filter is passed inline (un-annotated) to `withValues`, so the
+        // value-source-map inference arm validates the localDate mapping rather
+        // than an explicit `DynamicCondition<{...}>` descriptor annotation; the
+        // dynamic predicate must still emit the same SQL + params as the direct
+        // calls.
+        const lo = new Date(Date.UTC(2024, 2, 1, 0, 0, 0))
+        const hi = new Date(Date.UTC(2024, 2, 31, 0, 0, 0))
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.workDate.greaterOrEqual(lo).and(tIssueWorklog.workDate.lessThan(hi)))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssueWorklog.id, workDate: tIssueWorklog.workDate })
+                .withValues({ workDate: { greaterOrEqual: lo, lessThan: hi } }))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date >= $1 and work_date < $2 order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            2024-03-01T00:00:00.000Z,
+            2024-03-31T00:00:00.000Z,
+          ]
+        `)
+    })
+
+    test('equivalence/local-time-value-source-map-dispatch', async () => {
+        // The filter is passed inline (un-annotated) to `withValues`, so the
+        // value-source-map inference arm validates the localTime mapping rather
+        // than an explicit `DynamicCondition<{...}>` descriptor annotation.
+        const lo = new Date(Date.UTC(1970, 0, 1, 9, 0, 0))
+        const hi = new Date(Date.UTC(1970, 0, 1, 17, 0, 0))
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.startedAt.greaterOrEqual(lo).and(tIssueWorklog.startedAt.lessThan(hi)))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssueWorklog.id, startedAt: tIssueWorklog.startedAt })
+                .withValues({ startedAt: { greaterOrEqual: lo, lessThan: hi } }))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at >= $1 and started_at < $2 order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            "09:00:00",
+            "17:00:00",
+          ]
+        `)
+    })
+
+    test('equivalence/custom-uuid-value-source-map-dispatch', async () => {
+        // The filter is passed inline (un-annotated) to `withValues`, so the
+        // value-source-map inference arm validates the branded `customUuid`
+        // (`signingKey`) mapping; the like/affix operators still route through
+        // the `asString()` rewrite.
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.signingKey.equals('0a8f9c1e-1111-4222-8333-444455556666')
+                .and(tProjectRelease.signingKey.asString().contains('abc'))
+                .and(tProjectRelease.signingKey.asString().startsWith('0a8f')))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(ctx.conn.dynamicConditionFor({ id: tProjectRelease.id, signingKey: tProjectRelease.signingKey })
+                .withValues({ signingKey: { equals: '0a8f9c1e-1111-4222-8333-444455556666', contains: 'abc', startsWith: '0a8f' } }))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key = $1 and signing_key::text like ('%' || $2 || '%') and signing_key::text like ($3 || '%') order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            "0a8f9c1e-1111-4222-8333-444455556666",
+            "abc",
+            "0a8f",
+          ]
+        `)
+    })
+
+    test('equivalence/plain-local-date-time-descriptor-dispatch', async () => {
+        // The filter is typed via an explicit
+        // `DynamicCondition<{ createdAt: 'localDateTime' }>` annotation, so the
+        // descriptor inference arm validates the localDateTime mapping rather
+        // than the inline value-source-map.
+        type IssueFilter = DynamicCondition<{ id: 'int', createdAt: 'localDateTime' }>
+        const since = new Date('2020-01-01T00:00:00.000Z')
+        const filter: IssueFilter = { createdAt: { greaterOrEqual: since } }
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.createdAt.greaterOrEqual(since))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssue.id, createdAt: tIssue.createdAt }).withValues(filter))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where created_at >= $1 order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            2020-01-01T00:00:00.000Z,
+          ]
+        `)
+    })
 })

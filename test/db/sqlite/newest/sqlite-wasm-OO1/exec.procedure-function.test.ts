@@ -121,4 +121,9 @@ describe(ctx.label, () => {
     })
     */
 
+    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite has no DDL for stored procedures or user-defined SQL functions; the seed schema cannot ship the bodies these tests would invoke against a real engine.
+    /*
+    test('execute-function-with-trailing-type-adapter-brackets-result', async () => {})
+    */
+
 })

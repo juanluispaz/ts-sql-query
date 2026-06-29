@@ -211,4 +211,150 @@ describe(ctx.label, () => {
 //             expect(row).toEqual(expected)
 //         })
 //     })
+    test('customize-insert-returning-one-column-with-hooks', async () => {
+        // The single-column RETURNING + `customizeQuery` arm on INSERT:
+        // `.returningOneColumn(col)` yields a composable customizable executable,
+        // so the customize hook lands on the same statement while the SCALAR
+        // RETURNING result type survives the hook. The inserted project's slug is
+        // read back — exactly what was inserted, so the value is deterministic in
+        // both modes.
+        ctx.mockNext('mobile-app')
+        const connection = ctx.conn
+        await ctx.withRollback(async () => {
+            const slug = await connection.insertInto(tProject)
+                .values({ name: 'Mobile app', slug: 'mobile-app', organizationId: 1 })
+                .returningOneColumn(tProject.slug)
+                .customizeQuery({ afterInsertKeyword: connection.rawFragment`/*+ hint */` })
+                .executeInsertOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert /*+ hint */ into project (name, slug, organization_id) values (:0, :1, :2) returning slug into :3"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Mobile app",
+                "mobile-app",
+                1,
+                {
+                  "as": "result",
+                  "dir": 3003,
+                },
+              ]
+            `)
+            assertType<Exact<typeof slug, string>>()
+            expect(slug).toBe('mobile-app')
+        })
+    })
+
+    test('customize-insert-returning-last-inserted-id-with-hooks', async () => {
+        // `returningLastInsertedId()` also exposes a `customizeQuery` arm — the
+        // hook lands on the same statement while the last-inserted-id result type
+        // (a number) survives. A fresh project is inserted; the engine-assigned
+        // id comes back.
+        ctx.mockNext(501)
+        const connection = ctx.conn
+        await ctx.withRollback(async () => {
+            const id = await connection.insertInto(tProject)
+                .values({ name: 'Mobile app', slug: 'mobile-app', organizationId: 1 })
+                .returningLastInsertedId()
+                .customizeQuery({ afterInsertKeyword: connection.rawFragment`/*+ hint */` })
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert /*+ hint */ into project (name, slug, organization_id) values (:0, :1, :2) returning id into :3"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Mobile app",
+                "mobile-app",
+                1,
+                {
+                  "dir": 3003,
+                },
+              ]
+            `)
+            assertType<Exact<typeof id, number>>()
+            if (!ctx.realDbEnabled) expect(id).toBe(501)
+            else expect(typeof id).toBe('number')
+        })
+    })
+
+    // NOT-APPLICABLE: Oracle has no INSERT…ON CONFLICT (uses MERGE)
+    // test('customize-insert-on-conflict-do-update-returning-object-with-hooks', async () => {
+    //     // ON CONFLICT DO UPDATE always writes the conflicting row, so its
+    //     // RETURNING yields a non-null object (`executeInsertOne`), unlike the
+    //     // do-nothing form which is None-or-One. The seed already holds
+    //     // (org 1, slug 'mktg-site'), so the conflict fires, the existing row is
+    //     // updated and the updated columns come back.
+    //     const expected = { id: 1, name: 'Reactivated', slug: 'mktg-site' }
+    //     ctx.mockNext(expected)
+    //     const connection = ctx.conn
+    //     await ctx.withRollback(async () => {
+    //         const row = await connection.insertInto(tProject)
+    //             .values({ organizationId: 1, slug: 'mktg-site', name: 'ignored' })
+    //             .onConflictOn(tProject.organizationId, tProject.slug)
+    //             .doUpdateSet({ name: 'Reactivated' })
+    //             .returning({ id: tProject.id, name: tProject.name, slug: tProject.slug })
+    //             .customizeQuery({ afterInsertKeyword: connection.rawFragment`/*+ hint */` })
+    //             .executeInsertOne()
+    //
+    //         expect(ctx.lastSql).toMatchInlineSnapshot()
+    //         expect(ctx.lastParams).toMatchInlineSnapshot()
+    //         assertType<Exact<typeof row, { id: number; name: string; slug: string }>>()
+    //         expect(row).toEqual(expected)
+    //     })
+    // })
+
+    // NOT-APPLICABLE: Oracle has no INSERT…ON CONFLICT (uses MERGE)
+    // test('customize-insert-on-conflict-do-update-returning-one-column-none-or-one', async () => {
+    //     // `returningOneColumn(col)` + `executeInsertNoneOrOne()` on an ON CONFLICT
+    //     // DO UPDATE yields `scalar | null`. The seed holds (org 1, slug
+    //     // 'mktg-site'), so the conflict fires, the row is updated and its slug
+    //     // comes back.
+    //     ctx.mockNext('mktg-site')
+    //     const connection = ctx.conn
+    //     await ctx.withRollback(async () => {
+    //         const slug = await connection.insertInto(tProject)
+    //             .values({ organizationId: 1, slug: 'mktg-site', name: 'ignored' })
+    //             .onConflictOn(tProject.organizationId, tProject.slug)
+    //             .doUpdateSet({ name: 'Reactivated' })
+    //             .returningOneColumn(tProject.slug)
+    //             .customizeQuery({ afterInsertKeyword: connection.rawFragment`/*+ hint */` })
+    //             .executeInsertNoneOrOne()
+    //
+    //         expect(ctx.lastSql).toMatchInlineSnapshot()
+    //         expect(ctx.lastParams).toMatchInlineSnapshot()
+    //         assertType<Exact<typeof slug, string | null>>()
+    //         expect(slug).toBe('mktg-site')
+    //     })
+    // })
+
+    // NOT-APPLICABLE: Oracle has no INSERT…ON CONFLICT (uses MERGE)
+    // test('customize-insert-on-conflict-do-update-from-select-returning', async () => {
+    //     // INSERT ... SELECT ... ON CONFLICT DO UPDATE ... RETURNING. The source
+    //     // select re-reads project 1 (org 1, slug 'mktg-site'), so inserting it
+    //     // conflicts with itself, the DO UPDATE fires and RETURNING yields the
+    //     // updated row. Deterministic in both modes.
+    //     const expected = [{ id: 1, name: 'Reactivated' }]
+    //     ctx.mockNext(expected)
+    //     const connection = ctx.conn
+    //     await ctx.withRollback(async () => {
+    //         const source = connection.selectFrom(tProject)
+    //             .where(tProject.id.equals(1))
+    //             .select({
+    //                 organizationId: tProject.organizationId,
+    //                 slug:           tProject.slug,
+    //                 name:           tProject.name,
+    //             })
+    //         const rows = await connection.insertInto(tProject)
+    //             .from(source)
+    //             .onConflictOn(tProject.organizationId, tProject.slug)
+    //             .doUpdateSet({ name: 'Reactivated' })
+    //             .returning({ id: tProject.id, name: tProject.name })
+    //             .customizeQuery({ afterInsertKeyword: connection.rawFragment`/*+ hint */` })
+    //             .executeInsertMany()
+    //
+    //         expect(ctx.lastSql).toMatchInlineSnapshot()
+    //         expect(ctx.lastParams).toMatchInlineSnapshot()
+    //         assertType<Exact<typeof rows, Array<{ id: number; name: string }>>>()
+    //         expect(rows).toEqual(expected)
+    //     })
+    // })
+
 })

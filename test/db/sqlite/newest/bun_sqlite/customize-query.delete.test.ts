@@ -112,4 +112,31 @@ describe(ctx.label, () => {
             expect(row).toEqual(expected)
         })
     })
+    test('customize-delete-returning-one-column-with-hooks', async () => {
+        // The single-column RETURNING + `customizeQuery` arm on DELETE:
+        // `.returningOneColumn(col)` yields a composable customizable executable,
+        // so the customize hook lands on the same statement while the SCALAR
+        // RETURNING result type survives the hook. Issue 1 is removed and its
+        // seeded title read back; the keyed id and the title are deterministic in
+        // both modes.
+        ctx.mockNext('Update hero copy')
+        const connection = ctx.conn
+        await ctx.withRollback(async () => {
+            const title = await connection.deleteFrom(tIssue)
+                .where(tIssue.id.equals(1))
+                .returningOneColumn(tIssue.title)
+                .customizeQuery({ afterDeleteKeyword: connection.rawFragment`/*+ hint */` })
+                .executeDeleteOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete /*+ hint */ from issue where id = ? returning title as result"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof title, string>>()
+            expect(title).toBe('Update hero copy')
+        })
+    })
+
 })

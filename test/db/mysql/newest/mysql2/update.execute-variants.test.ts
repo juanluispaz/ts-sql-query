@@ -96,6 +96,7 @@ describe(ctx.label, () => {
 
             expect(ctx.lastSql).toMatchInlineSnapshot()
             expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof result, string | null>>()
             expect(result).toBe('reviewed')
         })
     })
@@ -117,6 +118,7 @@ describe(ctx.label, () => {
 
             expect(ctx.lastSql).toMatchInlineSnapshot()
             expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof result, string | null>>()
             expect(result).toBeNull()
         })
     })
@@ -170,6 +172,28 @@ describe(ctx.label, () => {
                 caught = e
             }
             expect(String(caught)).toMatch(/MAXIMUM_ROWS_EXCEEDED|updated more/)
+        })
+    })
+    */
+
+    // NOT-APPLICABLE: MySQL has no UPDATE ... RETURNING; `returning`/`returningOneColumn` are typed `never` on the mysql dialect (a permanent compile-time frontier asserted in this dialect's `types.negative` suite).
+    /*
+    test('execute-update-one-column-many-result', async () => {
+        // `returningOneColumn(col)` + `executeUpdateMany()` returns
+        // `Array<scalar>` — the one-column-many RETURNING path. WHERE id=99999
+        // matches no rows, so the RETURNING result is empty.
+        ctx.mockNext([])
+        await ctx.withRollback(async () => {
+            const statuses = await ctx.conn.update(tIssue)
+                .set({ status: 'reviewed' })
+                .where(tIssue.id.equals(99999))
+                .returningOneColumn(tIssue.status)
+                .executeUpdateMany()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof statuses, string[]>>()
+            expect(statuses).toEqual([])
         })
     })
     */

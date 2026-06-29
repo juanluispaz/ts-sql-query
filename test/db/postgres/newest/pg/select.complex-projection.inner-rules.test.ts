@@ -217,6 +217,11 @@ describe(ctx.label, () => {
             opt?: { body: string | undefined; assigneeId: number | undefined }
         }>>>()
         expect(rows).toEqual(expected)
+        // Row 3 has every leaf null, so the optional `opt` object is dropped
+        // entirely — the key must be ABSENT, not present-as-undefined. `toEqual`
+        // alone can't distinguish `{ iid: 3 }` from `{ iid: 3, opt: undefined }`,
+        // so assert membership directly.
+        expect('opt' in rows[2]!).toBe(false)
     })
 
     test('projecting-optional-values-as-nullable-on-plain-select-makes-left-join-object-nullable', async () => {
@@ -426,5 +431,45 @@ describe(ctx.label, () => {
             proj: { id: number; name: string; archivedAt: Date | null } | null
         }>>()
         expect(row).toEqual(expected)
+    })
+
+    test('plain-select-rule-2-same-left-join-object-with-optional-leaf-default-as-undefined', async () => {
+        // A rule-2 nested object under the default asUndefined projector: all
+        // leaves come from the SAME left join with at least one originallyRequired
+        // leaf (`id`, `name`), plus a genuinely-optional leaf (`archivedAt`).
+        // Rule 2 keeps the originallyRequired leaves required (`id`, `name` — no
+        // `| undefined`), while the genuinely-optional `archivedAt` becomes
+        // `Date | undefined`; the whole object is optional (`proj?`), dropped only
+        // when the join misses (it is never set to null in this mode). Every
+        // issue has a project, so the join hits: issue 1 -> project 1 (Marketing
+        // site, archived_at NULL), so `proj` is present and the null `archivedAt`
+        // leaf is ABSENT at runtime even though the type allows present-undefined.
+        const expected = { iid: 1, proj: { id: 1, name: 'Marketing site' } }
+        ctx.mockNext({ iid: 1, 'proj.id': 1, 'proj.name': 'Marketing site', 'proj.archivedAt': null })
+        const tProjLeft = tProject.forUseInLeftJoin()
+        const row = await ctx.conn.selectFrom(tIssue)
+            .leftJoin(tProjLeft).on(tProjLeft.id.equals(tIssue.projectId))
+            .where(tIssue.id.equals(1))
+            .select({
+                iid:  tIssue.id,
+                proj: { id: tProjLeft.id, name: tProjLeft.name, archivedAt: tProjLeft.archivedAt },
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.id as "proj.id", project.name as "proj.name", project.archived_at as "proj.archivedAt" from issue left join project on project.id = issue.project_id where issue.id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            iid:   number
+            proj?: { id: number; name: string; archivedAt: Date | undefined }
+        }>>()
+        expect(row).toEqual(expected)
+        // `archivedAt` is null in the seed and optional, so the default
+        // asUndefined projector drops the key — assert its ABSENCE, not
+        // present-as-undefined (which `toEqual` would also accept).
+        expect('archivedAt' in row.proj!).toBe(false)
     })
 })

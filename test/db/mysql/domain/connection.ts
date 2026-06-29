@@ -107,6 +107,16 @@ export class DBConnection extends MySqlConnection<'DBConnection'> {
         ], 'string', 'optional')
     }
 
+    // A wrapper that passes a TypeAdapter OBJECT as the trailing executeFunction
+    // arg (the plain-type overload's optional `adapter`). bracketAdapter wraps
+    // the returned string in [...], so the adapter's effect is observable in the
+    // value.
+    callProjectNameBracketed(id: number): Promise<string> {
+        return this.executeFunction('project_name', [
+            this.const(id, 'int'),
+        ], 'string', 'required', bracketAdapter)
+    }
+
     // G1: executeFunction return-type fan-out beyond the existing int /
     // string arms — total_view_count returns bigint, latest_issue_at returns
     // an optional localDateTime (null when the project has no issues), and

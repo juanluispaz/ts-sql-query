@@ -136,6 +136,7 @@ describe(ctx.label, () => {
                 9999,
               ]
             `)
+            assertType<Exact<typeof result, string | null>>()
             expect(result).toBeNull()
         })
     })
@@ -189,6 +190,28 @@ describe(ctx.label, () => {
                 caught = e
             }
             expect(String(caught)).toMatch(/MAXIMUM_ROWS_EXCEEDED|updated more/)
+        })
+    })
+    */
+
+    // TODO[LIMITATION]: see LIMITATIONS.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
+    /*
+    test('execute-update-one-column-many-result', async () => {
+        // `returningOneColumn(col)` + `executeUpdateMany()` returns
+        // `Array<scalar>` — the one-column-many RETURNING path. WHERE id=99999
+        // matches no rows, so the RETURNING result is empty.
+        ctx.mockNext([])
+        await ctx.withRollback(async () => {
+            const statuses = await ctx.conn.update(tIssue)
+                .set({ status: 'reviewed' })
+                .where(tIssue.id.equals(99999))
+                .returningOneColumn(tIssue.status)
+                .executeUpdateMany()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof statuses, string[]>>()
+            expect(statuses).toEqual([])
         })
     })
     */

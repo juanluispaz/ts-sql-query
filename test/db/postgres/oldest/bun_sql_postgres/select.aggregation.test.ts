@@ -260,4 +260,35 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, { sd?: number | undefined; av?: number | undefined }>>()
         expect(result).toEqual({ sd: 500, av: 200 })
     })
+
+    test('min-max-over-bigint-customint-customdouble', async () => {
+        // min/max preserve the input value-source kind, flipping only
+        // optionality: the `bigint` (durationMs) leaf stays `bigint?`, and the
+        // branded `customInt` ('Cents', costCents) / `customDouble` ('Money',
+        // billedAmount) leaves stay `number?` — the brand is the typeName,
+        // erased in the result, and the value comes back marshalled.
+        // duration_ms {5400000, NULL, 1800000} -> min 1800000n, max 5400000n;
+        // cost_cents {100,100,400} -> min 100; billed_amount {200,50,200} ->
+        // min 50, max 200.
+        ctx.mockNext({ durLo: 1800000n, durHi: 5400000n, centsLo: 100, amtLo: 50, amtHi: 200 })
+        const result = await ctx.conn.selectFrom(tIssueWorklog)
+            .select({
+                durLo:   ctx.conn.min(tIssueWorklog.durationMs),
+                durHi:   ctx.conn.max(tIssueWorklog.durationMs),
+                centsLo: ctx.conn.min(tIssueWorklog.costCents),
+                amtLo:   ctx.conn.min(tIssueWorklog.billedAmount),
+                amtHi:   ctx.conn.max(tIssueWorklog.billedAmount),
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select min(duration_ms) as "durLo", max(duration_ms) as "durHi", min(cost_cents) as "centsLo", min(billed_amount) as "amtLo", max(billed_amount) as "amtHi" from issue_worklog"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, {
+            durLo?:   bigint | undefined
+            durHi?:   bigint | undefined
+            centsLo?: number | undefined
+            amtLo?:   number | undefined
+            amtHi?:   number | undefined
+        }>>()
+        expect(result).toEqual({ durLo: 1800000n, durHi: 5400000n, centsLo: 100, amtLo: 50, amtHi: 200 })
+    })
 })

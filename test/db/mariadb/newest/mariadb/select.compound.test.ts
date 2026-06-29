@@ -364,10 +364,6 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-    // TODO[BUG]: see test/BUGS.md — orderBy(valueSource) on a compound emits an
-    // un-wrapped `UNION … ORDER BY <expr>` (`order by label, $1`) every engine
-    // rejects (PG 0A000; SQLite mismatch); insensitive wraps the compound, this doesn't.
-    /*
     test('compound-order-by-value-source-secondary', async () => {
         // `orderBy(valueSource)` on a compound — the no-table-required ValueSource
         // overload. A compound can only order by result columns / no-table expressions, so
@@ -391,7 +387,7 @@ describe(ctx.label, () => {
             .orderBy('label')
             .orderBy(ctx.conn.const(1, 'int'))
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project union select title as label from issue order by label, $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project union select title as label from issue order by label, ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -400,7 +396,6 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ label: string }>>>()
         expect(result).toEqual(expected)
     })
-    */
 
     test('compound-with-limit-and-offset', async () => {
         // `.limit(...).offset(...)` chained after a compound. Union of project

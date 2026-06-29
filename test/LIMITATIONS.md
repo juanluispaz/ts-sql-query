@@ -187,6 +187,33 @@ library emits the SQL (no type-level narrowing) and a future MariaDB
 release could accept this shape. Re-probe against the real engine before
 reactivating.
 
+## SQL Server rejects a bare bind parameter as an ORDER BY term (error 1008)
+
+`orderBy(<no-table value source>)` — the overload a compound query's
+`orderBy(...)` accepts — renders the value source as a bare `@param`.
+SQL Server reads a lone variable / literal in an ORDER BY position as an
+**ordinal column position** and raises `Msg 1008 … The SELECT item
+identified by the ORDER BY number N contains a variable as part of the
+expression identifying a column position. Variables are only allowed
+when ordering by an expression referencing a column name.` Verified
+against a real `mcr.microsoft.com/mssql/server:2025-latest` container:
+`select … order by col, @p` fails, while wrapping the term in any
+expression — `order by col, @p + 0` — succeeds.
+
+- This is **not specific to compounds**: a plain `select … order by
+  col, @param` fails the same way. The separate compound-wrapping fix
+  (wrap the compound in `select * from (<compound>)` so a value-source
+  ORDER BY term is legal w.r.t. the compound restriction) is correct and
+  runs live on every other engine — SQL Server simply can't order by a
+  bare parameter in any select. Affects `select.compound` →
+  `compound-order-by-value-source-secondary`.
+
+This stays `TODO[LIMITATION]` rather than `NOT-APPLICABLE` because the
+library could close the gap (render the no-table ORDER BY term as an
+expression on SQL Server) and the API is callable — a deliberate gap,
+not a permanent dialect frontier. Ordering a result set by a bare
+constant is a no-op sort, so the payoff for closing it is low.
+
 ## Query introspection (`__isAllowed`) has no public API yet — tests reach internals via a single helper
 
 ts-sql-query carries a parallel `__isAllowed` web threaded through

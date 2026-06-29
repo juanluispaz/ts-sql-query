@@ -236,14 +236,14 @@ describe(ctx.label, () => {
         }
     })
 
-    // TODO[BUG]: see test/BUGS.md — `.modulo(...)` on a double/customDouble emits
-    // `<col>::float % x`, which PostgreSQL rejects (no float8 `%` operator);
-    // SQLite/MySQL/MariaDB accept it. The lib should emit a portable `mod(...)`.
-    /*
     test('const-rhs/double-modulo', async () => {
         // modulo on a customDouble (billed_amount = 200 for worklog 1) and a
-        // double (cost_cents cast to double = 100) with a CONST RHS:
-        // 200 % 3 = 2, 100 % 3 = 1.
+        // plain double (issue_id cast to double = 1) with a CONST RHS:
+        // 200 % 3 = 2, 1 % 3 = 1. A fractional `%` can't run on a float on
+        // every engine, so the emitted form casts to numeric / uses mod(...);
+        // that result a custom type is not marshalled out of can come back as a
+        // string on some drivers, so the real-DB branch coerces both keys
+        // through Number(...).
         const expected = [{ id: 1, mo: 2, mc: 1 }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssueWorklog)
@@ -251,15 +251,26 @@ describe(ctx.label, () => {
             .select({
                 id: tIssueWorklog.id,
                 mo: tIssueWorklog.billedAmount.modulo(3),
-                mc: tIssueWorklog.costCents.asDouble().modulo(3),
+                mc: tIssueWorklog.issueId.asDouble().modulo(3),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot()
-        expect(ctx.lastParams).toMatchInlineSnapshot()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(billed_amount as numeric(38, 16)) % cast(@0 as numeric(38, 16)) as mo, cast(cast(issue_id as float) as numeric(38, 16)) % cast(@1 as numeric(38, 16)) as mc from issue_worklog where id = @2"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+            3,
+            1,
+          ]
+        `)
         assertType<Exact<typeof result, Array<{ id: number; mo: number; mc: number }>>>()
-        expect(result).toEqual(expected)
+        if (ctx.realDbEnabled) {
+            expect(result[0]!.id).toBe(1)
+            expect(Number(result[0]!.mo)).toBeCloseTo(2, 5)
+            expect(Number(result[0]!.mc)).toBeCloseTo(1, 5)
+        } else {
+            expect(result).toEqual(expected)
+        }
     })
-    */
 
     // ── 3. customDouble ceil / floor / round ──────────────────────────────
 

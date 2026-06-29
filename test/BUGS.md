@@ -67,30 +67,7 @@ of that. Two minutes of triage and one paragraph is the bar.
 
 ## Open Bugs
 
-## `.modulo(...)` on a double / customDouble value source emits `float % x`, which PostgreSQL rejects
-
-**Where**: the `modulo` emission for `double` / `customDouble` value sources in `AbstractSqlBuilder` (and the PostgreSqlSqlBuilder, which renders the receiver as `<col>::float`). `modulo` is typed on `NumberValueSource` / `CustomDoubleValueSource`, so it is reachable on a double.
-**Reproduction**: `tIssue.priority.asDouble().modulo(3)` / `tIssueWorklog.billedAmount.modulo(3)` (customDouble) emit a bare `%` over a float:
-```
-select priority::float % $1 ...
-select billed_amount % $1 ...
-```
-PostgreSQL has **no `%` operator for `double precision`** (only `integer` / `numeric`), so it rejects this with `operator does not exist: double precision % unknown` (SQLSTATE 0A000-adjacent `42883`). `modulo` is valid only on `int` / `bigint` / `customInt` receivers (where `%` works); SQLite / MySQL / MariaDB also accept float `%`, so the path is dialect-dependent — the lib should emit a portable double modulo (e.g. `mod(<col>::numeric, <rhs>)`).
-**Current workaround in the suite**: `const-rhs/double-modulo` in `select.value-source.numeric-operand-coverage.test.ts` is commented out with `// TODO[BUG]` in every cell (full canonical body kept). The sibling `const-rhs/double-logn-divide-atan2` / `const-rhs/customdouble-divide-atan2-logn` tests keep the valid arms (`logn`/`divide`/`atan2`) live and real-validated.
-
-## `orderBy(valueSource)` on a compound emits an un-wrapped `UNION … ORDER BY <expr>` that engines reject
-
-**Where**: `CompoundedOrderByExecutableSelectExpression.orderBy(column: ValueSourceOf<NNoTableOrViewRequiredFrom<…>>, …)` (`src/expressions/select.ts:109`); emission in the compound-select path of `AbstractSqlBuilder` (the same path that DOES wrap for the `insensitive` mode — `union-with-insensitive-order-by` produces `select * from (…) as o_1_ order by lower(label)`).
-**Reproduction**: ordering a compound by a no-table value source — the only kind the overload accepts — emits the value source as a bare ORDER BY item without wrapping the compound:
-```
-select name as label from project union select title as label from issue order by label, $1
-```
-A compound's ORDER BY may reference only result columns / ordinal positions, so every engine rejects this. Confirmed real-DB:
-- PostgreSQL: `0A000` — `invalid UNION/INTERSECT/EXCEPT ORDER BY clause` (hint: "Add the expression/function to every SELECT, or move the UNION into a FROM clause.").
-- SQLite (bun_sqlite, native): `2nd ORDER BY term does not match any column in the result set`.
-
-The `orderBy('label', 'asc insensitive')` path wraps the compound in `select * from (…)` so the expression becomes valid; the plain `orderBy(valueSource)` path does not wrap, so it cannot produce valid SQL on any dialect. The typer permits the call but it is unusable. (The string and ordinal forms — `orderBy('label')`, `orderByFromString('label')`, `orderBy(rawFragment\`1\`)` — are valid and covered live.)
-**Current workaround in the suite**: `compound-order-by-value-source-secondary` in `select.compound.test.ts` is commented out with `// TODO[BUG]` in every cell (full canonical body kept), since it fails on every dialect.
+_None currently open._
 
 ## Common bug shapes (for the fixing agent)
 

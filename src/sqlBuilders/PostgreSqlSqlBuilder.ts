@@ -265,6 +265,19 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
     override _divide(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         return this._appendSqlParenthesis(valueSource, params, false) + '::float / ' + this._appendValueParenthesis(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false) + '::float'
     }
+    override _modulo(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        if (columnType === 'double' || columnType === 'customDouble') {
+            // PostgreSQL defines neither the `%` operator nor `mod(...)` for
+            // `double precision` — both exist only for integer / numeric — so
+            // the inherited `<col> % <rhs>` form fails at runtime with
+            // `operator does not exist: double precision % ...`. Cast both
+            // operands to numeric so `mod(numeric, numeric)` resolves (the same
+            // numeric-cast strategy `_logn` / `_roundn` use). The integer /
+            // bigint / customInt receivers keep the plain `%` form below.
+            return 'mod((' + this._appendSql(valueSource, params, false) + ')::numeric, (' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false) + ')::numeric)'
+        }
+        return super._modulo(params, valueSource, value, columnType, columnTypeName, typeAdapter)
+    }
     override _logn(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         // PostgreSQL only defines the two-argument logarithm for `numeric`:
         // `log(b numeric, x numeric) → numeric`. There is no

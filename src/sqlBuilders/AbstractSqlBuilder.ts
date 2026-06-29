@@ -825,18 +825,19 @@ export class AbstractSqlBuilder implements SqlBuilder {
             selectQuery += this._buildWith(query, params)
 
             const emitOrderBy = !query.__asInlineAggregatedArrayValue || !this._supportOrderByWhenAggregateArray || this._isAggregateArrayWrapped(params)
-            // A case-insensitive ordering on the strict engines can't live in
-            // the compound ORDER BY itself; wrap the whole compound in a plain
+            // A case-insensitive ordering, or an ordering by a value-source
+            // expression, can't live in the compound ORDER BY itself on the
+            // strict engines; wrap the whole compound in a plain
             // `select * from (...)` and order there. The inner compound is
             // emitted verbatim so its set semantics and collations survive.
-            const wrapInsensitiveOrderBy = emitOrderBy && this._needsCompoundInsensitiveOrderByWrap(query)
+            const wrapCompoundOrderBy = emitOrderBy && this._needsCompoundOrderByWrap(query)
 
             let compoundCore = ''
             compoundCore += this._buildSelectWithColumnsInfoForCompound(query.__firstQuery, params, columnsForInsert, isOutermostQuery)
             compoundCore += this._appendCompoundOperator(query.__compoundOperator, params)
             compoundCore += this._buildSelectWithColumnsInfoForCompound(query.__secondQuery, params, columnsForInsert, isOutermostQuery)
 
-            if (wrapInsensitiveOrderBy) {
+            if (wrapCompoundOrderBy) {
                 selectQuery += 'select * from (' + compoundCore + ')'
                 selectQuery += this._supportTableAliasWithAs ? ' as o_' + this._generateUnique() + '_' : ' o_' + this._generateUnique() + '_'
                 const oldSafeTableOrViewInOrderBy = this._getSafeTableOrView(params)
@@ -1327,6 +1328,46 @@ export class AbstractSqlBuilder implements SqlBuilder {
             }
         }
         return false
+    }
+    /**
+     * Whether the compound query's ORDER BY contains a value-source term that
+     * this dialect can't render inline. A compound ORDER BY may reference only
+     * result-column names / ordinal positions on the strict engines, so a
+     * value source (the only thing the `orderBy(valueSource)` overload accepts —
+     * always a no-table expression like a constant) is illegal inline there and
+     * the compound must be wrapped as `select * from (<compound>)` so the
+     * expression becomes a legal ORDER BY term on the plain wrapper. MySQL /
+     * MariaDB accept expressions inline (`_supportFunctionInCompoundOrderBy`),
+     * so they render it without the wrapper. Ordinal raw fragments (`order by 1`)
+     * are not value sources and stay inline untouched.
+     */
+    _needsCompoundExpressionOrderByWrap(query: SelectData): boolean {
+        if (query.__type !== 'compound') {
+            return false
+        }
+        const orderBy = query.__orderBy
+        if (!orderBy) {
+            return false
+        }
+        if (this._supportFunctionInCompoundOrderBy()) {
+            return false // the lenient engines accept the expression inline, no wrapper needed
+        }
+        for (const entry of orderBy) {
+            if (isValueSource(entry.expression)) {
+                return true
+            }
+        }
+        return false
+    }
+    /**
+     * Whether the compound query's ORDER BY needs the `select * from (<compound>)`
+     * wrapper for any reason — a case-insensitive term that renders as an
+     * expression, or an ordering by a value-source expression. Either kind is
+     * illegal inside a compound ORDER BY on the strict engines and becomes legal
+     * on the plain wrapper.
+     */
+    _needsCompoundOrderByWrap(query: SelectData): boolean {
+        return this._needsCompoundInsensitiveOrderByWrap(query) || this._needsCompoundExpressionOrderByWrap(query)
     }
     /**
      * Render the ORDER BY for the outer `select * from (<compound>)` wrapper

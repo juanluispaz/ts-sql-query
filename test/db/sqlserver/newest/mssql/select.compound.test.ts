@@ -364,9 +364,7 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-    // TODO[BUG]: see test/BUGS.md — orderBy(valueSource) on a compound emits an
-    // un-wrapped `UNION … ORDER BY <expr>` (`order by label, $1`) every engine
-    // rejects (PG 0A000; SQLite mismatch); insensitive wraps the compound, this doesn't.
+    // TODO[LIMITATION]: see LIMITATIONS.md — SQL Server rejects a bare bind parameter as an ORDER BY term (error 1008: it reads a lone variable/literal there as an ordinal column position). `orderBy(<no-table value source>)` renders the const as a bare `@param`, so the compound wrapper's `order by [label], @0` is rejected — the same way a plain `select … order by col, @p` is. The compound wrapping itself is correct; only the bare-parameter ORDER BY term is unsupported here.
     /*
     test('compound-order-by-value-source-secondary', async () => {
         // `orderBy(valueSource)` on a compound — the no-table-required ValueSource
@@ -391,12 +389,8 @@ describe(ctx.label, () => {
             .orderBy('label')
             .orderBy(ctx.conn.const(1, 'int'))
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project union select title as label from issue order by label, $1"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            1,
-          ]
-        `)
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(ctx.lastParams).toMatchInlineSnapshot()
         assertType<Exact<typeof result, Array<{ label: string }>>>()
         expect(result).toEqual(expected)
     })

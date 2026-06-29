@@ -959,6 +959,18 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     override _divide(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         return 'cast(' + this._appendSql(valueSource, params, false) + ' as float) / cast(' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false) + ' as float)'
     }
+    override _modulo(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        if (columnType === 'double' || columnType === 'customDouble') {
+            // T-SQL's `%` operator rejects float operands ("The data types float
+            // and int are incompatible in the modulo operator"); SQL Server has
+            // no `mod(...)` function either. Cast both operands to numeric — the
+            // only type family `%` accepts for fractional values — so the
+            // operator resolves. The integer / bigint / customInt receivers keep
+            // the plain `%` form below.
+            return 'cast(' + this._appendSql(valueSource, params, false) + ' as numeric(38, 16)) % cast(' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false) + ' as numeric(38, 16))'
+        }
+        return super._modulo(params, valueSource, value, columnType, columnTypeName, typeAdapter)
+    }
     override _asDouble(params: any[], valueSource: ToSql): string {
         return 'cast(' + this._appendSql(valueSource, params, false) + ' as float)'
     }

@@ -16,10 +16,24 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
+import type { TypeAdapter } from '../../../../../src/TypeAdapter.js'
 import type { ReleaseChannel, WorklogActivity } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 const UUID_V = '0a8f9c1e-1111-4222-8333-444455556666'
+
+// Trailing `adapter?: TypeAdapter` overload arg on `const(...)`. The adapter
+// wraps the read value in `[...]`, so its effect is observable in the result;
+// it defines no `transformPlaceholder`, so the emitted placeholder is unchanged.
+const bracketAdapter: TypeAdapter = {
+    transformValueFromDB(value, type, next) {
+        const v = next.transformValueFromDB(value, type)
+        return typeof v === 'string' ? '[' + v + ']' : v
+    },
+    transformValueToDB(value, type, next) {
+        return next.transformValueToDB(value, type)
+    },
+}
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -135,4 +149,25 @@ describe(ctx.label, () => {
         }>>()
         expect(row).toEqual(expected)
     })
+
+    test('required-const/trailing-type-adapter-transforms-read-value', async () => {
+        // The const value is sent verbatim (the adapter delegates
+        // `transformValueToDB` to `next`); the value coming back is wrapped in
+        // `[...]` by the adapter's `transformValueFromDB`. The mock is primed with
+        // the RAW value 'hello', so the bracket is the observable proof the adapter
+        // ran.
+        ctx.mockNext('hello')
+        const v = await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.const('hello', 'string', bracketAdapter))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select :0 as "result" from dual"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "hello",
+          ]
+        `)
+        assertType<Exact<typeof v, string>>()
+        expect(v).toBe('[hello]')
+    })
+
 })

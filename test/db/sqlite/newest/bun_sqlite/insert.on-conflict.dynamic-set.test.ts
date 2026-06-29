@@ -10,6 +10,8 @@
 //   - The bare-form siblings (`.onConflictDoUpdateDynamicSet({…?})` and
 //     `.onConflictDoUpdateSetIfValue({...})`) are commented out for
 //     symmetry in the cells whose dialect does not type them.
+//   - `.shapedAs({…})` before the conflict opener renames the update-set keys;
+//     a chained `.set({…})` then maps each renamed key back to its real column.
 //
 // The static `.onConflictDoUpdateSet({...})` / `.doUpdateSet({...})` paths
 // are already pinned by the static on-conflict coverage; this file only
@@ -543,6 +545,46 @@ describe(ctx.label, () => {
                 "mktg-site",
                 "ignored",
                 "Reactivated",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(1)
+        })
+    })
+
+    test('shaped-do-update-dynamic-set-maps-renamed-key-to-real-column', async () => {
+        // `shapedAs({...})` renames the source-object keys to real columns; the
+        // insert `.set({...})` supplies every required column under those renamed
+        // keys. After `onConflictOn(...).doUpdateDynamicSet()` opens the conflict
+        // update-set, the chained `.set({ projectName: ... })` keeps using the
+        // renamed `projectName` key, which maps back to the real `name` column.
+        // Seed (org 1, 'mktg-site') exists, so the conflict fires and the existing
+        // row is updated → 1 affected.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.insertInto(tProject)
+                .shapedAs({
+                    orgId:       'organizationId',
+                    projectName: 'name',
+                    projectSlug: 'slug',
+                })
+                .set({
+                    orgId:       1,
+                    projectName: 'ignored',
+                    projectSlug: 'mktg-site',
+                })
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doUpdateDynamicSet()
+                .set({ projectName: 'Renamed via shape' })
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?, ?, ?) on conflict (organization_id, slug) do update set name = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "ignored",
+                "mktg-site",
+                "Renamed via shape",
               ]
             `)
             assertType<Exact<typeof affected, number>>()

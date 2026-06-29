@@ -146,6 +146,39 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { id: number; assigneeName?: string }>>()
         expect(row).toEqual(expected)
     })
+    test('left-join-with-dynamic-on-or-accumulates-disjunction', async () => {
+        // The `.or(...)` arm of the SELECT join's dynamic-ON predicate (the
+        // sibling of the `.and(...)` arm above). `dynamicOn()` opens an empty
+        // JOIN predicate; the first `.and(...)` seeds it and the following
+        // `.or(...)` accumulates a disjunction into the ON clause. The second
+        // disjunct (`assignee.id = 0`) never matches any seeded app_user, so
+        // the join behaves like the plain assignee match: issue 1 is assigned
+        // to app_user 1 (Ada Lovelace).
+        const expected = { id: 1, assigneeName: 'Ada Lovelace' }
+        ctx.mockNext(expected)
+        const assignee = tAppUser.forUseInLeftJoin()
+        const row = await ctx.conn.selectFrom(tIssue)
+            .leftJoin(assignee).dynamicOn()
+                .and(assignee.id.equals(tIssue.assigneeId))
+                .or(assignee.id.equals(0))
+            .where(tIssue.id.equals(1))
+            .select({
+                id:           tIssue.id,
+                assigneeName: assignee.fullName,
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, app_user.full_name as assigneeName from issue left join app_user on app_user.id = issue.assignee_id or app_user.id = ? where issue.id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            0,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; assigneeName?: string }>>()
+        expect(row).toEqual(expected)
+    })
+
     test('select-cross-join-comma-from', async () => {
         // `.from(t2)` after `selectFrom(t1)` adds the second table to the
         // FROM as a comma-join (cross join), correlated by the WHERE

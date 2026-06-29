@@ -373,11 +373,21 @@ describe(ctx.label, () => {
             cutoffTime: Date
             signedOffAt?: Date | null | undefined
         }>>()
-        // UpdatableValues makes every writable column optional; `notes` /
-        // `versionTag` stay excluded.
-        assertType<Extends<UpdatableValues<typeof tProjectRelease>, {
+        // UpdatableValues makes every writable column optional (so the
+        // InsertableValues-required `projectId` / `version` / `channel` /
+        // `releasedOn` / `cutoffTime` above all become optional here); the
+        // optional columns keep their `| null | undefined`; `notes` /
+        // `versionTag` stay excluded. Exact-pinned, mirroring the
+        // InsertableValues Exact above.
+        assertType<Exact<UpdatableValues<typeof tProjectRelease>, {
+            id?: number
+            projectId?: number
             version?: string
             channel?: ReleaseChannel
+            signingKey?: string | null | undefined
+            releasedOn?: Date
+            cutoffTime?: Date
+            signedOffAt?: Date | null | undefined
         }>>()
         // SelectedRow is the full read shape — it KEEPS the computed `notes`
         // and the virtual `versionTag` (both `string`).

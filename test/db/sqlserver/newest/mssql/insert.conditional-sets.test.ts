@@ -730,4 +730,42 @@ describe(ctx.label, () => {
             expect(affected).toBe(1)
         })
     })
+
+    test('dynamic-set-zero-arg-overload-opens-missing-keys-then-set-fills-them', async () => {
+        // The no-arg `dynamicSet()` overload opens the insert with every
+        // required column still missing (a MissingKeysInsertExpression); the
+        // following `.set({...})` supplies them all, so the insert becomes
+        // executable. Distinct from the one-arg `dynamicSet({...})` seed above,
+        // which starts from a populated column object. The paired plain
+        // `set({...})` form is built but not executed — its query/params are
+        // compared instead — so the UNIQUE(project_id, number) row is inserted
+        // only once.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.insertInto(tIssue)
+                .dynamicSet()
+                .set({ projectId: 1, number: 301, title: 'Dynamic empty seed', status: 'open', priority: 2 })
+                .executeInsert()
+            const dynamicSql = ctx.lastSql
+            const dynamicParams = ctx.lastParams
+
+            const viaSet = ctx.conn.insertInto(tIssue)
+                .set({ projectId: 1, number: 301, title: 'Dynamic empty seed', status: 'open', priority: 2 })
+            expect(viaSet.query()).toBe(dynamicSql)
+            expect(viaSet.params()).toEqual(dynamicParams)
+
+            expect(dynamicSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (@0, @1, @2, @3, @4)"`)
+            expect(dynamicParams).toMatchInlineSnapshot(`
+              [
+                1,
+                301,
+                "Dynamic empty seed",
+                "open",
+                2,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(1)
+        })
+    })
 })

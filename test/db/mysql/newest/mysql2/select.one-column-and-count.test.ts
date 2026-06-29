@@ -16,6 +16,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
+import { TsSqlError } from '../../../../../src/TsSqlError.js'
 import { tIssue } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
@@ -162,6 +163,7 @@ describe(ctx.label, () => {
           ]
         `)
         expect(String(caught)).toMatch(/NO_RESULT|No result returned/)
+        expect(caught instanceof TsSqlError ? caught.errorReason.reason : undefined).toBe('NO_RESULT')
     })
 
     test('select-multi-column-execute-one-empty-result-throws-no-result', async () => {

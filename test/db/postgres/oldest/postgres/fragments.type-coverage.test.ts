@@ -266,4 +266,28 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { tagged: string }>>()
         expect(row).toEqual(expected)
     })
+
+    test('aggregate-fragment-with-type-threads-a-trailing-type-adapter', async () => {
+        // `aggregateFragmentWithType(...)` with a trailing adapter: the
+        // non-identity `bracketAdapter` brackets the value read back. The mock
+        // is primed with the RAW value; the adapter brackets it on the way out.
+        // Issue 1's worklogs {coding, meeting} ->
+        // max(upper(activity)) = 'MEETING' -> '[MEETING]'.
+        ctx.mockNext({ tagged: 'MEETING' })
+        const expected = { tagged: '[MEETING]' }
+        const row = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.issueId.equals(1))
+            .select({
+                tagged: ctx.conn.aggregateFragmentWithType('string', 'required', bracketAdapter).sql`max(upper(${tIssueWorklog.activity}))`,
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(upper(activity)) as tagged from issue_worklog where issue_id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { tagged: string }>>()
+        expect(row).toEqual(expected)
+    })
 })

@@ -14,6 +14,7 @@
 // stays satisfiable against every real DB.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
+import { TsSqlError } from '../../../../../src/TsSqlError.js'
 import { tIssue, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
@@ -112,6 +113,7 @@ describe(ctx.label, () => {
         expect(err.message).toContain('body must never be staged from the API')
         expect(err.disallowedProperty).toBe('body')
         expect(err.disallowedIndex).toBe(1)
+        expect(thrown instanceof TsSqlError ? thrown.errorReason.reason : undefined).toBe('DISALLOWED_BY_QUERY_RULE')
     })
 
     test('disallow-if-not-set-throws-when-row-is-missing-required-key', () => {

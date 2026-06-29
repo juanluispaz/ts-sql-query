@@ -309,6 +309,42 @@ describe(ctx.label, () => {
         expect(rows).toEqual([{ pid: 3 }, { pid: 4 }])
     })
 
+    test('aggregate-as-array-element-default-projector-required-leaf-stays-required', async () => {
+        // Without `projectingOptionalValuesAsNullable()` the aggregate element
+        // uses the default projector: the required `id` stays `number` while the
+        // null `body` surfaces as an ABSENT key —
+        // `Array<{ id: number; body?: string }>`.
+        ctx.mockNext([{ pid: 1, issues: [{ id: 1, body: null }, { id: 2, body: 'Use new tokens' }] }])
+        const tIssueLeft = tIssue.forUseInLeftJoin()
+        const rows = await ctx.conn.selectFrom(tProject)
+            .leftJoin(tIssueLeft).on(tIssueLeft.projectId.equals(tProject.id))
+            .where(tProject.id.equals(1))
+            .select({
+                pid:    tProject.id,
+                issues: ctx.conn.aggregateAsArray({
+                    id:   tIssueLeft.id,
+                    body: tIssueLeft.body,
+                }),
+            })
+            .groupBy('pid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, json_arrayagg(json_object('id':issue.id, 'body':issue.body)) as issues from project left join issue on issue.project_id = project.id where project.id = @0 group by project.id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            pid:    number
+            issues: Array<{ id: number; body?: string }>
+        }>>>()
+        const sorted = rows.map(r => ({ pid: r.pid, issues: [...r.issues].sort((a, b) => a.id - b.id) }))
+        // Under the default projector the null `body` is an ABSENT key, not `null`.
+        expect('body' in sorted[0]!.issues[0]!).toBe(false)
+        expect(sorted).toEqual([{ pid: 1, issues: [{ id: 1 }, { id: 2, body: 'Use new tokens' }] }])
+    })
+
     test('null-projector-aggregate-as-array-as-required-in-optional-object', async () => {
         // With `.projectingOptionalValuesAsNullable()`, the
         // `asRequiredInOptionalObject()`-gated `meta` object is PRESENT-as-`null`

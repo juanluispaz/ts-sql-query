@@ -696,4 +696,38 @@ describe(ctx.label, () => {
             expect(affected).toBe(1)
         })
     })
+
+    test('dynamic-set-one-arg-overload-matches-the-plain-set', async () => {
+        // `dynamicSet({...})` seeds the insert with an initial column object;
+        // with every required column supplied it is directly executable. The
+        // paired `set({...})` form is built but not executed — its query and
+        // params are compared instead — so the UNIQUE(project_id, number) row
+        // is inserted only once.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.insertInto(tIssue)
+                .dynamicSet({ projectId: 1, number: 300, title: 'Dynamic seed', status: 'open', priority: 2 })
+                .executeInsert()
+            const dynamicSql = ctx.lastSql
+            const dynamicParams = ctx.lastParams
+
+            const viaSet = ctx.conn.insertInto(tIssue)
+                .set({ projectId: 1, number: 300, title: 'Dynamic seed', status: 'open', priority: 2 })
+            expect(viaSet.query()).toBe(dynamicSql)
+            expect(viaSet.params()).toEqual(dynamicParams)
+
+            expect(dynamicSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?, ?, ?, ?, ?)"`)
+            expect(dynamicParams).toMatchInlineSnapshot(`
+              [
+                1,
+                300,
+                "Dynamic seed",
+                "open",
+                2,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(1)
+        })
+    })
 })

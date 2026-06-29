@@ -102,6 +102,10 @@ describe(ctx.label, () => {
             name:           'demo',
         }
         void probe
+        // The Row wrapper's leaves are `value | IValueSource<…>` whose source
+        // brand is dialect-specific and not portably nameable, so we pin the
+        // column key set against the Values sibling rather than the full type.
+        assertType<Exact<keyof ProjInsertRow, keyof InsertableValues<typeof tProject>>>()
     })
 
     test('docs-extra:utility-types/updatable-values', () => {
@@ -117,6 +121,8 @@ describe(ctx.label, () => {
             title: 'new title',
         }
         void probe
+        // Key-set pin (the leaf value-source brand is not portably nameable).
+        assertType<Exact<keyof IssueUpdateRow, keyof UpdatableValues<typeof tIssue>>>()
     })
 
     test('docs-extra:utility-types/selected-values', () => {
@@ -142,6 +148,14 @@ describe(ctx.label, () => {
         // doc-end
         const probe: OrgUpsert = { plan: 'enterprise' }
         void probe
+        // The Values wrapper is literal-only, so its full shape is pinnable.
+        assertType<Exact<OrgUpsert, {
+            name?:      string
+            plan?:      string
+            createdAt?: Date
+            id?:        number
+            verified?:  boolean
+        }>>()
     })
 
     test('docs:utility-types/updatable-on-insert-conflict-row', () => {
@@ -152,6 +166,9 @@ describe(ctx.label, () => {
         // doc-end
         const probe: OrgUpsertRow = { plan: 'enterprise' }
         void probe
+        // Key-set pin against the Values sibling (the leaf value-source brand
+        // is not portably nameable).
+        assertType<Exact<keyof OrgUpsertRow, keyof UpdatableOnInsertConflictValues<typeof tOrganization>>>()
     })
 
     test('docs-extra:utility-types/selected-values-projected-as-nullable', () => {
@@ -196,6 +213,8 @@ describe(ctx.label, () => {
         // email/full_name are required, non-default columns.
         const probe: InsShaped = { newEmail: 'a@x.com', newFullName: 'Ada' }
         void probe
+        // The shaped Values wrapper is literal-only, so its full shape is pinnable.
+        assertType<Exact<InsShaped, { newEmail: string; newFullName: string }>>()
     })
 
     test('docs:utility-types/insertable-row-shaped-as', () => {
@@ -212,6 +231,9 @@ describe(ctx.label, () => {
         const valueSrc: InsRowShaped = { newEmail: tAppUser.email,   newFullName: tAppUser.fullName }
         void literal
         void valueSrc
+        // Key-set pin against the shaped Values sibling (the leaf value-source
+        // brand is not portably nameable).
+        assertType<Exact<keyof InsRowShaped, keyof InsertableValuesShapedAs<typeof tAppUser, typeof myShape>>>()
     })
 
     test('docs:utility-types/updatable-values-shaped-as', () => {
@@ -225,6 +247,8 @@ describe(ctx.label, () => {
         // Update is partial — a single renamed key is enough.
         const probe: UpdShaped = { newEmail: 'a@x.com' }
         void probe
+        // The shaped Values wrapper is literal-only, so its full shape is pinnable.
+        assertType<Exact<UpdShaped, { newEmail?: string; newFullName?: string }>>()
     })
 
     test('docs:utility-types/updatable-row-shaped-as', () => {
@@ -241,6 +265,9 @@ describe(ctx.label, () => {
         const valueSrc: UpdRowShaped = { newFullName: tAppUser.fullName }
         void literal
         void valueSrc
+        // Key-set pin against the shaped Values sibling (the leaf value-source
+        // brand is not portably nameable).
+        assertType<Exact<keyof UpdRowShaped, keyof UpdatableValuesShapedAs<typeof tAppUser, typeof myShape>>>()
     })
 
     test('docs:utility-types/updatable-on-insert-conflict-values-shaped-as', () => {
@@ -253,6 +280,8 @@ describe(ctx.label, () => {
         // doc-end
         const probe: ConflictValuesShaped = { newFullName: 'Ada' }
         void probe
+        // The shaped Values wrapper is literal-only, so its full shape is pinnable.
+        assertType<Exact<ConflictValuesShaped, { newEmail?: string; newFullName?: string }>>()
     })
 
     test('docs-extra:utility-types/updatable-on-insert-conflict-row-shaped-as-equals-values', () => {

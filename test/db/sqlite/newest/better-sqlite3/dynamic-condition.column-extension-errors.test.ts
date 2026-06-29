@@ -15,6 +15,7 @@
 // filter shape that hands the rule to the per-column path.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
+import { TsSqlError } from '../../../../../src/TsSqlError.js'
 import type { DynamicCondition } from '../../../../../src/dynamic/condition.js'
 import { tIssue } from '../../domain/connection.js'
 import { ctx } from './setup.js'
@@ -57,6 +58,7 @@ describe(ctx.label, () => {
         expect(err.processedValue).toBe(5)
         expect(err.rule).toBe('withinRange')
         expect(err.path).toBe('id')
+        expect(thrown instanceof TsSqlError ? thrown.errorReason.reason : undefined).toBe('DYNAMIC_CONDITION_INVALID_EXTENSION_RETURN_TYPE')
     })
 
     test('column-rule-extension-returning-non-boolean-value-source-throws-with-type-name', async () => {

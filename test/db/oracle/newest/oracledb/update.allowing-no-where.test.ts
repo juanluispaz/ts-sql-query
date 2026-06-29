@@ -62,4 +62,53 @@ describe(ctx.label, () => {
             expect(affected).toBe(4)
         })
     })
+
+    test('update-allowing-no-where-dynamic-set-touches-all-rows', async () => {
+        // `dynamicSet({...})` on the allowing-no-where builder is executable
+        // with no WHERE, so it updates every seeded issue. The paired
+        // `.set({...})` form is built but not executed — its query and params
+        // are compared instead.
+        ctx.mockNext(4)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.updateAllowingNoWhere(tIssue)
+                .dynamicSet({ status: 'archived' })
+                .executeUpdate()
+            const dynamicSql = ctx.lastSql
+            const dynamicParams = ctx.lastParams
+
+            const viaSet = ctx.conn.updateAllowingNoWhere(tIssue).set({ status: 'archived' })
+            expect(viaSet.query()).toBe(dynamicSql)
+            expect(viaSet.params()).toEqual(dynamicParams)
+
+            expect(dynamicSql).toMatchInlineSnapshot(`"update issue set status = :0"`)
+            expect(dynamicParams).toMatchInlineSnapshot(`
+              [
+                "archived",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(4)
+        })
+    })
+
+    test('update-allowing-no-where-set-if-value-skips-empty-and-touches-all-rows', async () => {
+        // `setIfValue({...})` on the allowing-no-where builder needs no WHERE.
+        // The value gate drops `body: undefined`, so only `status` reaches the
+        // SET clause; with no WHERE every seeded issue is updated.
+        ctx.mockNext(4)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.updateAllowingNoWhere(tIssue)
+                .setIfValue({ status: 'archived', body: undefined })
+                .executeUpdate()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = :0"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "archived",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(4)
+        })
+    })
 })

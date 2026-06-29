@@ -4,6 +4,7 @@
 // and `fromRef`.
 
 import { beforeAll, afterAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
+import { assertType, type Exact, type Extends } from '../../../../lib/assertType.js'
 import {
     fromRef,
     type TableOrViewOf,
@@ -26,6 +27,10 @@ describe(ctx.label, () => {
         // ref is a typed reference; at runtime it's just the aliased table.
         expect(project).toBeDefined()
         void ref
+        // The ref resolves to a bare `ITableOrView<NAlias<…>>` marker, so the
+        // meaningful relationship is that the aliased table is assignable to it
+        // (a full Exact against the column-bearing table is not possible).
+        assertType<Extends<typeof project, TableOrViewOf<typeof tProject, 'project'>>>()
     })
 
     test('docs:tables-views-as-parameter/table-or-view-left-join-of-typing', () => {
@@ -36,6 +41,8 @@ describe(ctx.label, () => {
         // Left-join refs are accepted by the type as expected.
         expect(issueLJ).toBeDefined()
         void ref
+        // The left-join aliased table is assignable to its ref type.
+        assertType<Extends<typeof issueLJ, TableOrViewLeftJoinOf<typeof tIssue, 'issue'>>>()
     })
 
     test('docs:tables-views-as-parameter/from-ref-recovers-columns-from-a-ref', () => {
@@ -58,6 +65,9 @@ describe(ctx.label, () => {
         void ref
         const refLJ: TableOrViewLeftJoinOf<typeof tIssue> = tIssue.forUseInLeftJoin()
         void refLJ
+        // The default (no-alias) arm is the explicit `ALIAS = ''` arm.
+        assertType<Exact<TableOrViewOf<typeof tProject>, TableOrViewOf<typeof tProject, ''>>>()
+        assertType<Exact<TableOrViewLeftJoinOf<typeof tIssue>, TableOrViewLeftJoinOf<typeof tIssue, ''>>>()
     })
 
     // Smoke test of the full doc-style pattern executed end-to-end: the

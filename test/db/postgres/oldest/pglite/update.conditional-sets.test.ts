@@ -319,4 +319,36 @@ describe(ctx.label, () => {
         })
     })
 
+
+    test('dynamic-set-one-arg-overload-matches-the-plain-set', async () => {
+        // `dynamicSet({...})` still requires a `.where(...)` before execute,
+        // like `set({...})`. The paired `set({...})` form is built but not
+        // executed — its query and params are compared against the executed one.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.update(tIssue)
+                .dynamicSet({ title: 'Triaged', priority: 3 })
+                .where(tIssue.id.equals(1))
+                .executeUpdate()
+            const dynamicSql = ctx.lastSql
+            const dynamicParams = ctx.lastParams
+
+            const viaSet = ctx.conn.update(tIssue)
+                .set({ title: 'Triaged', priority: 3 })
+                .where(tIssue.id.equals(1))
+            expect(viaSet.query()).toBe(dynamicSql)
+            expect(viaSet.params()).toEqual(dynamicParams)
+
+            expect(dynamicSql).toMatchInlineSnapshot(`"update issue set title = $1, priority = $2 where id = $3"`)
+            expect(dynamicParams).toMatchInlineSnapshot(`
+              [
+                "Triaged",
+                3,
+                1,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(1)
+        })
+    })
 })

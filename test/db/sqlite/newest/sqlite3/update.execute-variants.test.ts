@@ -14,6 +14,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
+import { TsSqlError } from '../../../../../src/TsSqlError.js'
 import { tIssue } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
@@ -59,6 +60,7 @@ describe(ctx.label, () => {
             caught = e
         }
         expect(String(caught)).toMatch(/MINIMUM_ROWS_NOT_REACHED|didn't update the minimum/)
+        expect(caught instanceof TsSqlError ? caught.errorReason.reason : undefined).toBe('MINIMUM_ROWS_NOT_REACHED')
     })
 
     test('execute-update-throws-when-more-rows-than-max', async () => {
@@ -78,6 +80,7 @@ describe(ctx.label, () => {
                 caught = e
             }
             expect(String(caught)).toMatch(/MAXIMUM_ROWS_EXCEEDED|updated more/)
+            expect(caught instanceof TsSqlError ? caught.errorReason.reason : undefined).toBe('MAXIMUM_ROWS_EXCEEDED')
         })
     })
 
@@ -244,6 +247,7 @@ describe(ctx.label, () => {
             caught = e
         }
         expect(String(caught)).toMatch(/NO_COLUMN_SETS|No values to update/)
+        expect(caught instanceof TsSqlError ? caught.errorReason.reason : undefined).toBe('NO_COLUMN_SETS')
     })
 
     test('execute-update-many-with-no-sets-resolves-empty-array', async () => {

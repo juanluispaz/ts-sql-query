@@ -156,4 +156,21 @@ describe(ctx.label, () => {
         })
     })
     */
+
+    test('delete-allowing-no-where-using-without-where-removes-all-rows', async () => {
+        // `deleteAllowingNoWhereFrom(t).using(j)` is executable with no WHERE:
+        // the cartesian `DELETE ... USING project` removes every seeded issue
+        // (the worklog and webhook rows that reference issue cascade ON DELETE).
+        ctx.mockNext(4)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.deleteAllowingNoWhereFrom(tIssue)
+                .using(tProject)
+                .executeDelete()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using issue, project"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(4)
+        })
+    })
 })

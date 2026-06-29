@@ -4,7 +4,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tOrganization, tIssueWorklog, tProjectRelease } from '../../domain/connection.js'
+import { tIssue, tOrganization, tIssueWorklog, tProjectRelease, tProjectReview } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -285,6 +285,139 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{ y: number; h: number; t?: number; before: boolean }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('optional-localdate-getters', async () => {
+        // The OPTIONAL-receiver branch of LocalDateValueSource getters: reviewDate
+        // is an OPTIONAL plain `localDate`, so each getter carries the optional
+        // marker to a `number | undefined` leaf. Review 1: review_date 2024-05-20 (a
+        // Monday) -> year 2024, month 4 (May, JS 0-indexed), date 20, day-of-week 1.
+        const expected = [{ y: 2024, mo: 4, d: 20, dow: 1 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tProjectReview)
+            .where(tProjectReview.id.equals(1))
+            .select({
+                y:   tProjectReview.reviewDate.getFullYear(),
+                mo:  tProjectReview.reviewDate.getMonth(),
+                d:   tProjectReview.reviewDate.getDate(),
+                dow: tProjectReview.reviewDate.getDay(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(year, review_date) as [y], datepart(month, review_date) - 1 as mo, datepart(day, review_date) as [d], datepart(weekday, review_date) - 1 as dow from project_review where id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ y?: number | undefined; mo?: number | undefined; d?: number | undefined; dow?: number | undefined }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('required-localtime-getters', async () => {
+        // The REQUIRED-receiver branch of LocalTimeValueSource getters: reviewTime
+        // is a REQUIRED plain `localTime`, so each getter is a required `number`
+        // leaf. Review 1: review_time 14:30:45 -> hours 14, minutes 30,
+        // seconds 45, milliseconds 0.
+        const expected = [{ h: 14, m: 30, s: 45, ms: 0 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tProjectReview)
+            .where(tProjectReview.id.equals(1))
+            .select({
+                h:  tProjectReview.reviewTime.getHours(),
+                m:  tProjectReview.reviewTime.getMinutes(),
+                s:  tProjectReview.reviewTime.getSeconds(),
+                ms: tProjectReview.reviewTime.getMilliseconds(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(hour, review_time) as [h], datepart(minute, review_time) as [m], datepart(second, review_time) as [s], datepart(millisecond, review_time) as ms from project_review where id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ h: number; m: number; s: number; ms: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('custom-localdate-remaining-getters', async () => {
+        // The remaining LocalDateValueSource getters on the custom-localDate
+        // column releasedOn (required): getMonth (JS 0-indexed), getDate, and
+        // getDay (JS 0 = Sunday). Release 1: released_on
+        // 2024-01-15 (a Monday) -> month 0 (January), date 15, day-of-week 1.
+        const expected = [{ mo: 0, d: 15, dow: 1 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .select({
+                mo:  tProjectRelease.releasedOn.getMonth(),
+                d:   tProjectRelease.releasedOn.getDate(),
+                dow: tProjectRelease.releasedOn.getDay(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(month, released_on) - 1 as mo, datepart(day, released_on) as [d], datepart(weekday, released_on) - 1 as dow from project_release where id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ mo: number; d: number; dow: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('custom-localtime-remaining-getters', async () => {
+        // The remaining LocalTimeValueSource getters on the custom-localTime
+        // column cutoffTime (required): getMinutes, getSeconds, getMilliseconds.
+        // Release 1: cutoff_time 17:00:00 -> 0, 0, 0.
+        const expected = [{ m: 0, s: 0, ms: 0 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .select({
+                m:  tProjectRelease.cutoffTime.getMinutes(),
+                s:  tProjectRelease.cutoffTime.getSeconds(),
+                ms: tProjectRelease.cutoffTime.getMilliseconds(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(minute, cutoff_time) as [m], datepart(second, cutoff_time) as [s], datepart(millisecond, cutoff_time) as ms from project_release where id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ m: number; s: number; ms: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('custom-localdatetime-optional-getters', async () => {
+        // The full LocalDateTimeValueSource getter set on the OPTIONAL
+        // custom-localDateTime column signedOffAt — every getter carries the
+        // optional marker through to a `?: number` leaf (the custom getter
+        // encodes the optional leaf as `?: number`, not `number | undefined`). Release 1: signed_off_at 2024-01-14 12:30:00 (a Sunday) ->
+        // year 2024, month 0, date 14, day-of-week 0, hours 12, minutes 30,
+        // seconds 0, milliseconds 0.
+        const expected = [{ y: 2024, mo: 0, d: 14, dow: 0, h: 12, m: 30, s: 0, ms: 0 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .select({
+                y:   tProjectRelease.signedOffAt.getFullYear(),
+                mo:  tProjectRelease.signedOffAt.getMonth(),
+                d:   tProjectRelease.signedOffAt.getDate(),
+                dow: tProjectRelease.signedOffAt.getDay(),
+                h:   tProjectRelease.signedOffAt.getHours(),
+                m:   tProjectRelease.signedOffAt.getMinutes(),
+                s:   tProjectRelease.signedOffAt.getSeconds(),
+                ms:  tProjectRelease.signedOffAt.getMilliseconds(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(year, signed_off_at) as [y], datepart(month, signed_off_at) - 1 as mo, datepart(day, signed_off_at) as [d], datepart(weekday, signed_off_at) - 1 as dow, datepart(hour, signed_off_at) as [h], datepart(minute, signed_off_at) as [m], datepart(second, signed_off_at) as [s], datepart(millisecond, signed_off_at) as ms from project_release where id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ y?: number | undefined; mo?: number | undefined; d?: number | undefined; dow?: number | undefined; h?: number | undefined; m?: number | undefined; s?: number | undefined; ms?: number | undefined }>>>()
         expect(rows).toEqual(expected)
     })
 

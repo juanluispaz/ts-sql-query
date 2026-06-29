@@ -12,6 +12,7 @@
 -- with ALTER SEQUENCE ... RESTART. Statement list mirrors schema.sql's DROP
 -- order (children first) — keep it in sync when a table is added.
 SET FOREIGN_KEY_CHECKS = 0;
+TRUNCATE TABLE project_review;
 TRUNCATE TABLE project_release;
 TRUNCATE TABLE audit_entry;
 TRUNCATE TABLE webhook_event;

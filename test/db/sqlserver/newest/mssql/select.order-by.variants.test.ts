@@ -7,6 +7,7 @@
 // order is not asserted — the focus is the emitted SQL.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
+import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { tIssue } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
@@ -113,5 +114,24 @@ describe(ctx.label, () => {
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title from issue order by lower(title) desc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+    })
+
+    test('order-by-raw-fragment', async () => {
+        // The `orderBy(rawFragment)` overload — a typed ORDER BY entry point
+        // that takes an arbitrary `IRawFragment` rather than a column name or
+        // ValueSource. The raw fragment embeds the ordering keyword inline
+        // (`<id> desc`), so the builder splices it verbatim into the ORDER BY
+        // list. Ordered by id
+        // descending: 4, 3, 2, 1.
+        const expected = [{ id: 4 }, { id: 3 }, { id: 2 }, { id: 1 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .select({ id: tIssue.id })
+            .orderBy(ctx.conn.rawFragment`${tIssue.id} desc`)
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by issue.id desc"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+        expect(result).toEqual(expected)
     })
 })

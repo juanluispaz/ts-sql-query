@@ -4,6 +4,7 @@
 
 DROP VIEW IF EXISTS project_overview;
 DROP VIEW IF EXISTS release_overview;
+DROP TABLE IF EXISTS project_review;
 DROP TABLE IF EXISTS project_release;
 DROP TABLE IF EXISTS audit_entry;
 DROP TABLE IF EXISTS webhook_event;
@@ -126,6 +127,20 @@ CREATE TABLE project_release (
     FOREIGN KEY (project_id) REFERENCES project(id),
     UNIQUE (project_id, version)
 );
+
+-- Project review fixture: non-boolean per-column TypeAdapter on score (int,
+-- stored x10) + reviewer_code (string, bracketed), an OPTIONAL localDate
+-- (review_date) and a REQUIRED localTime (review_time).
+CREATE TABLE project_review (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    project_id INT NOT NULL,
+    reviewer_code VARCHAR(32) NOT NULL,
+    score INT NOT NULL,
+    review_date DATE,
+    review_time TIME NOT NULL,
+    FOREIGN KEY (project_id) REFERENCES project(id)
+);
+
 
 -- Stored procedures and functions exercised by
 -- `exec.procedure-function.test.ts`. Each body is intentionally

@@ -4,6 +4,7 @@
 
 DROP VIEW IF EXISTS project_overview;
 DROP VIEW IF EXISTS release_overview;
+DROP TABLE IF EXISTS project_review CASCADE;
 DROP TABLE IF EXISTS project_release CASCADE;
 DROP TABLE IF EXISTS audit_entry CASCADE;
 DROP TABLE IF EXISTS webhook_event CASCADE;
@@ -118,6 +119,19 @@ CREATE TABLE project_release (
     signed_off_at TIMESTAMP,
     notes VARCHAR(255) GENERATED ALWAYS AS ('release-' || version) STORED,
     UNIQUE (project_id, version)
+);
+
+-- Project review fixture: hosts the column-factory kinds the other tables
+-- don't expose — a non-boolean per-column TypeAdapter on `score` (int, stored
+-- ×10 fixed-point) and `reviewer_code` (string, bracketed on read), an OPTIONAL
+-- plain `localDate` (review_date) and a REQUIRED plain `localTime` (review_time).
+CREATE TABLE project_review (
+    id SERIAL PRIMARY KEY,
+    project_id INTEGER NOT NULL REFERENCES project(id),
+    reviewer_code VARCHAR(32) NOT NULL,
+    score INTEGER NOT NULL,
+    review_date DATE,
+    review_time TIME NOT NULL
 );
 
 -- Stored procedures and functions exercised by

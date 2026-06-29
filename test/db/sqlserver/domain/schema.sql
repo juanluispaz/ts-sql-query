@@ -4,6 +4,7 @@
 
 IF OBJECT_ID('project_overview', 'V') IS NOT NULL DROP VIEW project_overview;
 IF OBJECT_ID('release_overview', 'V') IS NOT NULL DROP VIEW release_overview;
+IF OBJECT_ID('project_review', 'U') IS NOT NULL DROP TABLE project_review;
 IF OBJECT_ID('project_release', 'U') IS NOT NULL DROP TABLE project_release;
 IF OBJECT_ID('audit_entry', 'U') IS NOT NULL DROP TABLE audit_entry;
 IF OBJECT_ID('webhook_event', 'U') IS NOT NULL DROP TABLE webhook_event;
@@ -132,6 +133,20 @@ CREATE TABLE project_release (
     FOREIGN KEY (project_id) REFERENCES project(id),
     CONSTRAINT uk_release_version UNIQUE (project_id, version)
 );
+
+-- Project review fixture: non-boolean per-column TypeAdapter on score (int,
+-- stored x10) + reviewer_code (string, bracketed), an OPTIONAL localDate
+-- (review_date) and a REQUIRED localTime (review_time).
+CREATE TABLE project_review (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    project_id INT NOT NULL,
+    reviewer_code VARCHAR(32) NOT NULL,
+    score INT NOT NULL,
+    review_date DATE,
+    review_time TIME NOT NULL,
+    FOREIGN KEY (project_id) REFERENCES project(id)
+);
+
 GO
 
 -- Stored procedures and functions exercised by

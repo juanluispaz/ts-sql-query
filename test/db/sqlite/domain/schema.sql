@@ -4,6 +4,7 @@
 
 DROP VIEW IF EXISTS release_overview;
 DROP VIEW IF EXISTS project_overview;
+DROP TABLE IF EXISTS project_review;
 DROP TABLE IF EXISTS project_release;
 DROP TABLE IF EXISTS webhook_event;
 DROP TABLE IF EXISTS calendar_year;
@@ -138,6 +139,19 @@ CREATE TABLE project_release (
     notes TEXT GENERATED ALWAYS AS ('release-' || version) STORED,
     UNIQUE (project_id, version)
 );
+
+-- Project review fixture: non-boolean per-column TypeAdapter on score (int,
+-- stored x10) + reviewer_code (string, bracketed), an OPTIONAL localDate
+-- (review_date) and a REQUIRED localTime (review_time).
+CREATE TABLE project_review (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    project_id INTEGER NOT NULL REFERENCES project(id),
+    reviewer_code VARCHAR(32) NOT NULL,
+    score INTEGER NOT NULL,
+    review_date DATE,
+    review_time TIME NOT NULL
+);
+
 
 -- A class-based SQL view exercised by `view.basic.test.ts`. A plain
 -- join of project + organization (no aggregation, no casts), portable

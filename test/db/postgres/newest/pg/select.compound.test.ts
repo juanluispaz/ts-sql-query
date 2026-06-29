@@ -215,6 +215,191 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
+    test('compound-order-by-from-string', async () => {
+        // `orderByFromString('label')` on a compound — the dynamic-string ORDER BY
+        // entry. A compound's ORDER BY references the result-column name.
+        const expected = [
+            { label: 'Document /v2/users' },
+            { label: 'Internal tools' },
+            { label: 'Legacy app' },
+            { label: 'Marketing site' },
+            { label: 'Migrate to ESM' },
+            { label: 'Public API' },
+            { label: 'Redesign navbar' },
+            { label: 'Update hero copy' },
+        ]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tProject)
+            .select({ label: tProject.name })
+            .union(ctx.conn.selectFrom(tIssue).select({ label: tIssue.title }))
+            .orderByFromString('label')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project union select title as label from issue order by label"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ label: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('compound-order-by-from-string-if-value', async () => {
+        // `orderByFromStringIfValue('label')` on a compound — present value
+        // emits the ORDER BY; an absent value (null/undefined/'') is the no-op
+        // branch, leaving the compound unordered. Both arms are exercised.
+        const expected = [
+            { label: 'Document /v2/users' },
+            { label: 'Internal tools' },
+            { label: 'Legacy app' },
+            { label: 'Marketing site' },
+            { label: 'Migrate to ESM' },
+            { label: 'Public API' },
+            { label: 'Redesign navbar' },
+            { label: 'Update hero copy' },
+        ]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tProject)
+            .select({ label: tProject.name })
+            .union(ctx.conn.selectFrom(tIssue).select({ label: tIssue.title }))
+            .orderByFromStringIfValue('label')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project union select title as label from issue order by label"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ label: string }>>>()
+        expect(result).toEqual(expected)
+
+        // No-op branch: an undefined order-by string leaves the compound unordered.
+        ctx.mockNext(expected)
+        await ctx.conn.selectFrom(tProject)
+            .select({ label: tProject.name })
+            .union(ctx.conn.selectFrom(tIssue).select({ label: tIssue.title }))
+            .orderByFromStringIfValue(undefined)
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project union select title as label from issue"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+    })
+
+    test('compound-order-by-from-string-array', async () => {
+        // `orderByFromStringArray(['label desc'])` on a compound — the array
+        // form joins its entries into the ORDER BY list. Single descending key.
+        const expected = [
+            { label: 'Update hero copy' },
+            { label: 'Redesign navbar' },
+            { label: 'Public API' },
+            { label: 'Migrate to ESM' },
+            { label: 'Marketing site' },
+            { label: 'Legacy app' },
+            { label: 'Internal tools' },
+            { label: 'Document /v2/users' },
+        ]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tProject)
+            .select({ label: tProject.name })
+            .union(ctx.conn.selectFrom(tIssue).select({ label: tIssue.title }))
+            .orderByFromStringArray(['label desc'])
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project union select title as label from issue order by label desc"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ label: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('compound-order-by-from-string-array-if-value', async () => {
+        // `orderByFromStringArrayIfValue([...])` on a compound — present entries
+        // emit; a fully-absent array is the no-op branch. Both arms exercised.
+        const expected = [
+            { label: 'Document /v2/users' },
+            { label: 'Internal tools' },
+            { label: 'Legacy app' },
+            { label: 'Marketing site' },
+            { label: 'Migrate to ESM' },
+            { label: 'Public API' },
+            { label: 'Redesign navbar' },
+            { label: 'Update hero copy' },
+        ]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tProject)
+            .select({ label: tProject.name })
+            .union(ctx.conn.selectFrom(tIssue).select({ label: tIssue.title }))
+            .orderByFromStringArrayIfValue(['label'])
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project union select title as label from issue order by label"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ label: string }>>>()
+        expect(result).toEqual(expected)
+
+        // No-op branch: an array of only absent entries leaves it unordered.
+        ctx.mockNext(expected)
+        await ctx.conn.selectFrom(tProject)
+            .select({ label: tProject.name })
+            .union(ctx.conn.selectFrom(tIssue).select({ label: tIssue.title }))
+            .orderByFromStringArrayIfValue([undefined, null])
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project union select title as label from issue"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+    })
+
+    test('compound-order-by-raw-fragment', async () => {
+        // `orderBy(rawFragment)` on a compound. A bare
+        // `rawFragment\`1\`` emits the ordinal `order by 1`, a portable way to
+        // order a compound by its first result column (`label`, ascending).
+        const expected = [
+            { label: 'Document /v2/users' },
+            { label: 'Internal tools' },
+            { label: 'Legacy app' },
+            { label: 'Marketing site' },
+            { label: 'Migrate to ESM' },
+            { label: 'Public API' },
+            { label: 'Redesign navbar' },
+            { label: 'Update hero copy' },
+        ]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tProject)
+            .select({ label: tProject.name })
+            .union(ctx.conn.selectFrom(tIssue).select({ label: tIssue.title }))
+            .orderBy(ctx.conn.rawFragment`1`)
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project union select title as label from issue order by 1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ label: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    // TODO[BUG]: see test/BUGS.md — orderBy(valueSource) on a compound emits an
+    // un-wrapped `UNION … ORDER BY <expr>` (`order by label, $1`) every engine
+    // rejects (PG 0A000; SQLite mismatch); insensitive wraps the compound, this doesn't.
+    /*
+    test('compound-order-by-value-source-secondary', async () => {
+        // `orderBy(valueSource)` on a compound — the no-table-required ValueSource
+        // overload. A compound can only order by result columns / no-table expressions, so
+        // the value source is exercised as a benign constant secondary key after
+        // a primary `orderBy('label')`; the result stays deterministic (label asc)
+        // while the second ORDER BY item pins the overload's emission.
+        const expected = [
+            { label: 'Document /v2/users' },
+            { label: 'Internal tools' },
+            { label: 'Legacy app' },
+            { label: 'Marketing site' },
+            { label: 'Migrate to ESM' },
+            { label: 'Public API' },
+            { label: 'Redesign navbar' },
+            { label: 'Update hero copy' },
+        ]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tProject)
+            .select({ label: tProject.name })
+            .union(ctx.conn.selectFrom(tIssue).select({ label: tIssue.title }))
+            .orderBy('label')
+            .orderBy(ctx.conn.const(1, 'int'))
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project union select title as label from issue order by label, $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ label: string }>>>()
+        expect(result).toEqual(expected)
+    })
+    */
+
     test('compound-with-limit-and-offset', async () => {
         // `.limit(...).offset(...)` chained after a compound. Union of project
         // names + issue titles, ordered by label; offset 3 + limit 2 picks rows

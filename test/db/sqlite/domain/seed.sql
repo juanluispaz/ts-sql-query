@@ -50,5 +50,8 @@ INSERT INTO project_release (id, project_id, version, channel, signing_key, rele
     (2, 1, '1.3.0-beta.1', 'beta',   NULL,                                   '2024-02-20', '18:30:00', NULL),
     (3, 2, '0.9.0',        'canary', '7b3e9d20-2222-4c55-9b66-dddd00009999', '2024-03-01', '16:00:00', '2024-02-28 09:00:00');
 
+INSERT INTO project_review (id, project_id, reviewer_code, score, review_date, review_time) VALUES
+    (1, 1, 'R-7A2', 850, '2024-05-20', '14:30:45');
+
 INSERT INTO webhook_event (issue_id, event_type) VALUES (1, 'created'), (2, 'updated');
 INSERT INTO calendar_year (year_value, year_label) VALUES (2023, 'FY2023'), (2024, 'FY2024');

@@ -18,6 +18,7 @@
 -- counters a full schema.sql + seed.sql would. Lists mirror schema.sql; keep
 -- them in sync when a table/sequence is added. (`organization` is quoted to
 -- match its case-sensitive schema declaration; the rest are unquoted.)
+DELETE FROM project_review;
 DELETE FROM project_release;
 DELETE FROM audit_entry;
 DELETE FROM webhook_event;

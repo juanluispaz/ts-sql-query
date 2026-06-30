@@ -1,10 +1,13 @@
-// Coverage of how nested-object properties projected inside a
-// `forUseInQueryAs(...)` CTE keep their optional/left-join shape:
+// Coverage of how nested-object properties keep their optional/left-join
+// shape when projected through a `forUseInQueryAs(...)` CTE, a compound, or an
+// operator:
 //   - required leaves → the inner object is required, leaves optional.
 //   - all-left-join leaves → the whole inner object becomes optional
 //     (undefined when the join misses), leaves required-when-present.
 //   - a two-level CTE chain re-projecting the left-join object.
 //   - all-optional leaves → object dropped only when every leaf is null.
+//   - a nested object recursed through a rule-1 object, a compound, and a
+//     left-joined nested-object CTE.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -533,6 +536,120 @@ describe(ctx.label, () => {
             meta: { ownId: number; gate: string } | null
         }>>()
         expect(row).toEqual(expected)
+    })
+
+    test('rule-1-optional-object-containing-a-nested-required-object', async () => {
+        // A rule-1 nested object (made optional by the requiredInOptionalObject
+        // `gate` leaf) that itself contains a nested REQUIRED object (`inner`).
+        // The recursion keeps `inner` required-when-present: when `gate` (body)
+        // is null the whole `meta` object — `inner` included — is dropped;
+        // otherwise `meta` is present with its required `inner`.
+        // issue 1 (project 1): body null -> meta absent.
+        // issue 2 (project 1): body 'Use new tokens' -> meta present.
+        const expected = [
+            { iid: 1 },
+            { iid: 2, meta: { gate: 'Use new tokens', inner: { num: 2, pri: 1 } } },
+        ]
+        ctx.mockNext([
+            { iid: 1, 'meta.gate': null,             'meta.inner.num': 1, 'meta.inner.pri': 2 },
+            { iid: 2, 'meta.gate': 'Use new tokens', 'meta.inner.num': 2, 'meta.inner.pri': 1 },
+        ])
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.projectId.equals(1))
+            .select({
+                iid: tIssue.id,
+                meta: {
+                    gate:  tIssue.body.asRequiredInOptionalObject(),
+                    inner: { num: tIssue.number, pri: tIssue.priority },
+                },
+            })
+            .orderBy('iid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as "meta.gate", number as "meta.inner.num", priority as "meta.inner.pri" from issue where project_id = $1 order by iid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            iid:   number
+            meta?: { gate: string; inner: { num: number; pri: number } }
+        }>>>()
+        expect(rows).toEqual(expected)
+        // Row 1's gate (body) is null, so the optional meta object is dropped
+        // entirely — assert its key is ABSENT, not present-as-undefined.
+        expect('meta' in rows[0]!).toBe(false)
+    })
+
+    test('compound-union-preserves-a-nested-object', async () => {
+        // A compound (UNION) whose two arms both project the same nested
+        // `header` object: the compound result re-projects the nested object
+        // unchanged (it stays required, leaves required). arm 1 = issue 1,
+        // arm 2 = issue 2.
+        const expected = [
+            { iid: 1, header: { num: 1, title: 'Update hero copy' } },
+            { iid: 2, header: { num: 2, title: 'Redesign navbar' } },
+        ]
+        ctx.mockNext([
+            { iid: 1, 'header.num': 1, 'header.title': 'Update hero copy' },
+            { iid: 2, 'header.num': 2, 'header.title': 'Redesign navbar' },
+        ])
+        const rows = await ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(1))
+            .select({ iid: tIssue.id, header: { num: tIssue.number, title: tIssue.title } })
+            .union(
+                ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(2))
+                    .select({ iid: tIssue.id, header: { num: tIssue.number, title: tIssue.title } }),
+            )
+            .orderBy('iid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, number as "header.num", title as "header.title" from issue where id = $1 union select id as iid, number as "header.num", title as "header.title" from issue where id = $2 order by iid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            iid:    number
+            header: { num: number; title: string }
+        }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('nested-object-cte-used-via-for-use-in-left-join-becomes-optional', async () => {
+        // A CTE projecting a nested `info` object, then used as a left-join
+        // target via forUseInLeftJoin(): reading the CTE's nested object back
+        // makes the whole object optional (absent when the join misses). Every
+        // issue has a project, so the join hits: issue 1 -> project 1.
+        const expected = [
+            { iid: 1, proj: { name: 'Marketing site', slug: 'mktg-site' } },
+        ]
+        ctx.mockNext([
+            { iid: 1, 'proj.name': 'Marketing site', 'proj.slug': 'mktg-site' },
+        ])
+        const projCte = ctx.conn.selectFrom(tProject)
+            .select({ pid: tProject.id, info: { name: tProject.name, slug: tProject.slug } })
+            .forUseInQueryAs('proj_cte')
+        const projCteLeft = projCte.forUseInLeftJoin()
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .leftJoin(projCteLeft).on(projCteLeft.pid.equals(tIssue.projectId))
+            .where(tIssue.id.equals(1))
+            .select({ iid: tIssue.id, proj: projCteLeft.info })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with proj_cte as (select id as pid, name as "info.name", slug as "info.slug" from project) select issue.id as iid, proj_cte."info.name" as "proj.name", proj_cte."info.slug" as "proj.slug" from issue left join proj_cte on proj_cte.pid = issue.project_id where issue.id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            iid:   number
+            proj?: { name: string; slug: string }
+        }>>>()
+        expect(rows).toEqual(expected)
     })
 
 })

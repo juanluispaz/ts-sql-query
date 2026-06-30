@@ -9,6 +9,7 @@ IF OBJECT_ID('project_release', 'U') IS NOT NULL DROP TABLE project_release;
 IF OBJECT_ID('audit_entry', 'U') IS NOT NULL DROP TABLE audit_entry;
 IF OBJECT_ID('webhook_event', 'U') IS NOT NULL DROP TABLE webhook_event;
 IF OBJECT_ID('calendar_year', 'U') IS NOT NULL DROP TABLE calendar_year;
+IF OBJECT_ID('invoice', 'U') IS NOT NULL DROP TABLE invoice;
 IF OBJECT_ID('issue_worklog', 'U') IS NOT NULL DROP TABLE issue_worklog;
 IF OBJECT_ID('country', 'U') IS NOT NULL DROP TABLE country;
 IF OBJECT_ID('issue', 'U') IS NOT NULL DROP TABLE issue;
@@ -118,6 +119,12 @@ CREATE TABLE webhook_event (
 CREATE TABLE calendar_year (
     year_value INT PRIMARY KEY,
     year_label VARCHAR(64) NOT NULL
+);
+
+-- Int caller-provided PK carrying a scaling TypeAdapter (invoice_no stored x10).
+CREATE TABLE invoice (
+    invoice_no INT PRIMARY KEY,
+    total INT NOT NULL
 );
 
 CREATE TABLE project_release (

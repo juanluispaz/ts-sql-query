@@ -131,6 +131,32 @@ function _typeNegatives() {
         // @ts-expect-error an aggregate SQL fragment cannot appear in WHERE
         connection.aggregateFragmentWithType('int', 'optional').sql`sum(${tIssue.priority})`.greaterThan(1)
     )
+
+    // Rule: MariaDB does not allow outer references inside a compound
+    // subquery's FROM, so forUseAsInlineAggregatedArrayValue() is typed `never`
+    // on a compound (UNION) inline aggregate that references the outer query.
+    void connection.subSelectUsing(tProject).from(tIssue)
+        .where(tIssue.projectId.equals(tProject.id)).and(tIssue.assigneeId.isNull())
+        .select({ id: tIssue.id })
+        .union(
+            connection.subSelectUsing(tProject).from(tIssue)
+                .where(tIssue.projectId.equals(tProject.id)).and(tIssue.assigneeId.isNotNull())
+                .select({ id: tIssue.id }),
+        )
+        // @ts-expect-error forUseAsInlineAggregatedArrayValue is `never` on a compound inline aggregate
+        .forUseAsInlineAggregatedArrayValue()
+    // Rule: MariaDB does not allow outer references inside a recursive subquery, so forUseAsInlineAggregatedArrayValue() is typed `never`
+    // on a recursive inline aggregate that references the outer query.
+    {
+        const parentIssue = tIssue.as('parentIssue')
+        void connection.subSelectUsing(tIssue).from(parentIssue)
+            .select({ id: parentIssue.id, parentId: parentIssue.parentId })
+            .where(parentIssue.id.equals(tIssue.parentId))
+            .recursiveUnionAllOn((child) => child.parentId.equals(parentIssue.id))
+            // @ts-expect-error forUseAsInlineAggregatedArrayValue is `never` on a recursive inline aggregate
+            .forUseAsInlineAggregatedArrayValue()
+    }
+
 }
 
 test('select-negative-types', () => {

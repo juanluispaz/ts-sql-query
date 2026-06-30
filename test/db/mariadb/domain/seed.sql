@@ -48,3 +48,5 @@ INSERT INTO project_review (id, project_id, reviewer_code, score, review_date, r
 
 INSERT INTO webhook_event (issue_id, event_type) VALUES (1, 'created'), (2, 'updated');
 INSERT INTO calendar_year (year_value, year_label) VALUES (2023, 'FY2023'), (2024, 'FY2024');
+-- invoice_no is stored x10 by the scaledTenthAdapter, so 100 reads back as logical invoice 10.
+INSERT INTO invoice (invoice_no, total) VALUES (100, 500);

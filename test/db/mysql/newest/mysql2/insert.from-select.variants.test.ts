@@ -18,6 +18,9 @@
 //      `CustomizableExecutableInsertFromSelectOnConflictOptional` on
 //      every dialect that supports `ON CONFLICT`. Dialects without
 //      `ON CONFLICT` keep the test commented out for symmetry.
+//   5. `.from(select).onConflictDoUpdateSet({...})` — the bare
+//      (no-target) upsert arm, typed only on the dialects that tolerate
+//      ON CONFLICT DO UPDATE without a conflict target.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -266,6 +269,51 @@ describe(ctx.label, () => {
             `)
             assertType<Exact<typeof oneCol, number[]>>()
             expect(oneCol).toEqual([])
+        })
+    })
+    */
+
+    // TODO[BUG]: see BUGS.md - MySQL rejects the as _new_ row alias after a SELECT source in INSERT...SELECT...ON DUPLICATE KEY UPDATE (the lib emits it; valid only after a VALUES tuple)
+    /*
+    test('insert-from-select-bare-on-conflict-do-update-set', async () => {
+        // Bare `from(select).onConflictDoUpdateSet({...})` — the no-target
+        // upsert arm. Re-selecting project 1's (organization_id, slug) collides
+        // with the UNIQUE (organization_id, slug); the targetless DO UPDATE
+        // refreshes `name`. Typed only on the dialects that tolerate an upsert
+        // with no conflict target.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const source = ctx.conn.selectFrom(tProject)
+                .where(tProject.id.equals(1))
+                .select({
+                    organizationId: tProject.organizationId,
+                    slug:           tProject.slug,
+                    name:           tProject.name,
+                })
+
+            const affected = await ctx.conn.insertInto(tProject)
+                .from(source)
+                .onConflictDoUpdateSet({ name: 'Marketing site v2' })
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, \`name\`) select organization_id as organizationId, slug as slug, \`name\` as \`name\` from project where id = ? as _new_ on duplicate key update project.\`name\` = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "Marketing site v2",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            if (ctx.realDbEnabled) {
+                expect(typeof affected).toBe('number')
+                const name = await ctx.conn.selectFrom(tProject)
+                    .where(tProject.id.equals(1))
+                    .selectOneColumn(tProject.name)
+                    .executeSelectOne()
+                expect(name).toBe('Marketing site v2')
+            } else {
+                expect(affected).toBe(1)
+            }
         })
     })
     */

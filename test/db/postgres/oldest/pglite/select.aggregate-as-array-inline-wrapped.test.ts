@@ -613,4 +613,55 @@ describe(ctx.label, () => {
         expect({ ...row, channels: [...row.channels].sort() }).toEqual({ id: 1, channels: ['beta', 'stable'] })
     })
 
+    test('inline-aggregate-of-compound-union', async () => {
+        // A compound (UNION) select used as the inline aggregated array. The
+        // compound is one of the wrap triggers, so the builder wraps it with the
+        // aggregate-over-subquery form. The two arms (the org's active and
+        // archived projects) union back to all of the org's projects. The inner
+        // select has no order by, so sort before comparing.
+        ctx.mockNext({
+            id: 1, name: 'Acme Corp',
+            projects: JSON.stringify([
+                { id: 1, name: 'Marketing site' },
+                { id: 2, name: 'Internal tools' },
+            ]),
+        })
+        const orgProjects = ctx.conn.subSelectUsing(tOrganization).from(tProject)
+            .where(tProject.organizationId.equals(tOrganization.id)).and(tProject.archivedAt.isNull())
+            .select({ id: tProject.id, name: tProject.name })
+            .union(
+                ctx.conn.subSelectUsing(tOrganization).from(tProject)
+                    .where(tProject.organizationId.equals(tOrganization.id)).and(tProject.archivedAt.isNotNull())
+                    .select({ id: tProject.id, name: tProject.name }),
+            )
+            .forUseAsInlineAggregatedArrayValue()
+
+        const row = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.id.equals(1))
+            .select({
+                id:       tOrganization.id,
+                name:     tOrganization.name,
+                projects: orgProjects,
+            })
+            .executeSelectOne()
+        assertType<Exact<typeof row, {
+            id:       number
+            name:     string
+            projects: Array<{ id: number; name: string }>
+        }>>()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, (select json_agg(json_build_object('id', a_1_.id, 'name', a_1_.name)) from (select id as id, name as name from project where organization_id = organization.id and archived_at is null union select id as id, name as name from project where organization_id = organization.id and archived_at is not null) as a_1_) as projects from organization where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        expect({ ...row, projects: [...row.projects].sort((a, b) => a.id - b.id) }).toEqual({
+            id: 1, name: 'Acme Corp',
+            projects: [
+                { id: 1, name: 'Marketing site' },
+                { id: 2, name: 'Internal tools' },
+            ],
+        })
+    })
+
 })

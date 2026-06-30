@@ -235,4 +235,57 @@ describe(ctx.label, () => {
         expect(row?.priorities).toEqual(expect.arrayContaining([1, 2]))
     })
     */
+    // NOT-APPLICABLE: Oracle does not allow outer references inside a recursive subquery, so forUseAsInlineAggregatedArrayValue is typed never on a recursive inline aggregate
+    /*
+    test('docs:aggregate-as-object-array/recursive-query-as-inline-array', async () => {
+        // A recursive query used as an inline aggregated array: walk an issue's
+        // ancestor chain (its parent, then the parent's parent, …) via the
+        // self-referential parent_id, and project the chain as a nested array on
+        // the issue row. Issue 1 has no parent, so the array is empty. Not
+        // supported on dialects that reject outer references in a recursive
+        // subquery.
+        const expected = { id: 1, title: 'Update hero copy', ancestors: [] }
+        ctx.mockNext({ id: 1, title: 'Update hero copy', parentId: null, ancestors: null })
+        const connection = ctx.conn
+
+        // doc-start
+        const parentIssue = tIssue.as('parentIssue')
+        const ancestors = connection.subSelectUsing(tIssue)
+            .from(parentIssue)
+            .select({
+                id:       parentIssue.id,
+                title:    parentIssue.title,
+                parentId: parentIssue.parentId,
+            })
+            .where(parentIssue.id.equals(tIssue.parentId))
+            .recursiveUnionAllOn((child) => child.parentId.equals(parentIssue.id))
+            .forUseAsInlineAggregatedArrayValue()
+
+        const row = await connection.selectFrom(tIssue)
+            .select({
+                id:        tIssue.id,
+                title:     tIssue.title,
+                parentId:  tIssue.parentId,
+                ancestors,
+            })
+            .where(tIssue.id.equals(1))
+            .executeSelectOne()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title, parent_id as parentId, (with recursive recursive_select_1 as (select parentIssue.id as id, parentIssue.title as title, parentIssue.parent_id as parentId from issue as parentIssue where parentIssue.id = issue.parent_id union all select parentIssue.id as id, parentIssue.title as title, parentIssue.parent_id as parentId from issue as parentIssue join recursive_select_1 on recursive_select_1.parentId = parentIssue.id) select json_group_array(json_object('id', id, 'title', title, 'parentId', parentId)) from recursive_select_1) as ancestors from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            id:        number
+            title:     string
+            parentId?: number
+            ancestors: Array<{ id: number; title: string; parentId?: number }>
+        }>>()
+        expect(row).toEqual(expected)
+    })
+    */
+
 })

@@ -638,3 +638,13 @@ export const tCalendarYear = new class TCalendarYear extends Table<DBConnection,
     label = this.column('year_label', 'string')
     constructor() { super('calendar_year') }
 }()
+
+// A table whose caller-provided int primary key carries a trailing TypeAdapter
+// (scaledTenthAdapter): the value is stored x10 and read /10, so the
+// PK-factory's adapter overload is observable on the write (insert / WHERE)
+// and read paths. invoice_no carries the adapter; total is a plain int.
+export const tInvoice = new class TInvoice extends Table<DBConnection, 'TInvoice'> {
+    invoiceNo = this.primaryKey('invoice_no', 'int', scaledTenthAdapter)
+    total     = this.column('total', 'int')
+    constructor() { super('invoice') }
+}()

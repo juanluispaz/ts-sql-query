@@ -8,6 +8,7 @@ DROP TABLE IF EXISTS project_review;
 DROP TABLE IF EXISTS project_release;
 DROP TABLE IF EXISTS webhook_event;
 DROP TABLE IF EXISTS calendar_year;
+DROP TABLE IF EXISTS invoice;
 DROP TABLE IF EXISTS issue_worklog;
 DROP TABLE IF EXISTS country;
 DROP TABLE IF EXISTS issue;
@@ -114,6 +115,12 @@ CREATE TABLE webhook_event (
 CREATE TABLE calendar_year (
     year_value INT PRIMARY KEY,
     year_label VARCHAR(64) NOT NULL
+);
+
+-- Int caller-provided PK carrying a scaling TypeAdapter (invoice_no stored x10).
+CREATE TABLE invoice (
+    invoice_no INT PRIMARY KEY,
+    total INT NOT NULL
 );
 
 CREATE TABLE project_release (

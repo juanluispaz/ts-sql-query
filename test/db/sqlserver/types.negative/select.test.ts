@@ -144,6 +144,18 @@ function _typeNegatives() {
         // @ts-expect-error an aggregate SQL fragment cannot appear in WHERE
         connection.aggregateFragmentWithType('int', 'optional').sql`sum(${tIssue.priority})`.greaterThan(1)
     )
+    // Rule: SQL Server does not allow a recursive WITH inside the aggregate subquery, so forUseAsInlineAggregatedArrayValue() is typed `never`
+    // on a recursive inline aggregate that references the outer query.
+    {
+        const parentIssue = tIssue.as('parentIssue')
+        void connection.subSelectUsing(tIssue).from(parentIssue)
+            .select({ id: parentIssue.id, parentId: parentIssue.parentId })
+            .where(parentIssue.id.equals(tIssue.parentId))
+            .recursiveUnionAllOn((child) => child.parentId.equals(parentIssue.id))
+            // @ts-expect-error forUseAsInlineAggregatedArrayValue is `never` on a recursive inline aggregate
+            .forUseAsInlineAggregatedArrayValue()
+    }
+
 }
 
 test('select-negative-types', () => {

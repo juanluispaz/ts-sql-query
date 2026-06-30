@@ -67,7 +67,24 @@ of that. Two minutes of triage and one paragraph is the bar.
 
 ## Open Bugs
 
-_None currently open._
+## MySQL `INSERT … SELECT … ON DUPLICATE KEY UPDATE` emits an invalid `as _new_` row alias
+
+**Where**: the MySQL `SqlBuilder` insert-from-select on-duplicate-key emission
+(the `from(select).onConflictDoUpdateSet(...)` path on MySqlConnection).
+**Reproduction**: `insert.from-select.variants.test.ts` →
+`insert-from-select-bare-on-conflict-do-update-set`, mysql cell, under
+`--docker`. The lib emits
+`insert into project (organization_id, slug, ` + "`name`" + `) select organization_id as organizationId, slug as slug, ` + "`name`" + ` as ` + "`name`" + ` from project where id = ? as _new_ on duplicate key update project.` + "`name`" + ` = ?`
+and real MySQL rejects it with `SQL_SYNTAX_ERROR` near
+`as _new_ on duplicate key update …`. The `AS _new_` row alias (MySQL 8.0.19+)
+is valid after a `VALUES (…)` tuple — the VALUES-based
+`on-conflict-do-update` test passes on real MySQL — but MySQL does not accept
+the alias after a `SELECT` source, so the from-select form is invalid. MariaDB
+emits the same test without the alias (`… on duplicate key update name = ?`)
+and passes on the real engine.
+**Current workaround in the suite**: the mysql cell of
+`insert-from-select-bare-on-conflict-do-update-set` is commented out with a
+`// TODO[BUG]` reason; the test stays live on mariadb and the sqlite cells.
 
 ## Common bug shapes (for the fixing agent)
 

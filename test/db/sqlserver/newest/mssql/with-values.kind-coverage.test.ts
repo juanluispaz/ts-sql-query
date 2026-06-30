@@ -2,9 +2,9 @@
 // boolean), pinning the distinct per-kind cast the dialect emits inside the
 // `(values (...))` tuple; the row round-trips through the bound params and back.
 //
-// Temporal kinds (localDate / localTime / localDateTime) are deliberately excluded:
-// a Date carried through a VALUES tuple does not round-trip to an identical Date
-// across the per-dialect VALUES-cast path.
+// Temporal kinds (localDate / localTime / localDateTime) are pinned by their
+// cast only (via a null value): a Date carried through a VALUES tuple does not
+// round-trip to an identical Date across the per-dialect VALUES-cast path.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -77,6 +77,64 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{ ver: string; chan: ReleaseChannel; act: WorklogActivity }>>>()
         expect(rows).toEqual(expected)
+    })
+
+    test('values-tuple-cast-per-temporal-kind-via-null-value', async () => {
+        // Temporal kinds (localDate / localTime / localDateTime) each emit their
+        // own cast inside the VALUES tuple. A Date carried through a VALUES tuple
+        // does not round-trip to an identical Date across the per-dialect cast
+        // path, so every temporal leaf is supplied as null: the cast the tuple
+        // emits is what this pins, and each null leaf reads back absent.
+        class VTemporalSampler extends Values<DBConnection, 'temporalSampler'> {
+            d  = this.optionalColumn('localDate')
+            t  = this.optionalColumn('localTime')
+            ts = this.optionalColumn('localDateTime')
+        }
+        ctx.mockNext([{ d: null, t: null, ts: null }])
+        const v = Values.create(VTemporalSampler, 'temporalSampler', [
+            { d: null, t: null, ts: null },
+        ])
+        const rows = await ctx.conn.selectFrom(v)
+            .select({ d: v.d, t: v.t, ts: v.ts })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with temporalSampler as (select * from (values (@0, @1, @2)) as temporalSampler([d], [t], ts)) select [d] as [d], [t] as [t], ts as ts from temporalSampler"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            null,
+            null,
+            null,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ d?: Date | undefined; t?: Date | undefined; ts?: Date | undefined }>>>()
+        expect(rows).toEqual([{}])
+    })
+
+    test('values-tuple-cast-per-uuid-kind', async () => {
+        // A plain uuid and a branded customUuid (SigningKey) as real VALUES-tuple
+        // columns: each emits its uuid cast inside the tuple and round-trips
+        // through the bound params. uuid values are compared case-insensitively
+        // because some engines normalise the case on read.
+        class VUuidSampler extends Values<DBConnection, 'uuidSampler'> {
+            ref     = this.column('uuid')
+            signing = this.column<string>('customUuid', 'SigningKey')
+        }
+        const ref     = '0a8f9c1e-1111-4222-8333-444455556666'
+        const signing = '11111111-2222-4333-8444-555566667777'
+        ctx.mockNext([{ ref, signing }])
+        const v = Values.create(VUuidSampler, 'uuidSampler', [{ ref, signing }])
+        const rows = await ctx.conn.selectFrom(v)
+            .select({ ref: v.ref, signing: v.signing })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with uuidSampler as (select * from (values (@0, @1)) as uuidSampler([ref], signing)) select [ref] as [ref], signing as signing from uuidSampler"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "0a8f9c1e-1111-4222-8333-444455556666",
+            "11111111-2222-4333-8444-555566667777",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ ref: string; signing: string }>>>()
+        expect(rows.map((r) => ({ ref: r.ref.toLowerCase(), signing: r.signing.toLowerCase() })))
+            .toEqual([{ ref, signing }])
     })
 
 })

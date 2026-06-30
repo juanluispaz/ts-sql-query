@@ -9,6 +9,7 @@ DROP TABLE IF EXISTS project_release CASCADE;
 DROP TABLE IF EXISTS audit_entry CASCADE;
 DROP TABLE IF EXISTS webhook_event CASCADE;
 DROP TABLE IF EXISTS calendar_year CASCADE;
+DROP TABLE IF EXISTS invoice CASCADE;
 DROP TABLE IF EXISTS issue_worklog CASCADE;
 DROP TABLE IF EXISTS country CASCADE;
 DROP TABLE IF EXISTS issue CASCADE;
@@ -106,6 +107,12 @@ CREATE TABLE webhook_event (
 CREATE TABLE calendar_year (
     year_value INTEGER PRIMARY KEY,
     year_label VARCHAR(64) NOT NULL
+);
+
+-- Int caller-provided PK carrying a scaling TypeAdapter (invoice_no stored x10).
+CREATE TABLE invoice (
+    invoice_no INTEGER PRIMARY KEY,
+    total INTEGER NOT NULL
 );
 
 CREATE TABLE project_release (

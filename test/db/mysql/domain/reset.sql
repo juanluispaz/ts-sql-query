@@ -15,6 +15,7 @@ TRUNCATE TABLE project_review;
 TRUNCATE TABLE project_release;
 TRUNCATE TABLE webhook_event;
 TRUNCATE TABLE calendar_year;
+TRUNCATE TABLE invoice;
 TRUNCATE TABLE issue_worklog;
 TRUNCATE TABLE country;
 TRUNCATE TABLE issue;

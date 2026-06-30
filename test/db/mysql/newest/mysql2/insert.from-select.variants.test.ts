@@ -273,14 +273,13 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[BUG]: see BUGS.md - MySQL rejects the as _new_ row alias after a SELECT source in INSERT...SELECT...ON DUPLICATE KEY UPDATE (the lib emits it; valid only after a VALUES tuple)
-    /*
     test('insert-from-select-bare-on-conflict-do-update-set', async () => {
         // Bare `from(select).onConflictDoUpdateSet({...})` — the no-target
         // upsert arm. Re-selecting project 1's (organization_id, slug) collides
         // with the UNIQUE (organization_id, slug); the targetless DO UPDATE
         // refreshes `name`. Typed only on the dialects that tolerate an upsert
-        // with no conflict target.
+        // with no conflict target. MySQL emits no `as _new_` row alias here: the
+        // alias is valid only after a VALUES tuple, not after a SELECT source.
         ctx.mockNext(1)
         await ctx.withRollback(async () => {
             const source = ctx.conn.selectFrom(tProject)
@@ -296,7 +295,7 @@ describe(ctx.label, () => {
                 .onConflictDoUpdateSet({ name: 'Marketing site v2' })
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, \`name\`) select organization_id as organizationId, slug as slug, \`name\` as \`name\` from project where id = ? as _new_ on duplicate key update project.\`name\` = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, \`name\`) select organization_id as organizationId, slug as slug, \`name\` as \`name\` from project where id = ? on duplicate key update \`name\` = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -316,6 +315,5 @@ describe(ctx.label, () => {
             }
         })
     })
-    */
 
 })

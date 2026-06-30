@@ -55,6 +55,20 @@ export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
             return super._buildInsertOnConflictBeforeReturning(query, params)
         }
 
+        if (query.__from) {
+            // INSERT ... SELECT form: MySQL accepts the `AS _new_` row alias only
+            // after a `VALUES (...)` tuple, never after a SELECT source — placing
+            // it there is a parse error near `as _new_ on duplicate key update`.
+            // Without the alias the target table is the only relation visible in
+            // the SET clause, so unqualified column references are unambiguous;
+            // emit the same shape MariaDB does (no alias, no forced table
+            // qualifier). Referencing the would-be-inserted row in the SET clause
+            // is not expressible in this form on MySQL: the row alias is
+            // unavailable and `VALUES(col)` returns NULL outside an
+            // INSERT ... VALUES statement.
+            return super._buildInsertOnConflictBeforeReturning(query, params)
+        }
+
         // With the row alias `_new_` in scope on MySQL 8.0.19+, both the target
         // table and `_new_` are visible inside the SET clause. Unqualified
         // column references to the target table therefore become ambiguous and

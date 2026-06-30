@@ -36,4 +36,31 @@ describe(ctx.label, () => {
         })
     })
     */
+
+    // NOT-APPLICABLE: MySQL has no sequences; `connection.sequence(...)` is not typed on MySqlConnection.
+    /*
+    test('insert-with-explicit-sequence-next-value-as-a-column-value', async () => {
+        // `issueIdSeq.nextValue()` passed directly as an INSERT column value emits
+        // the raw sequence next-value in the VALUES list (no bound param), so
+        // tInvoice's invoice_no scaledTenthAdapter never fires — the column receives
+        // the raw sequence value. withCommit + reseed because the sequence bump is
+        // non-transactional.
+        await ctx.withCommit(async () => {
+            ctx.mockNext(1)
+            const affected = await ctx.conn.insertInto(tInvoice)
+                .values({ invoiceNo: ctx.conn.issueIdSeq.nextValue(), total: 1200 })
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into invoice (invoice_no, total) values (nextval('issue_id_seq'), $1)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1200,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            if (!ctx.realDbEnabled) expect(affected).toBe(1)
+            else expect(typeof affected).toBe('number')
+        })
+    })
+    */
 })

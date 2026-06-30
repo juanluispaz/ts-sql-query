@@ -8,7 +8,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tAuditEntry } from '../../domain/connection.js'
+import { tAuditEntry, tInvoice } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -37,6 +37,30 @@ describe(ctx.label, () => {
             assertType<Exact<typeof id, number>>()
             if (!ctx.realDbEnabled) expect(id).toBe(50)
             else expect(typeof id).toBe('number')
+        })
+    })
+
+    test('insert-with-explicit-sequence-next-value-as-a-column-value', async () => {
+        // `issueIdSeq.nextValue()` passed directly as an INSERT column value emits
+        // the raw sequence next-value in the VALUES list (no bound param), so
+        // tInvoice's invoice_no scaledTenthAdapter never fires — the column receives
+        // the raw sequence value. withCommit + reseed because the sequence bump is
+        // non-transactional.
+        await ctx.withCommit(async () => {
+            ctx.mockNext(1)
+            const affected = await ctx.conn.insertInto(tInvoice)
+                .values({ invoiceNo: ctx.conn.issueIdSeq.nextValue(), total: 1200 })
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into invoice (invoice_no, total) values (nextval(issue_id_seq), ?)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1200,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            if (!ctx.realDbEnabled) expect(affected).toBe(1)
+            else expect(typeof affected).toBe('number')
         })
     })
 })

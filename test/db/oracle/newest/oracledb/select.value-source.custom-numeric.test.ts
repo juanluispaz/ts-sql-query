@@ -621,4 +621,51 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
+    test('custom-numeric/customdouble-modulo-value-source', async () => {
+        // modulo over a customDouble operand with a customDouble value source on the
+        // RHS keeps the customDouble leaf. billed_amount 200 % 200 = 0; 'Money' is
+        // marshalled to double, so the result is a clean number.
+        const expected = [{ id: 1, m: 0 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .select({
+                id: tIssueWorklog.id,
+                m:  tIssueWorklog.billedAmount.modulo(tIssueWorklog.billedAmount),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", mod(billed_amount, billed_amount) as "m" from issue_worklog where id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; m: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('custom-numeric/customint-modulo-const', async () => {
+        // modulo over a customInt operand with a literal RHS keeps the customInt
+        // leaf. cost_cents 100 % 2 = 0; 'Cents' is marshalled to int, so the result
+        // is a clean number.
+        const expected = [{ id: 1, m: 0 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .select({
+                id: tIssueWorklog.id,
+                m:  tIssueWorklog.costCents.modulo(2),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", mod(cost_cents, :0) as "m" from issue_worklog where id = :1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; m: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
 })

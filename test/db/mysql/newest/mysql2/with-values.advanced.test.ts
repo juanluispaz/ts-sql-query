@@ -413,4 +413,37 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ base: IssueId; joined?: IssueId }>>>()
         expect(rows).toEqual(expected)
     })
+
+    test('values-base-type-required-virtual-column-projects-required-and-is-not-a-tuple-member', async () => {
+        // A required base-type (non-custom) `virtualColumnFromFragment('int' /
+        // 'string', …)`: `seq` (int) and `tag` (string) are virtual columns, absent
+        // from both the `reqBatch(id)` column list and the VALUES rows; reading them
+        // inlines their fragment (`7` / `'BATCH'`). They project as required
+        // `number` / `string`.
+        class VReqBatch extends Values<DBConnection, 'reqBatch'> {
+            id  = this.column('int')
+            seq = this.virtualColumnFromFragment('int', fragment => fragment.sql`7`)
+            tag = this.virtualColumnFromFragment('string', fragment => fragment.sql`'BATCH'`)
+        }
+        const expected = [
+            { id: 1, seq: 7, tag: 'BATCH' },
+            { id: 2, seq: 7, tag: 'BATCH' },
+        ]
+        ctx.mockNext(expected)
+        const batch = Values.create(VReqBatch, 'reqBatch', [{ id: 1 }, { id: 2 }])
+        const rows = await ctx.conn.selectFrom(batch)
+            .select({ id: batch.id, seq: batch.seq, tag: batch.tag })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with reqBatch(id) as (values row(?), row(?)) select id as id, 7 as seq, 'BATCH' as tag from reqBatch order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; seq: number; tag: string }>>>()
+        expect(rows).toEqual(expected)
+    })
 })

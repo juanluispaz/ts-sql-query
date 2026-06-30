@@ -284,4 +284,182 @@ describe(ctx.label, () => {
     })
     */
 
+    // ── Shaped × BARE on-conflict forms ─────────────────────────────────
+    // The bare `.onConflictDoUpdateSet(...)` / `.onConflictDoUpdateSetIfValue(...)`
+    // / `.onConflictDoNothing()` forms (no inference target) driven off a shaped
+    // insert: each renamed shape key maps back to its real column on the conflict
+    // update-set. Seed (org 1, slug 'mktg-site' / 'tools') exists so every conflict
+    // fires.
+
+    // NOT-APPLICABLE: SQL Server has no INSERT…ON CONFLICT (uses MERGE), so the bare `onConflictDoUpdateSet` / `onConflictDoNothing` form is not typed on SqlServerConnection.
+    /*
+    test('shaped-bare-on-conflict-do-update-set-maps-renamed-key-to-real-column', async () => {
+        // Shaped insert + bare `onConflictDoUpdateSet({renamedKey})`: the renamed
+        // `projectName` key maps back to the real `name` column on the conflict
+        // update-set. The conflict fires (org 1, 'mktg-site' exists) → 1 affected.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.insertInto(tProject)
+                .shapedAs({
+                    orgId:       'organizationId',
+                    projectName: 'name',
+                    projectSlug: 'slug',
+                })
+                .set({
+                    orgId:       1,
+                    projectName: 'ignored',
+                    projectSlug: 'mktg-site',
+                })
+                .onConflictDoUpdateSet({ projectName: 'Renamed via shape' })
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?, ?, ?) on conflict do update set name = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "ignored",
+                "mktg-site",
+                "Renamed via shape",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            if (ctx.realDbEnabled) expect(typeof affected).toBe('number')
+            else expect(affected).toBe(1)
+        })
+    })
+    */
+
+    // NOT-APPLICABLE: SQL Server has no INSERT…ON CONFLICT (uses MERGE), so the bare `onConflictDoUpdateSet` / `onConflictDoNothing` form is not typed on SqlServerConnection.
+    /*
+    test('shaped-bare-on-conflict-do-update-set-if-value-drops-undefined-shaped-key', async () => {
+        // Shaped insert + bare `onConflictDoUpdateSetIfValue({...})`: the renamed
+        // `archived` key (mapping to the OPTIONAL `archivedAt` column) carries
+        // `undefined`, so it is dropped by `_isValue`; the renamed `projectName`
+        // survives and maps back to `name`.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.insertInto(tProject)
+                .shapedAs({
+                    orgId:       'organizationId',
+                    projectName: 'name',
+                    projectSlug: 'slug',
+                    archived:    'archivedAt',
+                })
+                .set({
+                    orgId:       1,
+                    projectName: 'ignored',
+                    projectSlug: 'mktg-site',
+                })
+                .onConflictDoUpdateSetIfValue({
+                    projectName: 'Renamed via shape',
+                    archived:    undefined,
+                })
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?, ?, ?) on conflict do update set name = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "ignored",
+                "mktg-site",
+                "Renamed via shape",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            if (ctx.realDbEnabled) expect(typeof affected).toBe('number')
+            else expect(affected).toBe(1)
+        })
+    })
+    */
+
+    // NOT-APPLICABLE: SQL Server has no INSERT…ON CONFLICT (uses MERGE), so the bare `onConflictDoUpdateSet` / `onConflictDoNothing` form is not typed on SqlServerConnection.
+    /*
+    test('shaped-bare-on-conflict-do-update-set-value-source-with-inserted-row-under-renamed-key', async () => {
+        // Shaped insert + bare `onConflictDoUpdateSet({renamedKey: <value-source>})`
+        // whose RHS references both the existing column and the attempted-insert
+        // pseudo-row via `valuesForInsert()`. The renamed `projectName` maps back to
+        // `name`; on conflict `name` becomes the old name concatenated with the row
+        // that tried to insert.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const tProjectForInsert = tProject.valuesForInsert()
+            const affected = await ctx.conn.insertInto(tProject)
+                .shapedAs({
+                    orgId:       'organizationId',
+                    projectName: 'name',
+                    projectSlug: 'slug',
+                })
+                .set({
+                    orgId:       1,
+                    projectName: 'New name',
+                    projectSlug: 'mktg-site',
+                })
+                .onConflictDoUpdateSet({
+                    projectName: tProject.name.concat(' / ').concat(tProjectForInsert.name),
+                })
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?, ?, ?) on conflict do update set name = project.name || ? || excluded.name"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "New name",
+                "mktg-site",
+                " / ",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            if (ctx.realDbEnabled) {
+                expect(typeof affected).toBe('number')
+                const name = await ctx.conn.selectFrom(tProject)
+                    .where(tProject.id.equals(1))
+                    .selectOneColumn(tProject.name)
+                    .executeSelectOne()
+                expect(name).toBe('Marketing site / New name')
+            } else {
+                expect(affected).toBe(1)
+            }
+        })
+    })
+    */
+
+    // NOT-APPLICABLE: SQL Server has no INSERT…ON CONFLICT (uses MERGE), so the bare `onConflictDoUpdateSet` / `onConflictDoNothing` form is not typed on SqlServerConnection.
+    /*
+    test('shaped-multi-row-bare-on-conflict-do-nothing', async () => {
+        // Shaped × multi-row `.values([...])` + bare `onConflictDoNothing()`: the
+        // shaped sets supply the renamed required columns for every row, then the
+        // conflict suppresses both inserts. Both (org 1, 'mktg-site') and (org 1,
+        // 'tools') already exist → 0 inserted.
+        ctx.mockNext(0)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.insertInto(tProject)
+                .shapedAs({
+                    orgId:       'organizationId',
+                    projectName: 'name',
+                    projectSlug: 'slug',
+                })
+                .values([
+                    { orgId: 1, projectName: 'Dup A', projectSlug: 'mktg-site' },
+                    { orgId: 1, projectName: 'Dup B', projectSlug: 'tools' },
+                ])
+                .onConflictDoNothing()
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?, ?, ?), (?, ?, ?) on conflict do nothing"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "Dup A",
+                "mktg-site",
+                1,
+                "Dup B",
+                "tools",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            if (ctx.realDbEnabled) expect(typeof affected).toBe('number')
+            else expect(affected).toBe(0)
+        })
+    })
+    */
 })

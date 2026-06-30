@@ -66,4 +66,28 @@ describe(ctx.label, () => {
             }
         })
     })
+
+    test('returning-reads-the-adapter-scaled-provided-primary-key-back-unscaled', async () => {
+        // RETURNING reads invoice_no back through the ÷10 adapter. Inserting logical
+        // invoiceNo 40 binds the scaled 400; RETURNING invoice_no reads the stored
+        // 400 and unscales it to 40. total has no adapter.
+        const expected = { invoiceNo: 40, total: 900 }
+        ctx.mockNext({ invoiceNo: 400, total: 900 })
+        await ctx.withRollback(async () => {
+            const row = await ctx.conn.insertInto(tInvoice)
+                .values({ invoiceNo: 40, total: 900 })
+                .returning({ invoiceNo: tInvoice.invoiceNo, total: tInvoice.total })
+                .executeInsertOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into invoice (invoice_no, total) values ($1, $2) returning invoice_no as "invoiceNo", total as total"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                400,
+                900,
+              ]
+            `)
+            assertType<Exact<typeof row, { invoiceNo: number; total: number }>>()
+            expect(row).toEqual(expected)
+        })
+    })
 })

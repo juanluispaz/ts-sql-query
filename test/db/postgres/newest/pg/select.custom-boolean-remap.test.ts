@@ -242,4 +242,87 @@ describe(ctx.label, () => {
             if (!ctx.realDbEnabled) expect(affected).toBe(1)
         })
     })
+
+    // ── Boolean combinators with a custom-boolean column as the RECEIVER ──
+    // `tProject.published` (t/f) used directly as a BooleanValueSource on the left
+    // of `.negate()` / `.and()` / `.or()` / `.onlyWhen()` / `.ignoreWhen()` renders
+    // the column as the `(published = 't')` predicate. Seed published: project 1
+    // 't', 2 'f', 3 't', 4 'f'; project 4 is archived, 1–3 are not.
+
+    test('combinator: custom boolean column negated reads as not (col = trueValue)', async () => {
+        // `published.negate()` → `not (published = 't')`. The false-published
+        // projects (2 'f', 4 'f') match.
+        const expected = [{ id: 2 }, { id: 4 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tProject)
+            .where(tProject.published.negate())
+            .select({ id: tProject.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project where not published = 't' order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(rows).toEqual(expected)
+    })
+
+    test('combinator: custom boolean column as the and receiver', async () => {
+        // `published.and(archivedAt.isNull())` → `(published = 't') and
+        // project.archived_at is null`. Published-true and not archived → 1, 3.
+        const expected = [{ id: 1 }, { id: 3 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tProject)
+            .where(tProject.published.and(tProject.archivedAt.isNull()))
+            .select({ id: tProject.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project where published = 't' and archived_at is null order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(rows).toEqual(expected)
+    })
+
+    test('combinator: custom boolean column as the or receiver', async () => {
+        // `published.or(archivedAt.isNotNull())` → `(published = 't') or
+        // project.archived_at is not null`. Published-true (1, 3) plus the
+        // archived project (4) → 1, 3, 4.
+        const expected = [{ id: 1 }, { id: 3 }, { id: 4 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tProject)
+            .where(tProject.published.or(tProject.archivedAt.isNotNull()))
+            .select({ id: tProject.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project where published = 't' or archived_at is not null order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(rows).toEqual(expected)
+    })
+
+    test('combinator: custom boolean column kept by only-when reads remapped', async () => {
+        // `published.onlyWhen(true)` keeps the predicate, so the custom-boolean
+        // receiver still remaps to `(published = 't')`. Published-true → 1, 3.
+        const expected = [{ id: 1 }, { id: 3 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tProject)
+            .where(tProject.published.onlyWhen(true))
+            .select({ id: tProject.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project where published = 't' order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(rows).toEqual(expected)
+    })
+
+    test('combinator: custom boolean column kept by ignore-when reads remapped', async () => {
+        // `published.ignoreWhen(false)` keeps the predicate (ignoreWhen is the
+        // inverse of onlyWhen), so the receiver remaps to `(published = 't')`.
+        // Published-true → 1, 3.
+        const expected = [{ id: 1 }, { id: 3 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tProject)
+            .where(tProject.published.ignoreWhen(false))
+            .select({ id: tProject.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project where published = 't' order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(rows).toEqual(expected)
+    })
 })

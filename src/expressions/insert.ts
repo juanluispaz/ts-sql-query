@@ -290,7 +290,7 @@ export interface MissingKeysInsertExpression</*in|out*/ TABLE extends HasSource<
     setIfNotSetWhen(when: boolean, columns: InsertSets<TABLE, USING, undefined>): MissingKeysInsertExpression<TABLE, USING, MISSING_KEYS>
     setIfNotSetIfValueWhen(when: boolean, columns: OptionalInsertSets<TABLE, USING, undefined>): MissingKeysInsertExpression<TABLE, USING, MISSING_KEYS>
     ignoreIfSetWhen<COLUMNS extends ColumnsForSetOf<TABLE>>(when: boolean, ...columns: COLUMNS[]): MissingKeysInsertExpression<TABLE, USING, (COLUMNS & RequiredColumnsForSetOf<TABLE>) | MISSING_KEYS>
-    keepOnlyWhen<COLUMNS extends ColumnsForSetOf<TABLE>>(when: boolean, ...columns: COLUMNS[]): MissingKeysInsertExpression<TABLE, USING, Exclude<RequiredColumnsForSetOf<TABLE> | MISSING_KEYS, COLUMNS>>
+    keepOnlyWhen<COLUMNS extends ColumnsForSetOf<TABLE>>(when: boolean, ...columns: COLUMNS[]): MissingKeysInsertExpression<TABLE, USING, Exclude<RequiredColumnsForSetOf<TABLE>, COLUMNS> | MISSING_KEYS>
 
     setIfHasValueWhen(when: boolean, columns: InsertSets<TABLE, USING, undefined>): MissingKeysInsertExpression<TABLE, USING, MISSING_KEYS>
     setIfHasValueIfValueWhen(when: boolean, columns: OptionalInsertSets<TABLE, USING, undefined>): MissingKeysInsertExpression<TABLE, USING, MISSING_KEYS>
@@ -349,7 +349,7 @@ export interface ShapedMissingKeysInsertExpression</*in|out*/ TABLE extends HasS
     setIfNotSetWhen(when: boolean, columns: InsertSets<TABLE, USING, SHAPE>): ShapedMissingKeysInsertExpression<TABLE, USING, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
     setIfNotSetIfValueWhen(when: boolean, columns: OptionalInsertSets<TABLE, USING, SHAPE>): ShapedMissingKeysInsertExpression<TABLE, USING, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
     ignoreIfSetWhen<COLUMNS extends ColumnsForSetOfWithShape<TABLE, SHAPE>>(when: boolean, ...columns: COLUMNS[]): ShapedMissingKeysInsertExpression<TABLE, USING, SHAPE, (COLUMNS & RequiredColumnsForSetOfWithShape<TABLE, SHAPE>) | MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
-    keepOnlyWhen<COLUMNS extends ColumnsForSetOfWithShape<TABLE, SHAPE>>(when: boolean, ...columns: COLUMNS[]): ShapedMissingKeysInsertExpression<TABLE, USING, SHAPE, Exclude<RequiredColumnsForSetOfWithShape<TABLE, SHAPE> | MISSING_KEYS, COLUMNS>, MISSING_KEYS_IN_SHAPE>
+    keepOnlyWhen<COLUMNS extends ColumnsForSetOfWithShape<TABLE, SHAPE>>(when: boolean, ...columns: COLUMNS[]): ShapedMissingKeysInsertExpression<TABLE, USING, SHAPE, Exclude<RequiredColumnsForSetOfWithShape<TABLE, SHAPE>, COLUMNS> | MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
 
     setIfHasValueWhen(when: boolean, columns: InsertSets<TABLE, USING, SHAPE>): ShapedMissingKeysInsertExpression<TABLE, USING, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
     setIfHasValueIfValueWhen(when: boolean, columns: OptionalInsertSets<TABLE, USING, SHAPE>): ShapedMissingKeysInsertExpression<TABLE, USING, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>

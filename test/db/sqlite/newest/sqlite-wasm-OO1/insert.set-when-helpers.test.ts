@@ -22,6 +22,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { tIssue } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+import { assertType, type Exact } from '../../../../lib/assertType.js'
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -211,6 +212,19 @@ describe(ctx.label, () => {
         // drops any staged column that is NOT in the kept list. Here
         // the body the user typed is intentionally dropped before the
         // INSERT.
+        //
+        // Type lock: keepOnlyWhen(true, …) dispatches straight to
+        // keepOnly(…) at runtime, so their result types must coincide —
+        // including how a still-missing required key is folded. Opened
+        // from dynamicSet() every required column is still missing, so
+        // keepOnly over that exact set keeps them all in the missing-keys
+        // set (the insert stays non-executable); keepOnlyWhen(true, …)
+        // must agree and not silently clear them.
+        const keepOnlyResult = ctx.conn.insertInto(tIssue).dynamicSet()
+            .keepOnly('projectId', 'number', 'title', 'status', 'priority')
+        const keepOnlyWhenTrueResult = ctx.conn.insertInto(tIssue).dynamicSet()
+            .keepOnlyWhen(true, 'projectId', 'number', 'title', 'status', 'priority')
+        assertType<Exact<typeof keepOnlyResult, typeof keepOnlyWhenTrueResult>>()
         ctx.mockNext(1)
         ctx.mockNext(1)
         await ctx.withRollback(async () => {

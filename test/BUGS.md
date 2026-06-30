@@ -67,41 +67,7 @@ of that. Two minutes of triage and one paragraph is the bar.
 
 ## Open Bugs
 
-## Single-row insert `keepOnlyWhen` return type diverges from `keepOnly` (mis-folds `MISSING_KEYS`)
-
-**Where**: `src/expressions/insert.ts` — `MissingKeysInsertExpression.keepOnlyWhen`
-(line 293) and the shaped twin `ShapedMissingKeysInsertExpression.keepOnlyWhen`
-(line 352). Runtime impl: `src/queryBuilders/InsertQueryBuilder.ts:1437-1442`
-(`keepOnlyWhen(true, ...c)` returns exactly `this.keepOnly(...c)`).
-
-**Reproduction**: At runtime `keepOnlyWhen(true, ...columns)` calls
-`keepOnly(...columns)`, so the `when:true` result type must equal `keepOnly`'s.
-It doesn't. `keepOnly` (line 265) returns
-`MissingKeysInsertExpression<…, Exclude<RequiredColumnsForSetOf<TABLE>, COLUMNS> | MISSING_KEYS>`
-whereas `keepOnlyWhen` (line 293) returns
-`…, Exclude<RequiredColumnsForSetOf<TABLE> | MISSING_KEYS, COLUMNS>`. The two
-differ whenever a named column is already in `MISSING_KEYS` (the normal state
-right after `dynamicSet()`): `keepOnlyWhen` strips the named columns out of
-`MISSING_KEYS`, while `keepOnly` never clears a still-missing required key.
-Compile-repro on the PG reference cell —
-`conn.insertInto(tCountry).dynamicSet()` opens `MISSING_KEYS = 'code'|'name'|'region'`,
-then
-`assertType<Exact<typeof base.keepOnly('code','name','region'), typeof base.keepOnlyWhen(true,'code','name','region')>>()`
-fails (`Exact` resolves to `false`): `keepOnly(...)` keeps
-`MISSING_KEYS = 'code'|'name'|'region'` (still non-executable) while
-`keepOnlyWhen(true,...)` collapses it to `never` (typed executable) — the
-opposite of `keepOnly`'s contract, where naming a column must never *clear* a
-missing-key obligation. Same divergence on the shaped twin
-(`shapedAs({...}).dynamicSet().keepOnly(...)` vs `.keepOnlyWhen(true,...)`,
-lines 324 vs 352). The multi-row twins (`MissingKeysMultipleInsertExpression`
-499/527, shaped 558/586) and all four executable insert twins agree internally —
-only the single-row `MissingKeys` pair is wrong.
-
-**Current workaround in the suite**: none yet — surfaced by compile-repro in the
-round-18 type audit; no test currently exercises `keepOnlyWhen` on a
-`MissingKeysInsertExpression`. When a test is added, mark the assertion
-`// TODO[BUG]: see BUGS.md — keepOnlyWhen mis-folds MISSING_KEYS` until the fix
-lands.
+_None currently._
 
 ## Common bug shapes (for the fixing agent)
 

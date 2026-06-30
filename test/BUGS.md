@@ -67,7 +67,20 @@ of that. Two minutes of triage and one paragraph is the bar.
 
 ## Open Bugs
 
-_None currently open._
+## Shaped UPDATE `*When` set family rejects the renamed shape key it actually requires
+
+**Where**: `src/expressions/update.ts` — `ShapedExecutableUpdateExpression` (lines ~126-152) and `ShapedNotExecutableUpdateExpression` (lines ~249-275). Affects all 10 conditional set arms: `setWhen`, `setIfValueWhen`, `setIfSetWhen`, `setIfSetIfValueWhen`, `setIfNotSetWhen`, `setIfNotSetIfValueWhen`, `setIfHasValueWhen`, `setIfHasValueIfValueWhen`, `setIfHasNoValueWhen`, `setIfHasNoValueIfValueWhen`. Runtime: `src/queryBuilders/UpdateQueryBuilder.ts` (`setWhen`→`set`; the `set`/`setIfValue` body skips `if (shape && !(property in shape)) continue`, where `__shape` is keyed by the **renamed** names).
+
+**Reproduction** (tsgo compile-repro, round-16 type audit; pg cell, `tProject`):
+- `update(tProject).shapedAs({ projectName: 'name' }).set({ projectName: 'x' })` — non-When shaped `set` **accepts** the renamed key (compiles, correct).
+- `...setWhen(true, { projectName: 'x' })` — **TS2353** `'projectName' does not exist in type '{ name?: …; organizationId?: …; slug?: … }'`. The `*When` `columns` param is typed `UpdateSets<TABLE, USING, undefined>` (UNSHAPED) instead of `…SHAPE`, so it accepts only **real** column keys.
+- `...setWhen(true, { name: 'x' })` — compiles, but at runtime `'name' in __shape` is false (the shape holds the key `projectName`), so the set is **silently dropped** even when `when === true`.
+
+Net: the shaped `*When` family accepts only the keys the runtime discards and rejects the keys the runtime needs — the feature is unusable as typed. The non-When shaped `set`/`setIfValue` are correct (typed `…SHAPE`); the asymmetry is isolated to the `*When` arms. Same shaped-key-remap class as the round-13 ON CONFLICT fix (commit `1149a866`).
+
+**Likely sibling (type-asymmetry, INSERT side — verify when fixing)**: `src/expressions/insert.ts` — the static one-shot `OnConflictDoUpdateSetFnType` / `OnConflictDoUpdateSetWithoutTargetFnType` (lines ~937-949) thread `SHAPE` into the *input* (`OnConflictUpdateSets<…, SHAPE>`, so the one-shot call itself accepts the renamed key) but **return the non-shaped** `InsertOnConflictSetsExpression` — unlike the dynamic-set forms (`ShapedOnConflictDoUpdateDynamicSetFn`, lines ~907-910) which return the shaped node. Consequence: a **chained** `.set({renamedKey})` after a shaped static `onConflictDoUpdateSet({...})` is type-rejected though the impl (`__onConflictUpdateShape`-aware) would remap it. Milder than the UPDATE case (the one-shot works); decide bug-vs-intentional-terminal when fixing.
+
+**Current workaround in the suite**: none yet — surfaced by the round-16 type-driven audit (no test exercises a shaped `*When` chain anywhere in `test/db`). When a test is added it should carry a `// TODO[BUG]` next to the assertion, plus a `types.negative/` lock for the current (wrong) rejection so it flips when `src/` is fixed.
 
 ## Common bug shapes (for the fixing agent)
 

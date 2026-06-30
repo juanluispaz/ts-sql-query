@@ -241,4 +241,47 @@ describe(ctx.label, () => {
         })
     })
     */
+    // NOT-APPLICABLE: MariaDB uses the bare onConflictDoUpdateSet form — `.onConflictOn(...)` / `.onConflictOnConstraint(...)` are not typed on `MariaDBConnection` (MariaDB's `ON DUPLICATE KEY UPDATE` grammar takes no column list, no named-constraint target and no WHERE clause); see this dialect's `types.negative` suite.
+    /*
+    test('shaped-on-conflict-do-update-chained-set-and-set-when-keep-shape', async () => {
+        // After the STATIC one-shot `doUpdateSet({projectName})`, the returned node
+        // stays shaped: a chained `.set({projectName})` overwrites the staged `name`,
+        // and `setWhen(true, {projectName})` overwrites it again — every renamed
+        // `projectName` maps back to the real `name` column (last write wins). The
+        // chained-set and on-conflict `*When` arms reject the real column key (see
+        // this dialect's `types.negative` suite).
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.insertInto(tProject)
+                .shapedAs({
+                    orgId:       'organizationId',
+                    projectName: 'name',
+                    projectSlug: 'slug',
+                })
+                .set({
+                    orgId:       1,
+                    projectName: 'ignored',
+                    projectSlug: 'mktg-site',
+                })
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doUpdateSet({ projectName: 'one-shot' })
+                .set({ projectName: 'chained' })
+                .setWhen(true, { projectName: 'via-set-when' })
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values ($1, $2, $3) on conflict (organization_id, slug) do update set name = $4"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "ignored",
+                "mktg-site",
+                "via-set-when",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(1)
+        })
+    })
+    */
+
 })

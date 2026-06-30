@@ -65,6 +65,22 @@ function _typeNegatives() {
         // @ts-expect-error SQLite does not expose connection.default() — omit the column instead
         createdAt: connection.default(),
     })
+
+    // Rule: under an active shape, the conditional `*When` set arms accept
+    // only the renamed shape keys — never the real columns (same contract as
+    // the non-`When` shaped set). The real column `name` is rejected by both
+    // the value-map arm (`setWhen`) and the column-name arm (`keepOnlyWhen`).
+    void connection.update(tProject)
+        .shapedAs({ projectName: 'name' })
+        .dynamicSet()
+        // @ts-expect-error real column 'name' is not a shaped key on setWhen
+        .setWhen(true, { name: 'x' })
+    void connection.update(tProject)
+        .shapedAs({ projectName: 'name', projectSlug: 'slug' })
+        .set({ projectName: 'x' })
+        // @ts-expect-error real column 'name' is not a shaped key on keepOnlyWhen
+        .keepOnlyWhen(true, 'name')
+
 }
 
 test('update-negative-types', () => {

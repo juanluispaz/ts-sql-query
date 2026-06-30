@@ -87,6 +87,25 @@ function _typeNegatives() {
     void connection.insertInto(tOrganization).set({ name: 'x', plan: 'pro' }).onConflictOnConstraint('organization_name_uniq')
     // @ts-expect-error IStringValueSource is no longer accepted — use connection.rawFragment`...`
     void connection.insertInto(tOrganization).set({ name: 'x', plan: 'pro' }).onConflictOnConstraint(connection.const('organization_name_uniq', 'string'))
+
+    // Rule: after a shaped static one-shot `onConflictOn(...).doUpdateSet({renamed})`
+    // the returned node stays shaped — a chained `.set(...)` and the `*When` arms
+    // accept only the renamed shape keys, never the real columns.
+    void connection.insertInto(tProject)
+        .shapedAs({ orgId: 'organizationId', projectName: 'name', projectSlug: 'slug' })
+        .set({ orgId: 1, projectName: 'a', projectSlug: 'b' })
+        .onConflictOn(tProject.organizationId, tProject.slug)
+        .doUpdateSet({ projectName: 'one-shot' })
+        // @ts-expect-error real column 'name' is not a shaped key on the chained on-conflict set
+        .set({ name: 'chained' })
+    void connection.insertInto(tProject)
+        .shapedAs({ orgId: 'organizationId', projectName: 'name', projectSlug: 'slug' })
+        .set({ orgId: 1, projectName: 'a', projectSlug: 'b' })
+        .onConflictOn(tProject.organizationId, tProject.slug)
+        .doUpdateSet({ projectName: 'one-shot' })
+        // @ts-expect-error real column 'name' is not a shaped key on the on-conflict setWhen
+        .setWhen(true, { name: 'when' })
+
 }
 
 test('insert-negative-types', () => {

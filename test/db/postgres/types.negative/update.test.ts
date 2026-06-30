@@ -68,6 +68,22 @@ function _typeNegatives() {
     void connection.update(tIssue).dynamicSet().where(tIssue.id.equals(1)).executeUpdateOne()
     // @ts-expect-error executeUpdateMany needs a RETURNING clause; it is not on a bare update
     void connection.update(tIssue).dynamicSet().where(tIssue.id.equals(1)).executeUpdateMany()
+
+    // Rule: under an active shape, the conditional `*When` set arms accept
+    // only the renamed shape keys — never the real columns (same contract as
+    // the non-`When` shaped set). The real column `name` is rejected by both
+    // the value-map arm (`setWhen`) and the column-name arm (`keepOnlyWhen`).
+    void connection.update(tProject)
+        .shapedAs({ projectName: 'name' })
+        .dynamicSet()
+        // @ts-expect-error real column 'name' is not a shaped key on setWhen
+        .setWhen(true, { name: 'x' })
+    void connection.update(tProject)
+        .shapedAs({ projectName: 'name', projectSlug: 'slug' })
+        .set({ projectName: 'x' })
+        // @ts-expect-error real column 'name' is not a shaped key on keepOnlyWhen
+        .keepOnlyWhen(true, 'name')
+
 }
 
 test('update-negative-types', () => {

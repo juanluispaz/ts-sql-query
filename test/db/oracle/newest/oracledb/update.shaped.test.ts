@@ -2,7 +2,10 @@
 // real columns; the set-manipulation family (`setIfValue`, `setIfSet`, `setIfNotSet`,
 // `ignoreIfSet`, `keepOnly`, `setIfHasValue`/`setIfHasNoValue`, `ignoreAnySetWithNoValue`,
 // the `dynamicSet()` opener) and the allowing-no-where entry all operate on the renamed
-// keys. Dialect-independent (a plain UPDATE under the real column names).
+// keys. The conditional `*When` arms (`setWhen`, `setIfValueWhen`, `keepOnlyWhen`, …)
+// thread the same shape: each dispatches to its non-`When` sibling, so the renamed key
+// maps back to its real column. Dialect-independent (a plain UPDATE under the real
+// column names).
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -223,6 +226,86 @@ describe(ctx.label, () => {
             `)
             assertType<Exact<typeof affected, number>>()
             expect(affected).toBe(4)
+        })
+    })
+
+    test('shaped-set-when-maps-renamed-key-on-true', async () => {
+        // `.set({projectName})` stages the renamed `name`. `setWhen(true, {projectSlug})`
+        // dispatches to `set`, staging the renamed `slug`; `setWhen(false, …)` is a noop.
+        // The renamed keys are what the shaped `*When` arm accepts (the real columns are
+        // rejected — see this dialect's `types.negative` suite).
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            await ctx.conn.update(tProject)
+                .shapedAs({ projectName: 'name', projectSlug: 'slug' })
+                .set({ projectName: 'Base name' })
+                .setWhen(false, { projectSlug: 'only-when-true' })
+                .where(tProject.id.equals(1))
+                .executeUpdate()
+            const falseSql = ctx.lastSql
+
+            const affected = await ctx.conn.update(tProject)
+                .shapedAs({ projectName: 'name', projectSlug: 'slug' })
+                .set({ projectName: 'Base name' })
+                .setWhen(true, { projectSlug: 'only-when-true' })
+                .where(tProject.id.equals(2))
+                .executeUpdate()
+            const trueSql = ctx.lastSql
+
+            expect(falseSql).toMatchInlineSnapshot(`"update project set name = :0 where id = :1"`)
+            expect(trueSql).toMatchInlineSnapshot(`"update project set name = :0, slug = :1 where id = :2"`)
+            expect(trueSql).not.toBe(falseSql)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(1)
+        })
+    })
+
+    test('shaped-set-if-value-when-maps-and-gates-undefined', async () => {
+        // `setIfValueWhen(true, {...})` dispatches to `setIfValue`: the renamed
+        // `projectName` (→ name) survives; the renamed optional `archived`
+        // (→ archivedAt) carries `undefined`, so the value-gate drops it.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.update(tProject)
+                .shapedAs({ projectName: 'name', archived: 'archivedAt' })
+                .dynamicSet()
+                .setIfValueWhen(true, { projectName: 'Renamed via setIfValueWhen', archived: undefined })
+                .where(tProject.id.equals(1))
+                .executeUpdate()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = :0 where id = :1"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Renamed via setIfValueWhen",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(1)
+        })
+    })
+
+    test('shaped-keep-only-when-prunes-to-renamed-column', async () => {
+        // `.set({projectName, projectSlug})` stages both renamed columns;
+        // `keepOnlyWhen(true, 'projectName')` dispatches to `keepOnly`, keeping only
+        // the renamed `name` — the keep-list takes the renamed key, not the real column.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.update(tProject)
+                .shapedAs({ projectName: 'name', projectSlug: 'slug' })
+                .set({ projectName: 'Only name kept', projectSlug: 'removed-slug' })
+                .keepOnlyWhen(true, 'projectName')
+                .where(tProject.id.equals(1))
+                .executeUpdate()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = :0 where id = :1"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Only name kept",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(1)
         })
     })
 })

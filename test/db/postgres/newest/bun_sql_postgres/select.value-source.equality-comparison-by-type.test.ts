@@ -9,7 +9,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tIssueWorklog, tProjectRelease } from '../../domain/connection.js'
+import { tIssue, tIssueWorklog, tOrganization, tProjectRelease } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -1171,4 +1171,473 @@ describe(ctx.label, () => {
         expect(inRows).toEqual(expectedFalse)
     })
 
+
+    // ==================================================================
+    // T2-a A4–A8 — remaining direct-fluent arms on existing leaves:
+    // customUuid is/isNot + value-source operand, plain-string ordered
+    // comparison + between, customComparable greaterOrEqual + notBetween,
+    // uuid single-bound ordered comparison, customDouble in/notIn subquery.
+    // ==================================================================
+
+    test('customUuid-is-is-not-and-value-source-operand', async () => {
+        // `.is` / `.isNot` (null-safe equality) on the OPTIONAL customUuid
+        // ('SigningKey') column signingKey, plus the value-source-operand
+        // overload of `.equals`. signing_key: release 1 -> 0a8f9c1e-…,
+        // 2 -> NULL, 3 -> 7b3e9d20-…. `.is(<key1>)` matches release 1;
+        // `.isNot(<key1>)` matches releases 2 (NULL, distinct under IS DISTINCT
+        // FROM) and 3.
+        const key1 = '0a8f9c1e-1111-4222-8333-444455556666'
+        const expected = [{ id: 1 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.signingKey.is(key1))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key is not distinct from $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "0a8f9c1e-1111-4222-8333-444455556666",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+
+        const expectedIsNot = [{ id: 2 }, { id: 3 }]
+        ctx.mockNext(expectedIsNot)
+        const isNot = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.signingKey.isNot(key1))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key is distinct from $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "0a8f9c1e-1111-4222-8333-444455556666",
+          ]
+        `)
+        expect(isNot).toEqual(expectedIsNot)
+
+        // The value-source-operand overload of `.equals`: compare each release's
+        // signing_key against release 1's signing_key (a scalar subquery value
+        // source). Matches release 1 only (release 3 has a different key,
+        // release 2 is NULL).
+        const keyOfRelease1 = ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .selectOneColumn(tProjectRelease.signingKey)
+            .forUseAsInlineQueryValue()
+        const expectedEq = [{ id: 1 }]
+        ctx.mockNext(expectedEq)
+        const eq = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.signingKey.equals(keyOfRelease1))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key = (select signing_key as result from project_release where id = $1) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        expect(eq).toEqual(expectedEq)
+    })
+
+    test('string-ordered-comparison-and-between', async () => {
+        // Ordered comparison on a plain `string` column with CONST operands.
+        // tIssue.title: 1 'Update hero copy', 2 'Redesign navbar', 3 'Migrate to
+        // ESM', 4 'Document /v2/users'. Lexical order: 4 < 3 < 2 < 1.
+        // `.lessThan('Migrate to ESM')` -> issue 4; `.greaterThan(...)` ->
+        // issues 1,2; `.lessOrEqual(...)` -> issues 3,4; `.greaterOrEqual(...)`
+        // -> issues 1,2,3. `.between('Migrate to ESM','Redesign navbar')` ->
+        // issues 2,3.
+        const mid = 'Migrate to ESM'
+
+        const expectedLt = [{ id: 4 }]
+        ctx.mockNext(expectedLt)
+        const lt = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.title.lessThan(mid))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where title < $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "Migrate to ESM",
+          ]
+        `)
+        assertType<Exact<typeof lt, Array<{ id: number }>>>()
+        expect(lt).toEqual(expectedLt)
+
+        const expectedGt = [{ id: 1 }, { id: 2 }]
+        ctx.mockNext(expectedGt)
+        const gt = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.title.greaterThan(mid))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where title > $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "Migrate to ESM",
+          ]
+        `)
+        expect(gt).toEqual(expectedGt)
+
+        const expectedLe = [{ id: 3 }, { id: 4 }]
+        ctx.mockNext(expectedLe)
+        const le = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.title.lessOrEqual(mid))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where title <= $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "Migrate to ESM",
+          ]
+        `)
+        expect(le).toEqual(expectedLe)
+
+        const expectedGe = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        ctx.mockNext(expectedGe)
+        const ge = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.title.greaterOrEqual(mid))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where title >= $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "Migrate to ESM",
+          ]
+        `)
+        expect(ge).toEqual(expectedGe)
+
+        const expectedBetween = [{ id: 2 }, { id: 3 }]
+        ctx.mockNext(expectedBetween)
+        const between = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.title.between(mid, 'Redesign navbar'))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where title between $1 and $2 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "Migrate to ESM",
+            "Redesign navbar",
+          ]
+        `)
+        expect(between).toEqual(expectedBetween)
+    })
+
+    test('customComparable-greater-or-equal-and-not-between', async () => {
+        // The two remaining Comparable arms on a customComparable ('Semver')
+        // column. version (stored as text): 1 '1.2.0', 2 '1.3.0-beta.1',
+        // 3 '0.9.0'. Lexical order: 3 < 1 < 2. `.greaterOrEqual('1.2.0')`
+        // matches releases 1 and 2. `.notBetween('1.0.0','1.2.5')` matches
+        // release 3 ('0.9.0', below) and release 2 ('1.3.0-beta.1', above);
+        // release 1 ('1.2.0') is inside the range.
+        const expectedGe = [{ id: 1 }, { id: 2 }]
+        ctx.mockNext(expectedGe)
+        const ge = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.version.greaterOrEqual('1.2.0'))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where version >= $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "1.2.0",
+          ]
+        `)
+        assertType<Exact<typeof ge, Array<{ id: number }>>>()
+        expect(ge).toEqual(expectedGe)
+
+        const expectedNot = [{ id: 2 }, { id: 3 }]
+        ctx.mockNext(expectedNot)
+        const notRows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.version.notBetween('1.0.0', '1.2.5'))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where version not between $1 and $2 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "1.0.0",
+            "1.2.5",
+          ]
+        `)
+        expect(notRows).toEqual(expectedNot)
+    })
+
+    test('uuid-single-bound-comparisons', async () => {
+        // The four single-bound ordered comparisons on a uuid column with a
+        // CONST operand. external_ref: issue 1 -> 0a8f9c1e-…, issue 2 ->
+        // 7b3e9d20-…, issues 3,4 -> NULL. The bound `50000000-…` separates the
+        // two refs by the first hex nibble (byte and lexical order agree there),
+        // so `.lessThan(50…)` / `.lessOrEqual(50…)` match issue 1 (0a) and
+        // `.greaterThan(50…)` / `.greaterOrEqual(50…)` match issue 2 (7b); the
+        // NULL rows are excluded by NULL semantics from every comparison.
+        const mid = '50000000-0000-0000-0000-000000000000'
+
+        const expectedLt = [{ id: 1 }]
+        ctx.mockNext(expectedLt)
+        const lt = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.externalRef.lessThan(mid))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref < $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "50000000-0000-0000-0000-000000000000",
+          ]
+        `)
+        assertType<Exact<typeof lt, Array<{ id: number }>>>()
+        expect(lt).toEqual(expectedLt)
+
+        const expectedGt = [{ id: 2 }]
+        ctx.mockNext(expectedGt)
+        const gt = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.externalRef.greaterThan(mid))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref > $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "50000000-0000-0000-0000-000000000000",
+          ]
+        `)
+        expect(gt).toEqual(expectedGt)
+
+        const expectedLe = [{ id: 1 }]
+        ctx.mockNext(expectedLe)
+        const le = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.externalRef.lessOrEqual(mid))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref <= $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "50000000-0000-0000-0000-000000000000",
+          ]
+        `)
+        expect(le).toEqual(expectedLe)
+
+        const expectedGe = [{ id: 2 }]
+        ctx.mockNext(expectedGe)
+        const ge = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.externalRef.greaterOrEqual(mid))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref >= $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "50000000-0000-0000-0000-000000000000",
+          ]
+        `)
+        expect(ge).toEqual(expectedGe)
+    })
+
+    test('customDouble-in-subquery-not-in-subquery', async () => {
+        // The subquery overload of IN / NOT IN over a customDouble ('Money')
+        // column. The inner query selects worklog 2's billed_amount (50); the
+        // outer keeps worklogs whose billed_amount is in / not in that set.
+        // billed_amount: worklog 1 -> 200, 2 -> 50, 3 -> 200.
+        const amountOfWorklog2 = ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(2))
+            .selectOneColumn(tIssueWorklog.billedAmount)
+
+        const expectedIn = [{ id: 2 }]
+        ctx.mockNext(expectedIn)
+        const inRows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.billedAmount.in(amountOfWorklog2))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billed_amount in (select billed_amount as result from issue_worklog where id = $1) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof inRows, Array<{ id: number }>>>()
+        expect(inRows).toEqual(expectedIn)
+
+        const expectedNotIn = [{ id: 1 }, { id: 3 }]
+        ctx.mockNext(expectedNotIn)
+        const notInRows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.billedAmount.notIn(amountOfWorklog2))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billed_amount not in (select billed_amount as result from issue_worklog where id = $1) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        expect(notInRows).toEqual(expectedNotIn)
+    })
+
+    // T2-a A1 — plain localDateTime — tOrganization.createdAt (required):
+    //   org 1 -> 2023-06-15 08:00:00, org 2 -> 2023-09-20 14:30:00 (B-7 seeds
+    //   these as explicit, distinct timestamps so equality / membership / range
+    //   comparisons are deterministic). Each test projects only the int PK, so
+    //   no TZ-shifted temporal VALUE is read back; the const operands are built
+    //   with new Date(Date.UTC(...)) under the suite's forced TZ=UTC.
+    // ------------------------------------------------------------------
+
+    test('localDateTime-equals-not-equals', async () => {
+        // `.equals(2023-06-15 08:00)` matches org 1; `.notEquals(...)` matches
+        // org 2 (created_at is non-null on every org).
+        const dt = new Date(Date.UTC(2023, 5, 15, 8, 0, 0))
+        const expected = [{ id: 1 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.createdAt.equals(dt))
+            .select({ id: tOrganization.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where created_at = $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2023-06-15T08:00:00.000Z",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+
+        const expectedNe = [{ id: 2 }]
+        ctx.mockNext(expectedNe)
+        const ne = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.createdAt.notEquals(dt))
+            .select({ id: tOrganization.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where created_at <> $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2023-06-15T08:00:00.000Z",
+          ]
+        `)
+        expect(ne).toEqual(expectedNe)
+    })
+
+    test('localDateTime-is-is-not', async () => {
+        // `.is` / `.isNot` (null-safe equality) on a required localDateTime
+        // column. `.is(2023-06-15 08:00)` matches org 1; `.isNot(...)` matches
+        // org 2.
+        const dt = new Date(Date.UTC(2023, 5, 15, 8, 0, 0))
+        const expected = [{ id: 1 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.createdAt.is(dt))
+            .select({ id: tOrganization.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where created_at is not distinct from $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2023-06-15T08:00:00.000Z",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+
+        const expectedIsNot = [{ id: 2 }]
+        ctx.mockNext(expectedIsNot)
+        const isNot = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.createdAt.isNot(dt))
+            .select({ id: tOrganization.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where created_at is distinct from $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2023-06-15T08:00:00.000Z",
+          ]
+        `)
+        expect(isNot).toEqual(expectedIsNot)
+    })
+
+    test('localDateTime-in-array-in-n', async () => {
+        // `.in([2023-06-15 08:00, 2023-09-20 14:30])` matches orgs 1 and 2;
+        // `.inN(2023-06-15 08:00)` matches org 1 only.
+        const dt1 = new Date(Date.UTC(2023, 5, 15, 8, 0, 0))
+        const dt2 = new Date(Date.UTC(2023, 8, 20, 14, 30, 0))
+        const expectedIn = [{ id: 1 }, { id: 2 }]
+        ctx.mockNext(expectedIn)
+        const inRows = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.createdAt.in([dt1, dt2]))
+            .select({ id: tOrganization.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where created_at in ($1, $2) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2023-06-15T08:00:00.000Z",
+            "2023-09-20T14:30:00.000Z",
+          ]
+        `)
+        assertType<Exact<typeof inRows, Array<{ id: number }>>>()
+        expect(inRows).toEqual(expectedIn)
+
+        const expectedInN = [{ id: 1 }]
+        ctx.mockNext(expectedInN)
+        const inNRows = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.createdAt.inN(dt1))
+            .select({ id: tOrganization.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where created_at in ($1) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2023-06-15T08:00:00.000Z",
+          ]
+        `)
+        expect(inNRows).toEqual(expectedInN)
+    })
+
+    test('localDateTime-between-not-between', async () => {
+        // `.between(2023-01-01, 2023-07-01)` matches org 1 (06-15); org 2
+        // (09-20) is out of range. `.notBetween(...)` matches org 2.
+        const lo = new Date(Date.UTC(2023, 0, 1, 0, 0, 0))
+        const hi = new Date(Date.UTC(2023, 6, 1, 0, 0, 0))
+        const expected = [{ id: 1 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.createdAt.between(lo, hi))
+            .select({ id: tOrganization.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where created_at between $1 and $2 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2023-01-01T00:00:00.000Z",
+            "2023-07-01T00:00:00.000Z",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+
+        const expectedNot = [{ id: 2 }]
+        ctx.mockNext(expectedNot)
+        const notRows = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.createdAt.notBetween(lo, hi))
+            .select({ id: tOrganization.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where created_at not between $1 and $2 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2023-01-01T00:00:00.000Z",
+            "2023-07-01T00:00:00.000Z",
+          ]
+        `)
+        expect(notRows).toEqual(expectedNot)
+    })
 })

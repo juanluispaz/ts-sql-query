@@ -9,7 +9,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tProject } from '../../domain/connection.js'
+import { tOrganization, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -308,4 +308,148 @@ describe(ctx.label, () => {
             expect(affected).toBe(1)
         })
     })
+
+    test('shaped-dynamic-set-one-arg-then-where', async () => {
+        // `.shapedAs({...}).dynamicSet({...})` — the ONE-ARG dynamicSet opener on a
+        // where-required shaped update. It seeds the set in a single call using the
+        // renamed keys, then still requires a WHERE before execute (the no-arg
+        // form is exercised by `shaped-dynamic-set-no-arg-then-incremental-set`).
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.update(tProject)
+                .shapedAs({ projectName: 'name', projectSlug: 'slug' })
+                .dynamicSet({ projectName: 'Via dynamicSet one-arg', projectSlug: 'via-dynamic-one-arg' })
+                .where(tProject.id.equals(1))
+                .executeUpdate()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set \`name\` = ?, slug = ? where id = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Via dynamicSet one-arg",
+                "via-dynamic-one-arg",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(1)
+        })
+    })
+
+    test('shaped-allowing-no-where-dynamic-set-no-arg-then-incremental-set', async () => {
+        // `updateAllowingNoWhere(...).shapedAs({...}).dynamicSet()` — the NO-ARG
+        // dynamicSet opener on the allowing-no-where shaped update. It opens an
+        // executable (no WHERE required) empty shaped set; chained `.set(...)`
+        // accumulates the renamed columns. Every seeded project (4) is renamed.
+        ctx.mockNext(4)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.updateAllowingNoWhere(tProject)
+                .shapedAs({ projectName: 'name' })
+                .dynamicSet()
+                .set({ projectName: 'Bulk renamed via dynamicSet no-arg' })
+                .executeUpdate()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set \`name\` = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Bulk renamed via dynamicSet no-arg",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(4)
+        })
+    })
+
+    test('shaped-allowing-no-where-dynamic-set-one-arg', async () => {
+        // `updateAllowingNoWhere(...).shapedAs({...}).dynamicSet({...})` — the
+        // ONE-ARG dynamicSet opener on the allowing-no-where shaped update. It
+        // seeds the renamed set in a single call and is immediately executable
+        // (no WHERE required). Every seeded project (4) is renamed.
+        ctx.mockNext(4)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.updateAllowingNoWhere(tProject)
+                .shapedAs({ projectName: 'name' })
+                .dynamicSet({ projectName: 'Bulk renamed via dynamicSet one-arg' })
+                .executeUpdate()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set \`name\` = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Bulk renamed via dynamicSet one-arg",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(4)
+        })
+    })
+
+    test('shaped-from-references-from-table-column', async () => {
+        // The shaped × `from` seam: `update(tProject).from(tOrganization)` joins in
+        // the organization, then `.shapedAs({...})` renames the SET keys and the
+        // shaped `set({...})` value references a FROM-table column
+        // (`tOrganization.name`). `shapedAs` is reachable after `from` because
+        // `UpdateFromExpression` still carries it. Acme Corp (the only `pro` org)
+        // owns projects 1 and 2. SQL is dialect-divergent (the FROM rendering and
+        // operators differ per dialect), so each cell records its own snapshot.
+        const updatedProjects = [
+            { id: 1, name: 'Marketing site / Acme Corp' },
+            { id: 2, name: 'Internal tools / Acme Corp' },
+        ]
+        ctx.mockNext(2)
+        ctx.mockNext(updatedProjects)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.update(tProject)
+                .from(tOrganization)
+                .shapedAs({ projectName: 'name' })
+                .set({ projectName: tProject.name.concat(' / ').concat(tOrganization.name) })
+                .where(tProject.organizationId.equals(tOrganization.id))
+                .and(tOrganization.plan.equals('pro'))
+                .executeUpdate()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project, \`organization\` set project.\`name\` = concat(project.\`name\`, ?, \`organization\`.\`name\`) where project.organization_id = \`organization\`.id and \`organization\`.plan = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                " / ",
+                "pro",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(2)
+
+            const projects = await ctx.conn.selectFrom(tProject)
+                .where(tProject.organizationId.equals(1))
+                .select({ id: tProject.id, name: tProject.name })
+                .orderBy('id')
+                .executeSelectMany()
+            expect(projects).toEqual(updatedProjects)
+        })
+    })
+
+    // NOT-APPLICABLE: MySQL has no UPDATE ... RETURNING; the library refuses
+    //                 `.returning({...}).executeUpdateOne()` at compile time.
+    /*
+    test('shaped-set-when-returning-one-row', async () => {
+        // shaped-set-`*When` × returning: a shaped `setWhen(true, {...})` followed by
+        // `.returning({...})` on the renamed keys. The renamed `projectName` (→ name)
+        // is staged, `setWhen(true, {projectSlug})` stages the renamed slug, and the
+        // UPDATE returns the renamed columns. RETURNING is dialect-gated, so the
+        // snapshot diverges and the test is NOT-APPLICABLE where RETURNING is absent.
+        const expectedMock = { id: 1, name: 'Renamed via shaped setWhen', slug: 'shaped-when-returning' }
+        ctx.mockNext(expectedMock)
+        await ctx.withRollback(async () => {
+            const row = await ctx.conn.update(tProject)
+                .shapedAs({ projectName: 'name', projectSlug: 'slug' })
+                .set({ projectName: 'Renamed via shaped setWhen' })
+                .setWhen(true, { projectSlug: 'shaped-when-returning' })
+                .where(tProject.id.equals(1))
+                .returning({ id: tProject.id, name: tProject.name, slug: tProject.slug })
+                .executeUpdateOne()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = $1, slug = $2 where id = $3 returning id as id, name as name, slug as slug"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Renamed via shaped setWhen",
+                "shaped-when-returning",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof row, { id: number, name: string, slug: string }>>()
+            expect(row).toEqual(expectedMock)
+        })
+    })
+    */
 })

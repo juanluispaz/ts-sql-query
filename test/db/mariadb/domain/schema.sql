@@ -141,6 +141,8 @@ CREATE TABLE project_release (
     released_on DATE NOT NULL,
     cutoff_time TIME NOT NULL,
     signed_off_at DATETIME NULL,
+    -- §B (B-4): REQUIRED customLocalDateTime twin of signed_off_at.
+    published_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     notes VARCHAR(255) GENERATED ALWAYS AS (CONCAT('release-', version)) STORED,
     FOREIGN KEY (project_id) REFERENCES project(id),
     UNIQUE (project_id, version)
@@ -220,6 +222,8 @@ SELECT r.id AS id,
        r.version AS version,
        r.released_on AS released_on,
        r.signed_off_at AS signed_off_at,
+       r.version AS version_bracketed,
+       r.cutoff_time AS cutoff_clock,
        p.name AS project_name
 FROM project_release r
 INNER JOIN project p ON p.id = r.project_id;

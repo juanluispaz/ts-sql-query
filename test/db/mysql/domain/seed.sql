@@ -2,9 +2,12 @@
 -- IDs are stable on purpose so tests can refer to them by literal.
 -- AUTO_INCREMENT continues after MAX(id) on the next insert.
 
-INSERT INTO organization (id, name, plan, verified) VALUES
-    (1, 'Acme Corp', 'pro',  'Y'),
-    (2, 'Globex Ltd', 'free', 'N');
+-- created_at carries explicit, distinct timestamps (instead of the
+-- CURRENT_TIMESTAMP default) so localDateTime equality / membership / range
+-- comparisons on tOrganization.createdAt are deterministic.
+INSERT INTO organization (id, name, plan, verified, created_at) VALUES
+    (1, 'Acme Corp', 'pro',  'Y', '2023-06-15 08:00:00'),
+    (2, 'Globex Ltd', 'free', 'N', '2023-09-20 14:30:00');
 
 INSERT INTO app_user (id, email, full_name, verified) VALUES
     (1, 'ada@acme.test',    'Ada Lovelace', 'Y'),
@@ -39,10 +42,10 @@ INSERT INTO issue_worklog (id, issue_id, work_date, started_at, minutes, duratio
     (2, 2, '2024-03-05', '14:00:00', NULL, NULL,    0,    'review', 'R', 50, 0, 100),
     (3, 1, '2024-03-06', '10:30:00', 30,   1800000, NULL, 'meeting', NULL, 200, 1, 400);
 
-INSERT INTO project_release (id, project_id, version, channel, signing_key, released_on, cutoff_time, signed_off_at) VALUES
-    (1, 1, '1.2.0',        'stable', UUID_TO_BIN('0a8f9c1e-1111-4222-8333-444455556666'), '2024-01-15', '17:00:00', '2024-01-14 12:30:00'),
-    (2, 1, '1.3.0-beta.1', 'beta',   NULL,     '2024-02-20', '18:30:00', NULL),
-    (3, 2, '0.9.0',        'canary', UUID_TO_BIN('7b3e9d20-2222-4c55-9b66-dddd00009999'), '2024-03-01', '16:00:00', '2024-02-28 09:00:00');
+INSERT INTO project_release (id, project_id, version, channel, signing_key, released_on, cutoff_time, signed_off_at, published_at) VALUES
+    (1, 1, '1.2.0',        'stable', UUID_TO_BIN('0a8f9c1e-1111-4222-8333-444455556666'), '2024-01-15', '17:00:00', '2024-01-14 12:30:00', '2024-01-16 09:00:00'),
+    (2, 1, '1.3.0-beta.1', 'beta',   NULL,     '2024-02-20', '18:30:00', NULL, '2024-02-21 10:00:00'),
+    (3, 2, '0.9.0',        'canary', UUID_TO_BIN('7b3e9d20-2222-4c55-9b66-dddd00009999'), '2024-03-01', '16:00:00', '2024-02-28 09:00:00', '2024-03-02 11:00:00');
 
 INSERT INTO project_review (id, project_id, reviewer_code, score, review_date, review_time) VALUES
     (1, 1, 'R-7A2', 850, '2024-05-20', '14:30:45');

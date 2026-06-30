@@ -85,6 +85,7 @@ export class DBConnection extends MySqlConnection<'DBConnection'> {
             case 'ReleaseDay':   return 'localDate'
             case 'CutoffClock':  return 'localTime'
             case 'SignOffStamp': return 'localDateTime'
+            case 'PublishStamp': return 'localDateTime'
             default:           return type
         }
     }
@@ -386,6 +387,16 @@ export class DBConnection extends MySqlConnection<'DBConnection'> {
         this.valueArg('int', 'optional', scaledTenthAdapter)
     ).as((col, v) => this.fragmentWithType('boolean', 'required').sql`${col} > ${v}`)
 
+    // §B (B-2): a fragment whose `arg` carries a TRAILING TypeAdapter
+    // (scaledTenthAdapter), exercising the combined-mode (`adapter2`) branch of
+    // `arg` — every other `this.arg(...)` omits the adapter. The arg routes a
+    // bound literal through the adapter's WRITE path (x10), so passing the
+    // threshold 1 binds the SCALED placeholder 10 (the mirror of
+    // scaledThresholdFragment's valueArg adapter, but on `arg` instead).
+    scaledArgThresholdFragment = this.buildFragmentWithArgs(
+        this.arg('int', 'required', scaledTenthAdapter)
+    ).as((v) => this.fragmentWithType('int', 'required').sql`${v}`)
+
     // Table/view customizations — `createTableOrViewCustomization`
     // produces a function that wraps a table reference with a
     // user-defined raw fragment in the FROM clause (docs:
@@ -401,6 +412,21 @@ export class DBConnection extends MySqlConnection<'DBConnection'> {
     withSqlHint = this.createTableOrViewCustomization(
         (table, alias) => this.rawFragment`/*+ hint */ ${table} ${alias}`,
     )
+
+    // §B (B-3): a PARAMETERIZED (P1) table/view customization — the
+    // `(table, alias, ...params) => rawFragment` overload threads a runtime
+    // `minId` param into the raw fragment (distinct from `withSqlHint` above,
+    // whose factory takes no extra params). The param rides as a real bound
+    // placeholder in a derived-table predicate — wrapping the table as
+    // `(select * from <table> where <minId> >= 0) <alias>`, a constant-true
+    // filter that keeps every row. A derived table needs an alias, so the
+    // customization is used WITH `.as(...)`; the SQL is portable and runs
+    // end-to-end (the bound param is outside any comment, so comment-stripping
+    // drivers still bind it correctly).
+    withMinIdFilter = this.createTableOrViewCustomization<number>((table, alias, minId) => {
+        const min = this.const(minId, 'int')
+        return this.rawFragment`(select * from ${table} where ${min} >= 0) ${alias}`
+    })
 }
 
 export const tOrganization = new class TOrganization extends Table<DBConnection, 'TOrganization'> {
@@ -535,6 +561,14 @@ export const tProjectRelease = new class TProjectRelease extends Table<DBConnect
     signedOffAt = this.optionalColumn<Date, 'SignOffStamp'>('signed_off_at', 'customLocalDateTime', 'SignOffStamp')
     notes       = this.computedColumn('notes', 'string')
     versionTag  = this.virtualColumnFromFragment('string', (fragment) => fragment.sql`upper(${this.channel})`)
+    // §B (B-4): a REQUIRED-on-read customLocalDateTime column (branded
+    // 'PublishStamp'). signedOffAt above is the OPTIONAL customLocalDateTime;
+    // this is its required-on-read twin, so the required-custom-localDateTime
+    // read getter is observed directly (it projects `Date`, not `Date |
+    // undefined`). Declared columnWithDefaultValue (DB DEFAULT CURRENT_TIMESTAMP)
+    // so it stays optional on INSERT — existing tProjectRelease INSERT tests that
+    // don't enumerate it keep working. Added last to keep existing snapshots stable.
+    publishedAt = this.columnWithDefaultValue<Date, 'PublishStamp'>('published_at', 'customLocalDateTime', 'PublishStamp')
     constructor() { super('project_release') }
 }()
 
@@ -562,6 +596,15 @@ export const vReleaseOverview = new class VReleaseOverview extends View<DBConnec
     releasedOn   = this.column<Date, 'ReleaseDay'>('released_on', 'customLocalDate', 'ReleaseDay')
     signedOffAt  = this.optionalColumn<Date, 'SignOffStamp'>('signed_off_at', 'customLocalDateTime', 'SignOffStamp')
     projectName  = this.column('project_name', 'string')
+    // §B (B-1): an adapter-bearing VIEW column — `versionBracketed` carries the
+    // trailing TypeAdapter `bracketAdapter` (read wraps the value in [...]). No
+    // other View column in any dialect carries an adapter, so the bare
+    // DBColumnImpl's adapter read path is otherwise never observed on a View.
+    versionBracketed = this.column('version_bracketed', 'string', bracketAdapter)
+    // §B (B-5): a customLocalTime VIEW column — the View side of the
+    // customLocalTime kind (Table side is tProjectRelease.cutoffTime). Maps the
+    // release's cutoff_time through the view.
+    cutoffClock  = this.column<Date, 'CutoffClock'>('cutoff_clock', 'customLocalTime', 'CutoffClock')
     versionUpper = this.virtualColumnFromFragment('string', (fragment) => fragment.sql`upper(${this.version})`)
     // optionalVirtualColumnFromFragment on a View.
     versionUpperOptional = this.optionalVirtualColumnFromFragment('string', (fragment) => fragment.sql`upper(${this.version})`)

@@ -113,4 +113,34 @@ describe(ctx.label, () => {
         })
     })
     */
+
+    // TODO[LIMITATION]: see LIMITATIONS.md — `oldValues()` emits `OLD_VALUE(col)`, only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Snapshot pre-baked for when mariadb:latest catches up to 13.0.1+; uncomment the body then.
+    /*
+    test('returning-one-column-old-value-via-oldValues', async () => {
+        // The bare single-column `returningOneColumn(oldProject.name)` form off an
+        // UPDATE: it returns ONLY the previous value of `name` (pre-update). The
+        // returning-object forms above pin the multi-column shape; this pins the
+        // scalar one-column shape (`string`). Update project 1's name; the old
+        // name 'Marketing site' comes back.
+        ctx.mockNext('Marketing site')
+        await ctx.withRollback(async () => {
+            const oldProject = tProject.oldValues()
+            const oldName = await ctx.conn.update(tProject)
+                .set({ name: 'Mktg site v3' })
+                .where(tProject.id.equals(1))
+                .returningOneColumn(oldProject.name)
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = $1 where id = $2 returning old.name as result"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Mktg site v3",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof oldName, string>>()
+            expect(oldName).toBe('Marketing site')
+        })
+    })
+    */
 })

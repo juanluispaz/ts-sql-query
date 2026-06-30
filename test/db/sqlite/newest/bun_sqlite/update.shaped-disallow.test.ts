@@ -115,4 +115,196 @@ describe(ctx.label, () => {
                 .where(tProject.id.equals(1))
         }).toThrow(/this endpoint only updates name/)
     })
+
+    // The `disallow*When` guard family on a SHAPE-carrying UPDATE builder. Each
+    // `*When` arm dispatches to its non-`When` sibling when the boolean is true
+    // (the guard fires on the renamed shape key) and is a no-op when false (the
+    // builder is returned untouched and the UPDATE runs). The false arc executes
+    // the chain; the true arc throws synchronously inside the builder. The
+    // referenced keys are the RENAMED shape keys, like the non-`When` siblings
+    // above.
+
+    test('shaped-disallow-if-set-when-dispatches-on-true', async () => {
+        // `disallowIfSetWhen(when, ..., 'projectSlug')` dispatches to
+        // `disallowIfSet` when true. The renamed `projectSlug` (→ slug) is staged,
+        // so the true arm throws; the false arm runs the UPDATE.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.update(tProject)
+                .shapedAs({ projectName: 'name', projectSlug: 'slug' })
+                .set({ projectName: 'Stays', projectSlug: 'maybe-rejected' })
+                .disallowIfSetWhen(false, 'slug is read-only on this endpoint', 'projectSlug')
+                .where(tProject.id.equals(1))
+                .executeUpdate()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?, slug = ? where id = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Stays",
+                "maybe-rejected",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(1)
+
+            let caught: unknown
+            try {
+                ctx.conn.update(tProject)
+                    .shapedAs({ projectName: 'name', projectSlug: 'slug' })
+                    .set({ projectName: 'Stays', projectSlug: 'maybe-rejected' })
+                    .disallowIfSetWhen(true, 'slug is read-only on this endpoint', 'projectSlug')
+                    .where(tProject.id.equals(1))
+            } catch (e) {
+                caught = e
+            }
+            expect(String(caught)).toMatch(/slug is read-only on this endpoint|disallow/i)
+        })
+    })
+
+    test('shaped-disallow-if-not-set-when-dispatches-on-true', async () => {
+        // `disallowIfNotSetWhen(when, ..., 'projectSlug')` dispatches to
+        // `disallowIfNotSet` when true. Only `projectName` is staged, so the
+        // renamed `projectSlug` (→ slug) is absent and the true arm throws.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.update(tProject)
+                .shapedAs({ projectName: 'name', projectSlug: 'slug' })
+                .set({ projectName: 'Renamed' })
+                .disallowIfNotSetWhen(false, 'slug must be provided on this endpoint', 'projectSlug')
+                .where(tProject.id.equals(1))
+                .executeUpdate()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ? where id = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Renamed",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(1)
+
+            let caught: unknown
+            try {
+                ctx.conn.update(tProject)
+                    .shapedAs({ projectName: 'name', projectSlug: 'slug' })
+                    .set({ projectName: 'Renamed' })
+                    .disallowIfNotSetWhen(true, 'slug must be provided on this endpoint', 'projectSlug')
+                    .where(tProject.id.equals(1))
+            } catch (e) {
+                caught = e
+            }
+            expect(String(caught)).toMatch(/slug must be provided on this endpoint|disallow/i)
+        })
+    })
+
+    test('shaped-disallow-if-value-when-dispatches-on-true', async () => {
+        // `disallowIfValueWhen(when, ..., 'projectName')` dispatches to
+        // `disallowIfValue` when true. The renamed `projectName` (→ name) is
+        // staged with a value that passes the value gate, so the true arm throws.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.update(tProject)
+                .shapedAs({ projectName: 'name' })
+                .set({ projectName: 'New name' })
+                .disallowIfValueWhen(false, 'name changes go through the rename endpoint', 'projectName')
+                .where(tProject.id.equals(1))
+                .executeUpdate()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ? where id = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "New name",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(1)
+
+            let caught: unknown
+            try {
+                ctx.conn.update(tProject)
+                    .shapedAs({ projectName: 'name' })
+                    .set({ projectName: 'New name' })
+                    .disallowIfValueWhen(true, 'name changes go through the rename endpoint', 'projectName')
+                    .where(tProject.id.equals(1))
+            } catch (e) {
+                caught = e
+            }
+            expect(String(caught)).toMatch(/name changes go through the rename endpoint|disallow/i)
+        })
+    })
+
+    test('shaped-disallow-if-no-value-when-dispatches-on-true', async () => {
+        // `disallowIfNoValueWhen(when, ..., 'archived')` dispatches to
+        // `disallowIfNoValue` when true. The renamed optional `archived`
+        // (→ archivedAt) is staged as null, so its value fails the gate and the
+        // true arm throws.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.update(tProject)
+                .shapedAs({ projectName: 'name', archived: 'archivedAt' })
+                .set({ projectName: 'Renamed', archived: null })
+                .disallowIfNoValueWhen(false, 'archivedAt cannot be cleared via this path', 'archived')
+                .where(tProject.id.equals(1))
+                .executeUpdate()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?, archived_at = ? where id = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Renamed",
+                null,
+                1,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(1)
+
+            let caught: unknown
+            try {
+                ctx.conn.update(tProject)
+                    .shapedAs({ projectName: 'name', archived: 'archivedAt' })
+                    .set({ projectName: 'Renamed', archived: null })
+                    .disallowIfNoValueWhen(true, 'archivedAt cannot be cleared via this path', 'archived')
+                    .where(tProject.id.equals(1))
+            } catch (e) {
+                caught = e
+            }
+            expect(String(caught)).toMatch(/archivedAt cannot be cleared via this path|disallow/i)
+        })
+    })
+
+    test('shaped-disallow-any-other-set-when-dispatches-on-true', async () => {
+        // `disallowAnyOtherSetWhen(when, ..., 'projectName')` dispatches to
+        // `disallowAnyOtherSet` when true: only the renamed `projectName` (→ name)
+        // is allowed, so the staged `projectSlug` (→ slug) trips the true arm.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.update(tProject)
+                .shapedAs({ projectName: 'name', projectSlug: 'slug' })
+                .set({ projectName: 'Stays', projectSlug: 'unexpected-slug' })
+                .disallowAnyOtherSetWhen(false, 'this endpoint only updates name', 'projectName')
+                .where(tProject.id.equals(1))
+                .executeUpdate()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?, slug = ? where id = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Stays",
+                "unexpected-slug",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(1)
+
+            let caught: unknown
+            try {
+                ctx.conn.update(tProject)
+                    .shapedAs({ projectName: 'name', projectSlug: 'slug' })
+                    .set({ projectName: 'Stays', projectSlug: 'unexpected-slug' })
+                    .disallowAnyOtherSetWhen(true, 'this endpoint only updates name', 'projectName')
+                    .where(tProject.id.equals(1))
+            } catch (e) {
+                caught = e
+            }
+            expect(String(caught)).toMatch(/this endpoint only updates name|disallow/i)
+        })
+    })
 })

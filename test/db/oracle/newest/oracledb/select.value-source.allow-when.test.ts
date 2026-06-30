@@ -20,6 +20,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { isQueryAllowed } from '../../../../lib/isAllowed.js'
+import { TsSqlError } from '../../../../../src/TsSqlError.js'
 import { tIssue } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
@@ -69,6 +70,12 @@ describe(ctx.label, () => {
         }
         expect(thrown).toBeInstanceOf(Error)
         expect((thrown as Error).message).toContain('id column disabled')
+        // The string-error path produces a TsSqlError whose errorReason is the
+        // dedicated `DISALLOWED` code (distinct from `DISALLOWED_BY_QUERY_RULE`),
+        // with `functionName` naming the gate that fired.
+        const reason = thrown instanceof TsSqlError ? thrown.errorReason : undefined
+        expect(reason?.reason).toBe('DISALLOWED')
+        expect(reason?.reason === 'DISALLOWED' ? reason.functionName : undefined).toBe('allowWhen')
     })
 
     test('disallow-when-false-emits-sql-transparently', async () => {
@@ -108,6 +115,10 @@ describe(ctx.label, () => {
         }
         expect(thrown).toBeInstanceOf(Error)
         expect((thrown as Error).message).toContain('feature flag blocks reads')
+        // Same `DISALLOWED` reason, but `functionName` reflects the inverse gate.
+        const reason = thrown instanceof TsSqlError ? thrown.errorReason : undefined
+        expect(reason?.reason).toBe('DISALLOWED')
+        expect(reason?.reason === 'DISALLOWED' ? reason.functionName : undefined).toBe('disallowWhen')
     })
 
     test('allow-when-on-where-condition-fires-on-build', async () => {

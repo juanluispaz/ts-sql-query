@@ -85,4 +85,48 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ id: number; version: string }>>>()
         expect(rows).toEqual(expected)
     })
+
+    test('view-side-adapter-bearing-column-reads-through-the-adapter', async () => {
+        // B-1 / T3-a: `versionBracketed` is a VIEW column carrying a trailing
+        // TypeAdapter (bracketAdapter, read wraps the value in [...]). View
+        // columns return a bare DBColumnImpl whose adapter read path is otherwise
+        // never observed. Release 1's version is '1.2.0', so the bracketed read is
+        // '[1.2.0]'. The adapter is read-only here, so no param is bound.
+        const expected = [{ id: 1, versionBracketed: '[1.2.0]' }]
+        ctx.mockNext([{ id: 1, versionBracketed: '1.2.0' }])
+        const rows = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(1))
+            .select({ id: vReleaseOverview.id, versionBracketed: vReleaseOverview.versionBracketed })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", version_bracketed as "versionBracketed" from release_overview where id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; versionBracketed: string }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('view-side-custom-local-time-column-projects-as-date', async () => {
+        // B-5 / T3-d: `cutoffClock` is a customLocalTime VIEW column (the View
+        // side of the customLocalTime kind). Release 1's cutoff_time is 17:00:00,
+        // read as a Date normalised to 1970-01-01 17:00 UTC (TZ=UTC forced).
+        const expected = [{ id: 1, cutoffClock: new Date(Date.UTC(1970, 0, 1, 17, 0, 0)) }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(1))
+            .select({ id: vReleaseOverview.id, cutoffClock: vReleaseOverview.cutoffClock })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", cutoff_clock as "cutoffClock" from release_overview where id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; cutoffClock: Date }>>>()
+        expect(rows).toEqual(expected)
+    })
 })

@@ -198,4 +198,106 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ issueId: number; worklogId: number }>>>()
         expect(rows).toEqual(expected)
     })
+
+    // ELIDE twins of the two custom-boolean `*IfValue` receivers above. The
+    // `*IfValue` impl short-circuits (`if (!_isValue) return ''`) BEFORE the
+    // adapter remap, so an absent value emits NO clause at all — the
+    // `(published = 't')` / `(invoiced = 1)` remap never runs. This is a
+    // genuinely distinct emission from the present-value half (which the two
+    // tests above pin), so it is asserted on its own.
+
+    test('custom-boolean-string-column-as-equals-if-value-receiver-elided', async () => {
+        // `published.equalsIfValue(undefined)` — `undefined` fails `_isValue`, so
+        // the predicate is dropped entirely BEFORE the custom-boolean adapter
+        // could remap it. The WHERE is left with only the `id` clause: NO
+        // `(published = 't') = $n` fragment is emitted.
+        const expected = [{ id: 1, name: 'Marketing site' }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+                .and(tProject.published.equalsIfValue(undefined))
+            .select({ id: tProject.id, name: tProject.name })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\` from project where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; name: string }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('custom-boolean-numeric-column-as-is-if-value-receiver-elided', async () => {
+        // `invoiced.isIfValue(undefined)` — `undefined` fails `_isValue`, so the
+        // null-safe predicate is dropped BEFORE the numeric custom-boolean adapter
+        // could remap it. The WHERE keeps only the `id` clause: NO
+        // `(invoiced = 1) is not distinct from $n` fragment is emitted.
+        const expected = [{ id: 1, issueId: 1 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+                .and(tIssueWorklog.invoiced.isIfValue(undefined))
+            .select({ id: tIssueWorklog.id, issueId: tIssueWorklog.issueId })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, issue_id as issueId from issue_worklog where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; issueId: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    // FIRE + ELIDE for the custom-boolean `notEqualsIfValue` receiver — the
+    // remaining IfValue arm on a custom-boolean column (the equals/is arms are
+    // covered above). Fire remaps to `(published = 't') <> $n`; elide drops it.
+
+    test('custom-boolean-string-column-as-not-equals-if-value-receiver', async () => {
+        // `published.notEqualsIfValue(false)` — `false` passes `_isValue`, so the
+        // predicate fires and the adapter remaps the comparison to the stored
+        // representation. Project 1 (published 't' → true) is `<>` false → matches.
+        const expected = [{ id: 1, name: 'Marketing site' }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+                .and(tProject.published.notEqualsIfValue(false))
+            .select({ id: tProject.id, name: tProject.name })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\` from project where id = ? and (published = 't') <> ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            false,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; name: string }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('custom-boolean-string-column-as-not-equals-if-value-receiver-elided', async () => {
+        // `published.notEqualsIfValue(undefined)` — `undefined` fails `_isValue`,
+        // so the predicate is dropped BEFORE the adapter remap. The WHERE keeps
+        // only the `id` clause: NO `(published = 't') <> $n` fragment is emitted.
+        const expected = [{ id: 1, name: 'Marketing site' }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+                .and(tProject.published.notEqualsIfValue(undefined))
+            .select({ id: tProject.id, name: tProject.name })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\` from project where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; name: string }>>>()
+        expect(rows).toEqual(expected)
+    })
 })

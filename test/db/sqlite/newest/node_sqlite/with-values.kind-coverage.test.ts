@@ -137,4 +137,38 @@ describe(ctx.label, () => {
             .toEqual([{ ref, signing }])
     })
 
+
+    test('values-tuple-cast-per-custom-temporal-kind-via-null-value', async () => {
+        // B-5 / T3-d (§A): branded custom-temporal kinds as VALUES-tuple columns —
+        // customLocalDate ('ReleaseDay'), customLocalTime ('CutoffClock') and
+        // customLocalDateTime ('SignOffStamp'). Each routes through the
+        // connection's temporal `baseTypeForCustom` arms (-> localDate / localTime
+        // / localDateTime), reached here via a VALUES tuple instead of a
+        // Table/View. As with the plain-temporal tuple test, a Date does not
+        // round-trip identically through the per-dialect VALUES cast, so every
+        // leaf is supplied as null: the cast the tuple emits is what this pins,
+        // and each null leaf reads back absent.
+        class VCustomTemporalSampler extends Values<DBConnection, 'customTemporalSampler'> {
+            d  = this.optionalColumn<Date>('customLocalDate', 'ReleaseDay')
+            t  = this.optionalColumn<Date>('customLocalTime', 'CutoffClock')
+            ts = this.optionalColumn<Date>('customLocalDateTime', 'SignOffStamp')
+        }
+        ctx.mockNext([{ d: null, t: null, ts: null }])
+        const v = Values.create(VCustomTemporalSampler, 'customTemporalSampler', [
+            { d: null, t: null, ts: null },
+        ])
+        const rows = await ctx.conn.selectFrom(v)
+            .select({ d: v.d, t: v.t, ts: v.ts })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with customTemporalSampler("d", "t", ts) as (values (?, ?, ?)) select "d" as "d", "t" as "t", ts as ts from customTemporalSampler"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            null,
+            null,
+            null,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ d?: Date | undefined; t?: Date | undefined; ts?: Date | undefined }>>>()
+        expect(rows).toEqual([{}])
+    })
 })

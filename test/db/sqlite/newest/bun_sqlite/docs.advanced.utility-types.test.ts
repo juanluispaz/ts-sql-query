@@ -344,10 +344,10 @@ describe(ctx.label, () => {
         // view column is non-writable, so its WritableColumnKeys is `never`).
         assertType<Exact<ColumnKeys<typeof tProjectRelease>,
             'id' | 'projectId' | 'version' | 'channel' | 'signingKey'
-            | 'releasedOn' | 'cutoffTime' | 'signedOffAt' | 'notes' | 'versionTag'>>()
+            | 'releasedOn' | 'cutoffTime' | 'signedOffAt' | 'publishedAt' | 'notes' | 'versionTag'>>()
         assertType<Exact<WritableColumnKeys<typeof tProjectRelease>,
             'id' | 'projectId' | 'version' | 'channel' | 'signingKey'
-            | 'releasedOn' | 'cutoffTime' | 'signedOffAt'>>()
+            | 'releasedOn' | 'cutoffTime' | 'signedOffAt' | 'publishedAt'>>()
         // The writable surface is non-empty, so this is a genuine exclusion
         // of `notes`/`versionTag`, not the degenerate view case.
         assertType<Extends<WritableShapeFor<typeof tProjectRelease>, { id: 'id' }>>()
@@ -373,6 +373,7 @@ describe(ctx.label, () => {
             releasedOn: Date
             cutoffTime: Date
             signedOffAt?: Date | null | undefined
+            publishedAt?: Date
         }>>()
         // UpdatableValues makes every writable column optional (so the
         // InsertableValues-required `projectId` / `version` / `channel` /
@@ -389,6 +390,7 @@ describe(ctx.label, () => {
             releasedOn?: Date
             cutoffTime?: Date
             signedOffAt?: Date | null | undefined
+            publishedAt?: Date
         }>>()
         // SelectedRow is the full read shape — it KEEPS the computed `notes`
         // and the virtual `versionTag` (both `string`).
@@ -401,6 +403,7 @@ describe(ctx.label, () => {
             releasedOn: Date
             cutoffTime: Date
             signedOffAt?: Date
+            publishedAt: Date
             notes: string
             versionTag: string
         }>>()

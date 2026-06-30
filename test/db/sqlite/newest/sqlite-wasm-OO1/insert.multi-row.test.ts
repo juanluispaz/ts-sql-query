@@ -168,4 +168,78 @@ describe(ctx.label, () => {
         })
     })
 
+
+    // TARGETED multi-row on-conflict (`onConflictOn(cols).doNothing()/.doUpdateSet()`)
+    // reaches the `OnConflictDoMultipleInsert` /
+    // `CustomizableExecutableMultipleInsertOnConflict` interfaces — distinct from
+    // the bare `onConflictDoNothing()` the test above uses. Live only where a
+    // column-targeted conflict clause is supported (PostgreSQL / SQLite);
+    // commented NOT-APPLICABLE on the dialects whose connection narrows
+    // `onConflictOn` away (MySQL/MariaDB ON DUPLICATE KEY, Oracle/SqlServer MERGE).
+
+    test('multi-row-on-conflict-on-columns-do-nothing-returning-last-id', async () => {
+        // `.values([r1, r2]).onConflictOn(org, slug).doNothing().returningLastInsertedId()`.
+        // Both rows collide on the seeded UNIQUE (organization_id, slug), so DO
+        // NOTHING suppresses both inserts and the returned id array is empty.
+        await ctx.withRollback(async () => {
+            ctx.mockNext([])
+            const ids = await ctx.conn.insertInto(tProject)
+                .values([
+                    { organizationId: 1, slug: 'mktg-site', name: 'dup A' },
+                    { organizationId: 1, slug: 'tools', name: 'dup B' },
+                ])
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doNothing()
+                .returningLastInsertedId()
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?), (?, ?, ?) on conflict (organization_id, slug) do nothing returning id"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "mktg-site",
+                "dup A",
+                1,
+                "tools",
+                "dup B",
+              ]
+            `)
+            assertType<Exact<typeof ids, number[]>>()
+            expect(ids).toEqual([])
+        })
+    })
+
+    test('multi-row-on-conflict-on-columns-do-update-returning-last-ids', async () => {
+        // `.values([r1, r2]).onConflictOn(org, slug).doUpdateSet({...})` with a
+        // `valuesForInsert()` RHS so each conflicting row updates to its own
+        // attempted name. Both rows collide on the existing projects 1 ('mktg-site')
+        // and 2 ('tools'), so DO UPDATE produces a row for each and RETURNING id
+        // yields their existing ids [1, 2].
+        await ctx.withRollback(async () => {
+            ctx.mockNext([1, 2])
+            const ids = await ctx.conn.insertInto(tProject)
+                .values([
+                    { organizationId: 1, slug: 'mktg-site', name: 'Upd A' },
+                    { organizationId: 1, slug: 'tools', name: 'Upd B' },
+                ])
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doUpdateSet({ name: tProject.valuesForInsert().name })
+                .returningLastInsertedId()
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?), (?, ?, ?) on conflict (organization_id, slug) do update set name = excluded.name returning id"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "mktg-site",
+                "Upd A",
+                1,
+                "tools",
+                "Upd B",
+              ]
+            `)
+            assertType<Exact<typeof ids, number[]>>()
+            expect([...ids].sort((a, b) => a - b)).toEqual([1, 2])
+        })
+    })
 })

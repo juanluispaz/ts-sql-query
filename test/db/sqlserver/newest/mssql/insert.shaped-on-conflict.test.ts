@@ -462,4 +462,51 @@ describe(ctx.label, () => {
         })
     })
     */
+
+    // Shaped × MULTI-ROW × on-conflict: `.shapedAs({...}).dynamicValues([...])`
+    // reaches `ShapedExecutableMultipleInsertExpression`, then `.onConflictOn(...)`
+    // routes into the multi-row conflict node with the renamed keys mapping back to
+    // real columns. The single shaped on-conflict tests above are all single-row;
+    // this crosses shaped × multi-row × targeted-conflict in one chain.
+    // NOT-APPLICABLE: SQL Server has no INSERT…ON CONFLICT (uses MERGE); `onConflictOn` is narrowed away.
+    /*
+    test('shaped-multi-row-on-conflict-on-columns-do-update-maps-renamed-keys', async () => {
+        // Two shaped rows under renamed keys, both colliding on the seeded
+        // UNIQUE (organization_id, slug) of projects 1 ('mktg-site') and 2
+        // ('tools'). `doUpdateSet({ projectName: valuesForInsert().name })` updates
+        // each conflicting row to its own attempted name; RETURNING id yields the
+        // existing ids [1, 2].
+        await ctx.withRollback(async () => {
+            ctx.mockNext([1, 2])
+            const ids = await ctx.conn.insertInto(tProject)
+                .shapedAs({
+                    orgId:       'organizationId',
+                    projectName: 'name',
+                    projectSlug: 'slug',
+                })
+                .dynamicValues([
+                    { orgId: 1, projectName: 'Upd A', projectSlug: 'mktg-site' },
+                    { orgId: 1, projectName: 'Upd B', projectSlug: 'tools' },
+                ])
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doUpdateSet({ projectName: tProject.valuesForInsert().name })
+                .returningLastInsertedId()
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values ($1, $2, $3), ($4, $5, $6) on conflict (organization_id, slug) do update set name = excluded.name returning id"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "Upd A",
+                "mktg-site",
+                1,
+                "Upd B",
+                "tools",
+              ]
+            `)
+            assertType<Exact<typeof ids, number[]>>()
+            expect([...ids].sort((a, b) => a - b)).toEqual([1, 2])
+        })
+    })
+    */
 })

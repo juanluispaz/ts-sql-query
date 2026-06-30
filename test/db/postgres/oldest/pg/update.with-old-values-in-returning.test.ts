@@ -109,4 +109,31 @@ describe(ctx.label, () => {
             }
         })
     })
+
+    test('returning-one-column-old-value-via-oldValues', async () => {
+        // The bare single-column `returningOneColumn(oldProject.name)` form off an
+        // UPDATE: it returns ONLY the previous value of `name` (pre-update). The
+        // returning-object forms above pin the multi-column shape; this pins the
+        // scalar one-column shape (`string`). Update project 1's name; the old
+        // name 'Marketing site' comes back.
+        ctx.mockNext('Marketing site')
+        await ctx.withRollback(async () => {
+            const oldProject = tProject.oldValues()
+            const oldName = await ctx.conn.update(tProject)
+                .set({ name: 'Mktg site v3' })
+                .where(tProject.id.equals(1))
+                .returningOneColumn(oldProject.name)
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project as _new_ set name = $1 from (select _old_.* from project as _old_ where _old_.id = $2 for no key update of _old_) as _old_ where _new_.id = _old_.id returning _old_.name as result"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Mktg site v3",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof oldName, string>>()
+            expect(oldName).toBe('Marketing site')
+        })
+    })
 })

@@ -242,4 +242,217 @@ describe(ctx.label, () => {
         })
     })
 
+
+    test('shaped-multi-row-set-for-all', async () => {
+        // `.shapedAs({...}).values([r1, r2]).setForAll({...})` — the shaped
+        // multi-row chain. `values([...])` over the renamed keys reaches the
+        // shaped executable multi-row builder; `setForAll` applies a renamed-key
+        // value (`isPublished` → published) to EVERY row in the batch. Two fresh
+        // (org 1, slug) pairs insert.
+        ctx.mockNext(2)
+        await ctx.withRollback(async () => {
+            const inserted = await ctx.conn.insertInto(tProject)
+                .shapedAs({
+                    orgId:       'organizationId',
+                    projectName: 'name',
+                    projectSlug: 'slug',
+                    isPublished: 'published',
+                })
+                .values([
+                    { orgId: 1, projectName: 'Shaped FA A', projectSlug: 'shaped-fa-a', isPublished: false },
+                    { orgId: 1, projectName: 'Shaped FA B', projectSlug: 'shaped-fa-b', isPublished: false },
+                ])
+                .setForAll({ isPublished: true })
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, published) values (?, ?, ?, case when ? then 't' else 'f' end), (?, ?, ?, case when ? then 't' else 'f' end)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "Shaped FA A",
+                "shaped-fa-a",
+                true,
+                1,
+                "Shaped FA B",
+                "shaped-fa-b",
+                true,
+              ]
+            `)
+            assertType<Exact<typeof inserted, number>>()
+            expect(inserted).toBe(2)
+        })
+    })
+
+    test('shaped-multi-row-set-for-all-if-value-gates-undefined', async () => {
+        // `.setForAllIfValue({...})` on the shaped multi-row chain: the value-gate
+        // drops an `undefined` renamed value, leaving each row's own staged value.
+        // Here the renamed `isPublished` (→ published) is `undefined`, so the
+        // setForAll is a no-op and the per-row published values stand.
+        ctx.mockNext(2)
+        await ctx.withRollback(async () => {
+            const inserted = await ctx.conn.insertInto(tProject)
+                .shapedAs({
+                    orgId:       'organizationId',
+                    projectName: 'name',
+                    projectSlug: 'slug',
+                    isPublished: 'published',
+                })
+                .values([
+                    { orgId: 1, projectName: 'Shaped FAIV A', projectSlug: 'shaped-faiv-a', isPublished: true },
+                    { orgId: 1, projectName: 'Shaped FAIV B', projectSlug: 'shaped-faiv-b', isPublished: false },
+                ])
+                .setForAllIfValue({ isPublished: undefined })
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, published) values (?, ?, ?, case when ? then 't' else 'f' end), (?, ?, ?, case when ? then 't' else 'f' end)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "Shaped FAIV A",
+                "shaped-faiv-a",
+                true,
+                1,
+                "Shaped FAIV B",
+                "shaped-faiv-b",
+                false,
+              ]
+            `)
+            assertType<Exact<typeof inserted, number>>()
+            expect(inserted).toBe(2)
+        })
+    })
+
+    test('shaped-multi-row-set-for-all-when-dispatches-on-true', async () => {
+        // `.setForAllWhen(when, {...})` on the shaped multi-row chain dispatches to
+        // `setForAll` when true (override `isPublished` → published for every row),
+        // and is a no-op when false (the per-row values stand). The false/true
+        // params diverge on the published column for both rows.
+        ctx.mockNext(2)
+        ctx.mockNext(2)
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tProject)
+                .shapedAs({
+                    orgId:       'organizationId',
+                    projectName: 'name',
+                    projectSlug: 'slug',
+                    isPublished: 'published',
+                })
+                .values([
+                    { orgId: 1, projectName: 'Shaped FAW A', projectSlug: 'shaped-faw-a', isPublished: false },
+                    { orgId: 1, projectName: 'Shaped FAW B', projectSlug: 'shaped-faw-b', isPublished: false },
+                ])
+                .setForAllWhen(false, { isPublished: true })
+                .executeInsert()
+            const falseParams = ctx.lastParams
+
+            await ctx.conn.insertInto(tProject)
+                .shapedAs({
+                    orgId:       'organizationId',
+                    projectName: 'name',
+                    projectSlug: 'slug',
+                    isPublished: 'published',
+                })
+                .values([
+                    { orgId: 1, projectName: 'Shaped FAW C', projectSlug: 'shaped-faw-c', isPublished: false },
+                    { orgId: 1, projectName: 'Shaped FAW D', projectSlug: 'shaped-faw-d', isPublished: false },
+                ])
+                .setForAllWhen(true, { isPublished: true })
+                .executeInsert()
+            const trueParams = ctx.lastParams
+
+            expect(falseParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "Shaped FAW A",
+                "shaped-faw-a",
+                false,
+                1,
+                "Shaped FAW B",
+                "shaped-faw-b",
+                false,
+              ]
+            `)
+            expect(trueParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "Shaped FAW C",
+                "shaped-faw-c",
+                true,
+                1,
+                "Shaped FAW D",
+                "shaped-faw-d",
+                true,
+              ]
+            `)
+            expect(trueParams).not.toEqual(falseParams)
+        })
+    })
+
+    test('shaped-multi-row-set-for-all-if-has-no-value-when-dispatches-on-true', async () => {
+        // `.setForAllIfHasNoValueWhen(when, {...})` on the shaped multi-row chain
+        // dispatches to `setForAllIfHasNoValue` when true: it backfills the renamed
+        // optional `archived` (→ archivedAt) only on rows whose staged value fails
+        // the gate. Row A staged `archived` with a value (kept); row B left it null
+        // (backfilled by the true arm). The false arm leaves B null. The renamed
+        // Date is bound as explicit-UTC so the param snapshot is TZ-stable.
+        ctx.mockNext(2)
+        ctx.mockNext(2)
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tProject)
+                .shapedAs({
+                    orgId:       'organizationId',
+                    projectName: 'name',
+                    projectSlug: 'slug',
+                    archived:    'archivedAt',
+                })
+                .values([
+                    { orgId: 1, projectName: 'Shaped FAHNV A', projectSlug: 'shaped-fahnv-a', archived: new Date('2024-05-05T00:00:00Z') },
+                    { orgId: 1, projectName: 'Shaped FAHNV B', projectSlug: 'shaped-fahnv-b', archived: null },
+                ])
+                .setForAllIfHasNoValueWhen(false, { archived: new Date('2024-06-06T00:00:00Z') })
+                .executeInsert()
+            const falseParams = ctx.lastParams
+
+            await ctx.conn.insertInto(tProject)
+                .shapedAs({
+                    orgId:       'organizationId',
+                    projectName: 'name',
+                    projectSlug: 'slug',
+                    archived:    'archivedAt',
+                })
+                .values([
+                    { orgId: 1, projectName: 'Shaped FAHNV C', projectSlug: 'shaped-fahnv-c', archived: new Date('2024-05-05T00:00:00Z') },
+                    { orgId: 1, projectName: 'Shaped FAHNV D', projectSlug: 'shaped-fahnv-d', archived: null },
+                ])
+                .setForAllIfHasNoValueWhen(true, { archived: new Date('2024-06-06T00:00:00Z') })
+                .executeInsert()
+            const trueParams = ctx.lastParams
+
+            expect(falseParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "Shaped FAHNV A",
+                "shaped-fahnv-a",
+                "2024-05-05 00:00:00",
+                1,
+                "Shaped FAHNV B",
+                "shaped-fahnv-b",
+                null,
+              ]
+            `)
+            expect(trueParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "Shaped FAHNV C",
+                "shaped-fahnv-c",
+                "2024-05-05 00:00:00",
+                1,
+                "Shaped FAHNV D",
+                "shaped-fahnv-d",
+                "2024-06-06 00:00:00",
+              ]
+            `)
+            expect(trueParams).not.toEqual(falseParams)
+        })
+    })
 })

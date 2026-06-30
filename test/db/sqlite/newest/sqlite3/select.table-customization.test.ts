@@ -63,4 +63,30 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
     })
 
+
+    test('table-customization: parameterized customization threads a runtime param into the raw fragment', async () => {
+        // B-3: `withMinIdFilter` is the PARAMETERIZED (P1) overload of
+        // `createTableOrViewCustomization` — its factory takes a runtime `minId`
+        // number and threads it into the raw fragment via `this.const(minId,
+        // 'int')`, so the param rides as a real bound placeholder. Distinct from
+        // `withSqlHint` above, whose factory takes no extra params. The fragment
+        // wraps the table as a derived table with a constant-true filter
+        // (`<minId> >= 0`, keeping every row), so the SQL is portable and the
+        // param is outside any comment — it binds correctly on every dialect.
+        // A derived table needs an alias, so the customization is aliased.
+        const expected = [{ id: 1 }, { id: 2 }]
+        ctx.mockNext(expected)
+        const tOrgFiltered = ctx.conn.withMinIdFilter(tOrganization.as('o'), 'tOrgFiltered', 0)
+        const rows = await ctx.conn.selectFrom(tOrgFiltered)
+            .select({ id: tOrgFiltered.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select "o".id as id from (select * from organization where ? >= 0) as "o" order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            0,
+          ]
+        `)
+        expect(rows).toEqual(expected)
+    })
 })

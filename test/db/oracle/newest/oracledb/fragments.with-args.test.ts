@@ -757,4 +757,25 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
+
+    test('arg-trailing-adapter-scales-the-bound-placeholder', async () => {
+        // B-2: scaledArgThresholdFragment's `arg` carries a TRAILING TypeAdapter
+        // (scaledTenthAdapter, x10 on the write path) — the combined-mode
+        // (`adapter2`) branch of `arg`, distinct from the `valueArg`-adapter
+        // branch scaledThresholdFragment exercises. Calling it with the literal 1
+        // binds the SCALED placeholder 10. The fragment just selects that scaled
+        // value back, so the projected column is 10.
+        ctx.mockNext([{ r: 10 }])
+        const rows = await ctx.conn.selectFromNoTable()
+            .select({ r: ctx.conn.scaledArgThresholdFragment(1) })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select :0 as "r" from dual"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            10,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ r: number }>>>()
+        expect(rows).toEqual([{ r: 10 }])
+    })
 })

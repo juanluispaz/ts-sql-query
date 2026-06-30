@@ -255,7 +255,7 @@ describe(ctx.label, () => {
         // `tProjectRelease.notes` is a computedColumn and `versionTag` is a
         // virtualColumnFromFragment — neither is writable nor a primary key.
         const writable = [
-            'channel', 'cutoffTime', 'id', 'projectId',
+            'channel', 'cutoffTime', 'id', 'projectId', 'publishedAt',
             'releasedOn', 'signedOffAt', 'signingKey', 'version',
         ]
         expect(extractWritableColumnNamesFrom(tProjectRelease).sort()).toEqual(writable)

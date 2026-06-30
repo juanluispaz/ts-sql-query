@@ -68,6 +68,28 @@ function _typeNegatives() {
         // @ts-expect-error real column 'name' is not a shaped key on keepOnlyWhen
         .keepOnlyWhen(true, 'name')
 
+    // Rule: under an active shape, the `disallow*` guards accept only the
+    // renamed shape keys — never the real columns (same contract as the shaped
+    // set / `ignore*` / `keepOnly` family, since `__sets` is keyed by the
+    // renamed key). The real column is rejected by the positive-match guards
+    // (`disallowIfSet`), by `disallowAnyOtherSet`, and by the conditional
+    // `*When` arms.
+    void connection.update(tProject)
+        .shapedAs({ projectName: 'name', projectSlug: 'slug' })
+        .set({ projectName: 'x' })
+        // @ts-expect-error real column 'slug' is not a shaped key on disallowIfSet
+        .disallowIfSet('slug is read-only', 'slug')
+    void connection.update(tProject)
+        .shapedAs({ projectName: 'name', projectSlug: 'slug' })
+        .set({ projectName: 'x' })
+        // @ts-expect-error real column 'name' is not a shaped key on disallowAnyOtherSet
+        .disallowAnyOtherSet('only name', 'name')
+    void connection.update(tProject)
+        .shapedAs({ projectName: 'name', projectSlug: 'slug' })
+        .set({ projectName: 'x' })
+        // @ts-expect-error real column 'slug' is not a shaped key on disallowIfSetWhen
+        .disallowIfSetWhen(true, 'slug is read-only', 'slug')
+
 }
 
 test('update-negative-types', () => {

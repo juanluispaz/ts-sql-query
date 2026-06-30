@@ -67,17 +67,7 @@ of that. Two minutes of triage and one paragraph is the bar.
 
 ## Open Bugs
 
-## Shaped UPDATE `disallow*` guards match the renamed shape key at runtime but the type requires the real column
-
-**Where**: `src/queryBuilders/UpdateQueryBuilder.ts` — `disallowIfSet` / `disallowIfNotSet` / `disallowIfValue` / `disallowIfNoValue` / `disallowAnyOtherSet` (lines ~582–669), against the `ShapedExecutableUpdateExpression` typing in `src/expressions/update.ts` (lines ~115–124, `disallow*(...columns: ColumnsForSetOf<TABLE>[])`).
-
-**Reproduction**: under an active shape, the set family stores `__sets` keyed by the **renamed** shape key (`set({ projectName })` → `__sets['projectName']`, mapped to the real column only at SQL-emission time). But the typing of the shaped `disallow*` guards requires the **real** column (`ColumnsForSetOf<TABLE>`, e.g. `'name'` / `'slug'`), and the runtime checks `column in this.__sets` / `this.__sets[column]` against the renamed keys. So:
-- `update(tProject).shapedAs({ projectName: 'name', projectSlug: 'slug' }).set({ projectName, projectSlug }).disallowIfSet('…', 'slug')` does **not** throw — the guard is silently bypassed (`'slug' in {projectName, projectSlug}` is false). The renamed key `'projectSlug'` would match but is rejected by the type.
-- `update(tProject).shapedAs({ projectName: 'name' }).set({ projectName }).disallowAnyOtherSet('only name', 'name')` **throws** even though the update is valid — `disallowAnyOtherSet` iterates the renamed `__sets` keys (`projectName`), maps `allowed` from the type-required real column (`name`), so `allowed['projectName']` is undefined and a legitimate update is rejected. The renamed key `'projectName'` would allow it but is rejected by the type.
-
-The mismatch is symmetric: every shaped `disallow*` either never fires (the `IfSet`/`IfValue`/… positive-match guards) or always fires (`disallowAnyOtherSet`) when the type-required argument is passed. The non-`When` and `*When` arms share the same runtime, so both are affected. The non-shaped `disallow*` (no `shapedAs`) is correct — `__sets` is keyed by the real column there.
-
-**Current workaround in the suite**: the six `shaped-disallow-*` tests in `update.shaped-disallow.test.ts` are block-commented `// TODO[BUG]` in every cell (the file is symmetric across all 17 cells), with the full intended canonical body kept verbatim. They assert the behavior the type contract promises (guards pass → update runs; guard violated with the real column → throws), to be uncommented once the runtime maps the shaped `disallow*` argument back through the shape (or the type accepts the renamed key).
+_None currently._
 
 ## Common bug shapes (for the fixing agent)
 

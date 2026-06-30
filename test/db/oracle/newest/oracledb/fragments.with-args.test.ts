@@ -736,4 +736,25 @@ describe(ctx.label, () => {
         `)
         expect(rows).toEqual(expected)
     })
+    test('value-arg-trailing-adapter-scales-the-bound-placeholder', async () => {
+        // scaledThresholdFragment's `valueArg` carries a value-scaling
+        // TypeAdapter (scaledTenthAdapter, x10 on the write path), so calling it
+        // with the threshold 1 binds the SCALED placeholder 10. priority > 10
+        // matches no issue (priorities are 1..3), so the result is empty; the
+        // assertion that matters is the param.
+        const expected: Array<{ id: number }> = []
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.scaledThresholdFragment(tIssue.priority, 1))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue where priority > :0 order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            10,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
 })

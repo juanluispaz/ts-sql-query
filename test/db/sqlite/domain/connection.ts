@@ -288,6 +288,14 @@ export class DBConnection extends SqliteConnection<'DBConnection'> {
         this.arg('boolean', 'optional'), this.valueArg('boolean', 'optional')
     ).as((c, v) => this.fragmentWithType('boolean', 'required').sql`${c} or ${v}`)
 
+    // A fragment whose `valueArg` carries a value-scaling TypeAdapter
+    // (scaledTenthAdapter, x10 on the write path), so the bound placeholder
+    // shows the scaled value.
+    scaledThresholdFragment = this.buildFragmentWithArgsIfValue(
+        this.arg('int', 'required'),
+        this.valueArg('int', 'optional', scaledTenthAdapter)
+    ).as((col, v) => this.fragmentWithType('boolean', 'required').sql`${col} > ${v}`)
+
     // Table/view customizations — `createTableOrViewCustomization`
     // produces a function that wraps a table reference with a
     // user-defined raw fragment in the FROM clause (docs:

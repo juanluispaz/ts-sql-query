@@ -174,4 +174,51 @@ describe(ctx.label, () => {
         })
     })
     */
+    // NOT-APPLICABLE: SQLite has no CREATE SEQUENCE DDL and SqliteConnection does not expose `connection.sequence(...)`, so these bodies cannot run.
+    /*
+    test('sequence-next-value-with-trailing-adapter', async () => {
+        await ctx.withCommit(async () => {
+            // issueIdSeqOffset reuses issue_id_seq but carries a trailing
+            // TypeAdapter (plusOffsetAdapter, read +1000) — the value-transform
+            // slot of sequence(...). The emitted SQL is identical to issueIdSeq;
+            // only the read value is shifted. The mock is primed with the RAW 42,
+            // so nextValue() comes back as 1042.
+            ctx.mockNext(42)
+            const next = await ctx.conn.selectFromNoTable()
+                .selectOneColumn(ctx.conn.issueIdSeqOffset.nextValue())
+                .executeSelectOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            if (!ctx.realDbEnabled) expect(next).toBe(1042)
+            else expect(typeof next).toBe('number')
+        })
+    })
+    */
+
+    // NOT-APPLICABLE: SQLite has no CREATE SEQUENCE DDL and SqliteConnection does not expose `connection.sequence(...)`, so these bodies cannot run.
+    /*
+    test('sequence-current-value-with-trailing-adapter', async () => {
+        await ctx.withCommit(async () => {
+            // currentValue() over the same adapter-carrying sequence reference:
+            // the read value is shifted by plusOffsetAdapter (+1000). currval is
+            // session-scoped, so a prior nextValue primes it on the real DB.
+            ctx.mockNext(41)
+            if (ctx.realDbEnabled) {
+                await ctx.conn.selectFromNoTable()
+                    .selectOneColumn(ctx.conn.issueIdSeqOffset.nextValue())
+                    .executeSelectOne()
+            }
+            const curr = await ctx.conn.selectFromNoTable()
+                .selectOneColumn(ctx.conn.issueIdSeqOffset.currentValue())
+                .executeSelectOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            if (!ctx.realDbEnabled) expect(curr).toBe(1041)
+            else expect(typeof curr).toBe('number')
+        })
+    })
+    */
+
 })

@@ -33,6 +33,18 @@ const scaledTenthAdapter: TypeAdapter = {
         return next.transformValueToDB(typeof value === 'number' ? value * 10 : value, type)
     },
 }
+// Numeric observable TypeAdapter: shifts a numeric value by a fixed offset so
+// the adapter's effect is visible in a numeric result (read +1000, write -1000).
+// Used by callEstimatedTotalOffset (executeFunction) and issueIdSeqOffset (sequence).
+const plusOffsetAdapter: TypeAdapter = {
+    transformValueFromDB(value, type, next) {
+        const v = next.transformValueFromDB(value, type)
+        return typeof v === 'number' ? v + 1000 : v
+    },
+    transformValueToDB(value, type, next) {
+        return next.transformValueToDB(typeof value === 'number' ? value - 1000 : value, type)
+    },
+}
 const publishedAdapter = new CustomBooleanTypeAdapter('t', 'f')
 // Nullable custom-boolean adapter — the optional sibling of verified/published.
 const approvedAdapter  = new CustomBooleanTypeAdapter('A', 'R')
@@ -169,6 +181,14 @@ export class DBConnection extends SqlServerConnection<'DBConnection'> {
         return this.executeFunction<Money>('dbo.estimated_total', [
             this.const(projectId, 'int'),
         ], 'customDouble', 'Money', 'required')
+    }
+    // A customDouble executeFunction wrapper with a trailing TypeAdapter:
+    // plusOffsetAdapter shifts the numeric result so the adapter's effect is
+    // observable. Reuses estimated_total.
+    callEstimatedTotalOffset(projectId: number): Promise<Money> {
+        return this.executeFunction<Money>('dbo.estimated_total', [
+            this.const(projectId, 'int'),
+        ], 'customDouble', 'Money', 'required', plusOffsetAdapter)
     }
 
     // The req/opt counterparts of the return-type functions above — reuse the
@@ -385,6 +405,10 @@ export class DBConnection extends SqlServerConnection<'DBConnection'> {
     // docs/api/connection.md. The matching DDL is not in the seed
     // because the tests run mock-only.
     issueIdSeq  = this.sequence('issue_id_seq', 'int')
+    // A sequence reference carrying a trailing TypeAdapter (plusOffsetAdapter).
+    // Reuses issue_id_seq; the emitted SQL is identical to issueIdSeq, only the
+    // read value is shifted by the adapter (observable on nextValue/currentValue).
+    issueIdSeqOffset = this.sequence('issue_id_seq', 'int', plusOffsetAdapter)
     auditTagSeq = this.sequence('audit_tag_seq', 'bigint')
 
     // G2: a sequence whose value type is a branded customInt (ReleaseTag)
@@ -392,6 +416,14 @@ export class DBConnection extends SqlServerConnection<'DBConnection'> {
     // value-type fan-out of sequence(...). The release_tag_seq DDL lives in
     // this dialect's domain/schema.sql.
     releaseTagSeq = this.sequence<ReleaseTag, 'ReleaseTag'>('release_tag_seq', 'customInt', 'ReleaseTag')
+
+    // A fragment whose `valueArg` carries a value-scaling TypeAdapter
+    // (scaledTenthAdapter, x10 on the write path), so the bound placeholder
+    // shows the scaled value.
+    scaledThresholdFragment = this.buildFragmentWithArgsIfValue(
+        this.arg('int', 'required'),
+        this.valueArg('int', 'optional', scaledTenthAdapter)
+    ).as((col, v) => this.fragmentWithType('boolean', 'required').sql`${col} > ${v}`)
 
     // Table/view customizations — `createTableOrViewCustomization`
     // produces a function that wraps a table reference with a

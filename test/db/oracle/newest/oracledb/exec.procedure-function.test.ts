@@ -251,4 +251,21 @@ describe(ctx.label, () => {
         expect(name).toBe('[Marketing site]')
     })
 
+    test('execute-function-custom-double-with-trailing-adapter-shift-branch', async () => {
+        // The custom-kind executeFunction overload threads a trailing TypeAdapter
+        // through the read: plusOffsetAdapter shifts the numeric Money result by
+        // +1000. The mock is primed with the RAW value 0, so estimated_total(1)
+        // (= 0) comes back as 1000.
+        ctx.mockNext(0)
+        const total = await ctx.conn.callEstimatedTotalOffset(1)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select estimated_total(:0) from dual"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof total, Money>>()
+        expect(total).toBe(1000 as Money)
+    })
+
 })

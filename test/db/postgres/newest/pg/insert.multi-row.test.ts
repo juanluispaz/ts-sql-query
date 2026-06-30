@@ -20,7 +20,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tOrganization } from '../../domain/connection.js'
+import { tOrganization, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -135,6 +135,37 @@ describe(ctx.label, () => {
               ]
             `)
             assertType<Exact<typeof id, number>>()
+        })
+    })
+
+    test('multi-row-on-conflict-returning-last-id', async () => {
+        // Multi-row VALUES + on-conflict + returningLastInsertedId(). Two project
+        // rows that collide on (org, slug); DO NOTHING inserts nothing, so the
+        // returned id array is empty. Commented where on-conflict is absent.
+        await ctx.withRollback(async () => {
+            ctx.mockNext([])
+            const ids = await ctx.conn.insertInto(tProject)
+                .values([
+                    { organizationId: 1, slug: 'mktg-site', name: 'dup A' },
+                    { organizationId: 1, slug: 'tools', name: 'dup B' },
+                ])
+                .onConflictDoNothing()
+                .returningLastInsertedId()
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values ($1, $2, $3), ($4, $5, $6) on conflict do nothing returning id"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "mktg-site",
+                "dup A",
+                1,
+                "tools",
+                "dup B",
+              ]
+            `)
+            assertType<Exact<typeof ids, number[]>>()
+            expect(ids).toEqual([])
         })
     })
 })

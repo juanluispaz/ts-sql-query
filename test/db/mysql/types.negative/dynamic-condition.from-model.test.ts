@@ -10,6 +10,7 @@
 import { test, expect } from '../../../lib/testRunner.js'
 import type { OrderByForModel } from '../../../../src/dynamic/orderBy.js'
 import type { DynamicOrderByForModel } from '../../../../src/experimental/types.js'
+import type { DynamicConditionForModel } from '../../../../src/dynamic/condition.js'
 
 interface IssueOrderModel {
     id:        number
@@ -24,6 +25,12 @@ interface ProjectWithOrg {
     id:   number
     name: string
     organization?: { id: number; name: string }
+}
+
+// A model whose array field maps to `never` in DynamicDefinitionFieldForModel.
+interface ArrayFieldModel {
+    id:   number
+    tags: string[]
 }
 
 function _typeNegatives() {
@@ -59,6 +66,12 @@ function _typeNegatives() {
     // Rule: a nested leaf in any clause must exist.
     // @ts-expect-error unknown leaf in a later clause
     check('name asc, organization.unknown')
+
+    // Rule: an array model field maps to `never` in DynamicDefinitionFieldForModel,
+    // so DynamicConditionForModel exposes no filter for it.
+    // @ts-expect-error 'tags' (array) maps to never -- not filterable
+    const badArrayFilter: DynamicConditionForModel<ArrayFieldModel> = { tags: { equals: ['x'] } }
+    void badArrayFilter
 }
 
 test('dynamic-condition-from-model-negative-types', () => {

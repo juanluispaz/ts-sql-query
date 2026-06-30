@@ -383,4 +383,125 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ id: number; b?: number }>>>()
         expect(result).toEqual(expected)
     })
+    test('value-source-rhs/bigint-modulo', async () => {
+        // `modulo` on a bigint with a value-SOURCE RHS (a const bigint 3n).
+        // view_count = 0 for issue 1, so 0 % 3 = 0. The bigint `mod(...)` result
+        // can leak as a string on some drivers, so the real-DB branch coerces it
+        // through BigInt(...).
+        const expected = [{ id: 1, mo: 0n }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                mo: tIssue.viewCount.modulo(ctx.conn.const(3n, 'bigint')),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, view_count % @0 as mo from issue where id = @1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3n,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; mo: bigint }>>>()
+        if (ctx.realDbEnabled) {
+            expect(result[0]!.id).toBe(1)
+            expect(BigInt(result[0]!.mo)).toBe(0n)
+        } else {
+            expect(result).toEqual(expected)
+        }
+    })
+
+    test('value-source-rhs/bigint-value-when-null-optional-receiver', async () => {
+        // `valueWhenNull` with a value-SOURCE arg over an OPTIONAL bigint
+        // receiver: coalesce(duration_ms, $1) removes the null, so the result
+        // optionality flips to REQUIRED (`bigint`, not `bigint | undefined`).
+        // duration_ms = 5400000 for worklog 1.
+        const expected = [{ id: 1, wn: 5400000n }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .select({
+                id: tIssueWorklog.id,
+                wn: tIssueWorklog.durationMs.valueWhenNull(ctx.conn.const(0n, 'bigint')),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, isnull(duration_ms, @0) as wn from issue_worklog where id = @1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            0n,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; wn: bigint }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('projection-modifiers/bigint-as-required-in-optional-object', async () => {
+        // `asRequiredInOptionalObject()` on a bigint leaf (view_count, required)
+        // re-imposes the requiredInOptionalObject marker as a direct `?: bigint`
+        // leaf.
+        const expected = { id: 1, v: 0n }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                v:  tIssue.viewCount.asRequiredInOptionalObject(),
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, view_count as [v] from issue where id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v?: bigint }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('projection-modifiers/bigint-only-when-or-null', async () => {
+        // `onlyWhenOrNull(false)` on a bigint leaf replaces the projection with a
+        // NULL literal at build time and widens the leaf to optional.
+        ctx.mockNext([{ id: 1 }])
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                v:  tIssue.viewCount.onlyWhenOrNull(false),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, null as [v] from issue where id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; v?: bigint }>>>()
+        expect(result).toEqual([{ id: 1 }])
+    })
+
+    test('projection-modifiers/bigint-ignore-when-as-null-passthrough', async () => {
+        // `ignoreWhenAsNull(false)` on a bigint leaf is the pass-through branch:
+        // the column flows through unchanged but the leaf is widened to optional.
+        const expected = [{ id: 1, v: 0n }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                v:  tIssue.viewCount.ignoreWhenAsNull(false),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, view_count as [v] from issue where id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; v?: bigint }>>>()
+        expect(result).toEqual(expected)
+    })
+
 })

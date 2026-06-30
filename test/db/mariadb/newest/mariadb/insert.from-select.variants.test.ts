@@ -188,4 +188,82 @@ describe(ctx.label, () => {
             else expect(typeof affected).toBe('number')
         })
     })
+    // NOT-APPLICABLE: targeted on-conflict (onConflictOn) is not typed on MariaDBConnection (only the bare upsert form).
+    /*
+    test('insert-from-select-with-on-conflict-on-columns-do-nothing', async () => {
+        // `from(select).onConflictOn(cols).doNothing()` — the TARGETED do-nothing
+        // form. Targeted on-conflict is typed only on dialects with a conflict
+        // target (PostgreSQL, SQLite); commented out elsewhere.
+        ctx.mockNext(0)
+        await ctx.withRollback(async () => {
+            const source = ctx.conn.selectFrom(tProject)
+                .where(tProject.organizationId.equals(1))
+                .select({
+                    organizationId: tProject.organizationId,
+                    slug:           tProject.slug,
+                    name:           tProject.name,
+                })
+
+            const affected = await ctx.conn.insertInto(tProject)
+                .from(source)
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doNothing()
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert ignore into project (organization_id, slug, name) select organization_id as organizationId, slug as slug, name as name from project where organization_id = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            if (!ctx.realDbEnabled) expect(affected).toBe(0)
+            else expect(typeof affected).toBe('number')
+        })
+    })
+    */
+
+    test('insert-from-select-on-conflict-returning-last-id-and-one-column', async () => {
+        // from-select + on-conflict + the `returningLastInsertedId()` and
+        // `returningOneColumn(...)` array forms. The source matches no rows
+        // (org 99999), so both return []. Commented out where on-conflict /
+        // RETURNING is unavailable (RETURNING from a from-select is not typed on
+        // oracle).
+        await ctx.withRollback(async () => {
+            const source = () => ctx.conn.selectFrom(tProject)
+                .where(tProject.organizationId.equals(99999))
+                .select({ organizationId: tProject.organizationId, slug: tProject.slug, name: tProject.name })
+
+            ctx.mockNext([])
+            const ids = await ctx.conn.insertInto(tProject)
+                .from(source())
+                .onConflictDoNothing()
+                .returningLastInsertedId()
+                .executeInsert()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert ignore into project (organization_id, slug, name) select organization_id as organizationId, slug as slug, name as name from project where organization_id = ? returning id"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                99999,
+              ]
+            `)
+            assertType<Exact<typeof ids, number[]>>()
+            expect(ids).toEqual([])
+
+            ctx.mockNext([])
+            const oneCol = await ctx.conn.insertInto(tProject)
+                .from(source())
+                .onConflictDoNothing()
+                .returningOneColumn(tProject.id)
+                .executeInsertMany()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert ignore into project (organization_id, slug, name) select organization_id as organizationId, slug as slug, name as name from project where organization_id = ? returning id as result"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                99999,
+              ]
+            `)
+            assertType<Exact<typeof oneCol, number[]>>()
+            expect(oneCol).toEqual([])
+        })
+    })
+
 })

@@ -15,7 +15,7 @@
 // real DB.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
-import { tOrganization } from '../../domain/connection.js'
+import { tOrganization, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -48,4 +48,19 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select "o".id as "id" from /*+ hint */ "organization" "o""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
     })
+    test('table-customization: customized table joined with a plain table keeps the hint on the customized side only', async () => {
+        // A customized table is joinable like any table/view. The hint comment is
+        // rendered only on the customized (organization) side of the JOIN; the
+        // plain joined `project` table stays unadorned.
+        const tOrgCustom = ctx.conn.withSqlHint(tOrganization.as('o'), 'tOrgCustomJoin')
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tOrgCustom)
+            .innerJoin(tProject).on(tProject.organizationId.equals(tOrgCustom.id))
+            .select({ orgId: tOrgCustom.id, projectId: tProject.id })
+            .orderBy('projectId')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select "o".id as "orgId", project.id as "projectId" from /*+ hint */ "organization" "o" inner join project on project.organization_id = "o".id order by "projectId""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+    })
+
 })

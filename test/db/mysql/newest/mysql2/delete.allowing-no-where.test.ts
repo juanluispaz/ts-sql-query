@@ -54,4 +54,26 @@ describe(ctx.label, () => {
             expect(affected).toBe(4)
         })
     })
+    // NOT-APPLICABLE: MySQL has no RETURNING on DELETE.
+    /*
+    test('delete-allowing-no-where-returning-removes-all-rows', async () => {
+        // With no WHERE the DELETE removes every seeded issue and RETURNING reads
+        // each removed row back. The returned order is not guaranteed, so rows are
+        // sorted by id before comparing.
+        const expected = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]
+        await ctx.withRollback(async () => {
+            ctx.mockNext(expected)
+            const rows = await ctx.conn.deleteAllowingNoWhereFrom(tIssue)
+                .returning({ id: tIssue.id })
+                .executeDeleteMany()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof rows, Array<{ id: number }>>>()
+            const sorted = [...rows].sort((a, b) => a.id - b.id)
+            expect(sorted).toEqual(expected)
+        })
+    })
+    */
+
 })

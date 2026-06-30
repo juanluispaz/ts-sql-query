@@ -9,7 +9,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tIssueWorklog } from '../../domain/connection.js'
+import { tIssue, tIssueWorklog, tProjectRelease } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -969,4 +969,206 @@ describe(ctx.label, () => {
         `)
         expect(notInRows).toEqual(expectedNotIn)
     })
+    test('customUuid-in-subquery-not-in-subquery', async () => {
+        // The subquery overload of IN / NOT IN over a customUuid ('SigningKey')
+        // column. Inner: signing_key of release 1; outer keeps releases whose
+        // signing_key is in / not in that set (release 2 is NULL).
+        const keyOfRelease1 = ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .selectOneColumn(tProjectRelease.signingKey)
+
+        const expectedIn = [{ id: 1 }]
+        ctx.mockNext(expectedIn)
+        const inRows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.signingKey.in(keyOfRelease1))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key in (select signing_key as result from project_release where id = ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof inRows, Array<{ id: number }>>>()
+        expect(inRows).toEqual(expectedIn)
+
+        const expectedNotIn = [{ id: 3 }]
+        ctx.mockNext(expectedNotIn)
+        const notInRows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.signingKey.notIn(keyOfRelease1))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key not in (select signing_key as result from project_release where id = ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        expect(notInRows).toEqual(expectedNotIn)
+    })
+
+    test('customComparable-is-is-not', async () => {
+        // `.is` / `.isNot` (null-safe equality) on a customComparable ('Semver')
+        // column. `.is('1.2.0')` matches release 1; `.isNot('1.2.0')` matches
+        // releases 2 and 3.
+        const expected = [{ id: 1 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.version.is('1.2.0'))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where version <=> ? order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "1.2.0",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+
+        const expectedIsNot = [{ id: 2 }, { id: 3 }]
+        ctx.mockNext(expectedIsNot)
+        const isNot = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.version.isNot('1.2.0'))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where not (version <=> ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "1.2.0",
+          ]
+        `)
+        expect(isNot).toEqual(expectedIsNot)
+    })
+
+    test('customComparable-in-subquery-not-in-subquery', async () => {
+        // The subquery overload of IN / NOT IN over a customComparable ('Semver')
+        // column. Inner: version of release 1 ('1.2.0'); outer keeps releases
+        // whose version is in / not in that set.
+        const verOfRelease1 = ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .selectOneColumn(tProjectRelease.version)
+
+        const expectedIn = [{ id: 1 }]
+        ctx.mockNext(expectedIn)
+        const inRows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.version.in(verOfRelease1))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where version in (select version as result from project_release where id = ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof inRows, Array<{ id: number }>>>()
+        expect(inRows).toEqual(expectedIn)
+
+        const expectedNotIn = [{ id: 2 }, { id: 3 }]
+        ctx.mockNext(expectedNotIn)
+        const notInRows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.version.notIn(verOfRelease1))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where version not in (select version as result from project_release where id = ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        expect(notInRows).toEqual(expectedNotIn)
+    })
+
+    test('custom-is-is-not', async () => {
+        // `.is` / `.isNot` on the `custom` column channel ('ReleaseChannel').
+        // `.is('stable')` matches release 1; `.isNot('stable')` matches releases
+        // 2 and 3.
+        const expected = [{ id: 1 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.channel.is('stable'))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where \`channel\` <=> ? order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "stable",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+
+        const expectedIsNot = [{ id: 2 }, { id: 3 }]
+        ctx.mockNext(expectedIsNot)
+        const isNot = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.channel.isNot('stable'))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where not (\`channel\` <=> ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "stable",
+          ]
+        `)
+        expect(isNot).toEqual(expectedIsNot)
+    })
+
+    test('numeric-custom-boolean-direct-filter-operand', async () => {
+        // The numeric CustomBooleanTypeAdapter column `invoiced` as a DIRECT
+        // fluent filter operand. invoiced: worklog 1 true, 2 false, 3 true.
+        // equals(true)/is(true) match worklogs 1 and 3; in([false]) matches 2.
+        const expectedTrue = [{ id: 1 }, { id: 3 }]
+        ctx.mockNext(expectedTrue)
+        const eqRows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.invoiced.equals(true))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where (invoiced = 1) = ? order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            true,
+          ]
+        `)
+        assertType<Exact<typeof eqRows, Array<{ id: number }>>>()
+        expect(eqRows).toEqual(expectedTrue)
+
+        ctx.mockNext(expectedTrue)
+        const isRows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.invoiced.is(true))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where (invoiced = 1) <=> ? order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            true,
+          ]
+        `)
+        expect(isRows).toEqual(expectedTrue)
+
+        const expectedFalse = [{ id: 2 }]
+        ctx.mockNext(expectedFalse)
+        const inRows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.invoiced.in([false]))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where (invoiced = 1) in (?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            false,
+          ]
+        `)
+        expect(inRows).toEqual(expectedFalse)
+    })
+
 })

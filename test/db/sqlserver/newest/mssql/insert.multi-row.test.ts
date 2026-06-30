@@ -20,8 +20,12 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tOrganization } from '../../domain/connection.js'
+import { tOrganization, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+
+// tProject is referenced only by the commented-out `multi-row-on-conflict-returning-last-id`
+// test below; the cells where that test is uncommented use it for real.
+void tProject
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -137,4 +141,38 @@ describe(ctx.label, () => {
             assertType<Exact<typeof id, number>>()
         })
     })
+    // NOT-APPLICABLE: SQL Server has no INSERT … ON CONFLICT.
+    /*
+    test('multi-row-on-conflict-returning-last-id', async () => {
+        // Multi-row VALUES + on-conflict + returningLastInsertedId(). Two project
+        // rows that collide on (org, slug); DO NOTHING inserts nothing, so the
+        // returned id array is empty. Commented where on-conflict is absent.
+        await ctx.withRollback(async () => {
+            ctx.mockNext([])
+            const ids = await ctx.conn.insertInto(tProject)
+                .values([
+                    { organizationId: 1, slug: 'mktg-site', name: 'dup A' },
+                    { organizationId: 1, slug: 'tools', name: 'dup B' },
+                ])
+                .onConflictDoNothing()
+                .returningLastInsertedId()
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) output inserted.id values (@0, @1, @2), (@3, @4, @5) on conflict do nothing"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "mktg-site",
+                "dup A",
+                1,
+                "tools",
+                "dup B",
+              ]
+            `)
+            assertType<Exact<typeof ids, number[]>>()
+            expect(ids).toEqual([])
+        })
+    })
+    */
+
 })

@@ -290,4 +290,47 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { tagged: string }>>()
         expect(row).toEqual(expected)
     })
+    test('fragment-with-type-custom-kind-threads-a-trailing-type-adapter', async () => {
+        // The custom-kind `fragmentWithType(type, typeName, required, adapter)`
+        // overload threads the trailing adapter into the read: bracketAdapter
+        // brackets release 1's version ('1.2.0'), read back through the
+        // customComparable 'Semver' fragment. The mock is primed with the RAW
+        // value; the adapter brackets it on the way out.
+        ctx.mockNext({ v: '1.2.0' })
+        const expected = { v: '[1.2.0]' }
+        const row = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .select({
+                v: ctx.conn.fragmentWithType<string, 'Semver'>('customComparable', 'Semver', 'required', bracketAdapter).sql`${tProjectRelease.version}`,
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select version as "v" from project_release where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { v: string }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('aggregate-fragment-with-type-custom-kind-threads-a-trailing-type-adapter', async () => {
+        // The custom-kind `aggregateFragmentWithType(type, typeName, required, adapter)`
+        // overload threads the trailing adapter into the read. bracketAdapter brackets
+        // max(version) over the releases, read through the customComparable 'Semver'
+        // aggregate fragment. Versions {1.2.0, 1.3.0-beta.1, 0.9.0} -> max
+        // '1.3.0-beta.1' -> '[1.3.0-beta.1]'.
+        ctx.mockNext({ v: '1.3.0-beta.1' })
+        const expected = { v: '[1.3.0-beta.1]' }
+        const row = await ctx.conn.selectFrom(tProjectRelease)
+            .select({
+                v: ctx.conn.aggregateFragmentWithType<string, 'Semver'>('customComparable', 'Semver', 'required', bracketAdapter).sql`max(${tProjectRelease.version})`,
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(version) as "v" from project_release"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof row, { v: string }>>()
+        expect(row).toEqual(expected)
+    })
+
 })

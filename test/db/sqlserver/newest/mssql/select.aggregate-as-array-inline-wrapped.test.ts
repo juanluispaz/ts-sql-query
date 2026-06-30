@@ -6,7 +6,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tOrganization, tProject } from '../../domain/connection.js'
+import { tIssue, tOrganization, tProject, tProjectRelease, type ReleaseChannel } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -584,5 +584,31 @@ describe(ctx.label, () => {
         expect(row).toEqual({ id: 1, projectNames: ['Internal tools', 'Marketing site'] })
     })
 
+
+    test('inline-aggregate-of-one-column-keeps-the-branded-element-type', async () => {
+        // forUseAsInlineAggregatedArrayValue() over a single BRANDED column keeps
+        // the brand on the array element type. Project 1's releases have channels
+        // {stable, beta} (a custom 'ReleaseChannel'); the aggregated array is
+        // ReleaseChannel[], not a widened string[]. The inner aggregate has no
+        // order by, so sort before comparing.
+        ctx.mockNext({ id: 1, channels: JSON.stringify(['stable', 'beta']) })
+        const channels = ctx.conn.subSelectUsing(tProject).from(tProjectRelease)
+            .where(tProjectRelease.projectId.equals(tProject.id))
+            .selectOneColumn(tProjectRelease.channel)
+            .forUseAsInlineAggregatedArrayValue()
+
+        const row = await ctx.conn.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ id: tProject.id, channels })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select json_arrayagg(channel null on null) from project_release where project_id = project.id) as channels from project where id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; channels: ReleaseChannel[] }>>()
+        expect({ ...row, channels: [...row.channels].sort() }).toEqual({ id: 1, channels: ['beta', 'stable'] })
+    })
 
 })

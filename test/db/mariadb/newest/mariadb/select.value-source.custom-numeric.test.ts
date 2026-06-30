@@ -577,4 +577,34 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
+    test('custom-numeric/customdouble-roundn-with-customdouble-value-source-precision', async () => {
+        // roundn with a BRAND-MATCHED customDouble value source as the precision
+        // argument (same 'Score' brand as the receiver). round(8, 2) = 8 > 7 ->
+        // true (wrapped in a predicate for one cross-dialect value, since a
+        // customDouble result leaks per-driver).
+        const v = ctx.conn.const(8, 'customDouble', 'Score')
+        const prec = ctx.conn.const(2, 'customDouble', 'Score')
+        const expected = { id: 1, big: true }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id:  tIssue.id,
+                big: v.roundn(prec).greaterThan(7),
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round(?, ?) > ? as big from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            8,
+            2,
+            7,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; big: boolean }>>()
+        expect(row).toEqual(expected)
+    })
+
 })

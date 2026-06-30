@@ -7,7 +7,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tProjectRelease, tIssueWorklog } from '../../domain/connection.js'
+import { tProjectRelease, tIssueWorklog, tProjectReview } from '../../domain/connection.js'
 import type { ReleaseChannel } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
@@ -203,4 +203,76 @@ describe(ctx.label, () => {
             expect(channel).toBe('canary')
         })
     })
+    test('insert-into-project-review-marshals-non-boolean-adapters', async () => {
+        // The per-column NON-boolean adapters on tProjectReview marshal on the
+        // WRITE path: scaledTenthAdapter scales `score` x10 (8.5 -> 85) and
+        // bracketAdapter passes `reviewerCode` through unchanged on write.
+        await ctx.withRollback(async () => {
+            ctx.mockNext(99)
+            const inserted = await ctx.conn.insertInto(tProjectReview)
+                .values({
+                    projectId:    1,
+                    reviewerCode: 'R-9',
+                    score:        8.5,
+                    reviewDate:   new Date(Date.UTC(2024, 6, 1, 0, 0, 0)),
+                    reviewTime:   new Date(Date.UTC(1970, 0, 1, 9, 30, 0)),
+                })
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project_review (project_id, reviewer_code, score, review_date, review_time) values (@0, @1, @2, @3, @4)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "R-9",
+                85,
+                2024-07-01T00:00:00.000Z,
+                1970-01-01T09:30:00.000Z,
+              ]
+            `)
+            assertType<Exact<typeof inserted, number>>()
+            expect(typeof inserted).toBe('number')
+            if (ctx.realDbEnabled) {
+                const ids = await ctx.conn.selectFrom(tProjectReview)
+                    .selectOneColumn(tProjectReview.id)
+                    .executeSelectMany()
+                expect(ids).toHaveLength(2)
+            }
+        })
+    })
+
+    test('insert-worklog-with-branded-custom-and-numeric-boolean-columns', async () => {
+        // Write-path marshalling of the branded custom columns + the numeric
+        // CustomBooleanTypeAdapter: billedAmount (Money -> double) and costCents
+        // (Cents -> int) marshal through baseTypeForCustom, and a literal invoiced
+        // value binds the boolean param inside `case when ... then 1 else 0 end`
+        // (the numeric CustomBooleanTypeAdapter renders the value as a predicate).
+        await ctx.withRollback(async () => {
+            ctx.mockNext(99)
+            const inserted = await ctx.conn.insertInto(tIssueWorklog)
+                .values({
+                    issueId:      1,
+                    workDate:     new Date(Date.UTC(2024, 2, 12, 10, 0, 0)),
+                    activity:     'coding',
+                    billedAmount: 12.5,
+                    costCents:    250,
+                    invoiced:     true,
+                })
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue_worklog (issue_id, work_date, activity, billed_amount, cost_cents, invoiced) values (@0, @1, @2, @3, @4, case when (@5 = 1) then 1 else 0 end)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                2024-03-12T10:00:00.000Z,
+                "coding",
+                12.5,
+                250,
+                true,
+              ]
+            `)
+            assertType<Exact<typeof inserted, number>>()
+            expect(typeof inserted).toBe('number')
+        })
+    })
+
 })

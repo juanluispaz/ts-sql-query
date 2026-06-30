@@ -207,4 +207,43 @@ describe(ctx.label, () => {
           ]
         `)
     })
+    test('dynamic-condition-in-a-compound-union-matches-the-direct-predicate', async () => {
+        // A dynamic condition feeding the WHERE of the left side of a compound
+        // (UNION): dynamicConditionFor(...).withValues(...) -> .where(...) ->
+        // .union(...). The emitted SQL+params must match a hand-written
+        // direct-predicate compound.
+        const fields = { id: tIssue.id, priority: tIssue.priority }
+        const filter = { priority: { greaterThan: 2 } }
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor(fields).withValues(filter))
+            .select({ id: tIssue.id })
+            .union(
+                ctx.conn.selectFrom(tIssue).where(tIssue.priority.equals(1)).select({ id: tIssue.id }),
+            )
+            .executeSelectMany()
+        const dynSql = ctx.lastSql
+        const dynParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.priority.greaterThan(2))
+            .select({ id: tIssue.id })
+            .union(
+                ctx.conn.selectFrom(tIssue).where(tIssue.priority.equals(1)).select({ id: tIssue.id }),
+            )
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toBe(dynSql)
+        expect(ctx.lastParams).toEqual(dynParams)
+        expect(dynSql).toMatchInlineSnapshot(`"select id as "id" from issue where priority > :0 union select id as "id" from issue where priority = :1"`)
+        expect(dynParams).toMatchInlineSnapshot(`
+          [
+            2,
+            1,
+          ]
+        `)
+    })
+
 })

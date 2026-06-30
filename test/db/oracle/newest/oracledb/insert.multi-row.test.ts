@@ -20,8 +20,12 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tOrganization } from '../../domain/connection.js'
+import { tOrganization, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+
+// tProject is referenced only by the commented-out `multi-row-on-conflict-returning-last-id`
+// test below; the cells where that test is uncommented use it for real.
+void tProject
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -138,4 +142,44 @@ describe(ctx.label, () => {
             assertType<Exact<typeof id, number>>()
         })
     })
+    // NOT-APPLICABLE: Oracle has no INSERT … ON CONFLICT.
+    /*
+    test('multi-row-on-conflict-returning-last-id', async () => {
+        // Multi-row VALUES + on-conflict + returningLastInsertedId(). Two project
+        // rows that collide on (org, slug); DO NOTHING inserts nothing, so the
+        // returned id array is empty. Commented where on-conflict is absent.
+        await ctx.withRollback(async () => {
+            ctx.mockNext([])
+            const ids = await ctx.conn.insertInto(tProject)
+                .values([
+                    { organizationId: 1, slug: 'mktg-site', name: 'dup A' },
+                    { organizationId: 1, slug: 'tools', name: 'dup B' },
+                ])
+                .onConflictDoNothing()
+                .returningLastInsertedId()
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"begin insert into project (organization_id, slug, name) values (:0, :1, :2) on conflict do nothing returning id into :3; insert into project (organization_id, slug, name) values (:4, :5, :6) on conflict do nothing returning id into :7; end;"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "mktg-site",
+                "dup A",
+                {
+                  "dir": 3003,
+                },
+                1,
+                "tools",
+                "dup B",
+                {
+                  "dir": 3003,
+                },
+              ]
+            `)
+            assertType<Exact<typeof ids, number[]>>()
+            expect(ids).toEqual([])
+        })
+    })
+    */
+
 })

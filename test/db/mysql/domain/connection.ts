@@ -33,6 +33,18 @@ const scaledTenthAdapter: TypeAdapter = {
         return next.transformValueToDB(typeof value === 'number' ? value * 10 : value, type)
     },
 }
+// Numeric observable TypeAdapter: shifts a numeric value by a fixed offset so
+// the adapter's effect is visible in a numeric result (read +1000, write -1000).
+// Used by callEstimatedTotalOffset (executeFunction) and issueIdSeqOffset (sequence).
+const plusOffsetAdapter: TypeAdapter = {
+    transformValueFromDB(value, type, next) {
+        const v = next.transformValueFromDB(value, type)
+        return typeof v === 'number' ? v + 1000 : v
+    },
+    transformValueToDB(value, type, next) {
+        return next.transformValueToDB(typeof value === 'number' ? value - 1000 : value, type)
+    },
+}
 const publishedAdapter = new CustomBooleanTypeAdapter('t', 'f')
 // Nullable custom-boolean adapter — the optional sibling of verified/published.
 const approvedAdapter  = new CustomBooleanTypeAdapter('A', 'R')
@@ -148,6 +160,14 @@ export class DBConnection extends MySqlConnection<'DBConnection'> {
         return this.executeFunction<Money>('estimated_total', [
             this.const(projectId, 'int'),
         ], 'customDouble', 'Money', 'required')
+    }
+    // A customDouble executeFunction wrapper with a trailing TypeAdapter:
+    // plusOffsetAdapter shifts the numeric result so the adapter's effect is
+    // observable. Reuses estimated_total.
+    callEstimatedTotalOffset(projectId: number): Promise<Money> {
+        return this.executeFunction<Money>('estimated_total', [
+            this.const(projectId, 'int'),
+        ], 'customDouble', 'Money', 'required', plusOffsetAdapter)
     }
 
     // The req/opt counterparts of the return-type functions above — reuse the
@@ -357,6 +377,14 @@ export class DBConnection extends MySqlConnection<'DBConnection'> {
     booleanOrFragment = this.buildFragmentWithArgsIfValue(
         this.arg('boolean', 'optional'), this.valueArg('boolean', 'optional')
     ).as((c, v) => this.fragmentWithType('boolean', 'required').sql`${c} or ${v}`)
+
+    // A fragment whose `valueArg` carries a value-scaling TypeAdapter
+    // (scaledTenthAdapter, x10 on the write path), so the bound placeholder
+    // shows the scaled value.
+    scaledThresholdFragment = this.buildFragmentWithArgsIfValue(
+        this.arg('int', 'required'),
+        this.valueArg('int', 'optional', scaledTenthAdapter)
+    ).as((col, v) => this.fragmentWithType('boolean', 'required').sql`${col} > ${v}`)
 
     // Table/view customizations — `createTableOrViewCustomization`
     // produces a function that wraps a table reference with a

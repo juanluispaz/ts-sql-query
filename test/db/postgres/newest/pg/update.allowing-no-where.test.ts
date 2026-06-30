@@ -111,4 +111,33 @@ describe(ctx.label, () => {
             expect(affected).toBe(4)
         })
     })
+
+    test('update-allowing-no-where-returning-touches-all-rows', async () => {
+        // With no WHERE the UPDATE touches every seeded issue and RETURNING reads
+        // each affected row back. The returned order is not guaranteed, so rows
+        // are sorted by id before comparing.
+        const expected = [
+            { id: 1, status: 'archived' },
+            { id: 2, status: 'archived' },
+            { id: 3, status: 'archived' },
+            { id: 4, status: 'archived' },
+        ]
+        await ctx.withRollback(async () => {
+            ctx.mockNext(expected)
+            const rows = await ctx.conn.updateAllowingNoWhere(tIssue)
+                .set({ status: 'archived' })
+                .returning({ id: tIssue.id, status: tIssue.status })
+                .executeUpdateMany()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = $1 returning id as id, status as status"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "archived",
+              ]
+            `)
+            assertType<Exact<typeof rows, Array<{ id: number; status: string }>>>()
+            const sorted = [...rows].sort((a, b) => a.id - b.id)
+            expect(sorted).toEqual(expected)
+        })
+    })
 })

@@ -4,7 +4,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tOrganization, tIssueWorklog, tProjectRelease, tProjectReview } from '../../domain/connection.js'
+import { tIssue, tOrganization, tIssueWorklog, tProject, tProjectRelease, tProjectReview } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -656,4 +656,52 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ id: number; soff?: Date }>>>()
         expect(result).toEqual(expected)
     })
+    test('optional-localdatetime-getters', async () => {
+        // The getters of an OPTIONAL plain `localDateTime` (archivedAt): each of
+        // the 9 getters carries the optional marker to a `number | undefined`
+        // leaf. archivedAt is set to a fixed timestamp in-rollback so the values
+        // are deterministic: 2024-06-15 13:45:30 (a Saturday) -> year 2024, month
+        // 5 (June, JS 0-indexed), date 15, day-of-week 6, hours 13, minutes 45,
+        // seconds 30, ms 0.
+        await ctx.withRollback(async () => {
+            ctx.mockNext(1)
+            await ctx.conn.update(tProject)
+                .set({ archivedAt: new Date(Date.UTC(2024, 5, 15, 13, 45, 30)) })
+                .where(tProject.id.equals(1))
+                .executeUpdate()
+
+            const expected = [{
+                y: 2024, mo: 5, d: 15, dow: 6, h: 13, m: 45, s: 30, ms: 0,
+                t: Date.UTC(2024, 5, 15, 13, 45, 30),
+            }]
+            ctx.mockNext(expected)
+            const rows = await ctx.conn.selectFrom(tProject)
+                .where(tProject.id.equals(1))
+                .select({
+                    y:   tProject.archivedAt.getFullYear(),
+                    mo:  tProject.archivedAt.getMonth(),
+                    d:   tProject.archivedAt.getDate(),
+                    dow: tProject.archivedAt.getDay(),
+                    h:   tProject.archivedAt.getHours(),
+                    m:   tProject.archivedAt.getMinutes(),
+                    s:   tProject.archivedAt.getSeconds(),
+                    ms:  tProject.archivedAt.getMilliseconds(),
+                    t:   tProject.archivedAt.getTime(),
+                })
+                .executeSelectMany()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select year(archived_at) as \`y\`, month(archived_at) - 1 as mo, dayofmonth(archived_at) as \`d\`, dayofweek(archived_at) - 1 as dow, hour(archived_at) as \`h\`, minute(archived_at) as \`m\`, second(archived_at) as \`s\`, round(microsecond(archived_at) / 1000) as ms, round(unix_timestamp(archived_at) * 1000) as \`t\` from project where id = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof rows, Array<{
+                y?: number | undefined; mo?: number | undefined; d?: number | undefined
+                dow?: number | undefined; h?: number | undefined; m?: number | undefined
+                s?: number | undefined; ms?: number | undefined; t?: number | undefined
+            }>>>()
+            expect(rows).toEqual(expected)
+        })
+    })
+
 })

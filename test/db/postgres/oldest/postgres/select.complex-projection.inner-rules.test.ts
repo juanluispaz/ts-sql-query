@@ -473,4 +473,66 @@ describe(ctx.label, () => {
         expect('archivedAt' in row.proj!).toBe(false)
     })
 
+    test('rule-1-mixing-required-in-optional-object-with-own-required-leaf', async () => {
+        // A nested object mixing a `requiredInOptionalObject` leaf (`gate`,
+        // status.asRequiredInOptionalObject()) with an OWN-required leaf (`ownId`,
+        // a plain required column). The requiredInOptionalObject marker makes the
+        // OBJECT optional (`meta?:`), but the own-required `ownId` is NOT demoted —
+        // it stays a required `number`.
+        const expected = { iid: 1, meta: { ownId: 1, gate: 'open' } }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                iid: tIssue.id,
+                meta: {
+                    ownId: tIssue.id,
+                    gate:  tIssue.status.asRequiredInOptionalObject(),
+                },
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, id as "meta.ownId", status as "meta.gate" from issue where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            iid:   number
+            meta?: { ownId: number; gate: string }
+        }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('rule-1-mixing-required-in-optional-object-with-own-required-leaf-as-nullable', async () => {
+        // The same mix under projectingOptionalValuesAsNullable(): the optional
+        // object becomes `{...} | null`; both required leaves stay required.
+        const expected = { iid: 1, meta: { ownId: 1, gate: 'open' } }
+        ctx.mockNext({ iid: 1, 'meta.ownId': 1, 'meta.gate': 'open' })
+        const row = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                iid: tIssue.id,
+                meta: {
+                    ownId: tIssue.id,
+                    gate:  tIssue.status.asRequiredInOptionalObject(),
+                },
+            })
+            .projectingOptionalValuesAsNullable()
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, id as "meta.ownId", status as "meta.gate" from issue where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            iid:  number
+            meta: { ownId: number; gate: string } | null
+        }>>()
+        expect(row).toEqual(expected)
+    })
+
 })

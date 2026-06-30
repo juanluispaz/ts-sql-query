@@ -14,7 +14,7 @@ import { assertType, type Exact } from '../../../../lib/assertType.js'
 import type { DynamicCondition, DynamicConditionForModel, DynamicDefinitionForModel } from '../../../../../src/dynamic/condition.js'
 import type { OrderByForModel } from '../../../../../src/dynamic/orderBy.js'
 import type { DynamicOrderByForModel } from '../../../../../src/experimental/types.js'
-import { tIssue, tProject, tOrganization } from '../../domain/connection.js'
+import { tIssue, tIssueWorklog, tProject, tOrganization } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 // Business model (upper layer) — no ts-sql-query types.
@@ -313,4 +313,37 @@ describe(ctx.label, () => {
             DynamicCondition<DynamicDefinitionForModel<SimpleModel>, Ext>
         >>()
     })
+    test('from-model/boolean-field-maps-and-rounds', async () => {
+        // A `boolean` model field maps to the 'boolean' descriptor and an array
+        // model field maps to `never` (not filterable). The rounded
+        // `{ flag: { equals: true } }` filter must emit the same SQL+params as
+        // the direct `billable.equals(true)`.
+        assertType<Exact<DynamicDefinitionForModel<{ flag: boolean }>, { flag: 'boolean' }>>()
+        assertType<Exact<DynamicDefinitionForModel<{ id: number; tags: string[] }>, { id: 'int'; tags: never }>>()
+
+        const fields = { id: tIssueWorklog.id, flag: tIssueWorklog.billable }
+        const filter: DynamicConditionForModel<{ id: number; flag: boolean }> = { flag: { equals: true } }
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(ctx.conn.dynamicConditionFor(fields).withValues(filter))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        const dynSql = ctx.lastSql
+        const dynParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.billable.equals(true))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(dynSql)
+        expect(ctx.lastParams).toEqual(dynParams)
+        expect(dynSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable = ? order by id"`)
+        expect(dynParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+    })
+
 })

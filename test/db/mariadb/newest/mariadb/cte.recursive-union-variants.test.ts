@@ -142,4 +142,105 @@ describe(ctx.label, () => {
             depth: number
         }>>>()
     })
+
+    test('recursive-union-all-customize-query-after-wraps-whole-recursive-query', async () => {
+        // `customizeQuery(...)` chained AFTER `.recursiveUnionAll(...)`
+        // customizes the whole recursive statement, not the anchor
+        // member: `beforeQuery`/`afterQuery` bracket the entire
+        // `with recursive ...` query, and `beforeWithQuery`/`afterWithQuery`
+        // wrap the generated recursive CTE body - the same placement a
+        // plain `.forUseInQueryAs(...)` CTE gets.
+        const expected = [
+            { id: 1, title: 'Update hero copy', depth: 0 },
+            { id: 2, title: 'Redesign navbar',  depth: 1 },
+        ]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        const result = await connection.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id:    tIssue.id,
+                title: tIssue.title,
+                depth: connection.const(0, 'int'),
+            })
+            .recursiveUnionAll((parent) => {
+                return connection.selectFrom(tIssue)
+                    .join(parent).on(tIssue.parentId.equals(parent.id))
+                    .select({
+                        id:    tIssue.id,
+                        title: tIssue.title,
+                        depth: parent.depth.add(1),
+                    })
+            })
+            .customizeQuery({
+                beforeQuery:     connection.rawFragment`/* head */ `,
+                afterQuery:      connection.rawFragment` /* tail */`,
+                beforeWithQuery: connection.rawFragment`/* warmup */`,
+                afterWithQuery:  connection.rawFragment`/* end-of-with */`,
+            })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  with recursive recursive_select_1 as /* warmup */ (select id as id, title as title, ? as depth from issue where id = ? union all select issue.id as id, issue.title as title, recursive_select_1.depth + ? as depth from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id) /* end-of-with */ select id as id, title as title, depth as depth from recursive_select_1  /* tail */"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            0,
+            1,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{
+            id:    number
+            title: string
+            depth: number
+        }>>>()
+    })
+
+    test('recursive-union-all-customize-query-before-wraps-cte', async () => {
+        // `customizeQuery(...)` chained BEFORE `.recursiveUnionAll(...)`
+        // still targets the generated recursive query rather than the
+        // anchor member: `beforeWithQuery`/`afterWithQuery` wrap the
+        // recursive CTE body instead of being silently dropped.
+        const expected = [
+            { id: 1, title: 'Update hero copy', depth: 0 },
+        ]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        const result = await connection.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id:    tIssue.id,
+                title: tIssue.title,
+                depth: connection.const(0, 'int'),
+            })
+            .customizeQuery({
+                beforeWithQuery: connection.rawFragment`/* warmup */`,
+                afterWithQuery:  connection.rawFragment`/* end-of-with */`,
+            })
+            .recursiveUnionAll((parent) => {
+                return connection.selectFrom(tIssue)
+                    .join(parent).on(tIssue.parentId.equals(parent.id))
+                    .select({
+                        id:    tIssue.id,
+                        title: tIssue.title,
+                        depth: parent.depth.add(1),
+                    })
+            })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as /* warmup */ (select id as id, title as title, ? as depth from issue where id = ? union all select issue.id as id, issue.title as title, recursive_select_1.depth + ? as depth from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id) /* end-of-with */ select id as id, title as title, depth as depth from recursive_select_1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            0,
+            1,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{
+            id:    number
+            title: string
+            depth: number
+        }>>>()
+    })
 })

@@ -67,42 +67,7 @@ of that. Two minutes of triage and one paragraph is the bar.
 
 ## Open Bugs
 
-## `customizeQuery` hooks silently dropped / mislanded on a recursive-union SELECT
-
-**Where**: the recursive-select emission path (`_buildRecursiveSelect` /
-the `with recursive …` builder in `src/sqlBuilders/AbstractSqlBuilder.ts`) vs
-the `customizeQuery` hook rendering. `customizeQuery({...})` is typed and
-callable both **before** `.recursiveUnion*(...)` (on the anchor select) and
-**after** it (on the recursive expression), but the impl does not render the
-CTE-level hooks the way the non-recursive `forUseInQueryAs` CTE path does.
-
-**Reproduction** (PG reference cell, mock — emitted SQL captured):
-- Post-recursive: `selectFrom(tIssue).where(...).select({...}).recursiveUnionAll(fn).customizeQuery({ beforeQuery, afterQuery, beforeWithQuery, afterWithQuery })`
-  emits
-  `with recursive recursive_select_1 as (/*BQ*/ select …anchor… where id = $2 /*AQ*/ union all …) select …`
-  — `beforeQuery`/`afterQuery` land **inside** the CTE body wrapping only the
-  anchor member (violating `beforeQuery`'s documented "before any other SQL"),
-  and `beforeWithQuery`/`afterWithQuery` are **silently dropped** (absent from
-  the output).
-- Anchor-side: `…select({...}).customizeQuery({ beforeWithQuery, afterWithQuery }).recursiveUnionAll(fn)`
-  emits SQL **identical to plain recursive** — both hooks silently dropped.
-
-Contrast the non-recursive CTE path, which honors them:
-`…customizeQuery({ beforeWithQuery, afterWithQuery }).forUseInQueryAs('x')` →
-`with x as /* warmup */ (…) /* end-of-with */ …`
-(pinned by `customize-query.select.test.ts` `customize-select-before-with-query-and-after-with-query-wrap-cte`).
-
-So TS accepts `customizeQuery` hooks on a recursive-union select that the impl
-either ignores (`beforeWithQuery`/`afterWithQuery`) or places contrary to their
-documented meaning (`beforeQuery`/`afterQuery` render around the anchor member,
-not the whole query). Either narrow the typed surface for the recursive path or
-render the hooks consistently with the `forUseInQueryAs` CTE path.
-
-**Current workaround in the suite**: none — surfaced by the round-19 seam-critic
-audit and verified via a runtime SQL probe (no test currently composes
-`customizeQuery` with `recursiveUnion*`). When a test is added, mark the
-assertion `// TODO[BUG]: see BUGS.md — customizeQuery hooks dropped on recursive
-select` until the fix lands.
+_None._
 
 ## Common bug shapes (for the fixing agent)
 

@@ -594,7 +594,57 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
 
         this.__recursiveInternalView = recursiveInternalView
         this.__recursiveView = recursiveView
+
+        // A customization attached before `.recursiveUnion*(...)` was recorded on
+        // this builder, which is now only the anchor member of the generated CTE.
+        // Re-home it onto the whole recursive query so its hooks don't collapse
+        // onto the anchor (and `beforeWithQuery`/`afterWithQuery` aren't dropped).
+        // Must run before `__asSelectData()` below so the outer select picks up
+        // any WITHs the redistributed fragments reference.
+        const customization = this.__customization
+        if (customization) {
+            this.__applyRecursiveCustomization(customization, recursiveSelect, recursiveInternalSelect)
+        }
+
         this.__recursiveSelect = recursiveSelect.__asSelectData() // __asSelectData is important here to detect the required tables
+    }
+    __applyRecursiveCustomization(customization: SelectCustomization<any, any>, outerSelect: AbstractSelect, cteBody: SelectData): void {
+        // A recursive select renders as:
+        //   [beforeQuery] with recursive <cte> as [beforeWithQuery] (<anchor> union[ all] <recursive>) [afterWithQuery] select ... from <cte> [afterQuery]
+        // The customization the user attaches to the recursive select must apply
+        // to that whole statement, not to the anchor member alone. Split it:
+        //   - `beforeWithQuery` / `afterWithQuery` wrap the recursive CTE body,
+        //   - the remaining SQL hooks customize the outer `select ... from <cte>`,
+        //   - `queryExecutionName` / `queryExecutionMetadata` stay on this builder,
+        //     which is the one whose `execute*` reads them for the query metadata.
+        const { beforeWithQuery, afterWithQuery, queryExecutionName, queryExecutionMetadata, ...outerCustomization } = customization
+        outerSelect.__customization = outerCustomization
+
+        if (beforeWithQuery !== undefined || afterWithQuery !== undefined) {
+            const withCustomization: SelectCustomization<any, any> = {}
+            if (beforeWithQuery !== undefined) {
+                withCustomization.beforeWithQuery = beforeWithQuery
+            }
+            if (afterWithQuery !== undefined) {
+                withCustomization.afterWithQuery = afterWithQuery
+            }
+            cteBody.__customization = withCustomization
+        } else {
+            cteBody.__customization = undefined
+        }
+
+        if (queryExecutionName !== undefined || queryExecutionMetadata !== undefined) {
+            const executionCustomization: SelectCustomization<any, any> = {}
+            if (queryExecutionName !== undefined) {
+                executionCustomization.queryExecutionName = queryExecutionName
+            }
+            if (queryExecutionMetadata !== undefined) {
+                executionCustomization.queryExecutionMetadata = queryExecutionMetadata
+            }
+            this.__customization = executionCustomization
+        } else {
+            this.__customization = undefined
+        }
     }
     recursiveUnion(fn: (view: any) => ICompoundableSelect<any, any, any>): any {
         this.__buildRecursive(fn, false)
@@ -626,7 +676,16 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
     }
 
     customizeQuery(customization: SelectCustomization<any, any>): any {
-        this.__customization = customization
+        const recursiveSelect = this.__recursiveSelect
+        const recursiveView = this.__recursiveView
+        if (recursiveSelect && recursiveView) {
+            // `.recursiveUnion*(...)` already ran: this builder is only the anchor
+            // member of the generated CTE, so distribute the customization across
+            // the whole recursive query instead of recording it on the anchor.
+            this.__applyRecursiveCustomization(customization, recursiveSelect, recursiveView.__selectData)
+        } else {
+            this.__customization = customization
+        }
         return this
     }
 }

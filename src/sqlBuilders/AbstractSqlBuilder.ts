@@ -3127,6 +3127,25 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return columnTypeName
     }
+    _moduloRequiresFloatHandling(columnType: ValueType, value: any): boolean {
+        // `_modulo` only receives the receiver's column type, but the
+        // overloaded-number dispatcher promotes the result to `double` whenever
+        // either operand is a floating-point value (a `double` / `customDouble`
+        // receiver, or an `int` receiver modulo'd by a `double` / `customDouble`
+        // operand or a fractional literal). Detect that here so the dialects whose
+        // `%` operator rejects floating-point operands (PostgreSQL, SQL Server) can
+        // switch to their numeric form regardless of which side is the double.
+        // Pure integer / bigint operands keep the plain `%` form (those engines
+        // accept it).
+        if (columnType === 'double' || columnType === 'customDouble') {
+            return true
+        }
+        if (isValueSource(value)) {
+            const valueType = __getValueSourcePrivate(value).__valueType
+            return valueType === 'double' || valueType === 'customDouble'
+        }
+        return typeof value === 'number' && !Number.isInteger(value)
+    }
     _power(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         return 'power(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false) + ')'
     }

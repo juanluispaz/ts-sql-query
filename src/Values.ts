@@ -1,7 +1,7 @@
 import type { BooleanValueSource, NumberValueSource, StringValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, EqualableValueSource, ComparableValueSource, BigintValueSource, UuidValueSource, IBooleanValueSource, INumberValueSource, IBigintValueSource, IStringValueSource, IUuidValueSource, ILocalDateValueSource, ILocalTimeValueSource, ILocalDateTimeValueSource, IEqualableValueSource, IComparableValueSource, AnyValueSource, ValueType, CustomIntValueSource, CustomDoubleValueSource, CustomUuidValueSource, CustomLocalDateTimeValueSource, ICustomIntValueSource, ICustomDoubleValueSource, ICustomUuidValueSource, ICustomLocalDateValueSource, ICustomLocalTimeValueSource, ICustomLocalDateTimeValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource } from './expressions/values.js'
 import { __getValueSourcePrivate, isValueSource } from './expressions/values.js'
 import type { HasIsValue, IValues, IWithView, NoTableOrViewRequiredOfSameDB } from './utils/ITableOrView.js'
-import { __addWiths, __registerRequiredColumn, __registerTableOrView } from './utils/ITableOrView.js'
+import { __addWiths, __registerRequiredColumn, __registerTableOrView, __getTableOrViewPrivate } from './utils/ITableOrView.js'
 import type { TypeAdapter } from './TypeAdapter.js'
 import type { AliasedTableOrView, AsAliasedForUseInLeftJoin, AsForUseInLeftJoin } from './utils/tableOrViewUtils.js'
 import { __getColumnPrivate, isColumn } from './utils/Column.js'
@@ -49,6 +49,7 @@ class ValuesOf</*in|out*/ SOURCE extends NValues<any, any>> implements IValues<S
         result.__as = as
         result.__source = this.__source || this
         result.__setColumnsName(result as any, '')
+        __getTableOrViewPrivate(this).__customizationApply?.(result)
         return result as any
     }
     forUseInLeftJoin(): AsForUseInLeftJoin<this> {
@@ -61,6 +62,7 @@ class ValuesOf</*in|out*/ SOURCE extends NValues<any, any>> implements IValues<S
         result.__source = this.__source || this
         result.__setColumnsName(result as any, '')
         __setColumnsForLeftJoin(result as any)
+        __getTableOrViewPrivate(this).__customizationApply?.(result)
         return result as any
     }
 

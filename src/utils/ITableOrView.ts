@@ -120,6 +120,12 @@ export interface __ITableOrViewPrivate extends IQueryDataDiscovery {
     __forUseInLeftJoin?: boolean | undefined
     __template?: RawFragment<any> | undefined
     __customizationName?: string | undefined
+    // Re-applies the table/view customization (set by createTableOrViewCustomization)
+    // to a freshly cloned table/view so the customization template — which embeds
+    // the table's name and alias — re-binds to the clone's alias instead of being
+    // frozen against the table state at customization time. Called by `as()` /
+    // `forUseInLeftJoinAs()` when cloning a customized table/view.
+    __customizationApply?: ((target: AnyTableOrView) => void) | undefined
     __oldValues?: boolean | undefined
     __valuesForInsert?: boolean | undefined
     __hasExternalDependencies?: boolean | undefined

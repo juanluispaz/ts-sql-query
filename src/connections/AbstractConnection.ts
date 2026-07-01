@@ -3,7 +3,7 @@ import type { InsertExpression } from '../expressions/insert.js'
 import type { UpdateExpression, UpdateExpressionAllowingNoWhere } from '../expressions/update.js'
 import type { DeleteExpression, DeleteExpressionAllowingNoWhere } from '../expressions/delete.js'
 import type { BooleanValueSource, NumberValueSource, StringValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, EqualableValueSource, ComparableValueSource, IfValueSource, IComparableValueSource, INumberValueSource, IStringValueSource, IExecutableSelectQuery, BigintValueSource, IBigintValueSource, AlwaysIfValueSource, ValueSourceOf, RemapValueSourceTypeWithOptionalType, IValueSource, UuidValueSource, IExecutableInsertQuery, IExecutableUpdateQuery, IExecutableDeleteQuery, AggregatedArrayValueSourceProjectableAsNullable, AggregatedArrayValueSource, ValueType, CustomIntValueSource, CustomDoubleValueSource, CustomUuidValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource, CustomLocalDateTimeValueSource, ICustomIntValueSource, ICustomDoubleValueSource, AnyValueSource } from '../expressions/values.js'
-import type { NoTableOrViewRequired, ITableOrView, ITable, SameDB, HasSource, ForUseInLeftJoin } from '../utils/ITableOrView.js'
+import type { NoTableOrViewRequired, ITableOrView, ITable, SameDB, HasSource, ForUseInLeftJoin, AnyTableOrView } from '../utils/ITableOrView.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import type { SelectExpression, SelectExpressionFromNoTable, SelectExpressionSubquery } from '../expressions/select.js'
 import type { TypeAdapter, DefaultTypeAdapter } from '../TypeAdapter.js'
@@ -1029,14 +1029,23 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     protected createTableOrViewCustomization<P1, P2, P3, P4, P5>(fn: (table: ValueSourceOf<NNoTableOrViewRequired<DB>>, alias: ValueSourceOf<NNoTableOrViewRequired<DB>>, p1: P1, p2: P2, p3: P3, p4: P4, p5: P5) => RawFragment<NNoTableOrViewRequired<DB>>): (<T extends ITableOrView<any>, NAME extends string>(tableOrView: T & SameDB<DB>, name: NAME, p1: P1, p2: P2, p3: P3, p4: P4, p5: P5) => CustomizedTableOrView<T, NAME>)
     protected createTableOrViewCustomization(fn: (table: ValueSourceOf<NNoTableOrViewRequired<DB>>, alias: ValueSourceOf<NNoTableOrViewRequired<DB>>, ...params: any[]) => RawFragment<NNoTableOrViewRequired<DB>>): (<T extends ITableOrView<any>, NAME extends string>(tableOrView: T, name: NAME, ...params: any[]) => CustomizedTableOrView<T, NAME>) {
         return (tableOrView: ITableOrView<any>, name: string, ...params: any[]) => {
+            // `apply` (re)builds the customization template bound to a specific
+            // table/view instance. It is stashed on the result so that when the
+            // wrapper is later re-aliased or made left-joinable (`as(...)` /
+            // `forUseInLeftJoinAs(...)` clone into a fresh instance), the clone can
+            // re-bind the template — and its embedded name/alias fragments — to
+            // itself instead of keeping the alias frozen at customization time.
+            const apply = (target: AnyTableOrView) => {
+                const table = new TableOrViewRawFragmentValueSource(target, '_rawFragmentTableName')
+                const alias = new TableOrViewRawFragmentValueSource(target, '_rawFragmentTableAlias')
+                const p = __getTableOrViewPrivate(target)
+                p.__template = fn(table, alias, ...params)
+                p.__customizationName = name
+                p.__customizationApply = apply
+            }
             const as = __getTableOrViewPrivate(tableOrView).__as
             const result = (tableOrView as any).as(as)
-            const table = new TableOrViewRawFragmentValueSource(result, '_rawFragmentTableName')
-            const alias = new TableOrViewRawFragmentValueSource(result, '_rawFragmentTableAlias')
-            const template = fn(table, alias, ...params)
-            const p = __getTableOrViewPrivate(result)
-            p.__template = template
-            p.__customizationName = name
+            apply(result)
             return result as any
         }
     }

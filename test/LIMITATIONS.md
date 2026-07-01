@@ -214,6 +214,34 @@ expression on SQL Server) and the API is callable — a deliberate gap,
 not a permanent dialect frontier. Ordering a result set by a bare
 constant is a no-op sort, so the payoff for closing it is low.
 
+## SQLite's `%` operator truncates floating-point operands to integers
+
+SQLite's modulo operator converts **both** operands to integers before the
+operation (verified against a real engine: `select 2 % 1.5` → `0`, and
+`select 2.0 % 1.5` → `0`, because `1.5` is first truncated to `1` and
+`2 % 1 = 0`). SQLite ships no built-in floating-point modulo function, so a
+`modulo` that involves a fractional value cannot produce a fractional
+remainder there. The library emits the plain `<a> % <b>` form on SQLite (the
+`AbstractSqlBuilder` default) — valid SQL that the engine accepts, it just
+silently loses the fraction.
+
+This is distinct from PostgreSQL / SQL Server, whose `%` operator *rejects*
+floating-point operands outright; for those the library emits a numeric-cast
+form (`mod((…)::numeric, (…)::numeric)` / `cast(… as numeric(38,16)) % …`).
+SQLite has no equivalent target, so the operation is left as-is.
+
+**What this means for tests** — a `modulo` test whose correctness depends on
+the fraction surviving (e.g. `int.modulo(double)` asserting `2 mod 1.5 = 0.5`)
+cannot run on SQLite. The `int-receiver-modulo-double-column-promotes-result-to-double`
+test in `sqlite/newest/*/select.numeric-overloaded-promotion.test.ts` is
+therefore gated with `TODO[LIMITATION]` (full canonical body preserved). Tests
+that modulo a floating-point value source whose value happens to be a whole
+number (e.g. `billedAmount.modulo(3)` with `billed_amount = 200`) are safe
+because the truncation changes nothing. This stays `TODO[LIMITATION]` rather
+than `NOT-APPLICABLE` because the API is callable on SQLite and the library
+could close the gap (e.g. by registering a custom float-modulo function where
+the connector supports user-defined functions).
+
 ## Query introspection (`__isAllowed`) has no public API yet — tests reach internals via a single helper
 
 ts-sql-query carries a parallel `__isAllowed` web threaded through

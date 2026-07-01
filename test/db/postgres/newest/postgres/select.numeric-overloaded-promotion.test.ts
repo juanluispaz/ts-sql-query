@@ -84,10 +84,6 @@ describe(ctx.label, () => {
         })
     })
 
-    // TODO[BUG]: see test/BUGS.md — int.modulo(double-column) emits plain
-    // `priority % estimated_hours` (PostgreSQL rejects `integer % double
-    // precision`); the block below is the intended post-fix canonical body.
-    /*
     test('int-receiver-modulo-double-column-promotes-result-to-double', async () => {
         // `priority.modulo(estimatedHours)` — the int-side mirror of the
         // `double % x` arm. The right operand is a `double` column, so the
@@ -119,7 +115,6 @@ describe(ctx.label, () => {
             expect(row).toEqual(expected)
         })
     })
-    */
 
     test('int-receiver-maxValue-double-column-promotes-result-to-double', async () => {
         // `priority.maxValue(estimatedHours)` caps the receiver from above

@@ -15,27 +15,15 @@
 // and an ORDER BY pins the order. Mocks are primed with the RAW merged rows.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
+import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { tAppUser, tIssue } from '../../domain/connection.js'
 import { ctx } from './setup.js'
-
-// `test` / `expect` / `tIssue` / `tAppUser` are referenced only from the
-// block-commented TODO[BUG] tests below; void them so noUnusedLocals stays happy.
-// (The commented bodies also use `assertType` / `Exact`; restore that import when
-// the bug is fixed and the tests are uncommented.)
-void test
-void expect
-void tIssue
-void tAppUser
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // TODO[BUG]: see test/BUGS.md — projectingOptionalValuesAsNullable() is not
-    // exposed on CompoundedExecutableSelectExpression though the runtime honors
-    // it; the body below is the intended (runtime-correct) post-fix canonical.
-    /*
     test('compound-optional-flat-leaf-as-nullable-surfaces-null', async () => {
         // Two union arms project a flat optional `body`. Under
         // `projectingOptionalValuesAsNullable()` the merged result keeps a null
@@ -58,7 +46,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as body from issue where id = $1 union select id as iid, body as body from issue where id = $2 order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, \`body\` as \`body\` from issue where id = ? union select id as iid, \`body\` as \`body\` from issue where id = ? order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -70,11 +58,7 @@ describe(ctx.label, () => {
         // Issue 1's null body is PRESENT-NULL under the nullable projector.
         expect('body' in rows[0]!).toBe(true)
     })
-    */
 
-    // TODO[BUG]: see test/BUGS.md — same typed-surface gap for a left-joined
-    // nested object re-projected through the compound; intended body below.
-    /*
     test('compound-optional-left-joined-object-as-nullable-surfaces-null', async () => {
         // Two union arms project an `assignee` object built from a LEFT-JOINED
         // app_user, so the object is optional (rule-2). Under the nullable
@@ -104,7 +88,7 @@ describe(ctx.label, () => {
             .orderBy('iid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, app_user.id as "assignee.id", app_user.full_name as "assignee.name" from issue left join app_user on app_user.id = issue.assignee_id where issue.id = $1 union select issue.id as iid, app_user.id as "assignee.id", app_user.full_name as "assignee.name" from issue left join app_user on app_user.id = issue.assignee_id where issue.id = $2 order by iid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, app_user.id as \`assignee.id\`, app_user.full_name as \`assignee.name\` from issue left join app_user on app_user.id = issue.assignee_id where issue.id = ? union select issue.id as iid, app_user.id as \`assignee.id\`, app_user.full_name as \`assignee.name\` from issue left join app_user on app_user.id = issue.assignee_id where issue.id = ? order by iid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -120,5 +104,4 @@ describe(ctx.label, () => {
         expect('assignee' in rows[1]!).toBe(true)
         expect(rows[1]!.assignee).toBe(null)
     })
-    */
 })

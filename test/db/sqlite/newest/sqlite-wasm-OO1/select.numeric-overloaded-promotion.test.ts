@@ -84,17 +84,15 @@ describe(ctx.label, () => {
         })
     })
 
-    // TODO[BUG]: see test/BUGS.md — int.modulo(double-column) emits plain
-    // `priority % estimated_hours` (PostgreSQL rejects `integer % double
-    // precision`); the block below is the intended post-fix canonical body.
+    // TODO[LIMITATION]: see LIMITATIONS.md — SQLite's `%` converts both operands to integers before the modulo, so int.modulo(double) truncates the fraction (2 % 1.5 -> 2 % 1 = 0) instead of yielding 0.5; SQLite has no built-in float modulo.
     /*
     test('int-receiver-modulo-double-column-promotes-result-to-double', async () => {
         // `priority.modulo(estimatedHours)` — the int-side mirror of the
         // `double % x` arm. The right operand is a `double` column, so the
-        // dispatcher promotes the receiver to double and the dialect's `_modulo`
-        // override wraps both operands in a numeric cast. With
-        // estimated_hours = 1.5, issue 1 priority 2 mod 1.5 = 0.5; the fraction
-        // survives only because the operation is carried as double.
+        // dispatcher promotes the receiver to double, but SQLite's `%` converts
+        // both operands to integers before the modulo, so the fractional operand
+        // is truncated (2 % 1.5 becomes 2 % 1 = 0) and the intended 0.5 cannot
+        // survive — hence this is gated rather than asserting a wrong value.
         await ctx.withRollback(async () => {
             ctx.mockNext(1)
             await ctx.conn.update(tIssue)
@@ -109,7 +107,7 @@ describe(ctx.label, () => {
                 .select({ id: tIssue.id, rest: tIssue.priority.modulo(tIssue.estimatedHours) })
                 .executeSelectOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, mod((priority)::numeric, (estimated_hours)::numeric) as rest from issue where id = $1"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority % estimated_hours as rest from issue where id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

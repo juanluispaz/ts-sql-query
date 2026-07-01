@@ -35,8 +35,8 @@ describe(ctx.label, () => {
         // (matches). All seed projects have a matching org, but the left
         // join widens orgName to optional regardless. Filter to org-1
         // projects for determinism. The type widening and left-join wiring
-        // are what this pins; the hint comment is currently dropped on this
-        // path (see TODO[BUG] below).
+        // are what this pins — along with the `/*+ hint */` customization,
+        // which renders on the joined (customized) side.
         const expected = [
             { projectName: 'Internal tools', orgName: 'Acme Corp' },
             { projectName: 'Marketing site', orgName: 'Acme Corp' },
@@ -54,16 +54,9 @@ describe(ctx.label, () => {
             .orderBy('projectName')
             .executeSelectMany()
 
-        // TODO[BUG]: the `/*+ hint */` customization template is silently
-        // dropped when a `withSqlHint(t)` wrapper goes through
-        // `forUseInLeftJoin()` — the emitted FROM is a plain `left join
-        // organization` with no hint, although the type permits the call and
-        // a plain `selectFrom(customized)` does render the hint. Root cause:
-        // Table.forUseInLeftJoinAs() clones via `new this.constructor()` and
-        // copies only `__as`/`__forUseInLeftJoin`, not `__template` /
-        // `__customizationName`. See test/BUGS.md. The snapshot pins the
-        // current (hint-less) behavior so the suite stays green.
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.name as projectName, organization.name as orgName from project left join organization on organization.id = project.organization_id where project.organization_id = ? order by projectName"`)
+        // The `/*+ hint */` customization template survives
+        // `forUseInLeftJoin()` and renders on the joined (customized) side.
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.name as projectName, organization.name as orgName from project left join /*+ hint */ organization  on organization.id = project.organization_id where project.organization_id = ? order by projectName"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -71,6 +64,29 @@ describe(ctx.label, () => {
         `)
         // Left join → orgName widens to optional.
         assertType<Exact<typeof rows, Array<{ projectName: string; orgName?: string }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('table-customization: wrapper re-aliased as a select source keeps the hint', async () => {
+        // Re-aliasing a `withSqlHint(t)` wrapper with `.as(...)` keeps the
+        // `/*+ hint */` customization on the aliased source, matching the hint
+        // a plain `selectFrom(customized)` renders.
+        const expected = [{ orgName: 'Acme Corp' }]
+        ctx.mockNext(expected)
+        const tOrgCustom = ctx.conn.withSqlHint(tOrganization, 'tOrgCustomAlias').as('o')
+
+        const rows = await ctx.conn.selectFrom(tOrgCustom)
+            .where(tOrgCustom.id.equals(1))
+            .select({ orgName: tOrgCustom.name })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select "o".name as orgName from /*+ hint */ organization as "o" where "o".id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ orgName: string }>>>()
         expect(rows).toEqual(expected)
     })
 

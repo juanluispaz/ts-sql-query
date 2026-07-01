@@ -84,15 +84,11 @@ describe(ctx.label, () => {
         })
     })
 
-    // TODO[BUG]: see test/BUGS.md — int.modulo(double-column) emits plain
-    // `priority % estimated_hours` (PostgreSQL rejects `integer % double
-    // precision`); the block below is the intended post-fix canonical body.
-    /*
     test('int-receiver-modulo-double-column-promotes-result-to-double', async () => {
         // `priority.modulo(estimatedHours)` — the int-side mirror of the
         // `double % x` arm. The right operand is a `double` column, so the
-        // dispatcher promotes the receiver to double and the dialect's `_modulo`
-        // override wraps both operands in a numeric cast. With
+        // dispatcher promotes the receiver to double; Oracle's `_modulo` emits the
+        // built-in `MOD(...)`, which accepts the floating-point operand. With
         // estimated_hours = 1.5, issue 1 priority 2 mod 1.5 = 0.5; the fraction
         // survives only because the operation is carried as double.
         await ctx.withRollback(async () => {
@@ -109,7 +105,7 @@ describe(ctx.label, () => {
                 .select({ id: tIssue.id, rest: tIssue.priority.modulo(tIssue.estimatedHours) })
                 .executeSelectOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, mod((priority)::numeric, (estimated_hours)::numeric) as rest from issue where id = $1"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", mod(priority, estimated_hours) as "rest" from issue where id = :0"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -119,7 +115,6 @@ describe(ctx.label, () => {
             expect(row).toEqual(expected)
         })
     })
-    */
 
     test('int-receiver-maxValue-double-column-promotes-result-to-double', async () => {
         // `priority.maxValue(estimatedHours)` caps the receiver from above

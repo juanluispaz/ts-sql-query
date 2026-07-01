@@ -1,6 +1,6 @@
 import type { BooleanValueSource, NumberValueSource, StringValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, EqualableValueSource, ComparableValueSource, BigintValueSource, UuidValueSource, IBooleanValueSource, INumberValueSource, IBigintValueSource, IStringValueSource, IUuidValueSource, ILocalDateValueSource, ILocalTimeValueSource, ILocalDateTimeValueSource, IEqualableValueSource, IComparableValueSource, AnyValueSource, ValueType, CustomIntValueSource, CustomDoubleValueSource, CustomUuidValueSource, CustomLocalDateTimeValueSource, ICustomIntValueSource, ICustomDoubleValueSource, ICustomUuidValueSource, ICustomLocalDateValueSource, ICustomLocalTimeValueSource, ICustomLocalDateTimeValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource } from './expressions/values.js'
 import type { HasIsValue, IView, IWithView } from './utils/ITableOrView.js'
-import { __addWiths, __registerRequiredColumn, __registerTableOrView } from './utils/ITableOrView.js'
+import { __addWiths, __registerRequiredColumn, __registerTableOrView, __getTableOrViewPrivate } from './utils/ITableOrView.js'
 import type { TypeAdapter } from './TypeAdapter.js'
 import type { AliasedTableOrView, AsAliasedForUseInLeftJoin, AsForUseInLeftJoin } from './utils/tableOrViewUtils.js'
 import { DBColumnImpl } from './internal/DBColumnImpl.js'
@@ -36,6 +36,7 @@ class ViewOf</*in|out*/ SOURCE extends NView<any, any>> implements IView<SOURCE>
     as<ALIAS extends string>(as: ALIAS): AliasedTableOrView<this, ALIAS> {
         const result = new ((this as any).constructor)() as ViewOf<any>
         result.__as = as
+        __getTableOrViewPrivate(this).__customizationApply?.(result)
         return result as any
     }
     forUseInLeftJoin(): AsForUseInLeftJoin<this> {
@@ -46,6 +47,7 @@ class ViewOf</*in|out*/ SOURCE extends NView<any, any>> implements IView<SOURCE>
         result.__as = as
         result.__forUseInLeftJoin = true
         __setColumnsForLeftJoin(result as any)
+        __getTableOrViewPrivate(this).__customizationApply?.(result)
         return result as any
     }
 

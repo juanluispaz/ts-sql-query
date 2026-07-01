@@ -29,7 +29,7 @@
 > different bugs**. Coverage is blind to a path that *did* execute but whose
 > emitted SQL / result type / value is wrong — a type-vs-impl divergence on a
 > reachable-but-untested overload. That is exactly the class of bug this audit
-> caught in round 13 (`ShapedInsertOnConflictSetsExpression` → a real
+> has caught (e.g. `ShapedInsertOnConflictSetsExpression` → a real
 > MariaDB/MySQL `ON DUPLICATE KEY UPDATE` fix, commit `1149a866`), which **no
 > coverage report would have surfaced**. Use this runbook to drive the suite
 > toward *total coverage of the typed surface*; use the coverage runbook to
@@ -44,10 +44,11 @@
 > "too small to test": a distinct reachable overload / interface / per-receiver
 > method / arity / kind / classification gets a test even when its output
 > coincides with a covered one. This is not completeness theatre — it is a
-> **proven bug-finding method**. Round 13 surfaced the shaped-ON-CONFLICT bug
-> above; round 14's maximalist pass surfaced **further real `src/` bugs as its
-> findings were implemented**. Every time the bar was *lowered* ("this is
-> borderline / degenerate / low-value, skip it") it skipped over a real defect.
+> **proven bug-finding method** — the confirmed defects it has surfaced are
+> catalogued in §9, and each maximalist pass has tended to surface **more real
+> `src/` bugs as its findings were implemented**. Every time the bar was
+> *lowered* ("this is borderline / degenerate / low-value, skip it") it skipped
+> over a real defect.
 > Hold the bar high; **prefer erring by excess**. The cost of an extra test is
 > minutes; the cost of an unasserted typed capability is a latent bug no coverage
 > report can see.
@@ -143,7 +144,7 @@ findings into baked tests is a *separate* user-initiated step — the back half
 of [`COVERAGE_RUNBOOK.md`](./COVERAGE_RUNBOOK.md).)
 
 ```
-   §6  Wave 1      ~12–16 discovery agents in parallel, one per surface.
+   §6  Wave 1      ~16 discovery agents (one per surface), ≤10 running at once.
                    Each RAW-READS its slice of src/ (TYPES only), builds an
                    exhaustive enumeration matrix, checks each cell against the
                    CURRENT test files, and reports INLINE: §A / §B / §C + counts.
@@ -225,9 +226,9 @@ discovery agents are told to do the same (§6).
 ## The degeneracy bar
 
 This is the rule the whole method turns on, and the one most easily gotten
-wrong. **It was deliberately narrowed mid-effort** (the early rounds were too
-quick to dismiss; round 13 shipped a bug fix for a path a prior round had
-called "borderline / not reachable"). Carry the narrowed bar:
+wrong. **It was deliberately narrowed mid-effort** — early passes were too
+quick to dismiss, and a path one pass had called "borderline / not reachable"
+later shipped a real bug fix (commit `1149a866`). Carry the narrowed bar:
 
 > **A path is DEGENERATE only when ALL of:** it is the **same overload** reached
 > through a **shared dispatcher**, the only difference is a **kind-string**, the
@@ -308,14 +309,15 @@ reasoning carries to the whole matrix and why a §B fixture added to the shared
 
 ## Wave 1 — discovery agents
 
-Fan out ~12–16 general-purpose agents **in parallel**, one per surface. Each is
-an exhaustive enumerator of its slice.
+Fan out ~16 general-purpose agents (one per surface), **up to 10 running
+concurrently** (see Launch mechanics). Each is an exhaustive enumerator of its
+slice.
 
 ### Launch mechanics (how to actually fan out)
 
 Spawn each surface as its own sub-agent with the harness's **Agent** tool
-(`subagent_type: general-purpose`). **Emit all N Agent calls in a single
-assistant message** so they run concurrently — one message, N tool-uses. Each
+(`subagent_type: general-purpose`). Emit several Agent calls per assistant message
+so they run concurrently — one message, multiple tool-uses. Each
 agent's **final message is returned to you as that tool's result**; the agents
 *cannot* reliably write files (see the gotchas), so that inline final message
 *is* the deliverable you aggregate in §7. You are notified as each completes —
@@ -323,6 +325,18 @@ collect them as they land; do not block. If an agent comes back confused, empty,
 or mid-task, **continue it in place with the SendMessage tool** (correct it:
 "report inline, no files, resolve exactly X") to recover its in-progress work
 rather than starting over. `run_in_background` is optional; the default is fine.
+
+**Keep no more than 10 agents in flight at once — do NOT launch all ~16
+simultaneously.** Launching the full fan-out at once has *repeatedly* tripped a
+**server-side rate limit** (the "Server is temporarily limiting requests — not
+your usage limit" error), which kills agents mid-run with no report (you'll see a
+tiny tool_uses count and an API-error result instead of a §A/§B/§C report). Open
+with a wave of up to ~10 (lead with the largest/most-bug-prone surfaces — the
+parity sweep, EQCMP, CONN, INSERT), then top up as each drains so the in-flight
+count stays **≤ 10**. **A surface killed by the rate limit produced no findings —
+re-dispatch it** (a fresh Agent call with the same prompt is simplest; solo or in
+a small batch). Track which surfaces have a *real* report vs. which were
+rate-limited so none is silently dropped.
 *(These are this harness's agent-orchestration primitives. On a different
 harness, use its equivalent spawn / message / collect tools — the discipline is
 identical: one parallel fan-out, inline results, in-place correction.)*
@@ -337,7 +351,7 @@ the wrong direction and biases you toward what exists. You **may** grep the
 coordinator (§7) uses the searcher/compile-repro for reachability. Discovery =
 read the types; coverage-check = grep the tests.
 
-### The surface decomposition (≈16 agents)
+### The surface decomposition (≈16 surfaces)
 
 Split fine enough that each agent's matrix is tractable. The value-source leaf
 surface is the biggest fan-out and is split several ways:
@@ -462,9 +476,9 @@ fires). The coordinator is the adjudicator.
 **Always coordinator-verify:**
 
 1. **Cross-agent contradictions.** When two agents disagree, settle it by
-   direct inspection — never average them. (Round 12: the projector agent
-   flagged a rule-2 twin as missing; the SELECT agent said covered; a direct
-   read settled it covered. Round 14: the equality agent claimed ~150 direct
+   direct inspection — never average them. (In one case a projector agent
+   flagged a rule-2 twin as missing while the SELECT agent said covered; a direct
+   read settled it covered. In another, an equality agent claimed ~150 direct
    gaps while the dynamic agent reported its surface saturated — a targeted
    grep showed *both* right, scoped: the **dynamic** path covers every
    operator×type, the **direct** fluent path is sparse on non-int/non-string
@@ -483,9 +497,9 @@ fires). The coordinator is the adjudicator.
      (`validate:tests` runs **tsgo** over `test/tsconfig.json`; under `npm` it
      needs the separator: `npm run validate:tests --`. Full command/flag
      vocabulary — `tests <coord>`, the runner flags — is in [`CLI.md`](./CLI.md).)
-   - **Delete the repro and confirm `git status --porcelain` is clean.** (Round
-     13 proved `shapedAs().set().onConflictOn(c).doUpdateDynamicSet()` reachable
-     on PG this way, overturning a prior "not reachable" verdict.)
+   - **Delete the repro and confirm `git status --porcelain` is clean.** (This
+     recipe once proved `shapedAs().set().onConflictOn(c).doUpdateDynamicSet()`
+     reachable on PG, overturning a prior "not reachable" verdict.)
 3. **Absence at scale.** For any "this whole class is untested" claim, run the
    wide-grep yourself (`grep -rhoE "<col>\.(equals|notEquals|…)" test/db | sort
    | uniq -c`) rather than trusting the count.
@@ -542,8 +556,9 @@ these first; they are where output-coincidence most often masks a real defect:
    the whole method surface tested on a `'required'` receiver but never an
    `'optional'` one (a fixture column may exist but be fed into *zero* methods).
 2. **Shaped builders.** `shapedAs(...)` reaches a parallel, re-typed interface
-   (shape-renamed keys) for INSERT and UPDATE set/on-conflict — historically
-   tested on a single route. **This is the bug class** (the round-13 fix).
+   (shape-renamed keys) for INSERT and UPDATE set/on-conflict — easy to leave
+   tested on a single route. **This is the canonical bug class** (see the §9
+   ledger).
 3. **Trailing-`adapter?` fan-out.** The optional trailing `TypeAdapter` overload
    on `const`/`optionalConst`/`fragmentWithType`/`aggregateFragmentWithType`/
    `executeFunction`/`sequence`/`arg`/`valueArg` — tested for one kind, and some
@@ -563,6 +578,39 @@ these first; they are where output-coincidence most often masks a real defect:
 8. **Feature×feature compositions tested only alone** (`shaped × customizeQuery`,
    `shaped × returning`, brand-keep through `forUseAsInlineQueryValue`). The
    seam, not the feature, is the gap.
+9. **Adapter-bearing / custom-typed column fed into *any* non-`equals` method**
+   (the "operand outside WHERE / non-`equals` method" theme). An
+   adapter column (`scaledTenth` ×10, `bracket`, the custom-booleans) is almost always
+   tested only via `.equals` / bare projection — never fed into the *other* methods of
+   its value-source type, even though the adapter provably propagates to the bound
+   operand (`_appendValue` threads the column `typeAdapter`) **and** to a transform's
+   result leaf (which inherits `transformValueFromDB`). Two facets, both value-observable
+   and mock-blind (`--docker` PG/mssql/oracle):
+   - **other operand POSITIONS:** a JOIN `.on()` predicate, a correlated-subquery
+     `WHERE`, a `.having()` (vs the covered top-level `WHERE`).
+   - **other METHODS on the adapter column:** numeric ops (`score.add(5)` → operand
+     ×10 *and* result ÷10), string transforms (`reviewerCode.toUpperCase()` → result
+     re-brackets), `*IfValue` on a custom-boolean receiver (`published.equalsIfValue` —
+     remap ∩ elision), and boolean combinators on a custom-boolean receiver
+     (`published.negate()` → `not (published = 't')`). Also the factory side: the
+     trailing-`TypeAdapter` overload on factories where only the no-adapter form is
+     fixtured, and the **View per-column adapter read-path** (a separate code path from
+     Table — View returns the bare `DBColumnImpl`). Same fingerprint as themes 1/2/3.
+10. **Structural twin-interface parity** — the technique that has proved a shaped
+    bug *bigger* than its first report. For every family of "twin" interfaces —
+    shaped vs non-shaped, optional vs required, executable vs not-executable,
+    allowing-no-where vs normal, multiple vs single, from-select vs normal, compound vs
+    non-compound — diff the twin **method-by-method** against its sibling: a MISSING
+    method family, a DUPLICATED block, a wrong generic arg (`SHAPE` vs `undefined`,
+    required vs optional), a param-name typo, or a return type that silently drops a
+    type parameter is either a **type-vs-impl bug** (one such defect:
+    `ShapedInsertOnConflictSetsExpression` had a duplicated non-`When` block, a
+    *missing* `*When` family, and an `olumns` typo — the wrong block pasted; commit
+    `122458db`) or a missing-test path. Run this sweep on
+    `insert.ts`/`update.ts`/`delete.ts`/`select.ts` first; it is cheap (reading
+    types) and high-yield. Corollary coverage gap: once a twin is repaired, its newly-present
+    family (e.g. the on-conflict `*When` octet) is typically still *unexercised at runtime* —
+    exactly the copy-paste-prone surface where the next regression hides.
 
 A surface that is *genuinely saturated* even under the narrow bar is a real and
 reportable outcome — string value-source, boolean/if-value, dynamic-condition,
@@ -577,16 +625,16 @@ The durable proof the bar is worth holding (keep this list current — append ea
 confirmed `src/` defect a finding surfaces, with its fix pointer, so the track
 record survives the transient reports):
 
-- **Round 13 — shaped `INSERT … ON CONFLICT` key remapping.** The type
-  advertised shape-renamed keys in the on-conflict update-set
+- **Shaped `INSERT … ON CONFLICT` key remapping.** The type advertised
+  shape-renamed keys in the on-conflict update-set
   (`ShapedInsertOnConflictSetsExpression`); the impl didn't deliver it on
   MariaDB/MySQL `ON DUPLICATE KEY UPDATE`. Found by enumerating a *reachable
-  overload a prior round had dismissed as "borderline / not reachable"*; fixed
+  overload an earlier pass had dismissed as "borderline / not reachable"*; fixed
   in commit `1149a866`. Invisible to coverage (the lines executed; the remapping
-  was wrong).
-- **Round 14 — maximalist pass — two more, both "valid SQL on the covered path,
-  invalid on the untested sibling"** (filed in [`BUGS.md`](./BUGS.md); the live
-  entries are the source of truth):
+  was wrong). This is the canonical shaped-builder bug class (theme 2).
+- **Per-type numeric & compound-overload emission — two "valid SQL on the covered
+  path, invalid on the untested sibling" defects** (filed in [`BUGS.md`](./BUGS.md)
+  when found; the live entries are the source of truth):
   - **`modulo(...)` on a `double` / `customDouble`** emits `float % x`, which
     PostgreSQL rejects (`%` exists for `integer`/`numeric`, not `double
     precision`). The suite only ever exercised `modulo` on `int`/`bigint`/
@@ -597,14 +645,55 @@ record survives the transient reports):
     `rawFragment` order-by forms wrap the compound in `select * from (…)`, but
     the value-source overload doesn't. Found by the **compound-interface
     overload-subset** enumeration (theme 6 / the compound-order-by gap).
+- **Shaped UPDATE `*When` set family unusable as typed** (the shaped-key-remap
+  class above, resurfaced in a new arm). All 10 conditional set arms
+  (`setWhen`, `setIfValueWhen`, …) on `ShapedExecutableUpdateExpression` type their
+  `columns` param `UpdateSets<…, undefined>` (**unshaped**) while the non-When
+  siblings use `…SHAPE`. So the `*When` arms **reject** the renamed shape key the
+  runtime needs and **accept** only the real column keys the runtime then silently
+  drops (`__shape` is keyed by the renamed names) — the feature can't be used as
+  typed. Found by the **shaped-builder** enumeration (theme 2); **compile-verified**
+  by the coordinator (`setWhen(true,{projectName})` → TS2353; positive controls pass)
+  and confirmed against `UpdateQueryBuilder`. Filed in [`BUGS.md`](./BUGS.md) with a
+  source-confirmed milder INSERT sibling (static `onConflictDoUpdateSet` returns the
+  *non-shaped* node, so a chained shaped `.set` is type-rejected though the impl would
+  remap it). The lesson: **a shaped continuation that drops `SHAPE` from a param or a
+  return type is the highest-yield place to compile-repro** — always check the
+  shaped-vs-non-shaped param/return symmetry across the *whole* method family, not
+  just the happy-path `set`.
+- **Single-row insert `keepOnlyWhen` return type mis-folds `MISSING_KEYS`**
+  (the keep-tracking-parameter bug class — a further resurfacing of the
+  shaped / `*When` family of defects). On
+  `MissingKeysInsertExpression` (insert.ts:293) and its shaped twin
+  `ShapedMissingKeysInsertExpression` (:352), `keepOnlyWhen` returns
+  `Exclude<RequiredColumnsForSetOf<TABLE> | MISSING_KEYS, COLUMNS>` whereas the
+  runtime-identical `keepOnly` (:265) returns
+  `Exclude<RequiredColumnsForSetOf<TABLE>, COLUMNS> | MISSING_KEYS`. Since
+  `InsertQueryBuilder.keepOnlyWhen(true, ...c)` calls *exactly* `this.keepOnly(...c)`
+  (:1437-1442), the `when:true` result type must equal `keepOnly`'s — it doesn't:
+  `keepOnlyWhen` over-removes named columns from `MISSING_KEYS`, so naming all
+  required columns collapses `MISSING_KEYS` to `never` (typed executable) while
+  `keepOnly` keeps them missing (non-executable). Found by the **theme-10 parity
+  sweep**; **compile-verified** by the coordinator on both twins
+  (`assertType<Exact<keepOnly(all), keepOnlyWhen(true,all)>>` → TS2344 on both).
+  Filed in [`BUGS.md`](./BUGS.md). The multi-row twins and all executable insert
+  twins fold `MISSING_KEYS` correctly — only the single-row `MissingKeys` pair is
+  wrong. The lesson reinforces the shaped-`*When` entry above: **a `*When`
+  continuation that re-derives a key-tracking type parameter differently from its
+  non-`When` sibling is the highest-yield compile-repro** — diff the
+  `When`/non-`When` return types arm by arm, and use the runtime delegation
+  (`xWhen(true)≡x`) as the oracle for which side is correct.
 
-Pattern: **all three confirmed bugs lived on a path that "looked like the same
+Pattern: **all five confirmed bugs lived on a path that "looked like the same
 implementation" as a covered one** — int-modulo executed fine, so double-modulo's
 bad `%` stayed hidden; `orderBy('col')` on a compound executed fine, so
 `orderBy(valueSource)`'s missing wrap stayed hidden; the non-shaped on-conflict
-executed fine, so the shaped one's broken remap stayed hidden. Coverage was green
-through every one. That is the case *for* the narrow degeneracy bar (§4) and the
-maximalist standard (header) — restated as evidence, not principle.
+executed fine, so the shaped one's broken remap stayed hidden; the shaped `set`
+typed correctly, so the shaped `setWhen`'s dropped `SHAPE` stayed hidden; and
+`keepOnly` typed correctly, so the runtime-identical `keepOnlyWhen`'s mis-folded
+`MISSING_KEYS` stayed hidden. Coverage was green through every one (two weren't
+even reachable as typed). That is the case *for* the narrow degeneracy bar (§4)
+and the maximalist standard (header) — restated as evidence, not principle.
 
 ## Operational rules
 

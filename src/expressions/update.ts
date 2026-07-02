@@ -292,7 +292,7 @@ export interface UpdateSetExpression</*in|out*/ TABLE extends HasSource<any>, /*
 }
 
 export interface ShapedUpdateSetExpression</*in|out*/ TABLE extends HasSource<any>, /*in|out*/ USING extends HasSource<any>, /*in|out*/ SHAPE> extends UpdateExpressionBase<TABLE, USING> {
-    extendShape<EXTEND_SHAPE extends UpdateShape<TABLE, USING>>(shape: EXTEND_SHAPE): ShapedNotExecutableUpdateExpression<TABLE, USING, SHAPE & ResolveShape<TABLE, EXTEND_SHAPE>>
+    extendShape<EXTEND_SHAPE extends UpdateShape<TABLE, USING>>(shape: EXTEND_SHAPE): ShapedUpdateSetExpression<TABLE, USING, SHAPE & ResolveShape<TABLE, EXTEND_SHAPE>>
     dynamicSet(): ShapedNotExecutableUpdateExpression<TABLE, USING, SHAPE>
     dynamicSet(columns: UpdateSets<TABLE, USING, SHAPE>): ShapedNotExecutableUpdateExpression<TABLE, USING, SHAPE>
     set(columns: UpdateSets<TABLE, USING, SHAPE>): ShapedNotExecutableUpdateExpression<TABLE, USING, SHAPE>

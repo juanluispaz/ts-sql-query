@@ -13,7 +13,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue } from '../../domain/connection.js'
+import { tIssue, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -242,5 +242,79 @@ describe(ctx.label, () => {
             title: string
             depth: number
         }>>>()
+    })
+
+    test('recursive-one-column-inline-scalar-value', async () => {
+        // A one-column recursive select used as an inline scalar subquery
+        // via `forUseAsInlineQueryValue()`. The generated recursive CTE is
+        // hoisted to the top-level `with recursive` and referenced by the
+        // scalar subquery in the outer select list. Every seeded issue
+        // leaves `parent_id` NULL, so the traversal from a single anchor
+        // returns exactly that one row and the scalar subquery yields a
+        // single value.
+        const expected = [{ id: 1, root: 1 }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        const rootIssueId = connection.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .selectOneColumn(tIssue.id)
+            .recursiveUnionAllOn((child) => tIssue.parentId.equals(child.result))
+            .forUseAsInlineQueryValue()
+
+        const result = await connection.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ id: tProject.id, root: rootIssueId })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as result from issue where id = ? union all select issue.id as result from issue join recursive_select_1 on issue.parent_id = recursive_select_1.result) select id as id, (select result as result from recursive_select_1) as root from project where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{
+            id:    number
+            root?: number
+        }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('recursive-one-column-inline-aggregated-array-value', async () => {
+        // Sibling of the scalar case: the one-column recursive select used
+        // as an inline aggregated-array value via
+        // `forUseAsInlineAggregatedArrayValue()`. The single column is
+        // aggregated as a scalar array (one element per row), NOT wrapped
+        // in a per-element object -- matching the non-recursive one-column
+        // aggregated-array shape. The traversal from a single anchor over
+        // the NULL-`parent_id` seed yields a one-element array.
+        const expected = [{ id: 1, tree: [1] }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        const tree = connection.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .selectOneColumn(tIssue.id)
+            .recursiveUnionAllOn((child) => tIssue.parentId.equals(child.result))
+            .forUseAsInlineAggregatedArrayValue()
+
+        const result = await connection.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ id: tProject.id, tree })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as result from issue where id = ? union all select issue.id as result from issue join recursive_select_1 on issue.parent_id = recursive_select_1.result) select id as id, (select json_arrayagg(result) from recursive_select_1) as tree from project where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{
+            id:   number
+            tree: number[]
+        }>>>()
+        expect(result).toEqual(expected)
     })
 })

@@ -6,11 +6,20 @@ import type { NSource } from '../utils/sourceName.js'
  * Reasign all columns to in a with view
  */
 
-export type ColumnsForWithView<SOURCE extends NSource, COLUMNS> = Expand<
-    { [K in UsableKeyOf<COLUMNS>]: 
+export type ColumnsForWithView<SOURCE extends NSource, COLUMNS> =
+    // A one-column select (`selectOneColumn(...)`) carries the column itself as
+    // COLUMNS instead of an object of named columns. At runtime it is stored
+    // under the `result` key (the same name the inline-value path reads), so the
+    // with view exposes a single `result` column — mirror that in the type
+    // instead of collapsing to `{}` (which would leave the recursive member with
+    // no column to join on).
+    COLUMNS extends AnyValueSource
+    ? Expand<{ result: RemapValueSourceTypeWithOptionalType<SOURCE, COLUMNS, OptionalTypeForWith<COLUMNS>> }>
+    : Expand<
+    { [K in UsableKeyOf<COLUMNS>]:
         COLUMNS[K] extends AnyValueSource | undefined
-        ? RemapValueSourceTypeWithOptionalType<SOURCE, COLUMNS[K], OptionalTypeForWith<COLUMNS[K]>> 
-        : ColumnsForWithView2<SOURCE, COLUMNS[K]> 
+        ? RemapValueSourceTypeWithOptionalType<SOURCE, COLUMNS[K], OptionalTypeForWith<COLUMNS[K]>>
+        : ColumnsForWithView2<SOURCE, COLUMNS[K]>
     }
 >
 

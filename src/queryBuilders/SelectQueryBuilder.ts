@@ -589,6 +589,7 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
         for (let columnName in currentColumns) {
             columns[columnName] = (recursiveView as any)[columnName]
         }
+        recursiveSelect.__oneColumn = this.__oneColumn
         recursiveSelect.__subSelectUsing = this.__subSelectUsing
         recursiveSelect.__projectOptionalValuesAsNullable = this.__projectOptionalValuesAsNullable
 

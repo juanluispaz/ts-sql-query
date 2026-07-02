@@ -4,7 +4,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tOrganization, tIssueWorklog, tProject, tProjectRelease, tProjectReview } from '../../domain/connection.js'
+import { tIssue, tOrganization, tIssueWorklog, tProject, tProjectRelease, tProjectReview, vReleaseOverview } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -701,6 +701,76 @@ describe(ctx.label, () => {
             }>>>()
             expect(rows).toEqual(expected)
         })
+    })
+
+    test('view-custom-localdate-getters', async () => {
+        // The custom-localDate getters through a VIEW column (the table side is
+        // covered by custom-localdate-remaining-getters). vReleaseOverview.releasedOn
+        // is a required customLocalDate ('ReleaseDay'), so getFullYear/getMonth/
+        // getDate/getDay each project a required `number`. Release 1 through the
+        // view: released_on 2024-01-15 (a Monday) -> year 2024, month 0 (January,
+        // JS 0-indexed), date 15, day-of-week 1.
+        const expected = [{ y: 2024, mo: 0, d: 15, dow: 1 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(1))
+            .select({
+                y:   vReleaseOverview.releasedOn.getFullYear(),
+                mo:  vReleaseOverview.releasedOn.getMonth(),
+                d:   vReleaseOverview.releasedOn.getDate(),
+                dow: vReleaseOverview.releasedOn.getDay(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from released_on) as "y", extract(month from released_on) - 1 as "mo", extract(day from released_on) as "d", mod(trunc(released_on) - trunc(released_on, 'IW') + 1, 7) as "dow" from release_overview where id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ y: number; mo: number; d: number; dow: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('view-custom-localdatetime-optional-getters', async () => {
+        // The full custom-localDateTime getter set through a VIEW column (the
+        // table side is covered by custom-localdatetime-optional-getters).
+        // vReleaseOverview.signedOffAt is an OPTIONAL customLocalDateTime
+        // ('SignOffStamp') — the sole optional-custom-localDateTime column on any
+        // View — so every getter carries the optional marker to a `?: number`
+        // leaf. Release 1 through the view: signed_off_at 2024-01-14 12:30:00 (a
+        // Sunday) -> year 2024, month 0, date 14, day-of-week 0, hours 12, minutes
+        // 30, seconds 0, milliseconds 0, and getTime epoch millis.
+        const expected = [{
+            y: 2024, mo: 0, d: 14, dow: 0, h: 12, m: 30, s: 0, ms: 0,
+            t: Date.UTC(2024, 0, 14, 12, 30, 0),
+        }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(1))
+            .select({
+                y:   vReleaseOverview.signedOffAt.getFullYear(),
+                mo:  vReleaseOverview.signedOffAt.getMonth(),
+                d:   vReleaseOverview.signedOffAt.getDate(),
+                dow: vReleaseOverview.signedOffAt.getDay(),
+                h:   vReleaseOverview.signedOffAt.getHours(),
+                m:   vReleaseOverview.signedOffAt.getMinutes(),
+                s:   vReleaseOverview.signedOffAt.getSeconds(),
+                ms:  vReleaseOverview.signedOffAt.getMilliseconds(),
+                t:   vReleaseOverview.signedOffAt.getTime(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from signed_off_at) as "y", extract(month from signed_off_at) - 1 as "mo", extract(day from signed_off_at) as "d", mod(trunc(signed_off_at) - trunc(signed_off_at, 'IW') + 1, 7) as "dow", extract(hour from signed_off_at) as "h", extract(minute from signed_off_at) as "m", trunc(extract(second from signed_off_at)) as "s", to_number(to_char(signed_off_at, 'FF3')) as "ms", extract(day from(sys_extract_utc(signed_off_at) - to_timestamp('1970-01-01', 'YYYY-MM-DD'))) * 86400000 + to_number(to_char(sys_extract_utc(signed_off_at), 'SSSSSFF3')) as "t" from release_overview where id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            y?: number | undefined; mo?: number | undefined; d?: number | undefined
+            dow?: number | undefined; h?: number | undefined; m?: number | undefined
+            s?: number | undefined; ms?: number | undefined; t?: number | undefined
+        }>>>()
+        expect(rows).toEqual(expected)
     })
 
 })

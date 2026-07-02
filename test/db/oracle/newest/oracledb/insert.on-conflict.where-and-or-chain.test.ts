@@ -191,4 +191,119 @@ describe(ctx.label, () => {
         })
     })
     */
+// NOT-APPLICABLE: Oracle has no INSERT…ON CONFLICT (uses MERGE)
+    /*
+    test('do-update-set-where-continuation-carries-returning-one-column', async () => {
+        // The DO UPDATE WHERE-continuation node still exposes the RETURNING
+        // surface: `.where(cond).returningOneColumn(col)`. The WHERE can suppress
+        // the update, so the result is None-or-One (`number | null`). tProject has
+        // UNIQUE (organization_id, slug); (1, 'mktg-site') collides with the seed
+        // and the WHERE (name differs from the new value) holds, so the row is
+        // updated and its id comes back.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const id = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, slug: 'mktg-site', name: 'Upd where col' })
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doUpdateSet({ name: 'Upd where col' })
+                .where(tProject.name.notEquals('Upd where col'))
+                .returningOneColumn(tProject.id)
+                .executeInsertNoneOrOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values ($1, $2, $3) on conflict (organization_id, slug) do update set name = $4 where project.name <> $5 returning id as result"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "mktg-site",
+                "Upd where col",
+                "Upd where col",
+                "Upd where col",
+              ]
+            `)
+            assertType<Exact<typeof id, number | null>>()
+            expect(id).toBe(1)
+        })
+    })
+    */
+
+// NOT-APPLICABLE: Oracle has no INSERT…ON CONFLICT (uses MERGE)
+    /*
+    test('do-update-set-where-and-or-chain-then-returning-object', async () => {
+        // The `.where(c1).and(c2).or(c3)` compound DO UPDATE predicate followed by
+        // `.returning({obj})` — the and/or-chained WHERE node still carries the
+        // full RETURNING surface. The update fires (name differs, not archived),
+        // so {id, name} come back; None-or-One because the WHERE can suppress.
+        const expected = { id: 1, name: 'Upd chain' }
+        ctx.mockNext(expected)
+        await ctx.withRollback(async () => {
+            const row = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, slug: 'mktg-site', name: 'Upd chain' })
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doUpdateSet({ name: 'Upd chain' })
+                .where(tProject.name.notEquals('Upd chain'))
+                    .and(tProject.archivedAt.isNull())
+                    .or(tProject.published.equals(false))
+                .returning({ id: tProject.id, name: tProject.name })
+                .executeInsertNoneOrOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values ($1, $2, $3) on conflict (organization_id, slug) do update set name = $4 where (project.name <> $5 and project.archived_at is null) or (project.published = 't') = $6 returning id as id, name as name"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "mktg-site",
+                "Upd chain",
+                "Upd chain",
+                "Upd chain",
+                false,
+              ]
+            `)
+            assertType<Exact<typeof row, { id: number, name: string } | null>>()
+            expect(row).toEqual(expected)
+        })
+    })
+    */
+
+// NOT-APPLICABLE: Oracle has no INSERT…ON CONFLICT (uses MERGE)
+    /*
+    test('multi-row-do-update-set-where-returning-object', async () => {
+        // Multi-row VALUES + targeted on-conflict + a partial-update WHERE +
+        // `returning({obj})` (executeInsertMany). `doUpdateSet` uses a
+        // `valuesForInsert()` RHS so each conflicting row updates to its own
+        // attempted name; the WHERE (archived_at is null) holds for both existing
+        // projects 1 ('mktg-site') and 2 ('tools'), so DO UPDATE produces a row
+        // for each and RETURNING yields their {id, name}.
+        const expected = [
+            { id: 1, name: 'Upd A' },
+            { id: 2, name: 'Upd B' },
+        ]
+        ctx.mockNext(expected)
+        await ctx.withRollback(async () => {
+            const rows = await ctx.conn.insertInto(tProject)
+                .values([
+                    { organizationId: 1, slug: 'mktg-site', name: 'Upd A' },
+                    { organizationId: 1, slug: 'tools', name: 'Upd B' },
+                ])
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doUpdateSet({ name: tProject.valuesForInsert().name })
+                .where(tProject.archivedAt.isNull())
+                .returning({ id: tProject.id, name: tProject.name })
+                .executeInsertMany()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values ($1, $2, $3), ($4, $5, $6) on conflict (organization_id, slug) do update set name = excluded.name where project.archived_at is null returning id as id, name as name"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "mktg-site",
+                "Upd A",
+                1,
+                "tools",
+                "Upd B",
+              ]
+            `)
+            assertType<Exact<typeof rows, Array<{ id: number, name: string }>>>()
+            expect([...rows].sort((a, b) => a.id - b.id)).toEqual(expected)
+        })
+    })
+    */
+
 })

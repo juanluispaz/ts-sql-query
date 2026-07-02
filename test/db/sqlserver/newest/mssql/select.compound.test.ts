@@ -582,4 +582,140 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
+    test('union-with-remaining-insensitive-order-by-modes', async () => {
+        // The compound-wrap insensitive path beyond `'asc insensitive'`
+        // (covered by union-with-insensitive-order-by above). Each of the
+        // other six insensitive OrderByMode values wraps the compound in
+        // `select * from (...) as o_1_` and applies `lower(...)` with its own
+        // suffix. None of the 8 union labels is null, so the nulls-first /
+        // nulls-last permutations sort identically to plain asc / desc; only
+        // the emitted suffix differs (pinned per cell by the snapshots).
+        const ascOrder = [
+            { label: 'Document /v2/users' },
+            { label: 'Internal tools' },
+            { label: 'Legacy app' },
+            { label: 'Marketing site' },
+            { label: 'Migrate to ESM' },
+            { label: 'Public API' },
+            { label: 'Redesign navbar' },
+            { label: 'Update hero copy' },
+        ]
+        const descOrder = [...ascOrder].reverse()
+        const compound = () => ctx.conn.selectFrom(tProject)
+            .select({ label: tProject.name })
+            .union(ctx.conn.selectFrom(tIssue).select({ label: tIssue.title }))
+
+        // 'insensitive' — bare (defaults to ascending).
+        ctx.mockNext(ascOrder)
+        const r1 = await compound().orderBy('label', 'insensitive').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select name as [label] from project union select title as [label] from issue) as o_1_ order by lower([label])"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof r1, Array<{ label: string }>>>()
+        expect(r1).toEqual(ascOrder)
+
+        // 'desc insensitive'
+        ctx.mockNext(descOrder)
+        const r2 = await compound().orderBy('label', 'desc insensitive').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select name as [label] from project union select title as [label] from issue) as o_1_ order by lower([label]) desc"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(r2).toEqual(descOrder)
+
+        // 'asc nulls first insensitive'
+        ctx.mockNext(ascOrder)
+        const r3 = await compound().orderBy('label', 'asc nulls first insensitive').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select name as [label] from project union select title as [label] from issue) as o_1_ order by lower([label]) asc"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(r3).toEqual(ascOrder)
+
+        // 'asc nulls last insensitive'
+        ctx.mockNext(ascOrder)
+        const r4 = await compound().orderBy('label', 'asc nulls last insensitive').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select name as [label] from project union select title as [label] from issue) as o_1_ order by iif([label] is null, 1, 0), lower([label]) asc"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(r4).toEqual(ascOrder)
+
+        // 'desc nulls first insensitive'
+        ctx.mockNext(descOrder)
+        const r5 = await compound().orderBy('label', 'desc nulls first insensitive').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select name as [label] from project union select title as [label] from issue) as o_1_ order by iif([label] is not null, 1, 0), lower([label]) desc"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(r5).toEqual(descOrder)
+
+        // 'desc nulls last insensitive'
+        ctx.mockNext(descOrder)
+        const r6 = await compound().orderBy('label', 'desc nulls last insensitive').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select name as [label] from project union select title as [label] from issue) as o_1_ order by lower([label]) desc"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(r6).toEqual(descOrder)
+    })
+
+    test('compound-arm-parenthesized-by-its-own-limit', async () => {
+        // A compound ARM that carries its own `limit` is wrapped in parentheses
+        // so the operator binds the limited arm, not the whole compound:
+        // `left.limit(2).union(right)` -> `(select … limit $1) union …`. The left
+        // arm filters to project 1 (one row, 'Marketing site'); the limit keeps
+        // it. The right arm filters to issue 1 ('Update hero copy'). The outer
+        // ORDER BY makes the union deterministic.
+        const expected = [{ label: 'Marketing site' }, { label: 'Update hero copy' }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ label: tProject.name })
+            .limit(2)
+            .union(
+                ctx.conn.selectFrom(tIssue)
+                    .where(tIssue.id.equals(1))
+                    .select({ label: tIssue.title }),
+            )
+            .orderBy('label')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select name as [label] from project where id = @0 order by 1 offset 0 rows fetch next @1 rows only) _t_1_ union select title as [label] from issue where id = @2 order by [label]"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ label: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('compound-arm-parenthesized-by-its-own-order-by-and-limit', async () => {
+        // The RIGHT arm carries its own `orderBy` + `limit`, so it is
+        // parenthesized: `left.unionAll(right.orderBy('label').limit(3))` ->
+        // `… union all (select … order by label limit $1)`. The right arm is
+        // project 1's two issues sorted by title, capped at 3 (both survive);
+        // the left arm is project 1 ('Marketing site'). The outer ORDER BY makes
+        // the union all deterministic.
+        const expected = [
+            { label: 'Marketing site' },
+            { label: 'Redesign navbar' },
+            { label: 'Update hero copy' },
+        ]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ label: tProject.name })
+            .unionAll(
+                ctx.conn.selectFrom(tIssue)
+                    .where(tIssue.projectId.equals(1))
+                    .select({ label: tIssue.title })
+                    .orderBy('label')
+                    .limit(3),
+            )
+            .orderBy('label')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as [label] from project where id = @0 union all select * from (select title as [label] from issue where project_id = @1 order by [label] offset 0 rows fetch next @2 rows only) _t_1_ order by [label]"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            1,
+            3,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ label: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
 })

@@ -61,4 +61,48 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         expect(rows).toEqual([])
     })
+    test('negate-of-boolean-constants-in-projection', async () => {
+        // `.negate()` on a boolean CONSTANT hits the constant-swap branch of
+        // `_negate`: instead of wrapping the constant in `not(...)`, the builder
+        // emits the opposite constant directly. `true().negate()` -> the false
+        // literal, `false().negate()` -> the true literal (the exact per-dialect
+        // spelling is pinned by the snapshot).
+        ctx.mockNext({ notTrue: false, notFalse: true })
+        const conn = ctx.conn
+        const row = await conn.selectFromNoTable()
+            .select({
+                notTrue:  conn.true().negate(),
+                notFalse: conn.false().negate(),
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select case when (0=1) then 1 else 0 end as "notTrue", case when (1=1) then 1 else 0 end as "notFalse" from dual"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(row).toEqual({ notTrue: false, notFalse: true })
+    })
+
+    test('negate-of-boolean-constants-in-where', async () => {
+        // The same constant-swap in a WHERE (predicate) context.
+        // `where true().negate()` -> `where false` -> empty set;
+        // `where false().negate()` -> `where true` -> every row.
+        const conn = ctx.conn
+        ctx.mockNext([])
+        const none = await conn.selectFrom(tOrganization)
+            .where(conn.true().negate())
+            .select({ id: tOrganization.id })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from "organization" where (0=1)"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(none).toEqual([])
+
+        ctx.mockNext([{ id: 1 }, { id: 2 }])
+        const all = await conn.selectFrom(tOrganization)
+            .where(conn.false().negate())
+            .select({ id: tOrganization.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from "organization" where (1=1) order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(all).toEqual([{ id: 1 }, { id: 2 }])
+    })
+
 })

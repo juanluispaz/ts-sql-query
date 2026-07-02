@@ -53,4 +53,36 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ id: number; name: string }>>>()
         expect(rows).toEqual(expectedMock)
     })
+
+    test('negated-neutral-marks-as-sole-where-emit-no-where-clause', async () => {
+        // `.negate()` on a neutral (no-value) boolean hits the empty-string
+        // branch of `_negate`: negating a no-op is still a no-op, so as the sole
+        // WHERE it emits no WHERE clause at all. Two producers of the neutral
+        // mark: `noValueBoolean()` directly, and an elided `equalsIfValue(
+        // undefined)`.
+        const expectedMock = [{ id: 1, name: 'Acme Corp' }, { id: 2, name: 'Globex Ltd' }]
+        const connection = ctx.conn
+
+        ctx.mockNext(expectedMock)
+        const viaNoValue = await connection.selectFrom(tOrganization)
+            .where(connection.noValueBoolean().negate())
+            .select({ id: tOrganization.id, name: tOrganization.name })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from organization order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof viaNoValue, Array<{ id: number; name: string }>>>()
+        expect(viaNoValue).toEqual(expectedMock)
+
+        const noPlan: string | undefined = undefined
+        ctx.mockNext(expectedMock)
+        const viaElidedIfValue = await connection.selectFrom(tOrganization)
+            .where(tOrganization.plan.equalsIfValue(noPlan).negate())
+            .select({ id: tOrganization.id, name: tOrganization.name })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name from organization order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(viaElidedIfValue).toEqual(expectedMock)
+    })
 })

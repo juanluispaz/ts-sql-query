@@ -489,4 +489,50 @@ describe(ctx.label, () => {
         }>>>()
         expect(result).toEqual(expected)
     })
+    test('optional-double-receiver-math', async () => {
+        // Arithmetic / math with an OPTIONAL DOUBLE receiver
+        // (`tIssue.estimatedHours`). Every other numeric test in this file
+        // uses the REQUIRED int `priority`; here the receiver is optional, so
+        // each result flows through the fixed-double branch that threads the
+        // `__optionalType` and the projected keys are `?: number` (optional),
+        // not `number`. The seed leaves `estimated_hours` NULL, so we set a
+        // clean value (16) inside `withRollback` to make the arithmetic
+        // concrete: divide(2)=8, power(2)=256, sqrt()=4, round()=16 — all
+        // exact in IEEE-754, so no `toBeCloseTo` is needed.
+        await ctx.withRollback(async () => {
+            ctx.mockNext(1)
+            await ctx.conn.update(tIssue).set({ estimatedHours: 16 }).where(tIssue.id.equals(1)).executeUpdate()
+
+            const expected = [{ id: 1, d: 8, p: 256, s: 4, r: 16 }]
+            ctx.mockNext(expected)
+            const result = await ctx.conn.selectFrom(tIssue)
+                .where(tIssue.id.equals(1))
+                .select({
+                    id: tIssue.id,
+                    d:  tIssue.estimatedHours.divide(2),
+                    p:  tIssue.estimatedHours.power(2),
+                    s:  tIssue.estimatedHours.sqrt(),
+                    r:  tIssue.estimatedHours.round(),
+                })
+                .executeSelectMany()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", estimated_hours / :0 as "d", power(estimated_hours, :1) as "p", sqrt(estimated_hours) as "s", round(estimated_hours) as "r" from issue where id = :2"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                2,
+                2,
+                1,
+              ]
+            `)
+            assertType<Exact<typeof result, Array<{
+                id: number
+                d?: number
+                p?: number
+                s?: number
+                r?: number
+            }>>>()
+            expect(result).toEqual(expected)
+        })
+    })
+
 })

@@ -229,6 +229,45 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
+    test('pick/select-picked-projecting-optional-values-as-nullable', async () => {
+        // The picking × nullable-projector product on a REAL `.select(picked)`
+        // query (not the `expandType...` passthrough helper). `body` is a
+        // mandatory optional-value column, so under
+        // `projectingOptionalValuesAsNullable()` its null is kept present as
+        // `body: string | null` rather than dropped; `title` is a picked
+        // non-mandatory key (`title?: string`). Issue 1 has body NULL, so the
+        // present-null survives the round-trip.
+        const expected = [{ id: 1, title: 'Update hero copy', body: null }]
+        ctx.mockNext(expected)
+        const availableFields = {
+            id:    tIssue.id,
+            title: tIssue.title,
+            body:  tIssue.body,
+        }
+        const picked = dynamicPick(availableFields, { title: true }, ['id', 'body'])
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select(picked)
+            .projectingOptionalValuesAsNullable()
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", title as "title", "body" as "body" from issue where id = :0 order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            id:     number
+            title?: string
+            body:   string | null
+        }>>>()
+        expect(rows).toEqual(expected)
+        // Issue 1's null body is PRESENT-NULL under the nullable projector.
+        expect('body' in rows[0]!).toBe(true)
+    })
+
     test('pick/expand-type-projected-as-nullable-passthrough', async () => {
         // Runtime passthrough: the helper returns its `result` argument
         // unchanged and only reshapes the TYPE. The `assertType` pins that

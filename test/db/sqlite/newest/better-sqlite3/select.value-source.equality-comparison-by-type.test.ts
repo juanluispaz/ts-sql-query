@@ -2616,4 +2616,498 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         expect(customUuidRows).toEqual(expectedReleases)
     })
+    test('customInt-ordered-comparison-and-mixed-between-value-source-operand', async () => {
+        // customInt cost_cents: worklog 1 -> 100, 2 -> 100, 3 -> 400. loSub
+        // selects worklog 1's cost (100), hiSub worklog 3's cost (400). The
+        // four ordered comparisons and the three mixed `between` overloads all
+        // take a scalar-subquery value-source in at least one operand position.
+        const loSub = ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .selectOneColumn(tIssueWorklog.costCents)
+            .forUseAsInlineQueryValue()
+        const hiSub = ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(3))
+            .selectOneColumn(tIssueWorklog.costCents)
+            .forUseAsInlineQueryValue()
+
+        // greaterThan(loSub=100) -> worklog 3 (400).
+        const expectedGt = [{ id: 3 }]
+        ctx.mockNext(expectedGt)
+        const gt = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.costCents.greaterThan(loSub))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where cost_cents > (select cost_cents as result from issue_worklog where id = ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof gt, Array<{ id: number }>>>()
+        expect(gt).toEqual(expectedGt)
+
+        // lessThan(hiSub=400) -> worklogs 1, 2 (100).
+        const expectedLt = [{ id: 1 }, { id: 2 }]
+        ctx.mockNext(expectedLt)
+        const lt = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.costCents.lessThan(hiSub))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where cost_cents < (select cost_cents as result from issue_worklog where id = ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+          ]
+        `)
+        expect(lt).toEqual(expectedLt)
+
+        // lessOrEqual(loSub=100) -> worklogs 1, 2.
+        const expectedLe = [{ id: 1 }, { id: 2 }]
+        ctx.mockNext(expectedLe)
+        const le = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.costCents.lessOrEqual(loSub))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where cost_cents <= (select cost_cents as result from issue_worklog where id = ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        expect(le).toEqual(expectedLe)
+
+        // greaterOrEqual(hiSub=400) -> worklog 3.
+        const expectedGe = [{ id: 3 }]
+        ctx.mockNext(expectedGe)
+        const ge = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.costCents.greaterOrEqual(hiSub))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where cost_cents >= (select cost_cents as result from issue_worklog where id = ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+          ]
+        `)
+        expect(ge).toEqual(expectedGe)
+
+        // Mixed between over [100, 400] matches every worklog (1, 2, 3).
+        const expectedBetween = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        // between(TYPE, VALUE): const lower, value-source upper.
+        ctx.mockNext(expectedBetween)
+        const cv = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.costCents.between(100, hiSub))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where cost_cents between ? and (select cost_cents as result from issue_worklog where id = ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            100,
+            3,
+          ]
+        `)
+        expect(cv).toEqual(expectedBetween)
+
+        // between(VALUE, TYPE): value-source lower, const upper.
+        ctx.mockNext(expectedBetween)
+        const vc = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.costCents.between(loSub, 400))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where cost_cents between (select cost_cents as result from issue_worklog where id = ?) and ? order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            400,
+          ]
+        `)
+        expect(vc).toEqual(expectedBetween)
+
+        // between(VALUE, VALUE): both bounds value-sources.
+        ctx.mockNext(expectedBetween)
+        const vv = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.costCents.between(loSub, hiSub))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where cost_cents between (select cost_cents as result from issue_worklog where id = ?) and (select cost_cents as result from issue_worklog where id = ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            3,
+          ]
+        `)
+        expect(vv).toEqual(expectedBetween)
+    })
+
+    test('uuid-ordered-comparison-and-mixed-between-value-source-operand', async () => {
+        // uuid external_ref: issue 1 -> 0a…, 2 -> 7b…, 3/4 -> NULL. loSub
+        // selects issue 1's ref (0a…), hiSub issue 2's ref (7b…). The bounds
+        // are separated by the first hex nibble, where byte and lexical order
+        // agree, so this matches on both uuid-typed and text-typed engines.
+        const loSub = ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .selectOneColumn(tIssue.externalRef)
+            .forUseAsInlineQueryValue()
+        const hiSub = ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(2))
+            .selectOneColumn(tIssue.externalRef)
+            .forUseAsInlineQueryValue()
+        const lo = '0a8f9c1e-1111-4222-8333-444455556666'
+        const hi = '7b3e9d20-2222-4c55-9b66-dddd00009999'
+
+        // greaterThan(loSub=0a) -> issue 2 (7b).
+        const expectedGt = [{ id: 2 }]
+        ctx.mockNext(expectedGt)
+        const gt = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.externalRef.greaterThan(loSub))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref > (select external_ref as result from issue where id = ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof gt, Array<{ id: number }>>>()
+        expect(gt).toEqual(expectedGt)
+
+        // lessThan(hiSub=7b) -> issue 1 (0a).
+        const expectedLt = [{ id: 1 }]
+        ctx.mockNext(expectedLt)
+        const lt = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.externalRef.lessThan(hiSub))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref < (select external_ref as result from issue where id = ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        expect(lt).toEqual(expectedLt)
+
+        // Mixed between over [0a, 7b] matches issues 1 and 2 (3/4 are NULL).
+        const expectedBetween = [{ id: 1 }, { id: 2 }]
+        // between(TYPE, VALUE): const lower, value-source upper.
+        ctx.mockNext(expectedBetween)
+        const cv = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.externalRef.between(lo, hiSub))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref between ? and (select external_ref as result from issue where id = ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "0a8f9c1e-1111-4222-8333-444455556666",
+            2,
+          ]
+        `)
+        expect(cv).toEqual(expectedBetween)
+
+        // between(VALUE, TYPE): value-source lower, const upper.
+        ctx.mockNext(expectedBetween)
+        const vc = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.externalRef.between(loSub, hi))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref between (select external_ref as result from issue where id = ?) and ? order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            "7b3e9d20-2222-4c55-9b66-dddd00009999",
+          ]
+        `)
+        expect(vc).toEqual(expectedBetween)
+
+        // between(VALUE, VALUE): both bounds value-sources.
+        ctx.mockNext(expectedBetween)
+        const vv = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.externalRef.between(loSub, hiSub))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref between (select external_ref as result from issue where id = ?) and (select external_ref as result from issue where id = ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+          ]
+        `)
+        expect(vv).toEqual(expectedBetween)
+    })
+
+    test('customComparable-ordered-comparison-value-source-operand', async () => {
+        // customComparable version ('Semver'): release 1 -> 1.2.0, 2 ->
+        // 1.3.0-beta.1, 3 -> 0.9.0. Lexical order 3 < 1 < 2. sub selects
+        // release 1's version ('1.2.0').
+        const sub = ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .selectOneColumn(tProjectRelease.version)
+            .forUseAsInlineQueryValue()
+
+        // greaterOrEqual(sub='1.2.0') -> releases 1 and 2.
+        const expectedGe = [{ id: 1 }, { id: 2 }]
+        ctx.mockNext(expectedGe)
+        const ge = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.version.greaterOrEqual(sub))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where version >= (select version as result from project_release where id = ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof ge, Array<{ id: number }>>>()
+        expect(ge).toEqual(expectedGe)
+
+        // lessThan(sub='1.2.0') -> release 3 ('0.9.0').
+        const expectedLt = [{ id: 3 }]
+        ctx.mockNext(expectedLt)
+        const lt = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.version.lessThan(sub))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where version < (select version as result from project_release where id = ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        expect(lt).toEqual(expectedLt)
+    })
+
+    test('customLocalDateTime-ordered-comparison-value-source-operand', async () => {
+        // customLocalDateTime published_at ('PublishStamp'): release 1 ->
+        // 2024-01-16 09:00, 2 -> 2024-02-21 10:00, 3 -> 2024-03-02 11:00.
+        // sub selects release 2's published_at.
+        const sub = ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(2))
+            .selectOneColumn(tProjectRelease.publishedAt)
+            .forUseAsInlineQueryValue()
+
+        // greaterThan(sub=release 2) -> release 3.
+        const expectedGt = [{ id: 3 }]
+        ctx.mockNext(expectedGt)
+        const gt = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.publishedAt.greaterThan(sub))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where published_at > (select published_at as result from project_release where id = ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof gt, Array<{ id: number }>>>()
+        expect(gt).toEqual(expectedGt)
+
+        // lessThan(sub=release 2) -> release 1.
+        const expectedLt = [{ id: 1 }]
+        ctx.mockNext(expectedLt)
+        const lt = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.publishedAt.lessThan(sub))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where published_at < (select published_at as result from project_release where id = ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        expect(lt).toEqual(expectedLt)
+    })
+
+    test('double-ordered-comparison-value-source-operand', async () => {
+        // double estimated_hours (NULL in the seed). Set issue 1 -> 2.5, issue
+        // 2 -> 7.5 inside a rollback, then compare against a value-source
+        // (issue 1's estimated_hours). The SELECT is the last statement so
+        // ctx.lastSql captures it.
+        await ctx.withRollback(async () => {
+            ctx.mockNext(1)
+            await ctx.conn.update(tIssue).set({ estimatedHours: 2.5 }).where(tIssue.id.equals(1)).executeUpdate()
+            ctx.mockNext(1)
+            await ctx.conn.update(tIssue).set({ estimatedHours: 7.5 }).where(tIssue.id.equals(2)).executeUpdate()
+
+            const sub = ctx.conn.selectFrom(tIssue)
+                .where(tIssue.id.equals(1))
+                .selectOneColumn(tIssue.estimatedHours)
+                .forUseAsInlineQueryValue()
+
+            // greaterThan(sub=2.5) -> issue 2 (7.5).
+            const expectedGt = [{ id: 2 }]
+            ctx.mockNext(expectedGt)
+            const gt = await ctx.conn.selectFrom(tIssue)
+                .where(tIssue.estimatedHours.greaterThan(sub))
+                .select({ id: tIssue.id })
+                .orderBy('id')
+                .executeSelectMany()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where estimated_hours > (select estimated_hours as result from issue where id = ?) order by id"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof gt, Array<{ id: number }>>>()
+            expect(gt).toEqual(expectedGt)
+
+            // lessOrEqual(sub=2.5) -> issue 1 (2.5).
+            const expectedLe = [{ id: 1 }]
+            ctx.mockNext(expectedLe)
+            const le = await ctx.conn.selectFrom(tIssue)
+                .where(tIssue.estimatedHours.lessOrEqual(sub))
+                .select({ id: tIssue.id })
+                .orderBy('id')
+                .executeSelectMany()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where estimated_hours <= (select estimated_hours as result from issue where id = ?) order by id"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            expect(le).toEqual(expectedLe)
+        })
+    })
+
+    test('customInt-customDouble-if-value-fires-and-elides', async () => {
+        // The `*IfValue` shape family has no customInt / customDouble coverage.
+        // customInt cost_cents: worklog 3 -> 400. customDouble billed_amount:
+        // worklog 2 -> 50. `.equalsIfValue(v)` with a present value emits the
+        // same predicate as direct `.equals(v)` (pinned by the same snapshot);
+        // `.equalsIfValue(undefined)` elides the predicate, reducing to the bare
+        // SELECT.
+        const noNum: number | undefined = undefined
+
+        // customInt fires -> worklog 3, identical to direct .equals(400).
+        const expectedCost = [{ id: 3 }]
+        ctx.mockNext(expectedCost)
+        const costIf = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.costCents.equalsIfValue(400))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where cost_cents = ? order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            400,
+          ]
+        `)
+        assertType<Exact<typeof costIf, Array<{ id: number }>>>()
+        expect(costIf).toEqual(expectedCost)
+
+        ctx.mockNext(expectedCost)
+        const costDirect = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.costCents.equals(400))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where cost_cents = ? order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            400,
+          ]
+        `)
+        expect(costDirect).toEqual(expectedCost)
+
+        // customInt elides -> every worklog.
+        const expectedAll = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        ctx.mockNext(expectedAll)
+        const costElide = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.costCents.equalsIfValue(noNum))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(costElide).toEqual(expectedAll)
+
+        // customDouble fires -> worklog 2, identical to direct .equals(50).
+        const expectedBilled = [{ id: 2 }]
+        ctx.mockNext(expectedBilled)
+        const billedIf = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.billedAmount.equalsIfValue(50))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billed_amount = ? order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            50,
+          ]
+        `)
+        expect(billedIf).toEqual(expectedBilled)
+
+        // customDouble elides -> every worklog.
+        ctx.mockNext(expectedAll)
+        const billedElide = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.billedAmount.equalsIfValue(noNum))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(billedElide).toEqual(expectedAll)
+    })
+
+    test('numeric-custom-equals-value-source-operand', async () => {
+        // The `.equals(value-source)` overload on the numeric-custom leaves
+        // (the const-operand `.equals` is covered above; the value-source
+        // overload is covered elsewhere only on temporal / string leaves).
+        // customInt cost_cents: worklog 3 -> 400; sub selects it, so
+        // `.equals(sub)` matches worklog 3. customDouble billed_amount: worklog
+        // 2 -> 50; sub selects it, so `.equals(sub)` matches worklog 2.
+        const costSub = ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(3))
+            .selectOneColumn(tIssueWorklog.costCents)
+            .forUseAsInlineQueryValue()
+        const expectedCost = [{ id: 3 }]
+        ctx.mockNext(expectedCost)
+        const costRows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.costCents.equals(costSub))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where cost_cents = (select cost_cents as result from issue_worklog where id = ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+          ]
+        `)
+        assertType<Exact<typeof costRows, Array<{ id: number }>>>()
+        expect(costRows).toEqual(expectedCost)
+
+        const billedSub = ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(2))
+            .selectOneColumn(tIssueWorklog.billedAmount)
+            .forUseAsInlineQueryValue()
+        const expectedBilled = [{ id: 2 }]
+        ctx.mockNext(expectedBilled)
+        const billedRows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.billedAmount.equals(billedSub))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billed_amount = (select billed_amount as result from issue_worklog where id = ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        expect(billedRows).toEqual(expectedBilled)
+    })
+
 })

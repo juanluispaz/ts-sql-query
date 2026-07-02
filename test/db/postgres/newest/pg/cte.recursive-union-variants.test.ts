@@ -244,6 +244,62 @@ describe(ctx.label, () => {
         }>>>()
     })
 
+    test('recursive-union-all-customize-query-outer-select-hooks', async () => {
+        // The customizeQuery hooks that DON'T bracket the whole statement or
+        // the CTE body (beforeQuery/afterQuery/beforeWithQuery/afterWithQuery,
+        // covered by the two tests above) instead route to the OUTER
+        // `select ... from recursive_select_1`: afterSelectKeyword,
+        // beforeColumns, customWindow, beforeOrderByItems and afterOrderByItems
+        // land on the outer query, around its own column list and ORDER BY.
+        // Three distinct columns across the three ORDER BY slots
+        // (title / depth / id) so no dialect trips its "column specified more
+        // than once in the order by list" check. Every seeded issue has a NULL
+        // parent_id, so the traversal from issue 1 returns exactly that one row.
+        const expected = [{ id: 1, title: 'Update hero copy', depth: 0 }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        const result = await connection.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id:    tIssue.id,
+                title: tIssue.title,
+                depth: connection.const(0, 'int'),
+            })
+            .recursiveUnionAll((parent) => {
+                return connection.selectFrom(tIssue)
+                    .join(parent).on(tIssue.parentId.equals(parent.id))
+                    .select({
+                        id:    tIssue.id,
+                        title: tIssue.title,
+                        depth: parent.depth.add(1),
+                    })
+            })
+            .customizeQuery({
+                afterSelectKeyword: connection.rawFragment`/* hint */`,
+                beforeColumns:      connection.rawFragment`/* cols */ `,
+                customWindow:       connection.rawFragment`w1 as (partition by depth)`,
+                beforeOrderByItems: connection.rawFragment`title asc`,
+                afterOrderByItems:  connection.rawFragment`id asc`,
+            })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, title as title, $1::int4 as depth from issue where id = $2 union all select issue.id as id, issue.title as title, recursive_select_1.depth + $3 as depth from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id) select /* hint */ /* cols */  id as id, title as title, depth as depth from recursive_select_1 window w1 as (partition by depth) order by title asc, id asc"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            0,
+            1,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{
+            id:    number
+            title: string
+            depth: number
+        }>>>()
+        expect(result).toEqual(expected)
+    })
+
     test('recursive-one-column-inline-scalar-value', async () => {
         // A one-column recursive select used as an inline scalar subquery
         // via `forUseAsInlineQueryValue()`. The generated recursive CTE is

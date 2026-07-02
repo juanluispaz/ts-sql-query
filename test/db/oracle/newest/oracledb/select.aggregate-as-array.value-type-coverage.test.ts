@@ -11,7 +11,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tProject } from '../../domain/connection.js'
+import { tIssue, tProject, tProjectReview } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -390,4 +390,40 @@ describe(ctx.label, () => {
             expect(Array.isArray(rows[0]!.projects)).toBe(true)
         }
     })
+    test('aggregate-of-object-with-adapter-transformed-columns', async () => {
+        // Both element leaves carry a value-transforming per-column
+        // TypeAdapter: `score` (int, scaledTenthAdapter ÷10 on read) and
+        // `reviewerCode` (string, bracketAdapter wraps in [...]). Aggregating
+        // them into a JSON array threads each adapter's read transform
+        // through every element, not just a top-level column read. The mock
+        // is primed with the RAW aggregated row (score 850, code 'R-7A2');
+        // the assertion proves both adapters fired per element (85,
+        // '[R-7A2]'). Project 1 has a single review, so the one-element array
+        // is deterministic.
+        ctx.mockNext([{ projectId: 1, reviews: [{ score: 850, reviewer: 'R-7A2' }] }])
+        const rows = await ctx.conn.selectFrom(tProjectReview)
+            .where(tProjectReview.projectId.equals(1))
+            .select({
+                projectId: tProjectReview.projectId,
+                reviews:   ctx.conn.aggregateAsArray({
+                    score:    tProjectReview.score,
+                    reviewer: tProjectReview.reviewerCode,
+                }),
+            })
+            .groupBy('projectId')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", json_arrayagg(json_object('score' value score, 'reviewer' value reviewer_code)) as "reviews" from project_review where project_id = :0 group by project_id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            projectId: number
+            reviews:   Array<{ score: number; reviewer: string }>
+        }>>>()
+        expect(rows).toEqual([{ projectId: 1, reviews: [{ score: 85, reviewer: '[R-7A2]' }] }])
+    })
+
 })

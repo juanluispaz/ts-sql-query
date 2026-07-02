@@ -582,6 +582,140 @@ describe(ctx.label, () => {
         expect('meta' in rows[0]!).toBe(false)
     })
 
+    test('rule-1-three-optionality-kinds-own-required-required-in-optional-and-left-join-default', async () => {
+        // Three optionality-kinds coexisting in ONE rule-1 optional object: an
+        // OWN-required leaf (`ownId`), a `requiredInOptionalObject` leaf (`gate`,
+        // status.asRequiredInOptionalObject() — the marker that makes the object
+        // optional), and an originallyRequired LEFT-JOIN leaf (`projName`). The
+        // reqInOptObj `gate` stays required inside the optional object, while the
+        // originally-required left-join `projName` is DEMOTED to `| undefined` —
+        // the demotion divergence between the two "required" kinds, observable in
+        // a single object. Issue 1 → project 1, join hits → projName present.
+        const expected = { iid: 1, meta: { ownId: 1, gate: 'open', projName: 'Marketing site' } }
+        ctx.mockNext({ iid: 1, 'meta.ownId': 1, 'meta.gate': 'open', 'meta.projName': 'Marketing site' })
+        const tProjLeft = tProject.forUseInLeftJoin()
+        const row = await ctx.conn.selectFrom(tIssue)
+            .leftJoin(tProjLeft).on(tProjLeft.id.equals(tIssue.projectId))
+            .where(tIssue.id.equals(1))
+            .select({
+                iid: tIssue.id,
+                meta: {
+                    ownId:    tIssue.id,
+                    gate:     tIssue.status.asRequiredInOptionalObject(),
+                    projName: tProjLeft.name,
+                },
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as "iid", issue.id as "meta.ownId", issue.status as "meta.gate", project.name as "meta.projName" from issue left join project on project.id = issue.project_id where issue.id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            iid:   number
+            meta?: { ownId: number; gate: string; projName: string | undefined }
+        }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('rule-1-three-optionality-kinds-own-required-required-in-optional-and-left-join-as-nullable', async () => {
+        // The same three-kind object under projectingOptionalValuesAsNullable():
+        // the optional object becomes `{...} | null`, `ownId` + `gate` stay
+        // required, and the originally-required left-join `projName` flips to
+        // `string | null` (not `| undefined`). Issue 1 → project 1, join hits.
+        const expected = { iid: 1, meta: { ownId: 1, gate: 'open', projName: 'Marketing site' } }
+        ctx.mockNext({ iid: 1, 'meta.ownId': 1, 'meta.gate': 'open', 'meta.projName': 'Marketing site' })
+        const tProjLeft = tProject.forUseInLeftJoin()
+        const row = await ctx.conn.selectFrom(tIssue)
+            .leftJoin(tProjLeft).on(tProjLeft.id.equals(tIssue.projectId))
+            .where(tIssue.id.equals(1))
+            .select({
+                iid: tIssue.id,
+                meta: {
+                    ownId:    tIssue.id,
+                    gate:     tIssue.status.asRequiredInOptionalObject(),
+                    projName: tProjLeft.name,
+                },
+            })
+            .projectingOptionalValuesAsNullable()
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as "iid", issue.id as "meta.ownId", issue.status as "meta.gate", project.name as "meta.projName" from issue left join project on project.id = issue.project_id where issue.id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            iid:  number
+            meta: { ownId: number; gate: string; projName: string | null } | null
+        }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('rule-3-required-outer-object-containing-a-rule-4-all-optional-inner-object-default', async () => {
+        // A rule-3 REQUIRED outer object (`detail`, kept required by its required
+        // leaf `title`) that CONTAINS a rule-4 all-optional INNER object
+        // (`inner`, body + assigneeId both optional). The inner container is
+        // demoted to `inner?` while the outer `detail` stays required. Issue 2:
+        // title present, body 'Use new tokens', assignee 2 → inner present.
+        const expected = { iid: 2, detail: { title: 'Redesign navbar', inner: { body: 'Use new tokens', assigneeId: 2 } } }
+        ctx.mockNext({ iid: 2, 'detail.title': 'Redesign navbar', 'detail.inner.body': 'Use new tokens', 'detail.inner.assigneeId': 2 })
+        const row = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(2))
+            .select({
+                iid: tIssue.id,
+                detail: {
+                    title: tIssue.title,
+                    inner: { body: tIssue.body, assigneeId: tIssue.assigneeId },
+                },
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "iid", title as "detail.title", "body" as "detail.inner.body", assignee_id as "detail.inner.assigneeId" from issue where id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            iid:    number
+            detail: { title: string; inner?: { body: string | undefined; assigneeId: number | undefined } }
+        }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('rule-3-required-outer-object-containing-a-rule-4-all-optional-inner-object-as-nullable', async () => {
+        // The same outer-required / inner-all-optional nesting under
+        // projectingOptionalValuesAsNullable(): the outer `detail` stays required,
+        // the inner container becomes `{...} | null` and surfaces as `null` when
+        // all its leaves are null. Issue 3: title 'Migrate to ESM', body null,
+        // assignee null → inner is null (the genuine null-vs-absent distinction).
+        const expected = { iid: 3, detail: { title: 'Migrate to ESM', inner: null } }
+        ctx.mockNext({ iid: 3, 'detail.title': 'Migrate to ESM', 'detail.inner.body': null, 'detail.inner.assigneeId': null })
+        const row = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(3))
+            .select({
+                iid: tIssue.id,
+                detail: {
+                    title: tIssue.title,
+                    inner: { body: tIssue.body, assigneeId: tIssue.assigneeId },
+                },
+            })
+            .projectingOptionalValuesAsNullable()
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "iid", title as "detail.title", "body" as "detail.inner.body", assignee_id as "detail.inner.assigneeId" from issue where id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            iid:    number
+            detail: { title: string; inner: { body: string | null; assigneeId: number | null } | null }
+        }>>()
+        expect(row).toEqual(expected)
+    })
+
     test('compound-union-preserves-a-nested-object', async () => {
         // A compound (UNION) whose two arms both project the same nested
         // `header` object: the compound result re-projects the nested object

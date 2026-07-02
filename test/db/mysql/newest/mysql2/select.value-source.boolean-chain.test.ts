@@ -180,6 +180,32 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
+    test('if-value-and-if-value-stays-if-value', async () => {
+        // `IfValueSource.and(IfValueSource)` keeps the result an IfValueSource.
+        // Both values present → `status = $1 and priority >= $2` (the AND path:
+        // distinct operator + no parenthesisation vs the `or` case). open issues
+        // are 1 (priority 2) and 3 (priority 3); the priority >= 3 arm keeps only
+        // issue 3.
+        const expected = [{ id: 3 }]
+        ctx.mockNext(expected)
+        let w = tIssue.status.equalsIfValue('open')
+        w = w.and(tIssue.priority.greaterOrEqualIfValue(3))
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(w)
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where \`status\` = ? and priority >= ? order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "open",
+            3,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
     test('if-value-and-or-both-no-value-elide-the-where', async () => {
         // When BOTH operands of `IfValue.and/or(IfValue)` carry no value, the
         // whole predicate elides — the WHERE clause is dropped. Both `.and` and

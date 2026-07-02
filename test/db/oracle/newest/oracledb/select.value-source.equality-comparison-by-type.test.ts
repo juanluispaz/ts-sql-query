@@ -9,7 +9,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tIssueWorklog, tOrganization, tProjectRelease } from '../../domain/connection.js'
+import { tIssue, tIssueWorklog, tOrganization, tProjectRelease, tProjectReview } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -1178,7 +1178,7 @@ describe(ctx.label, () => {
 
 
     // ==================================================================
-    // T2-a A4–A8 — remaining direct-fluent arms on existing leaves:
+    // Direct-fluent arms on existing leaves:
     // customUuid is/isNot + value-source operand, plain-string ordered
     // comparison + between, customComparable greaterOrEqual + notBetween,
     // uuid single-bound ordered comparison, customDouble in/notIn subquery.
@@ -1493,8 +1493,8 @@ describe(ctx.label, () => {
         expect(notInRows).toEqual(expectedNotIn)
     })
 
-    // T2-a A1 — plain localDateTime — tOrganization.createdAt (required):
-    //   org 1 -> 2023-06-15 08:00:00, org 2 -> 2023-09-20 14:30:00 (B-7 seeds
+    // Plain localDateTime — tOrganization.createdAt (required):
+    //   org 1 -> 2023-06-15 08:00:00, org 2 -> 2023-09-20 14:30:00 (the seed sets
     //   these as explicit, distinct timestamps so equality / membership / range
     //   comparisons are deterministic). Each test projects only the int PK, so
     //   no TZ-shifted temporal VALUE is read back; the const operands are built
@@ -1649,5 +1649,981 @@ describe(ctx.label, () => {
           ]
         `)
         expect(notRows).toEqual(expectedNot)
+    })
+
+    // ==================================================================
+    // The Equalable + Comparable surface on the REQUIRED
+    // custom-temporal / localTime receivers publishedAt (customLocalDateTime
+    // 'PublishStamp') and reviewTime (plain localTime). These receivers were
+    // custom-temporal / localTime receivers; each test below
+    // exercises equals / is / between / a single-bound ordered comparison / in
+    // with CONST operands so the whole comparison surface per receiver is
+    // pinned. Const operands are built with new Date(Date.UTC(...)) under the
+    // suite's forced TZ=UTC; the projection is the int PK only, so no
+    // TZ-shifted temporal VALUE is read back.
+    // ==================================================================
+
+    test('required-customLocalDateTime-equalable-comparable-surface', async () => {
+        // publishedAt ('PublishStamp', required): release 1 -> 2024-01-16 09:00,
+        // 2 -> 2024-02-21 10:00, 3 -> 2024-03-02 11:00. `.equals(rel1)` /
+        // `.is(rel1)` match release 1; `.between(2024-02-01, 2024-03-01)` matches
+        // release 2; `.greaterOrEqual(2024-02-21 10:00)` matches releases 2 and 3;
+        // `.in([rel1, rel3])` matches releases 1 and 3.
+        const dt1 = new Date(Date.UTC(2024, 0, 16, 9, 0, 0))
+        const dt3 = new Date(Date.UTC(2024, 2, 2, 11, 0, 0))
+
+        const expectedEq = [{ id: 1 }]
+        ctx.mockNext(expectedEq)
+        const eq = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.publishedAt.equals(dt1))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where published_at = :0 order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2024-01-16T09:00:00.000Z,
+          ]
+        `)
+        assertType<Exact<typeof eq, Array<{ id: number }>>>()
+        expect(eq).toEqual(expectedEq)
+
+        const expectedIs = [{ id: 1 }]
+        ctx.mockNext(expectedIs)
+        const is = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.publishedAt.is(dt1))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where decode(published_at, :0, 1, 0 ) = 1 order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2024-01-16T09:00:00.000Z,
+          ]
+        `)
+        expect(is).toEqual(expectedIs)
+
+        const lo = new Date(Date.UTC(2024, 1, 1, 0, 0, 0))
+        const hi = new Date(Date.UTC(2024, 2, 1, 0, 0, 0))
+        const expectedBetween = [{ id: 2 }]
+        ctx.mockNext(expectedBetween)
+        const between = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.publishedAt.between(lo, hi))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where published_at between :0 and :1 order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2024-02-01T00:00:00.000Z,
+            2024-03-01T00:00:00.000Z,
+          ]
+        `)
+        expect(between).toEqual(expectedBetween)
+
+        const dt2 = new Date(Date.UTC(2024, 1, 21, 10, 0, 0))
+        const expectedGe = [{ id: 2 }, { id: 3 }]
+        ctx.mockNext(expectedGe)
+        const ge = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.publishedAt.greaterOrEqual(dt2))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where published_at >= :0 order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2024-02-21T10:00:00.000Z,
+          ]
+        `)
+        expect(ge).toEqual(expectedGe)
+
+        const expectedIn = [{ id: 1 }, { id: 3 }]
+        ctx.mockNext(expectedIn)
+        const inRows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.publishedAt.in([dt1, dt3]))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where published_at in (:0, :1) order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2024-01-16T09:00:00.000Z,
+            2024-03-02T11:00:00.000Z,
+          ]
+        `)
+        expect(inRows).toEqual(expectedIn)
+    })
+
+    test('required-localTime-equalable-comparable-surface', async () => {
+        // reviewTime (required localTime): review 1 -> 14:30:45 (the only seeded
+        // review). `.equals(14:30:45)` / `.is(14:30:45)` match review 1;
+        // `.between(14:00, 15:00)` matches review 1; `.greaterOrEqual(14:30:45)`
+        // matches review 1 (equal bound is inclusive); `.in([14:30:45])` matches
+        // review 1.
+        const t = new Date(Date.UTC(1970, 0, 1, 14, 30, 45))
+
+        const expectedEq = [{ id: 1 }]
+        ctx.mockNext(expectedEq)
+        const eq = await ctx.conn.selectFrom(tProjectReview)
+            .where(tProjectReview.reviewTime.equals(t))
+            .select({ id: tProjectReview.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_review where review_time = :0 order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1970-01-01T14:30:45.000Z,
+          ]
+        `)
+        assertType<Exact<typeof eq, Array<{ id: number }>>>()
+        expect(eq).toEqual(expectedEq)
+
+        const expectedIs = [{ id: 1 }]
+        ctx.mockNext(expectedIs)
+        const is = await ctx.conn.selectFrom(tProjectReview)
+            .where(tProjectReview.reviewTime.is(t))
+            .select({ id: tProjectReview.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_review where decode(review_time, :0, 1, 0 ) = 1 order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1970-01-01T14:30:45.000Z,
+          ]
+        `)
+        expect(is).toEqual(expectedIs)
+
+        const lo = new Date(Date.UTC(1970, 0, 1, 14, 0, 0))
+        const hi = new Date(Date.UTC(1970, 0, 1, 15, 0, 0))
+        const expectedBetween = [{ id: 1 }]
+        ctx.mockNext(expectedBetween)
+        const between = await ctx.conn.selectFrom(tProjectReview)
+            .where(tProjectReview.reviewTime.between(lo, hi))
+            .select({ id: tProjectReview.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_review where review_time between :0 and :1 order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1970-01-01T14:00:00.000Z,
+            1970-01-01T15:00:00.000Z,
+          ]
+        `)
+        expect(between).toEqual(expectedBetween)
+
+        const expectedGe = [{ id: 1 }]
+        ctx.mockNext(expectedGe)
+        const ge = await ctx.conn.selectFrom(tProjectReview)
+            .where(tProjectReview.reviewTime.greaterOrEqual(t))
+            .select({ id: tProjectReview.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_review where review_time >= :0 order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1970-01-01T14:30:45.000Z,
+          ]
+        `)
+        expect(ge).toEqual(expectedGe)
+
+        const expectedIn = [{ id: 1 }]
+        ctx.mockNext(expectedIn)
+        const inRows = await ctx.conn.selectFrom(tProjectReview)
+            .where(tProjectReview.reviewTime.in([t]))
+            .select({ id: tProjectReview.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_review where review_time in (:0) order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1970-01-01T14:30:45.000Z,
+          ]
+        `)
+        expect(inRows).toEqual(expectedIn)
+    })
+
+    // ==================================================================
+    // isNull / isNotNull on the six OPTIONAL non-int / non-string
+    // leaves. Each pair is made value-validatable against the seed's mix of
+    // NULL and non-NULL rows (or, for estimatedHours which is NULL on every
+    // seeded row, populated inside a rollback transaction so the null / non-null
+    // split is deterministic). The projection is the int PK, so the result type
+    // is Array<{ id: number }> and the SQL is the `is null` / `is not null`
+    // predicate per leaf.
+    // ==================================================================
+
+    test('optional-bigint-is-null-is-not-null', async () => {
+        // duration_ms: worklog 1 -> 5400000, 2 -> NULL, 3 -> 1800000.
+        // `.isNull()` matches worklog 2; `.isNotNull()` matches worklogs 1 and 3.
+        const expectedNull = [{ id: 2 }]
+        ctx.mockNext(expectedNull)
+        const nullRows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.durationMs.isNull())
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue_worklog where duration_ms is null order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof nullRows, Array<{ id: number }>>>()
+        expect(nullRows).toEqual(expectedNull)
+
+        const expectedNotNull = [{ id: 1 }, { id: 3 }]
+        ctx.mockNext(expectedNotNull)
+        const notNullRows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.durationMs.isNotNull())
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue_worklog where duration_ms is not null order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notNullRows).toEqual(expectedNotNull)
+    })
+
+    test('optional-localTime-is-null-is-not-null', async () => {
+        // started_at is set on every seeded worklog, so `.isNull()` matches none
+        // and `.isNotNull()` matches all three worklogs.
+        const expectedNull: Array<{ id: number }> = []
+        ctx.mockNext(expectedNull)
+        const nullRows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.startedAt.isNull())
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue_worklog where started_at is null order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof nullRows, Array<{ id: number }>>>()
+        expect(nullRows).toEqual(expectedNull)
+
+        const expectedNotNull = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        ctx.mockNext(expectedNotNull)
+        const notNullRows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.startedAt.isNotNull())
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue_worklog where started_at is not null order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notNullRows).toEqual(expectedNotNull)
+    })
+
+    test('optional-double-is-null-is-not-null', async () => {
+        // estimated_hours is NULL on every seeded issue. Inside a rollback
+        // transaction set issue 1 -> 2.5 (the rest stay NULL). `.isNull()` then
+        // matches issues 2,3,4; `.isNotNull()` matches issue 1.
+        await ctx.withRollback(async () => {
+            ctx.mockNext(1)
+            await ctx.conn.update(tIssue).set({ estimatedHours: 2.5 }).where(tIssue.id.equals(1)).executeUpdate()
+
+            const expectedNull = [{ id: 2 }, { id: 3 }, { id: 4 }]
+            ctx.mockNext(expectedNull)
+            const nullRows = await ctx.conn.selectFrom(tIssue)
+                .where(tIssue.estimatedHours.isNull())
+                .select({ id: tIssue.id })
+                .orderBy('id')
+                .executeSelectMany()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue where estimated_hours is null order by "id""`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+            assertType<Exact<typeof nullRows, Array<{ id: number }>>>()
+            expect(nullRows).toEqual(expectedNull)
+
+            const expectedNotNull = [{ id: 1 }]
+            ctx.mockNext(expectedNotNull)
+            const notNullRows = await ctx.conn.selectFrom(tIssue)
+                .where(tIssue.estimatedHours.isNotNull())
+                .select({ id: tIssue.id })
+                .orderBy('id')
+                .executeSelectMany()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue where estimated_hours is not null order by "id""`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+            expect(notNullRows).toEqual(expectedNotNull)
+        })
+    })
+
+    test('optional-uuid-is-null-is-not-null', async () => {
+        // external_ref: issue 1,2 set; issues 3,4 NULL. `.isNull()` matches
+        // issues 3,4; `.isNotNull()` matches issues 1,2.
+        const expectedNull = [{ id: 3 }, { id: 4 }]
+        ctx.mockNext(expectedNull)
+        const nullRows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.externalRef.isNull())
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue where external_ref is null order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof nullRows, Array<{ id: number }>>>()
+        expect(nullRows).toEqual(expectedNull)
+
+        const expectedNotNull = [{ id: 1 }, { id: 2 }]
+        ctx.mockNext(expectedNotNull)
+        const notNullRows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.externalRef.isNotNull())
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue where external_ref is not null order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notNullRows).toEqual(expectedNotNull)
+    })
+
+    test('optional-customUuid-is-null-is-not-null', async () => {
+        // signing_key ('SigningKey'): release 1,3 set; release 2 NULL.
+        // `.isNull()` matches release 2; `.isNotNull()` matches releases 1,3.
+        const expectedNull = [{ id: 2 }]
+        ctx.mockNext(expectedNull)
+        const nullRows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.signingKey.isNull())
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where signing_key is null order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof nullRows, Array<{ id: number }>>>()
+        expect(nullRows).toEqual(expectedNull)
+
+        const expectedNotNull = [{ id: 1 }, { id: 3 }]
+        ctx.mockNext(expectedNotNull)
+        const notNullRows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.signingKey.isNotNull())
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where signing_key is not null order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notNullRows).toEqual(expectedNotNull)
+    })
+
+    test('optional-customLocalDateTime-is-null-is-not-null', async () => {
+        // signed_off_at ('SignOffStamp'): release 1,3 set; release 2 NULL.
+        // `.isNull()` matches release 2; `.isNotNull()` matches releases 1,3.
+        const expectedNull = [{ id: 2 }]
+        ctx.mockNext(expectedNull)
+        const nullRows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.signedOffAt.isNull())
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where signed_off_at is null order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof nullRows, Array<{ id: number }>>>()
+        expect(nullRows).toEqual(expectedNull)
+
+        const expectedNotNull = [{ id: 1 }, { id: 3 }]
+        ctx.mockNext(expectedNotNull)
+        const notNullRows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.signedOffAt.isNotNull())
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where signed_off_at is not null order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notNullRows).toEqual(expectedNotNull)
+    })
+
+    // ==================================================================
+    // The three mixed `between` overloads (between(TYPE, VALUE),
+    // between(VALUE, TYPE), between(VALUE, VALUE)) plus an ordered
+    // value-source-COLUMN operand, on a Comparable leaf:
+    // bigint duration_ms. The value-source bounds are scalar
+    // subqueries selecting a worklog's duration_ms.
+    // ==================================================================
+
+    test('bigint-between-mixed-overloads-and-column-operand', async () => {
+        // duration_ms: worklog 1 -> 5400000, 2 -> NULL, 3 -> 1800000.
+        // loSub selects worklog 3's duration (1800000); hiSub selects worklog 1's
+        // duration (5400000). Each `.between(...)` over [1800000, 5400000]
+        // matches worklogs 1 and 3 (worklog 2 is NULL). The three overloads mix a
+        // const bound with a value-source bound in every position.
+        const loSub = ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(3))
+            .selectOneColumn(tIssueWorklog.durationMs)
+            .forUseAsInlineQueryValue()
+        const hiSub = ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .selectOneColumn(tIssueWorklog.durationMs)
+            .forUseAsInlineQueryValue()
+
+        const expectedBoth = [{ id: 1 }, { id: 3 }]
+        // between(TYPE, VALUE): const lower bound, value-source upper bound.
+        ctx.mockNext(expectedBoth)
+        const cv = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.durationMs.between(1800000n, hiSub))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue_worklog where duration_ms between :0 and (select duration_ms as "result" from issue_worklog where id = :1) order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1800000n,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof cv, Array<{ id: number }>>>()
+        expect(cv).toEqual(expectedBoth)
+
+        // between(VALUE, TYPE): value-source lower bound, const upper bound.
+        ctx.mockNext(expectedBoth)
+        const vc = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.durationMs.between(loSub, 5400000n))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue_worklog where duration_ms between (select duration_ms as "result" from issue_worklog where id = :0) and :1 order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+            5400000n,
+          ]
+        `)
+        expect(vc).toEqual(expectedBoth)
+
+        // between(VALUE, VALUE): both bounds value-sources.
+        ctx.mockNext(expectedBoth)
+        const vv = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.durationMs.between(loSub, hiSub))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue_worklog where duration_ms between (select duration_ms as "result" from issue_worklog where id = :0) and (select duration_ms as "result" from issue_worklog where id = :1) order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+            1,
+          ]
+        `)
+        expect(vv).toEqual(expectedBoth)
+
+        // Ordered value-source-COLUMN operand: worklog rows whose duration_ms is
+        // greater than worklog 3's duration (1800000) -> worklog 1 (5400000).
+        const expectedGt = [{ id: 1 }]
+        ctx.mockNext(expectedGt)
+        const gt = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.durationMs.greaterThan(loSub))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue_worklog where duration_ms > (select duration_ms as "result" from issue_worklog where id = :0) order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+          ]
+        `)
+        expect(gt).toEqual(expectedGt)
+    })
+
+    // ==================================================================
+    // The `*IfValue` twins on non-int / non-string leaves. Each
+    // `*IfValue` operator is asserted in BOTH branches: the FIRES branch (a
+    // present value emits the same predicate as its direct non-If twin — pinned
+    // by the same snapshot) and the ELIDES branch (an `undefined` value makes
+    // the operator a no-op, so the sole WHERE predicate is dropped and the SQL
+    // reduces to the bare SELECT). `is` / `isNot` route through the null-safe
+    // `is [not] distinct from` arm.
+    // ==================================================================
+
+    test('customLocalDateTime-is-if-value-is-not-if-value-fires-and-elides', async () => {
+        // signed_off_at ('SignOffStamp'): release 1 -> 2024-01-14 12:30, 2 ->
+        // NULL, 3 -> 2024-02-28 09:00. `.isIfValue(rel1)` fires and matches
+        // release 1 — identical SQL to the direct `.is(rel1)`. `.isNotIfValue(
+        // rel1)` fires and matches releases 2 (NULL, distinct) and 3 — identical
+        // to direct `.isNot(rel1)`. Passing `undefined` elides each predicate.
+        const dt1 = new Date(Date.UTC(2024, 0, 14, 12, 30, 0))
+        const noDate: Date | undefined = undefined
+
+        const expectedIs = [{ id: 1 }]
+        ctx.mockNext(expectedIs)
+        const isIf = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.signedOffAt.isIfValue(dt1))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where decode(signed_off_at, :0, 1, 0 ) = 1 order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2024-01-14T12:30:00.000Z,
+          ]
+        `)
+        assertType<Exact<typeof isIf, Array<{ id: number }>>>()
+        expect(isIf).toEqual(expectedIs)
+
+        // Direct twin — same SQL + params as the IfValue-with-value above.
+        ctx.mockNext(expectedIs)
+        const isDirect = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.signedOffAt.is(dt1))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where decode(signed_off_at, :0, 1, 0 ) = 1 order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2024-01-14T12:30:00.000Z,
+          ]
+        `)
+        expect(isDirect).toEqual(expectedIs)
+
+        const expectedIsNot = [{ id: 2 }, { id: 3 }]
+        ctx.mockNext(expectedIsNot)
+        const isNotIf = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.signedOffAt.isNotIfValue(dt1))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where decode(signed_off_at, :0, 1, 0 ) = 0 order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2024-01-14T12:30:00.000Z,
+          ]
+        `)
+        expect(isNotIf).toEqual(expectedIsNot)
+
+        ctx.mockNext(expectedIsNot)
+        const isNotDirect = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.signedOffAt.isNot(dt1))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where decode(signed_off_at, :0, 1, 0 ) = 0 order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2024-01-14T12:30:00.000Z,
+          ]
+        `)
+        expect(isNotDirect).toEqual(expectedIsNot)
+
+        // Elides branch: `undefined` -> the sole WHERE predicate is dropped, so
+        // every release is returned.
+        const expectedAll = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        ctx.mockNext(expectedAll)
+        const isElide = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.signedOffAt.isIfValue(noDate))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isElide).toEqual(expectedAll)
+
+        ctx.mockNext(expectedAll)
+        const isNotElide = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.signedOffAt.isNotIfValue(noDate))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isNotElide).toEqual(expectedAll)
+    })
+
+    test('uuid-not-equals-if-value-not-in-if-value-fires-and-elides', async () => {
+        // external_ref: issue 1 -> 0a8f…, 2 -> 7b3e…, issues 3,4 -> NULL.
+        // `.notEqualsIfValue(ref1)` fires and matches issue 2 (NULL rows excluded
+        // by NULL semantics) — identical SQL to direct `.notEquals(ref1)`.
+        // `.notInIfValue([ref1])` fires and matches issue 2 — identical to direct
+        // `.notIn([ref1])`. Passing `undefined` / `undefined` elides each.
+        const ref1 = '0a8f9c1e-1111-4222-8333-444455556666'
+        const noRef: string | undefined = undefined
+        const noRefs: string[] | undefined = undefined
+
+        const expectedNe = [{ id: 2 }]
+        ctx.mockNext(expectedNe)
+        const neIf = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.externalRef.notEqualsIfValue(ref1))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue where external_ref <> uuid_to_raw(:0) order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "0a8f9c1e-1111-4222-8333-444455556666",
+          ]
+        `)
+        assertType<Exact<typeof neIf, Array<{ id: number }>>>()
+        expect(neIf).toEqual(expectedNe)
+
+        ctx.mockNext(expectedNe)
+        const neDirect = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.externalRef.notEquals(ref1))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue where external_ref <> uuid_to_raw(:0) order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "0a8f9c1e-1111-4222-8333-444455556666",
+          ]
+        `)
+        expect(neDirect).toEqual(expectedNe)
+
+        ctx.mockNext(expectedNe)
+        const notInIf = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.externalRef.notInIfValue([ref1]))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue where external_ref not in (uuid_to_raw(:0)) order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "0a8f9c1e-1111-4222-8333-444455556666",
+          ]
+        `)
+        expect(notInIf).toEqual(expectedNe)
+
+        ctx.mockNext(expectedNe)
+        const notInDirect = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.externalRef.notIn([ref1]))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue where external_ref not in (uuid_to_raw(:0)) order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "0a8f9c1e-1111-4222-8333-444455556666",
+          ]
+        `)
+        expect(notInDirect).toEqual(expectedNe)
+
+        // Elides branch: `undefined` value / array -> the sole WHERE predicate is
+        // dropped, so every issue is returned.
+        const expectedAll = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]
+        ctx.mockNext(expectedAll)
+        const neElide = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.externalRef.notEqualsIfValue(noRef))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(neElide).toEqual(expectedAll)
+
+        ctx.mockNext(expectedAll)
+        const notInElide = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.externalRef.notInIfValue(noRefs))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notInElide).toEqual(expectedAll)
+    })
+
+    test('bigint-ordered-if-value-twins-fires-and-elides', async () => {
+        // duration_ms: worklog 1 -> 5400000, 2 -> NULL, 3 -> 1800000.
+        // `.lessThanIfValue(5000000n)` fires and matches worklog 3 (1800000) —
+        // identical SQL to direct `.lessThan(5000000n)`. `.greaterOrEqualIfValue(
+        // 5000000n)` fires and matches worklog 1 (5400000) — identical to direct
+        // `.greaterOrEqual(5000000n)`. Passing `undefined` elides each.
+        const bound = 5000000n
+        const noBound: bigint | undefined = undefined
+
+        const expectedLt = [{ id: 3 }]
+        ctx.mockNext(expectedLt)
+        const ltIf = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.durationMs.lessThanIfValue(bound))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue_worklog where duration_ms < :0 order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            5000000n,
+          ]
+        `)
+        assertType<Exact<typeof ltIf, Array<{ id: number }>>>()
+        expect(ltIf).toEqual(expectedLt)
+
+        ctx.mockNext(expectedLt)
+        const ltDirect = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.durationMs.lessThan(bound))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue_worklog where duration_ms < :0 order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            5000000n,
+          ]
+        `)
+        expect(ltDirect).toEqual(expectedLt)
+
+        const expectedGe = [{ id: 1 }]
+        ctx.mockNext(expectedGe)
+        const geIf = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.durationMs.greaterOrEqualIfValue(bound))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue_worklog where duration_ms >= :0 order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            5000000n,
+          ]
+        `)
+        expect(geIf).toEqual(expectedGe)
+
+        ctx.mockNext(expectedGe)
+        const geDirect = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.durationMs.greaterOrEqual(bound))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue_worklog where duration_ms >= :0 order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            5000000n,
+          ]
+        `)
+        expect(geDirect).toEqual(expectedGe)
+
+        // Elides branch: `undefined` -> the sole WHERE predicate is dropped, so
+        // every worklog is returned.
+        const expectedAll = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        ctx.mockNext(expectedAll)
+        const ltElide = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.durationMs.lessThanIfValue(noBound))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue_worklog order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(ltElide).toEqual(expectedAll)
+
+        ctx.mockNext(expectedAll)
+        const geElide = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.durationMs.greaterOrEqualIfValue(noBound))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue_worklog order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(geElide).toEqual(expectedAll)
+    })
+
+    // ==================================================================
+    // The mixed-variadic `inN(const, value-source)` overload (a const
+    // spread with a value-source spread element). duration_ms: worklog 1 ->
+    // 5400000, 2 -> NULL, 3 -> 1800000. The const 1800000n plus a scalar
+    // subquery selecting worklog 1's duration (5400000) form the set; every
+    // non-null worklog whose duration is in {1800000, 5400000} matches ->
+    // worklogs 1 and 3 (worklog 2 is NULL).
+    // ==================================================================
+
+    test('bigint-in-n-mixed-const-and-value-source', async () => {
+        const durOfWorklog1 = ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .selectOneColumn(tIssueWorklog.durationMs)
+            .forUseAsInlineQueryValue()
+
+        const expected = [{ id: 1 }, { id: 3 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.durationMs.inN(1800000n, durOfWorklog1))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue_worklog where duration_ms in (:0, (select duration_ms as "result" from issue_worklog where id = :1)) order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1800000n,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    // ==================================================================
+    // bigint ordered-const single bounds and plain-string
+    // is / isNot with const operands.
+    // ==================================================================
+
+    test('bigint-ordered-const-single-bounds', async () => {
+        // duration_ms: worklog 1 -> 5400000, 2 -> NULL, 3 -> 1800000.
+        // `.lessThan(5000000n)` matches worklog 3; `.greaterOrEqual(5000000n)`
+        // matches worklog 1 (worklog 2 is NULL, excluded from both).
+        const bound = 5000000n
+
+        const expectedLt = [{ id: 3 }]
+        ctx.mockNext(expectedLt)
+        const lt = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.durationMs.lessThan(bound))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue_worklog where duration_ms < :0 order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            5000000n,
+          ]
+        `)
+        assertType<Exact<typeof lt, Array<{ id: number }>>>()
+        expect(lt).toEqual(expectedLt)
+
+        const expectedGe = [{ id: 1 }]
+        ctx.mockNext(expectedGe)
+        const ge = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.durationMs.greaterOrEqual(bound))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue_worklog where duration_ms >= :0 order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            5000000n,
+          ]
+        `)
+        expect(ge).toEqual(expectedGe)
+    })
+
+    test('string-is-is-not-const', async () => {
+        // title (plain string, non-null): 1 'Update hero copy', 2 'Redesign
+        // navbar', 3 'Migrate to ESM', 4 'Document /v2/users'. `.is('Migrate to
+        // ESM')` matches issue 3; `.isNot('Migrate to ESM')` matches issues 1,2,4.
+        const title = 'Migrate to ESM'
+
+        const expectedIs = [{ id: 3 }]
+        ctx.mockNext(expectedIs)
+        const is = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.title.is(title))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue where decode(title, :0, 1, 0 ) = 1 order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "Migrate to ESM",
+          ]
+        `)
+        assertType<Exact<typeof is, Array<{ id: number }>>>()
+        expect(is).toEqual(expectedIs)
+
+        const expectedIsNot = [{ id: 1 }, { id: 2 }, { id: 4 }]
+        ctx.mockNext(expectedIsNot)
+        const isNot = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.title.isNot(title))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue where decode(title, :0, 1, 0 ) = 0 order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "Migrate to ESM",
+          ]
+        `)
+        expect(isNot).toEqual(expectedIsNot)
+    })
+
+    // ==================================================================
+    // The value-source-operand overloads of equals / notEquals on a
+    // non-int / non-string leaf (customLocalDateTime signed_off_at). The operand
+    // is a scalar subquery selecting release 1's signed_off_at; `.equals(sub)`
+    // matches release 1, `.notEquals(sub)` matches release 3 (release 2 is NULL,
+    // excluded by NULL semantics).
+    // ==================================================================
+
+    test('customLocalDateTime-equals-not-equals-value-source-operand', async () => {
+        const signOffOfRelease1 = ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .selectOneColumn(tProjectRelease.signedOffAt)
+            .forUseAsInlineQueryValue()
+
+        const expectedEq = [{ id: 1 }]
+        ctx.mockNext(expectedEq)
+        const eq = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.signedOffAt.equals(signOffOfRelease1))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where signed_off_at = (select signed_off_at as "result" from project_release where id = :0) order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof eq, Array<{ id: number }>>>()
+        expect(eq).toEqual(expectedEq)
+
+        const expectedNe = [{ id: 3 }]
+        ctx.mockNext(expectedNe)
+        const ne = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.signedOffAt.notEquals(signOffOfRelease1))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where signed_off_at <> (select signed_off_at as "result" from project_release where id = :0) order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        expect(ne).toEqual(expectedNe)
+    })
+
+    // ==================================================================
+    // The variadic `notInN` overload on a non-int leaf (uuid
+    // external_ref). external_ref: issue 1 -> 0a8f…, 2 -> 7b3e…, 3,4 -> NULL.
+    // `.notInN(ref1)` matches issue 2 (NULL rows are excluded by NULL semantics).
+    // ==================================================================
+
+    test('uuid-not-in-n', async () => {
+        const ref1 = '0a8f9c1e-1111-4222-8333-444455556666'
+        const expected = [{ id: 2 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.externalRef.notInN(ref1))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue where external_ref not in (uuid_to_raw(:0)) order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "0a8f9c1e-1111-4222-8333-444455556666",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    // ==================================================================
+    // The value-source-operand overload of `is` (null-safe equality)
+    // on the enum / custom / customUuid leaves. The operand is the column itself
+    // (a column-vs-column self-comparison): `activity.is(activity)` matches every
+    // worklog (activity is required); `channel.is(channel)` matches every release
+    // (channel is required); `signingKey.is(signingKey)` matches every release —
+    // NULL is not distinct from NULL under `is`, so release 2 (NULL) matches too.
+    // ==================================================================
+
+    test('is-value-source-operand-enum-custom-customUuid', async () => {
+        const expectedWorklogs = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        ctx.mockNext(expectedWorklogs)
+        const enumRows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.activity.is(tIssueWorklog.activity))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue_worklog where decode(activity, activity, 1, 0 ) = 1 order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof enumRows, Array<{ id: number }>>>()
+        expect(enumRows).toEqual(expectedWorklogs)
+
+        const expectedReleases = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        ctx.mockNext(expectedReleases)
+        const customRows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.channel.is(tProjectRelease.channel))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where decode(channel, channel, 1, 0 ) = 1 order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(customRows).toEqual(expectedReleases)
+
+        ctx.mockNext(expectedReleases)
+        const customUuidRows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.signingKey.is(tProjectRelease.signingKey))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where decode(signing_key, signing_key, 1, 0 ) = 1 order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(customUuidRows).toEqual(expectedReleases)
     })
 })

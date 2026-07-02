@@ -15,6 +15,7 @@
 // real DB.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
+import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { tOrganization, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
@@ -65,7 +66,7 @@ describe(ctx.label, () => {
     })
 
     test('table-customization: parameterized customization threads a runtime param into the raw fragment', async () => {
-        // B-3: `withMinIdFilter` is the PARAMETERIZED (P1) overload of
+        // `withMinIdFilter` is the PARAMETERIZED overload of
         // `createTableOrViewCustomization` — its factory takes a runtime `minId`
         // number and threads it into the raw fragment via `this.const(minId,
         // 'int')`, so the param rides as a real bound placeholder. Distinct from
@@ -87,6 +88,36 @@ describe(ctx.label, () => {
             0,
           ]
         `)
+        expect(rows).toEqual(expected)
+    })
+
+    test('table-customization: parameterized customization as an INNER JOIN target threads its bound param', async () => {
+        // The parameterized `withMinIdFilter` customization composed beyond a plain
+        // `.as()` selectFrom: the customized+aliased organization is the target of an
+        // INNER JOIN, so its derived-table wrapper AND its bound `minId` param must
+        // render inside the JOIN clause (the param rides ahead of the WHERE param).
+        // The filter (`0 >= 0`) keeps every organization, so each of the two seeded
+        // projects of org 1 pairs with Acme Corp. Ordered by project id.
+        const expected = [
+            { projectId: 1, orgName: 'Acme Corp' },
+            { projectId: 2, orgName: 'Acme Corp' },
+        ]
+        ctx.mockNext(expected)
+        const tOrgFiltered = ctx.conn.withMinIdFilter(tOrganization.as('o'), 'tOrgFiltered', 0)
+        const rows = await ctx.conn.selectFrom(tProject)
+            .innerJoin(tOrgFiltered).on(tOrgFiltered.id.equals(tProject.organizationId))
+            .where(tProject.organizationId.equals(1))
+            .select({ projectId: tProject.id, orgName: tOrgFiltered.name })
+            .orderBy('projectId')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as "projectId", "o".name as "orgName" from project inner join (select * from organization where $1 >= 0) as "o" on "o".id = project.organization_id where project.organization_id = $2 order by "projectId""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            0,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ projectId: number; orgName: string }>>>()
         expect(rows).toEqual(expected)
     })
 })

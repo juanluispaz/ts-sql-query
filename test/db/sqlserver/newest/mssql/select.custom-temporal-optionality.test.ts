@@ -59,7 +59,7 @@ describe(ctx.label, () => {
     })
 
     test('required-custom-localdatetime-getter-projects-required-date', async () => {
-        // B-4 / T3-c gap-3: `publishedAt` is a REQUIRED customLocalDateTime
+        // `publishedAt` is a REQUIRED customLocalDateTime
         // ('PublishStamp') column — the required twin of the OPTIONAL
         // `signedOffAt`. Reading it through its plain getter projects a REQUIRED
         // custom-localDateTime leaf (`Date`, not `Date | undefined`) and runs the

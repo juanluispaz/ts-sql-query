@@ -19,7 +19,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tProject } from '../../domain/connection.js'
+import { tAppUser, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -592,4 +592,69 @@ describe(ctx.label, () => {
         })
     })
 
+
+    test('on-constraint-do-update-set-if-value-passes-real-valued-properties-through-the-gate', async () => {
+        // `onConflictOnConstraint(rawFragment`name`).doUpdateSetIfValue({...})` --
+        // the value-gated one-shot update-set reached through the CONSTRAINT-target
+        // opener (the column-target opener reaches it elsewhere). Each property is
+        // tested with `_isValue` before being added; both `fullName` and `verified`
+        // carry real values, so both survive the gate. The unique constraint
+        // `app_user_email_key` is PostgreSQL's default name for the inline
+        // `email ... UNIQUE` declaration in domain/schema.sql; (email
+        // 'ada@acme.test') collides with the seed so the conflict fires and the
+        // row is updated.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'ada@acme.test', fullName: 'ignored' })
+                .onConflictOnConstraint(ctx.conn.rawFragment`app_user_email_key`)
+                .doUpdateSetIfValue({
+                    fullName: 'Ada Lovelace v2',
+                    verified: true,
+                })
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into app_user (email, full_name) values ($1, $2) on conflict on constraint app_user_email_key do update set full_name = $3, verified = case when $4::bool then 'Y' else 'N' end"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "ada@acme.test",
+                "ignored",
+                "Ada Lovelace v2",
+                true,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(1)
+        })
+    })
+
+    test('on-constraint-do-update-dynamic-set-then-set-builds-incremental-update', async () => {
+        // `onConflictOnConstraint(rawFragment`name`).doUpdateDynamicSet()` opens an
+        // empty update-set reached through the CONSTRAINT-target opener; a chained
+        // `.set({...})` dispatches into it. The unique constraint
+        // `app_user_email_key` is PostgreSQL's default name for the inline
+        // `email ... UNIQUE` declaration in domain/schema.sql; (email
+        // 'ada@acme.test') collides with the seed so the conflict fires and the
+        // row is updated.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'ada@acme.test', fullName: 'ignored' })
+                .onConflictOnConstraint(ctx.conn.rawFragment`app_user_email_key`)
+                .doUpdateDynamicSet()
+                .set({ fullName: 'Ada Lovelace v2' })
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into app_user (email, full_name) values ($1, $2) on conflict on constraint app_user_email_key do update set full_name = $3"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "ada@acme.test",
+                "ignored",
+                "Ada Lovelace v2",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(1)
+        })
+    })
 })

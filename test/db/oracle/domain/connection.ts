@@ -146,7 +146,7 @@ export class DBConnection extends OracleConnection<'DBConnection'> {
         ], 'string', 'required', bracketAdapter)
     }
 
-    // G1: executeFunction return-type fan-out beyond the existing int /
+    // executeFunction return-type fan-out beyond the existing int /
     // string arms — total_view_count returns bigint, latest_issue_at returns
     // an optional localDateTime (null when the project has no issues), and
     // estimated_total returns a branded customDouble (Money). The function
@@ -399,7 +399,7 @@ export class DBConnection extends OracleConnection<'DBConnection'> {
     issueIdSeqOffset = this.sequence('issue_id_seq', 'int', plusOffsetAdapter)
     auditTagSeq = this.sequence('audit_tag_seq', 'bigint')
 
-    // G2: a sequence whose value type is a branded customInt (ReleaseTag)
+    // A sequence whose value type is a branded customInt (ReleaseTag)
     // rather than the plain int / bigint of issueIdSeq / auditTagSeq — the
     // value-type fan-out of sequence(...). The release_tag_seq DDL lives in
     // this dialect's domain/schema.sql.
@@ -413,7 +413,7 @@ export class DBConnection extends OracleConnection<'DBConnection'> {
         this.valueArg('int', 'optional', scaledTenthAdapter)
     ).as((col, v) => this.fragmentWithType('boolean', 'required').sql`${col} > ${v}`)
 
-    // §B (B-2): a fragment whose `arg` carries a TRAILING TypeAdapter
+    // A fragment whose `arg` carries a TRAILING TypeAdapter
     // (scaledTenthAdapter), exercising the combined-mode (`adapter2`) branch of
     // `arg` — every other `this.arg(...)` omits the adapter. The arg routes a
     // bound literal through the adapter's WRITE path (x10), so passing the
@@ -439,7 +439,7 @@ export class DBConnection extends OracleConnection<'DBConnection'> {
         (table, alias) => this.rawFragment`/*+ hint */ ${table} ${alias}`,
     )
 
-    // §B (B-3): a PARAMETERIZED (P1) table/view customization — the
+    // A PARAMETERIZED table/view customization — the
     // `(table, alias, ...params) => rawFragment` overload threads a runtime
     // `minId` param into the raw fragment (distinct from `withSqlHint` above,
     // whose factory takes no extra params). The param rides as a real bound
@@ -567,6 +567,14 @@ export const tIssueWorklog = new class TIssueWorklog extends Table<DBConnection,
     // excluded from the writable shape (the required sibling is
     // project_release.notes). The DB computes it from minutes + activity.
     activityLabel  = this.optionalComputedColumn('activity_label', 'string')
+    // Computed columns carrying a trailing TypeAdapter — the
+    // `computedColumn` / `optionalComputedColumn` adapter arm, otherwise
+    // unexercised (every other computed column omits the adapter). Both are
+    // DB-computed (GENERATED) and read through bracketAdapter (wraps in [...]);
+    // `tagLabel` from UPPER(activity) (always present), `tagLabelOptional` from
+    // the same nullable expression as activity_label.
+    tagLabel         = this.computedColumn('tag_label', 'string', bracketAdapter)
+    tagLabelOptional = this.optionalComputedColumn('tag_label_optional', 'string', bracketAdapter)
     constructor() { super('issue_worklog') }
 }()
 
@@ -587,7 +595,7 @@ export const tProjectRelease = new class TProjectRelease extends Table<DBConnect
     signedOffAt = this.optionalColumn<Date, 'SignOffStamp'>('signed_off_at', 'customLocalDateTime', 'SignOffStamp')
     notes       = this.computedColumn('notes', 'string')
     versionTag  = this.virtualColumnFromFragment('string', (fragment) => fragment.sql`upper(${this.channel})`)
-    // §B (B-4): a REQUIRED-on-read customLocalDateTime column (branded
+    // A REQUIRED-on-read customLocalDateTime column (branded
     // 'PublishStamp'). signedOffAt above is the OPTIONAL customLocalDateTime;
     // this is its required-on-read twin, so the required-custom-localDateTime
     // read getter is observed directly (it projects `Date`, not `Date |
@@ -622,27 +630,31 @@ export const vReleaseOverview = new class VReleaseOverview extends View<DBConnec
     releasedOn   = this.column<Date, 'ReleaseDay'>('released_on', 'customLocalDate', 'ReleaseDay')
     signedOffAt  = this.optionalColumn<Date, 'SignOffStamp'>('signed_off_at', 'customLocalDateTime', 'SignOffStamp')
     projectName  = this.column('project_name', 'string')
-    // §B (B-1): an adapter-bearing VIEW column — `versionBracketed` carries the
+    // An adapter-bearing VIEW column — `versionBracketed` carries the
     // trailing TypeAdapter `bracketAdapter` (read wraps the value in [...]). No
     // other View column in any dialect carries an adapter, so the bare
     // DBColumnImpl's adapter read path is otherwise never observed on a View.
     versionBracketed = this.column('version_bracketed', 'string', bracketAdapter)
-    // §B (B-5): a customLocalTime VIEW column — the View side of the
+    // A customLocalTime VIEW column — the View side of the
     // customLocalTime kind (Table side is tProjectRelease.cutoffTime). Maps the
     // release's cutoff_time through the view.
     cutoffClock  = this.column<Date, 'CutoffClock'>('cutoff_clock', 'customLocalTime', 'CutoffClock')
     versionUpper = this.virtualColumnFromFragment('string', (fragment) => fragment.sql`upper(${this.version})`)
+    // A View required virtualColumnFromFragment carrying a trailing
+    // TypeAdapter (bracketAdapter, read wraps in [...]) — the View twin of the
+    // Table's activityTagged; the View-side virtual-column adapter read arm.
+    versionTagged = this.virtualColumnFromFragment('string', (fragment) => fragment.sql`upper(${this.version})`, bracketAdapter)
     // optionalVirtualColumnFromFragment on a View.
     versionUpperOptional = this.optionalVirtualColumnFromFragment('string', (fragment) => fragment.sql`upper(${this.version})`)
     constructor() { super('release_overview') }
 }()
 
-// C3: a table whose primary key is drawn from a named DB sequence via
+// A table whose primary key is drawn from a named DB sequence via
 // autogeneratedPrimaryKeyBySequence (typed only on mariaDB / oracle /
 // postgreSql / sqlServer) — distinct from the autogenerated IDENTITY/SERIAL
 // PK the engine fills implicitly. Reuses the existing audit_tag_seq sequence.
 export const tAuditEntry = new class TAuditEntry extends Table<DBConnection, 'TAuditEntry'> {
-    // §B (B-6): the autogeneratedPrimaryKeyBySequence trailing-TypeAdapter
+    // The autogeneratedPrimaryKeyBySequence trailing-TypeAdapter
     // overload — plusOffsetAdapter (read +1000) so the DB-generated id surfaces
     // offset. Typed only on mariaDB/oracle/postgreSql/sqlServer; mysql/sqlite
     // don't declare tAuditEntry (the method is not on their connection type).
@@ -683,7 +695,7 @@ export const tInvoice = new class TInvoice extends Table<DBConnection, 'TInvoice
     constructor() { super('invoice') }
 }()
 
-// §B: a table whose column factories all carry the trailing-TypeAdapter
+// A table whose column factories all carry the trailing-TypeAdapter
 // overload — the no-adapter forms are fixtured elsewhere, but the adapter
 // overload on these factories was previously unexercised. entry_no is an
 // autogeneratedPrimaryKey carrying plusOffsetAdapter (read +1000, so the

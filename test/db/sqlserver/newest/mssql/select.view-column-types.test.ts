@@ -87,7 +87,7 @@ describe(ctx.label, () => {
     })
 
     test('view-side-adapter-bearing-column-reads-through-the-adapter', async () => {
-        // B-1 / T3-a: `versionBracketed` is a VIEW column carrying a trailing
+        // `versionBracketed` is a VIEW column carrying a trailing
         // TypeAdapter (bracketAdapter, read wraps the value in [...]). View
         // columns return a bare DBColumnImpl whose adapter read path is otherwise
         // never observed. Release 1's version is '1.2.0', so the bracketed read is
@@ -109,8 +109,31 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
+    test('view-side-virtual-column-with-adapter-reads-through-the-adapter', async () => {
+        // `versionTagged` is a View REQUIRED virtualColumnFromFragment
+        // (upper(version)) carrying a trailing bracketAdapter. The fragment
+        // computes upper(version) in the query; the adapter then wraps the read
+        // in [...]. Release 2's version is '1.3.0-beta.1', so upper →
+        // '1.3.0-BETA.1', bracketed → '[1.3.0-BETA.1]'.
+        const expected = [{ id: 2, versionTagged: '[1.3.0-BETA.1]' }]
+        ctx.mockNext([{ id: 2, versionTagged: '1.3.0-BETA.1' }])
+        const rows = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(2))
+            .select({ id: vReleaseOverview.id, versionTagged: vReleaseOverview.versionTagged })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, upper(version) as versionTagged from release_overview where id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; versionTagged: string }>>>()
+        expect(rows).toEqual(expected)
+    })
+
     test('view-side-custom-local-time-column-projects-as-date', async () => {
-        // B-5 / T3-d: `cutoffClock` is a customLocalTime VIEW column (the View
+        // `cutoffClock` is a customLocalTime VIEW column (the View
         // side of the customLocalTime kind). Release 1's cutoff_time is 17:00:00,
         // read as a Date normalised to 1970-01-01 17:00 UTC (TZ=UTC forced).
         const expected = [{ id: 1, cutoffClock: new Date(Date.UTC(1970, 0, 1, 17, 0, 0)) }]

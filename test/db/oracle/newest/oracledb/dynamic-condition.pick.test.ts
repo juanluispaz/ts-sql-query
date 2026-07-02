@@ -161,6 +161,42 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
+    test('pick/whole-nested-object-in-mandatory-list-keeps-it-required', async () => {
+        // A WHOLE nested-object key in the mandatory list (`'meta'`, not a
+        // `'meta.<leaf>'` path) keeps the ENTIRE inner object required with all
+        // its leaves, even though the pick only selects the top-level `title`.
+        // issue 1: title 'Update hero copy', priority 2, status 'open'.
+        const expected = [{ id: 1, title: 'Update hero copy', meta: { priority: 2, status: 'open' } }]
+        ctx.mockNext(expected)
+        const availableFields = {
+            id: tIssue.id,
+            title: tIssue.title,
+            meta: {
+                priority: tIssue.priority,
+                status:   tIssue.status,
+            },
+        }
+        const picked = dynamicPick(availableFields, { title: true }, ['id', 'meta'])
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select(picked)
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", title as "title", priority as "meta.priority", status as "meta.status" from issue where id = :0 order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            id:    number
+            title?: string
+            meta:  { priority: number; status: string }
+        }>>>()
+        expect(rows).toEqual(expected)
+    })
+
     test('pick/nested-pick-selecting-nothing-drops-branch', async () => {
         // When a nested pick object selects none of its leaves,
         // internalDynamicPick finds no content and returns `undefined`, so

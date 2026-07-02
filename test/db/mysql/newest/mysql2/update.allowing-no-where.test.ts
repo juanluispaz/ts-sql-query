@@ -12,7 +12,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue } from '../../domain/connection.js'
+import { tIssue, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -58,6 +58,28 @@ describe(ctx.label, () => {
                 1,
               ]
             `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(4)
+        })
+    })
+
+    test('update-allowing-no-where-from-with-a-correlated-join', async () => {
+        // The `.from()` limb of the AllowingNoWhere join/from/using quartet (the
+        // twin of `update(...).from(...)`): a CORRELATED UPDATE...FROM reachable on
+        // the guard-relaxed builder. Each issue's status is stamped from its
+        // project's slug, joined by the FK — the FROM table is genuinely used (in
+        // both the SET and the join predicate). Every issue has a project, so all
+        // 4 rows are updated once.
+        ctx.mockNext(4)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.updateAllowingNoWhere(tIssue)
+                .from(tProject)
+                .set({ status: tProject.slug })
+                .where(tProject.id.equals(tIssue.projectId))
+                .executeUpdate()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue, project set issue.\`status\` = project.slug where project.id = issue.project_id"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
             assertType<Exact<typeof affected, number>>()
             expect(affected).toBe(4)
         })

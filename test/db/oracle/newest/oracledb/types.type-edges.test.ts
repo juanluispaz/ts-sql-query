@@ -6,13 +6,15 @@
 // mappings.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
-import { assertType, type Exact } from '../../../../lib/assertType.js'
+import { assertType, type Exact, type Extends } from '../../../../lib/assertType.js'
 import type {
     InsertableRow, UpdatableRow, UpdatableOnInsertConflictRow, SelectedRow,
+    SelectedRowProjectedAsNullable, SelectedValuesProjectedAsNullable, TableOrViewLeftJoinOf,
 } from '../../../../../src/extras/types.js'
+import { fromRef } from '../../../../../src/extras/types.js'
 import type { DynamicDefinitionForModel } from '../../../../../src/dynamic/condition.js'
 import { extractColumnsFrom } from '../../../../../src/extras/utils.js'
-import { tCountry } from '../../domain/connection.js'
+import { tCountry, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 // `extractColumnsFrom(tCountry)` is a plain column-BAG (a record of value
@@ -20,6 +22,12 @@ import { ctx } from './setup.js'
 // `: InferSourceFrom<TABLE>` else arm rather than the `extends ITable<any> ?` arm.
 const countryCols = extractColumnsFrom(tCountry)
 type CountryBag = typeof countryCols
+
+// `extractColumnsFrom(tProject)` is a column-BAG carrying an OPTIONAL leaf
+// (`archivedAt`), so the ProjectedAsNullable else arm below has an optional
+// column to flip (tCountry has none).
+const projectCols = extractColumnsFrom(tProject)
+type ProjectBag = typeof projectCols
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -46,6 +54,37 @@ describe(ctx.label, () => {
         assertType<Exact<SelectedRow<CountryBag>, { code: string; name: string; region: string }>>()
         // runtime witness: the bag projects the three columns.
         expect(Object.keys(countryCols).sort()).toEqual(['code', 'name', 'region'])
+    })
+
+    test('selected-row-projected-as-nullable-else-arm-flips-optional-leaf-to-null', () => {
+        // The ProjectedAsNullable twin of the SelectedRow else-arm: over a
+        // column-bag (non-`ITable`) with an OPTIONAL leaf, it resolves through the
+        // same `InferSourceFrom<...>` else arm but flips the optional `archivedAt`
+        // to `Date | null` (present-null) instead of the `?: Date` the plain
+        // `SelectedRow` uses; the required leaves stay required.
+        // `SelectedValuesProjectedAsNullable` has the identical resolution.
+        assertType<Exact<SelectedRow<ProjectBag>, {
+            id: number; organizationId: number; name: string; slug: string; published: boolean; archivedAt?: Date; createdAt: Date
+        }>>()
+        assertType<Exact<SelectedRowProjectedAsNullable<ProjectBag>, {
+            id: number; organizationId: number; name: string; slug: string; published: boolean; archivedAt: Date | null; createdAt: Date
+        }>>()
+        assertType<Exact<SelectedValuesProjectedAsNullable<ProjectBag>, SelectedRowProjectedAsNullable<ProjectBag>>>()
+        // runtime witness: the bag projects the project columns.
+        expect('archivedAt' in projectCols).toBe(true)
+    })
+
+    test('from-ref-left-join-overload-returns-a-left-join-ref', () => {
+        // `fromRef(table, ref)` has two overloads keyed on the ref kind. Passing a
+        // LEFT-JOIN ref (`ForUseInLeftJoin` / `TableOrViewLeftJoinOf`) selects the
+        // second overload, whose result is a left-join table ref — distinct from
+        // the inner-join overload the docs example exercises. At runtime fromRef
+        // returns its input (identity).
+        const projectLeft = tProject.forUseInLeftJoin()
+        const leftRef: TableOrViewLeftJoinOf<typeof tProject> = projectLeft
+        const recovered = fromRef(tProject, leftRef)
+        assertType<Extends<typeof recovered, TableOrViewLeftJoinOf<typeof tProject>>>()
+        expect(recovered).toBe(projectLeft)
     })
 
     test('dynamic-definition-for-model-maps-boolean-to-the-boolean-descriptor', () => {

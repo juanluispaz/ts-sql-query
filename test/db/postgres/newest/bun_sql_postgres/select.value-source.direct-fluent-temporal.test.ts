@@ -19,7 +19,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssueWorklog, tProjectRelease } from '../../domain/connection.js'
+import { tIssueWorklog, tProject, tProjectRelease, vProjectOverview, vReleaseOverview } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -635,5 +635,164 @@ describe(ctx.label, () => {
           ]
         `)
         expect(notRows).toEqual(expectedNot)
+    })
+
+    // ------------------------------------------------------------------
+    // customLocalDateTime — tProjectRelease.publishedAt ('PublishStamp',
+    // REQUIRED-on-read): release 1 -> 2024-01-16 09:00:00. The direct-fluent
+    // date/time getter surface on a REQUIRED custom-localDateTime receiver (the
+    // required twin of the optional signedOffAt getters), so each getter is a
+    // required `number` leaf (not `?: number`).
+    // ------------------------------------------------------------------
+
+    test('customLocalDateTime-required-getters', async () => {
+        // All 9 LocalDateTimeValueSource getters on the REQUIRED custom-localDateTime
+        // column publishedAt — every getter is a required `number` leaf. Release 1:
+        // published_at 2024-01-16 09:00:00 (a Tuesday) -> year 2024, month 0
+        // (January, JS 0-indexed), date 16, day-of-week 2, hours 9, minutes 0,
+        // seconds 0, milliseconds 0, and epoch millis for getTime().
+        const epoch = Date.UTC(2024, 0, 16, 9, 0, 0)
+        const expected = [{ y: 2024, mo: 0, d: 16, dow: 2, h: 9, m: 0, s: 0, ms: 0, t: epoch }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .select({
+                y:   tProjectRelease.publishedAt.getFullYear(),
+                mo:  tProjectRelease.publishedAt.getMonth(),
+                d:   tProjectRelease.publishedAt.getDate(),
+                dow: tProjectRelease.publishedAt.getDay(),
+                h:   tProjectRelease.publishedAt.getHours(),
+                m:   tProjectRelease.publishedAt.getMinutes(),
+                s:   tProjectRelease.publishedAt.getSeconds(),
+                ms:  tProjectRelease.publishedAt.getMilliseconds(),
+                t:   tProjectRelease.publishedAt.getTime(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from published_at) as "y", extract(month from published_at) - 1 as mo, extract(day from published_at) as "d", extract(dow from published_at) as dow, extract(hour from published_at) as "h", extract(minute from published_at) as "m", extract(second from published_at)::integer as "s", extract(millisecond from published_at)::integer % 1000 as ms, round(extract(epoch from published_at) * 1000) as "t" from project_release where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ y: number; mo: number; d: number; dow: number; h: number; m: number; s: number; ms: number; t: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    // ------------------------------------------------------------------
+    // View customLocalTime — vReleaseOverview.cutoffClock ('CutoffClock',
+    // required): the release's cutoff_time surfaced through the view. Release 1
+    // -> 17:00:00. The custom-localTime getter surface on a VIEW receiver.
+    // ------------------------------------------------------------------
+
+    test('view-customLocalTime-getters', async () => {
+        // The 4 LocalTimeValueSource getters on the REQUIRED View custom-localTime
+        // column cutoffClock — each is a required `number` leaf. Release 1:
+        // cutoff_clock 17:00:00 -> hours 17, minutes 0, seconds 0, milliseconds 0.
+        const expected = [{ h: 17, m: 0, s: 0, ms: 0 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(1))
+            .select({
+                h:  vReleaseOverview.cutoffClock.getHours(),
+                m:  vReleaseOverview.cutoffClock.getMinutes(),
+                s:  vReleaseOverview.cutoffClock.getSeconds(),
+                ms: vReleaseOverview.cutoffClock.getMilliseconds(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(hour from cutoff_clock) as "h", extract(minute from cutoff_clock) as "m", extract(second from cutoff_clock)::integer as "s", extract(millisecond from cutoff_clock)::integer % 1000 as ms from release_overview where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ h: number; m: number; s: number; ms: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    // ------------------------------------------------------------------
+    // custom-source `.asOptional()` getter — tProjectRelease.releasedOn
+    // ('ReleaseDay', customLocalDate) demoted to optional via `.asOptional()`
+    // then a getter. asOptional() propagates the optional marker to the getter's
+    // number leaf (`?: number | undefined`).
+    // Release 1 -> released_on 2024-01-15 -> year 2024.
+    // ------------------------------------------------------------------
+
+    test('custom-source-asOptional-getter', async () => {
+        // `.asOptional().getFullYear()` on the required custom-localDate column
+        // releasedOn — asOptional() carries the optional marker through to the
+        // getter leaf (`?: number | undefined`). Release 1: released_on 2024-01-15 -> year 2024.
+        const expected = [{ y: 2024 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .select({
+                y: tProjectRelease.releasedOn.asOptional().getFullYear(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from released_on) as "y" from project_release where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ y?: number | undefined }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    // ------------------------------------------------------------------
+    // View plain optional localDateTime — vProjectOverview.archivedAt: the
+    // project's archived_at surfaced through the view (a plain, non-custom
+    // optional localDateTime View column). Each getter carries the optional
+    // marker to a `number | undefined` leaf. The underlying project.archived_at
+    // is set to a fixed timestamp in-rollback so the values are deterministic:
+    // 2024-06-15 13:45:30 (a Saturday).
+    // ------------------------------------------------------------------
+
+    test('view-plain-localDateTime-getters', async () => {
+        // The 9 LocalDateTimeValueSource getters on the plain (non-custom) OPTIONAL
+        // View localDateTime column archivedAt — each carries the optional marker to
+        // a `number | undefined` leaf. project.archived_at is updated in-rollback to
+        // 2024-06-15 13:45:30 (a Saturday) -> year 2024, month 5 (June, JS
+        // 0-indexed), date 15, day-of-week 6, hours 13, minutes 45, seconds 30,
+        // ms 0, and epoch millis for getTime().
+        await ctx.withRollback(async () => {
+            ctx.mockNext(1)
+            await ctx.conn.update(tProject)
+                .set({ archivedAt: new Date(Date.UTC(2024, 5, 15, 13, 45, 30)) })
+                .where(tProject.id.equals(1))
+                .executeUpdate()
+
+            const expected = [{
+                y: 2024, mo: 5, d: 15, dow: 6, h: 13, m: 45, s: 30, ms: 0,
+                t: Date.UTC(2024, 5, 15, 13, 45, 30),
+            }]
+            ctx.mockNext(expected)
+            const rows = await ctx.conn.selectFrom(vProjectOverview)
+                .where(vProjectOverview.id.equals(1))
+                .select({
+                    y:   vProjectOverview.archivedAt.getFullYear(),
+                    mo:  vProjectOverview.archivedAt.getMonth(),
+                    d:   vProjectOverview.archivedAt.getDate(),
+                    dow: vProjectOverview.archivedAt.getDay(),
+                    h:   vProjectOverview.archivedAt.getHours(),
+                    m:   vProjectOverview.archivedAt.getMinutes(),
+                    s:   vProjectOverview.archivedAt.getSeconds(),
+                    ms:  vProjectOverview.archivedAt.getMilliseconds(),
+                    t:   vProjectOverview.archivedAt.getTime(),
+                })
+                .executeSelectMany()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from archived_at) as "y", extract(month from archived_at) - 1 as mo, extract(day from archived_at) as "d", extract(dow from archived_at) as dow, extract(hour from archived_at) as "h", extract(minute from archived_at) as "m", extract(second from archived_at)::integer as "s", extract(millisecond from archived_at)::integer % 1000 as ms, round(extract(epoch from archived_at) * 1000) as "t" from project_overview where id = $1"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof rows, Array<{
+                y?: number | undefined; mo?: number | undefined; d?: number | undefined
+                dow?: number | undefined; h?: number | undefined; m?: number | undefined
+                s?: number | undefined; ms?: number | undefined; t?: number | undefined
+            }>>>()
+            expect(rows).toEqual(expected)
+        })
     })
 })

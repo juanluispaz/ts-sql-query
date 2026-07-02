@@ -759,7 +759,7 @@ describe(ctx.label, () => {
 
 
     test('arg-trailing-adapter-scales-the-bound-placeholder', async () => {
-        // B-2: scaledArgThresholdFragment's `arg` carries a TRAILING TypeAdapter
+        // scaledArgThresholdFragment's `arg` carries a TRAILING TypeAdapter
         // (scaledTenthAdapter, x10 on the write path) — the combined-mode
         // (`adapter2`) branch of `arg`, distinct from the `valueArg`-adapter
         // branch scaledThresholdFragment exercises. Calling it with the literal 1

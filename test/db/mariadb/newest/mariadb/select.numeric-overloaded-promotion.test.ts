@@ -55,6 +55,38 @@ describe(ctx.label, () => {
         })
     })
 
+    test('int-receiver-subtract-double-column-promotes-result-to-double', async () => {
+        // `priority.subtract(estimatedHours)` — the int-receiver + double-column
+        // arm of the promotion dispatcher. The right operand is a `double` column
+        // (a non-int value source), so the dispatcher carries the result as
+        // double. With
+        // estimated_hours = 1.5, issue 1 priority 2 - 1.5 = 0.5; the fraction
+        // survives only because the result is double.
+        await ctx.withRollback(async () => {
+            ctx.mockNext(1)
+            await ctx.conn.update(tIssue)
+                .set({ estimatedHours: 1.5 })
+                .where(tIssue.id.equals(1))
+                .executeUpdate()
+
+            const expected = { id: 1, net: 0.5 }
+            ctx.mockNext({ id: 1, net: 0.5 })
+            const row = await ctx.conn.selectFrom(tIssue)
+                .where(tIssue.id.equals(1))
+                .select({ id: tIssue.id, net: tIssue.priority.subtract(tIssue.estimatedHours) })
+                .executeSelectOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority - estimated_hours as net from issue where id = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof row, { id: number; net?: number }>>()
+            expect(row).toEqual(expected)
+        })
+    })
+
     test('int-receiver-multiply-double-column-promotes-result-to-double', async () => {
         // The same value-source promotion arm on a different overloaded op
         // (`multiply`), confirming the branch is shared across the family. With

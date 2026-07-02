@@ -148,4 +148,51 @@ describe(ctx.label, () => {
             }
         })
     })
+
+    test('update-from-shaped-set-with-returning-one-row', async () => {
+        // The three-way cross: a SHAPED set (`shapedAs({...}).set({...})` on renamed
+        // keys), a `.from(...)` joined table whose column feeds the shaped SET value,
+        // AND a `.returning({...})`. Each pairwise cross exists elsewhere; this pins
+        // the three together. `shapedAs` remains reachable after `from` because
+        // `UpdateFromExpression` still carries it, and the SET value references a
+        // FROM-table column (`tOrganization.name`). The RETURNING projection
+        // references only *target*-table columns (not every dialect's RETURNING/OUTPUT
+        // can project FROM-table columns). Where the dialect has no UPDATE …
+        // RETURNING the test is commented out for symmetry. Acme Corp (org 1) owns
+        // project 1.
+        const expectedMock = { id: 1, newName: 'Acme Corp', slug: 'mktg-site' }
+        ctx.mockNext(expectedMock)
+        await ctx.withRollback(async () => {
+            const row = await ctx.conn.update(tProject)
+                .from(tOrganization)
+                .shapedAs({ projectName: 'name' })
+                .set({ projectName: tOrganization.name })
+                .where(tProject.id.equals(1))
+                .and(tProject.organizationId.equals(tOrganization.id))
+                .returning({
+                    id:      tProject.id,
+                    newName: tProject.name,
+                    slug:    tProject.slug,
+                })
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = organization.name from organization where project.id = $1 and project.organization_id = organization.id returning project.id as id, project.name as "newName", project.slug as slug"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof row, {
+                id:      number
+                newName: string
+                slug:    string
+            }>>()
+            if (!ctx.realDbEnabled) expect(row).toEqual(expectedMock)
+            else {
+                expect(row.id).toBe(1)
+                expect(row.slug).toBe('mktg-site')
+                expect(row.newName).toBe('Acme Corp')
+            }
+        })
+    })
 })

@@ -9,10 +9,11 @@
 // [update.shaped-conditional-sets.test.ts](./update.shaped-conditional-sets.test.ts);
 // the unshaped `*When` dispatchers by
 // [update.set-when-helpers.test.ts](./update.set-when-helpers.test.ts). This file
-// pins the shaped×When cross for the eight arms those leave uncrossed:
-// `setIfSetIfValueWhen`, `setIfNotSetWhen`, `setIfHasValueWhen`,
-// `setIfHasValueIfValueWhen`, `setIfHasNoValueWhen`, `setIfHasNoValueIfValueWhen`,
-// `ignoreIfSetWhen`, `ignoreAnySetWithNoValueWhen`. Each test pairs
+// pins the shaped×When cross for the nine arms those leave uncrossed:
+// `setIfSetIfValueWhen`, `setIfNotSetWhen`, `setIfNotSetIfValueWhen`,
+// `setIfHasValueWhen`, `setIfHasValueIfValueWhen`, `setIfHasNoValueWhen`,
+// `setIfHasNoValueIfValueWhen`, `ignoreIfSetWhen`,
+// `ignoreAnySetWithNoValueWhen`. Each test pairs
 // `*When(false, …)` against `*When(true, …)` so the snapshot delta shows the
 // dispatch fired. Dialect-independent (a plain UPDATE under the real column
 // names; the gating resolves entirely in the builder).
@@ -85,6 +86,37 @@ describe(ctx.label, () => {
                 .shapedAs({ projectName: 'name', projectSlug: 'slug' })
                 .set({ projectName: 'Base name' })
                 .setIfNotSetWhen(true, { projectSlug: 'mktg-site-shaped' })
+                .where(tProject.id.equals(2))
+                .executeUpdate()
+            const trueSql = ctx.lastSql
+
+            expect(falseSql).toMatchInlineSnapshot(`"update project set name = :0 where id = :1"`)
+            expect(trueSql).toMatchInlineSnapshot(`"update project set name = :0, slug = :1 where id = :2"`)
+            expect(trueSql).not.toBe(falseSql)
+        })
+    })
+
+    test('shaped-set-if-not-set-if-value-when-dispatches-on-true', async () => {
+        // setIfNotSetIfValueWhen(true) → setIfNotSetIfValue: assigns only renamed
+        // keys NOT already staged AND whose incoming value passes the value gate.
+        // The renamed `projectSlug` (→ slug) is unstaged and its incoming value is
+        // non-empty, so the true arm fills it; the false arm leaves the SET clause
+        // as name-only.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            await ctx.conn.update(tProject)
+                .shapedAs({ projectName: 'name', projectSlug: 'slug' })
+                .set({ projectName: 'Base name' })
+                .setIfNotSetIfValueWhen(false, { projectSlug: 'mktg-site-shaped' })
+                .where(tProject.id.equals(1))
+                .executeUpdate()
+            const falseSql = ctx.lastSql
+
+            await ctx.conn.update(tProject)
+                .shapedAs({ projectName: 'name', projectSlug: 'slug' })
+                .set({ projectName: 'Base name' })
+                .setIfNotSetIfValueWhen(true, { projectSlug: 'mktg-site-shaped' })
                 .where(tProject.id.equals(2))
                 .executeUpdate()
             const trueSql = ctx.lastSql

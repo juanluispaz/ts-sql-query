@@ -342,4 +342,93 @@ describe(ctx.label, () => {
         })
     })
     */
+
+// NOT-APPLICABLE: MySQL has no INSERT…ON CONFLICT (uses the bare ON DUPLICATE KEY form); `onConflictOn` / the DO UPDATE `where` are not typed on `MySqlConnection`.
+    /*
+    test('on-conflict-on-columns-do-update-where-returning-object', async () => {
+        // `onConflictOn(cols).doUpdateSet(...).where(cond).returning({obj})` --
+        // the partial-UPDATE-WHERE node still carries the full RETURNING surface.
+        // The WHERE can suppress the update, so RETURNING is None-or-One. tProject
+        // has UNIQUE (organization_id, slug); (1, 'mktg-site') collides with the
+        // seed and the WHERE (name differs from the new value) is satisfied, so
+        // the row is updated and its {id, name} come back.
+        const expected = { id: 1, name: 'Updated mktg where' }
+        ctx.mockNext(expected)
+        await ctx.withRollback(async () => {
+            const row = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, slug: 'mktg-site', name: 'Updated mktg where' })
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doUpdateSet({ name: 'Updated mktg where' })
+                .where(tProject.name.notEquals('Updated mktg where'))
+                .returning({ id: tProject.id, name: tProject.name })
+                .executeInsertNoneOrOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof row, { id: number, name: string } | null>>()
+            expect(row).toEqual(expected)
+        })
+    })
+    */
+
+// NOT-APPLICABLE: MySQL has no column-targeted INSERT…ON CONFLICT clause (uses the bare ON DUPLICATE KEY form); `onConflictOn` is narrowed away.
+    /*
+    test('multi-row-on-conflict-on-columns-do-update-returning-object', async () => {
+        // Multi-row VALUES + targeted on-conflict + `returning({obj})`
+        // (executeInsertMany). `doUpdateSet` uses a `valuesForInsert()` RHS so
+        // each conflicting row updates to its own attempted name. Both rows
+        // collide on the existing projects 1 ('mktg-site') and 2 ('tools'), so
+        // DO UPDATE produces a row for each and RETURNING yields their {id, name}.
+        const expected = [
+            { id: 1, name: 'Upd A' },
+            { id: 2, name: 'Upd B' },
+        ]
+        ctx.mockNext(expected)
+        await ctx.withRollback(async () => {
+            const rows = await ctx.conn.insertInto(tProject)
+                .values([
+                    { organizationId: 1, slug: 'mktg-site', name: 'Upd A' },
+                    { organizationId: 1, slug: 'tools', name: 'Upd B' },
+                ])
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doUpdateSet({ name: tProject.valuesForInsert().name })
+                .returning({ id: tProject.id, name: tProject.name })
+                .executeInsertMany()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof rows, Array<{ id: number, name: string }>>>()
+            expect([...rows].sort((a, b) => a.id - b.id)).toEqual(expected)
+        })
+    })
+    */
+
+// NOT-APPLICABLE: MySQL has no column-targeted INSERT…ON CONFLICT clause (uses the bare ON DUPLICATE KEY form); `onConflictOn` is narrowed away.
+    /*
+    test('multi-row-on-conflict-on-columns-do-update-returning-one-column', async () => {
+        // Multi-row VALUES + targeted on-conflict + `returningOneColumn(...)`.
+        // `doUpdateSet` uses a `valuesForInsert()` RHS so each conflicting row
+        // updates to its own attempted name. Both rows collide on the existing
+        // projects 1 ('mktg-site') and 2 ('tools'), so DO UPDATE produces a row
+        // for each and RETURNING name yields their new names.
+        const expected = ['Upd A', 'Upd B']
+        ctx.mockNext(expected)
+        await ctx.withRollback(async () => {
+            const names = await ctx.conn.insertInto(tProject)
+                .values([
+                    { organizationId: 1, slug: 'mktg-site', name: 'Upd A' },
+                    { organizationId: 1, slug: 'tools', name: 'Upd B' },
+                ])
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doUpdateSet({ name: tProject.valuesForInsert().name })
+                .returningOneColumn(tProject.name)
+                .executeInsertMany()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof names, string[]>>()
+            expect([...names].sort()).toEqual([...expected].sort())
+        })
+    })
+    */
 })

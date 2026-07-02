@@ -187,4 +187,74 @@ describe(ctx.label, () => {
         `)
         expect(result.map(r => r.status).sort()).toEqual(['in_progress', 'open'])
     })
+    test('compounded-interface-intersect-all-after-union', async () => {
+        // `a.union(b).intersectAll(c)` — the `*All` intersect reached through the
+        // compounded interface. union dedups {open, in_progress, closed}; INTERSECT
+        // ALL against c (id<=3 = {open, open, in_progress}) keeps min-multiplicity
+        // per row, so the single 'closed' (absent from c) drops, leaving
+        // {open, in_progress}.
+        const expected = [{ status: 'in_progress' }, { status: 'open' }]
+        ctx.mockNext(expected)
+        const a = ctx.conn.selectFrom(tIssue).where(tIssue.id.lessOrEqual(2)).select({ status: tIssue.status })
+        const b = ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(4)).select({ status: tIssue.status })
+        const c = ctx.conn.selectFrom(tIssue).where(tIssue.id.lessOrEqual(3)).select({ status: tIssue.status })
+        const result = await a.union(b).intersectAll(c).executeSelectMany()
+        assertType<Exact<typeof result, Array<{ status: string }>>>()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`status\` as \`status\` from issue where id <= ? union select \`status\` as \`status\` from issue where id = ? intersect all select \`status\` as \`status\` from issue where id <= ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+            4,
+            3,
+          ]
+        `)
+        expect(result.map(r => r.status).sort()).toEqual(['in_progress', 'open'])
+    })
+
+    test('compounded-interface-except-all-after-union', async () => {
+        // `a.union(b).exceptAll(c)` — the `*All` set-difference reached through
+        // the compounded interface (`except all` on most dialects, `minus all` on
+        // Oracle). union dedups {open, in_progress, closed}; EXCEPT ALL of c
+        // (status='open') removes a single 'open', leaving {in_progress, closed}.
+        const expected = [{ status: 'closed' }, { status: 'in_progress' }]
+        ctx.mockNext(expected)
+        const a = ctx.conn.selectFrom(tIssue).where(tIssue.id.lessOrEqual(2)).select({ status: tIssue.status })
+        const b = ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(4)).select({ status: tIssue.status })
+        const c = ctx.conn.selectFrom(tIssue).where(tIssue.status.equals('open')).select({ status: tIssue.status })
+        const result = await a.union(b).exceptAll(c).executeSelectMany()
+        assertType<Exact<typeof result, Array<{ status: string }>>>()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`status\` as \`status\` from issue where id <= ? union select \`status\` as \`status\` from issue where id = ? except all select \`status\` as \`status\` from issue where \`status\` = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+            4,
+            "open",
+          ]
+        `)
+        expect(result.map(r => r.status).sort()).toEqual(['closed', 'in_progress'])
+    })
+
+    test('compounded-interface-minus-after-union', async () => {
+        // `a.union(b).minus(c)` — the dialect-aliased set-difference (`except` on
+        // most dialects, `minus` on Oracle), deduplicated, reached through the
+        // compounded interface. union dedups {open, in_progress, closed}; minus c
+        // (status='open') removes 'open', leaving {in_progress, closed}.
+        const expected = [{ status: 'closed' }, { status: 'in_progress' }]
+        ctx.mockNext(expected)
+        const a = ctx.conn.selectFrom(tIssue).where(tIssue.id.lessOrEqual(2)).select({ status: tIssue.status })
+        const b = ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(4)).select({ status: tIssue.status })
+        const c = ctx.conn.selectFrom(tIssue).where(tIssue.status.equals('open')).select({ status: tIssue.status })
+        const result = await a.union(b).minus(c).executeSelectMany()
+        assertType<Exact<typeof result, Array<{ status: string }>>>()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`status\` as \`status\` from issue where id <= ? union select \`status\` as \`status\` from issue where id = ? except select \`status\` as \`status\` from issue where \`status\` = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+            4,
+            "open",
+          ]
+        `)
+        expect(result.map(r => r.status).sort()).toEqual(['closed', 'in_progress'])
+    })
+
 })

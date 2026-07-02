@@ -8,7 +8,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tOrganization, tProject } from '../../domain/connection.js'
+import { tIssue, tOrganization, tProject, tProjectReview } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -130,6 +130,51 @@ describe(ctx.label, () => {
             id:    number
             name:  string
             count: number
+        }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('with-clause/re-projects-value-transforming-adapter-columns-round-trip', async () => {
+        // A `forUseInQueryAs(...)` CTE re-projects two VALUE-TRANSFORMING adapter
+        // columns and the outer SELECT reads them from the CTE, so the adapter
+        // read path must fire through the CTE's view-like column references (not
+        // just the base table). `score` carries the scaled-tenth adapter (DB stores
+        // ×10, app reads ÷10) and `reviewerCode` the bracket adapter (read wraps in
+        // [...]). Review 1 has DB score 850 / reviewer_code 'R-7A2', so the
+        // round-trip through the CTE yields score 85 and reviewerCode '[R-7A2]'.
+        const connection = ctx.conn
+
+        const expected = [{ pid: 1, score: 85, reviewerCode: '[R-7A2]' }]
+        ctx.mockNext([{ pid: 1, score: 850, reviewerCode: 'R-7A2' }])
+
+        const reviewScores = connection.selectFrom(tProjectReview)
+            .select({
+                pid:          tProjectReview.projectId,
+                score:        tProjectReview.score,
+                reviewerCode: tProjectReview.reviewerCode,
+            })
+            .forUseInQueryAs('reviewScores')
+
+        const rows = await connection.selectFrom(reviewScores)
+            .where(reviewScores.pid.equals(1))
+            .select({
+                pid:          reviewScores.pid,
+                score:        reviewScores.score,
+                reviewerCode: reviewScores.reviewerCode,
+            })
+            .orderBy('pid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with reviewScores as (select project_id as pid, score as score, reviewer_code as reviewerCode from project_review) select pid as pid, score as score, reviewerCode as reviewerCode from reviewScores where pid = @0 order by pid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            pid:          number
+            score:        number
+            reviewerCode: string
         }>>>()
         expect(rows).toEqual(expected)
     })

@@ -139,6 +139,143 @@ describe(ctx.label, () => {
     })
 
 
+    test('compound-order-by-desc', async () => {
+        // `orderBy('label', 'desc')` on a compound — the enum-mode overload with
+        // the simple `desc` mode, rendered INLINE through the compound (distinct
+        // from the `'asc insensitive'` case, which wraps the compound in
+        // `select * from (...)`). All 8 union labels are distinct, so descending
+        // order is deterministic.
+        const expected = [
+            { label: 'Update hero copy' },
+            { label: 'Redesign navbar' },
+            { label: 'Public API' },
+            { label: 'Migrate to ESM' },
+            { label: 'Marketing site' },
+            { label: 'Legacy app' },
+            { label: 'Internal tools' },
+            { label: 'Document /v2/users' },
+        ]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tProject)
+            .select({ label: tProject.name })
+            .union(ctx.conn.selectFrom(tIssue).select({ label: tIssue.title }))
+            .orderBy('label', 'desc')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project union select title as label from issue order by label desc"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ label: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('compound-order-by-asc-nulls-first', async () => {
+        // `orderBy('label', 'asc nulls first')` on a compound. No label is null,
+        // so the result is a plain ascending order; the mode is pinned by the
+        // snapshot (native `asc nulls first` on PostgreSQL, plain `asc` on the
+        // dialects where ASC already sorts NULLs first).
+        const expected = [
+            { label: 'Document /v2/users' },
+            { label: 'Internal tools' },
+            { label: 'Legacy app' },
+            { label: 'Marketing site' },
+            { label: 'Migrate to ESM' },
+            { label: 'Public API' },
+            { label: 'Redesign navbar' },
+            { label: 'Update hero copy' },
+        ]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tProject)
+            .select({ label: tProject.name })
+            .union(ctx.conn.selectFrom(tIssue).select({ label: tIssue.title }))
+            .orderBy('label', 'asc nulls first')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project union select title as label from issue order by label asc nulls first"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ label: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('compound-order-by-desc-nulls-last', async () => {
+        // `orderBy('label', 'desc nulls last')` on a compound. No label is null,
+        // so the result is a plain descending order; the snapshot pins the mode
+        // (native `desc nulls last` on PostgreSQL, plain `desc` on the dialects
+        // where DESC already sorts NULLs last).
+        const expected = [
+            { label: 'Update hero copy' },
+            { label: 'Redesign navbar' },
+            { label: 'Public API' },
+            { label: 'Migrate to ESM' },
+            { label: 'Marketing site' },
+            { label: 'Legacy app' },
+            { label: 'Internal tools' },
+            { label: 'Document /v2/users' },
+        ]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tProject)
+            .select({ label: tProject.name })
+            .union(ctx.conn.selectFrom(tIssue).select({ label: tIssue.title }))
+            .orderBy('label', 'desc nulls last')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project union select title as label from issue order by label desc nulls last"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ label: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('compound-order-by-asc-nulls-last', async () => {
+        // `orderBy('label', 'asc nulls last')` on a compound. No label is null,
+        // so the result is a plain ascending order; the snapshot pins the mode
+        // (native `asc nulls last` on PostgreSQL; the `is null` / `iif` NULLs
+        // emulation on the dialects without native NULLS ordering, applied to the
+        // compound's output column).
+        const expected = [
+            { label: 'Document /v2/users' },
+            { label: 'Internal tools' },
+            { label: 'Legacy app' },
+            { label: 'Marketing site' },
+            { label: 'Migrate to ESM' },
+            { label: 'Public API' },
+            { label: 'Redesign navbar' },
+            { label: 'Update hero copy' },
+        ]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tProject)
+            .select({ label: tProject.name })
+            .union(ctx.conn.selectFrom(tIssue).select({ label: tIssue.title }))
+            .orderBy('label', 'asc nulls last')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project union select title as label from issue order by label asc nulls last"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ label: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('compound-order-by-desc-nulls-first', async () => {
+        // `orderBy('label', 'desc nulls first')` on a compound. No label is null,
+        // so the result is a plain descending order; the snapshot pins the mode
+        // (native `desc nulls first` on PostgreSQL; the `is not null` / `iif`
+        // NULLs emulation on the dialects without native NULLS ordering).
+        const expected = [
+            { label: 'Update hero copy' },
+            { label: 'Redesign navbar' },
+            { label: 'Public API' },
+            { label: 'Migrate to ESM' },
+            { label: 'Marketing site' },
+            { label: 'Legacy app' },
+            { label: 'Internal tools' },
+            { label: 'Document /v2/users' },
+        ]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tProject)
+            .select({ label: tProject.name })
+            .union(ctx.conn.selectFrom(tIssue).select({ label: tIssue.title }))
+            .orderBy('label', 'desc nulls first')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project union select title as label from issue order by label desc nulls first"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ label: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
     test('compound-with-optional-seed-column-yields-optional-result', async () => {
         // the compound result optionality is decided by the SEED (first)
         // query. Here the seed projects the optional column `archivedAt`, so

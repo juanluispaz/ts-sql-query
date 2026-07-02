@@ -9,6 +9,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { Values } from '../../../../../src/Values.js'
+import type { TypeAdapter } from '../../../../../src/TypeAdapter.js'
 import { DBConnection, type ReleaseChannel, type WorklogActivity } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
@@ -17,6 +18,23 @@ class VKindSampler extends Values<DBConnection, 'kindSampler'> {
     big  = this.column('bigint')
     dbl  = this.column('double')
     flag = this.column('boolean')
+}
+
+// A value-scaling TypeAdapter (read ÷10, write ×10) for the Values-side
+// `column(type, adapter)` (adapter-object) arm below. Declared inline: it
+// needs no domain fixture.
+const scaledTenthAdapter: TypeAdapter = {
+    transformValueFromDB(value, type, next) {
+        const v = next.transformValueFromDB(value, type)
+        return typeof v === 'number' ? v / 10 : v
+    },
+    transformValueToDB(value, type, next) {
+        return next.transformValueToDB(typeof value === 'number' ? value * 10 : value, type)
+    },
+}
+
+class VScaledSampler extends Values<DBConnection, 'scaledSampler'> {
+    score = this.column('int', scaledTenthAdapter)
 }
 
 // Branded text-collapsing kinds as real VALUES-tuple columns: customComparable
@@ -76,6 +94,27 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{ ver: string; chan: ReleaseChannel; act: WorklogActivity }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('values-tuple-column-with-type-adapter-scales-write-and-read', async () => {
+        // The `Values.column(type, adapter)` adapter-object arm: `score` carries
+        // scaledTenthAdapter (write ×10, read ÷10). Passing score 5 binds the
+        // SCALED value 10 in the VALUES tuple, and the read divides it back to 5.
+        // Observable in both the bound param (10) and the result value (5).
+        const expected = [{ score: 5 }]
+        ctx.mockNext([{ score: 50 }])
+        const v = Values.create(VScaledSampler, 'scaledSampler', [{ score: 5 }])
+        const rows = await ctx.conn.selectFrom(v)
+            .select({ score: v.score })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with scaledSampler(score) as (values ($1::int4)) select score as score from scaledSampler"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            50,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ score: number }>>>()
         expect(rows).toEqual(expected)
     })
 
@@ -139,7 +178,7 @@ describe(ctx.label, () => {
 
 
     test('values-tuple-cast-per-custom-temporal-kind-via-null-value', async () => {
-        // B-5 / T3-d (§A): branded custom-temporal kinds as VALUES-tuple columns —
+        // Branded custom-temporal kinds as VALUES-tuple columns —
         // customLocalDate ('ReleaseDay'), customLocalTime ('CutoffClock') and
         // customLocalDateTime ('SignOffStamp'). Each routes through the
         // connection's temporal `baseTypeForCustom` arms (-> localDate / localTime

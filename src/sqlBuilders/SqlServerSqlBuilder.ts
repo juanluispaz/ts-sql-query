@@ -302,10 +302,10 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
                     orderByColumns += this._appendOrderByColumnAlias(entry, query, params) + ' desc'
                     break
                 case 'asc nulls last':
-                    orderByColumns += 'iif(' + this._appendOrderByColumnExpression(entry, query, params) + ' is null, 1, 0), ' + this._appendOrderByColumnAlias(entry, query, params) + ' asc'
+                    orderByColumns += 'iif(' + this._appendOrderByNullCheckOperand(entry, query, params) + ' is null, 1, 0), ' + this._appendOrderByColumnAlias(entry, query, params) + ' asc'
                     break
                 case 'desc nulls first':
-                    orderByColumns += 'iif(' + this._appendOrderByColumnExpression(entry, query, params) + ' is not null, 1, 0), ' + this._appendOrderByColumnAlias(entry, query, params) + ' desc'
+                    orderByColumns += 'iif(' + this._appendOrderByNullCheckOperand(entry, query, params) + ' is not null, 1, 0), ' + this._appendOrderByColumnAlias(entry, query, params) + ' desc'
                     break
                 case 'insensitive':
                     orderByColumns += this._appendOrderByColumnAliasInsensitive(entry, query, params)
@@ -319,10 +319,10 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
                     orderByColumns += this._appendOrderByColumnAliasInsensitive(entry, query, params) + ' desc'
                     break
                 case 'asc nulls last insensitive':
-                    orderByColumns += 'iif(' + this._appendOrderByColumnExpression(entry, query, params) + ' is null, 1, 0), ' + this._appendOrderByColumnAliasInsensitive(entry, query, params) + ' asc'
+                    orderByColumns += 'iif(' + this._appendOrderByNullCheckOperand(entry, query, params) + ' is null, 1, 0), ' + this._appendOrderByColumnAliasInsensitive(entry, query, params) + ' asc'
                     break
                 case 'desc nulls first insensitive':
-                    orderByColumns += 'iif(' + this._appendOrderByColumnExpression(entry, query, params) + ' is not null, 1, 0), ' + this._appendOrderByColumnAliasInsensitive(entry, query, params) + ' desc'
+                    orderByColumns += 'iif(' + this._appendOrderByNullCheckOperand(entry, query, params) + ' is not null, 1, 0), ' + this._appendOrderByColumnAliasInsensitive(entry, query, params) + ' desc'
                     break
                 default:
                     throw new TsSqlProcessingError({ reason: 'INVALID_ORDER_BY_ORDERING', column: this._appendOrderByColumnAlias(entry, query, params), ordering: order }, 'Invalid order by: ' + order)
@@ -615,6 +615,45 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         // T-SQL resolves a name inside an ORDER BY expression against the input
         // columns, not the SELECT output aliases, so `lower(<alias>)` fails with
         // error 207 "Invalid column name". Verified against the real engine.
+        return false
+    }
+    /**
+     * The operand for the `iif(<operand> is null, …)` NULLs-emulation term. On a
+     * plain select it is the alias' underlying source column (a scalar function
+     * in ORDER BY can't reference a SELECT output alias — see
+     * `_appendOrderByColumnExpression`). On a compound the ORDER BY is emitted on
+     * the wrapping `select * from (<compound>)` (see
+     * `_needsCompoundNullsEmulationOrderByWrap`), whose input columns ARE the
+     * output aliases and where the source column is out of scope, so the bare
+     * alias is both legal and the only thing that resolves.
+     */
+    private _appendOrderByNullCheckOperand(entry: OrderByEntry, query: SelectData, params: any[]): string {
+        if (query.__type === 'compound') {
+            return this._appendOrderByColumnAlias(entry, query, params)
+        }
+        return this._appendOrderByColumnExpression(entry, query, params)
+    }
+    override _needsCompoundNullsEmulationOrderByWrap(query: SelectData): boolean {
+        // The `asc nulls last` / `desc nulls first` modes (and their insensitive
+        // variants) render as an `iif(<col> is null, …)` term, which is illegal
+        // inside a compound ORDER BY — SQL Server rejects it with Msg 104. Report
+        // that the compound must be wrapped as `select * from (<compound>)` so the
+        // `iif(...)` becomes a legal ORDER BY term on the plain wrapper. The other
+        // NULLs modes render as a plain `asc` / `desc` and need no wrapper.
+        if (query.__type !== 'compound') {
+            return false
+        }
+        const orderBy = query.__orderBy
+        if (!orderBy) {
+            return false
+        }
+        for (const entry of orderBy) {
+            const order = entry.order
+            if (order === 'asc nulls last' || order === 'desc nulls first'
+                || order === 'asc nulls last insensitive' || order === 'desc nulls first insensitive') {
+                return true
+            }
+        }
         return false
     }
     override _buildInsertOutput(query: InsertData, params: any[]): string {

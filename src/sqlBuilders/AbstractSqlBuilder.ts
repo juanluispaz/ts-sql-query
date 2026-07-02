@@ -1360,14 +1360,27 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return false
     }
     /**
+     * Whether the compound query's ORDER BY contains a NULLs-ordering term this
+     * dialect emulates with an expression (e.g. `iif(col is null, …)`) instead
+     * of a native `nulls first` / `nulls last`. Such an expression is illegal
+     * inside a compound ORDER BY on the strict engines, so the compound must be
+     * wrapped as `select * from (<compound>)` and the ordering applied on the
+     * plain wrapper. Defaults to `false`: the engines with native NULLS ordering
+     * emit nothing that needs the wrapper here. Overridden by
+     * `SqlServerSqlBuilder`, whose emulation renders an `iif(...)` term.
+     */
+    _needsCompoundNullsEmulationOrderByWrap(_query: SelectData): boolean {
+        return false
+    }
+    /**
      * Whether the compound query's ORDER BY needs the `select * from (<compound>)`
      * wrapper for any reason — a case-insensitive term that renders as an
-     * expression, or an ordering by a value-source expression. Either kind is
-     * illegal inside a compound ORDER BY on the strict engines and becomes legal
-     * on the plain wrapper.
+     * expression, an ordering by a value-source expression, or a NULLs-ordering
+     * term emulated as an expression. Each kind is illegal inside a compound
+     * ORDER BY on the strict engines and becomes legal on the plain wrapper.
      */
     _needsCompoundOrderByWrap(query: SelectData): boolean {
-        return this._needsCompoundInsensitiveOrderByWrap(query) || this._needsCompoundExpressionOrderByWrap(query)
+        return this._needsCompoundInsensitiveOrderByWrap(query) || this._needsCompoundExpressionOrderByWrap(query) || this._needsCompoundNullsEmulationOrderByWrap(query)
     }
     /**
      * Render the ORDER BY for the outer `select * from (<compound>)` wrapper

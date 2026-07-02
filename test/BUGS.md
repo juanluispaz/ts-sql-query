@@ -67,36 +67,7 @@ of that. Two minutes of triage and one paragraph is the bar.
 
 ## Open Bugs
 
-## SQL Server: `nulls`-emulation ORDER BY on a compound emits malformed, unwrapped SQL
-
-**Where**: `AbstractSqlBuilder._buildSelectOrderBy` (compound path) +
-`_needsCompoundOrderByWrap` / `_needsCompoundExpressionOrderByWrap`
-(`src/sqlBuilders/AbstractSqlBuilder.ts`), and `SqlServerSqlBuilder`'s
-`_buildSelectOrderBy` override (the `iif(...)` NULLs emulation).
-
-**Reproduction**: on a compound (e.g. `a.union(b)`),
-`orderBy('label', 'asc nulls last')` or `orderBy('label', 'desc nulls first')`
-on SQL Server emits
-`select … union … order by iif(.[label] is null, 1, 0), [label] asc`. Two
-defects: (1) the column resolves to a **malformed `.[label]`** — a leading dot
-with an empty table qualifier (the non-compound path correctly emits
-`iif(issue.assignee_id is null, 1, 0), …`); (2) the `iif(...)` expression is
-**not wrapped** in `select * from (<compound>)`, even though the builder already
-wraps compounds for the case-insensitive (`lower(…)`) and value-source ORDER BY
-terms via `_needsCompoundOrderByWrap`. SQL Server rejects it with
-`Msg 104 … ORDER BY items must appear in the select list if the statement
-contains a UNION, INTERSECT or EXCEPT operator` (verified on
-`mcr.microsoft.com/mssql/server:2025-latest`). The feature is achievable on SQL
-Server — `select * from (<compound>) o order by iif(o.label is null,1,0), o.label asc`
-is valid — so this is a rendering/wrapping defect, not a dialect boundary. The
-same two modes work correctly on non-compound selects, and the compound version
-runs live on every other engine (native NULLS on PostgreSQL/Oracle/SQLite,
-lenient alias-based emulation on MySQL/MariaDB).
-
-**Current workaround in the suite**: `compound-order-by-asc-nulls-last` and
-`compound-order-by-desc-nulls-first` are commented out with `// TODO[BUG]` in
-`test/db/sqlserver/newest/mssql/select.compound.test.ts` only (the documented
-snapshot pins the current malformed emission); live on the other 16 cells.
+_None currently open._
 
 ## Common bug shapes (for the fixing agent)
 

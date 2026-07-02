@@ -221,16 +221,14 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-    // TODO[BUG]: see BUGS.md — on a compound the `asc nulls last` NULLs emulation
-    // emits a malformed, unwrapped `iif(.[label] ...)` ORDER BY term SQL Server
-    // rejects (Msg 104); the non-compound form works.
-    /*
     test('compound-order-by-asc-nulls-last', async () => {
         // `orderBy('label', 'asc nulls last')` on a compound. No label is null,
         // so the result is a plain ascending order; the snapshot pins the mode
         // (native `asc nulls last` on PostgreSQL; the `is null` / `iif` NULLs
-        // emulation on the dialects without native NULLS ordering, applied to the
-        // compound's output column).
+        // emulation on the dialects without native NULLS ordering). SQL Server's
+        // `iif(...)` term is an expression, illegal inside a compound ORDER BY,
+        // so the compound is wrapped in `select * from (...)` and the ordering is
+        // applied on the plain wrapper (referencing the output alias `[label]`).
         const expected = [
             { label: 'Document /v2/users' },
             { label: 'Internal tools' },
@@ -247,22 +245,19 @@ describe(ctx.label, () => {
             .union(ctx.conn.selectFrom(tIssue).select({ label: tIssue.title }))
             .orderBy('label', 'asc nulls last')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as [label] from project union select title as [label] from issue order by iif(.[label] is null, 1, 0), [label] asc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select name as [label] from project union select title as [label] from issue) as o_1_ order by iif([label] is null, 1, 0), [label] asc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{ label: string }>>>()
         expect(result).toEqual(expected)
     })
-    */
 
-    // TODO[BUG]: see BUGS.md — same compound NULLs-emulation defect as
-    // `compound-order-by-asc-nulls-last` above (malformed, unwrapped `iif(...)`
-    // ORDER BY term on a compound).
-    /*
     test('compound-order-by-desc-nulls-first', async () => {
         // `orderBy('label', 'desc nulls first')` on a compound. No label is null,
         // so the result is a plain descending order; the snapshot pins the mode
         // (native `desc nulls first` on PostgreSQL; the `is not null` / `iif`
-        // NULLs emulation on the dialects without native NULLS ordering).
+        // NULLs emulation on the dialects without native NULLS ordering). SQL
+        // Server wraps the compound in `select * from (...)` because the `iif(...)`
+        // term is illegal inside a compound ORDER BY.
         const expected = [
             { label: 'Update hero copy' },
             { label: 'Redesign navbar' },
@@ -279,12 +274,11 @@ describe(ctx.label, () => {
             .union(ctx.conn.selectFrom(tIssue).select({ label: tIssue.title }))
             .orderBy('label', 'desc nulls first')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as [label] from project union select title as [label] from issue order by iif(.[label] is not null, 1, 0), [label] desc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select name as [label] from project union select title as [label] from issue) as o_1_ order by iif([label] is not null, 1, 0), [label] desc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{ label: string }>>>()
         expect(result).toEqual(expected)
     })
-    */
 
     test('compound-with-optional-seed-column-yields-optional-result', async () => {
         // the compound result optionality is decided by the SEED (first)

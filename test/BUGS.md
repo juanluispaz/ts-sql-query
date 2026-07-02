@@ -67,7 +67,90 @@ of that. Two minutes of triage and one paragraph is the bar.
 
 ## Open Bugs
 
-_None currently open._
+## Shaped-update `extendShape` drops the `dynamicSet` opener (asymmetric with its AllowingNoWhere twin and the INSERT analogue)
+
+**Where**: `src/expressions/update.ts:295` — `ShapedUpdateSetExpression.extendShape`
+returns `ShapedNotExecutableUpdateExpression<…>`, which has **no** `dynamicSet`.
+Contrast the AllowingNoWhere twin `ShapedUpdateSetExpressionAllowingNoWhere.extendShape`
+(update.ts:319), which returns its OWN family (retains `dynamicSet`), and the INSERT
+analogue `ShapedInsertExpression.extendShape` (insert.ts), which likewise stays in
+its own family. Runtime oracle: `UpdateQueryBuilder.extendShape` returns `this`, so
+`dynamicSet` is callable at runtime regardless.
+
+**Reproduction** (type-level, tsgo over `test/tsconfig.json`):
+
+```ts
+declare const conn: DBConnection
+// ERRORS — TS2339 "Property 'dynamicSet' does not exist on ShapedNotExecutableUpdateExpression"
+conn.update(tProject).shapedAs({ projectName: 'name' })
+    .extendShape({ projectSlug: 'slug' })
+    .dynamicSet()
+// COMPILES — the AllowingNoWhere twin keeps dynamicSet after extendShape
+conn.updateAllowingNoWhere(tProject).shapedAs({ projectName: 'name' })
+    .extendShape({ projectSlug: 'slug' })
+    .dynamicSet()
+// COMPILES — the normal opener (no extendShape) has dynamicSet
+conn.update(tProject).shapedAs({ projectName: 'name' }).dynamicSet()
+```
+
+So on the where-required path, `shapedAs(...).extendShape(...)` silently loses the
+`dynamicSet()` (no-arg + one-shot) opener that the runtime supports, that the
+AllowingNoWhere path keeps, and that the INSERT `extendShape` keeps — an
+over-restriction, not a runtime limitation (`extendShape` is a shape widener, not a
+set operation, so it should stay in the opener family). Likely fix: return
+`ShapedUpdateSetExpression<TABLE, USING, SHAPE & ResolveShape<TABLE, EXTEND_SHAPE>>`
+from `ShapedUpdateSetExpression.extendShape` (mirroring the AllowingNoWhere twin).
+If the drop is instead deliberate, it needs a `types.negative` `@ts-expect-error`
+lock plus a doc note, since nothing currently pins it.
+
+**Current workaround in the suite**: none — surfaced by the round-20 parity sweep and
+confirmed by a tsgo compile-repro (no test currently chains
+`shapedAs(...).extendShape(...).dynamicSet()` on the normal update path). When a test
+is added, mark it `// TODO[BUG]: see BUGS.md — shaped-update extendShape drops
+dynamicSet` until the fix lands.
+
+## One-column recursive select as an inline query value throws `INTERNAL: Unexpected inline select`
+
+**Where**: `src/queryBuilders/SelectQueryBuilder.ts` — `__buildRecursive`
+(around lines 586-593) builds the outer `recursiveSelect` and copies
+`__columns` / `__subSelectUsing` / `__projectOptionalValuesAsNullable` from the
+originating builder, but does **not** copy `__oneColumn`. So a one-column
+recursive select's outer data keeps `__oneColumn === false`, and the inline
+scalar initialization (`valueSourceInitializationForInlineSelect`,
+`src/internal/ValueSourceImpl.ts` ~line 2487) falls to the `else` and throws
+`INTERNAL: Unexpected inline select`. (Contrast: `__buildSelectCount` at ~line 737
+delegates through `this.__recursiveSelect`, so it stays correct.) The type surface
+permits the composition: `recursiveUnion*` returns an `OrderByExecutableSelectExpression`
+that transitively exposes `forUseAsInlineQueryValue`.
+
+**Reproduction** (PG reference cell, mock — runtime probe):
+
+```ts
+const inline = conn.selectFrom(tIssue)
+    .where(tIssue.id.equals(1))
+    .selectOneColumn(tIssue.id)
+    .recursiveUnionOn((child) => tIssue.parentId.equals(child))
+    .forUseAsInlineQueryValue()
+await conn.selectFrom(tProject).select({ n: inline }).executeSelectMany()
+// THROWS: TsSqlError "INTERNAL: Unexpected inline select" (errorReason.reason === 'INTERNAL')
+```
+
+Controls that WORK (proving it is recursive-one-column-inline-specific):
+- non-recursive one-column inline: `selectFrom(tIssue).selectOneColumn(tIssue.id).forUseAsInlineQueryValue()` →
+  `select (select id as result from issue where id = $1) as "n" from project` ✓
+- the same recursive one-column select via `.forUseInQueryAs('tree')` and via direct
+  `executeSelectMany()` both work ✓ (per the seam-critic probe).
+
+Likely fix: have `__buildRecursive` also carry `__oneColumn` (and
+`__asInlineAggregatedArrayValue`, if the aggregated-array inline path has the same
+gap) onto the outer `recursiveSelect`, or route the inline paths through
+`__recursiveSelect` the way `__buildSelectCount` does.
+
+**Current workaround in the suite**: none — surfaced by the round-20 seam-critic
+audit and confirmed by a runtime SQL/throw probe (no test composes
+`selectOneColumn(...).recursiveUnion*(...).forUseAsInlineQueryValue()`). When a
+test is added, mark it `// TODO[BUG]: see BUGS.md — one-column recursive inline
+select throws INTERNAL` until the fix lands.
 
 ## Common bug shapes (for the fixing agent)
 

@@ -67,7 +67,80 @@ of that. Two minutes of triage and one paragraph is the bar.
 
 ## Open Bugs
 
-_None open._
+## `disallowIfNoValueWhen` drops the `MISSING_KEYS` narrowing its runtime-twin `disallowIfNoValue` applies
+
+**Where**: `src/expressions/insert.ts` — the four `*MissingKeys*` insert
+interfaces. On each, `disallowIfNoValue<COLUMNS>` narrows the missing-keys
+set via `Exclude<MISSING_KEYS, COLUMNS>` but `disallowIfNoValueWhen` returns
+`MISSING_KEYS` unchanged (and isn't generic over `COLUMNS`):
+- `MissingKeysInsertExpression`: `disallowIfNoValue` :281-282 vs `disallowIfNoValueWhen` :309-310
+- `ShapedMissingKeysInsertExpression`: :340-341 vs :368-369
+- `MissingKeysMultipleInsertExpression`: :515-516 vs :543-544
+- `ShapedMissingKeysMultipleInsertExpression`: :574-575 vs :602-603
+
+**Reproduction**: `InsertQueryBuilder.disallowIfNoValueWhen(when, error, ...columns)`
+(`src/queryBuilders/InsertQueryBuilder.ts:1567-1569`) delegates straight to
+`this.disallowIfNoValue(error, ...columns)` when `when === true`, so
+`disallowIfNoValueWhen(true, e, ...cols) ≡ disallowIfNoValue(e, ...cols)` and
+their result types must coincide. They don't. Coordinator compile-repro (tsgo)
+on the single-row twin:
+```ts
+const direct = ctx.conn.insertInto(tIssue).dynamicSet()
+    .disallowIfNoValue('required', 'projectId', 'number', 'title', 'status', 'priority')
+const whenTrue = ctx.conn.insertInto(tIssue).dynamicSet()
+    .disallowIfNoValueWhen(true, 'required', 'projectId', 'number', 'title', 'status', 'priority')
+assertType<Exact<typeof direct, typeof whenTrue>>()   // TS2344: 'false' does not satisfy 'true'
+```
+The `keepOnly`/`keepOnlyWhen(true)` positive control in the same repro passes,
+proving the harness is sound and only this pair diverges. `disallowIfNoValue`
+removes the named columns from `MISSING_KEYS` (they're runtime-guaranteed to have
+a value), which — through the downstream `[MISSING_KEYS] extends [never]` gate
+(`insert.ts:1005-1006`) — is what lets a later `.set(rest)` reach executability;
+the `disallowIfNoValueWhen(true)` chain cannot, though it does the identical
+thing at runtime. Same shape as the previously-fixed `keepOnlyWhen` /
+shaped-`setWhen` MISSING_KEYS mis-folds. Fix: make each
+`disallowIfNoValueWhen<COLUMNS extends …>(when, error/errorMessage, ...columns: COLUMNS[])`
+overload return the `Exclude<MISSING_KEYS, COLUMNS>`-narrowed node its non-When
+sibling returns (both string and `Error` overloads, all four interfaces); the
+fixing agent settles whether the canonical direction is "When narrows too" or
+"neither narrows", using the runtime delegation as the oracle.
+
+**Current workaround in the suite**: no test asserts the type of
+`disallowIfNoValue` / `disallowIfNoValueWhen` on a `dynamicSet()` (MissingKeys)
+chain, so nothing is red today — the gap that hid it. A `// TODO[BUG]` marks the
+would-be dispatch-lock assertion (paired direct-vs-`When(true)` `assertType<Exact>`
+alongside the existing `keep-only-when-dispatches-on-true` lock in
+`insert.set-when-helpers.test.ts`).
+
+## `customizeQuery` `beforeQuery`/`afterQuery` silently dropped on a recursive-union select consumed via `forUseInQueryAs`
+
+**Where**: `src/queryBuilders/SelectQueryBuilder.ts` — the recursive branch of
+`forUseInQueryAs` (~:539-547) returns only the `recursiveView` and discards
+`this.__recursiveSelect`, on which `__applyRecursiveCustomization` (~:612-648)
+parked the whole-statement `beforeQuery`/`afterQuery` hooks.
+
+**Reproduction**: `selectFrom(t).where(...).select({...}).recursiveUnionAll(...)
+.customizeQuery({beforeQuery, afterQuery, beforeWithQuery, afterWithQuery})
+.forUseInQueryAs('tree')` is typed & callable, but the emitted SQL drops
+`beforeQuery`/`afterQuery`. Coordinator runtime probe (mock, `ctx.lastSql`),
+three arms sharing one `customizeQuery({beforeQuery:'/* head */', afterQuery:'/* tail */',
+beforeWithQuery:'/* warmup */', afterWithQuery:'/* end-of-with */'})`:
+- **recursive + `forUseInQueryAs`** → `with recursive tree as /* warmup */ (…) /* end-of-with */ select … from tree` — `/* head */` and `/* tail */` **GONE**.
+- **same recursive builder + `executeSelectMany`** → `/* head */ with recursive … /* warmup */ (…) /* end-of-with */ … /* tail */` — all four present.
+- **non-recursive + `forUseInQueryAs`** → `with cte as /* warmup */ (/* head */ select … /* tail */) /* end-of-with */ …` — all four present (`beforeQuery`/`afterQuery` land inside the CTE body).
+
+So the drop is specific to the `recursive × forUseInQueryAs` seam: both the
+direct-execute path and the non-recursive CTE path preserve the hooks. A "TS
+accepts what the impl doesn't deliver" divergence — user-supplied SQL (route
+hints, comments) is silently lost. Distinct from the previously-fixed
+recursive-CTE customizeQuery mislanding (that fix covered the direct/execute path;
+this composition slips through). Expected: mirror the non-recursive CTE path and
+render `beforeQuery`/`afterQuery` inside the recursive CTE body.
+
+**Current workaround in the suite**: the `recursive-union × forUseInQueryAs`
+composition is untested across the whole matrix (only recursive+`executeSelectMany`
+and non-recursive+`forUseInQueryAs` are covered). A `// TODO[BUG]` will mark the
+new probe test once written.
 
 ## Common bug shapes (for the fixing agent)
 

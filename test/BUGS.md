@@ -94,6 +94,46 @@ body preserved). The `recursive-result-execute-select-one` /
 `recursive-result-execute-select-none-or-one` terminals (which do not use
 orderBy/limit/offset) run live and are correct.
 
+## `projectingOptionalValuesAsNullable()` is unreachable on a `recursiveUnionAll` / `recursiveUnionAllOn` result, though the sibling `union`/`unionAll` compound keeps it and the runtime carries it
+
+**Nature**: not a runtime defect — a **type-narrowness gap / functional expansion**. The
+scenario "project a recursive-union result's optionals as nullable" cannot be written
+against the public API without `as any`, so it has no test. Filed so the typed surface
+can be widened to expose it.
+
+**Where**: `src/expressions/select.ts`. `recursiveUnionAll` / `recursiveUnionAllOn`
+(declared at :132 / :134 in `CompoundableExecutableSelectExpression` and :148 / :150 in
+`CompoundableExecutableSelectExpressionWithoutWhere`, plus the conditional-type forms at
+:519 / :524) both return the **plain** `OrderByExecutableSelectExpression` (:180), which
+does not declare `projectingOptionalValuesAsNullable`. In the *same* interfaces,
+`union` / `unionAll` (:122-123, :138-139) return
+`CompoundedExecutableSelectExpressionProjectableAsNullable` (:209), which *does* declare
+it (:210). The OrderBy-shape twin that carries the method already exists —
+`OrderByExecutableSelectExpressionProjectableAsNullable` (:190-192), what `select({...})`
+returns before composition (:332); the recursive path widens away from it.
+
+**Reproduction** (compile-level):
+
+```ts
+// typechecks — a regular compound keeps the method:
+conn.selectFrom(t).select({ ... }).unionAll(other).projectingOptionalValuesAsNullable()
+// TS 'Property projectingOptionalValuesAsNullable does not exist' — recursive drops it:
+conn.selectFrom(t).select({ ... }).recursiveUnionAll(v => ...).projectingOptionalValuesAsNullable()
+```
+
+The runtime carries the method uniformly: the impl (`SelectQueryBuilder.ts:236`) is a
+state-agnostic `this.__projectOptionalValuesAsNullable = true; return this` flag toggle
+(a mock probe during the round-22 audit confirmed it runs on a recursive result). So
+exposing it on the recursive return type is a type widening, not a runtime change. First
+confirm the widening is intended vs. a deliberate exclusion of recursive results.
+
+**Current workaround in the suite**: none — no test is wrapped (the call is untypeable).
+Discovered as SEAM-B A3 in the round-22 audit and scoped out as type-unreachable
+(see [`MISSING_TESTS_AUDIT_22.md`](./MISSING_TESTS_AUDIT_22.md) Implementation-status). On
+fixing, *add* the `projectingOptionalValuesAsNullable()`-on-recursive test to
+`cte.recursive-union-variants.test.ts` (both projectors) rather than uncommenting one, and
+add a `docs/CHANGELOG.md` entry for the user-visible API widening.
+
 ## Common bug shapes (for the fixing agent)
 
 Reference for the agent picking up entries above. The test author

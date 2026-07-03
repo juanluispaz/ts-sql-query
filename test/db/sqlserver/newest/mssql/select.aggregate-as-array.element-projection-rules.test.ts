@@ -262,4 +262,184 @@ describe(ctx.label, () => {
             { iid: 2, proj: { id: 1, name: 'Marketing site', archivedAt: null } },
         ] }])
     })
+
+    test('element-containing-rule-1-object-with-originally-required-left-join-sibling-default', async () => {
+        // An aggregate element containing a rule-1 nested `meta` object (made
+        // optional by its `requiredInOptionalObject` `gate` leaf) that mixes an
+        // OWN-required leaf (`ownId`), the reqInOptObj `gate` and an
+        // originallyRequired LEFT-JOIN leaf (`projName`). The reqInOptObj `gate`
+        // STAYS required inside the optional object, while the originally-required
+        // left-join `projName` is DEMOTED to `| undefined`. Project 1's issues 1, 2
+        // both join project 1 (Marketing site) and both carry a status, so `meta`
+        // is present for both.
+        ctx.mockNext([{ grp: 1, items: [
+            { iid: 1, meta: { ownId: 1, gate: 'open', projName: 'Marketing site' } },
+            { iid: 2, meta: { ownId: 2, gate: 'in_progress', projName: 'Marketing site' } },
+        ] }])
+        const tProjLeft = tProject.forUseInLeftJoin()
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .leftJoin(tProjLeft).on(tProjLeft.id.equals(tIssue.projectId))
+            .where(tIssue.projectId.equals(1))
+            .select({
+                grp:   tIssue.projectId,
+                items: ctx.conn.aggregateAsArray({
+                    iid:  tIssue.id,
+                    meta: {
+                        ownId:    tIssue.id,
+                        gate:     tIssue.status.asRequiredInOptionalObject(),
+                        projName: tProjLeft.name,
+                    },
+                }),
+            })
+            .groupBy('grp')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.project_id as grp, json_arrayagg(json_object('iid':issue.id, 'meta.ownId':issue.id, 'meta.gate':issue.status, 'meta.projName':project.name)) as items from issue left join project on project.id = issue.project_id where issue.project_id = @0 group by issue.project_id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            grp:   number
+            items: Array<{ iid: number; meta?: { ownId: number; gate: string; projName: string | undefined } }>
+        }>>>()
+        const sorted = rows.map(r => ({ ...r, items: [...r.items].sort((a, b) => a.iid - b.iid) }))
+        expect(sorted).toEqual([{ grp: 1, items: [
+            { iid: 1, meta: { ownId: 1, gate: 'open', projName: 'Marketing site' } },
+            { iid: 2, meta: { ownId: 2, gate: 'in_progress', projName: 'Marketing site' } },
+        ] }])
+    })
+
+    test('element-containing-rule-1-object-with-originally-required-left-join-sibling-as-nullable', async () => {
+        // The same three-kind rule-1 element under
+        // `projectingOptionalValuesAsNullable()`: the optional `meta` object
+        // becomes `{...} | null`, `ownId` + `gate` stay required, and the
+        // originally-required left-join `projName` flips to `string | null` (not
+        // `| undefined`). Project 1's issues 1, 2 both join project 1.
+        ctx.mockNext([{ grp: 1, items: [
+            { iid: 1, meta: { ownId: 1, gate: 'open', projName: 'Marketing site' } },
+            { iid: 2, meta: { ownId: 2, gate: 'in_progress', projName: 'Marketing site' } },
+        ] }])
+        const tProjLeft = tProject.forUseInLeftJoin()
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .leftJoin(tProjLeft).on(tProjLeft.id.equals(tIssue.projectId))
+            .where(tIssue.projectId.equals(1))
+            .select({
+                grp:   tIssue.projectId,
+                items: ctx.conn.aggregateAsArray({
+                    iid:  tIssue.id,
+                    meta: {
+                        ownId:    tIssue.id,
+                        gate:     tIssue.status.asRequiredInOptionalObject(),
+                        projName: tProjLeft.name,
+                    },
+                }).projectingOptionalValuesAsNullable(),
+            })
+            .groupBy('grp')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.project_id as grp, json_arrayagg(json_object('iid':issue.id, 'meta.ownId':issue.id, 'meta.gate':issue.status, 'meta.projName':project.name)) as items from issue left join project on project.id = issue.project_id where issue.project_id = @0 group by issue.project_id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            grp:   number
+            items: Array<{ iid: number; meta: { ownId: number; gate: string; projName: string | null } | null }>
+        }>>>()
+        const sorted = rows.map(r => ({ ...r, items: [...r.items].sort((a, b) => a.iid - b.iid) }))
+        expect(sorted).toEqual([{ grp: 1, items: [
+            { iid: 1, meta: { ownId: 1, gate: 'open', projName: 'Marketing site' } },
+            { iid: 2, meta: { ownId: 2, gate: 'in_progress', projName: 'Marketing site' } },
+        ] }])
+    })
+
+    test('element-containing-left-join-all-optional-object-applies-rule-4-default', async () => {
+        // An aggregate element containing a nested `opt` object whose leaves ALL
+        // come from the SAME left-joined table AND are ALL
+        // genuinely-optional (`body`, `assigneeId`) — no originallyRequired leaf,
+        // so rule 2 is DISCARDED and rule 4 applies: `opt` is optional and dropped
+        // only when every leaf is null. Grouping org 2's projects (3, 4): project 3
+        // joins issue 4 (opt present), project 4 has no issue (left-join miss → opt
+        // dropped).
+        ctx.mockNext([{ orgId: 2, items: [
+            { pid: 3, opt: { body: 'See ADR-014', assigneeId: 3 } },
+            { pid: 4, opt: { body: null, assigneeId: null } },
+        ] }])
+        const tIssueLeft = tIssue.forUseInLeftJoin()
+        const rows = await ctx.conn.selectFrom(tProject)
+            .leftJoin(tIssueLeft).on(tIssueLeft.projectId.equals(tProject.id))
+            .where(tProject.organizationId.equals(2))
+            .select({
+                orgId: tProject.organizationId,
+                items: ctx.conn.aggregateAsArray({
+                    pid: tProject.id,
+                    opt: { body: tIssueLeft.body, assigneeId: tIssueLeft.assigneeId },
+                }),
+            })
+            .groupBy('orgId')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.organization_id as orgId, json_arrayagg(json_object('pid':project.id, 'opt.body':issue.body, 'opt.assigneeId':issue.assignee_id)) as items from project left join issue on issue.project_id = project.id where project.organization_id = @0 group by project.organization_id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            orgId: number
+            items: Array<{ pid: number; opt?: { body: string | undefined; assigneeId: number | undefined } }>
+        }>>>()
+        const sorted = rows.map(r => ({ ...r, items: [...r.items].sort((a, b) => a.pid - b.pid) }))
+        expect(sorted).toEqual([{ orgId: 2, items: [
+            { pid: 3, opt: { body: 'See ADR-014', assigneeId: 3 } },
+            { pid: 4 },
+        ] }])
+        // Project 4's join misses → every `opt` leaf is null → rule 4 drops the
+        // object entirely (key ABSENT, not present-undefined).
+        const proj4 = sorted[0]!.items.find(i => i.pid === 4)!
+        expect('opt' in proj4).toBe(false)
+    })
+
+    test('element-containing-left-join-all-optional-object-applies-rule-4-as-nullable', async () => {
+        // The same rule-4 all-optional left-join element under
+        // `projectingOptionalValuesAsNullable()`: the dropped `opt` object surfaces
+        // as present-`null` and each leaf flips to `| null`. Project 4's missing
+        // issue becomes `opt: null`.
+        ctx.mockNext([{ orgId: 2, items: [
+            { pid: 3, opt: { body: 'See ADR-014', assigneeId: 3 } },
+            { pid: 4, opt: { body: null, assigneeId: null } },
+        ] }])
+        const tIssueLeft = tIssue.forUseInLeftJoin()
+        const rows = await ctx.conn.selectFrom(tProject)
+            .leftJoin(tIssueLeft).on(tIssueLeft.projectId.equals(tProject.id))
+            .where(tProject.organizationId.equals(2))
+            .select({
+                orgId: tProject.organizationId,
+                items: ctx.conn.aggregateAsArray({
+                    pid: tProject.id,
+                    opt: { body: tIssueLeft.body, assigneeId: tIssueLeft.assigneeId },
+                }).projectingOptionalValuesAsNullable(),
+            })
+            .groupBy('orgId')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.organization_id as orgId, json_arrayagg(json_object('pid':project.id, 'opt.body':issue.body, 'opt.assigneeId':issue.assignee_id)) as items from project left join issue on issue.project_id = project.id where project.organization_id = @0 group by project.organization_id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            orgId: number
+            items: Array<{ pid: number; opt: { body: string | null; assigneeId: number | null } | null }>
+        }>>>()
+        const sorted = rows.map(r => ({ ...r, items: [...r.items].sort((a, b) => a.pid - b.pid) }))
+        expect(sorted).toEqual([{ orgId: 2, items: [
+            { pid: 3, opt: { body: 'See ADR-014', assigneeId: 3 } },
+            { pid: 4, opt: null },
+        ] }])
+    })
 })

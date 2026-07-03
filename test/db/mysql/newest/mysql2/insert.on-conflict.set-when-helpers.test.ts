@@ -26,6 +26,52 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
+    test('set-when-false-is-noop-true-overrides', async () => {
+        // Plain `setWhen(when, {...})` on the on-conflict update-set node — the
+        // non-IfValue, non-shaped arm. setWhen(false) returns `this` so the staged
+        // `name` stays; setWhen(true) → set: unconditionally overwrites `name`.
+        // Same column list, only the param differs.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, slug: 'mktg-site', name: 'ignored' })
+                .onConflictDoUpdateDynamicSet({ name: 'Reactivated' })
+                .setWhen(false, { name: 'Overridden via when' })
+                .executeInsert()
+            const falseSql = ctx.lastSql
+            const falseParams = ctx.lastParams
+
+            await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, slug: 'mktg-site', name: 'ignored' })
+                .onConflictDoUpdateDynamicSet({ name: 'Reactivated' })
+                .setWhen(true, { name: 'Overridden via when' })
+                .executeInsert()
+            const trueSql = ctx.lastSql
+            const trueParams = ctx.lastParams
+
+            expect(falseSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, \`name\`) values (?, ?, ?) as _new_ on duplicate key update project.\`name\` = ?"`)
+            expect(trueSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, \`name\`) values (?, ?, ?) as _new_ on duplicate key update project.\`name\` = ?"`)
+            expect(falseSql).toBe(trueSql) // same column list — only the param value differs
+            expect(falseParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "mktg-site",
+                "ignored",
+                "Reactivated",
+              ]
+            `)
+            expect(trueParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "mktg-site",
+                "ignored",
+                "Overridden via when",
+              ]
+            `)
+        })
+    })
+
     test('set-if-value-when-false-is-noop-true-overrides', async () => {
         // setIfValueWhen(false) returns `this` so the staged `name` stays.
         // setIfValueWhen(true) → setIfValue: the new value passes `_isValue`

@@ -659,6 +659,42 @@ describe(ctx.label, () => {
         })
     })
 
+    test('disallow-if-no-value-narrows-missing-keys-so-a-staged-value-executes', async () => {
+        // Positive runtime proof of `disallowIfNoValue`'s sound MISSING_KEYS
+        // fold. `dynamicSet()` opens
+        // the insert with every required column still missing. `projectId` is
+        // staged through `setIfValue` with an optional-typed value, which does
+        // NOT narrow MISSING_KEYS (the value could be undefined at the type
+        // level), so `projectId` stays in the missing set. The unconditional
+        // `disallowIfNoValue(..., 'projectId')` is the ONLY caller that narrows
+        // `projectId` out — sound because it throws eagerly when the named
+        // column has no value — and here a value (1) IS supplied, so no throw
+        // fires; `.set({...})` then supplies the remaining required columns, so
+        // the insert becomes executable and runs.
+        const projectId: number | undefined = 1
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.insertInto(tIssue).dynamicSet()
+                .setIfValue({ projectId })
+                .disallowIfNoValue('projectId must have a value', 'projectId')
+                .set({ number: 216, title: 'Folded', status: 'open', priority: 3 })
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, "number", title, status, priority) values (:0, :1, :2, :3, :4)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                216,
+                "Folded",
+                "open",
+                3,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(1)
+        })
+    })
+
     test('chain-start-set-if-value-skips-empty-incoming', async () => {
         // The chain-START `insertInto(t).setIfValue({...})` overload (no prior
         // `.set(...)` / `.values(...)`) — distinct from the mid-chain setters

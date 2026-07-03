@@ -156,6 +156,21 @@ function _typeNegatives() {
             .forUseAsInlineAggregatedArrayValue()
     }
 
+
+    // Rule: nested-object projection is limited to four nested-object levels
+    // (the complex-projection recursion `ResultObjectValues`..`5`). Depth 4
+    // (`a.b.c.d`) is the deepest renderable level; a 5th nested-object level
+    // (`a.b.c.d.e`) exceeds the recursion depth, so the innermost object is no
+    // longer accepted as a projection object — the column slot at that depth
+    // expects a value source, not another object literal.
+    void connection.selectFrom(tIssue)
+        .select({
+            iid: tIssue.id,
+            a: { b: { c: { d: { e: {
+                // @ts-expect-error 5th nested-object level exceeds the projection recursion depth
+                num: tIssue.number,
+            } } } } },
+        })
 }
 
 test('select-negative-types', () => {

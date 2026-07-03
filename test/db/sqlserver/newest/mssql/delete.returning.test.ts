@@ -105,6 +105,32 @@ describe(ctx.label, () => {
         })
     })
 
+    test('delete-returning-one-column-computed-expression', async () => {
+        // `returningOneColumn(<computed>)` on a DELETE projecting a COMPUTED
+        // expression (a column combined with a const) rather than a bare
+        // column. RETURNING on DELETE sees the row as it was, so deleting issue
+        // 3 (priority 3) returns priority + 100 = 103. Issue 3 is a leaf
+        // (nothing FKs into it), so the delete is referential-integrity-safe.
+        ctx.mockNext(103)
+
+        await ctx.withRollback(async () => {
+            const bumped = await ctx.conn.deleteFrom(tIssue)
+                .where(tIssue.id.equals(3))
+                .returningOneColumn(tIssue.priority.add(100))
+                .executeDeleteOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue output deleted.priority + @0 as [result] where id = @1"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                100,
+                3,
+              ]
+            `)
+            assertType<Exact<typeof bumped, number>>()
+            expect(bumped).toBe(103)
+        })
+    })
+
     test('delete-project-release-returning-branded-custom-column', async () => {
         // `returningOneColumn(...)` on a DELETE preserves the column's branded
         // value type: reading `channel` back through RETURNING yields

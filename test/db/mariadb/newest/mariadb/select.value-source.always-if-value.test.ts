@@ -293,6 +293,34 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
+    test('always-if/value-when-no-value-keeps-seed-when-present', async () => {
+        // The keeps-seed branch of `valueWhenNoValue(...)`: when the seed DOES
+        // carry a value (a real condition was added), the fallback is IGNORED and
+        // the existing condition is kept. Seed = `priority > 1`, fallback =
+        // `priority < 2`; the WHERE keeps `priority > 1` → ids 1, 3, 4 (not the
+        // fallback's id 2).
+        const expected = [{ id: 1 }, { id: 3 }, { id: 4 }]
+        ctx.mockNext(expected)
+
+        let w = ctx.conn.dynamicBooleanExpressionUsing(tIssue)
+        w = w.and(tIssue.priority.greaterThan(1))
+        w = w.valueWhenNoValue(tIssue.priority.lessThan(2))
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(w)
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where priority > ? order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
     test('always-if/or-value-source-keeps-both-conditions', async () => {
         // The `.or(<value source>)` overload (non-literal): the value-source
         // operand is OR-joined with the seed condition — `priority > 1` OR

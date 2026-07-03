@@ -307,4 +307,47 @@ describe(ctx.label, () => {
             expect(String(caught)).toMatch(/this endpoint only updates name|disallow/i)
         })
     })
+
+    test('shaped-disallow-if-value-error-instance-thrown-as-is', () => {
+        // The Error-INSTANCE overload of the disallow guards — the sibling of
+        // the string overload every other test in this file exercises. Passing
+        // an `Error` object instead of a message throws THAT SAME instance
+        // as-is: it is NOT wrapped in a DISALLOWED_BY_QUERY_RULE TsSqlError; the
+        // guard only mutates the tripped renamed shape key onto it as
+        // `disallowedProperty`. Verified for both the non-`When` guard and its
+        // `*When` sibling (which dispatches to the non-`When` form on `true`).
+        // The renamed `projectName` (→ name) is staged with a value, so
+        // `disallowIfValue` fires.
+        const sentinel = new Error('name changes go through the rename endpoint')
+        let caught: unknown
+        try {
+            ctx.conn.update(tProject)
+                .shapedAs({ projectName: 'name' })
+                .set({ projectName: 'New name' })
+                .disallowIfValue(sentinel, 'projectName')
+                .where(tProject.id.equals(1))
+        } catch (e) {
+            caught = e
+        }
+        // The exact instance is rethrown (identity), not a wrapped TsSqlError,
+        // and it carries the tripped shape key as `disallowedProperty`.
+        expect(caught).toBe(sentinel)
+        expect((caught as { disallowedProperty?: unknown }).disallowedProperty).toBe('projectName')
+
+        // The `*When` sibling dispatches to the non-`When` form on `true`, so it
+        // rethrows the same passed instance with `disallowedProperty` set.
+        const sentinelWhen = new Error('name changes go through the rename endpoint')
+        let caughtWhen: unknown
+        try {
+            ctx.conn.update(tProject)
+                .shapedAs({ projectName: 'name' })
+                .set({ projectName: 'New name' })
+                .disallowIfValueWhen(true, sentinelWhen, 'projectName')
+                .where(tProject.id.equals(1))
+        } catch (e) {
+            caughtWhen = e
+        }
+        expect(caughtWhen).toBe(sentinelWhen)
+        expect((caughtWhen as { disallowedProperty?: unknown }).disallowedProperty).toBe('projectName')
+    })
 })

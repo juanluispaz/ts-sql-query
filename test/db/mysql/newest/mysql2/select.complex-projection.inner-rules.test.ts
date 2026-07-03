@@ -929,4 +929,78 @@ describe(ctx.label, () => {
         }>>()
         expect(row).toEqual(expected)
     })
+
+    test('rule-3-required-outer-object-containing-a-rule-1-required-in-optional-inner-object-default', async () => {
+        // A rule-3 REQUIRED OUTER object (`detail`, kept required by its required
+        // leaf `title`) that CONTAINS a rule-1 INNER object (`meta`, made optional
+        // by its `requiredInOptionalObject` `gate` leaf). The inner object fires
+        // its own rule-1 independently of the outer rule: `detail` stays required,
+        // `meta`
+        // is demoted to `meta?`, its reqInOptObj `gate` stays required inside, and
+        // the plain-optional `assigneeId` is `| undefined`. Issue 1: title present,
+        // status 'open' → meta present; assignee 1.
+        const expected = { iid: 1, detail: { title: 'Update hero copy', meta: { gate: 'open', assigneeId: 1 } } }
+        ctx.mockNext({ iid: 1, 'detail.title': 'Update hero copy', 'detail.meta.gate': 'open', 'detail.meta.assigneeId': 1 })
+        const row = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                iid: tIssue.id,
+                detail: {
+                    title: tIssue.title,
+                    meta: {
+                        gate:       tIssue.status.asRequiredInOptionalObject(),
+                        assigneeId: tIssue.assigneeId,
+                    },
+                },
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, title as \`detail.title\`, \`status\` as \`detail.meta.gate\`, assignee_id as \`detail.meta.assigneeId\` from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            iid:    number
+            detail: { title: string; meta?: { gate: string; assigneeId: number | undefined } }
+        }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('rule-3-required-outer-object-containing-a-rule-1-required-in-optional-inner-object-as-nullable', async () => {
+        // The same rule-3-outer / rule-1-inner nesting under
+        // `projectingOptionalValuesAsNullable()`: the outer `detail` stays
+        // required, the inner rule-1 `meta` becomes `{...} | null`, its reqInOptObj
+        // `gate` stays required, and the plain-optional `assigneeId` flips to
+        // `number | null`. Issue 1: status 'open' → meta present.
+        const expected = { iid: 1, detail: { title: 'Update hero copy', meta: { gate: 'open', assigneeId: 1 } } }
+        ctx.mockNext({ iid: 1, 'detail.title': 'Update hero copy', 'detail.meta.gate': 'open', 'detail.meta.assigneeId': 1 })
+        const row = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                iid: tIssue.id,
+                detail: {
+                    title: tIssue.title,
+                    meta: {
+                        gate:       tIssue.status.asRequiredInOptionalObject(),
+                        assigneeId: tIssue.assigneeId,
+                    },
+                },
+            })
+            .projectingOptionalValuesAsNullable()
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, title as \`detail.title\`, \`status\` as \`detail.meta.gate\`, assignee_id as \`detail.meta.assigneeId\` from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            iid:    number
+            detail: { title: string; meta: { gate: string; assigneeId: number | null } | null }
+        }>>()
+        expect(row).toEqual(expected)
+    })
 })

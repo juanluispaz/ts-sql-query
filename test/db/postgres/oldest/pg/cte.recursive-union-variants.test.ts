@@ -537,4 +537,333 @@ describe(ctx.label, () => {
         expect(page.count).toBe(3)
         expect(page.data).toEqual(dataRows)
     })
+
+    test('recursive-result-order-by-column-mode', async () => {
+        // `.orderBy('id', 'desc')` on the recursive result: the string+mode
+        // overload orders the outer `select ... from <cte>`, i.e. the final result
+        // (not the anchor seed). Anchor selects issues 1, 2, 3; the recursion adds
+        // nothing; the outer `order by id desc` returns them 3, 2, 1.
+        const expected = [
+            { id: 3, title: 'Migrate to ESM' },
+            { id: 2, title: 'Redesign navbar' },
+            { id: 1, title: 'Update hero copy' },
+        ]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+        const result = await connection.selectFrom(tIssue)
+            .where(tIssue.id.in([1, 2, 3]))
+            .select({ id: tIssue.id, title: tIssue.title })
+            .recursiveUnionAll((parent) => connection.selectFrom(tIssue)
+                .join(parent).on(tIssue.parentId.equals(parent.id))
+                .select({ id: tIssue.id, title: tIssue.title }))
+            .orderBy('id', 'desc')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, title as title from issue where id in ($1, $2, $3) union all select issue.id as id, issue.title as title from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id) select id as id, title as title from recursive_select_1 order by id desc"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+            3,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number, title: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('recursive-result-order-by-from-string', async () => {
+        // `.orderByFromString('title asc, id asc')` on the recursive result. The
+        // comma-split clause resolves each column name against the SELECT clause
+        // (validated on the anchor builder) and adds the ORDER BY terms onto the
+        // outer select (order-on-outer split). Titles are unique, so the id tie
+        // break is a no-op; the alphabetical title order returns issues 3, 2, 1.
+        const expected = [
+            { id: 3, title: 'Migrate to ESM' },
+            { id: 2, title: 'Redesign navbar' },
+            { id: 1, title: 'Update hero copy' },
+        ]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+        const result = await connection.selectFrom(tIssue)
+            .where(tIssue.id.in([1, 2, 3]))
+            .select({ id: tIssue.id, title: tIssue.title })
+            .recursiveUnionAll((parent) => connection.selectFrom(tIssue)
+                .join(parent).on(tIssue.parentId.equals(parent.id))
+                .select({ id: tIssue.id, title: tIssue.title }))
+            .orderByFromString('title asc, id asc')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, title as title from issue where id in ($1, $2, $3) union all select issue.id as id, issue.title as title from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id) select id as id, title as title from recursive_select_1 order by title asc, id asc"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+            3,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number, title: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('recursive-result-order-by-from-string-if-value', async () => {
+        // `.orderByFromStringIfValue('id desc')` — the value-present arm behaves
+        // like `orderByFromString`, adding the ORDER BY onto the outer select.
+        const expected = [
+            { id: 3, title: 'Migrate to ESM' },
+            { id: 2, title: 'Redesign navbar' },
+            { id: 1, title: 'Update hero copy' },
+        ]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+        const result = await connection.selectFrom(tIssue)
+            .where(tIssue.id.in([1, 2, 3]))
+            .select({ id: tIssue.id, title: tIssue.title })
+            .recursiveUnionAll((parent) => connection.selectFrom(tIssue)
+                .join(parent).on(tIssue.parentId.equals(parent.id))
+                .select({ id: tIssue.id, title: tIssue.title }))
+            .orderByFromStringIfValue('id desc')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, title as title from issue where id in ($1, $2, $3) union all select issue.id as id, issue.title as title from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id) select id as id, title as title from recursive_select_1 order by id desc"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+            3,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number, title: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('recursive-result-order-by-from-string-if-value-absent', async () => {
+        // `.orderByFromStringIfValue(null)` — the no-value arm skips the ORDER BY
+        // entirely (no clause reaches the outer select). Anchored on a single
+        // issue whose recursion adds nothing, so exactly one row comes back and
+        // the value assertion stays deterministic without an ORDER BY.
+        const expected = [{ id: 2, title: 'Redesign navbar' }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+        const result = await connection.selectFrom(tIssue)
+            .where(tIssue.id.equals(2))
+            .select({ id: tIssue.id, title: tIssue.title })
+            .recursiveUnionAll((parent) => connection.selectFrom(tIssue)
+                .join(parent).on(tIssue.parentId.equals(parent.id))
+                .select({ id: tIssue.id, title: tIssue.title }))
+            .orderByFromStringIfValue(null)
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, title as title from issue where id = $1 union all select issue.id as id, issue.title as title from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id) select id as id, title as title from recursive_select_1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number, title: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('recursive-result-order-by-from-string-array', async () => {
+        // `.orderByFromStringArray(['title asc', 'id asc'])` — the array form adds
+        // one ORDER BY term per element onto the outer select. Same result order
+        // as the comma-string form.
+        const expected = [
+            { id: 3, title: 'Migrate to ESM' },
+            { id: 2, title: 'Redesign navbar' },
+            { id: 1, title: 'Update hero copy' },
+        ]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+        const result = await connection.selectFrom(tIssue)
+            .where(tIssue.id.in([1, 2, 3]))
+            .select({ id: tIssue.id, title: tIssue.title })
+            .recursiveUnionAll((parent) => connection.selectFrom(tIssue)
+                .join(parent).on(tIssue.parentId.equals(parent.id))
+                .select({ id: tIssue.id, title: tIssue.title }))
+            .orderByFromStringArray(['title asc', 'id asc'])
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, title as title from issue where id in ($1, $2, $3) union all select issue.id as id, issue.title as title from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id) select id as id, title as title from recursive_select_1 order by title asc, id asc"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+            3,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number, title: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('recursive-result-order-by-from-string-array-if-value', async () => {
+        // `.orderByFromStringArrayIfValue(['title asc', null, 'id asc'])` — the
+        // null element is filtered out; the surviving terms are added onto the
+        // outer select. Same result order as the plain array form.
+        const expected = [
+            { id: 3, title: 'Migrate to ESM' },
+            { id: 2, title: 'Redesign navbar' },
+            { id: 1, title: 'Update hero copy' },
+        ]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+        const result = await connection.selectFrom(tIssue)
+            .where(tIssue.id.in([1, 2, 3]))
+            .select({ id: tIssue.id, title: tIssue.title })
+            .recursiveUnionAll((parent) => connection.selectFrom(tIssue)
+                .join(parent).on(tIssue.parentId.equals(parent.id))
+                .select({ id: tIssue.id, title: tIssue.title }))
+            .orderByFromStringArrayIfValue(['title asc', null, 'id asc'])
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, title as title from issue where id in ($1, $2, $3) union all select issue.id as id, issue.title as title from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id) select id as id, title as title from recursive_select_1 order by title asc, id asc"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+            3,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number, title: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('recursive-result-limit-if-value-offset-if-value', async () => {
+        // `.orderBy('id').limitIfValue(2).offsetIfValue(1)` — the value-present
+        // arms of limit/offset page the outer select, i.e. the final recursive
+        // result. Anchor selects issues 1, 2, 3; the recursion adds nothing; the
+        // page keeps issues 2, 3.
+        const expected = [
+            { id: 2, title: 'Redesign navbar' },
+            { id: 3, title: 'Migrate to ESM' },
+        ]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+        const result = await connection.selectFrom(tIssue)
+            .where(tIssue.id.in([1, 2, 3]))
+            .select({ id: tIssue.id, title: tIssue.title })
+            .recursiveUnionAll((parent) => connection.selectFrom(tIssue)
+                .join(parent).on(tIssue.parentId.equals(parent.id))
+                .select({ id: tIssue.id, title: tIssue.title }))
+            .orderBy('id')
+            .limitIfValue(2)
+            .offsetIfValue(1)
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, title as title from issue where id in ($1, $2, $3) union all select issue.id as id, issue.title as title from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id) select id as id, title as title from recursive_select_1 order by id limit $4 offset $5"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+            3,
+            2,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number, title: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('recursive-result-execute-select-page-no-ordering', async () => {
+        // Bare `.executeSelectPage()` with NO ordering/paging on the recursive
+        // result. The data query is the plain outer `select ... from <cte>` and
+        // the count query wraps that same CTE with `select count(*) from <cte>`
+        // (count-wraps-CTE path) — it must count the final recursive result, not
+        // an already-limited seed. Anchor selects issues 1, 2, 3; recursion adds
+        // nothing; page returns all 3 rows and count 3.
+        const dataRows = [
+            { id: 1, title: 'Update hero copy' },
+            { id: 2, title: 'Redesign navbar' },
+            { id: 3, title: 'Migrate to ESM' },
+        ]
+        ctx.mockNext(dataRows)
+        ctx.mockNext(3)
+        const connection = ctx.conn
+        const page = await connection.selectFrom(tIssue)
+            .where(tIssue.id.in([1, 2, 3]))
+            .select({ id: tIssue.id, title: tIssue.title })
+            .recursiveUnionAll((parent) => connection.selectFrom(tIssue)
+                .join(parent).on(tIssue.parentId.equals(parent.id))
+                .select({ id: tIssue.id, title: tIssue.title }))
+            .executeSelectPage()
+
+        expect(ctx.history.length).toBe(2)
+        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, title as title from issue where id in ($1, $2, $3) union all select issue.id as id, issue.title as title from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id) select id as id, title as title from recursive_select_1"`)
+        expect(ctx.history[0]!.params).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+            3,
+          ]
+        `)
+        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, title as title from issue where id in ($1, $2, $3) union all select issue.id as id, issue.title as title from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id) select count(*) from recursive_select_1"`)
+        expect(ctx.history[1]!.params).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+            3,
+          ]
+        `)
+        assertType<Exact<typeof page, {
+            data:  Array<{ id: number, title: string }>
+            count: number
+        }>>()
+        expect(page.count).toBe(3)
+        expect(page.data).toEqual(dataRows)
+    })
+
+    // TODO[BUG]: see test/BUGS.md — orderBy(ValueSource) / orderBy(IRawFragment) on a
+    // recursive-union result render `order by issue.id` against the anchor table (out of
+    // scope in the outer select), rejected by every engine (PG 42P01); string forms re-home OK.
+    /*
+    test('recursive-result-order-by-value-source', async () => {
+        const expected = [
+            { id: 3, title: 'Migrate to ESM' },
+            { id: 2, title: 'Redesign navbar' },
+            { id: 1, title: 'Update hero copy' },
+        ]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+        const result = await connection.selectFrom(tIssue)
+            .where(tIssue.id.in([1, 2, 3]))
+            .select({ id: tIssue.id, title: tIssue.title })
+            .recursiveUnionAll((parent) => connection.selectFrom(tIssue)
+                .join(parent).on(tIssue.parentId.equals(parent.id))
+                .select({ id: tIssue.id, title: tIssue.title }))
+            .orderBy(tIssue.id, 'desc')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(ctx.lastParams).toMatchInlineSnapshot()
+        assertType<Exact<typeof result, Array<{ id: number, title: string }>>>()
+        expect(result).toEqual(expected)
+    })
+    */
+
+    // TODO[BUG]: see test/BUGS.md — same defect as the value-source arm above:
+    // orderBy(IRawFragment) renders the fragment (`issue.id`) against the anchor
+    // table in the outer select, which is out of scope there.
+    /*
+    test('recursive-result-order-by-raw-fragment', async () => {
+        const expected = [
+            { id: 3, title: 'Migrate to ESM' },
+            { id: 2, title: 'Redesign navbar' },
+            { id: 1, title: 'Update hero copy' },
+        ]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+        const result = await connection.selectFrom(tIssue)
+            .where(tIssue.id.in([1, 2, 3]))
+            .select({ id: tIssue.id, title: tIssue.title })
+            .recursiveUnionAll((parent) => connection.selectFrom(tIssue)
+                .join(parent).on(tIssue.parentId.equals(parent.id))
+                .select({ id: tIssue.id, title: tIssue.title }))
+            .orderBy(connection.rawFragment`${tIssue.id} desc`)
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(ctx.lastParams).toMatchInlineSnapshot()
+        assertType<Exact<typeof result, Array<{ id: number, title: string }>>>()
+        expect(result).toEqual(expected)
+    })
+    */
 })

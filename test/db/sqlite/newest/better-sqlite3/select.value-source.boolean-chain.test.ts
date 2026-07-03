@@ -307,4 +307,66 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ id: number; flag: boolean }>>>()
         expect(result).toEqual(expected)
     })
+
+    test('if-value-and-if-value-left-elides', async () => {
+        // `IfValue.and(IfValue)` where the LEFT operand carries no value
+        // (`equalsIfValue(undefined)`) and the right one does: the `_and`
+        // renders only the surviving right predicate (the `!sql` / left-empty
+        // branch). Result is `priority >= $1` alone → issue 3 (priority 3).
+        const expected = [{ id: 3 }]
+        ctx.mockNext(expected)
+        const noStatus: string | undefined = undefined
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.status.equalsIfValue(noStatus).and(tIssue.priority.greaterOrEqualIfValue(3)))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where priority >= ? order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('if-value-or-if-value-single-elides', async () => {
+        // `IfValue.or(IfValue)` with exactly ONE operand eliding — both the
+        // left-empty (`!sql`) and right-empty (`!sql2`) branches of `_or`. Either
+        // way the surviving `priority < $1` predicate stands alone (OR of nothing
+        // is the operand itself). priority < 2 keeps issue 2 (priority 1).
+        const noStatus: string | undefined = undefined
+
+        const expectedLeft = [{ id: 2 }]
+        ctx.mockNext(expectedLeft)
+        const leftRows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.status.equalsIfValue(noStatus).or(tIssue.priority.lessThanIfValue(2)))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where priority < ? order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof leftRows, Array<{ id: number }>>>()
+        expect(leftRows).toEqual(expectedLeft)
+
+        const expectedRight = [{ id: 2 }]
+        ctx.mockNext(expectedRight)
+        const rightRows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.priority.lessThanIfValue(2).or(tIssue.status.equalsIfValue(noStatus)))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where priority < ? order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        expect(rightRows).toEqual(expectedRight)
+    })
 })

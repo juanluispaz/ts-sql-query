@@ -284,4 +284,54 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ s: string }>>>()
         expect(rows).toEqual(expected)
     })
+
+    // NOT-APPLICABLE: SQL Server rejects ORDER BY in a derived table / CTE without TOP, OFFSET or FOR XML (Msg 1033).
+    /*
+    test('compound-order-by-as-derived-table-via-for-use-in-query-as', async () => {
+        // A COMPOUND select carrying its OWN `.orderBy(...)` before
+        // `forUseInQueryAs(...)`: the ordering renders INSIDE the derived-table /
+        // CTE body (`with statuses as (... order by "s" desc)`), not on the outer
+        // query. The outer select re-orders for a deterministic result. Same
+        // {'closed', 'open'} dedup as the sibling above.
+        const expected = [{ s: 'closed' }, { s: 'open' }]
+        ctx.mockNext(expected)
+        const statuses = ctx.conn.selectFrom(tIssue).where(tIssue.status.equals('open')).select({ s: tIssue.status })
+            .union(ctx.conn.selectFrom(tIssue).where(tIssue.status.equals('closed')).select({ s: tIssue.status }))
+            .orderBy('s', 'desc')
+            .forUseInQueryAs('statuses')
+        const rows = await ctx.conn.selectFrom(statuses)
+            .select({ s: statuses.s })
+            .orderBy('s')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(ctx.lastParams).toMatchInlineSnapshot()
+        assertType<Exact<typeof rows, Array<{ s: string }>>>()
+        expect(rows).toEqual(expected)
+    })
+    */
+
+    test('compound-as-inline-aggregated-array-value', async () => {
+        // A union fed to `forUseAsInlineAggregatedArrayValue()`: the compound is
+        // aggregated into a scalar array in the projection. The open and closed
+        // one-column selects dedup to {'open', 'closed'}. json_agg order is
+        // engine-defined, so the array is JS-sorted before the exact comparison.
+        const expected = [{ statuses: ['closed', 'open'] }]
+        ctx.mockNext([{ statuses: ['open', 'closed'] }])
+        const statusArray = ctx.conn.selectFrom(tIssue).where(tIssue.status.equals('open')).selectOneColumn(tIssue.status)
+            .union(ctx.conn.selectFrom(tIssue).where(tIssue.status.equals('closed')).selectOneColumn(tIssue.status))
+            .forUseAsInlineAggregatedArrayValue()
+        const rows = await ctx.conn.selectFromNoTable()
+            .select({ statuses: statusArray })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select json_arrayagg(a_1_.[result] null on null) from (select status as [result] from issue where status = @0 union select status as [result] from issue where status = @1) as a_1_) as statuses"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "open",
+            "closed",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ statuses: string[] }>>>()
+        const sorted = rows.map((r) => ({ ...r, statuses: [...r.statuses].sort() }))
+        expect(sorted).toEqual(expected)
+    })
 })

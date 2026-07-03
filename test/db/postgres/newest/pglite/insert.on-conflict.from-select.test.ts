@@ -135,4 +135,81 @@ describe(ctx.label, () => {
         })
     })
 
+    test('from-select-on-conflict-on-columns-do-update-returning-object', async () => {
+        // `from(select).onConflictOn(cols).doUpdateSet({...}).returning({obj})`
+        // executed via `executeInsertMany` — the object-form RETURNING on the
+        // from-select upsert. The source re-selects project 1's
+        // (organization_id, slug), colliding with UNIQUE(organization_id, slug),
+        // so DO UPDATE refreshes `name` and RETURNING yields the row's
+        // {id, name, archivedAt}. `archivedAt` is an optionalColumn (null in the
+        // seed) so under the default optionals-as-undefined projector it is an
+        // absent key (`archivedAt?: Date`).
+        const expected = [{ id: 1, name: 'Reactivated returning' }]
+        ctx.mockNext(expected)
+        await ctx.withRollback(async () => {
+            const source = ctx.conn.selectFrom(tProject)
+                .where(tProject.id.equals(1))
+                .select({
+                    organizationId: tProject.organizationId,
+                    slug:           tProject.slug,
+                    name:           tProject.name,
+                })
+
+            const rows = await ctx.conn.insertInto(tProject)
+                .from(source)
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doUpdateSet({ name: 'Reactivated returning' })
+                .returning({ id: tProject.id, name: tProject.name, archivedAt: tProject.archivedAt })
+                .executeInsertMany()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) select organization_id as "organizationId", slug as slug, name as name from project where id = $1 on conflict (organization_id, slug) do update set name = $2 returning id as id, name as name, archived_at as "archivedAt""`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "Reactivated returning",
+              ]
+            `)
+            assertType<Exact<typeof rows, Array<{ id: number, name: string, archivedAt?: Date }>>>()
+            expect(rows).toEqual(expected)
+        })
+    })
+
+    test('from-select-on-conflict-on-columns-do-update-returning-object-projecting-optionals-as-nullable', async () => {
+        // Same from-select upsert × object-form RETURNING as above, but with
+        // `.projectingOptionalValuesAsNullable()` on the returning projection:
+        // the optional `archivedAt` is reshaped from `archivedAt?: Date` to a
+        // present required-nullable `archivedAt: Date | null`, so project 1's
+        // null archived_at survives the round-trip as a present `null` rather
+        // than an absent key.
+        const expected = [{ id: 1, name: 'Reactivated nullable returning', archivedAt: null }]
+        ctx.mockNext(expected)
+        await ctx.withRollback(async () => {
+            const source = ctx.conn.selectFrom(tProject)
+                .where(tProject.id.equals(1))
+                .select({
+                    organizationId: tProject.organizationId,
+                    slug:           tProject.slug,
+                    name:           tProject.name,
+                })
+
+            const rows = await ctx.conn.insertInto(tProject)
+                .from(source)
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doUpdateSet({ name: 'Reactivated nullable returning' })
+                .returning({ id: tProject.id, name: tProject.name, archivedAt: tProject.archivedAt })
+                .projectingOptionalValuesAsNullable()
+                .executeInsertMany()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) select organization_id as "organizationId", slug as slug, name as name from project where id = $1 on conflict (organization_id, slug) do update set name = $2 returning id as id, name as name, archived_at as "archivedAt""`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "Reactivated nullable returning",
+              ]
+            `)
+            assertType<Exact<typeof rows, Array<{ id: number, name: string, archivedAt: Date | null }>>>()
+            expect(rows).toEqual(expected)
+        })
+    })
+
 })

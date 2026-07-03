@@ -67,7 +67,39 @@ of that. Two minutes of triage and one paragraph is the bar.
 
 ## Open Bugs
 
-_None open._
+## `orderBy(ValueSource)` / `orderBy(IRawFragment)` on a recursive-union result emit an out-of-scope ORDER BY term
+
+**Where**: `OrderByExecutableSelectExpression.orderBy` (the value-source and
+raw-fragment overloads) — `src/expressions/select.ts:182-183`; the ordering
+re-home lives in `AbstractSelect.__orderingAndPagingTarget()` /
+`__addOrderBy` — `src/queryBuilders/SelectQueryBuilder.ts:242-268`.
+
+**Reproduction**: a recursive select
+(`selectFrom(tIssue).where(...).select({id, title}).recursiveUnionAll(...)`)
+followed by `.orderBy(tIssue.id, 'desc')` (or
+`.orderBy(rawFragment\`${tIssue.id} desc\`)`) emits:
+
+```
+with recursive recursive_select_1 as (...) select id as id, title as title
+from recursive_select_1 order by issue.id desc
+```
+
+Since commit c3f64158 routes ordering onto the outer `select ... from <cte>`,
+a value-source / raw-fragment term still renders against the anchor table
+(`issue.id`), which is not in the outer FROM. Every engine rejects it —
+PostgreSQL: `error: missing FROM-clause entry for table "issue"` (42P01). The
+string-column and `orderByFromString*` forms are unaffected: they resolve to
+the projected column alias, so they re-home correctly and run live everywhere.
+
+**Current workaround in the suite**: the two arms are block-commented with a
+`// TODO[BUG]` reason (full canonical body preserved) in
+`test/db/*/*/*/cte.recursive-union-variants.test.ts`
+(`recursive-result-order-by-value-source` and
+`recursive-result-order-by-raw-fragment`). The string-column /
+`orderByFromString*` / `limitIfValue` / `offsetIfValue` / bare
+`executeSelectPage` arms are live in the same file. Maintainer's call whether
+to type-forbid these two overloads after a recursive union or to render the
+outer ORDER BY against the CTE columns.
 
 ## Common bug shapes (for the fixing agent)
 

@@ -10,7 +10,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../.
 import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { Values } from '../../../../../src/Values.js'
 import type { TypeAdapter } from '../../../../../src/TypeAdapter.js'
-import { DBConnection, type ReleaseChannel, type WorklogActivity } from '../../domain/connection.js'
+import { DBConnection, type ReleaseChannel, type ReleaseTag, type WorklogActivity } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 class VKindSampler extends Values<DBConnection, 'kindSampler'> {
@@ -35,6 +35,19 @@ const scaledTenthAdapter: TypeAdapter = {
 
 class VScaledSampler extends Values<DBConnection, 'scaledSampler'> {
     score = this.column('int', scaledTenthAdapter)
+}
+
+// A value-shifting TypeAdapter (read +1000, write -1000) for the CUSTOM-kind
+// `column(type, typeName, adapter)` arm below. Declared inline: it needs no
+// domain fixture, and the domain's own equivalent adapter is not exported.
+const plusOffsetAdapter: TypeAdapter = {
+    transformValueFromDB(value, type, next) {
+        const v = next.transformValueFromDB(value, type)
+        return typeof v === 'number' ? v + 1000 : v
+    },
+    transformValueToDB(value, type, next) {
+        return next.transformValueToDB(typeof value === 'number' ? value - 1000 : value, type)
+    },
 }
 
 // Branded text-collapsing kinds as real VALUES-tuple columns: customComparable
@@ -115,6 +128,34 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{ score: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('values-tuple-custom-kind-column-with-type-adapter-shifts-write-and-read', async () => {
+        // The CUSTOM-kind arm of `Values.column(type, typeName, adapter)` — the
+        // `adapter2` slot reached only when a custom kind ('customInt'/'ReleaseTag')
+        // ALSO carries a TRAILING TypeAdapter. `ordinal` is a branded `ReleaseTag`
+        // carrying plusOffsetAdapter (write -1000, read +1000). Passing ordinal 3005
+        // binds the SHIFTED value 2005 in the VALUES tuple, and the read shifts it
+        // back +1000 to 3005. Observable in both the bound param (2005) and the
+        // result value (3005). The 'ReleaseTag' typeName is marshalled to its int
+        // base by the connection's baseTypeForCustom, so the tuple casts to int.
+        class VReleaseTagSampler extends Values<DBConnection, 'releaseTagSampler'> {
+            ordinal = this.column<ReleaseTag, 'ReleaseTag'>('customInt', 'ReleaseTag', plusOffsetAdapter)
+        }
+        const expected = [{ ordinal: 3005 as ReleaseTag }]
+        ctx.mockNext([{ ordinal: 2005 }])
+        const v = Values.create(VReleaseTagSampler, 'releaseTagSampler', [{ ordinal: 3005 as ReleaseTag }])
+        const rows = await ctx.conn.selectFrom(v)
+            .select({ ordinal: v.ordinal })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with releaseTagSampler as (select * from (values (@0)) as releaseTagSampler(ordinal)) select ordinal as ordinal from releaseTagSampler"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2005,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ ordinal: ReleaseTag }>>>()
         expect(rows).toEqual(expected)
     })
 

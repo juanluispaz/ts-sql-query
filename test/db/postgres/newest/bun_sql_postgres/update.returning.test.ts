@@ -134,6 +134,103 @@ describe(ctx.label, () => {
         })
     })
 
+    test('update-returning-one-column-computed-expression', async () => {
+        // RETURNING a COMPUTED expression (a column combined with a const), not
+        // a bare column, via `returningOneColumn`. The `priority + 100`
+        // projection arm is shared with SELECT but exercised here on the UPDATE
+        // RETURNING path. RETURNING sees the post-UPDATE value, so setting
+        // priority=5 returns 105.
+        ctx.mockNext(105)
+
+        await ctx.withRollback(async () => {
+            const bumped = await ctx.conn.update(tIssue)
+                .set({ priority: 5 })
+                .where(tIssue.id.equals(1))
+                .returningOneColumn(tIssue.priority.add(100))
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set priority = $1 where id = $2 returning priority + $3 as result"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                5,
+                1,
+                100,
+              ]
+            `)
+            assertType<Exact<typeof bumped, number>>()
+            expect(bumped).toBe(105)
+        })
+    })
+
+    test('update-returning-object-computed-expression', async () => {
+        // Object-form RETURNING projecting a COMPUTED expression
+        // (`title || ' [done]'`) alongside a plain column. The derived-value
+        // projection arm is shared with SELECT but pinned here on the UPDATE
+        // RETURNING path. RETURNING sees the post-UPDATE title, so setting
+        // title='Patched' returns 'Patched [done]'.
+        const expected = { id: 1, tag: 'Patched [done]' }
+        ctx.mockNext(expected)
+
+        await ctx.withRollback(async () => {
+            const row = await ctx.conn.update(tIssue)
+                .set({ title: 'Patched' })
+                .where(tIssue.id.equals(1))
+                .returning({
+                    id:  tIssue.id,
+                    tag: tIssue.title.concat(' [done]'),
+                })
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = $1 where id = $2 returning id as id, title || $3 as tag"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Patched",
+                1,
+                " [done]",
+              ]
+            `)
+            assertType<Exact<typeof row, { id: number; tag: string }>>()
+            expect(row).toEqual(expected)
+        })
+    })
+
+    test('update-returning-nested-object-projection', async () => {
+        // Object-form RETURNING containing a NESTED object projection (plain —
+        // no `oldValues`). The `meta` group folds two projected columns into a
+        // sub-object; the RETURNING clause emits both columns flat (aliased
+        // `meta.title` / `meta.priority`) and the complex projector reshapes the
+        // row. RETURNING sees post-UPDATE values: title='Patched', priority=5.
+        const expected = { id: 1, meta: { title: 'Patched', priority: 5 } }
+        // The mock is primed with the FLAT db row (dotted alias keys); the
+        // projector folds it into the nested shape asserted below.
+        ctx.mockNext({ id: 1, 'meta.title': 'Patched', 'meta.priority': 5 })
+
+        await ctx.withRollback(async () => {
+            const row = await ctx.conn.update(tIssue)
+                .set({ title: 'Patched', priority: 5 })
+                .where(tIssue.id.equals(1))
+                .returning({
+                    id:   tIssue.id,
+                    meta: { title: tIssue.title, priority: tIssue.priority },
+                })
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = $1, priority = $2 where id = $3 returning id as id, title as "meta.title", priority as "meta.priority""`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Patched",
+                5,
+                1,
+              ]
+            `)
+            assertType<Exact<typeof row, {
+                id:   number
+                meta: { title: string; priority: number }
+            }>>()
+            expect(row).toEqual(expected)
+        })
+    })
+
     test('update-returning-object-none-or-one', async () => {
         // `executeUpdateNoneOrOne()` with an OBJECT-shape returning yields
         // `{...} | null`. Only the single-column branch (returningOneColumn) was

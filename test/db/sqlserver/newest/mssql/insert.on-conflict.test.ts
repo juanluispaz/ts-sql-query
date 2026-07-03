@@ -301,4 +301,40 @@ describe(ctx.label, () => {
         })
     })
     */
+
+    // NOT-APPLICABLE: SQL Server has no INSERT…ON CONFLICT (uses MERGE)
+    /*
+    test('multi-row-on-conflict-on-columns-do-update-returning-object-with-optional-column', async () => {
+        // Multi-row VALUES + targeted on-conflict + `returning({obj})` whose
+        // projection includes an OPTIONAL column (`assigneeId`), executed via
+        // `executeInsertMany`. Because tIssue.assigneeId is a nullable column,
+        // the returned row type carries it as `assigneeId?: number` (optional),
+        // unlike the required-only `{id, name}` sibling above. Both rows collide
+        // on the seeded issues (project 1, numbers 1 & 2) via UNIQUE(project_id,
+        // number), so DO UPDATE refreshes `title` (via `valuesForInsert()`) and
+        // RETURNING yields their {id, assigneeId} — the upsert never touches
+        // assignee_id, so each row's seeded assignee comes back.
+        const expected = [
+            { id: 1, assigneeId: 1 },
+            { id: 2, assigneeId: 2 },
+        ]
+        ctx.mockNext(expected)
+        await ctx.withRollback(async () => {
+            const rows = await ctx.conn.insertInto(tIssue)
+                .values([
+                    { projectId: 1, number: 1, title: 'Upd hero', status: 'open',        priority: 2 },
+                    { projectId: 1, number: 2, title: 'Upd nav',  status: 'in_progress', priority: 1 },
+                ])
+                .onConflictOn(tIssue.projectId, tIssue.number)
+                .doUpdateSet({ title: tIssue.valuesForInsert().title })
+                .returning({ id: tIssue.id, assigneeId: tIssue.assigneeId })
+                .executeInsertMany()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof rows, Array<{ id: number, assigneeId?: number }>>>()
+            expect([...rows].sort((a, b) => a.id - b.id)).toEqual(expected)
+        })
+    })
+    */
 })

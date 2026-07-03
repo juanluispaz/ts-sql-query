@@ -291,4 +291,36 @@ describe(ctx.label, () => {
         }>>()
         expect(result).toEqual({ durLo: 1800000n, durHi: 5400000n, centsLo: 100, amtLo: 50, amtHi: 200 })
     })
+
+    test('group-by-before-select-projecting-optional-values-as-nullable', async () => {
+        // The groupBy-BEFORE-select shape: `.groupBy(<value source>)` is called on
+        // the where-expression before `.select(...)`, so the select returns a
+        // `WhereableExecutableSelectExpressionWithGroupByProjectableAsNullable` and
+        // `.projectingOptionalValuesAsNullable()` is reached there (the other
+        // projectingOptional* variants come from the select-first shape). The
+        // optional `maxAssignee` aggregate (max over a nullable column) surfaces as
+        // `number | null` (present-null) instead of the default `number | undefined`
+        // (absent). Grouping the 4 issues by project: project 1 → max(assignee 1,2)
+        // = 2; project 2 → max(assignee NULL) = null; project 3 → max(assignee 3) = 3.
+        const expected = [
+            { projectId: 1, maxAssignee: 2 },
+            { projectId: 2, maxAssignee: null },
+            { projectId: 3, maxAssignee: 3 },
+        ]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .groupBy(tIssue.projectId)
+            .select({
+                projectId:   tIssue.projectId,
+                maxAssignee: ctx.conn.max(tIssue.assigneeId),
+            })
+            .projectingOptionalValuesAsNullable()
+            .orderBy('projectId')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, max(assignee_id) as maxAssignee from issue group by project_id order by projectId"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ projectId: number; maxAssignee: number | null }>>>()
+        expect(result).toEqual(expected)
+    })
 })

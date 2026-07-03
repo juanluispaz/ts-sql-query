@@ -137,6 +137,40 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ id: number; issueId: number }>>>()
     })
 
+    test('customize-recursive-select-before-and-after-query-render-inside-cte-body', async () => {
+        // A recursive select materialised as a CTE via `.forUseInQueryAs(...)`
+        // keeps ALL four `customizeQuery` hooks. `beforeQuery` / `afterQuery`
+        // render INSIDE the recursive CTE body (around the anchor∪recursive
+        // union), exactly as they do for the non-recursive CTE above; the
+        // `beforeWithQuery` / `afterWithQuery` pair wraps the `(...)` parens.
+        ctx.mockNext([{ id: 2 }])
+        const connection = ctx.conn
+        const tree = connection.selectFrom(tIssue)
+            .where(tIssue.id.equals(2))
+            .select({ id: tIssue.id, parentId: tIssue.parentId })
+            .recursiveUnionAllOn((parent) => tIssue.id.equals(parent.parentId))
+            .customizeQuery({
+                beforeQuery:     connection.rawFragment`/* head */ `,
+                afterQuery:      connection.rawFragment` /* tail */`,
+                beforeWithQuery: connection.rawFragment`/* warmup */`,
+                afterWithQuery:  connection.rawFragment`/* end-of-with */`,
+            })
+            .forUseInQueryAs('tree')
+
+        const result = await connection.selectFrom(tree)
+            .select({ id: tree.id })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with tree as /* warmup */ (/* head */  select id as id, parent_id as parentId from issue where id = @0 union all select issue.id as id, issue.parent_id as parentId from issue join tree on issue.id = tree.parentId  /* tail */) /* end-of-with */ select id as id from tree"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+        expect(result).toEqual([{ id: 2 }])
+    })
+
     test('customize-select-hook-fragment-with-column-reference', async () => {
         // A fragment that references a column drives
         // `__registerRequiredColumn` on the customization

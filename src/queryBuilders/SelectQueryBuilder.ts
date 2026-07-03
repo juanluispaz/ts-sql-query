@@ -540,6 +540,17 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
         if (recursiveView) {
             recursiveView.__name = as
             this.__recursiveInternalView!.__name = as
+            // `__applyRecursiveCustomization` parked the whole-statement SQL hooks
+            // (`beforeQuery`/`afterQuery`, …) on the outer select, which only exists
+            // when the recursive query is executed directly. Consumed as a CTE there
+            // is no outer select, so re-home those hooks onto the CTE body to render
+            // them inside the recursive CTE parens — mirroring the non-recursive CTE
+            // path below. Otherwise they'd be lost with the discarded outer select.
+            const outerCustomization = this.__recursiveSelect?.__customization
+            if (outerCustomization) {
+                const cteBody = recursiveView.__selectData
+                cteBody.__customization = { ...cteBody.__customization, ...outerCustomization }
+            }
             this.__recursiveView = undefined
             this.__recursiveInternalView = undefined
             this.__recursiveSelect = undefined

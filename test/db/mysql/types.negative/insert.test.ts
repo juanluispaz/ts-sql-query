@@ -98,6 +98,26 @@ function _typeNegatives() {
         // @ts-expect-error real column 'name' is not a shaped key on the on-conflict setWhen
         .setWhen(true, { name: 'when' })
 
+    // Rule: the conditional `disallowIfNoValueWhen(when, …)` must NOT clear a
+    // missing-key obligation. `when` is a runtime value, so a column it names
+    // is not statically guaranteed to have a value; the `*When` arm keeps the
+    // named column in the still-missing set (like the whole `set*When` family,
+    // which never narrows toward executability). Its unconditional sibling
+    // `disallowIfNoValue(…)` may narrow because it throws eagerly when the
+    // named column has no value.
+    // Control: unconditional disallowIfNoValue narrows `projectId` out of the
+    // missing set, so the later `.set(rest)` reaches an executable insert.
+    void connection.insertInto(tIssue).dynamicSet()
+        .disallowIfNoValue('projectId must have a value', 'projectId')
+        .set({ number: 1, title: 'x', status: 'open', priority: 1 })
+        .executeInsert()
+    // Guard: the `*When` arm does not narrow, so `projectId` is still missing
+    // after the other required columns are set and the insert is not executable.
+    void connection.insertInto(tIssue).dynamicSet()
+        .disallowIfNoValueWhen(false, 'projectId must have a value', 'projectId')
+        .set({ number: 1, title: 'x', status: 'open', priority: 1 })
+        // @ts-expect-error disallowIfNoValueWhen must not make a still-incomplete insert executable
+        .executeInsert()
 }
 
 test('insert-negative-types', () => {

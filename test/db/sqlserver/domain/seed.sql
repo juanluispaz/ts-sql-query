@@ -51,10 +51,10 @@ INSERT INTO issue_worklog (id, issue_id, work_date, started_at, minutes, duratio
 SET IDENTITY_INSERT issue_worklog OFF;
 
 SET IDENTITY_INSERT project_release ON;
-INSERT INTO project_release (id, project_id, version, channel, signing_key, released_on, cutoff_time, signed_off_at, published_at) VALUES
-    (1, 1, '1.2.0',        'stable', '0a8f9c1e-1111-4222-8333-444455556666', '2024-01-15', '17:00:00', '2024-01-14 12:30:00', '2024-01-16 09:00:00'),
-    (2, 1, '1.3.0-beta.1', 'beta',   NULL,                                   '2024-02-20', '18:30:00', NULL, '2024-02-21 10:00:00'),
-    (3, 2, '0.9.0',        'canary', '7b3e9d20-2222-4c55-9b66-dddd00009999', '2024-03-01', '16:00:00', '2024-02-28 09:00:00', '2024-03-02 11:00:00');
+INSERT INTO project_release (id, project_id, version, channel, signing_key, released_on, cutoff_time, signed_off_at, published_at, is_signed, download_count, avg_rating) VALUES
+    (1, 1, '1.2.0',        'stable', '0a8f9c1e-1111-4222-8333-444455556666', '2024-01-15', '17:00:00', '2024-01-14 12:30:00', '2024-01-16 09:00:00', 1, 4200000042, 4.5),
+    (2, 1, '1.3.0-beta.1', 'beta',   NULL,                                   '2024-02-20', '18:30:00', NULL, '2024-02-21 10:00:00', NULL, NULL, NULL),
+    (3, 2, '0.9.0',        'canary', '7b3e9d20-2222-4c55-9b66-dddd00009999', '2024-03-01', '16:00:00', '2024-02-28 09:00:00', '2024-03-02 11:00:00', 0, 100, 3.0);
 SET IDENTITY_INSERT project_release OFF;
 
 SET IDENTITY_INSERT project_review ON;

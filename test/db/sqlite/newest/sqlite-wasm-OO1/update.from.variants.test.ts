@@ -14,7 +14,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tOrganization, tProject } from '../../domain/connection.js'
+import { tIssue, tOrganization, tProject, tProjectReview } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -193,6 +193,35 @@ describe(ctx.label, () => {
                 expect(row.slug).toBe('mktg-site')
                 expect(row.newName).toBe('Acme Corp')
             }
+        })
+    })
+
+    test('update-from-returning-scaled-adapter-column', async () => {
+        // An adapter column driven through UPDATE … FROM … RETURNING: the SET
+        // writes `score` 90 through the scaledTenthAdapter (×10 → binds 900) and
+        // the RETURNING reads it back through the same adapter (÷10 → 90). The FROM
+        // joins project_review to its project (review 1 → project 1). Where the dialect
+        // has no UPDATE … RETURNING the test is commented out for symmetry. Runs inside
+        // withRollback (tProjectReview is a leaf).
+        await ctx.withRollback(async () => {
+            ctx.mockNext({ score: 900 })
+            const row = await ctx.conn.update(tProjectReview)
+                .from(tProject)
+                .set({ score: 90 })
+                .where(tProjectReview.projectId.equals(tProject.id))
+                .and(tProjectReview.id.equals(1))
+                .returning({ score: tProjectReview.score })
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project_review set score = ? from project where project_review.project_id = project.id and project_review.id = ? returning project_review.score as score"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                900,
+                1,
+              ]
+            `)
+            assertType<Exact<typeof row, { score: number }>>()
+            expect(row).toEqual({ score: 90 })
         })
     })
 })

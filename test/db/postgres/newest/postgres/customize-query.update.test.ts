@@ -7,7 +7,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tProject } from '../../domain/connection.js'
+import { tIssue, tOrganization, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -149,4 +149,35 @@ describe(ctx.label, () => {
         })
     })
 
+    test('customize-update-from-with-hooks', async () => {
+        // The three RawFragment hooks on an UPDATE … FROM: the fragments land
+        // around the update keyword and after the whole statement, alongside the
+        // FROM clause. The `and(organization.id = 99999)` filter matches no row, so
+        // nothing is mutated.
+        ctx.mockNext(0)
+        const connection = ctx.conn
+        await ctx.withRollback(async () => {
+            const affected = await connection.update(tProject)
+                .from(tOrganization)
+                .set({ name: tOrganization.name })
+                .where(tProject.organizationId.equals(tOrganization.id))
+                .and(tOrganization.id.equals(99999))
+                .customizeQuery({
+                    beforeQuery:        connection.rawFragment`/* head */ `,
+                    afterUpdateKeyword: connection.rawFragment`/*+ hint */`,
+                    afterQuery:         connection.rawFragment` /* tail */`,
+                })
+                .executeUpdate()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  update /*+ hint */ project set name = organization.name from organization where project.organization_id = organization.id and organization.id = $1  /* tail */"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                99999,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            if (!ctx.realDbEnabled) expect(affected).toBe(0)
+            else expect(typeof affected).toBe('number')
+        })
+    })
 })

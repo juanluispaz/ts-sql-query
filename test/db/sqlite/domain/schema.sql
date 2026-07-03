@@ -156,6 +156,9 @@ CREATE TABLE project_release (
     signed_off_at DATETIME,
     -- REQUIRED customLocalDateTime twin of signed_off_at.
     published_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    is_signed INTEGER,
+    download_count INTEGER,
+    avg_rating REAL,
     -- DB-computed column: never written by the app (declared
     -- `computedColumn` in connection.ts, so it is excluded from the
     -- insert/update shape).
@@ -202,6 +205,13 @@ SELECT r.id AS id,
        r.version AS version_bracketed,
        CASE WHEN r.channel <> 'beta' THEN r.channel ELSE NULL END AS channel_bracketed,
        r.cutoff_time AS cutoff_clock,
+       r.is_signed AS is_signed,
+       r.download_count AS download_count,
+       r.avg_rating AS avg_rating,
+       r.signing_key AS signing_uuid,
+       r.released_on AS release_day_plain,
+       r.cutoff_time AS cutoff_plain,
+       r.id AS release_ordinal,
        p.name AS project_name
 FROM project_release r
 INNER JOIN project p ON p.id = r.project_id;

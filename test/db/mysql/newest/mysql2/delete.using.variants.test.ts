@@ -232,4 +232,33 @@ describe(ctx.label, () => {
         })
     })
     */
+
+    // NOT-APPLICABLE: MySQL has no RETURNING on DELETE; `.returning(...)` is
+    // not typed on the MySQL delete surface.
+    /*
+    test('delete-using-returning-nullable-projected-optional', async () => {
+        // `projectingOptionalValuesAsNullable()` on a DELETE … USING … RETURNING:
+        // the optional `body` leaf surfaces as `string | null` (present-null)
+        // instead of the default `body?`. Filtered by an impossible issue id so no
+        // seed row is removed; the mock primes a null-body row. Where the dialect
+        // has no DELETE … USING … RETURNING the test is commented out for symmetry.
+        const expectedMock = [{ id: -1, body: null }]
+        ctx.mockNext(expectedMock)
+        await ctx.withRollback(async () => {
+            const rows = await ctx.conn.deleteFrom(tIssue)
+                .using(tProject)
+                .where(tIssue.projectId.equals(tProject.id))
+                .and(tIssue.id.equals(99999))
+                .returning({ id: tIssue.id, body: tIssue.body })
+                .projectingOptionalValuesAsNullable()
+                .executeDeleteMany()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof rows, Array<{ id: number; body: string | null }>>>()
+            if (!ctx.realDbEnabled) expect(rows).toEqual(expectedMock)
+            else expect(rows).toEqual([])
+        })
+    })
+    */
 })

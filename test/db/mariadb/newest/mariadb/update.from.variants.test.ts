@@ -213,4 +213,37 @@ describe(ctx.label, () => {
         })
     })
     */
+
+    // The server rejects the emitted `update project, organization set
+    // ... returning ...` form with a parse error at `returning`
+    // (verified against MariaDB 12.3.2). Two reasons stack: UPDATE ...
+    // RETURNING needs MariaDB 13.0.1+ (the mariadb:latest image still
+    // ships 12.x), and RETURNING on a multi-table UPDATE is not accepted
+    // even where single-table UPDATE RETURNING is.
+    // TODO[LIMITATION]: see LIMITATIONS.md — UPDATE ... RETURNING needs MariaDB 13.0.1+ and is not accepted on a multi-table UPDATE as of 12.3.2
+    /*
+    test('update-from-returning-scaled-adapter-column', async () => {
+        // An adapter column driven through UPDATE … FROM … RETURNING: the SET
+        // writes `score` 90 through the scaledTenthAdapter (×10 → binds 900) and
+        // the RETURNING reads it back through the same adapter (÷10 → 90). The FROM
+        // joins project_review to its project (review 1 → project 1). Where the dialect
+        // has no UPDATE … RETURNING the test is commented out for symmetry. Runs inside
+        // withRollback (tProjectReview is a leaf).
+        await ctx.withRollback(async () => {
+            ctx.mockNext({ score: 900 })
+            const row = await ctx.conn.update(tProjectReview)
+                .from(tProject)
+                .set({ score: 90 })
+                .where(tProjectReview.projectId.equals(tProject.id))
+                .and(tProjectReview.id.equals(1))
+                .returning({ score: tProjectReview.score })
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof row, { score: number }>>()
+            expect(row).toEqual({ score: 90 })
+        })
+    })
+    */
 })

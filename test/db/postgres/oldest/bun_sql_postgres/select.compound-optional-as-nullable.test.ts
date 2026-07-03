@@ -1,15 +1,8 @@
-// Seam: `projectingOptionalValuesAsNullable()` applied to a COMPOUND (union).
-// The modifier is covered alone on plain selects, mutation RETURNING and
-// aggregate elements, and the compound re-projector is covered with REQUIRED
-// leaves and with default-projector optionals — but the cross "compound result
-// re-projection × optional leaf → null flip" is otherwise untested.
-//
-// This seam currently has no type-safe public path (see test/BUGS.md):
-// `CompoundedExecutableSelectExpression` does not expose
-// `projectingOptionalValuesAsNullable()` though the runtime honors it, and
-// applying it on the first arm before `.union(...)` type-checks but is ignored at
-// runtime. Both tests below are block-commented with the runtime-correct intended
-// body, each carrying its own `// TODO[BUG]` marker.
+// `projectingOptionalValuesAsNullable()` applied to a COMPOUND (union) result:
+// the cross "compound re-projection × optional leaf → null flip". The modifier is
+// applied to the union result (after `.union(...)`), where the type re-exposes it;
+// a call on the first arm before `.union(...)` is silently ignored at runtime, so
+// it is applied after.
 //
 // Compound order is engine-defined; both arms are tagged with a distinct `iid`
 // and an ORDER BY pins the order. Mocks are primed with the RAW merged rows.

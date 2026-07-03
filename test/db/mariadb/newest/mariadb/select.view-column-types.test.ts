@@ -10,6 +10,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { vReleaseOverview } from '../../domain/connection.js'
+import type { ReleaseTag } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -203,5 +204,115 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{ id: number; versionUpperTagged?: string }>>>()
         expect(rows).toEqual(expected)
+    })
+
+    test('view-side-plain-columns-read-as-their-types', async () => {
+        // Reading release 1 through the View: plain boolean / bigint / double / uuid /
+        // localDate / localTime columns plus a custom-kind column carrying a trailing
+        // adapter. is_signed TRUE, download_count 4200000042, avg_rating 4.5,
+        // signing_key <uuid>, released_on 2024-01-15, cutoff_time 17:00:00; releaseOrdinal
+        // reads id 1 shifted +1000 → 1001 (plusOffsetAdapter), so the mock is primed with
+        // the raw 1. TZ=UTC forced.
+        const expected = {
+            isSigned:        true,
+            downloadCount:   4200000042n,
+            avgRating:       4.5,
+            signingUuid:     '0a8f9c1e-1111-4222-8333-444455556666',
+            releaseDayPlain: new Date(Date.UTC(2024, 0, 15, 10, 0, 0)),
+            cutoffPlain:     new Date(Date.UTC(1970, 0, 1, 17, 0, 0)),
+            releaseOrdinal:  1001 as ReleaseTag,
+        }
+        ctx.mockNext({
+            isSigned:        true,
+            downloadCount:   4200000042n,
+            avgRating:       4.5,
+            signingUuid:     '0a8f9c1e-1111-4222-8333-444455556666',
+            releaseDayPlain: new Date(Date.UTC(2024, 0, 15, 10, 0, 0)),
+            cutoffPlain:     new Date(Date.UTC(1970, 0, 1, 17, 0, 0)),
+            releaseOrdinal:  1,
+        })
+        const row = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(1))
+            .select({
+                isSigned:        vReleaseOverview.isSigned,
+                downloadCount:   vReleaseOverview.downloadCount,
+                avgRating:       vReleaseOverview.avgRating,
+                signingUuid:     vReleaseOverview.signingUuid,
+                releaseDayPlain: vReleaseOverview.releaseDayPlain,
+                cutoffPlain:     vReleaseOverview.cutoffPlain,
+                releaseOrdinal:  vReleaseOverview.releaseOrdinal,
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select is_signed as isSigned, download_count as downloadCount, avg_rating as avgRating, signing_uuid as signingUuid, release_day_plain as releaseDayPlain, cutoff_plain as cutoffPlain, release_ordinal as releaseOrdinal from release_overview where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            isSigned?:       boolean
+            downloadCount?:  bigint
+            avgRating?:      number
+            signingUuid?:    string
+            releaseDayPlain: Date
+            cutoffPlain:     Date
+            releaseOrdinal:  ReleaseTag
+        }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('view-side-plain-optional-kinds-read-absent-when-null', async () => {
+        // The nullable plain-kind View columns read ABSENT when their source is
+        // NULL. Release 2 has is_signed / download_count / avg_rating / signing_key
+        // all NULL, so those keys are dropped; the required localDate/localTime and
+        // the custom-kind+adapter columns stay present (released_on 2024-02-20,
+        // cutoff_time 18:30:00, id 2 → releaseOrdinal 1002).
+        const expected = {
+            releaseDayPlain: new Date(Date.UTC(2024, 1, 20, 10, 0, 0)),
+            cutoffPlain:     new Date(Date.UTC(1970, 0, 1, 18, 30, 0)),
+            releaseOrdinal:  1002 as ReleaseTag,
+        }
+        ctx.mockNext({
+            isSigned:        null,
+            downloadCount:   null,
+            avgRating:       null,
+            signingUuid:     null,
+            releaseDayPlain: new Date(Date.UTC(2024, 1, 20, 10, 0, 0)),
+            cutoffPlain:     new Date(Date.UTC(1970, 0, 1, 18, 30, 0)),
+            releaseOrdinal:  2,
+        })
+        const row = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(2))
+            .select({
+                isSigned:        vReleaseOverview.isSigned,
+                downloadCount:   vReleaseOverview.downloadCount,
+                avgRating:       vReleaseOverview.avgRating,
+                signingUuid:     vReleaseOverview.signingUuid,
+                releaseDayPlain: vReleaseOverview.releaseDayPlain,
+                cutoffPlain:     vReleaseOverview.cutoffPlain,
+                releaseOrdinal:  vReleaseOverview.releaseOrdinal,
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select is_signed as isSigned, download_count as downloadCount, avg_rating as avgRating, signing_uuid as signingUuid, release_day_plain as releaseDayPlain, cutoff_plain as cutoffPlain, release_ordinal as releaseOrdinal from release_overview where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            isSigned?:       boolean
+            downloadCount?:  bigint
+            avgRating?:      number
+            signingUuid?:    string
+            releaseDayPlain: Date
+            cutoffPlain:     Date
+            releaseOrdinal:  ReleaseTag
+        }>>()
+        expect(row).toEqual(expected)
+        expect('isSigned' in row).toBe(false)
+        expect('downloadCount' in row).toBe(false)
+        expect('signingUuid' in row).toBe(false)
     })
 })

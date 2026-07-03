@@ -8,7 +8,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tProject } from '../../domain/connection.js'
+import { tProject, tProjectReview } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -134,6 +134,42 @@ describe(ctx.label, () => {
             `)
             assertType<Exact<typeof oldName, string>>()
             expect(oldName).toBe('Marketing site')
+        })
+    })
+
+    test('returning-old-and-new-adapter-column-via-oldValues', async () => {
+        // An ADAPTER column read through the `oldValues()` synthetic old-row
+        // subquery in RETURNING: `score` carries the scaledTenthAdapter (÷10 read,
+        // ×10 write). The SET writes 90 (→ binds 900); RETURNING reads the
+        // pre-update `score` (raw 850 → 85) via the aliased old-row subquery AND the
+        // post-update value (raw 900 → 90). Review 1's score is 850; runs inside
+        // withRollback (tProjectReview is a leaf).
+        ctx.mockNext({ oldScore: 850, newScore: 900 })
+        await ctx.withRollback(async () => {
+            const oldReview = tProjectReview.oldValues()
+            const row = await ctx.conn.update(tProjectReview)
+                .set({ score: 90 })
+                .where(tProjectReview.id.equals(1))
+                .returning({
+                    oldScore: oldReview.score,
+                    newScore: tProjectReview.score,
+                })
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project_review as _new_ set score = $1 from (select _old_.* from project_review as _old_ where _old_.id = $2 for no key update of _old_) as _old_ where _new_.id = _old_.id returning _old_.score as "oldScore", _new_.score as "newScore""`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                900,
+                1,
+              ]
+            `)
+            assertType<Exact<typeof row, { oldScore: number; newScore: number }>>()
+            if (!ctx.realDbEnabled) {
+                expect(row).toEqual({ oldScore: 85, newScore: 90 })
+            } else {
+                expect(row.oldScore).toBe(85)
+                expect(row.newScore).toBe(90)
+            }
         })
     })
 })

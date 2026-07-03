@@ -139,4 +139,32 @@ describe(ctx.label, () => {
         })
     })
 
+    // NOT-APPLICABLE: SQLite does not support DELETE … USING; the library type-excludes it for sqlite connections.
+    // test('customize-delete-using-with-hooks', async () => {
+    //     // The three RawFragment hooks on a DELETE … USING: the fragments land
+    //     // around the delete keyword and after the whole statement, alongside the
+    //     // USING clause. The `and(project.id = 99999)` filter matches no row, so
+    //     // nothing is deleted. Where the dialect has no DELETE … USING the test is
+    //     // commented out for symmetry.
+    //     ctx.mockNext(0)
+    //     const connection = ctx.conn
+    //     await ctx.withRollback(async () => {
+    //         const affected = await connection.deleteFrom(tIssue)
+    //             .using(tProject)
+    //             .where(tIssue.projectId.equals(tProject.id))
+    //             .and(tProject.id.equals(99999))
+    //             .customizeQuery({
+    //                 beforeQuery:        connection.rawFragment`/* head */ `,
+    //                 afterDeleteKeyword: connection.rawFragment`/*+ hint */`,
+    //                 afterQuery:         connection.rawFragment` /* tail */`,
+    //             })
+    //             .executeDelete()
+    //
+    //         expect(ctx.lastSql).toMatchInlineSnapshot()
+    //         expect(ctx.lastParams).toMatchInlineSnapshot()
+    //         assertType<Exact<typeof affected, number>>()
+    //         if (!ctx.realDbEnabled) expect(affected).toBe(0)
+    //         else expect(typeof affected).toBe('number')
+    //     })
+    // })
 })

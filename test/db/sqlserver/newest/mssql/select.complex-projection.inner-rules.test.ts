@@ -865,4 +865,68 @@ describe(ctx.label, () => {
         }>>>()
         expect(rows).toEqual(expected)
     })
+
+    test('rule-2-same-left-join-outer-object-containing-a-nested-inner-object-default', async () => {
+        // A rule-2 OUTER object (`proj`, leaves from the same left join with an
+        // originallyRequired `id`) that CONTAINS a nested INNER object (`inner`,
+        // also from the same left join). The outer `proj` is optional (`proj?`,
+        // dropped when the join misses); the required `id` stays required; and the
+        // inner container surfaces as `{...} | undefined` (present-key, value
+        // undefined when the join misses). Issue 1 → project 1, the join hits, so
+        // `proj` and `inner` are present.
+        const expected = { iid: 1, proj: { id: 1, inner: { name: 'Marketing site', slug: 'mktg-site' } } }
+        ctx.mockNext({ iid: 1, 'proj.id': 1, 'proj.inner.name': 'Marketing site', 'proj.inner.slug': 'mktg-site' })
+        const tProjLeft = tProject.forUseInLeftJoin()
+        const row = await ctx.conn.selectFrom(tIssue)
+            .leftJoin(tProjLeft).on(tProjLeft.id.equals(tIssue.projectId))
+            .where(tIssue.id.equals(1))
+            .select({
+                iid:  tIssue.id,
+                proj: { id: tProjLeft.id, inner: { name: tProjLeft.name, slug: tProjLeft.slug } },
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.id as [proj.id], project.name as [proj.inner.name], project.slug as [proj.inner.slug] from issue left join project on project.id = issue.project_id where issue.id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            iid:   number
+            proj?: { id: number; inner: { name: string; slug: string } | undefined }
+        }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('rule-2-same-left-join-outer-object-containing-a-nested-inner-object-as-nullable', async () => {
+        // The same rule-2 outer / nested inner under
+        // `projectingOptionalValuesAsNullable()`: the outer `proj` becomes
+        // `{...} | null`, the required `id` stays required, and the inner container
+        // becomes `{...} | null`. Issue 1 → project 1, the join hits.
+        const expected = { iid: 1, proj: { id: 1, inner: { name: 'Marketing site', slug: 'mktg-site' } } }
+        ctx.mockNext({ iid: 1, 'proj.id': 1, 'proj.inner.name': 'Marketing site', 'proj.inner.slug': 'mktg-site' })
+        const tProjLeft = tProject.forUseInLeftJoin()
+        const row = await ctx.conn.selectFrom(tIssue)
+            .leftJoin(tProjLeft).on(tProjLeft.id.equals(tIssue.projectId))
+            .where(tIssue.id.equals(1))
+            .select({
+                iid:  tIssue.id,
+                proj: { id: tProjLeft.id, inner: { name: tProjLeft.name, slug: tProjLeft.slug } },
+            })
+            .projectingOptionalValuesAsNullable()
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.id as [proj.id], project.name as [proj.inner.name], project.slug as [proj.inner.slug] from issue left join project on project.id = issue.project_id where issue.id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            iid:  number
+            proj: { id: number; inner: { name: string; slug: string } | null } | null
+        }>>()
+        expect(row).toEqual(expected)
+    })
 })

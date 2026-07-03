@@ -143,4 +143,38 @@ describe(ctx.label, () => {
         })
     })
     */
+
+    // NOT-APPLICABLE: SQLite has no native pre/post column references, so `tTable.oldValues()` is typed `never` on `SqliteConnection` (pending https://sqlite.org/forum/forumpost/2d49770b89); audit-style RETURNING with old/new must be emulated via a separate SELECT before the UPDATE.
+    /*
+    test('returning-old-and-new-adapter-column-via-oldValues', async () => {
+        // An ADAPTER column read through the `oldValues()` synthetic old-row
+        // subquery in RETURNING: `score` carries the scaledTenthAdapter (÷10 read,
+        // ×10 write). The SET writes 90 (→ binds 900); RETURNING reads the
+        // pre-update `score` (raw 850 → 85) via the aliased old-row subquery AND the
+        // post-update value (raw 900 → 90). Review 1's score is 850; runs inside
+        // withRollback (tProjectReview is a leaf).
+        ctx.mockNext({ oldScore: 850, newScore: 900 })
+        await ctx.withRollback(async () => {
+            const oldReview = tProjectReview.oldValues()
+            const row = await ctx.conn.update(tProjectReview)
+                .set({ score: 90 })
+                .where(tProjectReview.id.equals(1))
+                .returning({
+                    oldScore: oldReview.score,
+                    newScore: tProjectReview.score,
+                })
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof row, { oldScore: number; newScore: number }>>()
+            if (!ctx.realDbEnabled) {
+                expect(row).toEqual({ oldScore: 85, newScore: 90 })
+            } else {
+                expect(row.oldScore).toBe(85)
+                expect(row.newScore).toBe(90)
+            }
+        })
+    })
+    */
 })

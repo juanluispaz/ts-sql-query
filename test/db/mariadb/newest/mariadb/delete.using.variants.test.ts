@@ -239,4 +239,37 @@ describe(ctx.label, () => {
         })
     })
     */
+
+    // The server rejects the emitted `delete from issue using issue,
+    // project ... RETURNING ...` form with a parse error at `returning`
+    // (verified against MariaDB 12.3.2). Single-table DELETE ... RETURNING
+    // works on this image (it has shipped since MariaDB 10.0.5), but
+    // RETURNING on a multi-table DELETE (DELETE ... USING) is not accepted.
+    // TODO[LIMITATION]: see LIMITATIONS.md — RETURNING is not accepted on a multi-table DELETE (DELETE ... USING) as of MariaDB 12.3.2
+    /*
+    test('delete-using-returning-nullable-projected-optional', async () => {
+        // `projectingOptionalValuesAsNullable()` on a DELETE … USING … RETURNING:
+        // the optional `body` leaf surfaces as `string | null` (present-null)
+        // instead of the default `body?`. Filtered by an impossible issue id so no
+        // seed row is removed; the mock primes a null-body row. Where the dialect
+        // has no DELETE … USING … RETURNING the test is commented out for symmetry.
+        const expectedMock = [{ id: -1, body: null }]
+        ctx.mockNext(expectedMock)
+        await ctx.withRollback(async () => {
+            const rows = await ctx.conn.deleteFrom(tIssue)
+                .using(tProject)
+                .where(tIssue.projectId.equals(tProject.id))
+                .and(tIssue.id.equals(99999))
+                .returning({ id: tIssue.id, body: tIssue.body })
+                .projectingOptionalValuesAsNullable()
+                .executeDeleteMany()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof rows, Array<{ id: number; body: string | null }>>>()
+            if (!ctx.realDbEnabled) expect(rows).toEqual(expectedMock)
+            else expect(rows).toEqual([])
+        })
+    })
+    */
 })

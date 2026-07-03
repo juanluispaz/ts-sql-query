@@ -685,6 +685,17 @@ export const vReleaseOverview = new class VReleaseOverview extends View<DBConnec
     // optionalVirtualColumnFromFragment on a View carrying a trailing TypeAdapter
     // (bracketAdapter, read wraps in [...]).
     versionUpperTagged = this.optionalVirtualColumnFromFragment('string', (fragment) => fragment.sql`upper(${this.version})`, bracketAdapter)
+    // Per-kind PLAIN read marshalling on a View: boolean/bigint/double are backed by
+    // project_release base columns; uuid reuses signing_key; localDate/localTime reuse
+    // released_on/cutoff_time (also mapped as their custom-branded twins above); the
+    // custom-kind + trailing-adapter column maps id through plusOffsetAdapter (read +1000).
+    isSigned        = this.optionalColumn('is_signed', 'boolean')
+    downloadCount   = this.optionalColumn('download_count', 'bigint')
+    avgRating       = this.optionalColumn('avg_rating', 'double')
+    signingUuid     = this.optionalColumn('signing_uuid', 'uuid')
+    releaseDayPlain = this.column('release_day_plain', 'localDate')
+    cutoffPlain     = this.column('cutoff_plain', 'localTime')
+    releaseOrdinal  = this.column<ReleaseTag, 'ReleaseTag'>('release_ordinal', 'customInt', 'ReleaseTag', plusOffsetAdapter)
     constructor() { super('release_overview') }
 }()
 

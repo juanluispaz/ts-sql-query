@@ -152,6 +152,9 @@ CREATE TABLE project_release (
     signed_off_at DATETIME NULL,
     -- REQUIRED customLocalDateTime twin of signed_off_at.
     published_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    is_signed BIT,
+    download_count BIGINT,
+    avg_rating FLOAT,
     notes AS ('release-' + version),
     FOREIGN KEY (project_id) REFERENCES project(id),
     CONSTRAINT uk_release_version UNIQUE (project_id, version)
@@ -276,6 +279,13 @@ SELECT r.id AS id,
        r.version AS version_bracketed,
        CASE WHEN r.channel <> 'beta' THEN r.channel ELSE NULL END AS channel_bracketed,
        r.cutoff_time AS cutoff_clock,
+       r.is_signed AS is_signed,
+       r.download_count AS download_count,
+       r.avg_rating AS avg_rating,
+       r.signing_key AS signing_uuid,
+       r.released_on AS release_day_plain,
+       r.cutoff_time AS cutoff_plain,
+       r.id AS release_ordinal,
        p.name AS project_name
 FROM project_release r
 INNER JOIN project p ON p.id = r.project_id;

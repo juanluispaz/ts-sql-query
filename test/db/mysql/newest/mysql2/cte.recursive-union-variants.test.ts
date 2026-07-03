@@ -374,12 +374,10 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-    // Terminals on the recursive select result: executeSelectOne / NoneOrOne run
-    // correctly (below); orderBy / limit / offset are broken (see the TODO[BUG]
-    // tests + test/BUGS.md).
+    // Terminals on the recursive select result. orderBy / limit / offset apply
+    // to the outer `select ... from <cte>`, so they order and page the final
+    // recursive result rather than the CTE anchor member.
 
-    // TODO[BUG]: see test/BUGS.md — orderBy/limit/offset on a recursive-union result render inside the CTE anchor member instead of the outer select (the paging applies to the seed, not the final result).
-    /*
     test('recursive-result-order-by-limit-offset', async () => {
         // `.orderBy('id').limit(2).offset(1)` on the recursive result. Anchor
         // selects issues 1, 2, 3; the recursion adds nothing; the outer paging
@@ -401,12 +399,19 @@ describe(ctx.label, () => {
             .offset(1)
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot()
-        expect(ctx.lastParams).toMatchInlineSnapshot()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, title as title from issue where id in (?, ?, ?) union all select issue.id as id, issue.title as title from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id) select id as id, title as title from recursive_select_1 order by id limit ? offset ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+            3,
+            2,
+            1,
+          ]
+        `)
         assertType<Exact<typeof result, Array<{ id: number, title: string }>>>()
         expect(result).toEqual(expected)
     })
-    */
 
     test('recursive-result-execute-select-one', async () => {
         // `.executeSelectOne()` on the recursive result. Anchor selects issue 2;
@@ -455,8 +460,36 @@ describe(ctx.label, () => {
         expect(result).toBeNull()
     })
 
-    // TODO[BUG]: see test/BUGS.md — the recursive result's limit renders inside the CTE anchor, so executeSelectPage's count wraps the already-limited CTE and returns the page size, not the total (confirmed against real PostgreSQL).
-    /*
+    test('recursive-result-projecting-optionals-as-nullable', async () => {
+        // `.projectingOptionalValuesAsNullable()` sits immediately after
+        // `.select(...)` and before `.recursiveUnionAllOn(...)` — the position
+        // where it is valid on a recursive select: the projection shape is fixed
+        // at select time and the recursion carries it through unchanged, so the
+        // flag set on the anchor drives the final result shape. It only reshapes
+        // the TypeScript type (the emitted SQL is identical to the plain
+        // projection): the optional `parentId` becomes a required, nullable
+        // property. Issue 1 has a NULL parent_id, so the value comes back as
+        // `null` rather than an absent property.
+        const expected = [{ id: 1, title: 'Update hero copy', parentId: null }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+        const result = await connection.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({ id: tIssue.id, title: tIssue.title, parentId: tIssue.parentId })
+            .projectingOptionalValuesAsNullable()
+            .recursiveUnionAllOn((parent) => tIssue.id.equals(parent.parentId))
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, title as title, parent_id as parentId from issue where id = ? union all select issue.id as id, issue.title as title, issue.parent_id as parentId from issue join recursive_select_1 on issue.id = recursive_select_1.parentId) select id as id, title as title, parentId as parentId from recursive_select_1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number, title: string, parentId: number | null }>>>()
+        expect(result).toEqual(expected)
+    })
+
     test('recursive-result-execute-select-page', async () => {
         // `.orderBy('id').limit(2).executeSelectPage()` on the recursive result.
         // Anchor selects issues 1, 2, 3; the recursion adds nothing. The page
@@ -480,10 +513,23 @@ describe(ctx.label, () => {
             .executeSelectPage()
 
         expect(ctx.history.length).toBe(2)
-        expect(ctx.history[0]!.sql).toMatchInlineSnapshot()
-        expect(ctx.history[0]!.params).toMatchInlineSnapshot()
-        expect(ctx.history[1]!.sql).toMatchInlineSnapshot()
-        expect(ctx.history[1]!.params).toMatchInlineSnapshot()
+        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, title as title from issue where id in (?, ?, ?) union all select issue.id as id, issue.title as title from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id) select id as id, title as title from recursive_select_1 order by id limit ?"`)
+        expect(ctx.history[0]!.params).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+            3,
+            2,
+          ]
+        `)
+        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, title as title from issue where id in (?, ?, ?) union all select issue.id as id, issue.title as title from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id) select count(*) from recursive_select_1"`)
+        expect(ctx.history[1]!.params).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+            3,
+          ]
+        `)
         assertType<Exact<typeof page, {
             data:  Array<{ id: number, title: string }>
             count: number
@@ -491,5 +537,4 @@ describe(ctx.label, () => {
         expect(page.count).toBe(3)
         expect(page.data).toEqual(dataRows)
     })
-    */
 })

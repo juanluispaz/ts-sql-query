@@ -239,6 +239,18 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
     }
     
     abstract __finishJoinHaving(): void
+    __orderingAndPagingTarget(): AbstractSelect {
+        // On a recursive select this builder is only the CTE anchor member; the
+        // rows the user sees come from the outer `select ... from <cte>` held in
+        // `__recursiveSelect` (built by `.recursiveUnion*(...)`). Ordering and
+        // paging must land on that outer select — otherwise they render inside
+        // the anchor member and order/limit/offset the seed instead of the final
+        // result (and `executeSelectPage`'s count query then wraps the
+        // already-limited CTE and returns the page size, not the total). Mirrors
+        // the `customizeQuery` re-home in `SelectQueryBuilder`. For a
+        // non-recursive select the target is the builder itself.
+        return this.__recursiveSelect ?? this
+    }
     orderBy(column: any, mode?: OrderByMode): any {
         this.__finishJoinHaving()
         this.__query = ''
@@ -249,10 +261,11 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
         return this
     }
     __addOrderBy(column: any, mode?: OrderByMode) {
-        if (!this.__orderBy) {
-            this.__orderBy = []
+        const target = this.__orderingAndPagingTarget()
+        if (!target.__orderBy) {
+            target.__orderBy = []
         }
-        this.__orderBy.push({expression: column, order: mode || null})
+        target.__orderBy.push({expression: column, order: mode || null})
     }
     orderByFromString(orderBy: string): any {
         this.__finishJoinHaving()
@@ -346,13 +359,13 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
     orderingSiblingsOnly(): any {
         this.__finishJoinHaving()
         this.__query = ''
-        this.__orderingSiblingsOnly = true
+        this.__orderingAndPagingTarget().__orderingSiblingsOnly = true
         return this
     }
     limit(limit: number | INumberValueSource<any, any>): any {
         this.__finishJoinHaving()
         this.__query = ''
-        this.__limit = limit
+        this.__orderingAndPagingTarget().__limit = limit
         return this
     }
     limitIfValue(limit: number | null | undefined): any {
@@ -367,7 +380,7 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
     offset(offset: number | INumberValueSource<any, any>): any {
         this.__finishJoinHaving()
         this.__query = ''
-        this.__offset = offset
+        this.__orderingAndPagingTarget().__offset = offset
         return this
     }
     offsetIfValue(offset: number | null | undefined): any {

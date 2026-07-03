@@ -786,4 +786,83 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
+
+    test('left-join-object-of-only-optional-columns-applies-rule-4-not-rule-2', async () => {
+        // A nested object whose leaves ALL come from the SAME left-joined table
+        // AND are ALL genuinely-optional columns (`body` / `assigneeId`): the
+        // object is optional and dropped only when every leaf is null (rule 4).
+        // project 3 → issue 4 (opt present); project 4 → no issue (left-join miss
+        // → opt dropped).
+        const expected = [
+            { pid: 3, opt: { body: 'See ADR-014', assigneeId: 3 } },
+            { pid: 4 },
+        ]
+        ctx.mockNext([
+            { pid: 3, 'opt.body': 'See ADR-014', 'opt.assigneeId': 3 },
+            { pid: 4, 'opt.body': null, 'opt.assigneeId': null },
+        ])
+        const connection = ctx.conn
+        const tIssueLeft = tIssue.forUseInLeftJoin()
+        const rows = await connection.selectFrom(tProject)
+            .leftJoin(tIssueLeft).on(tIssueLeft.projectId.equals(tProject.id))
+            .where(tProject.id.in([3, 4]))
+            .select({
+                pid: tProject.id,
+                opt: { body: tIssueLeft.body, assigneeId: tIssueLeft.assigneeId },
+            })
+            .orderBy('pid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.\`body\` as \`opt.body\`, issue.assignee_id as \`opt.assigneeId\` from project left join issue on issue.project_id = project.id where project.id in (?, ?) order by pid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+            4,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            pid:  number
+            opt?: { body: string | undefined; assigneeId: number | undefined }
+        }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('left-join-object-of-only-optional-columns-rule-4-under-projecting-optional-values-as-nullable', async () => {
+        // Under `projectingOptionalValuesAsNullable()` the dropped object surfaces
+        // as present-`null` rather than absent, and each leaf surfaces as `| null`:
+        // project 4's missing issue becomes `opt: null`.
+        const expected = [
+            { pid: 3, opt: { body: 'See ADR-014', assigneeId: 3 } },
+            { pid: 4, opt: null },
+        ]
+        ctx.mockNext([
+            { pid: 3, 'opt.body': 'See ADR-014', 'opt.assigneeId': 3 },
+            { pid: 4, 'opt.body': null, 'opt.assigneeId': null },
+        ])
+        const connection = ctx.conn
+        const tIssueLeft = tIssue.forUseInLeftJoin()
+        const rows = await connection.selectFrom(tProject)
+            .leftJoin(tIssueLeft).on(tIssueLeft.projectId.equals(tProject.id))
+            .where(tProject.id.in([3, 4]))
+            .select({
+                pid: tProject.id,
+                opt: { body: tIssueLeft.body, assigneeId: tIssueLeft.assigneeId },
+            })
+            .projectingOptionalValuesAsNullable()
+            .orderBy('pid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.\`body\` as \`opt.body\`, issue.assignee_id as \`opt.assigneeId\` from project left join issue on issue.project_id = project.id where project.id in (?, ?) order by pid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+            4,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            pid:  number
+            opt:  { body: string | null; assigneeId: number | null } | null
+        }>>>()
+        expect(rows).toEqual(expected)
+    })
 })

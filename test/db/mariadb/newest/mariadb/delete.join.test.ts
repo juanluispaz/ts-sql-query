@@ -212,4 +212,78 @@ describe(ctx.label, () => {
             expect(affected).toBe(2)
         })
     })
+
+    test('delete-allowing-no-where-with-inner-join-removes-all-matched-rows', async () => {
+        // `deleteAllowingNoWhereFrom(t).innerJoin(j).on(...)` reaches the
+        // OnExpressionAllowingNoWhere interface — executable with NO WHERE. Every
+        // issue matches its project, so all seeded issues are removed (dependent
+        // worklog/webhook rows cascade).
+        ctx.mockNext(4)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.deleteAllowingNoWhereFrom(tIssue)
+                .innerJoin(tProject).on(tProject.id.equals(tIssue.projectId))
+                .executeDelete()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using issue inner join project on project.id = issue.project_id"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+            assertType<Exact<typeof affected, number>>()
+            if (ctx.realDbEnabled) expect(typeof affected).toBe('number')
+            else expect(affected).toBe(4)
+        })
+    })
+
+    test('delete-allowing-no-where-with-join-removes-all-matched-rows', async () => {
+        // `deleteAllowingNoWhereFrom(t).join(j).on(...)` — the `.join` alias limb,
+        // also reaching OnExpressionAllowingNoWhere with no WHERE.
+        ctx.mockNext(4)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.deleteAllowingNoWhereFrom(tIssue)
+                .join(tProject).on(tProject.id.equals(tIssue.projectId))
+                .executeDelete()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using issue join project on project.id = issue.project_id"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+            assertType<Exact<typeof affected, number>>()
+            if (ctx.realDbEnabled) expect(typeof affected).toBe('number')
+            else expect(affected).toBe(4)
+        })
+    })
+
+    test('delete-allowing-no-where-with-left-join-removes-all-rows', async () => {
+        // `deleteAllowingNoWhereFrom(t).leftJoin(j).on(...)` — the LEFT JOIN limb
+        // on the allowing-no-where delete, executable with no WHERE. The left join
+        // keeps every issue, so all are removed.
+        ctx.mockNext(4)
+        await ctx.withRollback(async () => {
+            const tAssignee = tAppUser.forUseInLeftJoin()
+            const affected = await ctx.conn.deleteAllowingNoWhereFrom(tIssue)
+                .leftJoin(tAssignee).on(tAssignee.id.equals(tIssue.assigneeId))
+                .executeDelete()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using issue left join app_user on app_user.id = issue.assignee_id"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+            assertType<Exact<typeof affected, number>>()
+            if (ctx.realDbEnabled) expect(typeof affected).toBe('number')
+            else expect(affected).toBe(4)
+        })
+    })
+
+    test('delete-allowing-no-where-with-left-outer-join-removes-all-rows', async () => {
+        // `deleteAllowingNoWhereFrom(t).leftOuterJoin(j).on(...)` — the explicit
+        // leftOuterJoin alias limb; emits `left outer join` and is executable with
+        // no WHERE.
+        ctx.mockNext(4)
+        await ctx.withRollback(async () => {
+            const tAssignee = tAppUser.forUseInLeftJoin()
+            const affected = await ctx.conn.deleteAllowingNoWhereFrom(tIssue)
+                .leftOuterJoin(tAssignee).on(tAssignee.id.equals(tIssue.assigneeId))
+                .executeDelete()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using issue left outer join app_user on app_user.id = issue.assignee_id"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+            assertType<Exact<typeof affected, number>>()
+            if (ctx.realDbEnabled) expect(typeof affected).toBe('number')
+            else expect(affected).toBe(4)
+        })
+    })
 })

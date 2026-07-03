@@ -202,4 +202,46 @@ describe(ctx.label, () => {
         })
     })
 
+
+    test('sequence-custom-int-next-value-with-trailing-adapter', async () => {
+        await ctx.withCommit(async () => {
+            // releaseTagSeqOffset carries the CUSTOM-kind (customInt / ReleaseTag)
+            // value type AND a trailing TypeAdapter (plusOffsetAdapter, read +1000).
+            // nextValue() projects the branded ReleaseTag AND shifts the read value:
+            // raw 42 -> 1042.
+            ctx.mockNext(42)
+            const next = await ctx.conn.selectFromNoTable()
+                .selectOneColumn(ctx.conn.releaseTagSeqOffset.nextValue())
+                .executeSelectOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select nextval(release_tag_seq) as result"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+            assertType<Exact<typeof next, ReleaseTag>>()
+            if (!ctx.realDbEnabled) expect(next).toBe(1042 as ReleaseTag)
+            else expect(typeof next).toBe('number')
+        })
+    })
+
+    test('sequence-custom-int-current-value-with-trailing-adapter', async () => {
+        await ctx.withCommit(async () => {
+            // currentValue() over the custom-kind + adapter sequence: branded
+            // ReleaseTag AND read shifted +1000. currval is session-scoped, so a
+            // prior nextValue primes it on the real DB.
+            ctx.mockNext(41)
+            if (ctx.realDbEnabled) {
+                await ctx.conn.selectFromNoTable()
+                    .selectOneColumn(ctx.conn.releaseTagSeqOffset.nextValue())
+                    .executeSelectOne()
+            }
+            const curr = await ctx.conn.selectFromNoTable()
+                .selectOneColumn(ctx.conn.releaseTagSeqOffset.currentValue())
+                .executeSelectOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select lastval(release_tag_seq) as result"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+            assertType<Exact<typeof curr, ReleaseTag>>()
+            if (!ctx.realDbEnabled) expect(curr).toBe(1041 as ReleaseTag)
+            else expect(typeof curr).toBe('number')
+        })
+    })
 })

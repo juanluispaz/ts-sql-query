@@ -125,7 +125,8 @@ CREATE TABLE invoice (
 CREATE TABLE ledger_entry (
     entry_no SERIAL PRIMARY KEY,
     amount INTEGER NOT NULL DEFAULT 100,
-    memo INTEGER DEFAULT 50
+    memo INTEGER DEFAULT 50,
+    discount INTEGER
 );
 
 CREATE TABLE project_release (

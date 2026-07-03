@@ -67,7 +67,32 @@ of that. Two minutes of triage and one paragraph is the bar.
 
 ## Open Bugs
 
-_None currently open._
+## `orderBy` / `limit` / `offset` on a recursive-union select render on the CTE anchor member instead of the outer result (corrupts `executeSelectPage` count)
+
+**Where**: the recursive select result (`OrderByExecutableSelectExpression`,
+`src/expressions/select.ts` ~:180) reached via
+`selectFrom(t).select({...}).recursiveUnionAll(fn)`; the emission path is the
+recursive-CTE builder in `SelectQueryBuilder` / `AbstractSqlBuilder`.
+
+**Reproduction**: `selectFrom(tIssue).where(tIssue.id.in([1,2,3])).select({id,title})`
+`.recursiveUnionAll(parent => …).orderBy('id').limit(2).offset(1).executeSelectMany()`
+emits
+`with recursive recursive_select_1 as ((select id, title from issue where id in ($1,$2,$3) order by id limit $4 offset $5) union all …) select id, title from recursive_select_1`
+— the `order by` / `limit` / `offset` land **inside the anchor member** rather
+than wrapping the outer `select … from recursive_select_1`. The type promises
+result-level ordering/paging; the impl orders/limits the seed instead. Confirmed
+against real PostgreSQL (docker): `.orderBy('id').limit(2).executeSelectPage()`
+returns `count: 2` instead of `3` — the page-count query wraps the already-limited
+CTE (anchor limited to 2 rows), so it counts the page, not the total. The value of
+the `executeSelectMany` variant only coincides with the intended result because the
+NULL-`parent_id` seed makes the recursion a no-op.
+
+**Current workaround in the suite**: `recursive-result-order-by-limit-offset` and
+`recursive-result-execute-select-page` in `cte.recursive-union-variants.test.ts` are
+block-commented with `// TODO[BUG]: see test/BUGS.md` in all 17 cells (full canonical
+body preserved). The `recursive-result-execute-select-one` /
+`recursive-result-execute-select-none-or-one` terminals (which do not use
+orderBy/limit/offset) run live and are correct.
 
 ## Common bug shapes (for the fixing agent)
 

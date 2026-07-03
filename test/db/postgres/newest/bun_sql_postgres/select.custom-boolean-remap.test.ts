@@ -437,4 +437,196 @@ describe(ctx.label, () => {
         `)
         expect(rows).toEqual(expected)
     })
+
+    // ── onlyWhen / ignoreWhen kept on the custom-boolean receivers ──────
+    // `onlyWhen(true)` / `ignoreWhen(false)` keep the predicate, so the custom-
+    // boolean receiver still remaps to its adapter literal (`verified = 'Y'`,
+    // `approved = 'A'`, `invoiced = 1`).
+
+    test('combinator: verified custom boolean kept by only-when reads remapped', async () => {
+        // `verified.onlyWhen(true)` keeps the predicate, so the Y/N column remaps
+        // to `(verified = 'Y')`. The verified organization (1, 'Y') matches.
+        const expected = [{ id: 1 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.verified.onlyWhen(true))
+            .select({ id: tOrganization.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where verified = 'Y' order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(rows).toEqual(expected)
+    })
+
+    test('combinator: verified custom boolean kept by ignore-when reads remapped', async () => {
+        // `verified.ignoreWhen(false)` keeps the predicate (the inverse of
+        // onlyWhen), so the Y/N column still remaps to `(verified = 'Y')`.
+        const expected = [{ id: 1 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.verified.ignoreWhen(false))
+            .select({ id: tOrganization.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where verified = 'Y' order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(rows).toEqual(expected)
+    })
+
+    test('combinator: approved nullable custom boolean kept by only-when reads remapped', async () => {
+        // `approved.onlyWhen(true)` keeps the predicate on the nullable A/R column,
+        // remapping to `(approved = 'A')`. worklog 1 ('A') matches; 2 ('R') fails,
+        // 3 (NULL) is excluded.
+        const expected = [{ id: 1 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.approved.onlyWhen(true))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where approved = 'A' order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(rows).toEqual(expected)
+    })
+
+    test('combinator: approved nullable custom boolean kept by ignore-when reads remapped', async () => {
+        // `approved.ignoreWhen(false)` keeps the predicate, remapping to
+        // `(approved = 'A')`.
+        const expected = [{ id: 1 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.approved.ignoreWhen(false))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where approved = 'A' order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(rows).toEqual(expected)
+    })
+
+    test('combinator: invoiced numeric custom boolean kept by only-when reads remapped', async () => {
+        // `invoiced.onlyWhen(true)` keeps the predicate on the numeric 1/0 column,
+        // remapping to `(invoiced = 1)`. Invoiced worklogs (1, 3) match.
+        const expected = [{ id: 1 }, { id: 3 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.invoiced.onlyWhen(true))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where invoiced = 1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(rows).toEqual(expected)
+    })
+
+    test('combinator: invoiced numeric custom boolean kept by ignore-when reads remapped', async () => {
+        // `invoiced.ignoreWhen(false)` keeps the predicate, remapping to
+        // `(invoiced = 1)`.
+        const expected = [{ id: 1 }, { id: 3 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.invoiced.ignoreWhen(false))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where invoiced = 1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(rows).toEqual(expected)
+    })
+
+    // ── approved.and/or and invoiced.or (the remaining and/or receivers) ──
+
+    test('combinator: approved nullable custom boolean as the and receiver', async () => {
+        // `approved.and(id.greaterThan(0))` -> `approved = 'A' and id > $1`.
+        // worklog 1 ('A') matches; 2 ('R') fails, 3 (NULL) excluded.
+        const expected = [{ id: 1 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.approved.and(tIssueWorklog.id.greaterThan(0)))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where approved = 'A' and id > $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            0,
+          ]
+        `)
+        expect(rows).toEqual(expected)
+    })
+
+    test('combinator: approved nullable custom boolean as the or receiver', async () => {
+        // `approved.or(id.equals(2))` -> `approved = 'A' or id = $1`. worklog 1
+        // ('A') via the first arm; worklog 2 ('R') via the id arm; worklog 3
+        // (NULL or 3=2 false) stays NULL and is excluded.
+        const expected = [{ id: 1 }, { id: 2 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.approved.or(tIssueWorklog.id.equals(2)))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where approved = 'A' or id = $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        expect(rows).toEqual(expected)
+    })
+
+    test('combinator: invoiced numeric custom boolean as the or receiver', async () => {
+        // `invoiced.or(id.greaterThan(2))` -> `invoiced = 1 or id > $1`. Invoiced
+        // worklogs 1, 3 via the first arm; worklog 2 (invoiced 0, id 2 not > 2)
+        // stays false.
+        const expected = [{ id: 1 }, { id: 3 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.invoiced.or(tIssueWorklog.id.greaterThan(2)))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where invoiced = 1 or id > $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        expect(rows).toEqual(expected)
+    })
+
+    // ── The custom-boolean ELIDE branch ────────────────────────────────
+    // `onlyWhen(false)` / `ignoreWhen(true)` drop the predicate entirely; the
+    // custom-boolean receiver's remap takes its elide branch (nothing is
+    // appended) and the query emits with NO WHERE clause, returning every row.
+
+    test('combinator: verified custom boolean elided by only-when-false drops the where', async () => {
+        // `verified.onlyWhen(false)` elides — the sole WHERE disappears, so every
+        // organization is returned.
+        const expected = [{ id: 1 }, { id: 2 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.verified.onlyWhen(false))
+            .select({ id: tOrganization.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(rows).toEqual(expected)
+    })
+
+    test('combinator: invoiced custom boolean elided by ignore-when-true drops the where', async () => {
+        // `invoiced.ignoreWhen(true)` elides — the sole WHERE disappears, so every
+        // worklog is returned.
+        const expected = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.invoiced.ignoreWhen(true))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(rows).toEqual(expected)
+    })
 })

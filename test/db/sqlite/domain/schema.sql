@@ -137,7 +137,8 @@ CREATE TABLE invoice (
 CREATE TABLE ledger_entry (
     entry_no INTEGER PRIMARY KEY AUTOINCREMENT,
     amount INTEGER NOT NULL DEFAULT 100,
-    memo INTEGER DEFAULT 50
+    memo INTEGER DEFAULT 50,
+    discount INTEGER
 );
 
 -- A published release of a project. Carries branded custom types

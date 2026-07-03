@@ -62,4 +62,4 @@ INSERT INTO calendar_year (year_value, year_label) VALUES (2023, 'FY2023'), (202
 INSERT INTO invoice (invoice_no, total) VALUES (100, 500);
 -- ledger_entry: amount/memo stored x10 by scaledTenthAdapter (250 reads 25, 70 reads 7);
 -- entry_no autogenerates to 1, read +1000 by plusOffsetAdapter -> 1001.
-INSERT INTO ledger_entry (amount, memo) VALUES (250, 70);
+INSERT INTO ledger_entry (amount, memo, discount) VALUES (250, 70, 30);

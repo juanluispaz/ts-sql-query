@@ -257,4 +257,110 @@ describe(ctx.label, () => {
     })
     */
 
+
+    // NOT-APPLICABLE: `.innerJoin` / `.leftJoin` / `.leftOuterJoin` on UPDATE are typed `never` on SQL Server (its grammar has no JOIN-on-UPDATE form); the equivalent pattern is `.update(t).from(j).set(...).where(...)`.
+    /*
+    test('update-allowing-no-where-with-inner-join-touches-all-matched-rows', async () => {
+        // `updateAllowingNoWhere(t).innerJoin(j).on(...)` reaches the
+        // OnExpressionAllowingNoWhere interface — executable with NO WHERE. The
+        // inner join matches every issue to its project, so every seeded issue is
+        // bumped.
+        ctx.mockNext(4)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.updateAllowingNoWhere(tIssue)
+                .innerJoin(tProject).on(tProject.id.equals(tIssue.projectId))
+                .set({ priority: tIssue.priority.add(1) })
+                .executeUpdate()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue inner join project on project.id = issue.project_id set issue.priority = issue.priority + ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            if (ctx.realDbEnabled) expect(typeof affected).toBe('number')
+            else expect(affected).toBe(4)
+        })
+    })
+    */
+
+    // NOT-APPLICABLE: `.innerJoin` / `.leftJoin` / `.leftOuterJoin` on UPDATE are typed `never` on SQL Server (its grammar has no JOIN-on-UPDATE form); the equivalent pattern is `.update(t).from(j).set(...).where(...)`.
+    /*
+    test('update-allowing-no-where-with-join-touches-all-matched-rows', async () => {
+        // `updateAllowingNoWhere(t).join(j).on(...)` — the `.join` alias of
+        // innerJoin, also reaching OnExpressionAllowingNoWhere with no WHERE.
+        ctx.mockNext(4)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.updateAllowingNoWhere(tIssue)
+                .join(tProject).on(tProject.id.equals(tIssue.projectId))
+                .set({ priority: tIssue.priority.add(1) })
+                .executeUpdate()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue join project on project.id = issue.project_id set issue.priority = issue.priority + ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            if (ctx.realDbEnabled) expect(typeof affected).toBe('number')
+            else expect(affected).toBe(4)
+        })
+    })
+    */
+
+    // NOT-APPLICABLE: `.innerJoin` / `.leftJoin` / `.leftOuterJoin` on UPDATE are typed `never` on SQL Server (its grammar has no JOIN-on-UPDATE form); the equivalent pattern is `.update(t).from(j).set(...).where(...)`.
+    /*
+    test('update-allowing-no-where-with-left-join-touches-all-rows', async () => {
+        // `updateAllowingNoWhere(t).leftJoin(j).on(...)` — the LEFT JOIN limb on
+        // the allowing-no-where update, executable with no WHERE. The left join
+        // keeps every issue whether or not it has an assignee, so all rows update.
+        ctx.mockNext(4)
+        await ctx.withRollback(async () => {
+            const tAssignee = tAppUser.forUseInLeftJoin()
+            const affected = await ctx.conn.updateAllowingNoWhere(tIssue)
+                .leftJoin(tAssignee).on(tAssignee.id.equals(tIssue.assigneeId))
+                .set({ priority: tIssue.priority.add(1) })
+                .executeUpdate()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue left join app_user on app_user.id = issue.assignee_id set issue.priority = issue.priority + ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            if (ctx.realDbEnabled) expect(typeof affected).toBe('number')
+            else expect(affected).toBe(4)
+        })
+    })
+    */
+
+    // NOT-APPLICABLE: `.innerJoin` / `.leftJoin` / `.leftOuterJoin` on UPDATE are typed `never` on SQL Server (its grammar has no JOIN-on-UPDATE form); the equivalent pattern is `.update(t).from(j).set(...).where(...)`.
+    /*
+    test('update-allowing-no-where-with-left-outer-join-touches-all-rows', async () => {
+        // `updateAllowingNoWhere(t).leftOuterJoin(j).on(...)` — the explicit
+        // leftOuterJoin alias limb; emits `left outer join` and is executable with
+        // no WHERE.
+        ctx.mockNext(4)
+        await ctx.withRollback(async () => {
+            const tAssignee = tAppUser.forUseInLeftJoin()
+            const affected = await ctx.conn.updateAllowingNoWhere(tIssue)
+                .leftOuterJoin(tAssignee).on(tAssignee.id.equals(tIssue.assigneeId))
+                .set({ priority: tIssue.priority.add(1) })
+                .executeUpdate()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue left outer join app_user on app_user.id = issue.assignee_id set issue.priority = issue.priority + ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            if (ctx.realDbEnabled) expect(typeof affected).toBe('number')
+            else expect(affected).toBe(4)
+        })
+    })
+    */
 })

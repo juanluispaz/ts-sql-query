@@ -832,4 +832,338 @@ describe(ctx.label, () => {
         `)
         expect(isNot).toEqual(expectedIsNot)
     })
+
+    // ==================================================================
+    // Single-bound ordered comparisons (greaterThan / lessOrEqual), membership
+    // variadics (inN / notInN / notIn-array) and the *IfValue family on the
+    // custom-temporal Comparable leaves:
+    //   customLocalDate — tProjectRelease.releasedOn ('ReleaseDay'):
+    //     release 1 -> 2024-01-15, 2 -> 2024-02-20, 3 -> 2024-03-01.
+    //   customLocalTime — tProjectRelease.cutoffTime ('CutoffClock'):
+    //     release 1 -> 17:00:00, 2 -> 18:30:00, 3 -> 16:00:00.
+    // ==================================================================
+
+    test('customLocalDate-single-bound-greater-than-less-or-equal', async () => {
+        // `.greaterThan(2024-02-20)` matches release 3 (2024-03-01);
+        // `.lessOrEqual(2024-02-20)` matches releases 1 and 2.
+        const mid = new Date(Date.UTC(2024, 1, 20))
+        const expectedGt = [{ id: 3 }]
+        ctx.mockNext(expectedGt)
+        const gt = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.releasedOn.greaterThan(mid))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where released_on > :0 order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2024-02-20T00:00:00.000Z,
+          ]
+        `)
+        assertType<Exact<typeof gt, Array<{ id: number }>>>()
+        expect(gt).toEqual(expectedGt)
+
+        const expectedLe = [{ id: 1 }, { id: 2 }]
+        ctx.mockNext(expectedLe)
+        const le = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.releasedOn.lessOrEqual(mid))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where released_on <= :0 order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2024-02-20T00:00:00.000Z,
+          ]
+        `)
+        expect(le).toEqual(expectedLe)
+    })
+
+    test('customLocalDate-in-array-in-n', async () => {
+        // `.in([2024-01-15, 2024-03-01])` matches releases 1 and 3; `.inN(
+        // 2024-02-20)` matches release 2.
+        const d1 = new Date(Date.UTC(2024, 0, 15))
+        const d3 = new Date(Date.UTC(2024, 2, 1))
+        const d2 = new Date(Date.UTC(2024, 1, 20))
+        const expectedIn = [{ id: 1 }, { id: 3 }]
+        ctx.mockNext(expectedIn)
+        const inRows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.releasedOn.in([d1, d3]))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where released_on in (:0, :1) order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2024-01-15T00:00:00.000Z,
+            2024-03-01T00:00:00.000Z,
+          ]
+        `)
+        assertType<Exact<typeof inRows, Array<{ id: number }>>>()
+        expect(inRows).toEqual(expectedIn)
+
+        const expectedInN = [{ id: 2 }]
+        ctx.mockNext(expectedInN)
+        const inNRows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.releasedOn.inN(d2))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where released_on in (:0) order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2024-02-20T00:00:00.000Z,
+          ]
+        `)
+        expect(inNRows).toEqual(expectedInN)
+    })
+
+    test('customLocalDate-not-in-array-not-in-n', async () => {
+        // `.notIn([2024-01-15])` and `.notInN(2024-01-15)` both match releases 2
+        // and 3.
+        const d1 = new Date(Date.UTC(2024, 0, 15))
+        const expected = [{ id: 2 }, { id: 3 }]
+        ctx.mockNext(expected)
+        const notInRows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.releasedOn.notIn([d1]))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where released_on not in (:0) order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2024-01-15T00:00:00.000Z,
+          ]
+        `)
+        assertType<Exact<typeof notInRows, Array<{ id: number }>>>()
+        expect(notInRows).toEqual(expected)
+
+        ctx.mockNext(expected)
+        const notInNRows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.releasedOn.notInN(d1))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where released_on not in (:0) order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2024-01-15T00:00:00.000Z,
+          ]
+        `)
+        expect(notInNRows).toEqual(expected)
+    })
+
+    test('customLocalDate-if-value-family-fires-and-elides', async () => {
+        // The *IfValue family on customLocalDate: each fires with the same SQL as
+        // its direct sibling when given a value, and elides (drops the sole WHERE)
+        // when given `undefined`.
+        const d1 = new Date(Date.UTC(2024, 0, 15))
+        const mid = new Date(Date.UTC(2024, 1, 20))
+        const noDate: Date | undefined = undefined
+        const noDates: Date[] | undefined = undefined
+        const all = [{ id: 1 }, { id: 2 }, { id: 3 }]
+
+        ctx.mockNext([{ id: 1 }])
+        const eq = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.releasedOn.equalsIfValue(d1)).select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where released_on = :0 order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2024-01-15T00:00:00.000Z,
+          ]
+        `)
+        assertType<Exact<typeof eq, Array<{ id: number }>>>()
+        expect(eq).toEqual([{ id: 1 }])
+
+        ctx.mockNext([{ id: 2 }, { id: 3 }])
+        const ne = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.releasedOn.notEqualsIfValue(d1)).select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where released_on <> :0 order by "id""`)
+        expect(ne).toEqual([{ id: 2 }, { id: 3 }])
+
+        ctx.mockNext([{ id: 1 }])
+        const lt = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.releasedOn.lessThanIfValue(mid)).select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where released_on < :0 order by "id""`)
+        expect(lt).toEqual([{ id: 1 }])
+
+        ctx.mockNext([{ id: 2 }, { id: 3 }])
+        const ge = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.releasedOn.greaterOrEqualIfValue(mid)).select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where released_on >= :0 order by "id""`)
+        expect(ge).toEqual([{ id: 2 }, { id: 3 }])
+
+        ctx.mockNext([{ id: 3 }])
+        const gt = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.releasedOn.greaterThanIfValue(mid)).select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where released_on > :0 order by "id""`)
+        expect(gt).toEqual([{ id: 3 }])
+
+        ctx.mockNext([{ id: 1 }, { id: 2 }])
+        const le = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.releasedOn.lessOrEqualIfValue(mid)).select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where released_on <= :0 order by "id""`)
+        expect(le).toEqual([{ id: 1 }, { id: 2 }])
+
+        ctx.mockNext([{ id: 1 }])
+        const inif = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.releasedOn.inIfValue([d1])).select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where released_on in (:0) order by "id""`)
+        expect(inif).toEqual([{ id: 1 }])
+
+        ctx.mockNext([{ id: 2 }, { id: 3 }])
+        const ninif = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.releasedOn.notInIfValue([d1])).select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where released_on not in (:0) order by "id""`)
+        expect(ninif).toEqual([{ id: 2 }, { id: 3 }])
+
+        // Elides: undefined value / array drop the sole WHERE.
+        ctx.mockNext(all)
+        const eqElide = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.releasedOn.equalsIfValue(noDate)).select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release order by "id""`)
+        expect(eqElide).toEqual(all)
+
+        ctx.mockNext(all)
+        const ltElide = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.releasedOn.lessThanIfValue(noDate)).select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release order by "id""`)
+        expect(ltElide).toEqual(all)
+
+        ctx.mockNext(all)
+        const inElide = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.releasedOn.inIfValue(noDates)).select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release order by "id""`)
+        expect(inElide).toEqual(all)
+    })
+
+    test('customLocalTime-single-bound-greater-than-less-or-equal', async () => {
+        // `.greaterThan(17:00)` matches release 2 (18:30); `.lessOrEqual(17:00)`
+        // matches releases 1 (17:00) and 3 (16:00).
+        const t = new Date(Date.UTC(1970, 0, 1, 17, 0, 0))
+        const expectedGt = [{ id: 2 }]
+        ctx.mockNext(expectedGt)
+        const gt = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.cutoffTime.greaterThan(t))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where cutoff_time > :0 order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1970-01-01T17:00:00.000Z,
+          ]
+        `)
+        assertType<Exact<typeof gt, Array<{ id: number }>>>()
+        expect(gt).toEqual(expectedGt)
+
+        const expectedLe = [{ id: 1 }, { id: 3 }]
+        ctx.mockNext(expectedLe)
+        const le = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.cutoffTime.lessOrEqual(t))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where cutoff_time <= :0 order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1970-01-01T17:00:00.000Z,
+          ]
+        `)
+        expect(le).toEqual(expectedLe)
+    })
+
+    test('customLocalTime-not-in-array-not-in-n', async () => {
+        // `.notIn([17:00])` and `.notInN(17:00)` both match releases 2 and 3.
+        const t = new Date(Date.UTC(1970, 0, 1, 17, 0, 0))
+        const expected = [{ id: 2 }, { id: 3 }]
+        ctx.mockNext(expected)
+        const notInRows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.cutoffTime.notIn([t]))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where cutoff_time not in (:0) order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1970-01-01T17:00:00.000Z,
+          ]
+        `)
+        assertType<Exact<typeof notInRows, Array<{ id: number }>>>()
+        expect(notInRows).toEqual(expected)
+
+        ctx.mockNext(expected)
+        const notInNRows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.cutoffTime.notInN(t))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where cutoff_time not in (:0) order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1970-01-01T17:00:00.000Z,
+          ]
+        `)
+        expect(notInNRows).toEqual(expected)
+    })
+
+    test('customLocalTime-if-value-family-fires-and-elides', async () => {
+        // The *IfValue family on customLocalTime: each fires with the same SQL as
+        // its direct sibling when given a value, and elides when given `undefined`.
+        const t = new Date(Date.UTC(1970, 0, 1, 17, 0, 0))
+        const noTime: Date | undefined = undefined
+        const noTimes: Date[] | undefined = undefined
+        const all = [{ id: 1 }, { id: 2 }, { id: 3 }]
+
+        ctx.mockNext([{ id: 1 }])
+        const eq = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.cutoffTime.equalsIfValue(t)).select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where cutoff_time = :0 order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1970-01-01T17:00:00.000Z,
+          ]
+        `)
+        assertType<Exact<typeof eq, Array<{ id: number }>>>()
+        expect(eq).toEqual([{ id: 1 }])
+
+        ctx.mockNext([{ id: 2 }, { id: 3 }])
+        const ne = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.cutoffTime.notEqualsIfValue(t)).select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where cutoff_time <> :0 order by "id""`)
+        expect(ne).toEqual([{ id: 2 }, { id: 3 }])
+
+        ctx.mockNext([{ id: 3 }])
+        const lt = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.cutoffTime.lessThanIfValue(t)).select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where cutoff_time < :0 order by "id""`)
+        expect(lt).toEqual([{ id: 3 }])
+
+        ctx.mockNext([{ id: 1 }, { id: 2 }])
+        const ge = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.cutoffTime.greaterOrEqualIfValue(t)).select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where cutoff_time >= :0 order by "id""`)
+        expect(ge).toEqual([{ id: 1 }, { id: 2 }])
+
+        ctx.mockNext([{ id: 2 }])
+        const gt = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.cutoffTime.greaterThanIfValue(t)).select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where cutoff_time > :0 order by "id""`)
+        expect(gt).toEqual([{ id: 2 }])
+
+        ctx.mockNext([{ id: 1 }, { id: 3 }])
+        const le = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.cutoffTime.lessOrEqualIfValue(t)).select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where cutoff_time <= :0 order by "id""`)
+        expect(le).toEqual([{ id: 1 }, { id: 3 }])
+
+        ctx.mockNext([{ id: 1 }])
+        const inif = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.cutoffTime.inIfValue([t])).select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where cutoff_time in (:0) order by "id""`)
+        expect(inif).toEqual([{ id: 1 }])
+
+        ctx.mockNext([{ id: 2 }, { id: 3 }])
+        const ninif = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.cutoffTime.notInIfValue([t])).select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release where cutoff_time not in (:0) order by "id""`)
+        expect(ninif).toEqual([{ id: 2 }, { id: 3 }])
+
+        // Elides.
+        ctx.mockNext(all)
+        const eqElide = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.cutoffTime.equalsIfValue(noTime)).select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release order by "id""`)
+        expect(eqElide).toEqual(all)
+
+        ctx.mockNext(all)
+        const ltElide = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.cutoffTime.lessThanIfValue(noTime)).select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release order by "id""`)
+        expect(ltElide).toEqual(all)
+
+        ctx.mockNext(all)
+        const inElide = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.cutoffTime.inIfValue(noTimes)).select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project_release order by "id""`)
+        expect(inElide).toEqual(all)
+    })
 })

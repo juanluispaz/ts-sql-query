@@ -3242,4 +3242,246 @@ describe(ctx.label, () => {
         `)
         expect(le).toEqual(expectedLe)
     })
+
+    // ==================================================================
+    // Direct-fluent membership (notInN, in/notIn(subquery)), value-source-operand
+    // equality and the *IfValue twins on the Equalable-only branded leaves:
+    //   enum   — tIssueWorklog.activity ('WorklogActivity'): 1 'coding', 2
+    //            'review', 3 'meeting'.
+    //   custom — tProjectRelease.channel ('ReleaseChannel'): 1 'stable', 2
+    //            'beta', 3 'canary'.
+    // ==================================================================
+
+    test('enum-not-in-n', async () => {
+        // `.notInN('coding')` — the variadic NOT IN on an enum column — matches
+        // worklogs 2 ('review') and 3 ('meeting').
+        const expected = [{ id: 2 }, { id: 3 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.activity.notInN('coding'))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where activity not in (@0) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "coding",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('equals-value-source-operand-enum-custom', async () => {
+        // The value-source-operand overload of `.equals(...)` on the branded
+        // Equalable leaves: comparing the column to itself is trivially true for
+        // every row, and pins `activity = activity` / `channel = channel` emission.
+        const allWorklogs = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        ctx.mockNext(allWorklogs)
+        const enumRows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.activity.equals(tIssueWorklog.activity))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where activity = activity order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof enumRows, Array<{ id: number }>>>()
+        expect(enumRows).toEqual(allWorklogs)
+
+        const allReleases = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        ctx.mockNext(allReleases)
+        const customRows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.channel.equals(tProjectRelease.channel))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where channel = channel order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(customRows).toEqual(allReleases)
+    })
+
+    test('enum-not-equals-if-value-not-in-if-value-fires-and-elides', async () => {
+        // `.notEqualsIfValue('coding')` fires -> worklogs 2, 3; `.notInIfValue(
+        // ['coding'])` fires -> worklogs 2, 3. Passing `undefined` elides each,
+        // dropping the sole WHERE so every worklog is returned.
+        const expected = [{ id: 2 }, { id: 3 }]
+        ctx.mockNext(expected)
+        const neIf = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.activity.notEqualsIfValue('coding'))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where activity <> @0 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "coding",
+          ]
+        `)
+        assertType<Exact<typeof neIf, Array<{ id: number }>>>()
+        expect(neIf).toEqual(expected)
+
+        ctx.mockNext(expected)
+        const notInIf = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.activity.notInIfValue(['coding']))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where activity not in (@0) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "coding",
+          ]
+        `)
+        expect(notInIf).toEqual(expected)
+
+        const all = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        ctx.mockNext(all)
+        const neElide = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.activity.notEqualsIfValue(undefined))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(neElide).toEqual(all)
+
+        ctx.mockNext(all)
+        const notInElide = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.activity.notInIfValue(undefined))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(notInElide).toEqual(all)
+    })
+
+    test('custom-in-n-not-in-n', async () => {
+        // `.inN('stable')` matches release 1; `.notInN('canary')` matches releases
+        // 1 ('stable') and 2 ('beta').
+        const expectedIn = [{ id: 1 }]
+        ctx.mockNext(expectedIn)
+        const inN = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.channel.inN('stable'))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where channel in (@0) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "stable",
+          ]
+        `)
+        assertType<Exact<typeof inN, Array<{ id: number }>>>()
+        expect(inN).toEqual(expectedIn)
+
+        const expectedNotIn = [{ id: 1 }, { id: 2 }]
+        ctx.mockNext(expectedNotIn)
+        const notInN = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.channel.notInN('canary'))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where channel not in (@0) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "canary",
+          ]
+        `)
+        expect(notInN).toEqual(expectedNotIn)
+    })
+
+    test('custom-in-subquery-not-in-subquery', async () => {
+        // The subquery IN / NOT IN overload on a `custom` (ReleaseChannel) column.
+        // The inner query selects the channel of release 1 ('stable'); the outer
+        // keeps releases whose channel is in / not in that set.
+        const channelOfRelease1 = ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .selectOneColumn(tProjectRelease.channel)
+
+        const expectedIn = [{ id: 1 }]
+        ctx.mockNext(expectedIn)
+        const inRows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.channel.in(channelOfRelease1))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where channel in (select channel as [result] from project_release where id = @0) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof inRows, Array<{ id: number }>>>()
+        expect(inRows).toEqual(expectedIn)
+
+        const expectedNotIn = [{ id: 2 }, { id: 3 }]
+        ctx.mockNext(expectedNotIn)
+        const notInRows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.channel.notIn(channelOfRelease1))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where channel not in (select channel as [result] from project_release where id = @0) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        expect(notInRows).toEqual(expectedNotIn)
+    })
+
+    test('custom-equals-if-value-not-in-if-value-fires-and-elides', async () => {
+        // `.equalsIfValue('stable')` fires -> release 1; `.notInIfValue(['canary'])`
+        // fires -> releases 1, 2. Passing `undefined` elides each.
+        const expectedEq = [{ id: 1 }]
+        ctx.mockNext(expectedEq)
+        const eqIf = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.channel.equalsIfValue('stable'))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where channel = @0 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "stable",
+          ]
+        `)
+        assertType<Exact<typeof eqIf, Array<{ id: number }>>>()
+        expect(eqIf).toEqual(expectedEq)
+
+        const expectedNotIn = [{ id: 1 }, { id: 2 }]
+        ctx.mockNext(expectedNotIn)
+        const notInIf = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.channel.notInIfValue(['canary']))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where channel not in (@0) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "canary",
+          ]
+        `)
+        expect(notInIf).toEqual(expectedNotIn)
+
+        const all = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        ctx.mockNext(all)
+        const eqElide = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.channel.equalsIfValue(undefined))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(eqElide).toEqual(all)
+
+        ctx.mockNext(all)
+        const notInElide = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.channel.notInIfValue(undefined))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release order by id"`)
+        expect(notInElide).toEqual(all)
+    })
 })

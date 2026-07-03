@@ -18,8 +18,12 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tOrganization, tProject } from '../../domain/connection.js'
+import { tIssue, tOrganization, tProject, tProjectReview } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+
+// tProjectReview is referenced by the `delete-using-returning-scaled-adapter-column`
+// test below; the cells where that test is uncommented use it for real.
+void tProjectReview
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -163,6 +167,62 @@ describe(ctx.label, () => {
             expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
             assertType<Exact<typeof affected, number>>()
             expect(affected).toBe(4)
+        })
+    })
+
+    test('delete-using-with-returning-auxiliary-using-column', async () => {
+        // RETURNING a column from the USING-joined table (`project.slug`), not the
+        // target `issue`. PostgreSQL's DELETE … USING … RETURNING can project
+        // columns from the USING relations. Filtered by an impossible issue id so
+        // no seed rows are removed; executeDeleteNoneOrOne returns null on the real
+        // DB.
+        const expectedMock = { projSlug: 'mktg-site' }
+        ctx.mockNext(expectedMock)
+        await ctx.withRollback(async () => {
+            const row = await ctx.conn.deleteFrom(tIssue)
+                .using(tProject)
+                .where(tIssue.projectId.equals(tProject.id))
+                .and(tIssue.id.equals(99999))
+                .returning({
+                    projSlug: tProject.slug,
+                })
+                .executeDeleteNoneOrOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using project where issue.project_id = project.id and issue.id = $1 returning project.slug as "projSlug""`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                99999,
+              ]
+            `)
+            assertType<Exact<typeof row, { projSlug: string } | null>>()
+            if (!ctx.realDbEnabled) expect(row).toEqual(expectedMock)
+            else expect(row).toBeNull()
+        })
+    })
+
+    test('delete-using-returning-scaled-adapter-column', async () => {
+        // An adapter column read through DELETE … USING … RETURNING:
+        // `returningOneColumn(score)` reads review 1's score through the
+        // scaledTenthAdapter (raw 850 -> 85). The USING join narrows the delete to
+        // the review's project, and the adapter read fires on the RETURNING value.
+        // Runs inside withRollback (tProjectReview is a leaf).
+        await ctx.withRollback(async () => {
+            ctx.mockNext(850)
+            const score = await ctx.conn.deleteFrom(tProjectReview)
+                .using(tProject)
+                .where(tProjectReview.projectId.equals(tProject.id))
+                .and(tProjectReview.id.equals(1))
+                .returningOneColumn(tProjectReview.score)
+                .executeDeleteOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from project_review using project where project_review.project_id = project.id and project_review.id = $1 returning project_review.score as result"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof score, number>>()
+            expect(score).toBe(85)
         })
     })
 })

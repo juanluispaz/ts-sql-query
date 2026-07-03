@@ -133,7 +133,8 @@ CREATE TABLE invoice (
 CREATE TABLE ledger_entry (
     entry_no INT AUTO_INCREMENT PRIMARY KEY,
     amount INT NOT NULL DEFAULT 100,
-    memo INT DEFAULT 50
+    memo INT DEFAULT 50,
+    discount INT
 );
 
 CREATE TABLE project_release (

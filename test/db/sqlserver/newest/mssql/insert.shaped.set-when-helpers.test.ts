@@ -239,4 +239,476 @@ describe(ctx.label, () => {
             expect(String(caught)).toMatch(/body must be assigned by the triage agent|disallow/i)
         })
     })
+
+    test('shaped-set-when-dispatches-on-true', async () => {
+        // `setWhen(true, { ttl })` -> `set`: overwrites the staged renamed `ttl`
+        // (title) regardless of prior state; the false arm leaves the draft title.
+        // Same column list — only the title param differs.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tIssue)
+                .shapedAs(shape)
+                .set({ proj: 1, num: 213, ttl: 'Draft title', st: 'open', prio: 2 })
+                .setWhen(false, { ttl: 'Overridden via when' })
+                .executeInsert()
+            const falseParams = ctx.lastParams
+
+            await ctx.conn.insertInto(tIssue)
+                .shapedAs(shape)
+                .set({ proj: 1, num: 214, ttl: 'Draft title', st: 'open', prio: 2 })
+                .setWhen(true, { ttl: 'Overridden via when' })
+                .executeInsert()
+            const trueParams = ctx.lastParams
+
+            expect(falseParams).toMatchInlineSnapshot(`
+              [
+                1,
+                213,
+                "Draft title",
+                "open",
+                2,
+              ]
+            `)
+            expect(trueParams).toMatchInlineSnapshot(`
+              [
+                1,
+                214,
+                "Overridden via when",
+                "open",
+                2,
+              ]
+            `)
+        })
+    })
+
+    test('shaped-set-if-set-if-value-when-dispatches-on-true', async () => {
+        // `setIfSetIfValueWhen(true)` -> `setIfSetIfValue`: only assigns renamed
+        // keys BOTH already staged AND passing `_isValue`. `ttl` (title) is staged
+        // and the value is real, so the true arm overwrites it.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tIssue)
+                .shapedAs(shape)
+                .set({ proj: 1, num: 215, ttl: 'Refresh pricing page', st: 'open', prio: 2 })
+                .setIfSetIfValueWhen(false, { ttl: 'Update support email' })
+                .executeInsert()
+            const falseParams = ctx.lastParams
+
+            await ctx.conn.insertInto(tIssue)
+                .shapedAs(shape)
+                .set({ proj: 1, num: 216, ttl: 'Refresh pricing page', st: 'open', prio: 2 })
+                .setIfSetIfValueWhen(true, { ttl: 'Update support email' })
+                .executeInsert()
+            const trueParams = ctx.lastParams
+
+            expect(falseParams).toMatchInlineSnapshot(`
+              [
+                1,
+                215,
+                "Refresh pricing page",
+                "open",
+                2,
+              ]
+            `)
+            expect(trueParams).toMatchInlineSnapshot(`
+              [
+                1,
+                216,
+                "Update support email",
+                "open",
+                2,
+              ]
+            `)
+        })
+    })
+
+    test('shaped-set-if-not-set-if-value-when-dispatches-on-true', async () => {
+        // `setIfNotSetIfValueWhen(true)` -> `setIfNotSetIfValue`: only assigns
+        // renamed keys NOT already staged whose incoming value passes `_isValue`.
+        // `desc` (body) is unstaged, so the true arm adds the `body` column.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tIssue)
+                .shapedAs(shape)
+                .set({ proj: 1, num: 217, ttl: 'Add OAuth login', st: 'open', prio: 2 })
+                .setIfNotSetIfValueWhen(false, { desc: 'Customers report intermittent timeouts.' })
+                .executeInsert()
+            const falseSql = ctx.lastSql
+
+            await ctx.conn.insertInto(tIssue)
+                .shapedAs(shape)
+                .set({ proj: 1, num: 218, ttl: 'Add OAuth login', st: 'open', prio: 2 })
+                .setIfNotSetIfValueWhen(true, { desc: 'Customers report intermittent timeouts.' })
+                .executeInsert()
+            const trueSql = ctx.lastSql
+
+            expect(falseSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (@0, @1, @2, @3, @4)"`)
+            expect(trueSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, body) values (@0, @1, @2, @3, @4, @5)"`)
+            expect(trueSql).not.toBe(falseSql)
+        })
+    })
+
+    test('shaped-set-if-has-value-when-dispatches-on-true', async () => {
+        // `setIfHasValueWhen(true)` -> `setIfHasValue`: overwrites only renamed
+        // keys whose currently-staged value is non-null. `desc` (body) is staged
+        // as null so it stays out of the override; `ttl` (title) has a value so it
+        // is re-assigned in the true branch.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tIssue)
+                .shapedAs(shape)
+                .set({ proj: 1, num: 219, ttl: 'Refactor onboarding wizard', desc: null, st: 'open', prio: 2 })
+                .setIfHasValueWhen(false, { ttl: 'Translate help center FAQ', desc: 'Should remain null.' })
+                .executeInsert()
+            const falseParams = ctx.lastParams
+
+            await ctx.conn.insertInto(tIssue)
+                .shapedAs(shape)
+                .set({ proj: 1, num: 220, ttl: 'Refactor onboarding wizard', desc: null, st: 'open', prio: 2 })
+                .setIfHasValueWhen(true, { ttl: 'Translate help center FAQ', desc: 'Should remain null.' })
+                .executeInsert()
+            const trueParams = ctx.lastParams
+
+            expect(falseParams).toMatchInlineSnapshot(`
+              [
+                1,
+                219,
+                "Refactor onboarding wizard",
+                "open",
+                2,
+                null,
+              ]
+            `)
+            expect(trueParams).toMatchInlineSnapshot(`
+              [
+                1,
+                220,
+                "Translate help center FAQ",
+                "open",
+                2,
+                null,
+              ]
+            `)
+        })
+    })
+
+    test('shaped-set-if-has-value-if-value-when-dispatches-on-true', async () => {
+        // `setIfHasValueIfValueWhen(true)` -> `setIfHasValueIfValue`: the staged
+        // value must be non-null AND the incoming must pass `_isValue`. `ttl`
+        // (title) qualifies, so the true arm overwrites it.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tIssue)
+                .shapedAs(shape)
+                .set({ proj: 1, num: 221, ttl: 'Wire export to CSV', st: 'open', prio: 2 })
+                .setIfHasValueIfValueWhen(false, { ttl: 'Patch CVE-2024-1234' })
+                .executeInsert()
+            const falseParams = ctx.lastParams
+
+            await ctx.conn.insertInto(tIssue)
+                .shapedAs(shape)
+                .set({ proj: 1, num: 222, ttl: 'Wire export to CSV', st: 'open', prio: 2 })
+                .setIfHasValueIfValueWhen(true, { ttl: 'Patch CVE-2024-1234' })
+                .executeInsert()
+            const trueParams = ctx.lastParams
+
+            expect(falseParams).toMatchInlineSnapshot(`
+              [
+                1,
+                221,
+                "Wire export to CSV",
+                "open",
+                2,
+              ]
+            `)
+            expect(trueParams).toMatchInlineSnapshot(`
+              [
+                1,
+                222,
+                "Patch CVE-2024-1234",
+                "open",
+                2,
+              ]
+            `)
+        })
+    })
+
+    test('shaped-set-if-has-no-value-when-dispatches-on-true', async () => {
+        // `setIfHasNoValueWhen(true)` -> `setIfHasNoValue`: only assigns renamed
+        // keys whose currently-staged value IS null. `desc` (body) is staged as
+        // null, so the true arm supplies the default body.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tIssue)
+                .shapedAs(shape)
+                .set({ proj: 1, num: 223, ttl: 'Investigate latency spike', desc: null, st: 'open', prio: 2 })
+                .setIfHasNoValueWhen(false, { desc: 'Pending triage notes.' })
+                .executeInsert()
+            const falseParams = ctx.lastParams
+
+            await ctx.conn.insertInto(tIssue)
+                .shapedAs(shape)
+                .set({ proj: 1, num: 224, ttl: 'Investigate latency spike', desc: null, st: 'open', prio: 2 })
+                .setIfHasNoValueWhen(true, { desc: 'Pending triage notes.' })
+                .executeInsert()
+            const trueParams = ctx.lastParams
+
+            expect(falseParams).toMatchInlineSnapshot(`
+              [
+                1,
+                223,
+                "Investigate latency spike",
+                "open",
+                2,
+                null,
+              ]
+            `)
+            expect(trueParams).toMatchInlineSnapshot(`
+              [
+                1,
+                224,
+                "Investigate latency spike",
+                "open",
+                2,
+                "Pending triage notes.",
+              ]
+            `)
+        })
+    })
+
+    test('shaped-set-if-has-no-value-if-value-when-dispatches-on-true', async () => {
+        // `setIfHasNoValueIfValueWhen(true)` -> `setIfHasNoValueIfValue`: the
+        // intersect of HasNoValue + IfValue on the renamed key. `desc` (body) is
+        // staged null and the incoming value is real, so the true arm fills it.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tIssue)
+                .shapedAs(shape)
+                .set({ proj: 1, num: 225, ttl: 'Audit dependency tree', desc: null, st: 'open', prio: 2 })
+                .setIfHasNoValueIfValueWhen(false, { desc: 'Run `npm audit --omit=dev`.' })
+                .executeInsert()
+            const falseParams = ctx.lastParams
+
+            await ctx.conn.insertInto(tIssue)
+                .shapedAs(shape)
+                .set({ proj: 1, num: 226, ttl: 'Audit dependency tree', desc: null, st: 'open', prio: 2 })
+                .setIfHasNoValueIfValueWhen(true, { desc: 'Run `npm audit --omit=dev`.' })
+                .executeInsert()
+            const trueParams = ctx.lastParams
+
+            expect(falseParams).toMatchInlineSnapshot(`
+              [
+                1,
+                225,
+                "Audit dependency tree",
+                "open",
+                2,
+                null,
+              ]
+            `)
+            expect(trueParams).toMatchInlineSnapshot(`
+              [
+                1,
+                226,
+                "Audit dependency tree",
+                "open",
+                2,
+                "Run \`npm audit --omit=dev\`.",
+              ]
+            `)
+        })
+    })
+
+    test('shaped-ignore-if-has-value-when-dispatches-on-true', async () => {
+        // `ignoreIfHasValueWhen(true, 'desc')` -> `ignoreIfHasValue`: drops the
+        // renamed `desc` (body) from the column list if its staged value is
+        // non-null. The argument is `OptionalColumnsForSetOfWithShape` — `desc`
+        // maps to the `optionalColumn` body and qualifies.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tIssue)
+                .shapedAs(shape)
+                .set({ proj: 1, num: 227, ttl: 'Restore staging snapshots', desc: 'Provided by the SRE team.', st: 'open', prio: 2 })
+                .ignoreIfHasValueWhen(false, 'desc')
+                .executeInsert()
+            const falseSql = ctx.lastSql
+
+            await ctx.conn.insertInto(tIssue)
+                .shapedAs(shape)
+                .set({ proj: 1, num: 228, ttl: 'Restore staging snapshots', desc: 'Provided by the SRE team.', st: 'open', prio: 2 })
+                .ignoreIfHasValueWhen(true, 'desc')
+                .executeInsert()
+            const trueSql = ctx.lastSql
+
+            expect(falseSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, body) values (@0, @1, @2, @3, @4, @5)"`)
+            expect(trueSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (@0, @1, @2, @3, @4)"`)
+            expect(trueSql).not.toBe(falseSql)
+        })
+    })
+
+    test('shaped-ignore-if-has-no-value-when-dispatches-on-true', async () => {
+        // `ignoreIfHasNoValueWhen(true, 'desc')` -> `ignoreIfHasNoValue`: drops the
+        // renamed `desc` (body) if its staged value is null.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tIssue)
+                .shapedAs(shape)
+                .set({ proj: 1, num: 229, ttl: 'Deprecate legacy webhooks', desc: null, st: 'open', prio: 2 })
+                .ignoreIfHasNoValueWhen(false, 'desc')
+                .executeInsert()
+            const falseSql = ctx.lastSql
+
+            await ctx.conn.insertInto(tIssue)
+                .shapedAs(shape)
+                .set({ proj: 1, num: 230, ttl: 'Deprecate legacy webhooks', desc: null, st: 'open', prio: 2 })
+                .ignoreIfHasNoValueWhen(true, 'desc')
+                .executeInsert()
+            const trueSql = ctx.lastSql
+
+            expect(falseSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, body) values (@0, @1, @2, @3, @4, @5)"`)
+            expect(trueSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (@0, @1, @2, @3, @4)"`)
+            expect(trueSql).not.toBe(falseSql)
+        })
+    })
+
+    test('shaped-ignore-any-set-with-no-value-when-dispatches-on-true', async () => {
+        // `ignoreAnySetWithNoValueWhen(true)` -> `ignoreAnySetWithNoValue`: drops
+        // every staged renamed key whose value is null/undefined — the staged
+        // `desc` (body) is null so the true arm removes it.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tIssue)
+                .shapedAs(shape)
+                .set({ proj: 1, num: 231, ttl: 'Add changelog to release notes', desc: null, st: 'open', prio: 2 })
+                .ignoreAnySetWithNoValueWhen(false)
+                .executeInsert()
+            const falseSql = ctx.lastSql
+
+            await ctx.conn.insertInto(tIssue)
+                .shapedAs(shape)
+                .set({ proj: 1, num: 232, ttl: 'Add changelog to release notes', desc: null, st: 'open', prio: 2 })
+                .ignoreAnySetWithNoValueWhen(true)
+                .executeInsert()
+            const trueSql = ctx.lastSql
+
+            expect(falseSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, body) values (@0, @1, @2, @3, @4, @5)"`)
+            expect(trueSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (@0, @1, @2, @3, @4)"`)
+            expect(trueSql).not.toBe(falseSql)
+        })
+    })
+
+    test('shaped-disallow-if-not-set-when-dispatches-on-true', async () => {
+        // `disallowIfNotSetWhen(true, msg, 'desc')` -> `disallowIfNotSet`: throws
+        // synchronously when the renamed `desc` (body) is NOT staged. The
+        // `when=false` arm is silent and the insert executes normally.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tIssue)
+                .shapedAs(shape)
+                .set({ proj: 1, num: 233, ttl: 'Document webhook retries', st: 'open', prio: 2 })
+                .disallowIfNotSetWhen(false, 'body is required on this workflow', 'desc')
+                .executeInsert()
+
+            let caught: unknown
+            try {
+                await ctx.conn.insertInto(tIssue)
+                    .shapedAs(shape)
+                    .set({ proj: 1, num: 234, ttl: 'Document webhook retries', st: 'open', prio: 2 })
+                    .disallowIfNotSetWhen(true, 'body is required on this workflow', 'desc')
+                    .executeInsert()
+            } catch (e) {
+                caught = e
+            }
+            expect(String(caught)).toMatch(/body is required on this workflow|disallow/i)
+        })
+    })
+
+    test('shaped-disallow-if-value-when-dispatches-on-true', async () => {
+        // `disallowIfValueWhen(true, msg, 'ttl')` -> `disallowIfValue`: throws when
+        // the renamed `ttl` (title) is staged with a value passing `_isValue`. The
+        // `when=false` arm is silent.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tIssue)
+                .shapedAs(shape)
+                .set({ proj: 1, num: 235, ttl: 'Patch CVE-2024-1234', st: 'open', prio: 2 })
+                .disallowIfValueWhen(false, 'title is reserved for the triage agent', 'ttl')
+                .executeInsert()
+
+            let caught: unknown
+            try {
+                await ctx.conn.insertInto(tIssue)
+                    .shapedAs(shape)
+                    .set({ proj: 1, num: 236, ttl: 'Patch CVE-2024-1234', st: 'open', prio: 2 })
+                    .disallowIfValueWhen(true, 'title is reserved for the triage agent', 'ttl')
+                    .executeInsert()
+            } catch (e) {
+                caught = e
+            }
+            expect(String(caught)).toMatch(/title is reserved for the triage agent|disallow/i)
+        })
+    })
+
+    test('shaped-disallow-if-no-value-when-dispatches-on-true', async () => {
+        // `disallowIfNoValueWhen(true, msg, 'desc')` -> `disallowIfNoValue`: throws
+        // when the renamed `desc` (body) is staged with a null value. The
+        // `when=false` arm is silent.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tIssue)
+                .shapedAs(shape)
+                .set({ proj: 1, num: 237, ttl: 'Capture stacktrace from sentry', desc: null, st: 'open', prio: 2 })
+                .disallowIfNoValueWhen(false, 'body must include a sentry link', 'desc')
+                .executeInsert()
+
+            let caught: unknown
+            try {
+                await ctx.conn.insertInto(tIssue)
+                    .shapedAs(shape)
+                    .set({ proj: 1, num: 238, ttl: 'Capture stacktrace from sentry', desc: null, st: 'open', prio: 2 })
+                    .disallowIfNoValueWhen(true, 'body must include a sentry link', 'desc')
+                    .executeInsert()
+            } catch (e) {
+                caught = e
+            }
+            expect(String(caught)).toMatch(/body must include a sentry link|disallow/i)
+        })
+    })
+
+    test('shaped-disallow-any-other-set-when-dispatches-on-true', async () => {
+        // `disallowAnyOtherSetWhen(true, msg, 'proj', 'num')` ->
+        // `disallowAnyOtherSet`: throws when any staged renamed key falls outside
+        // the allow-list. `ttl`/`st`/`prio` are staged beyond `proj`/`num`, so the
+        // true arm throws; the `when=false` arm is silent.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tIssue)
+                .shapedAs(shape)
+                .set({ proj: 1, num: 239, ttl: 'Investigate p99 latency', st: 'open', prio: 2 })
+                .disallowAnyOtherSetWhen(false, 'this entry point only accepts proj/num', 'proj', 'num')
+                .executeInsert()
+
+            let caught: unknown
+            try {
+                await ctx.conn.insertInto(tIssue)
+                    .shapedAs(shape)
+                    .set({ proj: 1, num: 240, ttl: 'Investigate p99 latency', st: 'open', prio: 2 })
+                    .disallowAnyOtherSetWhen(true, 'this entry point only accepts proj/num', 'proj', 'num')
+                    .executeInsert()
+            } catch (e) {
+                caught = e
+            }
+            expect(String(caught)).toMatch(/this entry point only accepts proj\/num|disallow/i)
+        })
+    })
 })

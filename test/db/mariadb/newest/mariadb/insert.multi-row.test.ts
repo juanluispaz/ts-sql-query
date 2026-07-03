@@ -248,4 +248,32 @@ describe(ctx.label, () => {
         })
     })
     */
+
+    test('single-element-values-array-emits-single-row-returns-multiple-type', async () => {
+        // `.values([oneRow])` — a single-element array. The builder routes through
+        // the multi-row node (`_buildInsertMultiple`) but emits a single VALUES
+        // tuple (one placeholder group). executeInsert returns the affected-row
+        // count. The array form yields the MULTIPLE set node — `setForAll(...)`
+        // (present only on the multi-row builder) is callable on it and overrides
+        // `plan` for every row.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const inserted = await ctx.conn.insertInto(tOrganization)
+                .values([
+                    { name: 'SoloArray', plan: 'free' },
+                ])
+                .setForAll({ plan: 'pro' })
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, plan) values (?, ?)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "SoloArray",
+                "pro",
+              ]
+            `)
+            assertType<Exact<typeof inserted, number>>()
+            expect(inserted).toBe(1)
+        })
+    })
 })

@@ -385,4 +385,123 @@ describe(ctx.label, () => {
         }>>>()
         expect(result).toEqual(expected)
     })
+
+    // Terminals on the recursive select result: executeSelectOne / NoneOrOne run
+    // correctly (below); orderBy / limit / offset are broken (see the TODO[BUG]
+    // tests + test/BUGS.md).
+
+    // TODO[BUG]: see test/BUGS.md — orderBy/limit/offset on a recursive-union result render inside the CTE anchor member instead of the outer select (the paging applies to the seed, not the final result).
+    /*
+    test('recursive-result-order-by-limit-offset', async () => {
+        // `.orderBy('id').limit(2).offset(1)` on the recursive result. Anchor
+        // selects issues 1, 2, 3; the recursion adds nothing; the outer paging
+        // should keep issues 2 and 3.
+        const expected = [
+            { id: 2, title: 'Redesign navbar' },
+            { id: 3, title: 'Migrate to ESM' },
+        ]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+        const result = await connection.selectFrom(tIssue)
+            .where(tIssue.id.in([1, 2, 3]))
+            .select({ id: tIssue.id, title: tIssue.title })
+            .recursiveUnionAll((parent) => connection.selectFrom(tIssue)
+                .join(parent).on(tIssue.parentId.equals(parent.id))
+                .select({ id: tIssue.id, title: tIssue.title }))
+            .orderBy('id')
+            .limit(2)
+            .offset(1)
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(ctx.lastParams).toMatchInlineSnapshot()
+        assertType<Exact<typeof result, Array<{ id: number, title: string }>>>()
+        expect(result).toEqual(expected)
+    })
+    */
+
+    test('recursive-result-execute-select-one', async () => {
+        // `.executeSelectOne()` on the recursive result. Anchor selects issue 2;
+        // the recursion adds nothing, so exactly one row comes back.
+        const expected = { id: 2, title: 'Redesign navbar' }
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+        const result = await connection.selectFrom(tIssue)
+            .where(tIssue.id.equals(2))
+            .select({ id: tIssue.id, title: tIssue.title })
+            .recursiveUnionAll((parent) => connection.selectFrom(tIssue)
+                .join(parent).on(tIssue.parentId.equals(parent.id))
+                .select({ id: tIssue.id, title: tIssue.title }))
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive_select_1(id, title) as (select id as id, title as title from issue where id = :0 union all select issue.id as id, issue.title as title from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id) select id as "id", title as "title" from recursive_select_1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof result, { id: number, title: string }>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('recursive-result-execute-select-none-or-one', async () => {
+        // `.executeSelectNoneOrOne()` on the recursive result. Anchor selects an
+        // impossible id, so no row comes back and the terminal returns null.
+        ctx.mockNext(null)
+        const connection = ctx.conn
+        const result = await connection.selectFrom(tIssue)
+            .where(tIssue.id.equals(999))
+            .select({ id: tIssue.id, title: tIssue.title })
+            .recursiveUnionAll((parent) => connection.selectFrom(tIssue)
+                .join(parent).on(tIssue.parentId.equals(parent.id))
+                .select({ id: tIssue.id, title: tIssue.title }))
+            .executeSelectNoneOrOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive_select_1(id, title) as (select id as id, title as title from issue where id = :0 union all select issue.id as id, issue.title as title from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id) select id as "id", title as "title" from recursive_select_1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            999,
+          ]
+        `)
+        assertType<Exact<typeof result, { id: number, title: string } | null>>()
+        expect(result).toBeNull()
+    })
+
+    // TODO[BUG]: see test/BUGS.md — the recursive result's limit renders inside the CTE anchor, so executeSelectPage's count wraps the already-limited CTE and returns the page size, not the total (confirmed against real PostgreSQL).
+    /*
+    test('recursive-result-execute-select-page', async () => {
+        // `.orderBy('id').limit(2).executeSelectPage()` on the recursive result.
+        // Anchor selects issues 1, 2, 3; the recursion adds nothing. The page
+        // should return the first 2 ordered rows and the total count (3) from the
+        // wrapped count query.
+        const dataRows = [
+            { id: 1, title: 'Update hero copy' },
+            { id: 2, title: 'Redesign navbar' },
+        ]
+        ctx.mockNext(dataRows)
+        ctx.mockNext(3)
+        const connection = ctx.conn
+        const page = await connection.selectFrom(tIssue)
+            .where(tIssue.id.in([1, 2, 3]))
+            .select({ id: tIssue.id, title: tIssue.title })
+            .recursiveUnionAll((parent) => connection.selectFrom(tIssue)
+                .join(parent).on(tIssue.parentId.equals(parent.id))
+                .select({ id: tIssue.id, title: tIssue.title }))
+            .orderBy('id')
+            .limit(2)
+            .executeSelectPage()
+
+        expect(ctx.history.length).toBe(2)
+        expect(ctx.history[0]!.sql).toMatchInlineSnapshot()
+        expect(ctx.history[0]!.params).toMatchInlineSnapshot()
+        expect(ctx.history[1]!.sql).toMatchInlineSnapshot()
+        expect(ctx.history[1]!.params).toMatchInlineSnapshot()
+        assertType<Exact<typeof page, {
+            data:  Array<{ id: number, title: string }>
+            count: number
+        }>>()
+        expect(page.count).toBe(3)
+        expect(page.data).toEqual(dataRows)
+    })
+    */
 })

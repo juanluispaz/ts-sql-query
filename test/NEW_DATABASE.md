@@ -98,8 +98,8 @@ database has to satisfy see [`PER_DATABASE_LAYOUT.md`](./PER_DATABASE_LAYOUT.md)
    ```bash
    bun run tests:audit          # symmetry ✓
    bun run validate:tests:tsgo  # fast typecheck
-   bun run validate:tests       # authoritative typecheck (CI runs both)
-   bun run validate:tests:tsc   # the sub-experience (CI runs this too)
+   bun run validate:tests       # authoritative typecheck (CI gates this)
+   bun run validate:tests:tsc   # local-only tsc cross-check (not gated in CI)
    bun run tests                # no docker, fast sanity check
    bun run tests --docker --wasm  # full real matrix (Docker required)
    ```

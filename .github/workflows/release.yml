@@ -74,17 +74,15 @@ jobs:
         run: bun run validate:tsgo
 
       # Type-check the test/ tree against the published library types.
-      # tsgo is authoritative for the test matrix; tsc runs as the
-      # sub-experience right after, covering the few files excluded
-      # from the tsc config (see test/MAINTAINING.md).
+      # tsgo is authoritative for the test matrix and is the only
+      # test-scope type-check the release gates on. The stable-tsc
+      # cross-check (`validate:tests:tsc`) stays a local-only
+      # sub-experience: tests don't ship, so there's no downstream
+      # tsc-compat obligation, and checking the whole matrix + src in a
+      # single tsc program now exhausts V8's heap. src's tsc-compat
+      # obligation is still covered by the `Bun build (tsc)` step above.
       - name: Bun validate tests (tsgo, authoritative)
         run: bun run validate:tests
-      - name: Bun validate tests (tsc, sub-experience)
-        run: bun run validate:tests:tsc
-        env:
-          # Raise V8's heap ceiling: tsc checks the full test/ matrix + src/
-          # in one program (~4.5 GB peak) and OOMs at Node's ~4 GB default.
-          NODE_OPTIONS: --max-old-space-size=8192
 
       # Symmetry audit (DESIGN §4) — structural check of test/db/.
       - name: Bun audit test symmetry

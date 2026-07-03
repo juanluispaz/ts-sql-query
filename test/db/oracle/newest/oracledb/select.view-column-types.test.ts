@@ -152,4 +152,56 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ id: number; cutoffClock: Date }>>>()
         expect(rows).toEqual(expected)
     })
+
+    test('view-side-optional-adapter-bearing-column-reads-present-and-absent', async () => {
+        // `channelBracketed` is an OPTIONAL VIEW column carrying a trailing
+        // bracketAdapter (read wraps a present value in [...]). The view's
+        // `channel_bracketed` expression is the release channel except for beta
+        // releases, where it is NULL. release 1 -> 'stable' -> '[stable]'; release 2
+        // (beta) -> NULL -> the optional key is absent; release 3 -> 'canary' ->
+        // '[canary]'.
+        const expected = [
+            { id: 1, channelBracketed: '[stable]' },
+            { id: 2 },
+            { id: 3, channelBracketed: '[canary]' },
+        ]
+        ctx.mockNext([
+            { id: 1, channelBracketed: 'stable' },
+            { id: 2, channelBracketed: null },
+            { id: 3, channelBracketed: 'canary' },
+        ])
+        const rows = await ctx.conn.selectFrom(vReleaseOverview)
+            .select({ id: vReleaseOverview.id, channelBracketed: vReleaseOverview.channelBracketed })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", channel_bracketed as "channelBracketed" from release_overview order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ id: number; channelBracketed?: string }>>>()
+        expect(rows).toEqual(expected)
+        // release 2's channel_bracketed is NULL, so the optional key is ABSENT
+        // (not present-as-undefined) — the adapter passed the null through.
+        expect('channelBracketed' in rows[1]!).toBe(false)
+    })
+
+    test('view-side-optional-virtual-column-with-adapter-reads-through-the-adapter', async () => {
+        // `versionUpperTagged` is a View OPTIONAL virtualColumnFromFragment
+        // (upper(version)) carrying a trailing bracketAdapter. The fragment
+        // computes upper(version); the adapter wraps the read in [...]. It is
+        // always present (version is required). Release 2's
+        // version '1.3.0-beta.1' -> upper '1.3.0-BETA.1' -> '[1.3.0-BETA.1]'.
+        const expected = [{ id: 2, versionUpperTagged: '[1.3.0-BETA.1]' }]
+        ctx.mockNext([{ id: 2, versionUpperTagged: '1.3.0-BETA.1' }])
+        const rows = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(2))
+            .select({ id: vReleaseOverview.id, versionUpperTagged: vReleaseOverview.versionUpperTagged })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", upper(version) as "versionUpperTagged" from release_overview where id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; versionUpperTagged?: string }>>>()
+        expect(rows).toEqual(expected)
+    })
 })

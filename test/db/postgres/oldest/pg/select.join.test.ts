@@ -206,4 +206,36 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
+
+    test('select-cross-join-comma-from-three-tables', async () => {
+        // Two chained `.from(...)` calls after `selectFrom(t1)` — the second
+        // `.from(...)` overload — add a third table to the comma-join (cross
+        // join), all correlated by the WHERE predicate. project 1 (Marketing
+        // site) belongs to organization 1 (Acme Corp) and owns issue 1 (Update
+        // hero copy).
+        const expected = { projectName: 'Marketing site', orgName: 'Acme Corp', issueTitle: 'Update hero copy' }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tProject)
+            .from(tOrganization)
+            .from(tIssue)
+            .where(tProject.organizationId.equals(tOrganization.id))
+              .and(tIssue.projectId.equals(tProject.id))
+              .and(tProject.id.equals(1))
+              .and(tIssue.id.equals(1))
+            .select({
+                projectName: tProject.name,
+                orgName:     tOrganization.name,
+                issueTitle:  tIssue.title,
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.name as "projectName", organization.name as "orgName", issue.title as "issueTitle" from project, organization, issue where project.organization_id = organization.id and issue.project_id = project.id and project.id = $1 and issue.id = $2"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { projectName: string; orgName: string; issueTitle: string }>>()
+        expect(row).toEqual(expected)
+    })
 })

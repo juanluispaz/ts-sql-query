@@ -715,4 +715,80 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
+
+    test('compound-execute-select-one', async () => {
+        // A union whose two arms together yield exactly one row is consumed with
+        // `executeSelectOne`, which returns the single object (not an array):
+        // project 1 -> 'Marketing site'; the second arm (issue id = -1) matches
+        // nothing.
+        const expected = { label: 'Marketing site' }
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ label: tProject.name })
+            .union(
+                ctx.conn.selectFrom(tIssue)
+                    .where(tIssue.id.equals(-1))
+                    .select({ label: tIssue.title }),
+            )
+            .orderBy('label')
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project where id = ? union select title as label from issue where id = ? order by label"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            -1,
+          ]
+        `)
+        assertType<Exact<typeof result, { label: string }>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('compound-execute-select-none-or-one', async () => {
+        // The compound's `executeSelectNoneOrOne` execute-shape — `{ label } | null`.
+        // Present branch: the same one-row union returns the object. Null branch:
+        // both arms match nothing (id = -1), so the union is empty and the
+        // execute-shape returns null.
+        const present = { label: 'Marketing site' }
+        ctx.mockNext(present)
+        const found = await ctx.conn.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ label: tProject.name })
+            .union(
+                ctx.conn.selectFrom(tIssue)
+                    .where(tIssue.id.equals(-1))
+                    .select({ label: tIssue.title }),
+            )
+            .orderBy('label')
+            .executeSelectNoneOrOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project where id = ? union select title as label from issue where id = ? order by label"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            -1,
+          ]
+        `)
+        assertType<Exact<typeof found, { label: string } | null>>()
+        expect(found).toEqual(present)
+
+        ctx.mockNext(undefined)
+        const none = await ctx.conn.selectFrom(tProject)
+            .where(tProject.id.equals(-1))
+            .select({ label: tProject.name })
+            .union(
+                ctx.conn.selectFrom(tIssue)
+                    .where(tIssue.id.equals(-1))
+                    .select({ label: tIssue.title }),
+            )
+            .orderBy('label')
+            .executeSelectNoneOrOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project where id = ? union select title as label from issue where id = ? order by label"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            -1,
+            -1,
+          ]
+        `)
+        expect(none).toBeNull()
+    })
 })

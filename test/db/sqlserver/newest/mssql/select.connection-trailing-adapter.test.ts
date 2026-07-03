@@ -385,4 +385,64 @@ describe(ctx.label, () => {
         assertType<Exact<typeof v, bigint>>()
         expect(v).toBe(40n)
     })
+
+    // ── const/optionalConst(value, 'customX', typeName, adapter) ────────
+    // The CUSTOM-kind overload places the trailing TypeAdapter in the
+    // `adapter2` slot (the 4th positional arg, after the typeName), a distinct
+    // runtime branch from the plain-kind `const(value, kind, adapter)` above. The
+    // custom kind is `customDouble` ('Money'), so the value marshals through
+    // `double` and the adapter's `* 10` read transform is observable.
+
+    test('const/custom-double-adapter-transforms-read-value', async () => {
+        // `const(2.5, 'customDouble', 'Money', doubleTimesTen)`. Raw 2.5 read
+        // back as 25 through the adapter parked in the `adapter2` slot.
+        ctx.mockNext(2.5)
+        const v = await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.const(2.5, 'customDouble', 'Money', doubleTimesTen))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2.5,
+          ]
+        `)
+        assertType<Exact<typeof v, number>>()
+        expect(v).toBe(25)
+    })
+
+    test('optional-const/custom-double-adapter-transforms-read-value', async () => {
+        // `optionalConst(2.5, 'customDouble', 'Money', doubleTimesTen)` — same
+        // transform through the `adapter2` slot; the optional overload widens
+        // the leaf to `number | null`.
+        ctx.mockNext(2.5)
+        const v = await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.optionalConst(2.5, 'customDouble', 'Money', doubleTimesTen))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2.5,
+          ]
+        `)
+        assertType<Exact<typeof v, number | null>>()
+        expect(v).toBe(25)
+    })
+
+    test('optional-const/custom-double-adapter-passes-null-through', async () => {
+        // The adapter delegates `null` to `next`, so a null custom const reads
+        // back as null (the `* 10` branch is skipped) — the `adapter2` slot is
+        // on the hot path but does not fabricate a value.
+        ctx.mockNext(null)
+        const v = await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.optionalConst<number, 'Money'>(null, 'customDouble', 'Money', doubleTimesTen))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [result]"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            null,
+          ]
+        `)
+        assertType<Exact<typeof v, number | null>>()
+        expect(v).toBeNull()
+    })
 })

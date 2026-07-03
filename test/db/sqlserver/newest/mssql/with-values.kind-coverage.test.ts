@@ -210,4 +210,74 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ d?: Date | undefined; t?: Date | undefined; ts?: Date | undefined }>>>()
         expect(rows).toEqual([{}])
     })
+
+    test('values-tuple-virtual-column-from-fragment-per-kind', async () => {
+        // `Values.virtualColumnFromFragment` / `optionalVirtualColumnFromFragment`
+        // over base kinds: a required `bigint` and a required `double` virtual
+        // column plus a `double` optional virtual column. Each is computed from a
+        // const fragment in the
+        // outer SELECT (not carried in the VALUES tuple), pinning the projected
+        // type and value per kind through the shared virtual-column dispatcher.
+        class VVirtualSampler extends Values<DBConnection, 'virtualSampler'> {
+            n    = this.column('int')
+            vbig = this.virtualColumnFromFragment('bigint', (fragment) => fragment.sql`${ctx.conn.const(100n, 'bigint')}`)
+            vdbl = this.virtualColumnFromFragment('double', (fragment) => fragment.sql`${ctx.conn.const(2.5, 'double')}`)
+            vopt = this.optionalVirtualColumnFromFragment('double', (fragment) => fragment.sql`${ctx.conn.const(9.5, 'double')}`)
+        }
+        const expected = [{ n: 7, vbig: 100n, vdbl: 2.5, vopt: 9.5 }]
+        ctx.mockNext(expected)
+        const v = Values.create(VVirtualSampler, 'virtualSampler', [{ n: 7 }])
+        const rows = await ctx.conn.selectFrom(v)
+            .select({ n: v.n, vbig: v.vbig, vdbl: v.vdbl, vopt: v.vopt })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with virtualSampler as (select * from (values (@0)) as virtualSampler([n])) select [n] as [n], @1 as vbig, @2 as vdbl, @3 as vopt from virtualSampler"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            7,
+            100n,
+            2.5,
+            9.5,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ n: number; vbig: bigint; vdbl: number; vopt?: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('values-tuple-optional-column-with-type-adapter-scales-and-passes-null', async () => {
+        // The `Values.optionalColumn(type, adapter)` adapter-object arm — the
+        // optional twin of `column(type, adapter)` above. `score` carries
+        // scaledTenthAdapter and is optional, so the leaf is `score?: number`.
+        // Present: score 5 binds the scaled value (write ×10) and reads it back
+        // (÷10) to 5. Null: the adapter passes null through (the ×10/÷10 branch is
+        // skipped), so the optional leaf reads back absent.
+        class VScaledOptionalSampler extends Values<DBConnection, 'scaledOptionalSampler'> {
+            score = this.optionalColumn('int', scaledTenthAdapter)
+        }
+        ctx.mockNext([{ score: 50 }])
+        const v1 = Values.create(VScaledOptionalSampler, 'scaledOptionalSampler', [{ score: 5 }])
+        const present = await ctx.conn.selectFrom(v1)
+            .select({ score: v1.score })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with scaledOptionalSampler as (select * from (values (@0)) as scaledOptionalSampler(score)) select score as score from scaledOptionalSampler"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            50,
+          ]
+        `)
+        assertType<Exact<typeof present, Array<{ score?: number | undefined }>>>()
+        expect(present).toEqual([{ score: 5 }])
+
+        ctx.mockNext([{ score: null }])
+        const v2 = Values.create(VScaledOptionalSampler, 'scaledOptionalSampler', [{ score: null }])
+        const none = await ctx.conn.selectFrom(v2)
+            .select({ score: v2.score })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with scaledOptionalSampler as (select * from (values (@0)) as scaledOptionalSampler(score)) select score as score from scaledOptionalSampler"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            null,
+          ]
+        `)
+        expect(none).toEqual([{}])
+    })
 })

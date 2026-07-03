@@ -397,6 +397,19 @@ export class DBConnection extends MySqlConnection<'DBConnection'> {
         this.arg('int', 'required', scaledTenthAdapter)
     ).as((v) => this.fragmentWithType('int', 'required').sql`${v}`)
 
+    // CUSTOM-kind arg / valueArg carrying a trailing TypeAdapter
+    // (scaledTenthAdapter, x10 on the write path) — the combined-mode (`adapter2`)
+    // slot on the CUSTOM-kind arm of arg / valueArg. Each routes a bound customInt
+    // ('Cents', marshalled to int) literal
+    // through the adapter's write path (x10), so passing 1 binds the scaled 10.
+    scaledCustomArgFragment = this.buildFragmentWithArgs(
+        this.arg<number, 'Cents'>('customInt', 'Cents', 'required', scaledTenthAdapter)
+    ).as((v) => this.fragmentWithType('int', 'required').sql`${v}`)
+    scaledCustomThresholdFragment = this.buildFragmentWithArgsIfValue(
+        this.arg('int', 'required'),
+        this.valueArg<number, 'Cents'>('customInt', 'Cents', 'optional', scaledTenthAdapter)
+    ).as((col, v) => this.fragmentWithType('boolean', 'required').sql`${col} > ${v}`)
+
     // Table/view customizations — `createTableOrViewCustomization`
     // produces a function that wraps a table reference with a
     // user-defined raw fragment in the FROM clause (docs:
@@ -620,6 +633,14 @@ export const vReleaseOverview = new class VReleaseOverview extends View<DBConnec
     versionTagged = this.virtualColumnFromFragment('string', (fragment) => fragment.sql`upper(${this.version})`, bracketAdapter)
     // optionalVirtualColumnFromFragment on a View.
     versionUpperOptional = this.optionalVirtualColumnFromFragment('string', (fragment) => fragment.sql`upper(${this.version})`)
+    // An adapter-bearing OPTIONAL VIEW column: `channelBracketed` maps the
+    // view's nullable `channel_bracketed` expression through the trailing
+    // bracketAdapter (read wraps a present value in [...]; a NULL reads back
+    // absent).
+    channelBracketed = this.optionalColumn('channel_bracketed', 'string', bracketAdapter)
+    // optionalVirtualColumnFromFragment on a View carrying a trailing TypeAdapter
+    // (bracketAdapter, read wraps in [...]).
+    versionUpperTagged = this.optionalVirtualColumnFromFragment('string', (fragment) => fragment.sql`upper(${this.version})`, bracketAdapter)
     constructor() { super('release_overview') }
 }()
 

@@ -448,4 +448,32 @@ describe(ctx.label, () => {
             expect(row).toEqual(expectedMock)
         })
     })
+
+    test('shaped-allowing-no-where-set-then-extend-shape-executes', async () => {
+        // `updateAllowingNoWhere(t).shapedAs({...}).set({...}).extendShape({...})`
+        // — the EXECUTABLE post-set `extendShape` arm (ShapedExecutableUpdateExpression):
+        // `extendShape` widens the shape AFTER a `set`, and on the allowing-no-where
+        // path the result stays executable (no WHERE required), so a second `.set(...)`
+        // of the newly exposed renamed key runs directly. Both seeded organizations
+        // (2) are renamed on both columns; neither `name` nor `plan` is unique, so
+        // the bulk update is admissible against the real DB.
+        ctx.mockNext(2)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.updateAllowingNoWhere(tOrganization)
+                .shapedAs({ orgName: 'name' })
+                .set({ orgName: 'Bulk renamed' })
+                .extendShape({ orgPlan: 'plan' })
+                .set({ orgPlan: 'bulk-plan' })
+                .executeUpdate()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update organization set name = ?, "plan" = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Bulk renamed",
+                "bulk-plan",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(2)
+        })
+    })
 })

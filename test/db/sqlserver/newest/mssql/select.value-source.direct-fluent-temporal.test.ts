@@ -795,4 +795,41 @@ describe(ctx.label, () => {
             expect(rows).toEqual(expected)
         })
     })
+
+    test('customLocalTime-is-is-not', async () => {
+        // `.is` / `.isNot` (null-safe equality) on a required custom-localTime
+        // column. `.is(17:00)` matches release 1; `.isNot(17:00)` matches
+        // releases 2 and 3 (cutoff_time is non-null on every release).
+        const t = new Date(Date.UTC(1970, 0, 1, 17, 0, 0))
+        const expected = [{ id: 1 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.cutoffTime.is(t))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where cutoff_time = @0 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1970-01-01T17:00:00.000Z,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+
+        const expectedIsNot = [{ id: 2 }, { id: 3 }]
+        ctx.mockNext(expectedIsNot)
+        const isNot = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.cutoffTime.isNot(t))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where cutoff_time <> @0 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1970-01-01T17:00:00.000Z,
+          ]
+        `)
+        expect(isNot).toEqual(expectedIsNot)
+    })
 })

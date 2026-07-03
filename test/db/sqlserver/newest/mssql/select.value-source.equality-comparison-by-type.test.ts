@@ -3120,4 +3120,126 @@ describe(ctx.label, () => {
         expect(billedRows).toEqual(expectedBilled)
     })
 
+    // ------------------------------------------------------------------
+    // customUuid ordered-Comparable arm — tProjectRelease.signingKey
+    // (optional customUuid 'SigningKey'): release 1 -> 0a8f9c1e-…, 2 -> NULL,
+    // 3 -> 7b3e9d20-…. between / notBetween / single ordered bounds on this
+    // branded leaf. The operands are value-source SUBQUERIES over the same
+    // customUuid column (release 1's key = loSub, release 3's key = hiSub) so both
+    // sides marshal identically and the comparison rests only on release1 < release3
+    // — true under every engine's uuid ordering (the leading nibble 0a<7b and the
+    // SQL Server / Oracle byte-group order agree), unlike string-literal bounds,
+    // whose lexical assumption diverges from the engine-native uuid ordering.
+    // ------------------------------------------------------------------
+
+    test('customUuid-ordered-comparison-value-source-operand', async () => {
+        // loSub = release 1's signing_key (0a…), hiSub = release 3's (7b…).
+        // greaterThan(loSub) -> release 3; lessThan(hiSub) -> release 1; between
+        // [loSub, hiSub] -> releases 1 and 3 (inclusive); notBetween -> none
+        // (release 2 is NULL); greaterOrEqual(loSub) / lessOrEqual(hiSub) ->
+        // releases 1 and 3.
+        const loSub = ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .selectOneColumn(tProjectRelease.signingKey)
+            .forUseAsInlineQueryValue()
+        const hiSub = ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(3))
+            .selectOneColumn(tProjectRelease.signingKey)
+            .forUseAsInlineQueryValue()
+
+        const expectedGt = [{ id: 3 }]
+        ctx.mockNext(expectedGt)
+        const gt = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.signingKey.greaterThan(loSub))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key > (select signing_key as [result] from project_release where id = @0) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof gt, Array<{ id: number }>>>()
+        expect(gt).toEqual(expectedGt)
+
+        const expectedLt = [{ id: 1 }]
+        ctx.mockNext(expectedLt)
+        const lt = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.signingKey.lessThan(hiSub))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key < (select signing_key as [result] from project_release where id = @0) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+          ]
+        `)
+        expect(lt).toEqual(expectedLt)
+
+        const expectedBetween = [{ id: 1 }, { id: 3 }]
+        ctx.mockNext(expectedBetween)
+        const bt = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.signingKey.between(loSub, hiSub))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key between (select signing_key as [result] from project_release where id = @0) and (select signing_key as [result] from project_release where id = @1) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            3,
+          ]
+        `)
+        expect(bt).toEqual(expectedBetween)
+
+        // notBetween over the same [loSub, hiSub] excludes both non-null keys
+        // (each is in range) and NULL never satisfies it -> empty.
+        const expectedNotBetween: Array<{ id: number }> = []
+        ctx.mockNext(expectedNotBetween)
+        const nb = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.signingKey.notBetween(loSub, hiSub))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key not between (select signing_key as [result] from project_release where id = @0) and (select signing_key as [result] from project_release where id = @1) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            3,
+          ]
+        `)
+        expect(nb).toEqual(expectedNotBetween)
+
+        const expectedGe = [{ id: 1 }, { id: 3 }]
+        ctx.mockNext(expectedGe)
+        const ge = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.signingKey.greaterOrEqual(loSub))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key >= (select signing_key as [result] from project_release where id = @0) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        expect(ge).toEqual(expectedGe)
+
+        const expectedLe = [{ id: 1 }, { id: 3 }]
+        ctx.mockNext(expectedLe)
+        const le = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.signingKey.lessOrEqual(hiSub))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key <= (select signing_key as [result] from project_release where id = @0) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+          ]
+        `)
+        expect(le).toEqual(expectedLe)
+    })
 })

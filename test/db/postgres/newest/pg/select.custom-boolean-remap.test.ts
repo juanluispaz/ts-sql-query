@@ -325,4 +325,117 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         expect(rows).toEqual(expected)
     })
+
+    // ── Boolean combinators on the custom-boolean adapters ──────────
+    // Each of these custom-boolean columns negates over a DISTINCT boolean literal
+    // when used as a combinator receiver:
+    //   - `organization.verified` (required, 'Y'/'N')  -> negates `verified = 'Y'`
+    //   - `issue_worklog.approved` (nullable, 'A'/'R') -> negates `approved = 'A'`
+    //   - `issue_worklog.invoiced` (required, 1/0)     -> negates `invoiced = 1`
+    // Seed: organization.verified 1 'Y', 2 'N'. issue_worklog.approved 1 'A',
+    // 2 'R', 3 NULL; invoiced 1 -> 1, 2 -> 0, 3 -> 1.
+
+    test('combinator: verified custom boolean column negated reads as not (col = trueValue)', async () => {
+        // `verified.negate()` negates the read remap on the required Y/N column.
+        // The unverified organization (2, 'N') matches.
+        const expected = [{ id: 2 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.verified.negate())
+            .select({ id: tOrganization.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where not verified = 'Y' order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(rows).toEqual(expected)
+    })
+
+    test('combinator: verified custom boolean column as the and receiver', async () => {
+        // `verified.and(plan.equals('pro'))` -> `(verified = 'Y') and plan = $1`.
+        // Acme (1, 'Y', plan 'pro') matches; Globex (2, 'N') fails the first arm.
+        const expected = [{ id: 1 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.verified.and(tOrganization.plan.equals('pro')))
+            .select({ id: tOrganization.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where verified = 'Y' and plan = $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "pro",
+          ]
+        `)
+        expect(rows).toEqual(expected)
+    })
+
+    test('combinator: verified custom boolean column as the or receiver', async () => {
+        // `verified.or(id.equals(2))` -> `(verified = 'Y') or id = $1`. Acme (1)
+        // via verified-true, Globex (2) via the id branch -> both organizations.
+        const expected = [{ id: 1 }, { id: 2 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.verified.or(tOrganization.id.equals(2)))
+            .select({ id: tOrganization.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where verified = 'Y' or id = $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        expect(rows).toEqual(expected)
+    })
+
+    test('combinator: approved nullable custom boolean column negated over its literal', async () => {
+        // `approved.negate()` negates the read remap on the NULLABLE A/R column.
+        // worklog 2 ('R') matches; worklog 1 ('A') fails and worklog 3 (NULL) is
+        // excluded by NULL semantics.
+        const expected = [{ id: 2 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.approved.negate())
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where not approved = 'A' order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(rows).toEqual(expected)
+    })
+
+    test('combinator: invoiced numeric custom boolean column negated reads as not (col = 1)', async () => {
+        // `invoiced.negate()` negates the numeric-literal read remap (1/0, distinct
+        // from the string columns' 'Y'/'t'). The un-invoiced worklog (2, invoiced 0) matches.
+        const expected = [{ id: 2 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.invoiced.negate())
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where not invoiced = 1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(rows).toEqual(expected)
+    })
+
+    test('combinator: invoiced numeric custom boolean column as the and receiver', async () => {
+        // `invoiced.and(id.greaterThan(0))` -> `invoiced = 1 and id > $1`. The
+        // invoiced worklogs (1 and 3, invoiced 1) match; worklog 2 (invoiced 0)
+        // fails the first arm.
+        const expected = [{ id: 1 }, { id: 3 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.invoiced.and(tIssueWorklog.id.greaterThan(0)))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where invoiced = 1 and id > $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            0,
+          ]
+        `)
+        expect(rows).toEqual(expected)
+    })
 })

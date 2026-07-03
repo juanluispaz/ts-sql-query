@@ -777,4 +777,47 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ r: number }>>>()
         expect(rows).toEqual([{ r: 10 }])
     })
+
+    test('custom-arg-trailing-adapter-scales-the-bound-placeholder', async () => {
+        // scaledCustomArgFragment's `arg` is a CUSTOM kind (customInt 'Cents')
+        // carrying a trailing TypeAdapter (scaledTenthAdapter, x10 on the write
+        // path) — the combined-mode (`adapter2`) slot on the CUSTOM-kind arm of
+        // `arg`. Calling it with the literal 1 binds the SCALED placeholder 10; the
+        // fragment selects that scaled value back, so the projected column is 10.
+        ctx.mockNext([{ r: 10 }])
+        const rows = await ctx.conn.selectFromNoTable()
+            .select({ r: ctx.conn.scaledCustomArgFragment(1) })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select @0 as [r]"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            10,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ r: number }>>>()
+        expect(rows).toEqual([{ r: 10 }])
+    })
+
+    test('custom-value-arg-trailing-adapter-scales-the-bound-placeholder', async () => {
+        // scaledCustomThresholdFragment's `valueArg` is a CUSTOM kind (customInt
+        // 'Cents') carrying scaledTenthAdapter (x10 on the write path) — the
+        // combined-mode (`adapter2`) slot on the CUSTOM-kind arm of `valueArg`.
+        // Calling it with the threshold 1 binds the SCALED placeholder 10, so
+        // priority > 10
+        // matches no issue (priorities are 1..3) and the result is empty; the param
+        // is the assertion that matters.
+        const expected: Array<{ id: number }> = []
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.scaledCustomThresholdFragment(tIssue.priority, 1))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where priority > @0 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            10,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
 })

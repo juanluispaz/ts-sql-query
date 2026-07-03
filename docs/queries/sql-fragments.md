@@ -698,6 +698,10 @@ const customizedSelect: Promise<{
 }>
 ```
 
+!!! note "Recursive selects consumed as a CTE"
+
+    When a recursive `SELECT` (built with `recursiveUnion` / `recursiveUnionAll` / `recursiveUnionOn` / `recursiveUnionAllOn`) is materialized as a common table expression with [`forUseInQueryAs`](recursive-select.md), its outer `select ... from <cte>` projection is dropped — the query that consumes the CTE supplies that projection instead. Because of that, the projection-only hooks `afterSelectKeyword`, `beforeColumns` and `customWindow` customize a `SELECT` clause that no longer exists in the emitted CTE, so they are **not applicable** in this case and have no effect. The other hooks still apply: `beforeQuery` / `afterQuery` bracket the `anchor UNION recursive` body and `beforeWithQuery` / `afterWithQuery` wrap the CTE parentheses. All the hooks — including `afterSelectKeyword`, `beforeColumns` and `customWindow` — take effect as documented when the recursive query is executed directly (`executeSelectMany()`, and so on) instead of being consumed as a CTE.
+
 ### Customizing an insert
 
 The extension points supported by the `customizeQuery` method for an `INSERT` query are:

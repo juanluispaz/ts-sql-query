@@ -540,16 +540,37 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
         if (recursiveView) {
             recursiveView.__name = as
             this.__recursiveInternalView!.__name = as
-            // `__applyRecursiveCustomization` parked the whole-statement SQL hooks
-            // (`beforeQuery`/`afterQuery`, …) on the outer select, which only exists
-            // when the recursive query is executed directly. Consumed as a CTE there
-            // is no outer select, so re-home those hooks onto the CTE body to render
-            // them inside the recursive CTE parens — mirroring the non-recursive CTE
-            // path below. Otherwise they'd be lost with the discarded outer select.
+            // `__applyRecursiveCustomization` parked the outer-select SQL hooks on
+            // the outer `select ... from <cte>`, which only exists when the recursive
+            // query is executed directly. Consumed as a CTE that outer projection is
+            // discarded — the consuming query supplies it — so re-home the hooks that
+            // have a place on the compound anchor∪recursive CTE body: `beforeQuery` /
+            // `afterQuery` bracket the union and `beforeOrderByItems` /
+            // `afterOrderByItems` wrap its ORDER BY, mirroring the non-recursive CTE
+            // path below. The projection-only hooks `afterSelectKeyword` /
+            // `beforeColumns` / `customWindow` customize a plain SELECT clause the
+            // compound body does not have, so they are not applicable once the query
+            // is consumed as a CTE (they still apply when it is executed directly).
+            // This is an explicit allow-list on purpose: it keeps any current or
+            // future projection-only hook from silently landing on a body that cannot
+            // emit it. See docs/queries/sql-fragments.md § Customizing a select.
             const outerCustomization = this.__recursiveSelect?.__customization
             if (outerCustomization) {
                 const cteBody = recursiveView.__selectData
-                cteBody.__customization = { ...cteBody.__customization, ...outerCustomization }
+                const cteBodyCustomization: SelectCustomization<any, any> = { ...cteBody.__customization }
+                if (outerCustomization.beforeQuery !== undefined) {
+                    cteBodyCustomization.beforeQuery = outerCustomization.beforeQuery
+                }
+                if (outerCustomization.afterQuery !== undefined) {
+                    cteBodyCustomization.afterQuery = outerCustomization.afterQuery
+                }
+                if (outerCustomization.beforeOrderByItems !== undefined) {
+                    cteBodyCustomization.beforeOrderByItems = outerCustomization.beforeOrderByItems
+                }
+                if (outerCustomization.afterOrderByItems !== undefined) {
+                    cteBodyCustomization.afterOrderByItems = outerCustomization.afterOrderByItems
+                }
+                cteBody.__customization = cteBodyCustomization
             }
             this.__recursiveView = undefined
             this.__recursiveInternalView = undefined

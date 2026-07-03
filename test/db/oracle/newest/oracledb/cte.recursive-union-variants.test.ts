@@ -823,9 +823,9 @@ describe(ctx.label, () => {
         expect(page.data).toEqual(dataRows)
     })
 
-    // TODO[BUG]: see test/BUGS.md — orderBy(ValueSource) / orderBy(IRawFragment) on a
-    // recursive-union result render `order by issue.id` against the anchor table (out of
-    // scope in the outer select), rejected by every engine (PG 42P01); string forms re-home OK.
+    // NOT-APPLICABLE: orderBy(ValueSource) / orderBy(IRawFragment) accept only no-table expressions
+    // on a recursive-union result; a table-bound term is out of scope in the outer `select ... from
+    // <cte>`. Order by the projected column name / orderByFromString; see this dialect's `types.negative`.
     /*
     test('recursive-result-order-by-value-source', async () => {
         const expected = [
@@ -851,9 +851,9 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[BUG]: see test/BUGS.md — same defect as the value-source arm above:
-    // orderBy(IRawFragment) renders the fragment (`issue.id`) against the anchor
-    // table in the outer select, which is out of scope there.
+    // NOT-APPLICABLE: same restriction as the value-source arm above — orderBy(IRawFragment) over an
+    // anchor table is out of scope in the outer `select ... from <cte>`. See this dialect's
+    // `types.negative` suite for the compile-time negative.
     /*
     test('recursive-result-order-by-raw-fragment', async () => {
         const expected = [

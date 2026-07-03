@@ -179,8 +179,8 @@ export interface LimitExecutableSelectExpression</*in|out*/ FROM extends HasSour
 
 export interface OrderByExecutableSelectExpression</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends LimitExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
     orderBy(column: RequiredColumnNames<COLUMNS>, mode?: OrderByMode): OrderedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
-    orderBy(column: ValueSourceOf<NSourceAllowingAggregate<FROM[typeof source]>>, mode?: OrderByMode): OrderedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
-    orderBy(column: IRawFragment<FROM[typeof source]>, mode?: OrderByMode): OrderedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    orderBy(column: OrderByRecursiveAwareValueSource<FROM, REQUIRED, FEATURES>, mode?: OrderByMode): OrderedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    orderBy(column: OrderByRecursiveAwareRawFragment<FROM, REQUIRED, FEATURES>, mode?: OrderByMode): OrderedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
     orderByFromString(orderBy: string): OrderedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
     orderByFromStringIfValue(orderBy: string | null | undefined): OrderedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
     orderByFromStringArray(orderBy: readonly string[]): OrderedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
@@ -547,3 +547,22 @@ type OrderingSiblingsOnlyFnType<FEATURES, NEXT> =
     'connectBy' extends FEATURES
         ? () => NEXT
         : never
+
+// A recursive-union result is a `select ... from <cte>`: its ORDER BY runs
+// against the CTE output, and the anchor tables are out of scope there (just
+// like a compound query's ORDER BY). So once `recursiveUnion*` adds the
+// `'recursive'` feature, the value-source / raw-fragment `orderBy` overloads
+// must accept only no-table expressions — a table-bound term (`tIssue.id`)
+// would render `order by issue.id` against a table absent from the outer FROM
+// and every engine rejects it. The column-name (`orderBy('id')`) and
+// `orderByFromString*` forms stay valid (they resolve to the output alias). A
+// non-recursive select keeps the full FROM-scoped overload.
+type OrderByRecursiveAwareValueSource<FROM extends HasSource<any>, REQUIRED extends HasSource<any>, FEATURES> =
+    'recursive' extends FEATURES
+        ? ValueSourceOf<NNoTableOrViewRequiredFrom<REQUIRED[typeof source]>>
+        : ValueSourceOf<NSourceAllowingAggregate<FROM[typeof source]>>
+
+type OrderByRecursiveAwareRawFragment<FROM extends HasSource<any>, REQUIRED extends HasSource<any>, FEATURES> =
+    'recursive' extends FEATURES
+        ? IRawFragment<NNoTableOrViewRequiredFrom<REQUIRED[typeof source]>>
+        : IRawFragment<FROM[typeof source]>

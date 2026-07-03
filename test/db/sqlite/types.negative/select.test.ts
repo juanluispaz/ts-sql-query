@@ -44,6 +44,45 @@ function _typeNegatives() {
         // @ts-expect-error 'unknownAlias' is not a key of the projected select
         .orderBy('unknownAlias')
 
+    // Rule: on a recursive-union result the ORDER BY runs against the CTE
+    // output (`select ... from <cte>`), so the value-source / raw-fragment
+    // orderBy overloads accept only no-table expressions — a table-bound term
+    // is out of scope in the outer FROM and every engine rejects it. Order the
+    // recursive result by the projected column name (or orderByFromString)
+    // instead. Mirrors the restriction a compound query's ORDER BY carries.
+    void connection.selectFrom(tIssue)
+        .where(tIssue.id.equals(1))
+        .select({ id: tIssue.id, title: tIssue.title })
+        .recursiveUnionAll((parent) => connection.selectFrom(tIssue)
+            .join(parent).on(tIssue.parentId.equals(parent.id))
+            .select({ id: tIssue.id, title: tIssue.title }))
+        // @ts-expect-error a table-bound column cannot order a recursive result; use .orderBy('id', 'desc')
+        .orderBy(tIssue.id, 'desc')
+
+    void connection.selectFrom(tIssue)
+        .where(tIssue.id.equals(1))
+        .select({ id: tIssue.id, title: tIssue.title })
+        .recursiveUnionAll((parent) => connection.selectFrom(tIssue)
+            .join(parent).on(tIssue.parentId.equals(parent.id))
+            .select({ id: tIssue.id, title: tIssue.title }))
+        // @ts-expect-error a raw fragment over an anchor table cannot order a recursive result
+        .orderBy(connection.rawFragment`${tIssue.id} desc`)
+
+    // The column-name form is the supported way to order a recursive result
+    // and must keep compiling; a plain (non-recursive) select must keep
+    // accepting a table-bound value-source / raw-fragment ordering term.
+    void connection.selectFrom(tIssue)
+        .where(tIssue.id.equals(1))
+        .select({ id: tIssue.id, title: tIssue.title })
+        .recursiveUnionAll((parent) => connection.selectFrom(tIssue)
+            .join(parent).on(tIssue.parentId.equals(parent.id))
+            .select({ id: tIssue.id, title: tIssue.title }))
+        .orderBy('id', 'desc')
+
+    void connection.selectFrom(tIssue)
+        .select({ id: tIssue.id, title: tIssue.title })
+        .orderBy(tIssue.id, 'desc')
+
     // Rule: .equals(value) must match the column's TS type.
     // tProject.id is int; passing a Date must not compile.
     // @ts-expect-error Date passed where number is required

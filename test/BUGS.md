@@ -67,7 +67,47 @@ of that. Two minutes of triage and one paragraph is the bar.
 
 ## Open Bugs
 
-_None open._
+## `customizeQuery` non-bracketing hooks (`afterSelectKeyword` / `beforeColumns` / `customWindow`) silently dropped on a recursive-union select consumed via `forUseInQueryAs`
+
+**Where**: `src/queryBuilders/SelectQueryBuilder.ts` — the recursive branch of
+`forUseInQueryAs` (~:549-553) re-homes `this.__recursiveSelect.__customization`
+(the outer customization split out earlier by `__applyRecursiveCustomization`,
+~:632) onto `cteBody.__customization`. But `cteBody`
+(`recursiveView.__selectData`) is a **CompoundSelectQueryBuilder**
+(`__type: 'compound'`), and the compound emission branch in
+`src/sqlBuilders/AbstractSqlBuilder.ts` (~:811-864) emits only the bracketing
+hooks (`beforeQuery`/`afterQuery`/`beforeWithQuery`/`afterWithQuery`) and the
+order-by hooks — it has **no emission for `afterSelectKeyword`, `beforeColumns`,
+or `customWindow`** (those live only in the plain-select branch, ~:934/:942/:1022).
+So those three hooks are silently discarded.
+
+**Reproduction**: same recursive select + same `customizeQuery`, consumed via
+`forUseInQueryAs` vs executed directly. Coordinator runtime probe (mock,
+`ctx.lastSql`), both arms:
+```
+.selectFrom(tIssue).where(id.equals(2)).select({id, title, depth: const(0,'int')})
+.recursiveUnionAll((parent) => …join(parent).on(parentId.equals(parent.id))
+    .select({id, title, depth: parent.depth.add(1)}))
+.customizeQuery({ afterSelectKeyword:`/* hint */`, beforeColumns:`/* cols */ `,
+    customWindow:`w1 as (partition by depth)`, beforeOrderByItems:`title asc`,
+    afterOrderByItems:`id asc` })
+```
+- **direct `.executeSelectMany()`** (control) → `… select /* hint */ /* cols */ id …, depth from recursive_select_1 window w1 as (partition by depth) order by title asc, id asc` — all five hooks render (this is the existing passing test `recursive-union-all-customize-query-outer-select-hooks`, `cte.recursive-union-variants.test.ts:247`, snapshot line 287).
+- **`.forUseInQueryAs('tree')` then `selectFrom(tree)…`** → `with recursive tree as (… order by title asc, id asc) select id from tree` — **`/* hint */`, `/* cols */`, and `window w1 …` GONE**; only the order-by hooks survive.
+
+A "TS accepts what the impl doesn't deliver" divergence — user-supplied SQL
+(query hints, window definitions) silently lost. **This is an incomplete fix of
+the previously-fixed recursive-CTE customizeQuery drop**: that fix re-homed the
+hooks onto the compound CTE body but did not account for the compound emitter's
+narrower hook set, so the non-bracketing hooks are still dropped. Expected:
+render `afterSelectKeyword`/`beforeColumns`/`customWindow` on the recursive CTE
+body the same way the direct-execute path does (they belong to the recursive
+select's own SELECT clause, not the compound anchor∪recursive shell).
+
+**Current workaround in the suite**: the `recursive + customizeQuery(non-bracketing
+hooks) + forUseInQueryAs` composition is untested across the whole matrix (only
+the direct-execute variant and the bracketing-hooks `forUseInQueryAs` variant are
+covered). A `// TODO[BUG]` will mark the new probe test once written.
 
 ## Common bug shapes (for the fixing agent)
 

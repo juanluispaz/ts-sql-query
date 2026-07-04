@@ -951,35 +951,41 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-    test('recursive-result-order-by-limit-offset-then-for-use-in-query-as-drops-them', async () => {
-        // A recursive select given `.orderBy('id').limit(5).offset(1)` and THEN
-        // consumed as a CTE via `forUseInQueryAs('tree')`: the ordering and paging
-        // set on the recursive result are currently DROPPED from the emitted SQL
-        // (the snapshot below carries no `order by` / `limit` / `offset`). With the
-        // offset dropped the single anchor row survives; had `offset(1)` applied it
-        // would have been skipped.
-        // TODO[BUG]: see BUGS.md — recursive orderBy/limit/offset are silently
-        // dropped by forUseInQueryAs; the library should render them (missing feature).
+    test('recursive-result-order-by-limit-offset-then-for-use-in-query-as', async () => {
+        // A recursive select given `.orderBy('id').limit(2).offset(1)` and THEN
+        // consumed as a CTE via `forUseInQueryAs('tree')`. The ordering and paging
+        // belong to the recursive RESULT, not the consuming query, so they are
+        // preserved on a wrapping CTE `tree as (select ... from <recursive-member>
+        // order by id limit 2 offset 1)` instead of being folded into the recursive
+        // term (`... union all ... order by ... limit ...`, which every engine
+        // rejects). Anchor selects issues 1, 2, 3; the recursion adds nothing; the
+        // wrapping CTE's `order by id limit 2 offset 1` keeps issues 2 and 3.
         const expected = [
-            { id: 1, title: 'Update hero copy' },
+            { id: 2, title: 'Redesign navbar' },
+            { id: 3, title: 'Migrate to ESM' },
         ]
         ctx.mockNext(expected)
         const connection = ctx.conn
 
         const tree = connection.selectFrom(tIssue)
-            .where(tIssue.id.equals(1))
+            .where(tIssue.id.in([1, 2, 3]))
             .select({ id: tIssue.id, title: tIssue.title })
             .recursiveUnionAllOn((child) => tIssue.parentId.equals(child.id))
-            .orderBy('id').limit(5).offset(1)
+            .orderBy('id').limit(2).offset(1)
             .forUseInQueryAs('tree')
 
         const result = await connection.selectFrom(tree)
             .select({ id: tree.id, title: tree.title })
+            .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive tree as (select id as id, title as title from issue where id = $1 union all select issue.id as id, issue.title as title from issue join tree on issue.parent_id = tree.id) select id as id, title as title from tree"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, title as title from issue where id in ($1, $2, $3) union all select issue.id as id, issue.title as title from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id), tree as (select id as id, title as title from recursive_select_1 order by id limit $4 offset $5) select id as id, title as title from tree order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
+            1,
+            2,
+            3,
+            2,
             1,
           ]
         `)
@@ -987,18 +993,25 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-    // The customize order-by hooks are the more severe face of the dropped-orderBy
-    // test above: instead of vanishing they are re-homed INTO the recursive CTE term,
-    // emitting `... union all ... order by title asc, id asc` which every engine
-    // rejects (PostgreSQL: "ORDER BY in a recursive query is not implemented"). It
-    // cannot execute, so it is block-commented rather than live.
-    // TODO[BUG]: see BUGS.md — recursive customize order-by hooks are misplaced into
-    // the recursive term by forUseInQueryAs, emitting engine-rejected SQL.
-    /*
-    test('recursive-customize-order-by-hooks-then-for-use-in-query-as-misplaces-into-recursive-term', async () => {
+    test('recursive-customize-order-by-hooks-then-for-use-in-query-as', async () => {
+        // The order-by customize hooks (`beforeOrderByItems` / `afterOrderByItems`)
+        // set on a recursive result and THEN consumed as a CTE via
+        // `forUseInQueryAs('tree')`. Like the ordering/paging above they order the
+        // recursive RESULT, so they render on the wrapping CTE's ORDER BY (`tree as
+        // (select ... from <recursive-member> order by title asc, id asc)`), NOT
+        // inside the recursive term (`... union all ... order by ...`, which every
+        // engine rejects). Anchor selects issues 1, 2, 3; the recursion adds nothing;
+        // the consuming query orders by id, so the three rows come back 1, 2, 3.
+        const expected = [
+            { id: 1, title: 'Update hero copy' },
+            { id: 2, title: 'Redesign navbar' },
+            { id: 3, title: 'Migrate to ESM' },
+        ]
+        ctx.mockNext(expected)
         const connection = ctx.conn
+
         const tree = connection.selectFrom(tIssue)
-            .where(tIssue.id.equals(1))
+            .where(tIssue.id.in([1, 2, 3]))
             .select({ id: tIssue.id, title: tIssue.title })
             .recursiveUnionAllOn((child) => tIssue.parentId.equals(child.id))
             .customizeQuery({
@@ -1006,12 +1019,21 @@ describe(ctx.label, () => {
                 afterOrderByItems:  connection.rawFragment`id asc`,
             })
             .forUseInQueryAs('tree')
-        // Current buggy emission (engine-rejected):
-        // with recursive tree as (... union all ... order by title asc, id asc) select id as id, title as title from tree
+
         const result = await connection.selectFrom(tree)
             .select({ id: tree.id, title: tree.title })
+            .orderBy('id')
             .executeSelectMany()
-        expect(result).toEqual([{ id: 1, title: 'Update hero copy' }])
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, title as title from issue where id in ($1, $2, $3) union all select issue.id as id, issue.title as title from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id), tree as (select id as id, title as title from recursive_select_1 order by title asc, id asc) select id as id, title as title from tree order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+            3,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number, title: string }>>>()
+        expect(result).toEqual(expected)
     })
-    */
 })

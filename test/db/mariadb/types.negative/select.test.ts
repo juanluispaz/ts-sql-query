@@ -94,14 +94,14 @@ function _typeNegatives() {
         // @ts-expect-error a table-bound column cannot order a compound result; use .orderBy('label')
         .orderBy(tProject.id)
 
-    // TODO[BUG]: see BUGS.md — the raw-fragment compound orderBy overload is NOT
-    // no-table-restricted (unlike the value-source sibling directly above and the
-    // recursive raw-fragment twin), so the table-bound raw fragment below WRONGLY
-    // compiles and emits an unwrapped `... union ... order by project.id desc` that
-    // every engine rejects. When src narrows the overload this call starts erroring
-    // and must be locked with a ts-expect-error directive matching the sibling above.
+    // Rule: the raw-fragment arm of a compound ORDER BY carries the same no-table
+    // restriction as the value-source arm above — a raw fragment over a branch's base
+    // table cannot order a compound result (it would emit an unwrapped
+    // `... union ... order by project.id desc` that every engine rejects). Use a
+    // no-table raw fragment or .orderBy('label') instead.
     void connection.selectFrom(tProject).select({ label: tProject.name })
         .union(connection.selectFrom(tIssue).select({ label: tIssue.title }))
+        // @ts-expect-error a table-bound raw fragment cannot order a compound result; use a no-table fragment or .orderBy('label')
         .orderBy(connection.rawFragment`${tProject.id} desc`)
 
     // The column-name and no-table raw-fragment forms are the supported ways to
@@ -109,6 +109,10 @@ function _typeNegatives() {
     void connection.selectFrom(tProject).select({ label: tProject.name })
         .union(connection.selectFrom(tIssue).select({ label: tIssue.title }))
         .orderBy('label')
+
+    void connection.selectFrom(tProject).select({ label: tProject.name })
+        .union(connection.selectFrom(tIssue).select({ label: tIssue.title }))
+        .orderBy(connection.rawFragment`label desc`)
 
     // Rule: .equals(value) must match the column's TS type.
     // tProject.id is int; passing a Date must not compile.

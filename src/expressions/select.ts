@@ -107,7 +107,7 @@ export interface CompoundedLimitExecutableSelectExpression</*in|out*/ FROM exten
 export interface CompoundedOrderByExecutableSelectExpression</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends CompoundedLimitExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
     orderBy(column: RequiredColumnNames<COLUMNS>, mode?: OrderByMode): CompoundedOrderedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
     orderBy(column: ValueSourceOf<NNoTableOrViewRequiredFrom<REQUIRED[typeof source]>>, mode?: OrderByMode): CompoundedOrderedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
-    orderBy(column: IRawFragment<FROM[typeof source]>, mode?: OrderByMode): CompoundedOrderedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    orderBy(column: IRawFragment<NNoTableOrViewRequiredFrom<REQUIRED[typeof source]>>, mode?: OrderByMode): CompoundedOrderedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
     orderByFromString(orderBy: string): CompoundedOrderedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
     orderByFromStringIfValue(orderBy: string | null | undefined): CompoundedOrderedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
     orderByFromStringArray(orderBy: readonly string[]): CompoundedOrderedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>

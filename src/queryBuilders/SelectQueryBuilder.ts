@@ -551,23 +551,22 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
     forUseInQueryAs(as: string): any {
         const recursiveView = this.__recursiveView
         if (recursiveView) {
-            recursiveView.__name = as
-            this.__recursiveInternalView!.__name = as
-            // `__applyRecursiveCustomization` parked the outer-select SQL hooks on
-            // the outer `select ... from <cte>`, which only exists when the recursive
-            // query is executed directly. Consumed as a CTE that outer projection is
-            // discarded — the consuming query supplies it — so re-home the hooks that
-            // have a place on the compound anchor∪recursive CTE body: `beforeQuery` /
-            // `afterQuery` bracket the union and `beforeOrderByItems` /
-            // `afterOrderByItems` wrap its ORDER BY, mirroring the non-recursive CTE
-            // path below. The projection-only hooks `afterSelectKeyword` /
-            // `beforeColumns` / `customWindow` customize a plain SELECT clause the
-            // compound body does not have, so they are not applicable once the query
-            // is consumed as a CTE (they still apply when it is executed directly).
-            // This is an explicit allow-list on purpose: it keeps any current or
-            // future projection-only hook from silently landing on a body that cannot
-            // emit it. See docs/queries/sql-fragments.md § Customizing a select.
-            const outerCustomization = this.__recursiveSelect?.__customization
+            const outerSelect = this.__recursiveSelect
+            const outerCustomization = outerSelect?.__customization
+            // `__applyRecursiveCustomization` parked the outer-select SQL hooks and
+            // `__orderingAndPagingTarget` parked the ORDER BY / LIMIT / OFFSET on the
+            // outer `select ... from <cte>`, which only exists when the recursive query
+            // is executed directly. Consumed as a CTE that outer projection is discarded
+            // — the consuming query supplies it — so re-home the hooks that have a place
+            // on the compound anchor∪recursive CTE body: `beforeQuery` / `afterQuery`
+            // bracket the union, mirroring the non-recursive CTE path below. The
+            // projection-only hooks `afterSelectKeyword` / `beforeColumns` /
+            // `customWindow` customize a plain SELECT clause the compound body does not
+            // have, so they are not applicable once the query is consumed as a CTE (they
+            // still apply when it is executed directly). This is an explicit allow-list
+            // on purpose: it keeps any current or future projection-only hook from
+            // silently landing on a body that cannot emit it. See
+            // docs/queries/sql-fragments.md § Customizing a select.
             if (outerCustomization) {
                 const cteBody = recursiveView.__selectData
                 const cteBodyCustomization: SelectCustomization<any, any> = { ...cteBody.__customization }
@@ -577,14 +576,46 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
                 if (outerCustomization.afterQuery !== undefined) {
                     cteBodyCustomization.afterQuery = outerCustomization.afterQuery
                 }
-                if (outerCustomization.beforeOrderByItems !== undefined) {
-                    cteBodyCustomization.beforeOrderByItems = outerCustomization.beforeOrderByItems
-                }
-                if (outerCustomization.afterOrderByItems !== undefined) {
-                    cteBodyCustomization.afterOrderByItems = outerCustomization.afterOrderByItems
-                }
                 cteBody.__customization = cteBodyCustomization
             }
+            // The ORDER BY / LIMIT / OFFSET and the ORDER BY hooks
+            // (`beforeOrderByItems` / `afterOrderByItems`) order and page the recursive
+            // RESULT, not the consuming query — they belong to `as`. They cannot fold
+            // into the recursive term (`... union all ... order by ... limit ...` is
+            // rejected by every engine), so when present expose the result through a
+            // wrapping CTE `<as> as (select ... from <recursive-member> order by ...
+            // limit ... offset ...)`, keeping the recursive member under its generated
+            // name. `outerSelect` already IS that `select ... from <recursive-member>`
+            // carrying the ordering/paging; strip everything but the ORDER BY hooks off
+            // it (the projection-only hooks were dropped above; `beforeQuery` /
+            // `afterQuery` went to the CTE body) and use it as the wrapping CTE body.
+            const outerHasOrderingOrPaging = !!outerSelect && (
+                !!outerSelect.__orderBy
+                || outerSelect.__limit !== undefined
+                || outerSelect.__offset !== undefined
+                || !!outerSelect.__orderingSiblingsOnly
+                || (!!outerCustomization && (outerCustomization.beforeOrderByItems !== undefined || outerCustomization.afterOrderByItems !== undefined))
+            )
+            if (outerHasOrderingOrPaging) {
+                let wrapCustomization: SelectCustomization<any, any> | undefined
+                if (outerCustomization && (outerCustomization.beforeOrderByItems !== undefined || outerCustomization.afterOrderByItems !== undefined)) {
+                    wrapCustomization = {}
+                    if (outerCustomization.beforeOrderByItems !== undefined) {
+                        wrapCustomization.beforeOrderByItems = outerCustomization.beforeOrderByItems
+                    }
+                    if (outerCustomization.afterOrderByItems !== undefined) {
+                        wrapCustomization.afterOrderByItems = outerCustomization.afterOrderByItems
+                    }
+                }
+                outerSelect!.__customization = wrapCustomization
+                this.__recursiveView = undefined
+                this.__recursiveInternalView = undefined
+                this.__recursiveSelect = undefined
+                return new WithViewImpl(this.__sqlBuilder, as, outerSelect!) as any
+            }
+            // No outer ordering / paging: the recursive member IS the CTE `as`.
+            recursiveView.__name = as
+            this.__recursiveInternalView!.__name = as
             this.__recursiveView = undefined
             this.__recursiveInternalView = undefined
             this.__recursiveSelect = undefined

@@ -962,4 +962,68 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ id: number, title: string }>>>()
         expect(result).toEqual(expected)
     })
+
+    test('recursive-result-order-by-limit-offset-then-for-use-in-query-as-drops-them', async () => {
+        // A recursive select given `.orderBy('id').limit(5).offset(1)` and THEN
+        // consumed as a CTE via `forUseInQueryAs('tree')`: the ordering and paging
+        // set on the recursive result are currently DROPPED from the emitted SQL
+        // (the snapshot below carries no `order by` / `limit` / `offset`). With the
+        // offset dropped the single anchor row survives; had `offset(1)` applied it
+        // would have been skipped.
+        // TODO[BUG]: see BUGS.md — recursive orderBy/limit/offset are silently
+        // dropped by forUseInQueryAs; the library should render them (missing feature).
+        const expected = [
+            { id: 1, title: 'Update hero copy' },
+        ]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        const tree = connection.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({ id: tIssue.id, title: tIssue.title })
+            .recursiveUnionAllOn((child) => tIssue.parentId.equals(child.id))
+            .orderBy('id').limit(5).offset(1)
+            .forUseInQueryAs('tree')
+
+        const result = await connection.selectFrom(tree)
+            .select({ id: tree.id, title: tree.title })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with tree(id, title) as (select id as id, title as title from issue where id = :0 union all select issue.id as id, issue.title as title from issue join tree on issue.parent_id = tree.id) select id as "id", title as "title" from tree"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number, title: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    // The customize order-by hooks are the more severe face of the dropped-orderBy
+    // test above: instead of vanishing they are re-homed INTO the recursive CTE term,
+    // emitting `... union all ... order by title asc, id asc` which every engine
+    // rejects (PostgreSQL: "ORDER BY in a recursive query is not implemented"). It
+    // cannot execute, so it is block-commented rather than live.
+    // TODO[BUG]: see BUGS.md — recursive customize order-by hooks are misplaced into
+    // the recursive term by forUseInQueryAs, emitting engine-rejected SQL.
+    /*
+    test('recursive-customize-order-by-hooks-then-for-use-in-query-as-misplaces-into-recursive-term', async () => {
+        const connection = ctx.conn
+        const tree = connection.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({ id: tIssue.id, title: tIssue.title })
+            .recursiveUnionAllOn((child) => tIssue.parentId.equals(child.id))
+            .customizeQuery({
+                beforeOrderByItems: connection.rawFragment`title asc`,
+                afterOrderByItems:  connection.rawFragment`id asc`,
+            })
+            .forUseInQueryAs('tree')
+        // Current buggy emission (engine-rejected):
+        // with recursive tree as (... union all ... order by title asc, id asc) select id as id, title as title from tree
+        const result = await connection.selectFrom(tree)
+            .select({ id: tree.id, title: tree.title })
+            .executeSelectMany()
+        expect(result).toEqual([{ id: 1, title: 'Update hero copy' }])
+    })
+    */
 })

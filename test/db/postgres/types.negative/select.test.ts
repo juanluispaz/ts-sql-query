@@ -82,6 +82,34 @@ function _typeNegatives() {
         .select({ id: tIssue.id, title: tIssue.title })
         .orderBy(tIssue.id, 'desc')
 
+    // Rule: on a compound (union / intersect / except) result the ORDER BY runs
+    // against the set-operation output, so the value-source / raw-fragment orderBy
+    // overloads accept only no-table expressions — a table-bound term references a
+    // branch's base table that is out of scope for the compound result and every
+    // engine rejects it. Order a compound by the projected column name (or
+    // orderByFromString) instead. This is the very restriction the recursive block
+    // above states it "mirrors".
+    void connection.selectFrom(tProject).select({ label: tProject.name })
+        .union(connection.selectFrom(tIssue).select({ label: tIssue.title }))
+        // @ts-expect-error a table-bound column cannot order a compound result; use .orderBy('label')
+        .orderBy(tProject.id)
+
+    // TODO[BUG]: see BUGS.md — the raw-fragment compound orderBy overload is NOT
+    // no-table-restricted (unlike the value-source sibling directly above and the
+    // recursive raw-fragment twin), so the table-bound raw fragment below WRONGLY
+    // compiles and emits an unwrapped `... union ... order by project.id desc` that
+    // every engine rejects. When src narrows the overload this call starts erroring
+    // and must be locked with a ts-expect-error directive matching the sibling above.
+    void connection.selectFrom(tProject).select({ label: tProject.name })
+        .union(connection.selectFrom(tIssue).select({ label: tIssue.title }))
+        .orderBy(connection.rawFragment`${tProject.id} desc`)
+
+    // The column-name and no-table raw-fragment forms are the supported ways to
+    // order a compound result and must keep compiling.
+    void connection.selectFrom(tProject).select({ label: tProject.name })
+        .union(connection.selectFrom(tIssue).select({ label: tIssue.title }))
+        .orderBy('label')
+
     // Rule: .equals(value) must match the column's TS type.
     // tProject.id is int; passing a Date must not compile.
     // @ts-expect-error Date passed where number is required

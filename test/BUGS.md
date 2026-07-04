@@ -67,7 +67,114 @@ of that. Two minutes of triage and one paragraph is the bar.
 
 ## Open Bugs
 
-_None currently open._
+## Compound `orderBy(rawFragment)` is not no-table-restricted — accepts an anchor-table column and emits an invalid `UNION … ORDER BY <table>.<col>`
+
+**Where**: `src/expressions/select.ts:110` — the raw-fragment `orderBy` overload
+on `CompoundedOrderByExecutableSelectExpression` is typed `IRawFragment<FROM[typeof
+source]>` (FROM-scoped), whereas the value-source sibling `:109` and both recursive
+twins (`OrderByRecursiveAwareValueSource` `:562`, `OrderByRecursiveAwareRawFragment`
+`:567`) are `…<NNoTableOrViewRequiredFrom<REQUIRED[typeof source]>>`
+(no-table-restricted). Same defect class as the recently-fixed recursive orderBy
+restriction (`df9d0838`).
+
+**Reproduction**: on a compound (`union`/`intersect`/`except`/…) the value-source
+arm correctly rejects a table-bound term, but the raw-fragment arm does not:
+
+```ts
+const compound = conn.selectFrom(tProject).select({ label: tProject.name })
+    .union(conn.selectFrom(tIssue).select({ label: tIssue.title }))
+
+compound.orderBy(tProject.id)                         // correctly REJECTED at compile (:109)
+compound.orderBy(conn.rawFragment`${tProject.id} desc`) // WRONGLY COMPILES (:110)
+```
+
+The raw-fragment call emits an **unwrapped**
+`select name as label from project union select title as label from issue order by project.id desc`
+— a UNION whose ORDER BY references a branch base table (`project`), which every
+engine rejects (a set-operation ORDER BY may only reference output columns /
+ordinals). The value-source arm both no-table-restricts **and** wraps
+(`select * from (…) as o_1_ order by $1`). A no-table `rawFragment` (`` `label desc` ``,
+`` `1` ``) stays valid and must keep compiling. The recursive-orderBy negative block
+in `types.negative/select.test.ts` even states it "mirrors the restriction a compound
+query's ORDER BY carries" — but `:110` does not carry it.
+
+**Current workaround in the suite**: `types.negative/select.test.ts` (all 6 db
+folders) gains a compound-orderBy block — the value-source arm locked with a live
+`@ts-expect-error`, and the raw-fragment arm left as a currently-compiling call
+marked `// TODO[BUG]` (no directive yet, since it does not error). When `:110` is
+narrowed, that call starts erroring and the fixing agent locks it with a directive
+matching the value-source sibling + the recursive twin.
+
+## `forUseInQueryAs` mishandles a recursive result's outer-projection ordering — `orderBy`/`limit`/`offset` are dropped, and customize order-by hooks are misplaced into the recursive term (invalid SQL)
+
+**Where**: `src/queryBuilders/SelectQueryBuilder.ts` — a recursive-union result's
+`orderBy`/`limit`/`offset` route to the outer `__recursiveSelect` (via
+`__orderingAndPagingTarget()`), and its `customizeQuery` order-by hooks
+(`beforeOrderByItems`/`afterOrderByItems`) route to the same outer select.
+`forUseInQueryAs` discards that outer projection; the `45c12968` allow-list
+(`:580-585`) then copies the customize hooks onto the recursive **CTE body**. Root
+cause is shared: the recursive result's outer-projection ordering is not carried into
+the CTE. Two symptoms:
+
+**Symptom A — `orderBy`/`orderByFromString`/`limit`/`offset` silently dropped
+(missing feature).** A plain select and a compound (`union`/…) select fold these into
+the CTE body under `forUseInQueryAs`; the recursive path drops them:
+
+```ts
+const tree = conn.selectFrom(tIssue).where(tIssue.id.equals(1))
+    .select({ id: tIssue.id, title: tIssue.title })
+    .recursiveUnionAllOn((child) => tIssue.parentId.equals(child.id))
+    .orderBy('id').limit(5).offset(1)      // ← set on the recursive result
+    .forUseInQueryAs('tree')
+conn.selectFrom(tree).select({ id: tree.id, title: tree.title }).executeSelectMany()
+```
+
+emits `with recursive tree as (anchor union all recursive) select … from tree` —
+**no `order by` / `limit` / `offset`**. (`orderByFromString` is dropped the same way.)
+
+**Symptom B — customize order-by hooks misplaced into the recursive term (emits
+engine-rejected SQL).** With the same `forUseInQueryAs`, the allow-list re-homes
+`beforeOrderByItems`/`afterOrderByItems` **inside** the recursive CTE:
+
+```ts
+conn.selectFrom(tIssue).where(tIssue.id.equals(1))
+    .select({ id: tIssue.id, title: tIssue.title })
+    .recursiveUnionAllOn((child) => tIssue.parentId.equals(child.id))
+    .customizeQuery({ beforeOrderByItems: conn.rawFragment`title asc`, afterOrderByItems: conn.rawFragment`id asc` })
+    .forUseInQueryAs('tree')
+```
+
+emits `with recursive tree as (anchor union all recursive **order by title asc, id asc**) select … from tree`
+— **rejected by PostgreSQL (docker-verified): `ORDER BY in a recursive query is not
+implemented`**. The hook content is valid (`title asc, id asc`); the invalidity is
+structural — `ORDER BY` is not allowed inside a recursive CTE term at all. (For a
+non-recursive CTE the same re-home is valid, so the bug is specific to the recursive
+member.)
+
+**The library already renders a valid recursive ORDER BY** — a standalone
+`recursive…orderBy('id')` emits `… select … from <cte> order by id` on the **outer**
+select (valid, docker-verified). Both symptoms share one fix: render the outer-projection
+ordering via a **wrapping CTE**, which is engine-valid (verified on real PostgreSQL):
+
+```sql
+with recursive tree_inner as (anchor union all recursive),
+     tree as (select * from tree_inner order by id limit 5 offset 1)   -- + hooks here for symptom B
+select … from tree
+```
+
+The fix must **NOT** naively fold `order by`/`limit` into the recursive term
+(`… union all … order by …`) — that is symptom B, which every engine rejects.
+
+**Current workaround in the suite** (both in `cte.recursive-union-variants.test.ts`,
+all 17 cells):
+- Symptom A: a **live** test
+  `recursive-result-order-by-limit-offset-then-for-use-in-query-as-drops-them` pins the
+  dropped emission + value (the dropped `offset(1)` is why the single anchor row
+  survives), marked `// TODO[BUG]`.
+- Symptom B: a **block-commented** test
+  `recursive-customize-order-by-hooks-then-for-use-in-query-as-misplaces-into-recursive-term`
+  marked `// TODO[BUG]` (it cannot run — the emitted SQL is engine-rejected). Uncomment
+  when the lib stops emitting it.
 
 ## Common bug shapes (for the fixing agent)
 

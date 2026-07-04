@@ -143,7 +143,7 @@ describe(ctx.label, () => {
                 })
                 .executeUpdateOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project as _new_ set name = $1 from (select _old_.* from project as _old_, organization where _old_.id = $2 and _old_.organization_id = organization.id for no key update of _old_) as _old_ where _new_.id = _old_.id returning _new_.id as id, _old_.name as "audit.old", _new_.name as "audit.new", organization.name as "audit.org""`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project as _new_ set name = $1 from (select _old_.*, organization.name as organization__name from project as _old_, organization where _old_.id = $2 and _old_.organization_id = organization.id for no key update of _old_) as _old_ where _new_.id = _old_.id returning _new_.id as id, _old_.name as "audit.old", _new_.name as "audit.new", _old_.organization__name as "audit.org""`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Mktg nested from",

@@ -2375,8 +2375,13 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         const columns = query.__columns
         if (columns) {
-            for (let property in columns) {
-                __registerTableOrView(columns[property], this, result)
+            // Flatten first so a table referenced only through a nested
+            // projection sub-object is still discovered (see the matching
+            // flatten in `_extractAdditionalRequiredColumnsForUpdate`).
+            const flatColumns: FlatQueryColumns = {}
+            flattenQueryColumns(columns, flatColumns, '')
+            for (let property in flatColumns) {
+                __registerTableOrView(flatColumns[property], this, result)
             }
         }
 
@@ -2401,8 +2406,14 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         const columns = query.__columns
         if (columns) {
-            for (let property in columns) {
-                __registerRequiredColumn(columns[property], this, result, requiredTables)
+            // Flatten first: a joined-in column folded into a nested projection
+            // sub-object must still be pre-projected into the synthetic `_old_`
+            // subquery, mirroring how `_buildQueryReturning` flattens the same
+            // columns before emitting the RETURNING clause.
+            const flatColumns: FlatQueryColumns = {}
+            flattenQueryColumns(columns, flatColumns, '')
+            for (let property in flatColumns) {
+                __registerRequiredColumn(flatColumns[property], this, result, requiredTables)
             }
         }
 

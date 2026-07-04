@@ -118,10 +118,8 @@ describe(ctx.label, () => {
     /*
     test('returning-one-column-old-value-via-oldValues', async () => {
         // The bare single-column `returningOneColumn(oldProject.name)` form off an
-        // UPDATE: it returns ONLY the previous value of `name` (pre-update). The
-        // returning-object forms above pin the multi-column shape; this pins the
-        // scalar one-column shape (`string`). Update project 1's name; the old
-        // name 'Marketing site' comes back.
+        // UPDATE: it returns ONLY the previous value of `name` (pre-update) as a bare
+        // `string`. Update project 1's name; the old name 'Marketing site' comes back.
         ctx.mockNext('Marketing site')
         await ctx.withRollback(async () => {
             const oldProject = tProject.oldValues()
@@ -206,6 +204,39 @@ describe(ctx.label, () => {
                 expect(row.oldScore).toBe(85)
                 expect(row.newScore).toBe(90)
             }
+        })
+    })
+    */
+
+    // TODO[LIMITATION]: see LIMITATIONS.md — `oldValues()` emits `OLD_VALUE(col)`, only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Snapshot pre-baked for when mariadb:latest catches up to 13.0.1+; uncomment the body then.
+    /*
+    test('returning-old-and-new-folded-into-nested-audit-object-via-oldValues', async () => {
+        // `oldValues()` folded into a nested sub-object:
+        // `returning({ id, audit: { old: oldProject.name, new: tProject.name } })`
+        // emits the dotted-old-alias form `old.name as "audit.old"`. Update project
+        // 1's name; the audit object carries the pre-update name ('Marketing site')
+        // and the new name ('Mktg nested').
+        ctx.mockNext({ id: 1, 'audit.old': 'Marketing site', 'audit.new': 'Mktg nested' })
+        await ctx.withRollback(async () => {
+            const oldProject = tProject.oldValues()
+            const row = await ctx.conn.update(tProject)
+                .set({ name: 'Mktg nested' })
+                .where(tProject.id.equals(1))
+                .returning({
+                    id:    tProject.id,
+                    audit: { old: oldProject.name, new: tProject.name },
+                })
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ? where id = ? returning id as id, old_value(name) as \`audit.old\`, name as \`audit.new\`"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Mktg nested",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof row, { id: number; audit: { old: string; new: string } }>>()
+            expect(row).toEqual({ id: 1, audit: { old: 'Marketing site', new: 'Mktg nested' } })
         })
     })
     */

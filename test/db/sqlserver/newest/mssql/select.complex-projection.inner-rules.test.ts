@@ -186,8 +186,8 @@ describe(ctx.label, () => {
 
 
     test('plain-select-nested-object-of-only-optional-columns-applies-rule-4', async () => {
-        // The inline sibling of the CTE rule-4 test above: the nested object is
-        // built directly in the select, with no intermediate CTE. Two optional
+        // The nested object is built directly in the select, with no intermediate
+        // CTE. Two optional
         // columns -> the inner object is optional and dropped only when every
         // one of its leaves is null; it is never set to null. Pins the
         // documented `opt?: { ... }` shape (no `| null`) for the plain-select
@@ -360,8 +360,8 @@ describe(ctx.label, () => {
     })
 
     test('plain-select-rule-4-optional-object-under-projecting-optional-values-as-nullable-surfaces-null', async () => {
-        // The `projectingOptionalValuesAsNullable()` twin of the rule-4
-        // plain-select test above: an all-optional nested object becomes
+        // Under `projectingOptionalValuesAsNullable()`, an all-optional nested
+        // object becomes
         // `{ ... } | null`. When EVERY leaf is null the object surfaces as
         // `opt: null` at RUNTIME (the default asUndefined mode drops the key
         // instead); the present rows carry their own `| null` leaves. This is
@@ -1533,5 +1533,157 @@ describe(ctx.label, () => {
             detail: { title: string; proj: { name: string; arch: Date | null } | null }
         }>>()
         expect(row).toEqual(expected)
+    })
+
+    test('sole-optional-inner-own-table-rule-4-object-keeps-wrapper-required-default', async () => {
+        // A nested object (`wrapper`) whose sole member is an all-optional inner
+        // object (no scalar sibling): the inner container is optional (`inner?`) and
+        // the outer `wrapper` is required. Both issues carry a non-null body +
+        // assignee, so the inner is present on every row.
+        // issue 2 (project 1): body 'Use new tokens', assignee 2.
+        // issue 4 (project 3): body 'See ADR-014',    assignee 3.
+        ctx.mockNext([
+            { iid: 2, 'wrapper.inner.body': 'Use new tokens', 'wrapper.inner.assigneeId': 2 },
+            { iid: 4, 'wrapper.inner.body': 'See ADR-014',    'wrapper.inner.assigneeId': 3 },
+        ])
+        const expected = [
+            { iid: 2, wrapper: { inner: { body: 'Use new tokens', assigneeId: 2 } } },
+            { iid: 4, wrapper: { inner: { body: 'See ADR-014', assigneeId: 3 } } },
+        ]
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.in([2, 4]))
+            .select({
+                iid:     tIssue.id,
+                wrapper: { inner: { body: tIssue.body, assigneeId: tIssue.assigneeId } },
+            })
+            .orderBy('iid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as [wrapper.inner.body], assignee_id as [wrapper.inner.assigneeId] from issue where id in (@0, @1) order by iid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+            4,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            iid:     number
+            wrapper: { inner?: { body: string | undefined; assigneeId: number | undefined } | undefined }
+        }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('sole-optional-inner-own-table-rule-4-object-keeps-wrapper-required-as-nullable', async () => {
+        // Under `projectingOptionalValuesAsNullable()`: `wrapper` stays required, the
+        // all-optional inner object becomes `{...} | null`, and its leaves flip to
+        // `| null`. Both rows carry a present inner (non-null leaves).
+        ctx.mockNext([
+            { iid: 2, 'wrapper.inner.body': 'Use new tokens', 'wrapper.inner.assigneeId': 2 },
+            { iid: 4, 'wrapper.inner.body': 'See ADR-014',    'wrapper.inner.assigneeId': 3 },
+        ])
+        const expected = [
+            { iid: 2, wrapper: { inner: { body: 'Use new tokens', assigneeId: 2 } } },
+            { iid: 4, wrapper: { inner: { body: 'See ADR-014', assigneeId: 3 } } },
+        ]
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.in([2, 4]))
+            .select({
+                iid:     tIssue.id,
+                wrapper: { inner: { body: tIssue.body, assigneeId: tIssue.assigneeId } },
+            })
+            .projectingOptionalValuesAsNullable()
+            .orderBy('iid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as [wrapper.inner.body], assignee_id as [wrapper.inner.assigneeId] from issue where id in (@0, @1) order by iid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+            4,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            iid:     number
+            wrapper: { inner: { body: string | null; assigneeId: number | null } | null }
+        }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('sole-optional-inner-left-join-rule-2-object-keeps-wrapper-required-default', async () => {
+        // The left-join case: `wrapper`'s sole member is an inner object whose leaves
+        // all come from the same left join (`id`/`number`, originallyRequired). The
+        // outer `wrapper` is required, the inner container is optional (`inner?`), and
+        // its leaves stay required-when-present. Both projects join to exactly one
+        // issue, so the inner is present on every row.
+        // project 2 → issue 3 (num 1); project 3 → issue 4 (num 1).
+        ctx.mockNext([
+            { pid: 2, 'wrapper.inner.iid': 3, 'wrapper.inner.num': 1 },
+            { pid: 3, 'wrapper.inner.iid': 4, 'wrapper.inner.num': 1 },
+        ])
+        const expected = [
+            { pid: 2, wrapper: { inner: { iid: 3, num: 1 } } },
+            { pid: 3, wrapper: { inner: { iid: 4, num: 1 } } },
+        ]
+        const tIssueLeft = tIssue.forUseInLeftJoin()
+        const rows = await ctx.conn.selectFrom(tProject)
+            .leftJoin(tIssueLeft).on(tIssueLeft.projectId.equals(tProject.id))
+            .where(tProject.id.in([2, 3]))
+            .select({
+                pid:     tProject.id,
+                wrapper: { inner: { iid: tIssueLeft.id, num: tIssueLeft.number } },
+            })
+            .orderBy('pid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.id as [wrapper.inner.iid], issue.number as [wrapper.inner.num] from project left join issue on issue.project_id = project.id where project.id in (@0, @1) order by pid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+            3,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            pid:     number
+            wrapper: { inner?: { iid: number; num: number } | undefined }
+        }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('sole-optional-inner-left-join-rule-2-object-keeps-wrapper-required-as-nullable', async () => {
+        // Under `projectingOptionalValuesAsNullable()`: `wrapper` stays required, the
+        // left-join inner becomes `{...} | null`, and the originallyRequired leaves
+        // stay required inside it. Both projects join.
+        ctx.mockNext([
+            { pid: 2, 'wrapper.inner.iid': 3, 'wrapper.inner.num': 1 },
+            { pid: 3, 'wrapper.inner.iid': 4, 'wrapper.inner.num': 1 },
+        ])
+        const expected = [
+            { pid: 2, wrapper: { inner: { iid: 3, num: 1 } } },
+            { pid: 3, wrapper: { inner: { iid: 4, num: 1 } } },
+        ]
+        const tIssueLeft = tIssue.forUseInLeftJoin()
+        const rows = await ctx.conn.selectFrom(tProject)
+            .leftJoin(tIssueLeft).on(tIssueLeft.projectId.equals(tProject.id))
+            .where(tProject.id.in([2, 3]))
+            .select({
+                pid:     tProject.id,
+                wrapper: { inner: { iid: tIssueLeft.id, num: tIssueLeft.number } },
+            })
+            .projectingOptionalValuesAsNullable()
+            .orderBy('pid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.id as [wrapper.inner.iid], issue.number as [wrapper.inner.num] from project left join issue on issue.project_id = project.id where project.id in (@0, @1) order by pid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+            3,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            pid:     number
+            wrapper: { inner: { iid: number; num: number } | null }
+        }>>>()
+        expect(rows).toEqual(expected)
     })
 })

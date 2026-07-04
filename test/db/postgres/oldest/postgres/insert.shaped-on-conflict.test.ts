@@ -400,13 +400,47 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-APPLICABLE: PostgreSQL rejects the bare `onConflictDoUpdateSet` / `onConflictDoNothing` form (no inference target) and blocks it at compile time; PostgreSQL targets the conflict with `.onConflictOn(...)` / `.onConflictOnConstraint(...)`. See this dialect's `types.negative` suite.
-    /*
+    test('shaped-single-row-bare-on-conflict-do-nothing', async () => {
+        // Shaped single-row `.set({...})` + bare `onConflictDoNothing()`: the shaped
+        // keys supply the required columns, then the conflict suppresses the insert.
+        // (org 1, 'mktg-site') already exists → 0 inserted. Bare `onConflictDoNothing()`
+        // needs no conflict-inference target (only bare `onConflictDoUpdateSet` does).
+        ctx.mockNext(0)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.insertInto(tProject)
+                .shapedAs({
+                    orgId:       'organizationId',
+                    projectName: 'name',
+                    projectSlug: 'slug',
+                })
+                .set({
+                    orgId:       1,
+                    projectName: 'Dup A',
+                    projectSlug: 'mktg-site',
+                })
+                .onConflictDoNothing()
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values ($1, $2, $3) on conflict do nothing"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "Dup A",
+                "mktg-site",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            if (ctx.realDbEnabled) expect(typeof affected).toBe('number')
+            else expect(affected).toBe(0)
+        })
+    })
+
     test('shaped-multi-row-bare-on-conflict-do-nothing', async () => {
         // Shaped × multi-row `.values([...])` + bare `onConflictDoNothing()`: the
         // shaped sets supply the renamed required columns for every row, then the
         // conflict suppresses both inserts. Both (org 1, 'mktg-site') and (org 1,
-        // 'tools') already exist → 0 inserted.
+        // 'tools') already exist → 0 inserted. Bare `onConflictDoNothing()` needs no
+        // conflict-inference target (only bare `onConflictDoUpdateSet` does).
         ctx.mockNext(0)
         await ctx.withRollback(async () => {
             const affected = await ctx.conn.insertInto(tProject)
@@ -422,7 +456,7 @@ describe(ctx.label, () => {
                 .onConflictDoNothing()
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?, ?, ?), (?, ?, ?) on conflict do nothing"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values ($1, $2, $3), ($4, $5, $6) on conflict do nothing"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -438,7 +472,6 @@ describe(ctx.label, () => {
             else expect(affected).toBe(0)
         })
     })
-    */
 
     // Shaped × MULTI-ROW × on-conflict: `.shapedAs({...}).dynamicValues([...])`
     // reaches `ShapedExecutableMultipleInsertExpression`, then `.onConflictOn(...)`

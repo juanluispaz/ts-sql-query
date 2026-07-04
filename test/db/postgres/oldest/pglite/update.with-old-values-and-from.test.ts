@@ -121,4 +121,37 @@ describe(ctx.label, () => {
         })
     })
 
+
+    test('returning-old-new-and-from-column-folded-into-nested-audit-object', async () => {
+        // `oldValues()` folded into a nested sub-object, combined with UPDATE … FROM:
+        // the audit object folds the pre-update `old.name`, the post-update
+        // `project.name`, AND the joined-in `organization.name` into ONE sub-object
+        // (`old.name as "audit.old"`, `organization.name as "audit.org"`), so the FROM
+        // registration must survive the nested projection. project 1 → org 1 (Acme
+        // Corp).
+        ctx.mockNext({ id: 1, 'audit.old': 'Marketing site', 'audit.new': 'Mktg nested from', 'audit.org': 'Acme Corp' })
+        await ctx.withRollback(async () => {
+            const oldProject = tProject.oldValues()
+            const row = await ctx.conn.update(tProject)
+                .from(tOrganization)
+                .set({ name: 'Mktg nested from' })
+                .where(tProject.id.equals(1))
+                .and(tProject.organizationId.equals(tOrganization.id))
+                .returning({
+                    id:    tProject.id,
+                    audit: { old: oldProject.name, new: tProject.name, org: tOrganization.name },
+                })
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project as _new_ set name = $1 from (select _old_.* from project as _old_, organization where _old_.id = $2 and _old_.organization_id = organization.id for no key update of _old_) as _old_ where _new_.id = _old_.id returning _new_.id as id, _old_.name as "audit.old", _new_.name as "audit.new", organization.name as "audit.org""`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Mktg nested from",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof row, { id: number; audit: { old: string; new: string; org: string } }>>()
+            expect(row).toEqual({ id: 1, audit: { old: 'Marketing site', new: 'Mktg nested from', org: 'Acme Corp' } })
+        })
+    })
 })

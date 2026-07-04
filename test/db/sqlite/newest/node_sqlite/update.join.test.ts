@@ -16,13 +16,44 @@
 // Mock-mode pins the SQL; real-DB mode wraps each update in
 // `ctx.withRollback` so the seed survives.
 
-import { afterAll, beforeAll, beforeEach, describe } from '../../../../lib/testRunner.js'
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
+import { assertType, type Exact } from '../../../../lib/assertType.js'
+import { tAppUser, tIssue, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
+
+    test('update-from-table-then-inner-join-on-from-tables', async () => {
+        // `update(t).from(j1).innerJoin(j2).on(...)` — a JOIN after `.from()`. The
+        // join links the two FROM tables to each other (app_user ↔ issue) while the
+        // target `project` is joined in the WHERE: UPDATE … FROM forbids the join's ON
+        // referencing the update target, so keep the target out of the ON. Update
+        // project 1's name to its issue-1 assignee's name: issue 1 → project 1,
+        // assignee 1 → 1 row.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.update(tProject)
+                .from(tIssue)
+                .innerJoin(tAppUser).on(tAppUser.id.equals(tIssue.assigneeId))
+                .set({ name: tAppUser.fullName })
+                .where(tProject.id.equals(tIssue.projectId))
+                    .and(tIssue.id.equals(1))
+                .executeUpdate()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = app_user.full_name from issue inner join app_user on app_user.id = issue.assignee_id where project.id = issue.project_id and issue.id = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            if (ctx.realDbEnabled) expect(typeof affected).toBe('number')
+            else expect(affected).toBe(1)
+        })
+    })
 
     // NOT-APPLICABLE: SQLite has no `UPDATE … JOIN` syntax. `.innerJoin` / `.leftJoin` / `.leftOuterJoin` on UPDATE are typed `never` on this dialect; the equivalent pattern is `.update(t).from(j).set(...).where(...)`.
     /*

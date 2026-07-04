@@ -60,6 +60,10 @@ const invoicedAdapter  = new CustomBooleanTypeAdapter(1, 0)
 // Branded newtype for the customInt View column carrying a trailing adapter (VALVIEW).
 export type ReleaseTag = number & { readonly __brand: 'ReleaseTag' }
 
+// Branded newtype for the customDouble 'Money' column / const (matches the other
+// dialects' domain exports); used by the branded-newtype brand-keep/erase test.
+export type Money = number & { readonly __brand: 'Money' }
+
 export class DBConnection extends SqliteConnection<'DBConnection'> {
     constructor(queryRunner: QueryRunner, compatibilityVersion?: number) {
         super(queryRunner)

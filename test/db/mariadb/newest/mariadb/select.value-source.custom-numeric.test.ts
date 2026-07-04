@@ -27,7 +27,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tIssueWorklog } from '../../domain/connection.js'
+import { tIssue, tIssueWorklog, vReleaseOverview, type Money, type ReleaseTag } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -654,4 +654,98 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
+
+    test('custom-numeric/branded-newtype-keeps-or-erases-the-brand', async () => {
+        // On a branded-newtype receiver (`ReleaseTag` = customInt, `Money` =
+        // customDouble), brand-KEEPING methods carry the brand through while
+        // brand-ERASING ones drop it to a plain `number`: `abs`/`sqrt` keep
+        // `ReleaseTag`/`Money`, `sign` returns `number`. Both brands are marshalled
+        // (ReleaseTag→int, Money→double), so the results read back as clean numbers:
+        // abs(5)=5, sign(5)=1, sqrt(4)=2, sign(4)=1.
+        const tag   = ctx.conn.const(5 as ReleaseTag, 'customInt', 'ReleaseTag')
+        const money = ctx.conn.const(4 as Money, 'customDouble', 'Money')
+        const expected = [{ id: 1, keepInt: 5, eraseInt: 1, keepDbl: 2, eraseDbl: 1 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id:       tIssue.id,
+                keepInt:  tag.abs(),     // customInt KEEP → ReleaseTag
+                eraseInt: tag.sign(),    // customInt ERASE → number
+                keepDbl:  money.sqrt(),  // customDouble KEEP → Money
+                eraseDbl: money.sign(),  // customDouble ERASE → number
+            })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs(?) as keepInt, sign(?) as eraseInt, sqrt(?) as keepDbl, sign(?) as eraseDbl from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            5,
+            5,
+            4,
+            4,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{
+            id: number; keepInt: ReleaseTag; eraseInt: number; keepDbl: Money; eraseDbl: number
+        }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('custom-numeric/customdouble-add-with-branded-type-const-operand', async () => {
+        // customDouble `add` with a branded TYPE const as the right operand
+        // (`billedAmount.add(const(2 as Money, 'customDouble', 'Money'))`).
+        // billed_amount ('Money'→double) is 200 for worklog 1, so 200 + 2 = 202
+        // (clean number).
+        const money2 = ctx.conn.const(2 as Money, 'customDouble', 'Money')
+        const expected = [{ id: 1, cd: 202 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .select({
+                id: tIssueWorklog.id,
+                cd: tIssueWorklog.billedAmount.add(money2),
+            })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, billed_amount + ? as cd from issue_worklog where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; cd: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('custom-numeric/optional-custom-receiver-add-keeps-brand-and-optional', async () => {
+        // An OPTIONAL branded customInt receiver (`optionalReleaseOrdinal`,
+        // ReleaseTag via plusOffsetAdapter) through the `add` operator: the result
+        // stays OPTIONAL and keeps the ReleaseTag brand (`ord?: ReleaseTag`). The
+        // view's optional_release_ordinal = release id (release 1 has download_count,
+        // so it is present) and the column reads +1000 via plusOffsetAdapter, so the
+        // emitted `optional_release_ordinal + $1` sums the RAW value.
+        const tag10 = ctx.conn.const(10 as ReleaseTag, 'customInt', 'ReleaseTag')
+        const expected = [{ id: 1, ord: 1011 }]
+        ctx.mockNext([{ id: 1, ord: 11 }])
+        const result = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(1))
+            .select({
+                id:  vReleaseOverview.id,
+                ord: vReleaseOverview.optionalReleaseOrdinal.add(tag10),
+            })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, optional_release_ordinal + ? as ord from release_overview where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            10,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; ord?: ReleaseTag }>>>()
+        expect(result).toEqual(expected)
+    })
 })

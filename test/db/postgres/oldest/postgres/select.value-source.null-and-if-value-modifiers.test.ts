@@ -367,4 +367,121 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { id: number; x: Date }>>()
         expect(row).toEqual(expected)
     })
+
+    test('boolean/value-when-null-and-null-if-value-on-plain-boolean', async () => {
+        // `valueWhenNull(boolean)` / `nullIfValue(boolean)` on a nullable plain
+        // boolean receiver (`billable`), with a boolean literal fallback/probe.
+        // valueWhenNull(true) re-imposes `required` (coalesce), nullIfValue(false)
+        // re-imposes `optional` (nullif). worklog 1: billable TRUE; worklog 2: FALSE;
+        // worklog 3: NULL. So bwn = {true, false, true}; bni is NULL (absent) wherever
+        // billable equals false OR is null (worklogs 2 and 3).
+        ctx.mockNext([
+            { id: 1, bwn: true,  bni: true },
+            { id: 2, bwn: false, bni: null },
+            { id: 3, bwn: true,  bni: null },
+        ])
+        const expected = [
+            { id: 1, bwn: true,  bni: true },
+            { id: 2, bwn: false },
+            { id: 3, bwn: true },
+        ]
+        const rows = await ctx.conn.selectFrom(tIssueWorklog)
+            .select({
+                id:  tIssueWorklog.id,
+                bwn: tIssueWorklog.billable.valueWhenNull(true),
+                bni: tIssueWorklog.billable.nullIfValue(false),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce(billable, $1) as bwn, nullif(billable, $2) as bni from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            true,
+            false,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; bwn: boolean; bni?: boolean }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('boolean/value-when-null-and-null-if-value-on-custom-boolean-remaps-in-coalesce', async () => {
+        // Custom-boolean receiver: `approved` is a nullable boolean carrying the
+        // string CustomBooleanTypeAdapter ('A'/'R'), so it remaps to `(approved =
+        // 'A')` and the coalesce / nullif wrap THAT remapped predicate —
+        // `coalesce((approved = 'A'), $1)` / `nullif((approved = 'A'), $2)`. The
+        // fallback/probe are plain booleans. worklog 1: approved 'A' → true; worklog
+        // 2: 'R' → false; worklog 3: NULL → (NULL = 'A') is NULL, so awn coalesces to
+        // the true fallback.
+        ctx.mockNext([
+            { id: 1, awn: true,  ani: true },
+            { id: 2, awn: false, ani: null },
+            { id: 3, awn: true,  ani: null },
+        ])
+        const expected = [
+            { id: 1, awn: true,  ani: true },
+            { id: 2, awn: false },
+            { id: 3, awn: true },
+        ]
+        const rows = await ctx.conn.selectFrom(tIssueWorklog)
+            .select({
+                id:  tIssueWorklog.id,
+                awn: tIssueWorklog.approved.valueWhenNull(true),
+                ani: tIssueWorklog.approved.nullIfValue(false),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce((approved = 'A'), $1) as awn, nullif((approved = 'A'), $2) as ani from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            true,
+            false,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; awn: boolean; ani?: boolean }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('boolean/if-value-source-and-or-with-concrete-boolean-collapses-to-projectable-boolean', async () => {
+        // A live IfValueSource (`status.equalsIfValue(value)`) combined via `.and` /
+        // `.or` with a concrete BooleanValueSource operand (`priority.greaterThan(1)`)
+        // collapses to a projectable `BooleanValueSource` (an IfValueSource operand
+        // would instead keep it a non-projectable IfValueSource). The status filter is
+        // a present value, so both predicates fire.
+        // issue 1: status 'open', priority 2 → and (T&T)=true,  or (T|T)=true
+        // issue 2: status 'in_progress', priority 1 → and (F&F)=false, or (F|F)=false
+        // issue 4: status 'closed', priority 2 → and (F&T)=false, or (F|T)=true
+        const statusFilter: string = 'open'
+        const expected = [
+            { id: 1, andFlag: true,  orFlag: true },
+            { id: 2, andFlag: false, orFlag: false },
+            { id: 4, andFlag: false, orFlag: true },
+        ]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.in([1, 2, 4]))
+            .select({
+                id:      tIssue.id,
+                andFlag: tIssue.status.equalsIfValue(statusFilter).and(tIssue.priority.greaterThan(1)),
+                orFlag:  tIssue.status.equalsIfValue(statusFilter).or(tIssue.priority.greaterThan(1)),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, status = $1 and priority > $2 as "andFlag", status = $3 or priority > $4 as "orFlag" from issue where id in ($5, $6, $7) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "open",
+            1,
+            "open",
+            1,
+            1,
+            2,
+            4,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; andFlag: boolean; orFlag: boolean }>>>()
+        expect(rows).toEqual(expected)
+    })
 })

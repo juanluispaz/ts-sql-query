@@ -118,10 +118,8 @@ describe(ctx.label, () => {
     /*
     test('returning-one-column-old-value-via-oldValues', async () => {
         // The bare single-column `returningOneColumn(oldProject.name)` form off an
-        // UPDATE: it returns ONLY the previous value of `name` (pre-update). The
-        // returning-object forms above pin the multi-column shape; this pins the
-        // scalar one-column shape (`string`). Update project 1's name; the old
-        // name 'Marketing site' comes back.
+        // UPDATE: it returns ONLY the previous value of `name` (pre-update) as a bare
+        // `string`. Update project 1's name; the old name 'Marketing site' comes back.
         ctx.mockNext('Marketing site')
         await ctx.withRollback(async () => {
             const oldProject = tProject.oldValues()
@@ -206,6 +204,38 @@ describe(ctx.label, () => {
                 expect(row.oldScore).toBe(85)
                 expect(row.newScore).toBe(90)
             }
+        })
+    })
+    */
+    // NOT-APPLICABLE: Oracle has no RETURNING OLD values (`tTable.oldValues()` is typed `never`); RETURNING INTO returns post-update values only, so pre-update values need a separate SELECT
+    /*
+    test('returning-old-and-new-folded-into-nested-audit-object-via-oldValues', async () => {
+        // `oldValues()` folded into a nested sub-object:
+        // `returning({ id, audit: { old: oldProject.name, new: tProject.name } })`
+        // emits the dotted-old-alias form `old.name as "audit.old"`. Update project
+        // 1's name; the audit object carries the pre-update name ('Marketing site')
+        // and the new name ('Mktg nested').
+        ctx.mockNext({ id: 1, 'audit.old': 'Marketing site', 'audit.new': 'Mktg nested' })
+        await ctx.withRollback(async () => {
+            const oldProject = tProject.oldValues()
+            const row = await ctx.conn.update(tProject)
+                .set({ name: 'Mktg nested' })
+                .where(tProject.id.equals(1))
+                .returning({
+                    id:    tProject.id,
+                    audit: { old: oldProject.name, new: tProject.name },
+                })
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = $1 where id = $2 returning id as id, old.name as "audit.old", name as "audit.new""`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Mktg nested",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof row, { id: number; audit: { old: string; new: string } }>>()
+            expect(row).toEqual({ id: 1, audit: { old: 'Marketing site', new: 'Mktg nested' } })
         })
     })
     */

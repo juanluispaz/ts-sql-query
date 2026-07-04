@@ -209,4 +209,33 @@ describe(ctx.label, () => {
         `)
         expect(String(caught)).toMatch(/NO_RESULT|No result returned/)
     })
+
+    test('select-one-column-execute-page-returns-scalar-array-and-count', async () => {
+        // `executeSelectPage` on a one-column `selectOneColumn(...)` query: `data` is
+        // a bare scalar array (`number[]`, not `Array<{...}>`) alongside `count`. It
+        // fires two queries — the LIMIT/OFFSET data page and the unpaginated count.
+        // The 4 seeded issues have priorities {2,1,3,2}; ascending → {1,2,2,3}, so
+        // the first page of 2 is [1, 2] with count 4.
+        ctx.mockNext([1, 2])
+        ctx.mockNext(4)
+        const page = await ctx.conn.selectFrom(tIssue)
+            .selectOneColumn(tIssue.priority)
+            .orderBy('result')
+            .limit(2)
+            .offset(0)
+            .executeSelectPage()
+
+        expect(ctx.history.length).toBe(2)
+        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select priority as result from issue order by result limit ? offset ?"`)
+        expect(ctx.history[0]!.params).toMatchInlineSnapshot(`
+          [
+            2,
+            0,
+          ]
+        `)
+        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"select count(*) from issue"`)
+        expect(ctx.history[1]!.params).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof page, { data: number[]; count: number }>>()
+        expect(page).toEqual({ data: [1, 2], count: 4 })
+    })
 })

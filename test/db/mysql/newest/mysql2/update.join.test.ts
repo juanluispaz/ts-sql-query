@@ -26,6 +26,35 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
+    test('update-from-table-then-inner-join-on-from-tables', async () => {
+        // `update(t).from(j1).innerJoin(j2).on(...)` — a JOIN after `.from()`. The
+        // join links the two FROM tables to each other (app_user ↔ issue) while the
+        // target `project` is joined in the WHERE: UPDATE … FROM forbids the join's ON
+        // referencing the update target, so keep the target out of the ON. Update
+        // project 1's name to its issue-1 assignee's name: issue 1 → project 1,
+        // assignee 1 → 1 row.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.update(tProject)
+                .from(tIssue)
+                .innerJoin(tAppUser).on(tAppUser.id.equals(tIssue.assigneeId))
+                .set({ name: tAppUser.fullName })
+                .where(tProject.id.equals(tIssue.projectId))
+                    .and(tIssue.id.equals(1))
+                .executeUpdate()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project, issue inner join app_user on app_user.id = issue.assignee_id set project.\`name\` = app_user.full_name where project.id = issue.project_id and issue.id = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            if (ctx.realDbEnabled) expect(typeof affected).toBe('number')
+            else expect(affected).toBe(1)
+        })
+    })
+
     test('update-with-inner-join-on-condition', async () => {
         // Bump priority of every issue whose project is archived.
         // The JOIN condition lives in `.on(...)`, not in WHERE — pins

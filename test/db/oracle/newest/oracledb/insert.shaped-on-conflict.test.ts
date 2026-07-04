@@ -423,6 +423,44 @@ describe(ctx.label, () => {
     })
     */
 
+    // NOT-APPLICABLE: Oracle has no INSERT…ON CONFLICT (uses MERGE), so the bare `onConflictDoNothing` form is not typed on OracleConnection.
+    /*
+    test('shaped-single-row-bare-on-conflict-do-nothing', async () => {
+        // Shaped single-row `.set({...})` + bare `onConflictDoNothing()`: the shaped
+        // keys supply the required columns, then the conflict suppresses the insert.
+        // (org 1, 'mktg-site') already exists → 0 inserted. Bare `onConflictDoNothing()`
+        // needs no conflict-inference target (only bare `onConflictDoUpdateSet` does).
+        ctx.mockNext(0)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.insertInto(tProject)
+                .shapedAs({
+                    orgId:       'organizationId',
+                    projectName: 'name',
+                    projectSlug: 'slug',
+                })
+                .set({
+                    orgId:       1,
+                    projectName: 'Dup A',
+                    projectSlug: 'mktg-site',
+                })
+                .onConflictDoNothing()
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values ($1, $2, $3) on conflict do nothing"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "Dup A",
+                "mktg-site",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            if (ctx.realDbEnabled) expect(typeof affected).toBe('number')
+            else expect(affected).toBe(0)
+        })
+    })
+    */
+
     // NOT-APPLICABLE: Oracle has no INSERT…ON CONFLICT (uses MERGE), so the bare `onConflictDoUpdateSet` / `onConflictDoNothing` form is not typed on OracleConnection.
     /*
     test('shaped-multi-row-bare-on-conflict-do-nothing', async () => {

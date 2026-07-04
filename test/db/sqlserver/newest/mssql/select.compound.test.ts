@@ -283,8 +283,7 @@ describe(ctx.label, () => {
     test('compound-with-optional-seed-column-yields-optional-result', async () => {
         // the compound result optionality is decided by the SEED (first)
         // query. Here the seed projects the optional column `archivedAt`, so
-        // the merged column stays optional (`a?`) — distinct from every other
-        // compound test, which seeds a required column. Both branches filter to
+        // the merged column stays optional (`a?`). Both branches filter to
         // the NULL-archivedAt projects so the union dedups to a single absent
         // value (project 4's archived_at is a non-deterministic
         // CURRENT_TIMESTAMP, so it is excluded).
@@ -793,5 +792,64 @@ describe(ctx.label, () => {
           ]
         `)
         expect(none).toBeNull()
+    })
+
+    test('one-column-compound-executes-directly-to-scalar-array', async () => {
+        // A compound of two one-column selects (`selectOneColumn(...)`) executed
+        // directly with `executeSelectMany`: the result is a bare scalar array
+        // (`string[]`), not `Array<{...}>`. project 1's name ('Marketing site') ∪
+        // project 2's slug ('tools'), ordered ascending.
+        const expected = ['Marketing site', 'tools']
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .selectOneColumn(tProject.name)
+            .union(
+                ctx.conn.selectFrom(tProject)
+                    .where(tProject.id.equals(2))
+                    .selectOneColumn(tProject.slug),
+            )
+            .orderBy('result')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as [result] from project where id = @0 union select slug as [result] from project where id = @1 order by [result]"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof result, string[]>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('compound-with-limit-if-value-null-and-offset-if-value-null-omits-both-clauses', async () => {
+        // `.limitIfValue(null).offsetIfValue(null)` on a compound: a null count /
+        // offset elides the clause, so neither LIMIT nor OFFSET is emitted and the
+        // full 8-row union comes back ordered.
+        const expected = [
+            { label: 'Document /v2/users' },
+            { label: 'Internal tools' },
+            { label: 'Legacy app' },
+            { label: 'Marketing site' },
+            { label: 'Migrate to ESM' },
+            { label: 'Public API' },
+            { label: 'Redesign navbar' },
+            { label: 'Update hero copy' },
+        ]
+        ctx.mockNext(expected)
+        const count: number | null = null
+        const offset: number | null = null
+        const result = await ctx.conn.selectFrom(tProject).select({ label: tProject.name })
+            .union(ctx.conn.selectFrom(tIssue).select({ label: tIssue.title }))
+            .orderBy('label')
+            .limitIfValue(count)
+            .offsetIfValue(offset)
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as [label] from project union select title as [label] from issue order by [label]"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ label: string }>>>()
+        expect(result).toEqual(expected)
     })
 })

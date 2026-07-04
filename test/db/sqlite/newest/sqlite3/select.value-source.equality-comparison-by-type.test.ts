@@ -1644,8 +1644,7 @@ describe(ctx.label, () => {
     // ==================================================================
     // The Equalable + Comparable surface on the REQUIRED
     // custom-temporal / localTime receivers publishedAt (customLocalDateTime
-    // 'PublishStamp') and reviewTime (plain localTime). These receivers were
-    // custom-temporal / localTime receivers; each test below
+    // 'PublishStamp') and reviewTime (plain localTime). Each test
     // exercises equals / is / between / a single-bound ordered comparison / in
     // with CONST operands so the whole comparison surface per receiver is
     // pinned. Const operands are built with new Date(Date.UTC(...)) under the
@@ -3473,5 +3472,43 @@ describe(ctx.label, () => {
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release order by id"`)
         expect(notInElide).toEqual(all)
+    })
+
+    // ------------------------------------------------------------------
+    // plain boolean — tIssueWorklog.billable (optional boolean):
+    //   worklog 1 -> TRUE, 2 -> FALSE, 3 -> NULL.
+    // ------------------------------------------------------------------
+
+    test('plain-boolean-is-not-and-is-not-null', async () => {
+        // `.isNot(true)` is the null-safe negation: it matches FALSE *and* NULL
+        // (worklogs 2, 3) — unlike `notEquals(true)`, which NULL semantics would
+        // exclude. `.isNotNull()` matches every non-null row (worklogs 1, 2).
+        const expectedIsNot = [{ id: 2 }, { id: 3 }]
+        ctx.mockNext(expectedIsNot)
+        const isNot = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.billable.isNot(true))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable is not ? order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            true,
+          ]
+        `)
+        assertType<Exact<typeof isNot, Array<{ id: number }>>>()
+        expect(isNot).toEqual(expectedIsNot)
+
+        const expectedNotNull = [{ id: 1 }, { id: 2 }]
+        ctx.mockNext(expectedNotNull)
+        const notNull = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.billable.isNotNull())
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable is not null order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof notNull, Array<{ id: number }>>>()
+        expect(notNull).toEqual(expectedNotNull)
     })
 })

@@ -22,6 +22,31 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
+    // NOT-APPLICABLE: SQLite does not support DELETE … USING; the library type-excludes it for sqlite connections.
+    /*
+    test('delete-using-table-then-inner-join-on-using-tables', async () => {
+        // `deleteFrom(t).using(u1).innerJoin(u2).on(...)` — a JOIN after `.using()`.
+        // The join links the two USING tables to each other (project ↔ organization)
+        // while the delete target `issue` is joined in the WHERE. Delete project 2's
+        // only issue (issue 3): project 2 → issue 3 → 1 row.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.deleteFrom(tIssue)
+                .using(tProject)
+                .innerJoin(tOrganization).on(tOrganization.id.equals(tProject.organizationId))
+                .where(tIssue.projectId.equals(tProject.id))
+                    .and(tProject.id.equals(2))
+                .executeDelete()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof affected, number>>()
+            if (ctx.realDbEnabled) expect(typeof affected).toBe('number')
+            else expect(affected).toBe(1)
+        })
+    })
+    */
+
     // NOT-APPLICABLE: SQLite does not support multi-table DELETE; `.innerJoin` / `.leftJoin` on DELETE are typed `never` for sqlite. On SQLite use `DELETE FROM t WHERE id IN (SELECT …)` — see `delete.where-in-subquery.test.ts`.
     /*
     test('delete-with-inner-join-on-condition', async () => {

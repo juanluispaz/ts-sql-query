@@ -535,4 +535,53 @@ describe(ctx.label, () => {
         })
     })
 
+
+    test('double-column-receiver-overloaded-arithmetic-threads-optional-and-emits-uncast', async () => {
+        // The 6 overloaded-arithmetic ops (add/subtract/multiply/modulo/minValue/
+        // maxValue) on a raw optional-`double` column receiver (`estimatedHours`)
+        // with const right operands: the emission is un-cast (`estimated_hours + $1`,
+        // not `estimated_hours::float`) and the optional flag threads through every
+        // operator (`?: number`). estimated_hours has no seed value (NULL), so it is
+        // set to 4 inside the rollback: add(1.5)=5.5, subtract(1.5)=2.5, multiply(2)=8,
+        // modulo(3)=1, minValue(5)=greatest(4,5)=5, maxValue(3)=least(4,3)=3.
+        await ctx.withRollback(async () => {
+            ctx.mockNext(1)
+            await ctx.conn.update(tIssue)
+                .set({ estimatedHours: 4 })
+                .where(tIssue.id.equals(1))
+                .executeUpdate()
+
+            const expected = { id: 1, a: 5.5, s: 2.5, mu: 8, mo: 1, mn: 5, mx: 3 }
+            ctx.mockNext(expected)
+            const row = await ctx.conn.selectFrom(tIssue)
+                .where(tIssue.id.equals(1))
+                .select({
+                    id: tIssue.id,
+                    a:  tIssue.estimatedHours.add(1.5),
+                    s:  tIssue.estimatedHours.subtract(1.5),
+                    mu: tIssue.estimatedHours.multiply(2),
+                    mo: tIssue.estimatedHours.modulo(3),
+                    mn: tIssue.estimatedHours.minValue(5),
+                    mx: tIssue.estimatedHours.maxValue(3),
+                })
+                .executeSelectOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", estimated_hours + :0 as "a", estimated_hours - :1 as "s", estimated_hours * :2 as "mu", mod(estimated_hours, :3) as "mo", greatest(estimated_hours, :4) as "mn", least(estimated_hours, :5) as "mx" from issue where id = :6"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1.5,
+                1.5,
+                2,
+                3,
+                5,
+                3,
+                1,
+              ]
+            `)
+            assertType<Exact<typeof row, {
+                id: number; a?: number; s?: number; mu?: number; mo?: number; mn?: number; mx?: number
+            }>>()
+            expect(row).toEqual(expected)
+        })
+    })
 })

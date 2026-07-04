@@ -79,51 +79,64 @@ export type AllFromSameLeftJoinWithOriginallyRequired<TYPE> = FalseWhenNever<
     }[RequiredKeys<TYPE>]>
 
 export type ContainsRequired<TYPE> = FalseWhenNever<
-    { [K in RequiredKeys<TYPE>]-?: 
+    { [K in RequiredKeys<TYPE>]-?:
         TYPE[K] extends IValueSource<any, any, any, infer OPTIONAL_TYPE> | undefined
         ? IsRequired<OPTIONAL_TYPE>
-        // Innet object, rule 1 and 2 must be discarded before check if it contains required properties
-        : ContainsRequiredInOptionalObject<TYPE> extends true ? false
-        : AllFromSameLeftJoinWithOriginallyRequired<TYPE> extends true ? false
-        : ContainsRequired2<TYPE>
+        // Inner object: it only makes the container required when the inner object is itself a
+        // required object (rule 3). Rules 1 and 2 make the inner object optional, so they must be
+        // discarded first (on the inner object, not on the container); an optional inner object
+        // contributes `never` (like a non-required leaf) so it doesn't pollute the union.
+        : ContainsRequiredInOptionalObject<NonNullable<TYPE[K]>> extends true ? never
+        : AllFromSameLeftJoinWithOriginallyRequired<NonNullable<TYPE[K]>> extends true ? never
+        : ContainsRequired2<NonNullable<TYPE[K]>> extends true ? true
+        : never
     }[RequiredKeys<TYPE>]>
 
 type ContainsRequired2<TYPE> = FalseWhenNever<
-    { [K in RequiredKeys<TYPE>]-?: 
+    { [K in RequiredKeys<TYPE>]-?:
         TYPE[K] extends IValueSource<any, any, any, infer OPTIONAL_TYPE> | undefined
         ? IsRequired<OPTIONAL_TYPE>
-        // Innet object, rule 1 and 2 must be discarded before check if it contains required properties
-        : ContainsRequiredInOptionalObject<TYPE> extends true ? false
-        : AllFromSameLeftJoinWithOriginallyRequired<TYPE> extends true ? false
-        : ContainsRequired3<TYPE>
+        // Inner object, rule 1 and 2 must be discarded (on the inner object) before checking if it
+        // is a required object; an optional inner object contributes `never`.
+        : ContainsRequiredInOptionalObject<NonNullable<TYPE[K]>> extends true ? never
+        : AllFromSameLeftJoinWithOriginallyRequired<NonNullable<TYPE[K]>> extends true ? never
+        : ContainsRequired3<NonNullable<TYPE[K]>> extends true ? true
+        : never
     }[RequiredKeys<TYPE>]>
 
 type ContainsRequired3<TYPE> = FalseWhenNever<
-    { [K in RequiredKeys<TYPE>]-?: 
+    { [K in RequiredKeys<TYPE>]-?:
         TYPE[K] extends IValueSource<any, any, any, infer OPTIONAL_TYPE> | undefined
         ? IsRequired<OPTIONAL_TYPE>
-        // Innet object, rule 1 and 2 must be discarded before check if it contains required properties
-        : ContainsRequiredInOptionalObject<TYPE> extends true ? false
-        : AllFromSameLeftJoinWithOriginallyRequired<TYPE> extends true ? false
-        : ContainsRequired4<TYPE>
+        // Inner object, rule 1 and 2 must be discarded (on the inner object) before checking if it
+        // is a required object; an optional inner object contributes `never`.
+        : ContainsRequiredInOptionalObject<NonNullable<TYPE[K]>> extends true ? never
+        : AllFromSameLeftJoinWithOriginallyRequired<NonNullable<TYPE[K]>> extends true ? never
+        : ContainsRequired4<NonNullable<TYPE[K]>> extends true ? true
+        : never
     }[RequiredKeys<TYPE>]>
 
 type ContainsRequired4<TYPE> = FalseWhenNever<
-    { [K in RequiredKeys<TYPE>]-?: 
+    { [K in RequiredKeys<TYPE>]-?:
         TYPE[K] extends IValueSource<any, any, any, infer OPTIONAL_TYPE> | undefined
         ? IsRequired<OPTIONAL_TYPE>
-        // Innet object, rule 1 and 2 must be discarded before check if it contains required properties
-        : ContainsRequiredInOptionalObject<TYPE> extends true ? false
-        : AllFromSameLeftJoinWithOriginallyRequired<TYPE> extends true ? false
-        : ContainsRequired5<TYPE>
+        // Inner object, rule 1 and 2 must be discarded (on the inner object) before checking if it
+        // is a required object; an optional inner object contributes `never`.
+        : ContainsRequiredInOptionalObject<NonNullable<TYPE[K]>> extends true ? never
+        : AllFromSameLeftJoinWithOriginallyRequired<NonNullable<TYPE[K]>> extends true ? never
+        : ContainsRequired5<NonNullable<TYPE[K]>> extends true ? true
+        : never
     }[RequiredKeys<TYPE>]>
-    
+
 type ContainsRequired5<TYPE> = FalseWhenNever<
-    { [K in RequiredKeys<TYPE>]-?: 
+    { [K in RequiredKeys<TYPE>]-?:
         TYPE[K] extends IValueSource<any, any, any, infer OPTIONAL_TYPE> | undefined
         ? IsRequired<OPTIONAL_TYPE>
-        // Innet object, rule 1 and 2 must be discarded before check if it contains required properties
-        // but the nesting limit was reach, assuming it is required
+        // Inner object, rule 1 and 2 must be discarded (on the inner object) before checking if it
+        // is a required object, but the nesting limit was reached, so a still-nested inner object is
+        // assumed to be required.
+        : ContainsRequiredInOptionalObject<NonNullable<TYPE[K]>> extends true ? never
+        : AllFromSameLeftJoinWithOriginallyRequired<NonNullable<TYPE[K]>> extends true ? never
         : true
     }[RequiredKeys<TYPE>]>
 

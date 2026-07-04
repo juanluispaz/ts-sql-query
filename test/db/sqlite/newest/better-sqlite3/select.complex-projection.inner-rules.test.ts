@@ -1535,11 +1535,12 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-    test('sole-optional-inner-own-table-rule-4-object-keeps-wrapper-required-default', async () => {
+    test('sole-optional-inner-own-table-rule-4-object-makes-wrapper-optional-present-default', async () => {
         // A nested object (`wrapper`) whose sole member is an all-optional inner
-        // object (no scalar sibling): the inner container is optional (`inner?`) and
-        // the outer `wrapper` is required. Both issues carry a non-null body +
-        // assignee, so the inner is present on every row.
+        // object (no scalar sibling): the container recursively inherits the
+        // optionality of its sole optional member, so the outer `wrapper` is optional
+        // (`wrapper?`). Both issues carry a non-null body + assignee, so the inner is
+        // present on every row and `wrapper` is present.
         // issue 2 (project 1): body 'Use new tokens', assignee 2.
         // issue 4 (project 3): body 'See ADR-014',    assignee 3.
         ctx.mockNext([
@@ -1567,14 +1568,15 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{
-            iid:     number
-            wrapper: { inner?: { body: string | undefined; assigneeId: number | undefined } | undefined }
+            iid:      number
+            wrapper?: { inner: { body: string | undefined; assigneeId: number | undefined } | undefined }
         }>>>()
         expect(rows).toEqual(expected)
     })
 
-    test('sole-optional-inner-own-table-rule-4-object-keeps-wrapper-required-as-nullable', async () => {
-        // Under `projectingOptionalValuesAsNullable()`: `wrapper` stays required, the
+    test('sole-optional-inner-own-table-rule-4-object-makes-wrapper-optional-present-as-nullable', async () => {
+        // Under `projectingOptionalValuesAsNullable()`: the container inherits its sole
+        // optional member's nullability, so `wrapper` becomes `{...} | null`; the
         // all-optional inner object becomes `{...} | null`, and its leaves flip to
         // `| null`. Both rows carry a present inner (non-null leaves).
         ctx.mockNext([
@@ -1604,17 +1606,17 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{
             iid:     number
-            wrapper: { inner: { body: string | null; assigneeId: number | null } | null }
+            wrapper: { inner: { body: string | null; assigneeId: number | null } | null } | null
         }>>>()
         expect(rows).toEqual(expected)
     })
 
-    test('sole-optional-inner-left-join-rule-2-object-keeps-wrapper-required-default', async () => {
+    test('sole-optional-inner-left-join-rule-2-object-makes-wrapper-optional-present-default', async () => {
         // The left-join case: `wrapper`'s sole member is an inner object whose leaves
         // all come from the same left join (`id`/`number`, originallyRequired). The
-        // outer `wrapper` is required, the inner container is optional (`inner?`), and
-        // its leaves stay required-when-present. Both projects join to exactly one
-        // issue, so the inner is present on every row.
+        // container inherits its sole optional member's optionality, so the outer
+        // `wrapper` is optional (`wrapper?`) and its leaves stay required-when-present.
+        // Both projects join to exactly one issue, so the inner is present on every row.
         // project 2 → issue 3 (num 1); project 3 → issue 4 (num 1).
         ctx.mockNext([
             { pid: 2, 'wrapper.inner.iid': 3, 'wrapper.inner.num': 1 },
@@ -1643,14 +1645,15 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{
-            pid:     number
-            wrapper: { inner?: { iid: number; num: number } | undefined }
+            pid:      number
+            wrapper?: { inner: { iid: number; num: number } | undefined }
         }>>>()
         expect(rows).toEqual(expected)
     })
 
-    test('sole-optional-inner-left-join-rule-2-object-keeps-wrapper-required-as-nullable', async () => {
-        // Under `projectingOptionalValuesAsNullable()`: `wrapper` stays required, the
+    test('sole-optional-inner-left-join-rule-2-object-makes-wrapper-optional-present-as-nullable', async () => {
+        // Under `projectingOptionalValuesAsNullable()`: the container inherits its sole
+        // optional member's nullability, so `wrapper` becomes `{...} | null`; the
         // left-join inner becomes `{...} | null`, and the originallyRequired leaves
         // stay required inside it. Both projects join.
         ctx.mockNext([
@@ -1682,20 +1685,18 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{
             pid:     number
-            wrapper: { inner: { iid: number; num: number } | null }
+            wrapper: { inner: { iid: number; num: number } | null } | null
         }>>>()
         expect(rows).toEqual(expected)
     })
 
-    test('sole-optional-inner-own-table-rule-4-collapse-drops-wrapper-though-type-requires-it-default', async () => {
+    test('sole-optional-inner-own-table-rule-4-collapse-drops-wrapper-and-type-is-optional-default', async () => {
         // When the sole all-optional inner object collapses (every leaf null), the
         // default asUndefined projector DROPS the whole `wrapper` container at
-        // runtime, yet the type keeps `wrapper` required — so `row.wrapper.inner`
-        // is unsound (typed present, absent at runtime).
+        // runtime. The container recursively inherits the optionality of its sole
+        // optional member, so `wrapper` is typed optional (`wrapper?`) — matching
+        // the runtime, which omits the key.
         // issue 3: body null, assignee null → inner collapses → wrapper dropped.
-        // TODO[BUG]: see BUGS.md — a nested object whose sole member is an
-        // all-optional inner is typed required, but the container is dropped
-        // (default mode) at runtime when that only inner collapses.
         ctx.mockNext({ iid: 3, 'wrapper.inner.body': null, 'wrapper.inner.assigneeId': null })
         const expected = { iid: 3 }
         const row = await ctx.conn.selectFrom(tIssue)
@@ -1713,22 +1714,20 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof row, {
-            iid:     number
-            wrapper: { inner?: { body: string | undefined; assigneeId: number | undefined } | undefined }
+            iid:      number
+            wrapper?: { inner: { body: string | undefined; assigneeId: number | undefined } | undefined }
         }>>()
         expect(row).toEqual(expected)
-        // The type guarantees `wrapper` is present, but at runtime the key is ABSENT.
+        // The optional `wrapper` key is ABSENT at runtime (the sole inner collapsed).
         expect('wrapper' in row).toBe(false)
     })
 
-    test('sole-optional-inner-own-table-rule-4-collapse-nulls-wrapper-though-type-requires-it-as-nullable', async () => {
+    test('sole-optional-inner-own-table-rule-4-collapse-nulls-wrapper-and-type-is-nullable-as-nullable', async () => {
         // Under projectingOptionalValuesAsNullable(), the collapsed sole inner makes
-        // the projector emit `wrapper: null` at runtime, yet the type keeps
-        // `wrapper` required (no `| null`) — so `row.wrapper` is typed non-null but
-        // is null. issue 3: body null, assignee null → inner collapses → wrapper null.
-        // TODO[BUG]: see BUGS.md — a nested object whose sole member is an
-        // all-optional inner is typed required, but the container is null
-        // (as-nullable mode) at runtime when that only inner collapses.
+        // the projector emit `wrapper: null` at runtime. The container recursively
+        // inherits the optionality of its sole optional member, so `wrapper` is typed
+        // `{...} | null` — matching the runtime null.
+        // issue 3: body null, assignee null → inner collapses → wrapper null.
         ctx.mockNext({ iid: 3, 'wrapper.inner.body': null, 'wrapper.inner.assigneeId': null })
         const expected = { iid: 3, wrapper: null }
         const row = await ctx.conn.selectFrom(tIssue)
@@ -1748,19 +1747,18 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof row, {
             iid:     number
-            wrapper: { inner: { body: string | null; assigneeId: number | null } | null }
+            wrapper: { inner: { body: string | null; assigneeId: number | null } | null } | null
         }>>()
         expect(row).toEqual(expected)
     })
 
-    test('sole-optional-inner-left-join-rule-2-collapse-drops-wrapper-though-type-requires-it-default', async () => {
+    test('sole-optional-inner-left-join-rule-2-collapse-drops-wrapper-and-type-is-optional-default', async () => {
         // The left-join case: when the join misses, the sole inner's leaves are all
         // null, the inner collapses, and the default asUndefined projector DROPS the
-        // whole `wrapper` container at runtime — yet the type keeps `wrapper`
-        // required. project 4 has no issue → left join misses → wrapper dropped.
-        // TODO[BUG]: see BUGS.md — a nested object whose sole member is an
-        // all-optional inner is typed required, but the container is dropped
-        // (default mode) at runtime when that only inner collapses.
+        // whole `wrapper` container at runtime. The container recursively inherits the
+        // optionality of its sole optional member, so `wrapper` is typed optional
+        // (`wrapper?`) — matching the runtime.
+        // project 4 has no issue → left join misses → wrapper dropped.
         ctx.mockNext({ pid: 4, 'wrapper.inner.iid': null, 'wrapper.inner.num': null })
         const expected = { pid: 4 }
         const tIssueLeft = tIssue.forUseInLeftJoin()
@@ -1780,22 +1778,20 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof row, {
-            pid:     number
-            wrapper: { inner?: { iid: number; num: number } | undefined }
+            pid:      number
+            wrapper?: { inner: { iid: number; num: number } | undefined }
         }>>()
         expect(row).toEqual(expected)
-        // The type guarantees `wrapper` is present, but at runtime the key is ABSENT.
+        // The optional `wrapper` key is ABSENT at runtime (the sole inner collapsed).
         expect('wrapper' in row).toBe(false)
     })
 
-    test('sole-optional-inner-left-join-rule-2-collapse-nulls-wrapper-though-type-requires-it-as-nullable', async () => {
+    test('sole-optional-inner-left-join-rule-2-collapse-nulls-wrapper-and-type-is-nullable-as-nullable', async () => {
         // Under projectingOptionalValuesAsNullable(), a missed left join collapses
-        // the sole inner and the projector emits `wrapper: null` at runtime, yet the
-        // type keeps `wrapper` required (no `| null`).
+        // the sole inner and the projector emits `wrapper: null` at runtime. The
+        // container recursively inherits the optionality of its sole optional member,
+        // so `wrapper` is typed `{...} | null` — matching the runtime null.
         // project 4 has no issue → left join misses → wrapper null.
-        // TODO[BUG]: see BUGS.md — a nested object whose sole member is an
-        // all-optional inner is typed required, but the container is null
-        // (as-nullable mode) at runtime when that only inner collapses.
         ctx.mockNext({ pid: 4, 'wrapper.inner.iid': null, 'wrapper.inner.num': null })
         const expected = { pid: 4, wrapper: null }
         const tIssueLeft = tIssue.forUseInLeftJoin()
@@ -1817,7 +1813,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof row, {
             pid:     number
-            wrapper: { inner: { iid: number; num: number } | null }
+            wrapper: { inner: { iid: number; num: number } | null } | null
         }>>()
         expect(row).toEqual(expected)
     })

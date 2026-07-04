@@ -67,48 +67,7 @@ of that. Two minutes of triage and one paragraph is the bar.
 
 ## Open Bugs
 
-## A nested object whose sole member is an all-optional inner object is typed required but dropped / nulled at runtime
-
-**Where**: complex-projection result-shape logic — the two runtime
-projectors in `src/complexProjections/` (`resultWithOptionalsAsUndefined`
-and `resultWithOptionalsAsNull`) collapse the container, but the
-result-**type** computed for a `select({ ... })` nested object keeps the
-container required. The mismatch is between the runtime shape and the
-inferred type, so the fix is in the type-level projection (the runtime is
-already correct).
-
-**Reproduction**: project a nested object whose **only** member is another
-nested object made entirely of optional/left-join leaves, so the inner
-object is optional (`inner?`) but the outer container has no other member
-to keep it present:
-
-```ts
-conn.selectFrom(tIssue)
-    .where(tIssue.id.equals(3)) // body null, assignee null → inner collapses
-    .select({ iid: tIssue.id, wrapper: { inner: { body: tIssue.body, assigneeId: tIssue.assigneeId } } })
-    .executeSelectOne()
-```
-
-The inferred type is `{ iid: number; wrapper: { inner?: {...} | undefined } }`
-— `wrapper` **required**. But when the sole inner collapses (every leaf
-null, or a missed left join) the runtime returns:
-
-- default (asUndefined): `{ iid: 3 }` — `wrapper` key **absent**.
-- `projectingOptionalValuesAsNullable()`: `{ iid: 3, wrapper: null }`.
-
-So `row.wrapper.inner`, type-safe per the inferred type, is `undefined.inner`
-(throws) or `null.inner` at runtime. The outer container should recursively
-inherit the optionality of its sole optional member: `wrapper?` in the
-default mode and `wrapper: {...} | null` under
-`projectingOptionalValuesAsNullable()`.
-
-**Current workaround in the suite**: four live tests named
-`sole-optional-inner-{own-table-rule-4,left-join-rule-2}-collapse-{drops,nulls}-wrapper-though-type-requires-it-{default,as-nullable}`
-in `select.complex-projection.inner-rules.test.ts` (all 17 cells) assert
-the current wrong behaviour — the unsound required type via `assertType`
-plus the collapsed runtime value (`wrapper` absent / null) — each marked
-`// TODO[BUG]`. The present-case siblings
-(`...-keeps-wrapper-required-...`) stay correct and are unaffected.
+_None currently open._
 
 ## Common bug shapes (for the fixing agent)
 

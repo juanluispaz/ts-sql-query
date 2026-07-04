@@ -1686,4 +1686,139 @@ describe(ctx.label, () => {
         }>>>()
         expect(rows).toEqual(expected)
     })
+
+    test('sole-optional-inner-own-table-rule-4-collapse-drops-wrapper-though-type-requires-it-default', async () => {
+        // When the sole all-optional inner object collapses (every leaf null), the
+        // default asUndefined projector DROPS the whole `wrapper` container at
+        // runtime, yet the type keeps `wrapper` required — so `row.wrapper.inner`
+        // is unsound (typed present, absent at runtime).
+        // issue 3: body null, assignee null → inner collapses → wrapper dropped.
+        // TODO[BUG]: see BUGS.md — a nested object whose sole member is an
+        // all-optional inner is typed required, but the container is dropped
+        // (default mode) at runtime when that only inner collapses.
+        ctx.mockNext({ iid: 3, 'wrapper.inner.body': null, 'wrapper.inner.assigneeId': null })
+        const expected = { iid: 3 }
+        const row = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(3))
+            .select({
+                iid:     tIssue.id,
+                wrapper: { inner: { body: tIssue.body, assigneeId: tIssue.assigneeId } },
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as "wrapper.inner.body", assignee_id as "wrapper.inner.assigneeId" from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            iid:     number
+            wrapper: { inner?: { body: string | undefined; assigneeId: number | undefined } | undefined }
+        }>>()
+        expect(row).toEqual(expected)
+        // The type guarantees `wrapper` is present, but at runtime the key is ABSENT.
+        expect('wrapper' in row).toBe(false)
+    })
+
+    test('sole-optional-inner-own-table-rule-4-collapse-nulls-wrapper-though-type-requires-it-as-nullable', async () => {
+        // Under projectingOptionalValuesAsNullable(), the collapsed sole inner makes
+        // the projector emit `wrapper: null` at runtime, yet the type keeps
+        // `wrapper` required (no `| null`) — so `row.wrapper` is typed non-null but
+        // is null. issue 3: body null, assignee null → inner collapses → wrapper null.
+        // TODO[BUG]: see BUGS.md — a nested object whose sole member is an
+        // all-optional inner is typed required, but the container is null
+        // (as-nullable mode) at runtime when that only inner collapses.
+        ctx.mockNext({ iid: 3, 'wrapper.inner.body': null, 'wrapper.inner.assigneeId': null })
+        const expected = { iid: 3, wrapper: null }
+        const row = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(3))
+            .select({
+                iid:     tIssue.id,
+                wrapper: { inner: { body: tIssue.body, assigneeId: tIssue.assigneeId } },
+            })
+            .projectingOptionalValuesAsNullable()
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as "wrapper.inner.body", assignee_id as "wrapper.inner.assigneeId" from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            iid:     number
+            wrapper: { inner: { body: string | null; assigneeId: number | null } | null }
+        }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('sole-optional-inner-left-join-rule-2-collapse-drops-wrapper-though-type-requires-it-default', async () => {
+        // The left-join case: when the join misses, the sole inner's leaves are all
+        // null, the inner collapses, and the default asUndefined projector DROPS the
+        // whole `wrapper` container at runtime — yet the type keeps `wrapper`
+        // required. project 4 has no issue → left join misses → wrapper dropped.
+        // TODO[BUG]: see BUGS.md — a nested object whose sole member is an
+        // all-optional inner is typed required, but the container is dropped
+        // (default mode) at runtime when that only inner collapses.
+        ctx.mockNext({ pid: 4, 'wrapper.inner.iid': null, 'wrapper.inner.num': null })
+        const expected = { pid: 4 }
+        const tIssueLeft = tIssue.forUseInLeftJoin()
+        const row = await ctx.conn.selectFrom(tProject)
+            .leftJoin(tIssueLeft).on(tIssueLeft.projectId.equals(tProject.id))
+            .where(tProject.id.equals(4))
+            .select({
+                pid:     tProject.id,
+                wrapper: { inner: { iid: tIssueLeft.id, num: tIssueLeft.number } },
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.id as "wrapper.inner.iid", issue.number as "wrapper.inner.num" from project left join issue on issue.project_id = project.id where project.id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            4,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            pid:     number
+            wrapper: { inner?: { iid: number; num: number } | undefined }
+        }>>()
+        expect(row).toEqual(expected)
+        // The type guarantees `wrapper` is present, but at runtime the key is ABSENT.
+        expect('wrapper' in row).toBe(false)
+    })
+
+    test('sole-optional-inner-left-join-rule-2-collapse-nulls-wrapper-though-type-requires-it-as-nullable', async () => {
+        // Under projectingOptionalValuesAsNullable(), a missed left join collapses
+        // the sole inner and the projector emits `wrapper: null` at runtime, yet the
+        // type keeps `wrapper` required (no `| null`).
+        // project 4 has no issue → left join misses → wrapper null.
+        // TODO[BUG]: see BUGS.md — a nested object whose sole member is an
+        // all-optional inner is typed required, but the container is null
+        // (as-nullable mode) at runtime when that only inner collapses.
+        ctx.mockNext({ pid: 4, 'wrapper.inner.iid': null, 'wrapper.inner.num': null })
+        const expected = { pid: 4, wrapper: null }
+        const tIssueLeft = tIssue.forUseInLeftJoin()
+        const row = await ctx.conn.selectFrom(tProject)
+            .leftJoin(tIssueLeft).on(tIssueLeft.projectId.equals(tProject.id))
+            .where(tProject.id.equals(4))
+            .select({
+                pid:     tProject.id,
+                wrapper: { inner: { iid: tIssueLeft.id, num: tIssueLeft.number } },
+            })
+            .projectingOptionalValuesAsNullable()
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.id as "wrapper.inner.iid", issue.number as "wrapper.inner.num" from project left join issue on issue.project_id = project.id where project.id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            4,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            pid:     number
+            wrapper: { inner: { iid: number; num: number } | null }
+        }>>()
+        expect(row).toEqual(expected)
+    })
 })

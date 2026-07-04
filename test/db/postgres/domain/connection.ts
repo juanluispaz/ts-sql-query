@@ -675,6 +675,10 @@ export const vReleaseOverview = new class VReleaseOverview extends View<DBConnec
     releaseDayPlain = this.column('release_day_plain', 'localDate')
     cutoffPlain     = this.column('cutoff_plain', 'localTime')
     releaseOrdinal  = this.column<ReleaseTag, 'ReleaseTag'>('release_ordinal', 'customInt', 'ReleaseTag', plusOffsetAdapter)
+    // A nullable custom-kind (customInt / ReleaseTag) VIEW column carrying a
+    // trailing TypeAdapter (plusOffsetAdapter, read +1000). The view computes it
+    // as the release id when download_count is present, else NULL.
+    optionalReleaseOrdinal = this.optionalColumn<ReleaseTag, 'ReleaseTag'>('optional_release_ordinal', 'customInt', 'ReleaseTag', plusOffsetAdapter)
     constructor() { super('release_overview') }
 }()
 

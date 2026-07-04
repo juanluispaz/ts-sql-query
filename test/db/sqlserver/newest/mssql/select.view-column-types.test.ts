@@ -184,6 +184,36 @@ describe(ctx.label, () => {
         expect('channelBracketed' in rows[1]!).toBe(false)
     })
 
+    test('view-side-optional-custom-kind-adapter-column-reads-present-and-absent', async () => {
+        // `optionalReleaseOrdinal` is an OPTIONAL VIEW column of a CUSTOM kind
+        // (customInt / ReleaseTag) carrying a trailing plusOffsetAdapter (read +1000).
+        // The view computes it as the release id when download_count is present, else
+        // NULL. release 1 (download present) → id 1 → +1000 → 1001; release 2
+        // (download NULL) → NULL → the optional key is absent (the adapter passes the
+        // null through); release 3 → id 3 → 1003.
+        const expected = [
+            { id: 1, optionalReleaseOrdinal: 1001 as ReleaseTag },
+            { id: 2 },
+            { id: 3, optionalReleaseOrdinal: 1003 as ReleaseTag },
+        ]
+        ctx.mockNext([
+            { id: 1, optionalReleaseOrdinal: 1 },
+            { id: 2, optionalReleaseOrdinal: null },
+            { id: 3, optionalReleaseOrdinal: 3 },
+        ])
+        const rows = await ctx.conn.selectFrom(vReleaseOverview)
+            .select({ id: vReleaseOverview.id, optionalReleaseOrdinal: vReleaseOverview.optionalReleaseOrdinal })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, optional_release_ordinal as optionalReleaseOrdinal from release_overview order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ id: number; optionalReleaseOrdinal?: ReleaseTag }>>>()
+        expect(rows).toEqual(expected)
+        // release 2's optional_release_ordinal is NULL, so the optional key is
+        // ABSENT (the adapter passed the null through).
+        expect('optionalReleaseOrdinal' in rows[1]!).toBe(false)
+    })
+
     test('view-side-optional-virtual-column-with-adapter-reads-through-the-adapter', async () => {
         // `versionUpperTagged` is a View OPTIONAL virtualColumnFromFragment
         // (upper(version)) carrying a trailing bracketAdapter. The fragment

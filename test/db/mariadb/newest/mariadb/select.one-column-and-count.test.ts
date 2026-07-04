@@ -84,6 +84,27 @@ describe(ctx.label, () => {
         expect(result).toBeNull()
     })
 
+    test('select-one-column-optional-present-row-null-value', async () => {
+        // A one-column OPTIONAL scalar whose row exists but whose value is NULL:
+        // issue 3 exists but its `body` is NULL, so
+        // `selectOneColumn(tIssue.body).executeSelectOne()` returns a present-row
+        // null (`string | null`), not a thrown NO_RESULT.
+        ctx.mockNext(null)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(3))
+            .selectOneColumn(tIssue.body)
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`body\` as result from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+          ]
+        `)
+        assertType<Exact<typeof result, string | null>>()
+        expect(result).toBeNull()
+    })
+
     test('select-count-all-emits-count-star', async () => {
         // `selectCountAll()` is a shorthand for an int-result query.
         // The SQL must be `count(*)` (or the dialect equivalent),

@@ -27,6 +27,44 @@ describe(ctx.label, () => {
 
     // NOT-APPLICABLE: SQL Server has no INSERT…ON CONFLICT (uses MERGE)
     /*
+    test('set-when-false-is-noop-true-overrides', async () => {
+        // setWhen(false) returns `this` so the staged `projectName` ('Reactivated')
+        // stays. setWhen(true) unconditionally overwrites `name`. Same column list,
+        // only the param value differs.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tProject)
+                .shapedAs({ orgId: 'organizationId', projectName: 'name', projectSlug: 'slug', archived: 'archivedAt' })
+                .set({ orgId: 1, projectName: 'ignored', projectSlug: 'mktg-site' })
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doUpdateDynamicSet({ projectName: 'Reactivated' })
+                .setWhen(false, { projectName: 'Overridden via when' })
+                .executeInsert()
+            const falseSql = ctx.lastSql
+            const falseParams = ctx.lastParams
+
+            await ctx.conn.insertInto(tProject)
+                .shapedAs({ orgId: 'organizationId', projectName: 'name', projectSlug: 'slug', archived: 'archivedAt' })
+                .set({ orgId: 1, projectName: 'ignored', projectSlug: 'mktg-site' })
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doUpdateDynamicSet({ projectName: 'Reactivated' })
+                .setWhen(true, { projectName: 'Overridden via when' })
+                .executeInsert()
+            const trueSql = ctx.lastSql
+            const trueParams = ctx.lastParams
+
+            expect(falseSql).toMatchInlineSnapshot()
+            expect(trueSql).toMatchInlineSnapshot()
+            expect(falseSql).toBe(trueSql) // same column list — only the param value differs
+            expect(falseParams).toMatchInlineSnapshot()
+            expect(trueParams).toMatchInlineSnapshot()
+        })
+    })
+    */
+
+    // NOT-APPLICABLE: SQL Server has no INSERT…ON CONFLICT (uses MERGE)
+    /*
     test('set-if-value-when-false-is-noop-true-overrides', async () => {
         // setIfValueWhen(false) returns `this` so the staged `projectName`
         // stays. setIfValueWhen(true) → setIfValue: the new value passes

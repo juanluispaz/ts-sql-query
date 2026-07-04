@@ -162,4 +162,190 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
+
+    test('level-4-optional-container-default-as-undefined', async () => {
+        // A depth-3 nesting whose DEEPEST container is optional: `a` and `b` each keep
+        // a required leaf (`keepA`, `keepB`) so they stay required, while the level-4
+        // `c` container is ALL-OPTIONAL (`body` + `assigneeId`) → demoted to `c?`,
+        // dropped only when both leaves are null. issue 1: body null, assignee 1 → c
+        // present with assigneeId; issue 3: body null, assignee null → c dropped.
+        const expected = [
+            { iid: 1, a: { keepA: 1, b: { keepB: 'Update hero copy', c: { assigneeId: 1 } } } },
+            { iid: 3, a: { keepA: 1, b: { keepB: 'Migrate to ESM' } } },
+        ]
+        ctx.mockNext([
+            { iid: 1, 'a.keepA': 1, 'a.b.keepB': 'Update hero copy', 'a.b.c.body': null, 'a.b.c.assigneeId': 1 },
+            { iid: 3, 'a.keepA': 1, 'a.b.keepB': 'Migrate to ESM',   'a.b.c.body': null, 'a.b.c.assigneeId': null },
+        ])
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.in([1, 3]))
+            .select({
+                iid: tIssue.id,
+                a: {
+                    keepA: tIssue.number,
+                    b: {
+                        keepB: tIssue.title,
+                        c: { body: tIssue.body, assigneeId: tIssue.assigneeId },
+                    },
+                },
+            })
+            .orderBy('iid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, number as \`a.keepA\`, title as \`a.b.keepB\`, \`body\` as \`a.b.c.body\`, assignee_id as \`a.b.c.assigneeId\` from issue where id in (?, ?) order by iid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            3,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            iid: number
+            a: { keepA: number; b: { keepB: string; c?: { body: string | undefined; assigneeId: number | undefined } } }
+        }>>>()
+        expect(rows).toEqual(expected)
+        // Row 2 (issue 3): the level-4 `c` container is dropped entirely — assert
+        // its key is ABSENT, not present-as-undefined.
+        expect('c' in rows[1]!.a.b).toBe(false)
+    })
+
+    test('level-4-optional-container-projecting-optional-values-as-nullable', async () => {
+        // The same level-4 optional container under
+        // `projectingOptionalValuesAsNullable()`: the `c` container becomes
+        // `{...} | null` (surfacing as `null` when both leaves are null) and each
+        // leaf flips to `| null`. issue 1: body null, assignee 1 → c present with
+        // `body: null`; issue 3: body null, assignee null → c null.
+        const expected = [
+            { iid: 1, a: { keepA: 1, b: { keepB: 'Update hero copy', c: { body: null, assigneeId: 1 } } } },
+            { iid: 3, a: { keepA: 1, b: { keepB: 'Migrate to ESM', c: null } } },
+        ]
+        ctx.mockNext([
+            { iid: 1, 'a.keepA': 1, 'a.b.keepB': 'Update hero copy', 'a.b.c.body': null, 'a.b.c.assigneeId': 1 },
+            { iid: 3, 'a.keepA': 1, 'a.b.keepB': 'Migrate to ESM',   'a.b.c.body': null, 'a.b.c.assigneeId': null },
+        ])
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.in([1, 3]))
+            .select({
+                iid: tIssue.id,
+                a: {
+                    keepA: tIssue.number,
+                    b: {
+                        keepB: tIssue.title,
+                        c: { body: tIssue.body, assigneeId: tIssue.assigneeId },
+                    },
+                },
+            })
+            .projectingOptionalValuesAsNullable()
+            .orderBy('iid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, number as \`a.keepA\`, title as \`a.b.keepB\`, \`body\` as \`a.b.c.body\`, assignee_id as \`a.b.c.assigneeId\` from issue where id in (?, ?) order by iid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            3,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            iid: number
+            a: { keepA: number; b: { keepB: string; c: { body: string | null; assigneeId: number | null } | null } }
+        }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('level-5-optional-container-default-as-undefined', async () => {
+        // The deepest renderable container (`a.b.c.d`, level 5) is OPTIONAL. `a`,
+        // `b`, `c` each keep a required leaf so they stay required; the level-5 `d`
+        // container is ALL-OPTIONAL (`body` + `assigneeId`) → demoted to `d?`.
+        // issue 1: body null, assignee 1 → d present with assigneeId; issue 3: body
+        // null, assignee null → d dropped.
+        const expected = [
+            { iid: 1, a: { keepA: 1, b: { keepB: 'Update hero copy', c: { keepC: 'open', d: { assigneeId: 1 } } } } },
+            { iid: 3, a: { keepA: 1, b: { keepB: 'Migrate to ESM', c: { keepC: 'open' } } } },
+        ]
+        ctx.mockNext([
+            { iid: 1, 'a.keepA': 1, 'a.b.keepB': 'Update hero copy', 'a.b.c.keepC': 'open', 'a.b.c.d.body': null, 'a.b.c.d.assigneeId': 1 },
+            { iid: 3, 'a.keepA': 1, 'a.b.keepB': 'Migrate to ESM',   'a.b.c.keepC': 'open', 'a.b.c.d.body': null, 'a.b.c.d.assigneeId': null },
+        ])
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.in([1, 3]))
+            .select({
+                iid: tIssue.id,
+                a: {
+                    keepA: tIssue.number,
+                    b: {
+                        keepB: tIssue.title,
+                        c: {
+                            keepC: tIssue.status,
+                            d: { body: tIssue.body, assigneeId: tIssue.assigneeId },
+                        },
+                    },
+                },
+            })
+            .orderBy('iid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, number as \`a.keepA\`, title as \`a.b.keepB\`, status as \`a.b.c.keepC\`, \`body\` as \`a.b.c.d.body\`, assignee_id as \`a.b.c.d.assigneeId\` from issue where id in (?, ?) order by iid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            3,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            iid: number
+            a: { keepA: number; b: { keepB: string; c: { keepC: string; d?: { body: string | undefined; assigneeId: number | undefined } } } }
+        }>>>()
+        expect(rows).toEqual(expected)
+        // Row 2 (issue 3): the level-5 `d` container is dropped entirely — assert
+        // its key is ABSENT.
+        expect('d' in rows[1]!.a.b.c).toBe(false)
+    })
+
+    test('level-5-optional-container-projecting-optional-values-as-nullable', async () => {
+        // The same level-5 optional container under
+        // `projectingOptionalValuesAsNullable()`: the `d` container becomes
+        // `{...} | null` (surfacing as `null` when both leaves are null) and each
+        // leaf flips to `| null`. issue 1: body null, assignee 1 → d present with
+        // `body: null`; issue 3: body null, assignee null → d null.
+        const expected = [
+            { iid: 1, a: { keepA: 1, b: { keepB: 'Update hero copy', c: { keepC: 'open', d: { body: null, assigneeId: 1 } } } } },
+            { iid: 3, a: { keepA: 1, b: { keepB: 'Migrate to ESM', c: { keepC: 'open', d: null } } } },
+        ]
+        ctx.mockNext([
+            { iid: 1, 'a.keepA': 1, 'a.b.keepB': 'Update hero copy', 'a.b.c.keepC': 'open', 'a.b.c.d.body': null, 'a.b.c.d.assigneeId': 1 },
+            { iid: 3, 'a.keepA': 1, 'a.b.keepB': 'Migrate to ESM',   'a.b.c.keepC': 'open', 'a.b.c.d.body': null, 'a.b.c.d.assigneeId': null },
+        ])
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.in([1, 3]))
+            .select({
+                iid: tIssue.id,
+                a: {
+                    keepA: tIssue.number,
+                    b: {
+                        keepB: tIssue.title,
+                        c: {
+                            keepC: tIssue.status,
+                            d: { body: tIssue.body, assigneeId: tIssue.assigneeId },
+                        },
+                    },
+                },
+            })
+            .projectingOptionalValuesAsNullable()
+            .orderBy('iid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, number as \`a.keepA\`, title as \`a.b.keepB\`, status as \`a.b.c.keepC\`, \`body\` as \`a.b.c.d.body\`, assignee_id as \`a.b.c.d.assigneeId\` from issue where id in (?, ?) order by iid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            3,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            iid: number
+            a: { keepA: number; b: { keepB: string; c: { keepC: string; d: { body: string | null; assigneeId: number | null } | null } } }
+        }>>>()
+        expect(rows).toEqual(expected)
+    })
 })

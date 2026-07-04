@@ -146,6 +146,38 @@ describe(ctx.label, () => {
 
     // NOT-APPLICABLE: Oracle has no RETURNING OLD values (`tTable.oldValues()` is typed `never`); RETURNING INTO returns post-update values only, so pre-update values need a separate SELECT
     /*
+    test('returning-computed-expression-over-old-value-via-oldValues', async () => {
+        // A value-source EXPRESSION computed OVER an old column in RETURNING (not a
+        // bare old column): `oldProject.name || ' [was]'` reads the pre-update value.
+        // Update project 1’s name; RETURNING returns the previous name wrapped
+        // ('Marketing site [was]') alongside the new name 'Mktg v4'.
+        ctx.mockNext({ oldTag: 'Marketing site [was]', newName: 'Mktg v4' })
+        await ctx.withRollback(async () => {
+            const oldProject = tProject.oldValues()
+            const row = await ctx.conn.update(tProject)
+                .set({ name: 'Mktg v4' })
+                .where(tProject.id.equals(1))
+                .returning({
+                    oldTag:  oldProject.name.concat(' [was]'),
+                    newName: tProject.name,
+                })
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof row, { oldTag: string; newName: string }>>()
+            if (!ctx.realDbEnabled) {
+                expect(row).toEqual({ oldTag: 'Marketing site [was]', newName: 'Mktg v4' })
+            } else {
+                expect(row.oldTag).toBe('Marketing site [was]')
+                expect(row.newName).toBe('Mktg v4')
+            }
+        })
+    })
+    */
+
+    // NOT-APPLICABLE: Oracle has no RETURNING OLD values (`tTable.oldValues()` is typed `never`); RETURNING INTO returns post-update values only, so pre-update values need a separate SELECT
+    /*
     test('returning-old-and-new-adapter-column-via-oldValues', async () => {
         // An ADAPTER column read through the `oldValues()` synthetic old-row
         // subquery in RETURNING: `score` carries the scaledTenthAdapter (÷10 read,

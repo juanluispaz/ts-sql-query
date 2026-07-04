@@ -135,6 +135,68 @@ describe(ctx.label, () => {
 
     // NOT-APPLICABLE: MySQL has no RETURNING on DELETE.
     /*
+    test('delete-returning-object-computed-expression', async () => {
+        // Object-form RETURNING projecting a COMPUTED expression (`title || ' [gone]'`)
+        // alongside a plain column. DELETE ... RETURNING sees the row as it was before
+        // deletion, so removing issue 3 (title 'Migrate to ESM') returns 'Migrate to
+        // ESM [gone]'. Issue 3 is a leaf (nothing FKs into it), so the delete is
+        // referential-integrity-safe.
+        const expected = { id: 3, tag: 'Migrate to ESM [gone]' }
+        ctx.mockNext(expected)
+
+        await ctx.withRollback(async () => {
+            const row = await ctx.conn.deleteFrom(tIssue)
+                .where(tIssue.id.equals(3))
+                .returning({
+                    id:  tIssue.id,
+                    tag: tIssue.title.concat(' [gone]'),
+                })
+                .executeDeleteOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof row, { id: number; tag: string }>>()
+            expect(row).toEqual(expected)
+        })
+    })
+    */
+
+    // NOT-APPLICABLE: MySQL has no RETURNING on DELETE.
+    /*
+    test('delete-returning-nested-object-projection', async () => {
+        // Object-form RETURNING containing a NESTED object projection: the `meta`
+        // group folds two projected columns into a sub-object; the RETURNING clause
+        // emits both columns flat (aliased `meta.title` / `meta.priority`) and the
+        // complex projector reshapes the row. RETURNING sees the pre-delete values of
+        // issue 3 (title 'Migrate to ESM', priority 3). Issue 3 is a leaf, so the
+        // delete is referential-integrity-safe.
+        const expected = { id: 3, meta: { title: 'Migrate to ESM', priority: 3 } }
+        // The mock is primed with the FLAT db row (dotted alias keys); the projector
+        // folds it into the nested shape asserted below.
+        ctx.mockNext({ id: 3, 'meta.title': 'Migrate to ESM', 'meta.priority': 3 })
+
+        await ctx.withRollback(async () => {
+            const row = await ctx.conn.deleteFrom(tIssue)
+                .where(tIssue.id.equals(3))
+                .returning({
+                    id:   tIssue.id,
+                    meta: { title: tIssue.title, priority: tIssue.priority },
+                })
+                .executeDeleteOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof row, {
+                id:   number
+                meta: { title: string; priority: number }
+            }>>()
+            expect(row).toEqual(expected)
+        })
+    })
+    */
+
+    // NOT-APPLICABLE: MySQL has no RETURNING on DELETE.
+    /*
     test('delete-project-release-returning-branded-custom-column', async () => {
         // `returningOneColumn(...)` on a DELETE preserves the column's branded
         // value type: reading `channel` back through RETURNING yields

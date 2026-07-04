@@ -88,6 +88,40 @@ describe(ctx.label, () => {
         })
     })
 
+    test('insert-returning-object-computed-expression', async () => {
+        // Object-form RETURNING projecting a COMPUTED expression (`name || ' [new]'`)
+        // alongside a plain column. RETURNING sees the just-inserted name 'Mobile app'
+        // → 'Mobile app [new]'.
+        const expectedMock = { id: 100, tag: 'Mobile app [new]' }
+        ctx.mockNext(expectedMock)
+
+        await ctx.withRollback(async () => {
+            const inserted = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, name: 'Mobile app', slug: 'mobile' })
+                .returning({
+                    id:  tProject.id,
+                    tag: tProject.name.concat(' [new]'),
+                })
+                .executeInsertOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) output inserted.id as id, inserted.name + @0 as tag values (@1, @2, @3)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                " [new]",
+                1,
+                "Mobile app",
+                "mobile",
+              ]
+            `)
+            assertType<Exact<typeof inserted, { id: number; tag: string }>>()
+
+            expect(inserted.tag).toBe('Mobile app [new]')
+            expect(typeof inserted.id).toBe('number')
+            if (!ctx.realDbEnabled) expect(inserted.id).toBe(100)
+            else expect(inserted.id).toBeGreaterThan(4) // seed reserves project ids 1-4
+        })
+    })
+
     test('insert-many-organizations', async () => {
         const expectedMock = [{ id: 100 }, { id: 101 }]
         ctx.mockNext(expectedMock)

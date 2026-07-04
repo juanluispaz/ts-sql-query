@@ -28,10 +28,9 @@ describe(ctx.label, () => {
     // NOT-APPLICABLE: SQL Server has no INSERT…ON CONFLICT (uses MERGE)
     /*
     test('set-when-false-is-noop-true-overrides', async () => {
-        // Plain `setWhen(when, {...})` on the on-conflict update-set node — the
-        // non-IfValue, non-shaped arm. setWhen(false) returns `this` so the staged
-        // `name` stays; setWhen(true) → set: unconditionally overwrites `name`.
-        // Same column list, only the param differs.
+        // setWhen(false) returns `this` so the staged `projectName` ('Reactivated')
+        // stays. setWhen(true) unconditionally overwrites `name`. Same column list,
+        // only the param value differs.
         ctx.mockNext(1)
         ctx.mockNext(1)
         await ctx.withRollback(async () => {

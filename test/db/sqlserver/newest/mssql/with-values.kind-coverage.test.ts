@@ -159,6 +159,45 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
+    test('values-tuple-optional-custom-kind-column-with-type-adapter-shifts-and-passes-null', async () => {
+        // An OPTIONAL VALUES-tuple column of a custom kind (customInt / ReleaseTag)
+        // carrying a trailing TypeAdapter (plusOffsetAdapter, write -1000 / read
+        // +1000), so the leaf is `ordinal?: ReleaseTag`. Present: 3005 binds the
+        // shifted 2005 in the VALUES tuple and reads back +1000 to 3005. Null: the
+        // adapter passes null through (the shift branch is skipped), so the optional
+        // leaf reads back absent. The 'ReleaseTag' typeName is marshalled to its int
+        // base by the connection’s baseTypeForCustom, so the tuple casts to int.
+        class VOptionalReleaseTagSampler extends Values<DBConnection, 'optionalReleaseTagSampler'> {
+            ordinal = this.optionalColumn<ReleaseTag, 'ReleaseTag'>('customInt', 'ReleaseTag', plusOffsetAdapter)
+        }
+        ctx.mockNext([{ ordinal: 2005 }])
+        const v1 = Values.create(VOptionalReleaseTagSampler, 'optionalReleaseTagSampler', [{ ordinal: 3005 as ReleaseTag }])
+        const present = await ctx.conn.selectFrom(v1)
+            .select({ ordinal: v1.ordinal })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with optionalReleaseTagSampler as (select * from (values (@0)) as optionalReleaseTagSampler(ordinal)) select ordinal as ordinal from optionalReleaseTagSampler"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2005,
+          ]
+        `)
+        assertType<Exact<typeof present, Array<{ ordinal?: ReleaseTag | undefined }>>>()
+        expect(present).toEqual([{ ordinal: 3005 }])
+
+        ctx.mockNext([{ ordinal: null }])
+        const v2 = Values.create(VOptionalReleaseTagSampler, 'optionalReleaseTagSampler', [{ ordinal: null }])
+        const none = await ctx.conn.selectFrom(v2)
+            .select({ ordinal: v2.ordinal })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with optionalReleaseTagSampler as (select * from (values (@0)) as optionalReleaseTagSampler(ordinal)) select ordinal as ordinal from optionalReleaseTagSampler"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            null,
+          ]
+        `)
+        expect(none).toEqual([{}])
+    })
+
     test('values-tuple-cast-per-temporal-kind-via-null-value', async () => {
         // Temporal kinds (localDate / localTime / localDateTime) each emit their
         // own cast inside the VALUES tuple. A Date carried through a VALUES tuple

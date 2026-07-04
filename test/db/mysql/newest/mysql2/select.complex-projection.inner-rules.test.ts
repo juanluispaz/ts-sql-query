@@ -582,6 +582,48 @@ describe(ctx.label, () => {
         expect('meta' in rows[0]!).toBe(false)
     })
 
+    test('rule-1-optional-object-containing-a-nested-required-object-as-nullable', async () => {
+        // Under `projectingOptionalValuesAsNullable()`, a rule-1 OUTER object (`meta`,
+        // made optional by its requiredInOptionalObject `gate` leaf) containing a
+        // nested REQUIRED `inner` object: `meta` becomes `{...} | null` (surfacing as
+        // `null` when `gate` is null), while the nested required `inner` stays
+        // required inside it.
+        // issue 1 (project 1): body null → meta null.
+        // issue 2 (project 1): body 'Use new tokens' → meta present with inner.
+        const expected = [
+            { iid: 1, meta: null },
+            { iid: 2, meta: { gate: 'Use new tokens', inner: { num: 2, pri: 1 } } },
+        ]
+        ctx.mockNext([
+            { iid: 1, 'meta.gate': null,             'meta.inner.num': 1, 'meta.inner.pri': 2 },
+            { iid: 2, 'meta.gate': 'Use new tokens', 'meta.inner.num': 2, 'meta.inner.pri': 1 },
+        ])
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.projectId.equals(1))
+            .select({
+                iid: tIssue.id,
+                meta: {
+                    gate:  tIssue.body.asRequiredInOptionalObject(),
+                    inner: { num: tIssue.number, pri: tIssue.priority },
+                },
+            })
+            .projectingOptionalValuesAsNullable()
+            .orderBy('iid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as \`meta.gate\`, \`number\` as \`meta.inner.num\`, priority as \`meta.inner.pri\` from issue where project_id = ? order by iid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            iid:  number
+            meta: { gate: string; inner: { num: number; pri: number } } | null
+        }>>>()
+        expect(rows).toEqual(expected)
+    })
+
     test('rule-1-three-optionality-kinds-own-required-required-in-optional-and-left-join-default', async () => {
         // Three optionality-kinds coexisting in ONE rule-1 optional object: an
         // OWN-required leaf (`ownId`), a `requiredInOptionalObject` leaf (`gate`,
@@ -1000,6 +1042,495 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, {
             iid:    number
             detail: { title: string; meta: { gate: string; assigneeId: number | null } | null }
+        }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('matrix-rule-1-outer-rule-1-inner-default', async () => {
+        // Outer `meta` is rule-1 (its `gate` = status.asRequiredInOptionalObject()
+        // is never null, so `meta` is always present); inner `inner` is
+        // independently rule-1 (its own `innerGate` = body). The inner renders as
+        // `inner: {...} | undefined` inside the optional outer — present when body is
+        // non-null, dropped otherwise. issue 1 (project 1): body null → inner
+        // dropped; issue 2: body 'Use new tokens' → inner present with extra = 2.
+        const expected = [
+            { iid: 1, meta: { gate: 'open' } },
+            { iid: 2, meta: { gate: 'in_progress', inner: { innerGate: 'Use new tokens', extra: 2 } } },
+        ]
+        ctx.mockNext([
+            { iid: 1, 'meta.gate': 'open',        'meta.inner.innerGate': null,             'meta.inner.extra': 1 },
+            { iid: 2, 'meta.gate': 'in_progress', 'meta.inner.innerGate': 'Use new tokens', 'meta.inner.extra': 2 },
+        ])
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.projectId.equals(1))
+            .select({
+                iid: tIssue.id,
+                meta: {
+                    gate:  tIssue.status.asRequiredInOptionalObject(),
+                    inner: { innerGate: tIssue.body.asRequiredInOptionalObject(), extra: tIssue.assigneeId },
+                },
+            })
+            .orderBy('iid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, \`status\` as \`meta.gate\`, body as \`meta.inner.innerGate\`, assignee_id as \`meta.inner.extra\` from issue where project_id = ? order by iid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            iid:   number
+            meta?: { gate: string; inner: { innerGate: string; extra: number | undefined } | undefined }
+        }>>>()
+        expect(rows).toEqual(expected)
+        // Row 1: the inner rule-1 object is dropped (its gate is null).
+        expect('inner' in rows[0]!.meta!).toBe(false)
+    })
+
+    test('matrix-rule-1-outer-rule-1-inner-as-nullable', async () => {
+        // The same 1×1 nesting under projectingOptionalValuesAsNullable(): the outer
+        // `meta` becomes `{...} | null`, the inner rule-1 object becomes
+        // `{...} | null` (null when its gate is null), and the plain-optional `extra`
+        // flips to `number | null`. issue 1: body null → inner null; issue 2: inner
+        // present.
+        const expected = [
+            { iid: 1, meta: { gate: 'open', inner: null } },
+            { iid: 2, meta: { gate: 'in_progress', inner: { innerGate: 'Use new tokens', extra: 2 } } },
+        ]
+        ctx.mockNext([
+            { iid: 1, 'meta.gate': 'open',        'meta.inner.innerGate': null,             'meta.inner.extra': 1 },
+            { iid: 2, 'meta.gate': 'in_progress', 'meta.inner.innerGate': 'Use new tokens', 'meta.inner.extra': 2 },
+        ])
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.projectId.equals(1))
+            .select({
+                iid: tIssue.id,
+                meta: {
+                    gate:  tIssue.status.asRequiredInOptionalObject(),
+                    inner: { innerGate: tIssue.body.asRequiredInOptionalObject(), extra: tIssue.assigneeId },
+                },
+            })
+            .projectingOptionalValuesAsNullable()
+            .orderBy('iid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, \`status\` as \`meta.gate\`, body as \`meta.inner.innerGate\`, assignee_id as \`meta.inner.extra\` from issue where project_id = ? order by iid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            iid:  number
+            meta: { gate: string; inner: { innerGate: string; extra: number | null } | null } | null
+        }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('matrix-rule-1-outer-rule-2-inner-default', async () => {
+        // Outer `meta` is rule-1 (gate = status); inner `proj` is rule-2 (both
+        // leaves from the same left join, `name` originallyRequired + `arch`
+        // optional). The inner renders as `proj: {...} | undefined` inside the
+        // optional outer. issue 1 → project 1 (Marketing site, archived_at null): the
+        // join hits so `proj` is present; `arch` is absent (null under asUndefined).
+        const expected = { iid: 1, meta: { gate: 'open', proj: { name: 'Marketing site' } } }
+        ctx.mockNext({ iid: 1, 'meta.gate': 'open', 'meta.proj.name': 'Marketing site', 'meta.proj.arch': null })
+        const tProjLeft = tProject.forUseInLeftJoin()
+        const row = await ctx.conn.selectFrom(tIssue)
+            .leftJoin(tProjLeft).on(tProjLeft.id.equals(tIssue.projectId))
+            .where(tIssue.id.equals(1))
+            .select({
+                iid: tIssue.id,
+                meta: {
+                    gate: tIssue.status.asRequiredInOptionalObject(),
+                    proj: { name: tProjLeft.name, arch: tProjLeft.archivedAt },
+                },
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, issue.\`status\` as \`meta.gate\`, project.\`name\` as \`meta.proj.name\`, project.archived_at as \`meta.proj.arch\` from issue left join project on project.id = issue.project_id where issue.id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            iid:   number
+            meta?: { gate: string; proj: { name: string; arch: Date | undefined } | undefined }
+        }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('matrix-rule-1-outer-rule-2-inner-as-nullable', async () => {
+        // The same 1×2 nesting under projectingOptionalValuesAsNullable(): outer
+        // `meta` becomes `{...} | null`, inner rule-2 `proj` becomes `{...} | null`
+        // (null only when the join misses), and the optional `arch` leaf flips to
+        // `Date | null`. issue 1 → project 1, join hits, `arch` null.
+        const expected = { iid: 1, meta: { gate: 'open', proj: { name: 'Marketing site', arch: null } } }
+        ctx.mockNext({ iid: 1, 'meta.gate': 'open', 'meta.proj.name': 'Marketing site', 'meta.proj.arch': null })
+        const tProjLeft = tProject.forUseInLeftJoin()
+        const row = await ctx.conn.selectFrom(tIssue)
+            .leftJoin(tProjLeft).on(tProjLeft.id.equals(tIssue.projectId))
+            .where(tIssue.id.equals(1))
+            .select({
+                iid: tIssue.id,
+                meta: {
+                    gate: tIssue.status.asRequiredInOptionalObject(),
+                    proj: { name: tProjLeft.name, arch: tProjLeft.archivedAt },
+                },
+            })
+            .projectingOptionalValuesAsNullable()
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, issue.\`status\` as \`meta.gate\`, project.\`name\` as \`meta.proj.name\`, project.archived_at as \`meta.proj.arch\` from issue left join project on project.id = issue.project_id where issue.id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            iid:  number
+            meta: { gate: string; proj: { name: string; arch: Date | null } | null } | null
+        }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('matrix-rule-1-outer-rule-4-inner-default', async () => {
+        // Outer `meta` is rule-1 (gate = status); inner `inner` is rule-4 (all
+        // optional leaves, `body` + `assigneeId`). The inner renders as
+        // `inner: {...} | undefined`, dropped only when every leaf is null.
+        // issue 1: body null, assignee 1 → inner present with assigneeId;
+        // issue 3: body null, assignee null → inner dropped.
+        const expected = [
+            { iid: 1, meta: { gate: 'open', inner: { assigneeId: 1 } } },
+            { iid: 3, meta: { gate: 'open' } },
+        ]
+        ctx.mockNext([
+            { iid: 1, 'meta.gate': 'open', 'meta.inner.body': null, 'meta.inner.assigneeId': 1 },
+            { iid: 3, 'meta.gate': 'open', 'meta.inner.body': null, 'meta.inner.assigneeId': null },
+        ])
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.in([1, 3]))
+            .select({
+                iid: tIssue.id,
+                meta: {
+                    gate:  tIssue.status.asRequiredInOptionalObject(),
+                    inner: { body: tIssue.body, assigneeId: tIssue.assigneeId },
+                },
+            })
+            .orderBy('iid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, \`status\` as \`meta.gate\`, body as \`meta.inner.body\`, assignee_id as \`meta.inner.assigneeId\` from issue where id in (?, ?) order by iid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            3,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            iid:   number
+            meta?: { gate: string; inner: { body: string | undefined; assigneeId: number | undefined } | undefined }
+        }>>>()
+        expect(rows).toEqual(expected)
+        // Row 2 (issue 3): the inner rule-4 object is dropped (every leaf null).
+        expect('inner' in rows[1]!.meta!).toBe(false)
+    })
+
+    test('matrix-rule-1-outer-rule-4-inner-as-nullable', async () => {
+        // The same 1×4 nesting under projectingOptionalValuesAsNullable(): outer
+        // `meta` becomes `{...} | null`, inner rule-4 becomes `{...} | null` (null
+        // when all leaves null), and each leaf flips to `| null`. issue 1: inner
+        // present with `body: null`; issue 3: inner null.
+        const expected = [
+            { iid: 1, meta: { gate: 'open', inner: { body: null, assigneeId: 1 } } },
+            { iid: 3, meta: { gate: 'open', inner: null } },
+        ]
+        ctx.mockNext([
+            { iid: 1, 'meta.gate': 'open', 'meta.inner.body': null, 'meta.inner.assigneeId': 1 },
+            { iid: 3, 'meta.gate': 'open', 'meta.inner.body': null, 'meta.inner.assigneeId': null },
+        ])
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.in([1, 3]))
+            .select({
+                iid: tIssue.id,
+                meta: {
+                    gate:  tIssue.status.asRequiredInOptionalObject(),
+                    inner: { body: tIssue.body, assigneeId: tIssue.assigneeId },
+                },
+            })
+            .projectingOptionalValuesAsNullable()
+            .orderBy('iid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, \`status\` as \`meta.gate\`, body as \`meta.inner.body\`, assignee_id as \`meta.inner.assigneeId\` from issue where id in (?, ?) order by iid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            3,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            iid:  number
+            meta: { gate: string; inner: { body: string | null; assigneeId: number | null } | null } | null
+        }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('matrix-rule-2-outer-rule-1-inner-default', async () => {
+        // Outer `proj` is rule-2 (all leaves from the same left join, `id`
+        // originallyRequired); inner `inner` is rule-1 (its gate =
+        // slug.asRequiredInOptionalObject()). The rule-2 `id` stays required inside
+        // the optional `proj`; the inner rule-1 renders as `inner: {...} | undefined`.
+        // issue 1 → project 1 (slug 'mktg-site', archived_at null): join hits, inner
+        // present (slug non-null), `arch` absent.
+        const expected = { iid: 1, proj: { id: 1, inner: { gate: 'mktg-site' } } }
+        ctx.mockNext({ iid: 1, 'proj.id': 1, 'proj.inner.gate': 'mktg-site', 'proj.inner.arch': null })
+        const tProjLeft = tProject.forUseInLeftJoin()
+        const row = await ctx.conn.selectFrom(tIssue)
+            .leftJoin(tProjLeft).on(tProjLeft.id.equals(tIssue.projectId))
+            .where(tIssue.id.equals(1))
+            .select({
+                iid: tIssue.id,
+                proj: { id: tProjLeft.id, inner: { gate: tProjLeft.slug.asRequiredInOptionalObject(), arch: tProjLeft.archivedAt } },
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.id as \`proj.id\`, project.slug as \`proj.inner.gate\`, project.archived_at as \`proj.inner.arch\` from issue left join project on project.id = issue.project_id where issue.id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            iid:   number
+            proj?: { id: number; inner: { gate: string; arch: Date | undefined } | undefined }
+        }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('matrix-rule-2-outer-rule-1-inner-as-nullable', async () => {
+        // The same 2×1 nesting under projectingOptionalValuesAsNullable(): outer
+        // rule-2 `proj` becomes `{...} | null`, `id` stays required, inner rule-1
+        // becomes `{...} | null`, and `arch` flips to `Date | null`. issue 1 →
+        // project 1, join hits, `arch` null.
+        const expected = { iid: 1, proj: { id: 1, inner: { gate: 'mktg-site', arch: null } } }
+        ctx.mockNext({ iid: 1, 'proj.id': 1, 'proj.inner.gate': 'mktg-site', 'proj.inner.arch': null })
+        const tProjLeft = tProject.forUseInLeftJoin()
+        const row = await ctx.conn.selectFrom(tIssue)
+            .leftJoin(tProjLeft).on(tProjLeft.id.equals(tIssue.projectId))
+            .where(tIssue.id.equals(1))
+            .select({
+                iid: tIssue.id,
+                proj: { id: tProjLeft.id, inner: { gate: tProjLeft.slug.asRequiredInOptionalObject(), arch: tProjLeft.archivedAt } },
+            })
+            .projectingOptionalValuesAsNullable()
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.id as \`proj.id\`, project.slug as \`proj.inner.gate\`, project.archived_at as \`proj.inner.arch\` from issue left join project on project.id = issue.project_id where issue.id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            iid:  number
+            proj: { id: number; inner: { gate: string; arch: Date | null } | null } | null
+        }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('matrix-rule-2-outer-rule-3-inner-default', async () => {
+        // Outer `proj` is rule-2 (`name` originallyRequired from the left join);
+        // inner `inner` is rule-3 (has an own-table required leaf `title`, so the
+        // inner stays REQUIRED even inside the optional `proj`). The inner's optional
+        // `body` leaf is demoted to `body?`. issue 1 → project 1 (join hits), title
+        // 'Update hero copy', body null → body absent.
+        const expected = { iid: 1, proj: { name: 'Marketing site', inner: { title: 'Update hero copy' } } }
+        ctx.mockNext({ iid: 1, 'proj.name': 'Marketing site', 'proj.inner.title': 'Update hero copy', 'proj.inner.body': null })
+        const tProjLeft = tProject.forUseInLeftJoin()
+        const row = await ctx.conn.selectFrom(tIssue)
+            .leftJoin(tProjLeft).on(tProjLeft.id.equals(tIssue.projectId))
+            .where(tIssue.id.equals(1))
+            .select({
+                iid: tIssue.id,
+                proj: { name: tProjLeft.name, inner: { title: tIssue.title, body: tIssue.body } },
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.\`name\` as \`proj.name\`, issue.title as \`proj.inner.title\`, issue.body as \`proj.inner.body\` from issue left join project on project.id = issue.project_id where issue.id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            iid:   number
+            proj?: { name: string; inner: { body?: string; title: string } }
+        }>>()
+        expect(row).toEqual(expected)
+        // The inner rule-3 object stays required, but its optional `body` leaf is
+        // absent (null in the seed) under the asUndefined projector.
+        expect('body' in row.proj!.inner).toBe(false)
+    })
+
+    test('matrix-rule-2-outer-rule-3-inner-as-nullable', async () => {
+        // The same 2×3 nesting under projectingOptionalValuesAsNullable(): outer
+        // rule-2 `proj` becomes `{...} | null`, the inner rule-3 object stays
+        // required, and its optional `body` leaf flips to `string | null`. issue 1 →
+        // project 1, join hits, body null.
+        const expected = { iid: 1, proj: { name: 'Marketing site', inner: { title: 'Update hero copy', body: null } } }
+        ctx.mockNext({ iid: 1, 'proj.name': 'Marketing site', 'proj.inner.title': 'Update hero copy', 'proj.inner.body': null })
+        const tProjLeft = tProject.forUseInLeftJoin()
+        const row = await ctx.conn.selectFrom(tIssue)
+            .leftJoin(tProjLeft).on(tProjLeft.id.equals(tIssue.projectId))
+            .where(tIssue.id.equals(1))
+            .select({
+                iid: tIssue.id,
+                proj: { name: tProjLeft.name, inner: { title: tIssue.title, body: tIssue.body } },
+            })
+            .projectingOptionalValuesAsNullable()
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.\`name\` as \`proj.name\`, issue.title as \`proj.inner.title\`, issue.body as \`proj.inner.body\` from issue left join project on project.id = issue.project_id where issue.id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            iid:  number
+            proj: { name: string; inner: { title: string; body: string | null } } | null
+        }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('matrix-rule-2-outer-rule-4-inner-default', async () => {
+        // Outer `proj` is rule-2 (`name` originallyRequired); inner `inner` is
+        // rule-4 (its only leaf, `arch`, is optional). The inner renders as
+        // `inner: {...} | undefined`, dropped when its single leaf is null. issue 1 →
+        // project 1 (archived_at null): join hits so `proj` is present, but the inner
+        // rule-4 object is dropped (its only leaf is null).
+        const expected = { iid: 1, proj: { name: 'Marketing site' } }
+        ctx.mockNext({ iid: 1, 'proj.name': 'Marketing site', 'proj.inner.arch': null })
+        const tProjLeft = tProject.forUseInLeftJoin()
+        const row = await ctx.conn.selectFrom(tIssue)
+            .leftJoin(tProjLeft).on(tProjLeft.id.equals(tIssue.projectId))
+            .where(tIssue.id.equals(1))
+            .select({
+                iid: tIssue.id,
+                proj: { name: tProjLeft.name, inner: { arch: tProjLeft.archivedAt } },
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.\`name\` as \`proj.name\`, project.archived_at as \`proj.inner.arch\` from issue left join project on project.id = issue.project_id where issue.id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            iid:   number
+            proj?: { name: string; inner: { arch: Date | undefined } | undefined }
+        }>>()
+        expect(row).toEqual(expected)
+        // The inner rule-4 object is dropped (its only leaf is null).
+        expect('inner' in row.proj!).toBe(false)
+    })
+
+    test('matrix-rule-2-outer-rule-4-inner-as-nullable', async () => {
+        // The same 2×4 nesting under projectingOptionalValuesAsNullable(): outer
+        // rule-2 `proj` becomes `{...} | null`, the inner rule-4 object becomes
+        // `{...} | null` (null when its leaf is null), and `arch` flips to
+        // `Date | null`. issue 1 → project 1, join hits, inner null.
+        const expected = { iid: 1, proj: { name: 'Marketing site', inner: null } }
+        ctx.mockNext({ iid: 1, 'proj.name': 'Marketing site', 'proj.inner.arch': null })
+        const tProjLeft = tProject.forUseInLeftJoin()
+        const row = await ctx.conn.selectFrom(tIssue)
+            .leftJoin(tProjLeft).on(tProjLeft.id.equals(tIssue.projectId))
+            .where(tIssue.id.equals(1))
+            .select({
+                iid: tIssue.id,
+                proj: { name: tProjLeft.name, inner: { arch: tProjLeft.archivedAt } },
+            })
+            .projectingOptionalValuesAsNullable()
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.\`name\` as \`proj.name\`, project.archived_at as \`proj.inner.arch\` from issue left join project on project.id = issue.project_id where issue.id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            iid:  number
+            proj: { name: string; inner: { arch: Date | null } | null } | null
+        }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('matrix-rule-3-outer-rule-2-inner-default', async () => {
+        // Outer `detail` is rule-3 (own-table required leaf `title`, so `detail`
+        // stays REQUIRED); inner `proj` is rule-2 (both leaves from the same left
+        // join). The inner renders as `proj?` (optional key, dropped only when the
+        // join misses). issue 1 → project 1 (Marketing site, archived_at null): join
+        // hits, `proj` present, `arch` absent.
+        const expected = { iid: 1, detail: { title: 'Update hero copy', proj: { name: 'Marketing site' } } }
+        ctx.mockNext({ iid: 1, 'detail.title': 'Update hero copy', 'detail.proj.name': 'Marketing site', 'detail.proj.arch': null })
+        const tProjLeft = tProject.forUseInLeftJoin()
+        const row = await ctx.conn.selectFrom(tIssue)
+            .leftJoin(tProjLeft).on(tProjLeft.id.equals(tIssue.projectId))
+            .where(tIssue.id.equals(1))
+            .select({
+                iid: tIssue.id,
+                detail: { title: tIssue.title, proj: { name: tProjLeft.name, arch: tProjLeft.archivedAt } },
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, issue.title as \`detail.title\`, project.\`name\` as \`detail.proj.name\`, project.archived_at as \`detail.proj.arch\` from issue left join project on project.id = issue.project_id where issue.id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            iid:    number
+            detail: { title: string; proj?: { name: string; arch: Date | undefined } }
+        }>>()
+        expect(row).toEqual(expected)
+        // The inner rule-2 `proj` is present (the join hit), but its optional `arch`
+        // leaf is absent (null) under the asUndefined projector.
+        expect('arch' in row.detail.proj!).toBe(false)
+    })
+
+    test('matrix-rule-3-outer-rule-2-inner-as-nullable', async () => {
+        // The same 3×2 nesting under projectingOptionalValuesAsNullable(): the outer
+        // rule-3 `detail` stays required, the inner rule-2 `proj` becomes
+        // `{...} | null` (null only when the join misses), and `arch` flips to
+        // `Date | null`. issue 1 → project 1, join hits, `arch` null.
+        const expected = { iid: 1, detail: { title: 'Update hero copy', proj: { name: 'Marketing site', arch: null } } }
+        ctx.mockNext({ iid: 1, 'detail.title': 'Update hero copy', 'detail.proj.name': 'Marketing site', 'detail.proj.arch': null })
+        const tProjLeft = tProject.forUseInLeftJoin()
+        const row = await ctx.conn.selectFrom(tIssue)
+            .leftJoin(tProjLeft).on(tProjLeft.id.equals(tIssue.projectId))
+            .where(tIssue.id.equals(1))
+            .select({
+                iid: tIssue.id,
+                detail: { title: tIssue.title, proj: { name: tProjLeft.name, arch: tProjLeft.archivedAt } },
+            })
+            .projectingOptionalValuesAsNullable()
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, issue.title as \`detail.title\`, project.\`name\` as \`detail.proj.name\`, project.archived_at as \`detail.proj.arch\` from issue left join project on project.id = issue.project_id where issue.id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            iid:    number
+            detail: { title: string; proj: { name: string; arch: Date | null } | null }
         }>>()
         expect(row).toEqual(expected)
     })

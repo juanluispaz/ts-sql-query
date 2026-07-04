@@ -105,4 +105,78 @@ describe(ctx.label, () => {
         expect(all).toEqual([{ id: 1 }, { id: 2 }])
     })
 
+
+    test('and-with-true-constant-reduces-away-the-neutral-operand', async () => {
+        // `conn.true()` is the neutral element of AND, so it is dropped from the
+        // combined predicate: an operand that renders as the dialect’s true literal
+        // (`true` on PostgreSQL, `(1=1)` on Oracle/SqlServer) is reduced away. Both
+        // the right-operand form (`x.and(true())`) and the left-operand form
+        // (`true().and(x)`) reduce to just `x`, so no `and true` survives in the
+        // emitted WHERE. Both queries filter to organization 1.
+        const conn = ctx.conn
+        // Right operand: `id = 1` AND true → `id = 1`.
+        ctx.mockNext([{ id: 1 }])
+        const right = await conn.selectFrom(tOrganization)
+            .where(tOrganization.id.equals(1).and(conn.true()))
+            .select({ id: tOrganization.id })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        expect(right).toEqual([{ id: 1 }])
+
+        // Left operand: true AND `id = 1` → `id = 1`.
+        ctx.mockNext([{ id: 1 }])
+        const left = await conn.selectFrom(tOrganization)
+            .where(conn.true().and(tOrganization.id.equals(1)))
+            .select({ id: tOrganization.id })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        expect(left).toEqual([{ id: 1 }])
+    })
+
+    test('or-with-false-constant-reduces-away-the-neutral-operand', async () => {
+        // `conn.false()` is the neutral element of OR, so it is dropped from the
+        // combined predicate: an operand that renders as the dialect’s false literal
+        // (`false` on PostgreSQL, `(0=1)` on Oracle/SqlServer) is reduced away. Both
+        // the right-operand form (`x.or(false())`) and the left-operand form
+        // (`false().or(x)`) reduce to just `x`, so no `or false` survives in the
+        // emitted WHERE. Both queries filter to organization 1.
+        const conn = ctx.conn
+        // Right operand: `id = 1` OR false → `id = 1`.
+        ctx.mockNext([{ id: 1 }])
+        const right = await conn.selectFrom(tOrganization)
+            .where(tOrganization.id.equals(1).or(conn.false()))
+            .select({ id: tOrganization.id })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        expect(right).toEqual([{ id: 1 }])
+
+        // Left operand: false OR `id = 1` → `id = 1`.
+        ctx.mockNext([{ id: 1 }])
+        const left = await conn.selectFrom(tOrganization)
+            .where(conn.false().or(tOrganization.id.equals(1)))
+            .select({ id: tOrganization.id })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        expect(left).toEqual([{ id: 1 }])
+    })
 })

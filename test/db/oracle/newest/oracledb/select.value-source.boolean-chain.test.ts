@@ -331,6 +331,29 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
+    test('if-value-and-if-value-right-elides', async () => {
+        // `IfValue.and(IfValue)` where the RIGHT operand carries no value
+        // (`equalsIfValue(undefined)`) and the left one does: the combined predicate
+        // renders only the surviving left predicate. Result is `priority >= $1` alone
+        // → issue 3 (priority 3).
+        const expected = [{ id: 3 }]
+        ctx.mockNext(expected)
+        const noStatus: string | undefined = undefined
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.priority.greaterOrEqualIfValue(3).and(tIssue.status.equalsIfValue(noStatus)))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue where priority >= :0 order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
     test('if-value-or-if-value-single-elides', async () => {
         // `IfValue.or(IfValue)` with exactly ONE operand eliding — both the
         // left-empty (`!sql`) and right-empty (`!sql2`) branches of `_or`. Either

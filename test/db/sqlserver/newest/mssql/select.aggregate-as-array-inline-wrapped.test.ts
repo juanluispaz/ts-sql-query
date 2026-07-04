@@ -662,4 +662,60 @@ describe(ctx.label, () => {
         })
     })
 
+
+    test('inline-aggregate-of-compound-union-with-customize-query-survives-in-derived-table', async () => {
+        // A compound (UNION) consumed via `forUseAsInlineAggregatedArrayValue()` that
+        // also carries `.customizeQuery({...})`. The compound is wrapped in a derived
+        // table `(...) as a_1_`, and the compound’s `beforeQuery` / `afterQuery` hooks
+        // land INSIDE that derived table, bracketing the union. The union returns the
+        // org’s active + archived projects; the inner select has no order by, so sort
+        // before comparing.
+        ctx.mockNext({
+            id: 1, name: 'Acme Corp',
+            projects: JSON.stringify([
+                { id: 1, name: 'Marketing site' },
+                { id: 2, name: 'Internal tools' },
+            ]),
+        })
+        const orgProjects = ctx.conn.subSelectUsing(tOrganization).from(tProject)
+            .where(tProject.organizationId.equals(tOrganization.id)).and(tProject.archivedAt.isNull())
+            .select({ id: tProject.id, name: tProject.name })
+            .union(
+                ctx.conn.subSelectUsing(tOrganization).from(tProject)
+                    .where(tProject.organizationId.equals(tOrganization.id)).and(tProject.archivedAt.isNotNull())
+                    .select({ id: tProject.id, name: tProject.name }),
+            )
+            .customizeQuery({
+                beforeQuery: ctx.conn.rawFragment`/* agg-head */ `,
+                afterQuery:  ctx.conn.rawFragment` /* agg-tail */`,
+            })
+            .forUseAsInlineAggregatedArrayValue()
+
+        const row = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.id.equals(1))
+            .select({
+                id:       tOrganization.id,
+                name:     tOrganization.name,
+                projects: orgProjects,
+            })
+            .executeSelectOne()
+        assertType<Exact<typeof row, {
+            id:       number
+            name:     string
+            projects: Array<{ id: number; name: string }>
+        }>>()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, (select a_1_.id as id, a_1_.name as name from (/* agg-head */  select id as id, name as name from project where organization_id = organization.id and archived_at is null union select id as id, name as name from project where organization_id = organization.id and archived_at is not null  /* agg-tail */) as a_1_ for json path) as projects from organization where id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        expect({ ...row, projects: [...row.projects].sort((a, b) => a.id - b.id) }).toEqual({
+            id: 1, name: 'Acme Corp',
+            projects: [
+                { id: 1, name: 'Marketing site' },
+                { id: 2, name: 'Internal tools' },
+            ],
+        })
+    })
 })

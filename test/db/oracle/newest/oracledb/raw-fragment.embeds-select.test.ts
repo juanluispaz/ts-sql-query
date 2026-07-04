@@ -110,4 +110,39 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof result, Array<{ id: number }>>>()
     })
+
+    test('rawfragment-hook-embeds-recursive-select-bubbles-with-recursive-to-outer', async () => {
+        // The embedded `${...}` param is a recursive select consumed via
+        // `forUseAsInlineQueryValue()`. Its generated `with recursive` CTE bubbles up
+        // and prefixes the OUTER statement, even though the sub-query only appears
+        // inside a customize-query `beforeColumns` fragment. Every seeded issue has a
+        // NULL parent_id, so the traversal from a single anchor returns one row and
+        // the scalar sub-query yields a single value. The extra raw `root` projection
+        // is not part of the typed result — the result mapper picks only `id`.
+        ctx.mockNext([{ root: 1, id: 1 }])
+        const connection = ctx.conn
+        const rootIssueId = connection.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .selectOneColumn(tIssue.id)
+            .recursiveUnionAllOn((child) => tIssue.parentId.equals(child.result))
+            .forUseAsInlineQueryValue()
+
+        const result = await connection.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ id: tProject.id })
+            .customizeQuery({
+                beforeColumns: connection.rawFragment`(${rootIssueId}) as root, `,
+            })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive_select_1(result) as (select id as result from issue where id = :0 union all select issue.id as result from issue join recursive_select_1 on issue.parent_id = recursive_select_1.result) select ((select result as "result" from recursive_select_1)) as root,  id as "id" from project where id = :1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+        expect(result).toEqual([{ id: 1 }])
+    })
 })

@@ -90,6 +90,36 @@ describe(ctx.label, () => {
     })
     */
 
+    // NOT-APPLICABLE: MySQL has no RETURNING
+    /*
+    test('insert-returning-object-computed-expression', async () => {
+        // Object-form RETURNING projecting a COMPUTED expression (`name || ' [new]'`)
+        // alongside a plain column. RETURNING sees the just-inserted name 'Mobile app'
+        // → 'Mobile app [new]'.
+        const expectedMock = { id: 100, tag: 'Mobile app [new]' }
+        ctx.mockNext(expectedMock)
+
+        await ctx.withRollback(async () => {
+            const inserted = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, name: 'Mobile app', slug: 'mobile' })
+                .returning({
+                    id:  tProject.id,
+                    tag: tProject.name.concat(' [new]'),
+                })
+                .executeInsertOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof inserted, { id: number; tag: string }>>()
+
+            expect(inserted.tag).toBe('Mobile app [new]')
+            expect(typeof inserted.id).toBe('number')
+            if (!ctx.realDbEnabled) expect(inserted.id).toBe(100)
+            else expect(inserted.id).toBeGreaterThan(4) // seed reserves project ids 1-4
+        })
+    })
+    */
+
     // mysql does not support the RETURNING clause; the library refuses
     // `.returning({...}).executeInsertMany()` at compile time. Kept here
     // commented for symmetry.

@@ -212,6 +212,7 @@ SELECT r.id AS id,
        r.released_on AS release_day_plain,
        r.cutoff_time AS cutoff_plain,
        r.id AS release_ordinal,
+       CASE WHEN r.download_count IS NOT NULL THEN r.id ELSE NULL END AS optional_release_ordinal,
        p.name AS project_name
 FROM project_release r
 INNER JOIN project p ON p.id = r.project_id;

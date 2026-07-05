@@ -160,4 +160,64 @@ describe(ctx.label, () => {
         expect(getQueryExecutionName(ctx.lastSql, ctx.lastParams)).toBe('find-project')
         expect(getQueryExecutionMetadata(ctx.lastSql, ctx.lastParams)).toEqual({ tag: 'hot-path' })
     })
+
+    test('docs-extra:query-execution-metadata/insert-carries-name-and-metadata', async () => {
+        // queryExecutionName / queryExecutionMetadata set via customizeQuery on an
+        // INSERT ride through to the runner and are read back through the public
+        // getQueryExecutionName / getQueryExecutionMetadata. Read inside the rollback
+        // (before it reverts) so ctx.lastSql/lastParams still reflect the insert.
+        await ctx.withRollback(async () => {
+            ctx.mockNext(1)
+            await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, name: 'Metadata demo', slug: 'meta-demo' })
+                .customizeQuery({
+                    queryExecutionName:     'insert-project',
+                    queryExecutionMetadata: { tag: 'insert-path' },
+                })
+                .executeInsert()
+
+            expect(getQueryExecutionName(ctx.lastSql, ctx.lastParams)).toBe('insert-project')
+            expect(getQueryExecutionMetadata(ctx.lastSql, ctx.lastParams)).toEqual({ tag: 'insert-path' })
+        })
+    })
+
+    test('docs-extra:query-execution-metadata/update-carries-name-and-metadata', async () => {
+        // queryExecutionName / queryExecutionMetadata set via customizeQuery on an
+        // UPDATE ride through to the runner. Update project 1's name inside a
+        // rollback so the seed survives; the metadata is read before the revert.
+        await ctx.withRollback(async () => {
+            ctx.mockNext(1)
+            await ctx.conn.update(tProject)
+                .set({ name: 'Renamed' })
+                .where(tProject.id.equals(1))
+                .customizeQuery({
+                    queryExecutionName:     'update-project',
+                    queryExecutionMetadata: { tag: 'update-path' },
+                })
+                .executeUpdate()
+
+            expect(getQueryExecutionName(ctx.lastSql, ctx.lastParams)).toBe('update-project')
+            expect(getQueryExecutionMetadata(ctx.lastSql, ctx.lastParams)).toEqual({ tag: 'update-path' })
+        })
+    })
+
+    test('docs-extra:query-execution-metadata/delete-carries-name-and-metadata', async () => {
+        // queryExecutionName / queryExecutionMetadata set via customizeQuery on a
+        // DELETE ride through to the runner. The WHERE matches no row (metadata rides
+        // regardless of matches), keeping the delete FK-safe and its result
+        // identical (0 rows) in mock and real modes.
+        await ctx.withRollback(async () => {
+            ctx.mockNext(0)
+            await ctx.conn.deleteFrom(tProject)
+                .where(tProject.id.equals(9999))
+                .customizeQuery({
+                    queryExecutionName:     'delete-project',
+                    queryExecutionMetadata: { tag: 'delete-path' },
+                })
+                .executeDelete()
+
+            expect(getQueryExecutionName(ctx.lastSql, ctx.lastParams)).toBe('delete-project')
+            expect(getQueryExecutionMetadata(ctx.lastSql, ctx.lastParams)).toEqual({ tag: 'delete-path' })
+        })
+    })
 })

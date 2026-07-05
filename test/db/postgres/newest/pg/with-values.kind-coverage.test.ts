@@ -50,6 +50,19 @@ const plusOffsetAdapter: TypeAdapter = {
     },
 }
 
+// A read-bracketing TypeAdapter (read wraps a string value in [...], write
+// passthrough) for the virtualColumnFromFragment trailing-adapter arm below.
+// Declared inline; the domain's own equivalent adapter is not exported.
+const bracketAdapter: TypeAdapter = {
+    transformValueFromDB(value, type, next) {
+        const v = next.transformValueFromDB(value, type)
+        return typeof v === 'string' ? '[' + v + ']' : v
+    },
+    transformValueToDB(value, type, next) {
+        return next.transformValueToDB(value, type)
+    },
+}
+
 // Branded text-collapsing kinds as real VALUES-tuple columns: customComparable
 // ('Semver'), custom ('ReleaseChannel') and enum ('WorklogActivity'). All
 // collapse to text, so they round-trip on every dialect.
@@ -359,5 +372,33 @@ describe(ctx.label, () => {
           ]
         `)
         expect(none).toEqual([{}])
+    })
+
+    test('values-tuple-virtual-column-from-fragment-with-type-adapter-brackets-read', async () => {
+        // A Values `virtualColumnFromFragment` (required) and
+        // `optionalVirtualColumnFromFragment` (optional), each carrying a trailing
+        // TypeAdapter. Both compute `upper('led')` → 'LED' in the outer SELECT and
+        // bracketAdapter wraps the read value → '[LED]'.
+        class VBracketSampler extends Values<DBConnection, 'bracketSampler'> {
+            n     = this.column('int')
+            vtag  = this.virtualColumnFromFragment('string', (fragment) => fragment.sql`upper('led')`, bracketAdapter)
+            vtagO = this.optionalVirtualColumnFromFragment('string', (fragment) => fragment.sql`upper('led')`, bracketAdapter)
+        }
+        const expected = [{ n: 7, vtag: '[LED]', vtagO: '[LED]' }]
+        // The mock is primed with the RAW db value ('LED'); bracketAdapter wraps
+        // each on read to the asserted '[LED]'.
+        ctx.mockNext([{ n: 7, vtag: 'LED', vtagO: 'LED' }])
+        const v = Values.create(VBracketSampler, 'bracketSampler', [{ n: 7 }])
+        const rows = await ctx.conn.selectFrom(v)
+            .select({ n: v.n, vtag: v.vtag, vtagO: v.vtagO })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with bracketSampler("n") as (values ($1::int4)) select "n" as "n", upper('led') as vtag, upper('led') as "vtagO" from bracketSampler"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            7,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ n: number; vtag: string; vtagO?: string }>>>()
+        expect(rows).toEqual(expected)
     })
 })

@@ -323,4 +323,44 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ projectId: number; maxAssignee: number | null }>>>()
         expect(result).toEqual(expected)
     })
+
+    test('group-by-before-select-then-select-one-column-scalar-shortcut', async () => {
+        // `groupBy(...)` before the select, projecting a single aggregate column via
+        // the `selectOneColumn(...)` scalar shortcut. Grouping the 4 issues by
+        // project and taking max(priority): project 1 → max(2, 1) = 2; project 2 →
+        // max(3) = 3; project 3 → max(2) = 2. Sort in JS to stay deterministic across
+        // mock and real DB.
+        const expected = [2, 2, 3]
+        ctx.mockNext([2, 3, 2])
+        const result = await ctx.conn.selectFrom(tIssue)
+            .groupBy(tIssue.projectId)
+            .selectOneColumn(ctx.conn.max(tIssue.priority))
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(priority) as [result] from issue group by project_id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        // `max(...)` is optional (empty set → NULL), so the one-column scalar array
+        // is typed `Array<number | null>`; every group here is non-empty at runtime.
+        assertType<Exact<typeof result, Array<number | null>>>()
+        expect(result.slice().sort()).toEqual(expected)
+    })
+
+    test('group-by-before-select-then-select-count-all-scalar-shortcut', async () => {
+        // `groupBy(...)` before the select, projecting the per-group row count via
+        // the `selectCountAll()` scalar shortcut. Grouping the 4 issues by project
+        // yields one count per group: project 1 → 2 issues, project 2 → 1, project 3
+        // → 1. Sort in JS for determinism.
+        const expected = [1, 1, 2]
+        ctx.mockNext([2, 1, 1])
+        const result = await ctx.conn.selectFrom(tIssue)
+            .groupBy(tIssue.projectId)
+            .selectCountAll()
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(*) as [result] from issue group by project_id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<number>>>()
+        expect(result.slice().sort()).toEqual(expected)
+    })
+
 })

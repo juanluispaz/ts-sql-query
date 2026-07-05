@@ -123,6 +123,36 @@ describe(ctx.label, () => {
         })
     })
 
+    test('update-from-table-then-left-outer-join-on-from-tables', async () => {
+        // `update(t).from(j1).leftOuterJoin(j2).on(...)` — a LEFT OUTER JOIN after
+        // the UPDATE … FROM limb, emitting the explicit `left outer join` keyword.
+        // The join keeps every issue even when no assignee matches, so the joined
+        // name is nullable and `.set(...)` coalesces it to a fallback. Issue 3 is
+        // unassigned (assignee_id NULL) → its project (project 2) gets 'Unassigned'.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const tAssignee = tAppUser.forUseInLeftJoin()
+            const affected = await ctx.conn.update(tProject)
+                .from(tIssue)
+                .leftOuterJoin(tAssignee).on(tAssignee.id.equals(tIssue.assigneeId))
+                .set({ name: tAssignee.fullName.valueWhenNull('Unassigned') })
+                .where(tProject.id.equals(tIssue.projectId))
+                    .and(tIssue.id.equals(3))
+                .executeUpdate()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = coalesce(app_user.full_name, $1) from issue left outer join app_user on app_user.id = issue.assignee_id where project.id = issue.project_id and issue.id = $2"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Unassigned",
+                3,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            if (ctx.realDbEnabled) expect(typeof affected).toBe('number')
+            else expect(affected).toBe(1)
+        })
+    })
+
     test('update-from-table-then-left-join-returning-nullable-joined-column', async () => {
         // The `.returning({...})` projects the LEFT-joined `app_user.full_name`
         // column directly — because the join is a LEFT join, the column is
@@ -589,4 +619,31 @@ describe(ctx.label, () => {
         })
     })
     */
+
+    test('update-allowing-no-where-from-table-then-inner-join-touches-all-rows', async () => {
+        // `updateAllowingNoWhere(t).from(j1).innerJoin(j2).on(...)` — the from-then-join
+        // UPDATE limb reached through the allowing-no-where entry point, executable
+        // with NO WHERE (the target carries no WHERE; the `issue.id = 1` predicate rides
+        // on the JOIN's ON, resolving the FROM side to a single row so every project is
+        // touched exactly once). The mock pins the emitted no-WHERE SQL; the real DB
+        // confirms the statement runs and returns a count.
+        ctx.mockNext(4)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.updateAllowingNoWhere(tProject)
+                .from(tIssue)
+                .innerJoin(tAppUser).on(tAppUser.id.equals(tIssue.assigneeId)).and(tIssue.id.equals(1))
+                .set({ name: tAppUser.fullName })
+                .executeUpdate()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = app_user.full_name from issue inner join app_user on app_user.id = issue.assignee_id and issue.id = $1"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            if (ctx.realDbEnabled) expect(typeof affected).toBe('number')
+            else expect(affected).toBe(4)
+        })
+    })
 })

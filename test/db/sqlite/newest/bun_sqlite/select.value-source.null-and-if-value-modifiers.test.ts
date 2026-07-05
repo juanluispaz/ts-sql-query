@@ -125,6 +125,44 @@ describe(ctx.label, () => {
         else expect(rows).toEqual(expected)
     })
 
+    test('nullIfValue-string-literal', async () => {
+        // `status.nullIfValue('closed')` on a string column returns NULL when the
+        // column equals the literal probe, the value otherwise. Emits
+        // `nullif(status, $1)` and the result is `?: string` (optional). Seeded
+        // statuses: issue 1 'open', issue 2 'in_progress', issue 3 'open', issue 4
+        // 'closed' → issue 4 collapses to an absent key, the rest keep their
+        // status.
+        const expected = [
+            { id: 1, statusOrNull: 'open' },
+            { id: 2, statusOrNull: 'in_progress' },
+            { id: 3, statusOrNull: 'open' },
+            { id: 4 },
+        ]
+        ctx.mockNext([
+            { id: 1, statusOrNull: 'open' },
+            { id: 2, statusOrNull: 'in_progress' },
+            { id: 3, statusOrNull: 'open' },
+            { id: 4, statusOrNull: null },
+        ])
+
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .select({
+                id:           tIssue.id,
+                statusOrNull: tIssue.status.nullIfValue('closed'),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, nullif(status, ?) as statusOrNull from issue order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "closed",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; statusOrNull?: string }>>>()
+        expect(rows).toEqual(expected)
+    })
+
     test('equalsIfValue-skips-on-undefined', async () => {
         // The `.equalsIfValue(undefined)` predicate is elided — the
         // WHERE clause carries no clause for the column. Pinning this

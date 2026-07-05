@@ -2312,6 +2312,146 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
+    test('rule-1-wrapper-of-sole-rule-1-inner-with-own-required-leaf-default', async () => {
+        // A two-level container whose only member is a nested `inner` object made
+        // optional by its requiredInOptionalObject `gate` leaf but also carrying a
+        // genuinely-required `ownReq` leaf. The optional `inner` keeps `wrapper`
+        // optional (an optional inner never forces its container required), so both
+        // surface present-key / `| undefined`-valued with `ownReq`
+        // required-when-present. When `gate` (body) is null the inner collapses and
+        // the whole `wrapper` is dropped.
+        // issue 1 (project 1): body null → wrapper dropped; issue 2: body present.
+        const expected = [
+            { iid: 1 },
+            { iid: 2, wrapper: { inner: { gate: 'Use new tokens', ownReq: 2 } } },
+        ]
+        ctx.mockNext([
+            { iid: 1, 'wrapper.inner.gate': null,             'wrapper.inner.ownReq': 1 },
+            { iid: 2, 'wrapper.inner.gate': 'Use new tokens', 'wrapper.inner.ownReq': 2 },
+        ])
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.projectId.equals(1))
+            .select({
+                iid: tIssue.id,
+                wrapper: {
+                    inner: {
+                        gate:   tIssue.body.asRequiredInOptionalObject(),
+                        ownReq: tIssue.number,
+                    },
+                },
+            })
+            .orderBy('iid')
+            .executeSelectMany()
 
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as \`wrapper.inner.gate\`, \`number\` as \`wrapper.inner.ownReq\` from issue where project_id = ? order by iid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            iid:      number
+            wrapper?: { inner: { gate: string; ownReq: number } | undefined }
+        }>>>()
+        expect(rows).toEqual(expected)
+        // issue 1's gate (body) is null, so the inner collapses and the whole
+        // optional `wrapper` is dropped — assert its key is ABSENT, not
+        // present-as-undefined (which `toEqual` would also accept).
+        expect('wrapper' in rows[0]!).toBe(false)
+    })
+
+    test('rule-1-wrapper-of-sole-rule-1-inner-with-own-required-leaf-as-nullable', async () => {
+        // The wrapper-of-optional-inner shape under
+        // `projectingOptionalValuesAsNullable()`: `wrapper` and the nested `inner`
+        // each become `{...} | null` and surface as `null` when `gate` (body) is
+        // null, while the required `ownReq` stays required inside a present inner.
+        // issue 1: body null → wrapper null; issue 2: body present.
+        const expected = [
+            { iid: 1, wrapper: null },
+            { iid: 2, wrapper: { inner: { gate: 'Use new tokens', ownReq: 2 } } },
+        ]
+        ctx.mockNext([
+            { iid: 1, 'wrapper.inner.gate': null,             'wrapper.inner.ownReq': 1 },
+            { iid: 2, 'wrapper.inner.gate': 'Use new tokens', 'wrapper.inner.ownReq': 2 },
+        ])
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.projectId.equals(1))
+            .select({
+                iid: tIssue.id,
+                wrapper: {
+                    inner: {
+                        gate:   tIssue.body.asRequiredInOptionalObject(),
+                        ownReq: tIssue.number,
+                    },
+                },
+            })
+            .projectingOptionalValuesAsNullable()
+            .orderBy('iid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as \`wrapper.inner.gate\`, \`number\` as \`wrapper.inner.ownReq\` from issue where project_id = ? order by iid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            iid:     number
+            wrapper: { inner: { gate: string; ownReq: number } | null } | null
+        }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('rule-2-wrapper-of-sole-rule-2-inner-with-const-required-leaf-default', async () => {
+        // A two-level container whose only member is a nested `inner` object whose
+        // table leaf (`iid`) comes from a left join — so `inner` is optional (all
+        // its table leaves share the same left join) — but which also carries a
+        // genuinely-required NoTableOrView `constReq` leaf (a `const(...)`). The
+        // optional `inner` keeps `wrapper` optional. The const leaf is always
+        // present, so when the left join misses only the join leaf `iid` drops
+        // while `inner` and `wrapper` survive carrying just `constReq`.
+        // project 3 → issue 4 (join hits); project 4 → no issue (join misses).
+        const expected = [
+            { pid: 3, wrapper: { inner: { iid: 4, constReq: 1 } } },
+            { pid: 4, wrapper: { inner: { constReq: 1 } } },
+        ]
+        ctx.mockNext([
+            { pid: 3, 'wrapper.inner.iid': 4,    'wrapper.inner.constReq': 1 },
+            { pid: 4, 'wrapper.inner.iid': null, 'wrapper.inner.constReq': 1 },
+        ])
+        const tIssueLeft = tIssue.forUseInLeftJoin()
+        const rows = await ctx.conn.selectFrom(tProject)
+            .leftJoin(tIssueLeft).on(tIssueLeft.projectId.equals(tProject.id))
+            .where(tProject.id.in([3, 4]))
+            .select({
+                pid: tProject.id,
+                wrapper: {
+                    inner: {
+                        iid:      tIssueLeft.id,
+                        constReq: ctx.conn.const(1, 'int'),
+                    },
+                },
+            })
+            .orderBy('pid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.id as \`wrapper.inner.iid\`, ? as \`wrapper.inner.constReq\` from project left join issue on issue.project_id = project.id where project.id in (?, ?) order by pid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            3,
+            4,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            pid:      number
+            wrapper?: { inner: { iid: number; constReq: number } | undefined }
+        }>>>()
+        expect(rows).toEqual(expected)
+        // On the join-miss row the left-join leaf `iid` is dropped while the
+        // always-present `constReq` keeps the inner (and wrapper) — assert `iid`
+        // is ABSENT.
+        expect('iid' in rows[1]!.wrapper!.inner!).toBe(false)
+    })
 
 })

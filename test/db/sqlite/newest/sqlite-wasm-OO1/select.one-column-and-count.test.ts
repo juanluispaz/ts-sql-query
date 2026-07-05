@@ -210,6 +210,70 @@ describe(ctx.label, () => {
         expect(String(caught)).toMatch(/NO_RESULT|No result returned/)
     })
 
+    test('select-one-column-execute-one-multiple-rows-throws-more-than-one-row', async () => {
+        // `executeSelectOne()` on a one-column query that matches MORE THAN ONE row
+        // throws MORE_THAN_ONE_ROW. Project 1 has two issues (ids 1, 2), so
+        // project_id = 1 returns two rows. The mock returns a single queued value
+        // and cannot produce two rows, so the throw is asserted only on real-DB /
+        // native-SQLite cells; on mock the single value returns without a throw. The
+        // SQL is captured (before the throw fires) in both modes.
+        ctx.mockNext('open')
+        let caught: unknown
+        let result: string | undefined
+        try {
+            result = await ctx.conn.selectFrom(tIssue)
+                .where(tIssue.projectId.equals(1))
+                .selectOneColumn(tIssue.status)
+                .executeSelectOne()
+        } catch (e) {
+            caught = e
+        }
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as result from issue where project_id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        if (ctx.realDbEnabled) {
+            expect(String(caught)).toMatch(/MORE_THAN_ONE_ROW|Too many rows/)
+            expect(caught instanceof TsSqlError ? caught.errorReason.reason : undefined).toBe('MORE_THAN_ONE_ROW')
+        } else {
+            expect(caught).toBeUndefined()
+            expect(result).toBe('open')
+        }
+    })
+
+    test('select-multi-column-execute-one-multiple-rows-throws-more-than-one-row', async () => {
+        // MORE_THAN_ONE_ROW on the multi-column row path: `executeSelectOne()` over
+        // a projection matching two rows (project 1 has issues 1 and 2) throws on a
+        // real engine. The mock returns a single queued object, so mock returns it
+        // without a throw.
+        ctx.mockNext({ id: 1, status: 'open' })
+        let caught: unknown
+        let result: { id: number; status: string } | undefined
+        try {
+            result = await ctx.conn.selectFrom(tIssue)
+                .where(tIssue.projectId.equals(1))
+                .select({ id: tIssue.id, status: tIssue.status })
+                .executeSelectOne()
+        } catch (e) {
+            caught = e
+        }
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, status as status from issue where project_id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        if (ctx.realDbEnabled) {
+            expect(String(caught)).toMatch(/MORE_THAN_ONE_ROW|Too many rows/)
+            expect(caught instanceof TsSqlError ? caught.errorReason.reason : undefined).toBe('MORE_THAN_ONE_ROW')
+        } else {
+            expect(caught).toBeUndefined()
+            expect(result).toEqual({ id: 1, status: 'open' })
+        }
+    })
+
     test('select-one-column-execute-page-returns-scalar-array-and-count', async () => {
         // `executeSelectPage` on a one-column `selectOneColumn(...)` query: `data` is
         // a bare scalar array (`number[]`, not `Array<{...}>`) alongside `count`. It

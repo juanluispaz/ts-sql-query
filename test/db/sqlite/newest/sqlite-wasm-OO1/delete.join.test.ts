@@ -118,6 +118,36 @@ describe(ctx.label, () => {
 
     // NOT-APPLICABLE: SQLite does not support DELETE … USING; the library type-excludes it for sqlite connections.
     /*
+    test('delete-using-table-then-left-outer-join-on-using-tables', async () => {
+        // `deleteFrom(t).using(u1).leftOuterJoin(u2).on(...)` — a LEFT OUTER JOIN on
+        // the DELETE … USING limb, emitting the explicit `left outer join` keyword.
+        // Every project has an organization, so the join matches; delete project 2's
+        // only issue (issue 3).
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const tOrg = tOrganization.forUseInLeftJoin()
+            const affected = await ctx.conn.deleteFrom(tIssue)
+                .using(tProject)
+                .leftOuterJoin(tOrg).on(tOrg.id.equals(tProject.organizationId))
+                .where(tIssue.projectId.equals(tProject.id))
+                    .and(tProject.id.equals(2))
+                .executeDelete()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using project left outer join organization on organization.id = project.organization_id where issue.project_id = project.id and project.id = $1"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                2,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            if (ctx.realDbEnabled) expect(typeof affected).toBe('number')
+            else expect(affected).toBe(1)
+        })
+    })
+    */
+
+    // NOT-APPLICABLE: SQLite does not support DELETE … USING; the library type-excludes it for sqlite connections.
+    /*
     test('delete-using-table-then-left-join-returning-nullable-joined-column', async () => {
         // `.returning({...})` projecting the LEFT-joined `organization.name` — a
         // USING-table column returned through a LEFT join, so the projected leaf is
@@ -544,4 +574,30 @@ describe(ctx.label, () => {
         })
     })
     */
+
+    // NOT-APPLICABLE: SQLite does not support DELETE … USING; the library type-excludes it for sqlite connections.
+    /*
+    test('delete-allowing-no-where-using-table-then-inner-join-removes-all-rows', async () => {
+        // `deleteAllowingNoWhereFrom(t).using(u1).innerJoin(u2).on(...)` — the
+        // using-then-join DELETE limb reached through the allowing-no-where entry
+        // point, executable with NO WHERE. With no WHERE correlating the target to the
+        // USING tables, every project_release row is removed (project_release is a leaf
+        // table, so the delete is referential-integrity-safe). The mock pins the
+        // emitted no-WHERE SQL; the real DB confirms the statement runs.
+        ctx.mockNext(3)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.deleteAllowingNoWhereFrom(tProjectRelease)
+                .using(tProject)
+                .innerJoin(tOrganization).on(tOrganization.id.equals(tProject.organizationId))
+                .executeDelete()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from project_release using project inner join organization on organization.id = project.organization_id"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+            assertType<Exact<typeof affected, number>>()
+            if (ctx.realDbEnabled) expect(typeof affected).toBe('number')
+            else expect(affected).toBe(3)
+        })
+    })
+    */
+
 })

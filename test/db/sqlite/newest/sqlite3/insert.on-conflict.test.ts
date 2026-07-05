@@ -4,7 +4,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tOrganization, tProject } from '../../domain/connection.js'
+import { tIssue, tOrganization, tProject, tProjectReview } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -500,4 +500,46 @@ describe(ctx.label, () => {
             expect([...rows].sort((a, b) => a.id - b.id)).toEqual(expected)
         })
     })
+
+    test('on-conflict-on-columns-do-update-scaled-adapter-set-and-where', async () => {
+        // `tProjectReview.score` carries a value-transform adapter (write ×10 /
+        // read ÷10), routed through ON CONFLICT DO UPDATE SET and its WHERE. The
+        // insert score 3 binds 30, the DO UPDATE SET value 5 binds 50 and the DO
+        // UPDATE WHERE threshold 4 binds 40. The insert takes a fresh id, so no
+        // conflict fires and RETURNING reads the inserted score back through the
+        // adapter (stored 30 → read 3).
+        const expected = { score: 3 }
+        // The mock is primed with the RAW db value (30); the scaledTenthAdapter
+        // divides by 10 on read to yield the asserted 3.
+        ctx.mockNext({ score: 30 })
+        await ctx.withRollback(async () => {
+            const row = await ctx.conn.insertInto(tProjectReview)
+                .values({
+                    projectId:    1,
+                    reviewerCode: 'R-1',
+                    score:        3,
+                    reviewTime:   new Date(Date.UTC(1970, 0, 1, 9, 30, 0)),
+                })
+                .onConflictOn(tProjectReview.id)
+                .doUpdateSet({ score: 5 })
+                .where(tProjectReview.score.greaterThan(4))
+                .returning({ score: tProjectReview.score })
+                .executeInsertNoneOrOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project_review (project_id, reviewer_code, score, review_time) values (?, ?, ?, ?) on conflict (id) do update set score = ? where project_review.score > ? returning score as score"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "R-1",
+                30,
+                "09:30:00",
+                50,
+                40,
+              ]
+            `)
+            assertType<Exact<typeof row, { score: number } | null>>()
+            expect(row).toEqual(expected)
+        })
+    })
+
 })

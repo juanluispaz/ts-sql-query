@@ -7,7 +7,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tOrganization, tProject } from '../../domain/connection.js'
+import { tAppUser, tIssue, tIssueWorklog, tOrganization, tProject, tProjectReview } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -149,6 +149,47 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as projectId, (select count(*) as result from issue where project_id = project.id and project.organization_id = \`organization\`.id) as issueCount from \`organization\` inner join project on project.organization_id = \`organization\`.id order by projectId"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ projectId: number; issueCount: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('sub-select-using-five-correlated-tables', async () => {
+        // subSelectUsing with FIVE genuinely-distinct correlated outer tables
+        // (tOrganization + tProject + tIssue + tAppUser + tIssueWorklog). The
+        // outer query joins the whole org↔project↔issue↔assignee↔worklog chain
+        // and the inline subquery re-states every link, so it references all
+        // five correlated tables at once. Exercises the arity-5 overload — each
+        // Ti stays its own type parameter, so five different tables are accepted
+        // (a copy-paste typo previously pinned the fifth to the fourth's type).
+        const expected = [
+            { worklogId: 1, issueId: 1, orgName: 'Acme Corp', assignee: 'Ada Lovelace', reviewCount: 1 },
+            { worklogId: 2, issueId: 2, orgName: 'Acme Corp', assignee: 'Grace Hopper', reviewCount: 1 },
+            { worklogId: 3, issueId: 1, orgName: 'Acme Corp', assignee: 'Ada Lovelace', reviewCount: 1 },
+        ]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tOrganization)
+            .innerJoin(tProject).on(tProject.organizationId.equals(tOrganization.id))
+            .innerJoin(tIssue).on(tIssue.projectId.equals(tProject.id))
+            .innerJoin(tAppUser).on(tAppUser.id.equals(tIssue.assigneeId))
+            .innerJoin(tIssueWorklog).on(tIssueWorklog.issueId.equals(tIssue.id))
+            .select({
+                worklogId:   tIssueWorklog.id,
+                issueId:     tIssue.id,
+                orgName:     tOrganization.name,
+                assignee:    tAppUser.fullName,
+                reviewCount: ctx.conn.subSelectUsing(tOrganization, tProject, tIssue, tAppUser, tIssueWorklog).from(tProjectReview)
+                    .where(tProjectReview.projectId.equals(tProject.id)
+                        .and(tProject.organizationId.equals(tOrganization.id))
+                        .and(tIssue.assigneeId.equals(tAppUser.id))
+                        .and(tIssueWorklog.issueId.equals(tIssue.id)))
+                    .selectCountAll()
+                    .forUseAsInlineQueryValue(),
+            })
+            .orderBy('worklogId')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue_worklog.id as worklogId, issue.id as issueId, \`organization\`.\`name\` as orgName, app_user.full_name as assignee, (select count(*) as result from project_review where project_id = project.id and project.organization_id = \`organization\`.id and issue.assignee_id = app_user.id and issue_worklog.issue_id = issue.id) as reviewCount from \`organization\` inner join project on project.organization_id = \`organization\`.id inner join issue on issue.project_id = project.id inner join app_user on app_user.id = issue.assignee_id inner join issue_worklog on issue_worklog.issue_id = issue.id order by worklogId"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ worklogId: number; issueId: number; orgName: string; assignee: string; reviewCount: number }>>>()
         expect(rows).toEqual(expected)
     })
 })

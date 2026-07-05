@@ -10,7 +10,7 @@
 
 import { test, expect } from '../../../lib/testRunner.js'
 import type { DBConnection } from '../domain/connection.js'
-import { tAppUser, tIssue, tProject } from '../domain/connection.js'
+import { tAppUser, tCountry, tIssue, tIssueWorklog, tOrganization, tProject, tProjectReview } from '../domain/connection.js'
 
 // `connection` is type-only — the function below is checked by tsc but
 // never invoked at runtime, so we don't need a real instance and don't
@@ -232,6 +232,19 @@ function _typeNegatives() {
                 num: tIssue.number,
             } } } } },
         })
+
+    // Rule: subSelectUsing(...) fixes the correlated outer tables in scope; at
+    // arity 5 each type parameter stays distinct, so the correlation scope is
+    // exactly the five listed tables (plus the inner FROM). A table that is NOT
+    // among them (here tCountry) is out of scope, so a correlation predicate
+    // referencing it must not compile. This locks the arity-5 overload keeping
+    // the fifth table its own type parameter rather than collapsing it onto the
+    // fourth (which would also mis-scope the correlated-source union).
+    void connection.subSelectUsing(tOrganization, tProject, tIssue, tAppUser, tIssueWorklog).from(tProjectReview)
+        .where(
+            // @ts-expect-error tCountry is not among the five correlated tables in scope at arity 5
+            tCountry.code.equals('US')
+        )
 }
 
 test('select-negative-types', () => {

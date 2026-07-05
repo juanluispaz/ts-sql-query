@@ -277,4 +277,54 @@ describe(ctx.label, () => {
         expect(page.data).toEqual(dataRows)
     })
 
+    test('customize-compound-execute-select-page-without-limit-still-wraps-count-with-hooks', async () => {
+        // Sibling of the paged compound page test above, WITHOUT a `limit` clause:
+        // the page returns every row and the count still equals the total. The
+        // compound count path is unconditional (it always wraps the compound in a
+        // `result_for_count` CTE), so the `beforeQuery` / `afterQuery` hooks ride
+        // on BOTH the data query and the count query even with no paging clause to
+        // strip — the wrapped inner select carries the hooks regardless. Branches
+        // select ids {1,2} ∪ {3}, ordered by id → 3 rows, count 3.
+        const dataRows = [
+            { id: 1, label: 'Marketing site' },
+            { id: 2, label: 'Internal tools' },
+            { id: 3, label: 'Public API' },
+        ]
+        ctx.mockNext(dataRows)
+        ctx.mockNext(3)
+        const connection = ctx.conn
+        const page = await connection.selectFrom(tProject).where(tProject.id.in([1, 2])).select({ id: tProject.id, label: tProject.name })
+            .union(connection.selectFrom(tProject).where(tProject.id.equals(3)).select({ id: tProject.id, label: tProject.name }))
+            .orderBy('id')
+            .customizeQuery({
+                beforeQuery: connection.rawFragment`/* head */ `,
+                afterQuery:  connection.rawFragment` /* tail */`,
+            })
+            .executeSelectPage()
+
+        expect(ctx.history.length).toBe(2)
+        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"/* head */  select id as id, \`name\` as label from project where id in (?, ?) union select id as id, \`name\` as label from project where id = ? order by id  /* tail */"`)
+        expect(ctx.history[0]!.params).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+            3,
+          ]
+        `)
+        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with result_for_count as (/* head */  select id as id, \`name\` as label from project where id in (?, ?) union select id as id, \`name\` as label from project where id = ? order by id  /* tail */) select count(*) from result_for_count"`)
+        expect(ctx.history[1]!.params).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+            3,
+          ]
+        `)
+        assertType<Exact<typeof page, {
+            data:  Array<{ id: number; label: string }>
+            count: number
+        }>>()
+        expect(page.count).toBe(3)
+        expect(page.data).toEqual(dataRows)
+    })
+
 })

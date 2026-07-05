@@ -816,7 +816,13 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
             return recursiveSelect.__buildSelectCount(countAll, params)
         }
 
-        if (this.__distinct || this.__groupBy.length > 0) {
+        if (this.__distinct || this.__groupBy.length > 0 || this.__customization) {
+            // A `customizeQuery` on a plain (non-distinct, non-grouped) select must
+            // still decorate the count query, so route it through the same CTE
+            // wrapper the distinct/grouped/compound paths use: the copied data
+            // carries `__customization`, so `beforeQuery`/`afterQuery` (and the
+            // other statement-level hooks) ride on the wrapped inner query instead
+            // of being dropped from the plain `select count(*) from <table>` form.
             const data = {...this.__asSelectData()} // Ensure any missing initialization and create a copy of the data
             delete data.__limit
             delete data.__offset

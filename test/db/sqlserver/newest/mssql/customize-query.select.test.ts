@@ -303,4 +303,54 @@ describe(ctx.label, () => {
         expect(result).toEqual([{ id: 1, projectId: 1 }, { id: 2, projectId: 1 }])
     })
 
+    test('customize-select-plain-order-by-limit-execute-select-page-places-hooks-in-count-wrap', async () => {
+        // A CUSTOMIZED PLAIN (non-distinct, non-grouped) select with `orderBy` +
+        // `limit` consumed via `executeSelectPage`: the `beforeQuery` /
+        // `afterQuery` hooks must render on BOTH the data query AND the
+        // auto-generated count query. The count query has no user SELECT list to
+        // carry the hooks inline (it rewrites to `count(*)`), so the plain path
+        // wraps the customized query in a `result_for_count` CTE — the same shape
+        // the grouped / compound page paths already use — and the hooks ride on
+        // that wrapped inner query. The page returns the first 2 ordered projects
+        // and total count 3.
+        const dataRows = [
+            { id: 1, name: 'Marketing site' },
+            { id: 2, name: 'Internal tools' },
+        ]
+        ctx.mockNext(dataRows)
+        ctx.mockNext(3)
+        const connection = ctx.conn
+        const page = await connection.selectFrom(tProject)
+            .where(tProject.id.lessOrEqual(3))
+            .select({ id: tProject.id, name: tProject.name })
+            .orderBy('id')
+            .limit(2)
+            .customizeQuery({
+                beforeQuery: connection.rawFragment`/* head */ `,
+                afterQuery:  connection.rawFragment` /* tail */`,
+            })
+            .executeSelectPage()
+
+        expect(ctx.history.length).toBe(2)
+        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"/* head */  select id as id, name as name from project where id <= @0 order by id offset 0 rows fetch next @1 rows only  /* tail */"`)
+        expect(ctx.history[0]!.params).toMatchInlineSnapshot(`
+          [
+            3,
+            2,
+          ]
+        `)
+        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with result_for_count as (/* head */  select id as id, name as name from project where id <= @0 order by id offset 0 rows  /* tail */) select count(*) from result_for_count"`)
+        expect(ctx.history[1]!.params).toMatchInlineSnapshot(`
+          [
+            3,
+          ]
+        `)
+        assertType<Exact<typeof page, {
+            data:  Array<{ id: number; name: string }>
+            count: number
+        }>>()
+        expect(page.count).toBe(3)
+        expect(page.data).toEqual(dataRows)
+    })
+
 })

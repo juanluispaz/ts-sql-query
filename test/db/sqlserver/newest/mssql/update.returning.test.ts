@@ -5,7 +5,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tOrganization } from '../../domain/connection.js'
+import { tIssue, tOrganization, tReleaseDraft, type ReleaseStage } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -257,6 +257,78 @@ describe(ctx.label, () => {
             `)
             assertType<Exact<typeof row, { id: number; title: string } | null>>()
             expect(row).toEqual(expectedMock)
+        })
+    })
+
+    test('update-release-draft-returning-one-column-optional-branded', async () => {
+        // `returningOneColumn(<optional branded column>)` on UPDATE → `ReleaseStage | null`.
+        // RETURNING sees the post-update value; draft 1's `stage` ('candidate') is untouched by the
+        // title update, so it comes back present.
+        ctx.mockNext('candidate')
+        await ctx.withRollback(async () => {
+            const stage = await ctx.conn.update(tReleaseDraft)
+                .set({ title: 'Alpha cut v2' })
+                .where(tReleaseDraft.id.equals(1))
+                .returningOneColumn(tReleaseDraft.stage)
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update release_draft set title = @0 output inserted.stage as [result] where id = @1"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Alpha cut v2",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof stage, ReleaseStage | null>>()
+            expect(stage).toBe('candidate')
+        })
+    })
+    test('update-release-draft-returning-object-optional-branded-default', async () => {
+        // Object-form RETURNING of an optional branded column on UPDATE. Under the default projector
+        // the leaf is `stage?: ReleaseStage` (brand preserved). Draft 1's stage 'candidate' is
+        // present.
+        const expected = { id: 1, stage: 'candidate' as ReleaseStage }
+        ctx.mockNext(expected)
+        await ctx.withRollback(async () => {
+            const row = await ctx.conn.update(tReleaseDraft)
+                .set({ title: 'Alpha cut v2' })
+                .where(tReleaseDraft.id.equals(1))
+                .returning({ id: tReleaseDraft.id, stage: tReleaseDraft.stage })
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update release_draft set title = @0 output inserted.id as id, inserted.stage as stage where id = @1"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Alpha cut v2",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof row, { id: number; stage?: ReleaseStage }>>()
+            expect(row).toEqual(expected)
+        })
+    })
+    test('update-release-draft-returning-object-optional-branded-as-nullable', async () => {
+        // The same under `projectingOptionalValuesAsNullable()` → `stage: ReleaseStage | null`.
+        // Draft 2's stage is NULL, so the returned value is present-null.
+        const expected = { id: 2, stage: null }
+        ctx.mockNext(expected)
+        await ctx.withRollback(async () => {
+            const row = await ctx.conn.update(tReleaseDraft)
+                .set({ title: 'Nightly build v2' })
+                .where(tReleaseDraft.id.equals(2))
+                .returning({ id: tReleaseDraft.id, stage: tReleaseDraft.stage })
+                .projectingOptionalValuesAsNullable()
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update release_draft set title = @0 output inserted.id as id, inserted.stage as stage where id = @1"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Nightly build v2",
+                2,
+              ]
+            `)
+            assertType<Exact<typeof row, { id: number; stage: ReleaseStage | null }>>()
+            expect(row).toEqual(expected)
         })
     })
 })

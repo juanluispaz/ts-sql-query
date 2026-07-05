@@ -534,4 +534,30 @@ describe(ctx.label, () => {
     })
     */
 
+
+    // NOT-APPLICABLE: Oracle has no INSERT…ON CONFLICT (uses MERGE)
+    /*
+    test('on-conflict-on-id-do-update-optional-custom-columns', async () => {
+        // DO UPDATE of the optional custom-kind columns (enum / custom / customComparable) via
+        // `onConflictOn(<pk>).doUpdateSet(...)`. Inserting id=1 collides with the seeded draft 1
+        // (release_draft PK), so the row is updated: stage → 'final', channel → 'stable', minVersion →
+        // '3.0.0'. The upsert produces a row, so `executeInsert` returns 1.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.insertInto(tReleaseDraft)
+                .values({ id: 1, title: 'Alpha cut (upsert)', stage: 'final', channel: 'stable', minVersion: '3.0.0' })
+                .onConflictOn(tReleaseDraft.id)
+                .doUpdateSet({ stage: 'final', channel: 'stable', minVersion: '3.0.0' })
+                .executeInsert()
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof affected, number>>()
+            if (ctx.realDbEnabled) {
+                expect(typeof affected).toBe('number')
+            } else {
+                expect(affected).toBe(1)
+            }
+        })
+    })
+    */
 })

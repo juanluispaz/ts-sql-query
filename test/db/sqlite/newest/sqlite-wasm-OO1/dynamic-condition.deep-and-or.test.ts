@@ -193,7 +193,7 @@ describe(ctx.label, () => {
     })
 
     test('dynamic-condition-and-array-with-undefined-element-is-skipped', async () => {
-        // The `and` / `or` arrays accept `undefined` ELEMENTS (values.ts:160-161):
+        // The `and` / `or` arrays accept `undefined` ELEMENTS:
         // the conditional-spread idiom `and: [cond ? {…} : undefined]`. A literal
         // `undefined` entry is the only type-legal route into `processFilter`'s
         // top-level `null | undefined` guard, distinct from a skipped `*IfValue`

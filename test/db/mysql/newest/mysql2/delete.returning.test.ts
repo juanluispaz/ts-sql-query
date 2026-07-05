@@ -217,4 +217,47 @@ describe(ctx.label, () => {
         })
     })
     */
+
+    // NOT-APPLICABLE: MySQL has no RETURNING
+    /*
+    test('delete-release-draft-returning-one-column-optional-branded', async () => {
+        // `returningOneColumn(<optional branded column>)` on DELETE → `ReleaseStage | null`. Deleting
+        // draft 1 returns its `stage` ('candidate'); nothing FKs into release_draft, so the delete is
+        // referential-integrity-safe.
+        ctx.mockNext('candidate')
+        await ctx.withRollback(async () => {
+            const stage = await ctx.conn.deleteFrom(tReleaseDraft)
+                .where(tReleaseDraft.id.equals(1))
+                .returningOneColumn(tReleaseDraft.stage)
+                .executeDeleteOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof stage, ReleaseStage | null>>()
+            expect(stage).toBe('candidate')
+        })
+    })
+    */
+    // NOT-APPLICABLE: MySQL has no RETURNING
+    /*
+    test('delete-release-draft-returning-object-optional-branded-as-nullable', async () => {
+        // Object-form RETURNING of an optional branded column on DELETE under
+        // `projectingOptionalValuesAsNullable()` → `stage: ReleaseStage | null`. Deleting draft 2
+        // (stage NULL) returns present-null.
+        const expected = { id: 2, stage: null }
+        ctx.mockNext(expected)
+        await ctx.withRollback(async () => {
+            const row = await ctx.conn.deleteFrom(tReleaseDraft)
+                .where(tReleaseDraft.id.equals(2))
+                .returning({ id: tReleaseDraft.id, stage: tReleaseDraft.stage })
+                .projectingOptionalValuesAsNullable()
+                .executeDeleteOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof row, { id: number; stage: ReleaseStage | null }>>()
+            expect(row).toEqual(expected)
+        })
+    })
+    */
 })

@@ -483,7 +483,7 @@ describe(ctx.label, () => {
 
     test('boolean/value-when-null-and-null-if-value-with-value-source-double-remap', async () => {
         // The `valueWhenNull<VALUE>` / `nullIfValue<VALUE>` VALUE-SOURCE overloads on
-        // a BOOLEAN receiver (values.ts:340/342): the fallback/probe is ANOTHER
+        // a BOOLEAN receiver: the fallback/probe is ANOTHER
         // value source rather than a plain boolean, so BOTH operands remap through
         // their CustomBooleanTypeAdapter — `coalesce((approved = 'A'), (invoiced =
         // 1))` / `nullif((approved = 'A'), (invoiced = 1))` (approved uses the string
@@ -604,7 +604,7 @@ describe(ctx.label, () => {
     test('null-modifiers-on-custom-channel-leaf', async () => {
         // `channel` is a `custom` (equality-only) column typed as the bare
         // EqualableValueSource — same bare-base situation as version above, but on
-        // the Equalable redeclarations (values.ts:274-281). The value type is the
+        // the Equalable redeclarations. The value type is the
         // ReleaseChannel union, so the brand is preserved through coalesce / nullif
         // / asOptional. Seed channels: 'stable'(1), 'beta'(2), 'canary'(3);
         // nullIfValue's probe 'canary' collapses release 3's `cni`.
@@ -679,13 +679,10 @@ describe(ctx.label, () => {
     })
 
     test('null-modifiers-on-optional-enum-hits-real-null-branch', async () => {
-        // §B-1: `stage` is an OPTIONAL enum on tReleaseDraft, so the Nullable family
-        // reaches the REAL NULL branch that the required-column A-3 test cannot.
-        // Draft 1 sets stage 'candidate'; draft 2 leaves it NULL. valueWhenNull
-        // substitutes 'draft' on the NULL row (the headline value proof),
-        // nullIfValue keeps the present value and drops the null, asOptional drops
-        // the null. A second query proves isNull selects the NULL row (draft 2) —
-        // A-3 only exercised isNotNull.
+        // `stage` is an OPTIONAL enum on tReleaseDraft, so the Nullable family reaches a real NULL
+        // row. Draft 1 sets stage 'candidate'; draft 2 leaves it NULL. valueWhenNull substitutes
+        // 'draft' on the NULL row, nullIfValue keeps the present value and drops the null, asOptional
+        // drops the null. A second query proves isNull selects the NULL row (draft 2).
         const expected = [
             { id: 1, coalesced: 'candidate', nulled: 'candidate', opt: 'candidate' },
             { id: 2, coalesced: 'draft' },
@@ -726,10 +723,10 @@ describe(ctx.label, () => {
     })
 
     test('null-modifiers-on-optional-custom-hits-real-null-branch', async () => {
-        // §B-1 for the `custom` kind: `channel` is an OPTIONAL custom column
-        // (ReleaseChannel) on tReleaseDraft. Draft 1 sets 'beta'; draft 2 leaves it
-        // NULL. valueWhenNull('stable') substitutes on the NULL row, nullIfValue
-        // keeps the present value, asOptional drops the null, isNull selects draft 2.
+        // The `custom` kind: `channel` is an OPTIONAL custom column (ReleaseChannel) on
+        // tReleaseDraft. Draft 1 sets 'beta'; draft 2 leaves it NULL. valueWhenNull('stable')
+        // substitutes on the NULL row, nullIfValue keeps the present value, asOptional drops the null,
+        // isNull selects draft 2.
         const expected = [
             { id: 1, coalesced: 'beta', nulled: 'beta', opt: 'beta' },
             { id: 2, coalesced: 'stable' },
@@ -770,11 +767,10 @@ describe(ctx.label, () => {
     })
 
     test('null-modifiers-on-optional-custom-comparable-hits-real-null-branch', async () => {
-        // §B-1 for the `customComparable` kind: `minVersion` is an OPTIONAL
-        // customComparable column (Semver typeName) on tReleaseDraft. Draft 1 sets
-        // '1.0.0'; draft 2 leaves it NULL. valueWhenNull('0.0.0') substitutes on the
-        // NULL row, nullIfValue keeps the present value, asOptional drops the null,
-        // isNull selects draft 2.
+        // The `customComparable` kind: `minVersion` is an OPTIONAL customComparable column (Semver
+        // typeName) on tReleaseDraft. Draft 1 sets '1.0.0'; draft 2 leaves it NULL.
+        // valueWhenNull('0.0.0') substitutes on the NULL row, nullIfValue keeps the present value,
+        // asOptional drops the null, isNull selects draft 2.
         const expected = [
             { id: 1, coalesced: '1.0.0', nulled: '1.0.0', opt: '1.0.0' },
             { id: 2, coalesced: '0.0.0' },
@@ -812,5 +808,163 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof nullIds, number[]>>()
         expect(nullIds).toEqual([2])
+    })
+
+    test('value-source-null-modifiers-on-optional-enum-leaf', async () => {
+        // The value-source overloads of `valueWhenNull` / `nullIfValue` on an enum column —
+        // the fallback/probe is another value source (a self-reference to `stage`), so the
+        // result optionality follows the arg: `coalesce(stage, stage)` stays optional. Draft 1
+        // stage 'candidate' (both operands present); draft 2 stage NULL → coalesce of two NULLs
+        // is NULL (absent). `nullif(stage, stage)` is always NULL, so `nvs` is absent everywhere.
+        const expected = [
+            { id: 1, cvs: 'candidate' },
+            { id: 2 },
+        ]
+        ctx.mockNext([
+            { id: 1, cvs: 'candidate', nvs: null },
+            { id: 2, cvs: null, nvs: null },
+        ])
+        const rows = await ctx.conn.selectFrom(tReleaseDraft)
+            .select({
+                id:  tReleaseDraft.id,
+                cvs: tReleaseDraft.stage.valueWhenNull(tReleaseDraft.stage),
+                nvs: tReleaseDraft.stage.nullIfValue(tReleaseDraft.stage),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, isnull(stage, stage) as cvs, nullif(stage, stage) as nvs from release_draft order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ id: number; cvs?: ReleaseStage; nvs?: ReleaseStage }>>>()
+        expect(rows).toEqual(expected)
+    })
+    test('value-source-null-modifiers-on-optional-custom-leaf', async () => {
+        // The value-source overloads on a `custom` (ReleaseChannel) column, via a `channel`
+        // self-reference. `coalesce(channel, channel)` keeps the brand and stays optional;
+        // `nullif(channel, channel)` is always NULL. Draft 1 channel 'beta'; draft 2 NULL.
+        const expected = [
+            { id: 1, cvs: 'beta' },
+            { id: 2 },
+        ]
+        ctx.mockNext([
+            { id: 1, cvs: 'beta', nvs: null },
+            { id: 2, cvs: null, nvs: null },
+        ])
+        const rows = await ctx.conn.selectFrom(tReleaseDraft)
+            .select({
+                id:  tReleaseDraft.id,
+                cvs: tReleaseDraft.channel.valueWhenNull(tReleaseDraft.channel),
+                nvs: tReleaseDraft.channel.nullIfValue(tReleaseDraft.channel),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, isnull(channel, channel) as cvs, nullif(channel, channel) as nvs from release_draft order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ id: number; cvs?: ReleaseChannel; nvs?: ReleaseChannel }>>>()
+        expect(rows).toEqual(expected)
+    })
+    test('value-source-null-modifiers-on-optional-custom-comparable-leaf', async () => {
+        // The value-source overloads on a `customComparable` (Semver) column, via a
+        // `minVersion` self-reference. `coalesce(min_version, min_version)` stays optional;
+        // `nullif(min_version, min_version)` is always NULL. Draft 1 min_version '1.0.0'; draft 2 NULL.
+        const expected = [
+            { id: 1, cvs: '1.0.0' },
+            { id: 2 },
+        ]
+        ctx.mockNext([
+            { id: 1, cvs: '1.0.0', nvs: null },
+            { id: 2, cvs: null, nvs: null },
+        ])
+        const rows = await ctx.conn.selectFrom(tReleaseDraft)
+            .select({
+                id:  tReleaseDraft.id,
+                cvs: tReleaseDraft.minVersion.valueWhenNull(tReleaseDraft.minVersion),
+                nvs: tReleaseDraft.minVersion.nullIfValue(tReleaseDraft.minVersion),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, isnull(min_version, min_version) as cvs, nullif(min_version, min_version) as nvs from release_draft order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ id: number; cvs?: string; nvs?: string }>>>()
+        expect(rows).toEqual(expected)
+    })
+    test('modifier-trio-on-enum-activity-leaf', async () => {
+        // `asRequiredInOptionalObject` / `onlyWhenOrNull(false)` / `ignoreWhenAsNull(true)` on an
+        // enum column. `asRequiredInOptionalObject()` passes the column through (brand preserved,
+        // `req?: WorklogActivity`); the other two replace the value source with a typed NULL at
+        // build time, so `own` / `ign` are absent under optional-as-undefined. Worklog 1 activity
+        // 'coding'.
+        const expected = { id: 1, req: 'coding' }
+        ctx.mockNext({ id: 1, req: 'coding' })
+        const row = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .select({
+                id:  tIssueWorklog.id,
+                req: tIssueWorklog.activity.asRequiredInOptionalObject(),
+                own: tIssueWorklog.activity.onlyWhenOrNull(false),
+                ign: tIssueWorklog.activity.ignoreWhenAsNull(true),
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, activity as req, null as own, null as ign from issue_worklog where id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; req?: WorklogActivity; own?: WorklogActivity; ign?: WorklogActivity }>>()
+        expect(row).toEqual(expected)
+    })
+    test('modifier-trio-on-custom-channel-leaf', async () => {
+        // The same modifier trio on a `custom` (ReleaseChannel) column.
+        // `asRequiredInOptionalObject()` keeps the ReleaseChannel brand; the two NULL-substitution
+        // modifiers drop to absent. Release 1 channel 'stable'.
+        const expected = { id: 1, req: 'stable' }
+        ctx.mockNext({ id: 1, req: 'stable' })
+        const row = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .select({
+                id:  tProjectRelease.id,
+                req: tProjectRelease.channel.asRequiredInOptionalObject(),
+                own: tProjectRelease.channel.onlyWhenOrNull(false),
+                ign: tProjectRelease.channel.ignoreWhenAsNull(true),
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, channel as req, null as own, null as ign from project_release where id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; req?: ReleaseChannel; own?: ReleaseChannel; ign?: ReleaseChannel }>>()
+        expect(row).toEqual(expected)
+    })
+    test('modifier-trio-on-custom-comparable-version-leaf', async () => {
+        // The same modifier trio on a `customComparable` (Semver) column.
+        // `asRequiredInOptionalObject()` keeps the branded string; the two NULL-substitution
+        // modifiers drop to absent. Release 1 version '1.2.0'.
+        const expected = { id: 1, req: '1.2.0' }
+        ctx.mockNext({ id: 1, req: '1.2.0' })
+        const row = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .select({
+                id:  tProjectRelease.id,
+                req: tProjectRelease.version.asRequiredInOptionalObject(),
+                own: tProjectRelease.version.onlyWhenOrNull(false),
+                ign: tProjectRelease.version.ignoreWhenAsNull(true),
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, version as req, null as own, null as ign from project_release where id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; req?: string; own?: string; ign?: string }>>()
+        expect(row).toEqual(expected)
     })
 })

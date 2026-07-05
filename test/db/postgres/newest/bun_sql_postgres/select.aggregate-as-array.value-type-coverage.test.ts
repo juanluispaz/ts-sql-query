@@ -11,7 +11,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tProject, tProjectReview } from '../../domain/connection.js'
+import { tIssue, tProject, tProjectReview, vReleaseOverview, type ReleaseTag } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -426,4 +426,61 @@ describe(ctx.label, () => {
         expect(rows).toEqual([{ projectId: 1, reviews: [{ score: 85, reviewer: '[R-7A2]' }] }])
     })
 
+
+    test('aggregate-of-one-column-optional-strips-null-elements', async () => {
+        // `aggregateAsArrayOfOneColumn(<optional column>)` types the result as `number[]`
+        // (optionality stripped): the JS projector drops the null/undefined elements per row.
+        // Project 1's issue 1 gets estimated_hours = 4.5, issue 2 stays NULL, so
+        // `json_agg(estimated_hours)` produces `[4.5, null]` and the projector strips the null,
+        // leaving the 1-element `[4.5]`.
+        await ctx.withRollback(async () => {
+            ctx.mockNext(1)
+            await ctx.conn.update(tIssue).set({ estimatedHours: 4.5 }).where(tIssue.id.equals(1)).executeUpdate()
+
+            ctx.mockNext([{ projectId: 1, hours: [4.5, null] }])
+            const rows = await ctx.conn.selectFrom(tIssue)
+                .where(tIssue.projectId.equals(1))
+                .select({
+                    projectId: tIssue.projectId,
+                    hours:     ctx.conn.aggregateAsArrayOfOneColumn(tIssue.estimatedHours),
+                })
+                .groupBy('projectId')
+                .executeSelectMany()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", json_agg(estimated_hours) as hours from issue where project_id = $1 group by project_id"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof rows, Array<{ projectId: number; hours: number[] }>>>()
+            expect(rows).toEqual([{ projectId: 1, hours: [4.5] }])
+        })
+    })
+    test('aggregate-of-one-column-optional-branded-adapter-strips-null', async () => {
+        // The scalar-aggregate NULL strip over a branded custom column carrying a value-transform
+        // adapter — `vReleaseOverview.optionalReleaseOrdinal` (optional customInt `ReleaseTag`,
+        // read +1000). The per-element adapter fires (raw 1 → 1001) and the element type keeps the
+        // `ReleaseTag` newtype. Project 1 groups releases 1 (download present → ordinal 1) and 2
+        // (download NULL → ordinal NULL), so the raw `[1, null]` becomes `[1001]` after the adapter
+        // and the null strip.
+        ctx.mockNext([{ projectId: 1, ords: [1, null] }])
+        const rows = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.projectId.equals(1))
+            .select({
+                projectId: vReleaseOverview.projectId,
+                ords:      ctx.conn.aggregateAsArrayOfOneColumn(vReleaseOverview.optionalReleaseOrdinal),
+            })
+            .groupBy('projectId')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", json_agg(optional_release_ordinal) as ords from release_overview where project_id = $1 group by project_id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ projectId: number; ords: ReleaseTag[] }>>>()
+        expect(rows).toEqual([{ projectId: 1, ords: [1001 as ReleaseTag] }])
+    })
 })

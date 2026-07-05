@@ -6,7 +6,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tOrganization, tProject } from '../../domain/connection.js'
+import { tIssue, tOrganization, tProject, tReleaseDraft, type ReleaseChannel } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -262,5 +262,38 @@ describe(ctx.label, () => {
             proj: { name: string; slug: string | null } | null
         }>>()
         expect(row).toEqual(expected)
+    })
+
+    test('top-level-optional-branded-column-default-as-undefined', async () => {
+        // A top-level optional branded literal-union column projected directly.
+        // `tReleaseDraft.channel` is an optional `custom` (ReleaseChannel) column; under the default
+        // projector the leaf is `channel?: ReleaseChannel`, absent when null. Draft 1 channel 'beta';
+        // draft 2 NULL → absent.
+        const expected = [{ id: 1, channel: 'beta' }, { id: 2 }]
+        ctx.mockNext([{ id: 1, channel: 'beta' }, { id: 2, channel: null }])
+        const rows = await ctx.conn.selectFrom(tReleaseDraft)
+            .select({ id: tReleaseDraft.id, channel: tReleaseDraft.channel })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, channel as channel from release_draft order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ id: number; channel?: ReleaseChannel }>>>()
+        expect(rows).toEqual(expected)
+    })
+    test('top-level-optional-branded-column-projecting-optional-values-as-nullable', async () => {
+        // The same top-level optional branded column under `projectingOptionalValuesAsNullable()`:
+        // `channel: ReleaseChannel | null` (brand kept through `| null`). Draft 2's NULL channel is
+        // present as null.
+        const expected = [{ id: 1, channel: 'beta' }, { id: 2, channel: null }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tReleaseDraft)
+            .select({ id: tReleaseDraft.id, channel: tReleaseDraft.channel })
+            .projectingOptionalValuesAsNullable()
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, channel as channel from release_draft order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ id: number; channel: ReleaseChannel | null }>>>()
+        expect(rows).toEqual(expected)
     })
 })

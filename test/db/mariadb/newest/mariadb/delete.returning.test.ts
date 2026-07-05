@@ -5,7 +5,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tProjectRelease } from '../../domain/connection.js'
+import { tIssue, tProjectRelease, tReleaseDraft, type ReleaseStage } from '../../domain/connection.js'
 import type { ReleaseChannel } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
@@ -216,6 +216,51 @@ describe(ctx.label, () => {
             `)
             assertType<Exact<typeof channel, ReleaseChannel>>()
             expect(channel).toBe('stable')
+        })
+    })
+
+    test('delete-release-draft-returning-one-column-optional-branded', async () => {
+        // `returningOneColumn(<optional branded column>)` on DELETE → `ReleaseStage | null`. Deleting
+        // draft 1 returns its `stage` ('candidate'); nothing FKs into release_draft, so the delete is
+        // referential-integrity-safe.
+        ctx.mockNext('candidate')
+        await ctx.withRollback(async () => {
+            const stage = await ctx.conn.deleteFrom(tReleaseDraft)
+                .where(tReleaseDraft.id.equals(1))
+                .returningOneColumn(tReleaseDraft.stage)
+                .executeDeleteOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from release_draft where id = ? returning stage as result"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof stage, ReleaseStage | null>>()
+            expect(stage).toBe('candidate')
+        })
+    })
+    test('delete-release-draft-returning-object-optional-branded-as-nullable', async () => {
+        // Object-form RETURNING of an optional branded column on DELETE under
+        // `projectingOptionalValuesAsNullable()` → `stage: ReleaseStage | null`. Deleting draft 2
+        // (stage NULL) returns present-null.
+        const expected = { id: 2, stage: null }
+        ctx.mockNext(expected)
+        await ctx.withRollback(async () => {
+            const row = await ctx.conn.deleteFrom(tReleaseDraft)
+                .where(tReleaseDraft.id.equals(2))
+                .returning({ id: tReleaseDraft.id, stage: tReleaseDraft.stage })
+                .projectingOptionalValuesAsNullable()
+                .executeDeleteOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from release_draft where id = ? returning id as id, stage as stage"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                2,
+              ]
+            `)
+            assertType<Exact<typeof row, { id: number; stage: ReleaseStage | null }>>()
+            expect(row).toEqual(expected)
         })
     })
 })

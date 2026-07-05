@@ -186,7 +186,7 @@ describe(ctx.label, () => {
         // Arity-5: the distinct twin of subSelectUsing's five-correlated-tables
         // test (tOrganization + tProject + tIssue + tAppUser + tIssueWorklog). Each
         // Ti stays its own type parameter, so five different tables are accepted
-        // (the arity-5 overload the CD-1 fix corrected). Only the `distinct`
+        // (a five-distinct-table arity-5 overload). Only the `distinct`
         // keyword distinguishes the emitted subquery from its non-distinct sibling.
         const expected = [
             { worklogId: 1, issueId: 1, orgName: 'Acme Corp', assignee: 'Ada Lovelace', reviewCount: 1 },
@@ -218,6 +218,28 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue_worklog.id as "worklogId", issue.id as "issueId", "organization".name as "orgName", app_user.full_name as "assignee", (select distinct count(*) as "result" from project_review where project_id = project.id and project.organization_id = "organization".id and issue.assignee_id = app_user.id and issue_worklog.issue_id = issue.id) as "reviewCount" from "organization" inner join project on project.organization_id = "organization".id inner join issue on issue.project_id = project.id inner join app_user on app_user.id = issue.assignee_id inner join issue_worklog on issue_worklog.issue_id = issue.id order by "worklogId""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ worklogId: number; issueId: number; orgName: string; assignee: string; reviewCount: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('distinct-with-after-select-keyword-and-before-columns-hooks', async () => {
+        // `selectDistinctFrom(...)` carrying the `afterSelectKeyword` / `beforeColumns` customize
+        // hooks: the hint fragments sit around the `distinct` keyword (`select <afterSelectKeyword>
+        // distinct <beforeColumns> <cols>`) without disturbing it — the four issue statuses still
+        // distinct-collapse to three.
+        const expected = [{ status: 'closed' }, { status: 'in_progress' }, { status: 'open' }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectDistinctFrom(tIssue)
+            .select({ status: tIssue.status })
+            .orderBy('status')
+            .customizeQuery({
+                afterSelectKeyword: ctx.conn.rawFragment`/* hint */`,
+                beforeColumns:      ctx.conn.rawFragment`/* cols */ `,
+            })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select /* hint */ distinct /* cols */  status as "status" from issue order by "status""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ status: string }>>>()
         expect(rows).toEqual(expected)
     })
 })

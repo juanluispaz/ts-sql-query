@@ -885,4 +885,87 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
+
+    test('distinct-left-arm-survives-into-compound', async () => {
+        // `selectDistinctFrom(...)` as the LEFT arm of a compound: the `distinct` keyword survives
+        // into `select distinct … union all …`. `unionAll` keeps the compound from deduping, so the
+        // left-arm distinct is the only collapsing step: the four issue statuses {open, in_progress,
+        // open, closed} distinct-collapse to three, and the right arm re-adds issue 1's 'open',
+        // giving four rows [closed, in_progress, open, open].
+        const expected = [
+            { label: 'closed' },
+            { label: 'in_progress' },
+            { label: 'open' },
+            { label: 'open' },
+        ]
+        ctx.mockNext(expected)
+        const left = ctx.conn.selectDistinctFrom(tIssue)
+            .select({ label: tIssue.status })
+        const right = ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({ label: tIssue.status })
+        const result = await left.unionAll(right).orderBy('label').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select distinct status as label from issue union all select status as label from issue where id = ? order by label"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ label: string }>>>()
+        expect(result).toEqual(expected)
+    })
+    test('compound-order-by-value-source-with-explicit-mode', async () => {
+        // A compound `orderBy(valueSource, <mode>)`: the value source forces the `select * from
+        // (...)` wrap and the mode rides on the secondary item. Primary `orderBy('label')` keeps the
+        // result deterministic (ascending labels).
+        const expected = [
+            { label: 'Document /v2/users' },
+            { label: 'Internal tools' },
+            { label: 'Legacy app' },
+            { label: 'Marketing site' },
+            { label: 'Migrate to ESM' },
+            { label: 'Public API' },
+            { label: 'Redesign navbar' },
+            { label: 'Update hero copy' },
+        ]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tProject)
+            .select({ label: tProject.name })
+            .union(ctx.conn.selectFrom(tIssue).select({ label: tIssue.title }))
+            .orderBy('label')
+            .orderBy(ctx.conn.const(1, 'int'), 'desc')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project union select title as label from issue order by label, ? desc"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ label: string }>>>()
+        expect(result).toEqual(expected)
+    })
+    test('compound-order-by-raw-fragment-with-explicit-mode', async () => {
+        // A compound `orderBy(rawFragment, <mode>)`: a bare `rawFragment` of `1` is the first output column
+        // (`label`); `'desc'` orders it descending inline.
+        const expected = [
+            { label: 'Update hero copy' },
+            { label: 'Redesign navbar' },
+            { label: 'Public API' },
+            { label: 'Migrate to ESM' },
+            { label: 'Marketing site' },
+            { label: 'Legacy app' },
+            { label: 'Internal tools' },
+            { label: 'Document /v2/users' },
+        ]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tProject)
+            .select({ label: tProject.name })
+            .union(ctx.conn.selectFrom(tIssue).select({ label: tIssue.title }))
+            .orderBy(ctx.conn.rawFragment`1`, 'desc')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project union select title as label from issue order by 1 desc"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ label: string }>>>()
+        expect(result).toEqual(expected)
+    })
 })

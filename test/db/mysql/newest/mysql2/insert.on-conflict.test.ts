@@ -4,7 +4,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tOrganization, tProject } from '../../domain/connection.js'
+import { tOrganization, tProject, tReleaseDraft } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -525,4 +525,38 @@ describe(ctx.label, () => {
     })
     */
 
+
+    test('on-conflict-on-id-do-update-optional-custom-columns', async () => {
+        // DO UPDATE of the optional custom-kind columns (enum / custom / customComparable) via the
+        // bare `onConflictDoUpdateSet(...)` form (this dialect upserts on any unique-key conflict; the
+        // targeted `onConflictOn` is type-excluded here). Inserting id=1 collides with the seeded
+        // draft 1 (release_draft PK), so the row is updated: stage → 'final', channel → 'stable',
+        // minVersion → '3.0.0'. The upsert produces a row, so `executeInsert` returns 1.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.insertInto(tReleaseDraft)
+                .values({ id: 1, title: 'Alpha cut (upsert)', stage: 'final', channel: 'stable', minVersion: '3.0.0' })
+                .onConflictDoUpdateSet({ stage: 'final', channel: 'stable', minVersion: '3.0.0' })
+                .executeInsert()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into release_draft (id, title, stage, \`channel\`, min_version) values (?, ?, ?, ?, ?) as _new_ on duplicate key update release_draft.stage = ?, release_draft.\`channel\` = ?, release_draft.min_version = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "Alpha cut (upsert)",
+                "final",
+                "stable",
+                "3.0.0",
+                "final",
+                "stable",
+                "3.0.0",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            if (ctx.realDbEnabled) {
+                expect(typeof affected).toBe('number')
+            } else {
+                expect(affected).toBe(1)
+            }
+        })
+    })
 })

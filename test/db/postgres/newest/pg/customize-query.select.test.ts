@@ -354,7 +354,7 @@ describe(ctx.label, () => {
     })
 
     test('customize-select-plain-page-projection-hooks-render-in-count-wrap', async () => {
-        // The CD-2 tail arms: the count-wrap now fires for ANY customizeQuery hook
+        // The count-wrap now fires for ANY customizeQuery hook
         // (`|| this.__customization`), so a plain (non-distinct, non-grouped)
         // executeSelectPage carrying the clause-internal hooks (afterSelectKeyword /
         // beforeColumns / customWindow / beforeOrderByItems / afterOrderByItems)
@@ -408,7 +408,7 @@ describe(ctx.label, () => {
     })
 
     test('customize-select-distinct-page-hooks-ride-count-wrap', async () => {
-        // A-2b: crossing __distinct with __customization on executeSelectPage. A
+        // Crossing __distinct with __customization on executeSelectPage. A
         // DISTINCT select already forces the count-wrap even without customization;
         // adding customizeQuery makes the beforeQuery/afterQuery hooks ride the
         // wrapped inner count query too. Distinct ids of projects 1..3 → 3 rows.
@@ -450,7 +450,7 @@ describe(ctx.label, () => {
     })
 
     test('customize-select-group-by-page-hooks-ride-count-wrap', async () => {
-        // A-2b: crossing __groupBy with __customization on executeSelectPage. GROUP
+        // Crossing __groupBy with __customization on executeSelectPage. GROUP
         // BY already forces the count-wrap (the outer count totals the groups);
         // adding customizeQuery makes the beforeQuery/afterQuery hooks ride the
         // wrapped inner count query. Issues grouped by status: closed(1),

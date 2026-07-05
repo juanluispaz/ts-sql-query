@@ -272,4 +272,70 @@ describe(ctx.label, () => {
         })
     })
     */
+
+    // TODO[LIMITATION]: see LIMITATIONS.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
+    /*
+    test('update-release-draft-returning-one-column-optional-branded', async () => {
+        // `returningOneColumn(<optional branded column>)` on UPDATE → `ReleaseStage | null`.
+        // RETURNING sees the post-update value; draft 1's `stage` ('candidate') is untouched by the
+        // title update, so it comes back present.
+        ctx.mockNext('candidate')
+        await ctx.withRollback(async () => {
+            const stage = await ctx.conn.update(tReleaseDraft)
+                .set({ title: 'Alpha cut v2' })
+                .where(tReleaseDraft.id.equals(1))
+                .returningOneColumn(tReleaseDraft.stage)
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof stage, ReleaseStage | null>>()
+            expect(stage).toBe('candidate')
+        })
+    })
+    */
+    // TODO[LIMITATION]: see LIMITATIONS.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
+    /*
+    test('update-release-draft-returning-object-optional-branded-default', async () => {
+        // Object-form RETURNING of an optional branded column on UPDATE. Under the default projector
+        // the leaf is `stage?: ReleaseStage` (brand preserved). Draft 1's stage 'candidate' is
+        // present.
+        const expected = { id: 1, stage: 'candidate' as ReleaseStage }
+        ctx.mockNext(expected)
+        await ctx.withRollback(async () => {
+            const row = await ctx.conn.update(tReleaseDraft)
+                .set({ title: 'Alpha cut v2' })
+                .where(tReleaseDraft.id.equals(1))
+                .returning({ id: tReleaseDraft.id, stage: tReleaseDraft.stage })
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof row, { id: number; stage?: ReleaseStage }>>()
+            expect(row).toEqual(expected)
+        })
+    })
+    */
+    // TODO[LIMITATION]: see LIMITATIONS.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
+    /*
+    test('update-release-draft-returning-object-optional-branded-as-nullable', async () => {
+        // The same under `projectingOptionalValuesAsNullable()` → `stage: ReleaseStage | null`.
+        // Draft 2's stage is NULL, so the returned value is present-null.
+        const expected = { id: 2, stage: null }
+        ctx.mockNext(expected)
+        await ctx.withRollback(async () => {
+            const row = await ctx.conn.update(tReleaseDraft)
+                .set({ title: 'Nightly build v2' })
+                .where(tReleaseDraft.id.equals(2))
+                .returning({ id: tReleaseDraft.id, stage: tReleaseDraft.stage })
+                .projectingOptionalValuesAsNullable()
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof row, { id: number; stage: ReleaseStage | null }>>()
+            expect(row).toEqual(expected)
+        })
+    })
+    */
 })

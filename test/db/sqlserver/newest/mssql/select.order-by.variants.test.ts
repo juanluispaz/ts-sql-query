@@ -152,4 +152,26 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ id: number }>>>()
         expect(result).toEqual(expected)
     })
+
+    test('order-by-aggregate-value-source', async () => {
+        // `orderBy(<aggregate value source>)` on a grouped query (`order by count(id) desc`).
+        // Statuses grouped: open {1,3} → 2, closed {4} → 1, in_progress {2} → 1. Ordered by the
+        // count descending, with a `status` secondary key to break the 1-count tie.
+        const expected = [
+            { status: 'open', cnt: 2 },
+            { status: 'closed', cnt: 1 },
+            { status: 'in_progress', cnt: 1 },
+        ]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .select({ status: tIssue.status, cnt: ctx.conn.count(tIssue.id) })
+            .groupBy('status')
+            .orderBy(ctx.conn.count(tIssue.id), 'desc')
+            .orderBy('status')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status, count(id) as cnt from issue group by status order by count(issue.id) desc, status"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ status: string; cnt: number }>>>()
+        expect(result).toEqual(expected)
+    })
 })

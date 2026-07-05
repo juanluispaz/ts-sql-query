@@ -233,4 +233,44 @@ describe(ctx.label, () => {
     })
     */
 
+
+    // NOT-APPLICABLE: MySQL has no targeted INSERT…ON CONFLICT (onConflictOnConstraint is not typed; the ON DUPLICATE KEY UPDATE grammar takes no conflict target)
+    /*
+    test('from-select-on-conflict-on-constraint-do-update-set', async () => {
+        // `from(select).onConflictOnConstraint(rawFragment).doUpdateSet({...})` — a
+        // named-constraint conflict target (`ON CONSTRAINT app_user_email_key`) on a
+        // from-select upsert. The constraint name is a raw SQL fragment (a SQL
+        // identifier, not a runtime value); `app_user_email_key` is the auto-generated
+        // name of the `email` UNIQUE constraint. The source re-selects user 1's
+        // (email, full_name); the email collides with that constraint, so DO UPDATE
+        // refreshes full_name.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const source = ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.id.equals(1))
+                .select({
+                    email:    tAppUser.email,
+                    fullName: tAppUser.fullName,
+                })
+
+            const affected = await ctx.conn.insertInto(tAppUser)
+                .from(source)
+                .onConflictOnConstraint(ctx.conn.rawFragment`app_user_email_key`)
+                .doUpdateSet({ fullName: 'Reactivated via constraint from-select' })
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into app_user (email, full_name) select email as email, full_name as "fullName" from app_user where id = $1 on conflict on constraint app_user_email_key do update set full_name = $2"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "Reactivated via constraint from-select",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            if (ctx.realDbEnabled) expect(typeof affected).toBe('number')
+            else expect(affected).toBe(1)
+        })
+    })
+    */
+
 })

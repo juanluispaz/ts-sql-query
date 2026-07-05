@@ -55,6 +55,47 @@ describe(ctx.label, () => {
         })
     })
 
+    // TODO[LIMITATION]: see LIMITATIONS.md — UPDATE ... RETURNING is only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment when mariadb:latest catches up to 13.0.1+.
+    /*
+    test('update-from-table-then-inner-join-returning-nested', async () => {
+        // `.returning({ id, meta: {...} })` composed onto the from-then-join
+        // multi-table UPDATE — the `.returning(...)` projection coexists with the
+        // FROM/JOIN in one statement, and the returned columns fold into a nested
+        // `meta` sub-object. Update project 1's name to its issue-1 assignee's name
+        // (Ada Lovelace) and read back the single touched row; the returned row
+        // reflects the post-UPDATE `name`.
+        const expected = { id: 1, meta: { name: 'Ada Lovelace', slug: 'mktg-site' } }
+        // Mock is primed with the FLAT db row (dotted alias keys); the projector
+        // folds it into the nested shape asserted below.
+        ctx.mockNext({ id: 1, 'meta.name': 'Ada Lovelace', 'meta.slug': 'mktg-site' })
+        await ctx.withRollback(async () => {
+            const row = await ctx.conn.update(tProject)
+                .from(tIssue)
+                .innerJoin(tAppUser).on(tAppUser.id.equals(tIssue.assigneeId))
+                .set({ name: tAppUser.fullName })
+                .where(tProject.id.equals(tIssue.projectId))
+                    .and(tIssue.id.equals(1))
+                .returning({
+                    id:   tProject.id,
+                    meta: { name: tProject.name, slug: tProject.slug },
+                })
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = app_user.full_name from issue inner join app_user on app_user.id = issue.assignee_id where project.id = issue.project_id and issue.id = $1 returning project.id as id, project.name as "meta.name", project.slug as "meta.slug""`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof row, {
+                id:   number
+                meta: { name: string; slug: string }
+            }>>()
+            expect(row).toEqual(expected)
+        })
+    })
+    */
+
     test('update-with-inner-join-on-condition', async () => {
         // Bump priority of every issue whose project is archived.
         // The JOIN condition lives in `.on(...)`, not in WHERE — pins

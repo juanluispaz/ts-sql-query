@@ -79,6 +79,21 @@ function _typeNegatives() {
             .select({ id: tIssue.id, title: tIssue.title }))
         .orderBy('id', 'desc')
 
+    // Rule: `orderingSiblingsOnly()` is only reachable after a hierarchical
+    // `startWith` / `connectBy` / `connectByNoCycle` query (it emits Oracle's
+    // `order siblings by`). A recursive-union result never enables it, so calling
+    // it there is a type error — `order siblings by` has no meaning for a
+    // recursive-union CTE.
+    void connection.selectFrom(tIssue)
+        .where(tIssue.id.equals(1))
+        .select({ id: tIssue.id, title: tIssue.title })
+        .recursiveUnionAll((parent) => connection.selectFrom(tIssue)
+            .join(parent).on(tIssue.parentId.equals(parent.id))
+            .select({ id: tIssue.id, title: tIssue.title }))
+        .orderBy('id')
+        // @ts-expect-error orderingSiblingsOnly is only available after startWith/connectBy, not on a recursive-union result
+        .orderingSiblingsOnly()
+
     void connection.selectFrom(tIssue)
         .select({ id: tIssue.id, title: tIssue.title })
         .orderBy(tIssue.id, 'desc')

@@ -50,6 +50,45 @@ describe(ctx.label, () => {
         })
     })
 
+    // TODO[LIMITATION]: MariaDB rejects RETURNING on a multi-table DELETE (delete … using …, ER_PARSE_ERROR 1064); single-table DELETE … RETURNING works. The library types and emits the clause, but the engine has no grammar for it on a multi-table delete.
+    /*
+    test('delete-using-table-then-inner-join-returning-nested', async () => {
+        // `.returning({ id, meta: {...} })` composed onto the using-then-join
+        // multi-table DELETE — the `.returning(...)` projection coexists with the
+        // USING/JOIN in one statement, and the deleted row's columns fold into a
+        // nested `meta` sub-object. Delete project 2's only issue (issue 3) and
+        // read back that removed row.
+        const expected = { id: 3, meta: { title: 'Migrate to ESM', priority: 3 } }
+        // Mock is primed with the FLAT db row (dotted alias keys); the projector
+        // folds it into the nested shape asserted below.
+        ctx.mockNext({ id: 3, 'meta.title': 'Migrate to ESM', 'meta.priority': 3 })
+        await ctx.withRollback(async () => {
+            const row = await ctx.conn.deleteFrom(tIssue)
+                .using(tProject)
+                .innerJoin(tOrganization).on(tOrganization.id.equals(tProject.organizationId))
+                .where(tIssue.projectId.equals(tProject.id))
+                    .and(tProject.id.equals(2))
+                .returning({
+                    id:   tIssue.id,
+                    meta: { title: tIssue.title, priority: tIssue.priority },
+                })
+                .executeDeleteOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using issue, project inner join organization on organization.id = project.organization_id where issue.project_id = project.id and project.id = ? returning issue.id as id, issue.title as \`meta.title\`, issue.priority as \`meta.priority\`"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                2,
+              ]
+            `)
+            assertType<Exact<typeof row, {
+                id:   number
+                meta: { title: string; priority: number }
+            }>>()
+            expect(row).toEqual(expected)
+        })
+    })
+    */
+
     test('delete-with-inner-join-on-condition', async () => {
         // Delete issues whose project is archived. The JOIN condition
         // lives in `.on(...)`, not in WHERE — pins the

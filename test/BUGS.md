@@ -67,7 +67,70 @@ of that. Two minutes of triage and one paragraph is the bar.
 
 ## Open Bugs
 
-_None currently open._
+## `buildFragmentWithMaybeOptionalArgs` drops a value-source arg's optionality when it follows a plain-value arg (`[…, plainValue, valueSource, …]`)
+
+**Where**: `src/expressions/fragment.ts` — the `FragmentFunctionMaybeOptional3/4/5` overload
+where arg *N* is a plain value (`TypeOfArgument`) and arg *N+1* is a value source
+(`ArgBaseTypeForFn`): lines **436, 447, 456, 467, 475, 484, 492**. Each writes the merged
+optional type as `MergeOptionalUnion<… | OptionalTypeOfValue<T_plain | T_source[typeof optionalType]> …>`
+— the value-source arg's `T_source[typeof optionalType]` is **nested inside**
+`OptionalTypeOfValue<…>`, which is non-distributive (`values.ts:59-63`, tests only
+`null`/`undefined extends`). Since an `OptionalType` literal (`'optional'`) has no
+`null`/`undefined`, it is silently discarded, so an **optional** value-source arg in that
+position produces a **`'required'`** result instead of `'optional'`.
+
+**Reproduction** (coordinator compile-repro, tsgo, reference cell; `coalesce3` =
+`buildFragmentWithMaybeOptionalArgs(arg('string','optional')×3)`; `tProject.name`/`.slug`
+required string sources, `tIssue.body` an optional string source):
+- `conn.coalesce3(tProject.name, 'b', tIssue.body)` — `[src, value, src-OPTIONAL]`, overload
+  `:436` → result key typed **`{ r: string }` (required)**. **← BUG** (an optional arg is present).
+- Mirror `conn.coalesce3(tProject.name, tIssue.body, 'b')` — `[src, src-OPTIONAL, value]`,
+  overload `:433` → **`{ r?: string }` (optional)**. **← correct.**
+- Control `conn.coalesce3(tProject.name, 'b', tProject.slug)` — `[src, value, src-required]`,
+  overload `:436` → **`{ r: string }` (required)**. **← correct** (no optional arg).
+Two calls with exactly one optional value-source arg each yield different result optionality;
+the divergence isolates to the mis-bracketed `:436`-family overloads. Unsound: the
+`MaybeOptional` contract is "result optional iff any input arg is optional", so a fragment
+body that propagates a null from the optional arg (e.g. arithmetic `${a} + ${b} + ${c}`)
+can return `null` at runtime while TS promises non-null. Verified with an isolated
+`@ts-expect-error` key-omission probe (cross-assertion `assertType` in one scope gives
+cascading TS2344s — isolate each case).
+
+**Suggested fix**: at each of the 7 sites replace
+`OptionalTypeOfValue<T_plain | T_source[typeof optionalType]>` with
+`OptionalTypeOfValue<T_plain> | T_source[typeof optionalType]` (matching the correct sibling
+overloads on the surrounding lines). A src-wide grep for
+`OptionalTypeOfValue<…[typeof optionalType]…>` returns exactly these 7 lines.
+
+**Current workaround in the suite**: none — the path is uncovered. Every `coalesce3` call in
+the matrix passes all-plain args (`coalesce3('a', undefined, 'c')`), so no snapshot baked the
+wrong behavior. The positive test (a `[source, value, optional-source]` MaybeOptional fragment
+asserting an optional result) is **blocked by this bug**; this entry is its marker.
+
+## Empty-batch `values([])` on the RETURNING execute-shapes dispatches an empty SQL string (real-DB error)
+
+**Where**: `src/queryBuilders/InsertQueryBuilder.ts`. `executeInsert` guards the empty-batch
+case (`:67` `if (multiple && multiple.length <= 0) return resolved [] / 0`), but
+`executeInsertMany` (`:264`), `executeInsertOne` (`:228`) and `executeInsertNoneOrOne` (`:192`)
+have **no** such guard — they call `this.query()` and dispatch to the runner.
+`_buildInsertMultiple` (`src/sqlBuilders/AbstractSqlBuilder.ts:1421`) returns **`''`** for an
+empty batch (`if (multiple.length <= 0) return ''`), so the returning shapes hand an empty SQL
+string to the driver.
+
+**Reproduction** (coordinator mock probe): `conn.insertInto(tProject).values([]).executeInsert()`
+short-circuits (returns `0`, `ctx.history.length === 0` — runner never touched); but
+`conn.insertInto(tProject).values([]).returning({ id: tProject.id }).executeInsertMany()`
+**does** reach the runner (`ctx.history.length === 1`) rather than short-circuiting. On the mock
+the result is `[]` (SQL not executed), so it is **mock-blind**; on a real DB the dispatched `''`
+is an empty-query error (universal across drivers). Source-confirmed mechanism; a `--docker`
+spot-check on PG would make it airtight.
+
+**Suggested fix**: apply the same empty-multiple short-circuit `executeInsert` uses to
+`executeInsertMany`/`executeInsertOne`/`executeInsertNoneOrOne` (resolve `[]` / `null` / apply
+the `min`/`max` guards against count 0).
+
+**Current workaround in the suite**: none — `insertInto(t).values([])` is exercised only via
+`executeInsert` (`errors.insert-guards.test.ts`), never via the returning shapes.
 
 ## Common bug shapes (for the fixing agent)
 

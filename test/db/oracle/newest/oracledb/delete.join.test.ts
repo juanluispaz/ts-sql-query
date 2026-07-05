@@ -98,6 +98,162 @@ describe(ctx.label, () => {
         })
     })
 
+    test('delete-using-table-then-left-join-on-using-tables', async () => {
+        // `deleteFrom(t).using(u1).leftJoin(u2).on(...)` — the LEFT-join twin of the
+        // inner-join-after-using test above. Emits `left join` on the USING limb.
+        // Every project has an organization, so the join matches; delete project 2's
+        // only issue (issue 3) → 1 row.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const tOrg = tOrganization.forUseInLeftJoin()
+            const affected = await ctx.conn.deleteFrom(tIssue)
+                .using(tProject)
+                .leftJoin(tOrg).on(tOrg.id.equals(tProject.organizationId))
+                .where(tIssue.projectId.equals(tProject.id))
+                    .and(tProject.id.equals(2))
+                .executeDelete()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using project left join "organization" on "organization".id = project.organization_id where issue.project_id = project.id and project.id = :0"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                2,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            if (ctx.realDbEnabled) expect(typeof affected).toBe('number')
+            else expect(affected).toBe(1)
+        })
+    })
+
+    test('delete-using-table-then-left-join-returning-nullable-joined-column', async () => {
+        // `.returning({...})` projecting the LEFT-joined `organization.name` — a
+        // USING-table column returned through a LEFT join, so the projected leaf is
+        // OPTIONAL (`org?: string`), distinct from the required column an inner join
+        // would return. Delete project 2's only issue (issue 3); project 2's
+        // organization is Acme Corp, so the join matches and the value is present.
+        const expected = { id: 3, org: 'Acme Corp' }
+        ctx.mockNext({ id: 3, org: 'Acme Corp' })
+        await ctx.withRollback(async () => {
+            const tOrg = tOrganization.forUseInLeftJoin()
+            const row = await ctx.conn.deleteFrom(tIssue)
+                .using(tProject)
+                .leftJoin(tOrg).on(tOrg.id.equals(tProject.organizationId))
+                .where(tIssue.projectId.equals(tProject.id))
+                    .and(tProject.id.equals(2))
+                .returning({
+                    id:  tIssue.id,
+                    org: tOrg.name,
+                })
+                .executeDeleteOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using project left join "organization" on "organization".id = project.organization_id where issue.project_id = project.id and project.id = :0 returning issue.id, "organization".name into :1, :2"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                2,
+                {
+                  "as": "id",
+                  "dir": 3003,
+                },
+                {
+                  "as": "org",
+                  "dir": 3003,
+                },
+              ]
+            `)
+            assertType<Exact<typeof row, {
+                id:   number
+                org?: string
+            }>>()
+            expect(row).toEqual(expected)
+        })
+    })
+
+    test('delete-using-table-then-inner-join-on-and-compound-join-condition', async () => {
+        // `.on(c).and(c2)` on the using-then-join limb — the `.and()` chained after
+        // `.on()` accumulates into the JOIN predicate (`__lastJoin.__on`), NOT the
+        // outer WHERE. Restrict the join to the 'Acme Corp' organization; project 2's
+        // org is Acme, so its issue (issue 3) is still deleted → 1 row.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.deleteFrom(tIssue)
+                .using(tProject)
+                .innerJoin(tOrganization).on(tOrganization.id.equals(tProject.organizationId))
+                    .and(tOrganization.name.equals('Acme Corp'))
+                .where(tIssue.projectId.equals(tProject.id))
+                    .and(tProject.id.equals(2))
+                .executeDelete()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using project inner join "organization" on "organization".id = project.organization_id and "organization".name = :0 where issue.project_id = project.id and project.id = :1"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Acme Corp",
+                2,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            if (ctx.realDbEnabled) expect(typeof affected).toBe('number')
+            else expect(affected).toBe(1)
+        })
+    })
+
+    test('delete-using-table-then-inner-join-dynamic-on-and', async () => {
+        // `innerJoin(...).dynamicOn()` opens an empty join predicate on the
+        // using-then-join limb; the first `.and(...)` becomes the initial `on`
+        // condition (the empty-`on` branch, distinct from `.on(...)`). Delete
+        // project 2's only issue (issue 3) → 1 row.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.deleteFrom(tIssue)
+                .using(tProject)
+                .innerJoin(tOrganization).dynamicOn()
+                    .and(tOrganization.id.equals(tProject.organizationId))
+                .where(tIssue.projectId.equals(tProject.id))
+                    .and(tProject.id.equals(2))
+                .executeDelete()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using project inner join "organization" on "organization".id = project.organization_id where issue.project_id = project.id and project.id = :0"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                2,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            if (ctx.realDbEnabled) expect(typeof affected).toBe('number')
+            else expect(affected).toBe(1)
+        })
+    })
+
+    test('delete-using-table-then-inner-join-dynamic-on-or', async () => {
+        // `innerJoin(...).dynamicOn()` followed by `.or(...)` accumulates a compound
+        // OR join predicate on the using-then-join limb (the `or(...)` branch on
+        // `__lastJoin.__on`). The predicate matches when the org is the project's
+        // organization OR is named 'never-matches'; project 2 → org matches → its
+        // issue (issue 3) is deleted → 1 row.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.deleteFrom(tIssue)
+                .using(tProject)
+                .innerJoin(tOrganization).dynamicOn()
+                    .or(tOrganization.id.equals(tProject.organizationId))
+                    .or(tOrganization.name.equals('never-matches'))
+                .where(tIssue.projectId.equals(tProject.id))
+                    .and(tProject.id.equals(2))
+                .executeDelete()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using project inner join "organization" on "organization".id = project.organization_id or "organization".name = :0 where issue.project_id = project.id and project.id = :1"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "never-matches",
+                2,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            if (ctx.realDbEnabled) expect(typeof affected).toBe('number')
+            else expect(affected).toBe(1)
+        })
+    })
+
+
     // NOT-APPLICABLE: Oracle has no DELETE/UPDATE … JOIN grammar (use WHERE id IN (SELECT …) / UPDATE … FROM)
     /*
     test('delete-with-inner-join-on-condition', async () => {

@@ -191,4 +191,37 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
     })
+
+    test('dynamic-condition-and-array-with-undefined-element-is-skipped', async () => {
+        // The `and` / `or` arrays accept `undefined` ELEMENTS (values.ts:160-161):
+        // the conditional-spread idiom `and: [cond ? {…} : undefined]`. A literal
+        // `undefined` entry is the only type-legal route into `processFilter`'s
+        // top-level `null | undefined` guard, distinct from a skipped `*IfValue`
+        // key. The active leaf still filters (id = 1); the `undefined` entry
+        // contributes nothing to the WHERE.
+        ctx.mockNext([{ id: 1 }])
+        const connection = ctx.conn
+        const includeStatus: boolean = false
+        const filter: IssueFilter = {
+            and: [
+                { id: { equals: 1 } },
+                includeStatus ? { status: { equals: 'open' } } : undefined,
+            ],
+        }
+        const rows = await connection.selectFrom(tIssue)
+            .where(connection.dynamicConditionFor(selectFields).withValues(filter))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where id = ? order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual([{ id: 1 }])
+    })
+
 })

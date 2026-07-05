@@ -121,6 +121,65 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
+    test('notBetween-mixed-literal-column', async () => {
+        // The `.notBetween(VALUE, TYPE)` mixed overload: literal `lo`, column
+        // `hi` — the twin of `between-mixed-literal-column`, routing the first
+        // bound through `_appendValue` and the second through `_appendSql` on the
+        // NOT-BETWEEN emitter. `priority not between 1 and number`:
+        //   id=1: 2 not between 1 and 1 → true
+        //   id=2: 1 not between 1 and 2 → false
+        //   id=3: 3 not between 1 and 1 → true
+        //   id=4: 2 not between 1 and 1 → true
+        const expected = [
+            { id: 1, priority: 2 },
+            { id: 3, priority: 3 },
+            { id: 4, priority: 2 },
+        ]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.priority.notBetween(1, tIssue.number))
+            .select({ id: tIssue.id, priority: tIssue.priority })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority as priority from issue where priority not between @0 and number order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; priority: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('notBetween-mixed-column-literal', async () => {
+        // The `.notBetween(TYPE, VALUE)` mixed overload: column `lo`, literal
+        // `hi` — the mirror of the test above, routing the first bound through
+        // `_appendSql` and the second through `_appendValue`. `priority not
+        // between number and 3`:
+        //   id=1: 2 not between 1 and 3 → false
+        //   id=2: 1 not between 2 and 3 → true
+        //   id=3: 3 not between 1 and 3 → false
+        //   id=4: 2 not between 1 and 3 → false
+        const expected = [{ id: 2, priority: 1 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.priority.notBetween(tIssue.number, 3))
+            .select({ id: tIssue.id, priority: tIssue.priority })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority as priority from issue where priority not between number and @0 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; priority: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+
     test('between-on-nullable-column-keeps-optional', async () => {
         // `assigneeId` is `optionalColumn`. The `_between` operator
         // produces a boolean — NULL on the left in `NULL between …`

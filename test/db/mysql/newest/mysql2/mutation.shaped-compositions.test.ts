@@ -144,4 +144,32 @@ describe(ctx.label, () => {
             expect(affected).toBe(1)
         })
     })
+
+    test('shaped-update-extend-shape-then-set', async () => {
+        // The `.set(...)` arm after `extendShape` on the where-REQUIRED update path
+        // — the sibling of `shaped-update-extend-shape-then-dynamic-set` above (which
+        // uses `.dynamicSet`). `set` reaches the same widened shape but through the
+        // static setter opener, driving the same two-column SET.
+        ctx.mockNext(1)
+        const connection = ctx.conn
+        await ctx.withRollback(async () => {
+            const affected = await connection.update(tProject)
+                .shapedAs({ projectName: 'name' })
+                .extendShape({ projectSlug: 'slug' })
+                .set({ projectName: 'Widened via set', projectSlug: 'widened-via-set' })
+                .where(tProject.id.equals(1))
+                .executeUpdate()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set \`name\` = ?, slug = ? where id = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Widened via set",
+                "widened-via-set",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(1)
+        })
+    })
+
 })

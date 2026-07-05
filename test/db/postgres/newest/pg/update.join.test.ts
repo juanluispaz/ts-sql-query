@@ -93,6 +93,163 @@ describe(ctx.label, () => {
         })
     })
 
+    test('update-from-table-then-left-join-on-from-tables', async () => {
+        // `update(t).from(j1).leftJoin(j2).on(...)` — the LEFT-join twin of the
+        // inner-join-after-from test above. leftJoin keeps every issue even when
+        // no assignee matches, so the joined `app_user.full_name` is nullable; the
+        // `.set(...)` coalesces it to a fallback. Issue 3 is unassigned
+        // (assignee_id NULL) → its project (project 2) gets name 'Unassigned'.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const tAssignee = tAppUser.forUseInLeftJoin()
+            const affected = await ctx.conn.update(tProject)
+                .from(tIssue)
+                .leftJoin(tAssignee).on(tAssignee.id.equals(tIssue.assigneeId))
+                .set({ name: tAssignee.fullName.valueWhenNull('Unassigned') })
+                .where(tProject.id.equals(tIssue.projectId))
+                    .and(tIssue.id.equals(3))
+                .executeUpdate()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = coalesce(app_user.full_name, $1) from issue left join app_user on app_user.id = issue.assignee_id where project.id = issue.project_id and issue.id = $2"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Unassigned",
+                3,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            if (ctx.realDbEnabled) expect(typeof affected).toBe('number')
+            else expect(affected).toBe(1)
+        })
+    })
+
+    test('update-from-table-then-left-join-returning-nullable-joined-column', async () => {
+        // The `.returning({...})` projects the LEFT-joined `app_user.full_name`
+        // column directly — because the join is a LEFT join, the column is
+        // originally-nullable, so the projected leaf is OPTIONAL (`assignee?:
+        // string`) and a NULL reads back as an ABSENT key. This is the real type
+        // distinction vs the inner-join return, where the same column is required.
+        // Update project 2 (owns issue 3, whose assignee_id is NULL); the joined
+        // assignee is absent in the returned row.
+        const expected = { id: 2 }
+        ctx.mockNext({ id: 2, assignee: null })
+        await ctx.withRollback(async () => {
+            const tAssignee = tAppUser.forUseInLeftJoin()
+            const row = await ctx.conn.update(tProject)
+                .from(tIssue)
+                .leftJoin(tAssignee).on(tAssignee.id.equals(tIssue.assigneeId))
+                .set({ name: tIssue.title })
+                .where(tProject.id.equals(tIssue.projectId))
+                    .and(tIssue.id.equals(3))
+                .returning({
+                    id:       tProject.id,
+                    assignee: tAssignee.fullName,
+                })
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = issue.title from issue left join app_user on app_user.id = issue.assignee_id where project.id = issue.project_id and issue.id = $1 returning project.id as id, app_user.full_name as assignee"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                3,
+              ]
+            `)
+            assertType<Exact<typeof row, {
+                id:        number
+                assignee?: string
+            }>>()
+            expect(row).toEqual(expected)
+        })
+    })
+
+    test('update-from-table-then-inner-join-on-and-compound-join-condition', async () => {
+        // `.on(c).and(c2)` on the from-then-join limb — the `.and()` chained after
+        // `.on()` accumulates into the JOIN predicate (`__lastJoin.__on`), NOT the
+        // outer WHERE. This dispatch differs from `.where().and()`. Restrict the
+        // join to the assignee named 'Ada Lovelace'; issue 1's assignee is Ada, so
+        // project 1's name still updates → 1 row.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.update(tProject)
+                .from(tIssue)
+                .innerJoin(tAppUser).on(tAppUser.id.equals(tIssue.assigneeId))
+                    .and(tAppUser.fullName.equals('Ada Lovelace'))
+                .set({ name: tAppUser.fullName })
+                .where(tProject.id.equals(tIssue.projectId))
+                    .and(tIssue.id.equals(1))
+                .executeUpdate()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = app_user.full_name from issue inner join app_user on app_user.id = issue.assignee_id and app_user.full_name = $1 where project.id = issue.project_id and issue.id = $2"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Ada Lovelace",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            if (ctx.realDbEnabled) expect(typeof affected).toBe('number')
+            else expect(affected).toBe(1)
+        })
+    })
+
+    test('update-from-table-then-inner-join-dynamic-on-and', async () => {
+        // `innerJoin(...).dynamicOn()` opens an empty join predicate on the
+        // from-then-join limb; the first `.and(...)` becomes the initial `on`
+        // condition (the empty-`on` branch, distinct from `.on(...)`). Update
+        // project 1's name to its issue-1 assignee's name → 1 row.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.update(tProject)
+                .from(tIssue)
+                .innerJoin(tAppUser).dynamicOn()
+                    .and(tAppUser.id.equals(tIssue.assigneeId))
+                .set({ name: tAppUser.fullName })
+                .where(tProject.id.equals(tIssue.projectId))
+                    .and(tIssue.id.equals(1))
+                .executeUpdate()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = app_user.full_name from issue inner join app_user on app_user.id = issue.assignee_id where project.id = issue.project_id and issue.id = $1"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            if (ctx.realDbEnabled) expect(typeof affected).toBe('number')
+            else expect(affected).toBe(1)
+        })
+    })
+
+    test('update-from-table-then-inner-join-dynamic-on-or', async () => {
+        // `innerJoin(...).dynamicOn()` followed by `.or(...)` accumulates a
+        // compound OR join predicate on the from-then-join limb (the `or(...)`
+        // branch landing on `__lastJoin.__on`). The predicate matches when the
+        // user is the issue's assignee OR is named 'never-matches'; issue 1 →
+        // Ada, so project 1 updates → 1 row.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.update(tProject)
+                .from(tIssue)
+                .innerJoin(tAppUser).dynamicOn()
+                    .or(tAppUser.id.equals(tIssue.assigneeId))
+                    .or(tAppUser.fullName.equals('never-matches'))
+                .set({ name: tAppUser.fullName })
+                .where(tProject.id.equals(tIssue.projectId))
+                    .and(tIssue.id.equals(1))
+                .executeUpdate()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = app_user.full_name from issue inner join app_user on app_user.id = issue.assignee_id or app_user.full_name = $1 where project.id = issue.project_id and issue.id = $2"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "never-matches",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            if (ctx.realDbEnabled) expect(typeof affected).toBe('number')
+            else expect(affected).toBe(1)
+        })
+    })
+
     // NOT-APPLICABLE: `.innerJoin` / `.leftJoin` / `.leftOuterJoin` on UPDATE are typed `never` on PostgreSQL (its grammar has no JOIN-on-UPDATE form); the equivalent pattern is `.update(t).from(j).set(...).where(...)`.
     /*
     test('update-with-inner-join-on-condition', async () => {

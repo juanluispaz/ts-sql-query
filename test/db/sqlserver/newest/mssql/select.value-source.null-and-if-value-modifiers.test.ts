@@ -443,6 +443,43 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
+    test('boolean/value-when-null-and-null-if-value-with-value-source-double-remap', async () => {
+        // The `valueWhenNull<VALUE>` / `nullIfValue<VALUE>` VALUE-SOURCE overloads on
+        // a BOOLEAN receiver (values.ts:340/342): the fallback/probe is ANOTHER
+        // value source rather than a plain boolean, so BOTH operands remap through
+        // their CustomBooleanTypeAdapter — `coalesce((approved = 'A'), (invoiced =
+        // 1))` / `nullif((approved = 'A'), (invoiced = 1))` (approved uses the string
+        // 'A'/'R' adapter, invoiced the numeric 1/0 adapter). `invoiced` is required,
+        // so `valueWhenNull` yields a required boolean. worklog 1: approved 'A'→true,
+        // invoiced 1→true → awn true; worklog 3: approved NULL, invoiced 1→true → awn
+        // coalesces to true. `nullif` returns NULL on every row here, so `ani` is
+        // absent throughout.
+        ctx.mockNext([
+            { id: 1, awn: true,  ani: null },
+            { id: 2, awn: false, ani: null },
+            { id: 3, awn: true,  ani: null },
+        ])
+        const expected = [
+            { id: 1, awn: true },
+            { id: 2, awn: false },
+            { id: 3, awn: true },
+        ]
+        const rows = await ctx.conn.selectFrom(tIssueWorklog)
+            .select({
+                id:  tIssueWorklog.id,
+                awn: tIssueWorklog.approved.valueWhenNull(tIssueWorklog.invoiced),
+                ani: tIssueWorklog.approved.nullIfValue(tIssueWorklog.invoiced),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, isnull(cast(case approved when 'A' then 1 when 'R' then 0 else null end as bit), cast(case when invoiced = 1 then 1 else 0 end as bit)) as awn, nullif(cast(case approved when 'A' then 1 when 'R' then 0 else null end as bit), cast(case when invoiced = 1 then 1 else 0 end as bit)) as ani from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ id: number; awn: boolean; ani?: boolean }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+
     test('boolean/if-value-source-and-or-with-concrete-boolean-collapses-to-projectable-boolean', async () => {
         // A live IfValueSource (`status.equalsIfValue(value)`) combined via `.and` /
         // `.or` with a concrete BooleanValueSource operand (`priority.greaterThan(1)`)

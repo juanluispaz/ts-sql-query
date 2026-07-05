@@ -7,6 +7,7 @@
 // "not supported" note to keep the symmetry audit happy.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
+import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { Values } from '../../../../../src/Values.js'
 import { DBConnection, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
@@ -72,4 +73,45 @@ describe(ctx.label, () => {
             expect(row).toEqual(renamedProject)
         })
     })
+
+    test('values in a compound-union arm', async () => {
+        // An inline `Values` view used as one ARM of a compound (UNION): the arm's
+        // `WITH name(cols) AS (VALUES ...)` must bubble up to the TOP-LEVEL compound
+        // WITH clause (SelectQueryBuilder collects the arm's WITHs). The seed arm is
+        // the Values view (so the result stays required). project 1 ('Marketing
+        // site') ∪ the two literal VALUES rows, ordered by id.
+        const expected = [
+            { id: 1, name: 'Marketing site' },
+            { id: 100, name: 'from-values-a' },
+            { id: 200, name: 'from-values-b' },
+        ]
+        ctx.mockNext(expected)
+        const patch = Values.create(VProjectPatch, 'projectPatch', [
+            { id: 100, name: 'from-values-a' },
+            { id: 200, name: 'from-values-b' },
+        ])
+        const result = await ctx.conn.selectFrom(patch)
+            .select({ id: patch.id, name: patch.name })
+            .union(
+                ctx.conn.selectFrom(tProject)
+                    .where(tProject.id.equals(1))
+                    .select({ id: tProject.id, name: tProject.name }),
+            )
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectPatch(id, \`name\`) as (values row(?, ?), row(?, ?)) select id as id, \`name\` as \`name\` from projectPatch union select id as id, \`name\` as \`name\` from project where id = ? order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            100,
+            "from-values-a",
+            200,
+            "from-values-b",
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; name: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
 })

@@ -852,4 +852,40 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ label: string }>>>()
         expect(result).toEqual(expected)
     })
+
+    test('compound-query-and-params-accessors', async () => {
+        // `.query()` / `.params()` on a COMPOUND select — the CompoundSelectQueryBuilder
+        // `__asSelectData` accessor path, distinct from the plain-select accessors
+        // (`executable-select-query-and-params-accessors` in select.basic). Both
+        // arms carry a bound param, so `params()` returns them in order; executing
+        // the same builder emits the identical SQL + params.
+        const built = ctx.conn.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ label: tProject.name })
+            .union(
+                ctx.conn.selectFrom(tIssue)
+                    .where(tIssue.id.equals(1))
+                    .select({ label: tIssue.title }),
+            )
+            .orderBy('label')
+
+        const sql = built.query()
+        const params = built.params()
+        expect(sql).toMatchInlineSnapshot(`"select name as [label] from project where id = @0 union select title as [label] from issue where id = @1 order by [label]"`)
+        expect(params).toMatchInlineSnapshot(`
+          [
+            1,
+            1,
+          ]
+        `)
+
+        const expected = [{ label: 'Marketing site' }, { label: 'Update hero copy' }]
+        ctx.mockNext(expected)
+        const rows = await built.executeSelectMany()
+        expect(ctx.lastSql).toBe(sql)
+        expect(ctx.lastParams).toEqual(params)
+        assertType<Exact<typeof rows, Array<{ label: string }>>>()
+        expect(rows).toEqual(expected)
+    })
+
 })

@@ -2141,4 +2141,177 @@ describe(ctx.label, () => {
         expect('w' in row).toBe(false)
     })
 
+    test('requiredInOptionalObject-leaf-demoted-through-with-view', async () => {
+        // `OptionalTypeForWith` maps `requiredInOptionalObject → optional`, so a CTE
+        // that projects an `.asRequiredInOptionalObject()` leaf and is re-selected
+        // LOSES the gate: the direct form is rule-1 with a required-when-present
+        // `gate` (see `rule-1-mixing-required-in-optional-object-with-own-required-leaf`),
+        // but through the CTE the `gate` leaf is demoted to `string | undefined`
+        // (rule-4, all-optional) — the object is dropped only when EVERY leaf is
+        // null. `status` is a required column (never null), so `gate` is always
+        // present at runtime; the demotion is the type promise the assertion pins.
+        // issue 1: status 'open', assignee 1 → gate 'open', extra 1.
+        // issue 3: status 'open', assignee NULL → gate 'open', extra absent.
+        const expected = [
+            { iid: 1, meta: { gate: 'open', extra: 1 } },
+            { iid: 3, meta: { gate: 'open' } },
+        ]
+        ctx.mockNext([
+            { iid: 1, 'meta.gate': 'open', 'meta.extra': 1 },
+            { iid: 3, 'meta.gate': 'open', 'meta.extra': null },
+        ])
+        const metaCte = ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.in([1, 3]))
+            .select({
+                iid:  tIssue.id,
+                meta: { gate: tIssue.status.asRequiredInOptionalObject(), extra: tIssue.assigneeId },
+            })
+            .forUseInQueryAs('meta_cte')
+        const rows = await ctx.conn.selectFrom(metaCte)
+            .select({ iid: metaCte.iid, meta: metaCte.meta })
+            .orderBy('iid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with meta_cte as (select id as iid, status as "meta.gate", assignee_id as "meta.extra" from issue where id in (?, ?)) select iid as iid, "meta.gate" as "meta.gate", "meta.extra" as "meta.extra" from meta_cte order by iid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            3,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            iid:   number
+            meta?: { gate: string | undefined; extra: number | undefined }
+        }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('requiredInOptionalObject-leaf-preserved-through-for-use-in-left-join', async () => {
+        // The companion composition to the with-view demotion above: a CTE nested
+        // object carrying a `requiredInOptionalObject` `gate` — already demoted to
+        // `gate: string | undefined` by `OptionalTypeForWith` when the CTE was built
+        // (the test above) — is re-consumed via `forUseInLeftJoin()`. The left join
+        // keeps the own-required `ownReq` required (NOT demoted) and wraps the whole
+        // object as an OPTIONAL KEY (`meta?:`, absent when the join misses) — distinct
+        // from the inline optional value the with-view re-select produced.
+        // project 2 → issue 3 (status 'open', number 1) → meta present; project 4
+        // (Legacy app) has no issue → the join misses → meta absent.
+        const expected = [
+            { projId: 2, meta: { gate: 'open', ownReq: 1 } },
+            { projId: 4 },
+        ]
+        ctx.mockNext([
+            { projId: 2, 'meta.gate': 'open', 'meta.ownReq': 1 },
+            { projId: 4, 'meta.gate': null, 'meta.ownReq': null },
+        ])
+        const issueMetaCte = ctx.conn.selectFrom(tIssue)
+            .select({
+                pid:  tIssue.projectId,
+                meta: { gate: tIssue.status.asRequiredInOptionalObject(), ownReq: tIssue.number },
+            })
+            .forUseInQueryAs('issue_meta_cte')
+        const issueMetaLeft = issueMetaCte.forUseInLeftJoin()
+        const rows = await ctx.conn.selectFrom(tProject)
+            .leftJoin(issueMetaLeft).on(issueMetaLeft.pid.equals(tProject.id))
+            .where(tProject.id.in([2, 4]))
+            .select({ projId: tProject.id, meta: issueMetaLeft.meta })
+            .orderBy('projId')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with issue_meta_cte as (select project_id as pid, status as "meta.gate", number as "meta.ownReq" from issue) select project.id as projId, issue_meta_cte."meta.gate" as "meta.gate", issue_meta_cte."meta.ownReq" as "meta.ownReq" from project left join issue_meta_cte on issue_meta_cte.pid = project.id where project.id in (?, ?) order by projId"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+            4,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            projId: number
+            meta?:  { gate: string | undefined; ownReq: number }
+        }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('merge-optional-requiredInOptionalObject-demoted-to-optional-through-operator', async () => {
+        // The inverse of `merge-optional-requiredInOptionalObject-is-preserved-through-an-operator`:
+        // there the operand was a REQUIRED column (`.equals(tIssue.id)`), so
+        // `MergeOptional<requiredInOptionalObject, required> → requiredInOptionalObject`
+        // and `flag` stayed required. Here the operand is an OPTIONAL column
+        // (`.equals(tIssue.assigneeId)`), so `MergeOptional<requiredInOptionalObject,
+        // optional> → optional` and `flag` is DEMOTED to an optional key
+        // (`flag?: boolean`), absent when null — while the own-required `ownReq`
+        // keeps the object required (rule-3). issue 1: priority 2, assignee 1 →
+        // 2=1 → flag false; issue 3: priority 3, assignee NULL → flag absent.
+        const expected = [
+            { iid: 1, meta: { flag: false, ownReq: 1 } },
+            { iid: 3, meta: { ownReq: 1 } },
+        ]
+        ctx.mockNext([
+            { iid: 1, 'meta.flag': false, 'meta.ownReq': 1 },
+            { iid: 3, 'meta.flag': null, 'meta.ownReq': 1 },
+        ])
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.in([1, 3]))
+            .select({
+                iid: tIssue.id,
+                meta: {
+                    flag:   tIssue.priority.asRequiredInOptionalObject().equals(tIssue.assigneeId),
+                    ownReq: tIssue.number,
+                },
+            })
+            .orderBy('iid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, priority = assignee_id as "meta.flag", number as "meta.ownReq" from issue where id in (?, ?) order by iid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            3,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            iid:  number
+            meta: { flag?: boolean; ownReq: number }
+        }>>>()
+        expect(rows).toEqual(expected)
+        // issue 3's flag is null, so the demoted-to-optional `flag` key is ABSENT
+        // at runtime — assert its absence, distinguishing `flag?: boolean` from a
+        // present-`undefined`.
+        expect('flag' in rows[1]!.meta).toBe(false)
+    })
+
+    test('merge-optional-requiredInOptionalObject-demoted-to-optional-through-operator-as-nullable', async () => {
+        // The same demote arm under `projectingOptionalValuesAsNullable()`: the
+        // demoted `flag` flips to `boolean | null` (present as null, not absent),
+        // while the own-required `ownReq` keeps the object required. issue 3:
+        // priority 3, assignee NULL → flag null.
+        const expected = { iid: 3, meta: { flag: null, ownReq: 1 } }
+        ctx.mockNext({ iid: 3, 'meta.flag': null, 'meta.ownReq': 1 })
+        const row = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(3))
+            .select({
+                iid: tIssue.id,
+                meta: {
+                    flag:   tIssue.priority.asRequiredInOptionalObject().equals(tIssue.assigneeId),
+                    ownReq: tIssue.number,
+                },
+            })
+            .projectingOptionalValuesAsNullable()
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, priority = assignee_id as "meta.flag", number as "meta.ownReq" from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            iid:  number
+            meta: { flag: boolean | null; ownReq: number }
+        }>>()
+        expect(row).toEqual(expected)
+    })
+
+
+
 })

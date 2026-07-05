@@ -121,4 +121,51 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{ id: number; name: string }>>>()
     })
+
+    test('chained-ctes-bubble-both-withs-through-a-compound-arm', async () => {
+        // A chained-CTE pair (`top_open` selects FROM `open_issues`) used as ONE ARM
+        // of a compound (UNION): BOTH WITHs must bubble to the TOP-LEVEL compound
+        // WITH clause, in topological order — the double-WITH-through-a-compound-arm
+        // seam, distinct from the JOIN consumer above. open issues (1, 3) with
+        // priority ≥ 2 → titles 'Update hero copy', 'Migrate to ESM'; the other arm
+        // is project 1's name ('Marketing site').
+        const expected = [
+            { label: 'Marketing site' },
+            { label: 'Migrate to ESM' },
+            { label: 'Update hero copy' },
+        ]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        const openIssues = connection.selectFrom(tIssue)
+            .where(tIssue.status.equals('open'))
+            .select({ id: tIssue.id, priority: tIssue.priority, title: tIssue.title })
+            .forUseInQueryAs('open_issues')
+        const topOpen = connection.selectFrom(openIssues)
+            .where(openIssues.priority.greaterOrEqual(2))
+            .select({ label: openIssues.title })
+            .forUseInQueryAs('top_open')
+
+        const result = await connection.selectFrom(topOpen)
+            .select({ label: topOpen.label })
+            .union(
+                connection.selectFrom(tProject)
+                    .where(tProject.id.equals(1))
+                    .select({ label: tProject.name }),
+            )
+            .orderBy('label')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with open_issues as (select id as id, priority as priority, title as title from issue where status = :0), top_open as (select title as "label" from open_issues where priority >= :1) select "label" as "label" from top_open union select name as "label" from project where id = :2 order by 1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "open",
+            2,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ label: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
 })

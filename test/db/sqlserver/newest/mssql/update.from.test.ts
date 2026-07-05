@@ -49,4 +49,40 @@ describe(ctx.label, () => {
             expect(projects).toEqual(updatedProjects)
         })
     })
+
+    test('update-from-returning-a-from-table-column-nested', async () => {
+        // A plain `update(t).from(j)` (no JOIN) whose RETURNING folds a column of the
+        // FROM-joined table (`organization.name` / `organization.plan`) into a nested
+        // `audit` sub-object — the `_buildUpdateReturning` from-table-qualification
+        // path (distinct from returning the target's own columns). Rename project 1
+        // by appending its organization's name, and read the org columns back.
+        const expected = { id: 1, audit: { org: 'Acme Corp', plan: 'pro' } }
+        ctx.mockNext({ id: 1, 'audit.org': 'Acme Corp', 'audit.plan': 'pro' })
+        await ctx.withRollback(async () => {
+            const row = await ctx.conn.update(tProject)
+                .from(tOrganization)
+                .set({ name: tProject.name.concat(' / ').concat(tOrganization.name) })
+                .where(tProject.organizationId.equals(tOrganization.id))
+                    .and(tProject.id.equals(1))
+                .returning({
+                    id:    tProject.id,
+                    audit: { org: tOrganization.name, plan: tOrganization.plan },
+                })
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = project.name + @0 + organization.name output inserted.id as id, organization.name as [audit.org], organization.[plan] as [audit.plan] from organization where project.organization_id = organization.id and project.id = @1"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                " / ",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof row, {
+                id:    number
+                audit: { org: string; plan: string }
+            }>>()
+            expect(row).toEqual(expected)
+        })
+    })
+
 })

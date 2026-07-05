@@ -512,4 +512,48 @@ describe(ctx.label, () => {
     })
     */
 
+    // NOT-APPLICABLE: MySQL has no CONNECT BY (use a recursive CTE)
+    /*
+    test('connect-by-walk-as-a-compound-union-arm', async () => {
+        // A CONNECT BY hierarchical walk used as one ARM of a compound (UNION): the
+        // walk select composes with `.union(...)` like any other select, so the
+        // hierarchical arm and a plain arm merge into one result set. Tree: 3 ← 2 ←
+        // 1, plus 4 (root); the walk from the null-parent roots reaches issues
+        // {1,2,3,4}, and the other arm contributes project 1's id — the union dedups
+        // to {1,2,3,4}.
+        ctx.mockNext([{ n: 1 }, { n: 2 }, { n: 3 }, { n: 4 }])
+        const runQuery = () => ctx.conn.selectFrom(tIssue)
+            .startWith(tIssue.parentId.isNull())
+            .connectBy(prior => prior(tIssue.id).equals(tIssue.parentId))
+            .select({ n: tIssue.id })
+            .union(
+                ctx.conn.selectFrom(tProject)
+                    .where(tProject.id.equals(1))
+                    .select({ n: tProject.id }),
+            )
+            .orderBy('n')
+            .executeSelectMany()
+
+        let rows!: Array<{ n: number }>
+        if (ctx.realDbEnabled) {
+            await ctx.withRollback(async () => {
+                await ctx.conn.update(tIssue).set({ parentId: 2 }).where(tIssue.id.equals(1)).executeUpdate()
+                await ctx.conn.update(tIssue).set({ parentId: 3 }).where(tIssue.id.equals(2)).executeUpdate()
+                rows = await runQuery()
+            })
+        } else {
+            rows = await runQuery()
+        }
+
+        expect(ctx.lastNoTransactionSql).toMatchInlineSnapshot(`"select id as "n" from issue start with parent_id is null connect by prior id = parent_id union select id as "n" from project where id = :0 order by 1"`)
+        expect(ctx.lastNoTransactionParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ n: number }>>>()
+        expect(rows).toEqual([{ n: 1 }, { n: 2 }, { n: 3 }, { n: 4 }])
+    })
+    */
+
 })

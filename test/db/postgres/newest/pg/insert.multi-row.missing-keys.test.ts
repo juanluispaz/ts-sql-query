@@ -142,4 +142,130 @@ describe(ctx.label, () => {
             expect(inserted).toBe(2)
         })
     })
+
+    // Shaped multi-row missing-keys: `shapedAs({...}).dynamicValues([partial rows])`
+    // renames the row keys, so the missing set is tracked under the SHAPED key names.
+    // Every partial row omits the shaped `orgPlan` key (→ real column `plan`), so the
+    // missing set starts as `orgPlan`; each fold clears/narrows it via the shaped key.
+    // The shape maps back to the real columns, so the emitted column list uses them.
+
+    test('shaped-dynamic-values-set-for-all-clears-missing-key-then-executes', async () => {
+        // Shaped `setForAll({ orgPlan })` supplies the missing shaped key for every
+        // row, clearing it so the shaped multi-row insert becomes executable.
+        ctx.mockNext(2)
+        await ctx.withRollback(async () => {
+            const inserted = await ctx.conn.insertInto(tOrganization)
+                .shapedAs({ orgName: 'name', orgPlan: 'plan' })
+                .dynamicValues([
+                    { orgName: 'Mk-SA' },
+                    { orgName: 'Mk-SB' },
+                ])
+                .setForAll({ orgPlan: 'free' })
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, plan) values ($1, $2), ($3, $4)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Mk-SA",
+                "free",
+                "Mk-SB",
+                "free",
+              ]
+            `)
+            assertType<Exact<typeof inserted, number>>()
+            expect(inserted).toBe(2)
+        })
+    })
+
+    test('shaped-dynamic-values-disallow-if-no-value-narrows-missing-key-then-executes', async () => {
+        // Shaped `setForAllIfValue({ orgPlan })` with an optional-typed value does not
+        // narrow the shaped missing set; the unconditional shaped
+        // `disallowIfNoValue(..., 'orgPlan')` narrows the shaped key out (sound —
+        // throws eagerly when the column has no value) and here a value IS supplied.
+        const plan: string | undefined = 'pro'
+        ctx.mockNext(2)
+        await ctx.withRollback(async () => {
+            const inserted = await ctx.conn.insertInto(tOrganization)
+                .shapedAs({ orgName: 'name', orgPlan: 'plan' })
+                .dynamicValues([
+                    { orgName: 'Mk-SC' },
+                    { orgName: 'Mk-SD' },
+                ])
+                .setForAllIfValue({ orgPlan: plan })
+                .disallowIfNoValue('plan must have a value', 'orgPlan')
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, plan) values ($1, $2), ($3, $4)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Mk-SC",
+                "pro",
+                "Mk-SD",
+                "pro",
+              ]
+            `)
+            assertType<Exact<typeof inserted, number>>()
+            expect(inserted).toBe(2)
+        })
+    })
+
+    test('shaped-dynamic-values-keep-only-prunes-a-staged-optional-then-set-for-all-executes', async () => {
+        // Shaped `keepOnly('orgName', 'orgPlan')` prunes the staged optional shaped
+        // `orgVerified` (→ verified) from every row (`orgPlan` still missing); shaped
+        // `setForAll({ orgPlan })` then supplies it. Emitted column list is (name, plan).
+        ctx.mockNext(2)
+        await ctx.withRollback(async () => {
+            const inserted = await ctx.conn.insertInto(tOrganization)
+                .shapedAs({ orgName: 'name', orgPlan: 'plan', orgVerified: 'verified' })
+                .dynamicValues([
+                    { orgName: 'Mk-SE', orgVerified: true },
+                    { orgName: 'Mk-SF', orgVerified: false },
+                ])
+                .keepOnly('orgName', 'orgPlan')
+                .setForAll({ orgPlan: 'free' })
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, plan) values ($1, $2), ($3, $4)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Mk-SE",
+                "free",
+                "Mk-SF",
+                "free",
+              ]
+            `)
+            assertType<Exact<typeof inserted, number>>()
+            expect(inserted).toBe(2)
+        })
+    })
+
+    test('shaped-dynamic-values-ignore-if-set-drops-a-staged-optional-then-set-for-all-executes', async () => {
+        // Shaped `ignoreIfSet('orgVerified')` drops the staged optional shaped key from
+        // every row where it is set (`orgPlan` still missing); shaped
+        // `setForAll({ orgPlan })` supplies it. Emitted column list is (name, plan).
+        ctx.mockNext(2)
+        await ctx.withRollback(async () => {
+            const inserted = await ctx.conn.insertInto(tOrganization)
+                .shapedAs({ orgName: 'name', orgPlan: 'plan', orgVerified: 'verified' })
+                .dynamicValues([
+                    { orgName: 'Mk-SG', orgVerified: true },
+                    { orgName: 'Mk-SH', orgVerified: false },
+                ])
+                .ignoreIfSet('orgVerified')
+                .setForAll({ orgPlan: 'free' })
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, plan) values ($1, $2), ($3, $4)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Mk-SG",
+                "free",
+                "Mk-SH",
+                "free",
+              ]
+            `)
+            assertType<Exact<typeof inserted, number>>()
+            expect(inserted).toBe(2)
+        })
+    })
 })

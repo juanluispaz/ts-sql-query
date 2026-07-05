@@ -161,4 +161,120 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
+    test('customize-compound-materialised-as-cte-via-for-use-in-query-as', async () => {
+        // A CUSTOMIZED compound consumed as a CTE via `forUseInQueryAs`: the compound
+        // `beforeQuery` / `afterQuery` hooks bracket the union INSIDE the CTE parens
+        // and the outer query reads the CTE back.
+        const expected = [
+            { id: 1, label: 'Marketing site' },
+            { id: 2, label: 'Internal tools' },
+        ]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+        const combined = connection.selectFrom(tProject).where(tProject.id.equals(1)).select({ id: tProject.id, label: tProject.name })
+            .union(connection.selectFrom(tProject).where(tProject.id.equals(2)).select({ id: tProject.id, label: tProject.name }))
+            .customizeQuery({
+                beforeQuery: connection.rawFragment`/* compound-head */ `,
+                afterQuery:  connection.rawFragment` /* compound-tail */`,
+            })
+            .forUseInQueryAs('combined')
+        const result = await connection.selectFrom(combined)
+            .select({ id: combined.id, label: combined.label })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with combined as (/* compound-head */  select id as id, \`name\` as label from project where id = ? union select id as id, \`name\` as label from project where id = ?  /* compound-tail */) select id as id, label as label from combined order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; label: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('customize-compound-inline-scalar-value-via-for-use-as-inline-query-value', async () => {
+        // A CUSTOMIZED one-column compound consumed as an inline scalar subquery via
+        // `forUseAsInlineQueryValue`: the compound hooks bracket the union INSIDE the
+        // scalar subquery in the outer select list. Both branches select the same
+        // project name, so the UNION dedups to a single row and the subquery stays
+        // scalar.
+        const expected = [{ id: 1, label: 'Marketing site' }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+        const label = connection.selectFrom(tProject).where(tProject.id.equals(1)).selectOneColumn(tProject.name)
+            .union(connection.selectFrom(tProject).where(tProject.id.equals(1)).selectOneColumn(tProject.name))
+            .customizeQuery({
+                beforeQuery: connection.rawFragment`/* compound-head */ `,
+                afterQuery:  connection.rawFragment` /* compound-tail */`,
+            })
+            .forUseAsInlineQueryValue()
+        const result = await connection.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ id: tProject.id, label })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (/* compound-head */  select \`name\` as result from project where id = ? union select \`name\` as result from project where id = ?  /* compound-tail */) as label from project where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            1,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; label?: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('customize-compound-order-by-limit-execute-select-page-places-hooks-in-count-wrap', async () => {
+        // A CUSTOMIZED compound with `orderBy` + `limit` consumed via
+        // `executeSelectPage`: the `beforeQuery` / `afterQuery` hooks render on BOTH
+        // the data query and the count-wrap query. The count query wraps the compound
+        // in `select count(*) from (...)`, so the snapshot pins where the compound
+        // hooks land inside that wrap. Branches select ids {1,2} ∪ {3}; the page
+        // returns the first 2 ordered rows and total count 3.
+        const dataRows = [
+            { id: 1, label: 'Marketing site' },
+            { id: 2, label: 'Internal tools' },
+        ]
+        ctx.mockNext(dataRows)
+        ctx.mockNext(3)
+        const connection = ctx.conn
+        const page = await connection.selectFrom(tProject).where(tProject.id.in([1, 2])).select({ id: tProject.id, label: tProject.name })
+            .union(connection.selectFrom(tProject).where(tProject.id.equals(3)).select({ id: tProject.id, label: tProject.name }))
+            .orderBy('id')
+            .limit(2)
+            .customizeQuery({
+                beforeQuery: connection.rawFragment`/* head */ `,
+                afterQuery:  connection.rawFragment` /* tail */`,
+            })
+            .executeSelectPage()
+
+        expect(ctx.history.length).toBe(2)
+        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"/* head */  select id as id, \`name\` as label from project where id in (?, ?) union select id as id, \`name\` as label from project where id = ? order by id limit ?  /* tail */"`)
+        expect(ctx.history[0]!.params).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+            3,
+            2,
+          ]
+        `)
+        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with result_for_count as (/* head */  select id as id, \`name\` as label from project where id in (?, ?) union select id as id, \`name\` as label from project where id = ? order by id  /* tail */) select count(*) from result_for_count"`)
+        expect(ctx.history[1]!.params).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+            3,
+          ]
+        `)
+        assertType<Exact<typeof page, {
+            data:  Array<{ id: number; label: string }>
+            count: number
+        }>>()
+        expect(page.count).toBe(3)
+        expect(page.data).toEqual(dataRows)
+    })
+
 })

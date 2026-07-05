@@ -207,4 +207,309 @@ describe(ctx.label, () => {
         expect(ids).toEqual([1, 2, 3, 4])
     })
     */
+    // NOT-APPLICABLE: SQL Server has no `START WITH … CONNECT BY` hierarchical-query syntax; `.startWith` / `.connectBy` / `.connectByNoCycle` are typed `never` here. The equivalent shape is a recursive CTE.
+    /*
+    test('connect-by-without-start-with-every-row-is-root', async () => {
+        // `connectBy` WITHOUT a preceding `startWith` emits `connect by` with no
+        // `start with`. Oracle then treats EVERY row as a hierarchy
+        // root, so the walk re-emits each node once per ancestor path.
+        // Tree shape after seeding: 3 ← 2 ← 1, plus 4 (standalone).
+        // Per-root paths: {1}, {2,1}, {3,2,1}, {4} → 7 rows total,
+        // id multiset [1,1,1,2,2,3,4].
+        ctx.mockNext([
+            { id: 1, parentId: 2 },
+            { id: 2, parentId: 3 },
+            { id: 1, parentId: 2 },
+            { id: 3, parentId: null },
+            { id: 2, parentId: 3 },
+            { id: 1, parentId: 2 },
+            { id: 4, parentId: null },
+        ])
+
+        const runQuery = () => ctx.conn.selectFrom(tIssue)
+            .connectBy(prior => prior(tIssue.id).equals(tIssue.parentId))
+            .select({
+                id:       tIssue.id,
+                parentId: tIssue.parentId,
+            })
+            .executeSelectMany()
+
+        let rows!: Array<{ id: number; parentId?: number }>
+        if (ctx.realDbEnabled) {
+            await ctx.withRollback(async () => {
+                await ctx.conn.update(tIssue).set({ parentId: 2 }).where(tIssue.id.equals(1)).executeUpdate()
+                await ctx.conn.update(tIssue).set({ parentId: 3 }).where(tIssue.id.equals(2)).executeUpdate()
+                rows = await runQuery()
+            })
+        } else {
+            rows = await runQuery()
+        }
+
+        expect(ctx.lastNoTransactionSql).toMatchInlineSnapshot(`"select id as "id", parent_id as "parentId" from issue connect by prior id = parent_id"`)
+        expect(ctx.lastNoTransactionParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ id: number; parentId?: number }>>>()
+        expect(rows.length).toBe(7)
+        // Sort for a stable comparison: the CONNECT BY walk order is not
+        // guaranteed beyond the hierarchical traversal.
+        const ids = rows.map(r => r.id).sort()
+        expect(ids).toEqual([1, 1, 1, 2, 2, 3, 4])
+    })
+    */
+
+    // NOT-APPLICABLE: SQL Server has no `START WITH … CONNECT BY` hierarchical-query syntax; `.startWith` / `.connectBy` / `.connectByNoCycle` are typed `never` here. The equivalent shape is a recursive CTE.
+    /*
+    test('connect-by-customize-query-order-by-hooks', async () => {
+        // `customizeQuery({ beforeOrderByItems, afterOrderByItems })`
+        // splices raw fragments around the explicit ORDER BY items of a
+        // hierarchical query. Each of the three ORDER BY terms uses a
+        // DISTINCT column (parent_id / id / priority) so Oracle does not
+        // trip its "column specified more than once in the order by"
+        // check. A top-level ORDER BY sorts the whole CONNECT BY result
+        // deterministically. Tree shape: 3 ← 2 ← 1, plus 4.
+        ctx.mockNext([
+            { id: 1, parentId: 2 },
+            { id: 2, parentId: 3 },
+            { id: 3, parentId: null },
+            { id: 4, parentId: null },
+        ])
+
+        const connection = ctx.conn
+        const runQuery = () => connection.selectFrom(tIssue)
+            .startWith(tIssue.parentId.isNull())
+            .connectBy(prior => prior(tIssue.id).equals(tIssue.parentId))
+            .select({
+                id:       tIssue.id,
+                parentId: tIssue.parentId,
+            })
+            .orderBy('id')
+            .customizeQuery({
+                beforeOrderByItems: connection.rawFragment`parent_id asc`,
+                afterOrderByItems:  connection.rawFragment`priority asc`,
+            })
+            .executeSelectMany()
+
+        let rows!: Array<{ id: number; parentId?: number }>
+        if (ctx.realDbEnabled) {
+            await ctx.withRollback(async () => {
+                await ctx.conn.update(tIssue).set({ parentId: 2 }).where(tIssue.id.equals(1)).executeUpdate()
+                await ctx.conn.update(tIssue).set({ parentId: 3 }).where(tIssue.id.equals(2)).executeUpdate()
+                rows = await runQuery()
+            })
+        } else {
+            rows = await runQuery()
+        }
+
+        expect(ctx.lastNoTransactionSql).toMatchInlineSnapshot(`"select id as "id", parent_id as "parentId" from issue start with parent_id is null connect by prior id = parent_id order by parent_id asc, "id", priority asc"`)
+        expect(ctx.lastNoTransactionParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ id: number; parentId?: number }>>>()
+        // ORDER BY parent_id asc (nulls last), id, priority asc: issue 1
+        // (parent 2), issue 2 (parent 3), then the null-parent roots 3, 4.
+        expect(rows).toEqual([
+            { id: 1, parentId: 2 },
+            { id: 2, parentId: 3 },
+            { id: 3 },
+            { id: 4 },
+        ])
+    })
+    */
+
+    // NOT-APPLICABLE: SQL Server has no `START WITH … CONNECT BY` hierarchical-query syntax; `.startWith` / `.connectBy` / `.connectByNoCycle` are typed `never` here. The equivalent shape is a recursive CTE.
+    /*
+    test('connect-by-for-use-in-query-as-cte', async () => {
+        // `forUseInQueryAs('tree')` materializes the hierarchical query as
+        // a `WITH tree AS (...)` view; the outer `selectFrom(tree)` reads
+        // it back and its `orderBy('id')` makes the result deterministic.
+        // The CTE holds the full walk {1,2,3,4}. Tree shape: 3 ← 2 ← 1,
+        // plus 4.
+        ctx.mockNext([
+            { id: 1, parentId: 2 },
+            { id: 2, parentId: 3 },
+            { id: 3, parentId: null },
+            { id: 4, parentId: null },
+        ])
+
+        const tree = ctx.conn.selectFrom(tIssue)
+            .startWith(tIssue.parentId.isNull())
+            .connectBy(prior => prior(tIssue.id).equals(tIssue.parentId))
+            .select({
+                id:       tIssue.id,
+                parentId: tIssue.parentId,
+            })
+            .forUseInQueryAs('tree')
+
+        const runQuery = () => ctx.conn.selectFrom(tree)
+            .select({
+                id:       tree.id,
+                parentId: tree.parentId,
+            })
+            .orderBy('id')
+            .executeSelectMany()
+
+        let rows!: Array<{ id: number; parentId?: number }>
+        if (ctx.realDbEnabled) {
+            await ctx.withRollback(async () => {
+                await ctx.conn.update(tIssue).set({ parentId: 2 }).where(tIssue.id.equals(1)).executeUpdate()
+                await ctx.conn.update(tIssue).set({ parentId: 3 }).where(tIssue.id.equals(2)).executeUpdate()
+                rows = await runQuery()
+            })
+        } else {
+            rows = await runQuery()
+        }
+
+        expect(ctx.lastNoTransactionSql).toMatchInlineSnapshot(`"with tree as (select id as id, parent_id as parentId from issue start with parent_id is null connect by prior id = parent_id) select id as "id", parentId as "parentId" from tree order by "id""`)
+        expect(ctx.lastNoTransactionParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ id: number; parentId?: number }>>>()
+        expect(rows).toEqual([
+            { id: 1, parentId: 2 },
+            { id: 2, parentId: 3 },
+            { id: 3 },
+            { id: 4 },
+        ])
+    })
+    */
+
+    // NOT-APPLICABLE: SQL Server has no `START WITH … CONNECT BY` hierarchical-query syntax; `.startWith` / `.connectBy` / `.connectByNoCycle` are typed `never` here. The equivalent shape is a recursive CTE.
+    /*
+    test('connect-by-for-use-as-inline-aggregated-array-value', async () => {
+        // `forUseAsInlineAggregatedArrayValue()` consumes the one-column
+        // hierarchical walk as an inline `json_arrayagg(...)` array inside
+        // an outer query. The array holds the full walk {1,2,3,4}; Oracle
+        // does not guarantee aggregate order, so JS-sort before comparing.
+        // Tree shape: 3 ← 2 ← 1, plus 4.
+        ctx.mockNext([{ id: 1, tree: [1, 2, 3, 4] }])
+
+        const tree = ctx.conn.selectFrom(tIssue)
+            .startWith(tIssue.parentId.isNull())
+            .connectBy(prior => prior(tIssue.id).equals(tIssue.parentId))
+            .selectOneColumn(tIssue.id)
+            .forUseAsInlineAggregatedArrayValue()
+
+        const runQuery = () => ctx.conn.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({
+                id:   tProject.id,
+                tree,
+            })
+            .executeSelectMany()
+
+        let rows!: Array<{ id: number; tree: number[] }>
+        if (ctx.realDbEnabled) {
+            await ctx.withRollback(async () => {
+                await ctx.conn.update(tIssue).set({ parentId: 2 }).where(tIssue.id.equals(1)).executeUpdate()
+                await ctx.conn.update(tIssue).set({ parentId: 3 }).where(tIssue.id.equals(2)).executeUpdate()
+                rows = await runQuery()
+            })
+        } else {
+            rows = await runQuery()
+        }
+
+        expect(ctx.lastNoTransactionSql).toMatchInlineSnapshot(`"select id as "id", (select json_arrayagg(id) from issue start with parent_id is null connect by prior id = parent_id) as "tree" from project where id = :0"`)
+        expect(ctx.lastNoTransactionParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; tree: number[] }>>>()
+        expect(rows.map(r => ({ ...r, tree: [...r.tree].sort((a, b) => a - b) }))).toEqual([
+            { id: 1, tree: [1, 2, 3, 4] },
+        ])
+    })
+    */
+
+    // NOT-APPLICABLE: SQL Server has no `START WITH … CONNECT BY` hierarchical-query syntax; `.startWith` / `.connectBy` / `.connectByNoCycle` are typed `never` here. The equivalent shape is a recursive CTE.
+    /*
+    test('connect-by-for-use-as-inline-query-value-scalar', async () => {
+        // `forUseAsInlineQueryValue()` consumes a one-column hierarchical
+        // query as a SCALAR subquery. To stay single-row (Oracle raises
+        // ORA-01427 otherwise) the walk starts at leaf issue 1 — nothing
+        // has `parent_id = 1`, so the walk is just {1} and the scalar is
+        // 1. The scalar value source is optional, so it surfaces as
+        // `root?`.
+        ctx.mockNext([{ id: 1, root: 1 }])
+
+        const root = ctx.conn.selectFrom(tIssue)
+            .startWith(tIssue.id.equals(1))
+            .connectBy(prior => prior(tIssue.id).equals(tIssue.parentId))
+            .selectOneColumn(tIssue.id)
+            .forUseAsInlineQueryValue()
+
+        const runQuery = () => ctx.conn.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({
+                id:   tProject.id,
+                root,
+            })
+            .executeSelectMany()
+
+        let rows!: Array<{ id: number; root?: number }>
+        if (ctx.realDbEnabled) {
+            await ctx.withRollback(async () => {
+                await ctx.conn.update(tIssue).set({ parentId: 2 }).where(tIssue.id.equals(1)).executeUpdate()
+                await ctx.conn.update(tIssue).set({ parentId: 3 }).where(tIssue.id.equals(2)).executeUpdate()
+                rows = await runQuery()
+            })
+        } else {
+            rows = await runQuery()
+        }
+
+        expect(ctx.lastNoTransactionSql).toMatchInlineSnapshot(`"select id as "id", (select id as "result" from issue start with id = :0 connect by prior id = parent_id) as "root" from project where id = :1"`)
+        expect(ctx.lastNoTransactionParams).toMatchInlineSnapshot(`
+          [
+            1,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; root?: number }>>>()
+        expect(rows).toEqual([{ id: 1, root: 1 }])
+    })
+    */
+
+    // NOT-APPLICABLE: SQL Server has no `START WITH … CONNECT BY` hierarchical-query syntax; `.startWith` / `.connectBy` / `.connectByNoCycle` are typed `never` here. The equivalent shape is a recursive CTE.
+    /*
+    test('connect-by-projecting-optional-values-as-nullable', async () => {
+        // `projectingOptionalValuesAsNullable()` reshapes the optional
+        // `parentId?` to `parentId: number | null` — only the TS type
+        // changes, the emitted SQL is identical to the plain walk. A null
+        // parent must surface as `null` (PRESENT), not absent, which is
+        // what distinguishes it from the default optional projection.
+        // Tree shape: 3 ← 2 ← 1, plus 4 — issues 3 and 4 have a null parent.
+        ctx.mockNext([
+            { id: 3, parentId: null },
+            { id: 2, parentId: 3 },
+            { id: 1, parentId: 2 },
+            { id: 4, parentId: null },
+        ])
+
+        const runQuery = () => ctx.conn.selectFrom(tIssue)
+            .startWith(tIssue.parentId.isNull())
+            .connectBy(prior => prior(tIssue.id).equals(tIssue.parentId))
+            .select({
+                id:       tIssue.id,
+                parentId: tIssue.parentId,
+            })
+            .projectingOptionalValuesAsNullable()
+            .executeSelectMany()
+
+        let rows!: Array<{ id: number; parentId: number | null }>
+        if (ctx.realDbEnabled) {
+            await ctx.withRollback(async () => {
+                await ctx.conn.update(tIssue).set({ parentId: 2 }).where(tIssue.id.equals(1)).executeUpdate()
+                await ctx.conn.update(tIssue).set({ parentId: 3 }).where(tIssue.id.equals(2)).executeUpdate()
+                rows = await runQuery()
+            })
+        } else {
+            rows = await runQuery()
+        }
+
+        expect(ctx.lastNoTransactionSql).toMatchInlineSnapshot(`"select id as "id", parent_id as "parentId" from issue start with parent_id is null connect by prior id = parent_id"`)
+        expect(ctx.lastNoTransactionParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ id: number; parentId: number | null }>>>()
+        expect(rows.length).toBe(4)
+        const byId = new Map(rows.map(r => [r.id, r]))
+        // The null parent is present AS null (not stripped to absent).
+        expect(byId.get(3)).toEqual({ id: 3, parentId: null })
+        expect(byId.get(1)).toEqual({ id: 1, parentId: 2 })
+    })
+    */
+
 })

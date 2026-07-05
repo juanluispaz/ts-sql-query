@@ -360,4 +360,52 @@ describe(ctx.label, () => {
         expect(thrown).toBeInstanceOf(Error)
         expect((thrown as Error).message).toContain('delete-customize gate blocks')
     })
+    test('insert-customize-query-with-gated-fragment-throws', async () => {
+        // A gated value source embedded in an INSERT `customizeQuery` fragment must
+        // trip the introspection walker (query disallowed) AND fire the protection
+        // throw at render time (`executeInsert`).
+        const connection = ctx.conn
+        let thrown: unknown
+        await ctx.withRollback(async () => {
+            const query = connection.insertInto(tProject)
+                .values({ organizationId: 1, name: 'x', slug: 'insert-customize-gate' })
+                .customizeQuery({
+                    afterQuery: connection.rawFragment` /* gated ${tProject.id.allowWhen(false, 'insert-customize gate blocks')} */`,
+                })
+
+            expect(isQueryAllowed(query)).toBe(false)
+
+            try {
+                await query.executeInsert()
+            } catch (e) {
+                thrown = e
+            }
+        })
+        expect(thrown).toBeInstanceOf(Error)
+        expect((thrown as Error).message).toContain('insert-customize gate blocks')
+    })
+
+    test('insert-returning-with-gated-column-reports-disallowed', async () => {
+        // A gated column in an INSERT `.returning({...})` projection must report the
+        // query disallowed. Cast to `any` for cells where
+        // `.returning(...)` is typed `never` on INSERT (MySQL); the introspection
+        // walker traverses the configured columns regardless of dialect typing.
+        const connection = ctx.conn
+        const query = (connection.insertInto(tProject).values({ organizationId: 1, name: 'x', slug: 'insert-returning-gate' }) as any)
+            .returning({ id: tProject.id.allowWhen(false, 'insert-returning gate blocks') })
+        expect(isQueryAllowed(query)).toBe(false)
+    })
+
+    test('insert-multi-row-value-with-gated-column-reports-disallowed', async () => {
+        // A gated value source in ONE of the rows of a multi-row `.values([...])`
+        // insert must report the query disallowed.
+        const connection = ctx.conn
+        const query = connection.insertInto(tProject)
+            .values([
+                { organizationId: 1, name: 'row1', slug: 'insert-multi-gate-1' },
+                { organizationId: 1, name: connection.const('row2', 'string').allowWhen(false, 'insert-multi-row gate blocks'), slug: 'insert-multi-gate-2' },
+            ])
+        expect(isQueryAllowed(query)).toBe(false)
+    })
+
 })

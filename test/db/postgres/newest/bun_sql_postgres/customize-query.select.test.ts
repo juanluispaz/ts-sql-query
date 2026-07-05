@@ -266,4 +266,41 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{ id: number }>>>()
     })
+    test('customize-select-projection-only-hooks-survive-as-cte', async () => {
+        // A NON-recursive select consumed as a CTE via `.forUseInQueryAs(...)` renders
+        // ALL FIVE projection/order-by hooks (`afterSelectKeyword` / `beforeColumns` /
+        // `customWindow` / `beforeOrderByItems` / `afterOrderByItems`) inside the CTE
+        // body's `select ... from ...`, each at its own render site. Issues 1, 2 (both
+        // project 1); order by project_id asc, id, priority asc → 1, 2.
+        ctx.mockNext([{ id: 1, projectId: 1 }, { id: 2, projectId: 1 }])
+        const connection = ctx.conn
+        const openIssues = connection.selectFrom(tIssue)
+            .where(tIssue.id.in([1, 2]))
+            .select({ id: tIssue.id, projectId: tIssue.projectId })
+            .orderBy('id')
+            .customizeQuery({
+                afterSelectKeyword: connection.rawFragment`/* hint */`,
+                beforeColumns:      connection.rawFragment`/* cols */ `,
+                customWindow:       connection.rawFragment`w1 as (partition by project_id)`,
+                beforeOrderByItems: connection.rawFragment`project_id asc`,
+                afterOrderByItems:  connection.rawFragment`priority asc`,
+            })
+            .forUseInQueryAs('open_issues')
+
+        const result = await connection.selectFrom(openIssues)
+            .select({ id: openIssues.id, projectId: openIssues.projectId })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with open_issues as (select /* hint */ /* cols */  id as id, project_id as projectId from issue where id in ($1, $2) window w1 as (partition by project_id) order by project_id asc, id, priority asc) select id as id, projectId as "projectId" from open_issues order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; projectId: number }>>>()
+        expect(result).toEqual([{ id: 1, projectId: 1 }, { id: 2, projectId: 1 }])
+    })
+
 })

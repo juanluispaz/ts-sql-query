@@ -346,4 +346,37 @@ describe(ctx.label, () => {
         `)
     })
 
+    test('from-model/numeric-literal-union-maps-to-enum', async () => {
+        // A NUMERIC-literal union model field maps to `['enum', T]` — the
+        // `[number] extends [T]` FALSE branch of DynamicDefinitionForModel (a widened
+        // `number` does not extend a literal union). The rounded
+        // `{ level: { equals: 2 } }` filter over an
+        // int value source emits the same SQL+params as the direct `priority.equals(2)`.
+        assertType<Exact<DynamicDefinitionForModel<{ level: 1 | 2 | 3 }>, { level: ['enum', 1 | 2 | 3] }>>()
+
+        const fields = { level: tIssue.priority }
+        const filter: DynamicConditionForModel<{ level: 1 | 2 | 3 }> = { level: { equals: 2 } }
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor(fields).withValues(filter))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const dynSql = ctx.lastSql
+        const dynParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.priority.equals(2))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(dynSql)
+        expect(ctx.lastParams).toEqual(dynParams)
+        expect(dynSql).toMatchInlineSnapshot(`"select id as "id" from issue where priority = :0 order by "id""`)
+        expect(dynParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+    })
+
 })

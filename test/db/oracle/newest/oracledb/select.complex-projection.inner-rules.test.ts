@@ -1817,4 +1817,328 @@ describe(ctx.label, () => {
         }>>()
         expect(row).toEqual(expected)
     })
+    test('sole-optional-inner-rule-1-required-in-optional-object-makes-wrapper-optional-present-default', async () => {
+        // `wrapper`'s sole member is a rule-1 inner
+        // object made optional by a `requiredInOptionalObject` leaf (`gate`,
+        // body.asRequiredInOptionalObject()). The container recursively inherits its
+        // sole optional member's optionality, so `wrapper` is typed optional
+        // (`wrapper?`). issue 2: body 'Use new tokens' → gate present → wrapper
+        // present; assignee 2.
+        const expected = { iid: 2, wrapper: { inner: { gate: 'Use new tokens', extra: 2 } } }
+        ctx.mockNext({ iid: 2, 'wrapper.inner.gate': 'Use new tokens', 'wrapper.inner.extra': 2 })
+        const row = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(2))
+            .select({
+                iid:     tIssue.id,
+                wrapper: { inner: { gate: tIssue.body.asRequiredInOptionalObject(), extra: tIssue.assigneeId } },
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "iid", "body" as "wrapper.inner.gate", assignee_id as "wrapper.inner.extra" from issue where id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            iid:      number
+            wrapper?: { inner: { gate: string; extra: number | undefined } | undefined }
+        }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('sole-optional-inner-rule-1-required-in-optional-object-makes-wrapper-optional-present-as-nullable', async () => {
+        // The rule-1 sole-inner arm under projectingOptionalValuesAsNullable(): the
+        // container inherits its sole optional member's nullability, so `wrapper`
+        // becomes `{...} | null`; the reqInOptObj `gate` stays required inside, and the
+        // plain-optional `extra` flips to `number | null`. issue 2: body present.
+        const expected = { iid: 2, wrapper: { inner: { gate: 'Use new tokens', extra: 2 } } }
+        ctx.mockNext({ iid: 2, 'wrapper.inner.gate': 'Use new tokens', 'wrapper.inner.extra': 2 })
+        const row = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(2))
+            .select({
+                iid:     tIssue.id,
+                wrapper: { inner: { gate: tIssue.body.asRequiredInOptionalObject(), extra: tIssue.assigneeId } },
+            })
+            .projectingOptionalValuesAsNullable()
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "iid", "body" as "wrapper.inner.gate", assignee_id as "wrapper.inner.extra" from issue where id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            iid:     number
+            wrapper: { inner: { gate: string; extra: number | null } | null } | null
+        }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('sole-optional-inner-rule-1-collapse-drops-wrapper-default', async () => {
+        // When the sole rule-1 inner collapses (its reqInOptObj `gate` is null), the
+        // default asUndefined projector DROPS the whole `wrapper` container at runtime,
+        // matching the `wrapper?` typing — even though the plain `extra` leaf is
+        // non-null, the reqInOptObj `gate` gates the object. issue 1: body null →
+        // gate null → inner collapses → wrapper dropped (assignee 1 is lost with it).
+        ctx.mockNext({ iid: 1, 'wrapper.inner.gate': null, 'wrapper.inner.extra': 1 })
+        const expected = { iid: 1 }
+        const row = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                iid:     tIssue.id,
+                wrapper: { inner: { gate: tIssue.body.asRequiredInOptionalObject(), extra: tIssue.assigneeId } },
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "iid", "body" as "wrapper.inner.gate", assignee_id as "wrapper.inner.extra" from issue where id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            iid:      number
+            wrapper?: { inner: { gate: string; extra: number | undefined } | undefined }
+        }>>()
+        expect(row).toEqual(expected)
+        // The optional `wrapper` key is ABSENT at runtime (the sole rule-1 inner collapsed).
+        expect('wrapper' in row).toBe(false)
+    })
+
+    test('sole-optional-inner-rule-1-collapse-nulls-wrapper-as-nullable', async () => {
+        // Under projectingOptionalValuesAsNullable(), the collapsed sole rule-1 inner
+        // makes the projector emit `wrapper: null` at runtime, matching the
+        // `{...} | null` typing. issue 1: body null → gate null → wrapper null.
+        ctx.mockNext({ iid: 1, 'wrapper.inner.gate': null, 'wrapper.inner.extra': 1 })
+        const expected = { iid: 1, wrapper: null }
+        const row = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                iid:     tIssue.id,
+                wrapper: { inner: { gate: tIssue.body.asRequiredInOptionalObject(), extra: tIssue.assigneeId } },
+            })
+            .projectingOptionalValuesAsNullable()
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "iid", "body" as "wrapper.inner.gate", assignee_id as "wrapper.inner.extra" from issue where id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            iid:     number
+            wrapper: { inner: { gate: string; extra: number | null } | null } | null
+        }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('multi-level-sole-optional-chain-makes-all-containers-optional-present-default', async () => {
+        // A three-level sole-optional chain `{ a: { b: { c: { body, assigneeId } } } }`
+        // where the innermost `c` is a rule-4 all-optional object. The optionality
+        // propagates UP two levels: `c` optional → `b` (sole member) optional → `a`
+        // (sole member) optional. The outermost `a` is an optional KEY (`a?`); the
+        // inner `b`/`c` are required keys whose value is `| undefined`. issue 2: body
+        // present → the whole chain is present.
+        const expected = { iid: 2, a: { b: { c: { body: 'Use new tokens', assigneeId: 2 } } } }
+        ctx.mockNext({ iid: 2, 'a.b.c.body': 'Use new tokens', 'a.b.c.assigneeId': 2 })
+        const row = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(2))
+            .select({
+                iid: tIssue.id,
+                a: { b: { c: { body: tIssue.body, assigneeId: tIssue.assigneeId } } },
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "iid", "body" as "a.b.c.body", assignee_id as "a.b.c.assigneeId" from issue where id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            iid: number
+            a?: { b: { c: { body: string | undefined; assigneeId: number | undefined } | undefined } | undefined }
+        }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('multi-level-sole-optional-chain-makes-all-containers-optional-present-as-nullable', async () => {
+        // The same three-level chain under projectingOptionalValuesAsNullable(): every
+        // container inherits its sole member's nullability, so `a`/`b`/`c` are each
+        // `{...} | null` and the leaves flip to `| null`. issue 2: body present.
+        const expected = { iid: 2, a: { b: { c: { body: 'Use new tokens', assigneeId: 2 } } } }
+        ctx.mockNext({ iid: 2, 'a.b.c.body': 'Use new tokens', 'a.b.c.assigneeId': 2 })
+        const row = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(2))
+            .select({
+                iid: tIssue.id,
+                a: { b: { c: { body: tIssue.body, assigneeId: tIssue.assigneeId } } },
+            })
+            .projectingOptionalValuesAsNullable()
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "iid", "body" as "a.b.c.body", assignee_id as "a.b.c.assigneeId" from issue where id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            iid: number
+            a: { b: { c: { body: string | null; assigneeId: number | null } | null } | null } | null
+        }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('multi-level-sole-optional-chain-collapse-drops-outer-default', async () => {
+        // When the innermost `c` collapses (every leaf null), the collapse propagates
+        // up TWO levels and the default projector drops the whole outer `a` at runtime.
+        // issue 3: body null, assignee null → c collapses → b drops → a dropped.
+        ctx.mockNext({ iid: 3, 'a.b.c.body': null, 'a.b.c.assigneeId': null })
+        const expected = { iid: 3 }
+        const row = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(3))
+            .select({
+                iid: tIssue.id,
+                a: { b: { c: { body: tIssue.body, assigneeId: tIssue.assigneeId } } },
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "iid", "body" as "a.b.c.body", assignee_id as "a.b.c.assigneeId" from issue where id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            iid: number
+            a?: { b: { c: { body: string | undefined; assigneeId: number | undefined } | undefined } | undefined }
+        }>>()
+        expect(row).toEqual(expected)
+        // The whole outer `a` key is ABSENT at runtime (the collapse propagated up two levels).
+        expect('a' in row).toBe(false)
+    })
+
+    test('multi-level-sole-optional-chain-collapse-nulls-outer-as-nullable', async () => {
+        // Under projectingOptionalValuesAsNullable(), the innermost collapse surfaces
+        // `a: null` at runtime (null propagates up two levels), matching the
+        // `{...} | null` typing. issue 3: body null, assignee null → a null.
+        ctx.mockNext({ iid: 3, 'a.b.c.body': null, 'a.b.c.assigneeId': null })
+        const expected = { iid: 3, a: null }
+        const row = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(3))
+            .select({
+                iid: tIssue.id,
+                a: { b: { c: { body: tIssue.body, assigneeId: tIssue.assigneeId } } },
+            })
+            .projectingOptionalValuesAsNullable()
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "iid", "body" as "a.b.c.body", assignee_id as "a.b.c.assigneeId" from issue where id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            iid: number
+            a: { b: { c: { body: string | null; assigneeId: number | null } | null } | null } | null
+        }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('mixed-container-required-object-inner-plus-optional-inner-keeps-container-required-default', async () => {
+        // A container holding TWO inner objects: a REQUIRED-object inner (`req`, two
+        // required columns) and a rule-1 OPTIONAL inner (`opt`, made optional by a
+        // requiredInOptionalObject leaf). With a required inner present, the container
+        // stays REQUIRED (the required inner wins over the optional one); only `opt`
+        // is demoted to `opt?`. issue 2: title/number present → req present; body
+        // present → opt present.
+        const expected = { iid: 2, container: { req: { title: 'Redesign navbar', num: 2 }, opt: { gate: 'Use new tokens', extra: 2 } } }
+        ctx.mockNext({ iid: 2, 'container.req.title': 'Redesign navbar', 'container.req.num': 2, 'container.opt.gate': 'Use new tokens', 'container.opt.extra': 2 })
+        const row = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(2))
+            .select({
+                iid: tIssue.id,
+                container: {
+                    req: { title: tIssue.title, num: tIssue.number },
+                    opt: { gate: tIssue.body.asRequiredInOptionalObject(), extra: tIssue.assigneeId },
+                },
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "iid", title as "container.req.title", "number" as "container.req.num", "body" as "container.opt.gate", assignee_id as "container.opt.extra" from issue where id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            iid:       number
+            container: { req: { title: string; num: number }; opt?: { gate: string; extra: number | undefined } }
+        }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('multi-level-sole-optional-chain-depth-4-present-default', async () => {
+        // A FOUR-level sole-optional chain `{ w: { x: { y: { z: { body, assigneeId } } } } }`
+        // whose innermost `z` is a rule-4 all-optional object, which drives the whole
+        // tower optional: the outermost `w` is an optional KEY, the inner `x`/`y`/`z`
+        // are required keys with `| undefined` value. issue 2: body present → the whole
+        // chain is present.
+        const expected = { iid: 2, w: { x: { y: { z: { body: 'Use new tokens', assigneeId: 2 } } } } }
+        ctx.mockNext({ iid: 2, 'w.x.y.z.body': 'Use new tokens', 'w.x.y.z.assigneeId': 2 })
+        const row = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(2))
+            .select({
+                iid: tIssue.id,
+                w: { x: { y: { z: { body: tIssue.body, assigneeId: tIssue.assigneeId } } } },
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "iid", "body" as "w.x.y.z.body", assignee_id as "w.x.y.z.assigneeId" from issue where id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            iid: number
+            w?: { x: { y: { z: { body: string | undefined; assigneeId: number | undefined } | undefined } | undefined } | undefined }
+        }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('multi-level-sole-optional-chain-depth-4-collapse-drops-outer-default', async () => {
+        // The depth-4 collapse: when the innermost `z` collapses (every leaf null), the
+        // collapse propagates up THREE levels and the default projector drops the whole
+        // outer `w` at runtime. issue 3: body null, assignee null → z → y → x → w dropped.
+        ctx.mockNext({ iid: 3, 'w.x.y.z.body': null, 'w.x.y.z.assigneeId': null })
+        const expected = { iid: 3 }
+        const row = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(3))
+            .select({
+                iid: tIssue.id,
+                w: { x: { y: { z: { body: tIssue.body, assigneeId: tIssue.assigneeId } } } },
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "iid", "body" as "w.x.y.z.body", assignee_id as "w.x.y.z.assigneeId" from issue where id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            iid: number
+            w?: { x: { y: { z: { body: string | undefined; assigneeId: number | undefined } | undefined } | undefined } | undefined }
+        }>>()
+        expect(row).toEqual(expected)
+        // The whole outer `w` key is ABSENT at runtime (the collapse propagated up three levels).
+        expect('w' in row).toBe(false)
+    })
+
 })

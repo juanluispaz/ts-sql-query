@@ -3511,4 +3511,304 @@ describe(ctx.label, () => {
         assertType<Exact<typeof notNull, Array<{ id: number }>>>()
         expect(notNull).toEqual(expectedNotNull)
     })
+    test('boolean-not-in-array-in-n-not-in-n', async () => {
+        // The boolean in-family (`notIn` / `inN` / `notInN`).
+        // billable (plain boolean): worklog 1 -> true, 2 -> false, 3 -> null.
+        // `.notIn([false])` keeps the true rows (the false and null rows drop);
+        // `.inN(false)` keeps the false rows; `.notInN(true)` keeps the non-true,
+        // non-null rows.
+        const expectedNotIn = [{ id: 1 }]
+        ctx.mockNext(expectedNotIn)
+        const notInRows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.billable.notIn([false]))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable not in (?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            false,
+          ]
+        `)
+        assertType<Exact<typeof notInRows, Array<{ id: number }>>>()
+        expect(notInRows).toEqual(expectedNotIn)
+
+        const expectedInN = [{ id: 2 }]
+        ctx.mockNext(expectedInN)
+        const inNRows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.billable.inN(false))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable in (?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            false,
+          ]
+        `)
+        expect(inNRows).toEqual(expectedInN)
+
+        const expectedNotInN = [{ id: 2 }]
+        ctx.mockNext(expectedNotInN)
+        const notInNRows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.billable.notInN(true))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable not in (?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            true,
+          ]
+        `)
+        expect(notInNRows).toEqual(expectedNotInN)
+    })
+
+    test('localDate-in-subquery-not-in-subquery', async () => {
+        // The subquery overload of IN / NOT IN over a plain localDate column
+        // (work_date). The inner query selects worklog 2's work_date; the outer keeps
+        // worklogs whose work_date is in / not in that set. work_dates are distinct
+        // (1 -> 2024-03-04, 2 -> 2024-03-05, 3 -> 2024-03-06).
+        const workDateOfWorklog2 = ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(2))
+            .selectOneColumn(tIssueWorklog.workDate)
+
+        const expectedIn = [{ id: 2 }]
+        ctx.mockNext(expectedIn)
+        const inRows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.workDate.in(workDateOfWorklog2))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date in (select work_date as result from issue_worklog where id = ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof inRows, Array<{ id: number }>>>()
+        expect(inRows).toEqual(expectedIn)
+
+        const expectedNotIn = [{ id: 1 }, { id: 3 }]
+        ctx.mockNext(expectedNotIn)
+        const notInRows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.workDate.notIn(workDateOfWorklog2))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date not in (select work_date as result from issue_worklog where id = ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        expect(notInRows).toEqual(expectedNotIn)
+    })
+
+    test('localTime-in-subquery-not-in-subquery', async () => {
+        // The subquery overload of IN / NOT IN over a plain localTime column
+        // (started_at). The inner query selects worklog 2's started_at; the outer
+        // keeps worklogs whose started_at is in / not in that set. started_at is
+        // distinct and non-null (1 -> 09:15, 2 -> 14:00, 3 -> 10:30).
+        const startedAtOfWorklog2 = ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(2))
+            .selectOneColumn(tIssueWorklog.startedAt)
+
+        const expectedIn = [{ id: 2 }]
+        ctx.mockNext(expectedIn)
+        const inRows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.startedAt.in(startedAtOfWorklog2))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at in (select started_at as result from issue_worklog where id = ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof inRows, Array<{ id: number }>>>()
+        expect(inRows).toEqual(expectedIn)
+
+        const expectedNotIn = [{ id: 1 }, { id: 3 }]
+        ctx.mockNext(expectedNotIn)
+        const notInRows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.startedAt.notIn(startedAtOfWorklog2))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at not in (select started_at as result from issue_worklog where id = ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        expect(notInRows).toEqual(expectedNotIn)
+    })
+
+    test('localDateTime-in-subquery-not-in-subquery', async () => {
+        // The subquery overload of IN / NOT IN over a plain localDateTime column
+        // (created_at). The inner query selects org 1's created_at; the outer keeps
+        // orgs whose created_at is in / not in that set. created_at is distinct
+        // (org 1 -> 2023-06-15 08:00, org 2 -> 2023-09-20 14:30).
+        const createdAtOfOrg1 = ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.id.equals(1))
+            .selectOneColumn(tOrganization.createdAt)
+
+        const expectedIn = [{ id: 1 }]
+        ctx.mockNext(expectedIn)
+        const inRows = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.createdAt.in(createdAtOfOrg1))
+            .select({ id: tOrganization.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from \`organization\` where created_at in (select created_at as result from \`organization\` where id = ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof inRows, Array<{ id: number }>>>()
+        expect(inRows).toEqual(expectedIn)
+
+        const expectedNotIn = [{ id: 2 }]
+        ctx.mockNext(expectedNotIn)
+        const notInRows = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.createdAt.notIn(createdAtOfOrg1))
+            .select({ id: tOrganization.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from \`organization\` where created_at not in (select created_at as result from \`organization\` where id = ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        expect(notInRows).toEqual(expectedNotIn)
+    })
+
+    test('customLocalDate-in-subquery-not-in-subquery', async () => {
+        // The subquery overload of IN / NOT IN over a customLocalDate ('ReleaseDay')
+        // column (released_on). The inner query selects release 1's released_on; the
+        // outer keeps releases whose released_on is in / not in that set. released_on
+        // is distinct (1 -> 2024-01-15, 2 -> 2024-02-20, 3 -> 2024-03-01).
+        const releasedOnOfRelease1 = ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .selectOneColumn(tProjectRelease.releasedOn)
+
+        const expectedIn = [{ id: 1 }]
+        ctx.mockNext(expectedIn)
+        const inRows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.releasedOn.in(releasedOnOfRelease1))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where released_on in (select released_on as result from project_release where id = ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof inRows, Array<{ id: number }>>>()
+        expect(inRows).toEqual(expectedIn)
+
+        const expectedNotIn = [{ id: 2 }, { id: 3 }]
+        ctx.mockNext(expectedNotIn)
+        const notInRows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.releasedOn.notIn(releasedOnOfRelease1))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where released_on not in (select released_on as result from project_release where id = ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        expect(notInRows).toEqual(expectedNotIn)
+    })
+
+    test('customLocalTime-in-subquery-not-in-subquery', async () => {
+        // The subquery overload of IN / NOT IN over a customLocalTime ('CutoffClock')
+        // column (cutoff_time). The inner query selects release 1's cutoff_time; the
+        // outer keeps releases whose cutoff_time is in / not in that set. cutoff_time
+        // is distinct (1 -> 17:00, 2 -> 18:30, 3 -> 16:00).
+        const cutoffOfRelease1 = ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .selectOneColumn(tProjectRelease.cutoffTime)
+
+        const expectedIn = [{ id: 1 }]
+        ctx.mockNext(expectedIn)
+        const inRows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.cutoffTime.in(cutoffOfRelease1))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where cutoff_time in (select cutoff_time as result from project_release where id = ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof inRows, Array<{ id: number }>>>()
+        expect(inRows).toEqual(expectedIn)
+
+        const expectedNotIn = [{ id: 2 }, { id: 3 }]
+        ctx.mockNext(expectedNotIn)
+        const notInRows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.cutoffTime.notIn(cutoffOfRelease1))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where cutoff_time not in (select cutoff_time as result from project_release where id = ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        expect(notInRows).toEqual(expectedNotIn)
+    })
+
+    test('customLocalDateTime-in-subquery-not-in-subquery', async () => {
+        // The subquery overload of IN / NOT IN over a customLocalDateTime
+        // ('PublishStamp') column (published_at). The inner query selects release 1's
+        // published_at; the outer keeps releases whose published_at is in / not in
+        // that set. published_at is distinct and non-null (1 -> 2024-01-16 09:00,
+        // 2 -> 2024-02-21 10:00, 3 -> 2024-03-02 11:00).
+        const publishedOfRelease1 = ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .selectOneColumn(tProjectRelease.publishedAt)
+
+        const expectedIn = [{ id: 1 }]
+        ctx.mockNext(expectedIn)
+        const inRows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.publishedAt.in(publishedOfRelease1))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where published_at in (select published_at as result from project_release where id = ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof inRows, Array<{ id: number }>>>()
+        expect(inRows).toEqual(expectedIn)
+
+        const expectedNotIn = [{ id: 2 }, { id: 3 }]
+        ctx.mockNext(expectedNotIn)
+        const notInRows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.publishedAt.notIn(publishedOfRelease1))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where published_at not in (select published_at as result from project_release where id = ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        expect(notInRows).toEqual(expectedNotIn)
+    })
+
 })

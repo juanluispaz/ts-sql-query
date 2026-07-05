@@ -801,4 +801,40 @@ describe(ctx.label, () => {
             expect(affected).toBe(1)
         })
     })
+    test('disallow-if-value-error-instance-thrown-as-is', () => {
+        // The Error-INSTANCE overload of the INSERT disallow guards. Passing an `Error` object
+        // instead of a message throws THAT SAME instance as-is (identity): it is NOT
+        // wrapped in a DISALLOWED_BY_QUERY_RULE TsSqlError; the guard only mutates the
+        // tripped column onto it as `disallowedProperty`. Verified for the non-`When`
+        // guard and its `*When` sibling (which dispatches to the non-`When` form on
+        // `true`). `status` is staged with a value, so `disallowIfValue` fires.
+        const sentinel = new Error('status must be staged by the workflow')
+        let caught: unknown
+        try {
+            ctx.conn.insertInto(tIssue)
+                .set({ projectId: 1, number: 221, title: 'X', status: 'closed', priority: 1 })
+                .disallowIfValue(sentinel, 'status')
+        } catch (e) {
+            caught = e
+        }
+        // The exact instance is rethrown (identity), not a wrapped TsSqlError, and it
+        // carries the tripped column as `disallowedProperty`.
+        expect(caught).toBe(sentinel)
+        expect((caught as { disallowedProperty?: unknown }).disallowedProperty).toBe('status')
+
+        // The `*When` sibling dispatches to the non-`When` form on `true`, so it
+        // rethrows the same passed instance with `disallowedProperty` set.
+        const sentinelWhen = new Error('status must be staged by the workflow')
+        let caughtWhen: unknown
+        try {
+            ctx.conn.insertInto(tIssue)
+                .set({ projectId: 1, number: 222, title: 'X', status: 'closed', priority: 1 })
+                .disallowIfValueWhen(true, sentinelWhen, 'status')
+        } catch (e) {
+            caughtWhen = e
+        }
+        expect(caughtWhen).toBe(sentinelWhen)
+        expect((caughtWhen as { disallowedProperty?: unknown }).disallowedProperty).toBe('status')
+    })
+
 })

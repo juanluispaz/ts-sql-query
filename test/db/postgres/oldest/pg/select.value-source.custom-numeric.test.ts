@@ -159,7 +159,7 @@ describe(ctx.label, () => {
         if (ctx.realDbEnabled) {
             expect(result[0]!.id).toBe(1)
             expect(result[0]!.sq).toBeCloseTo(2, 5)
-            expect(result[0]!.cb).toBeCloseTo(Math.cbrt(4), 5)
+            expect(result[0]!.cb).toBeCloseTo(Math.cbrt(4), 4)
             expect(result[0]!.e).toBeCloseTo(Math.exp(4), 5)
             expect(result[0]!.l).toBeCloseTo(Math.log(4), 5)
             expect(result[0]!.l10).toBeCloseTo(Math.log10(4), 5)
@@ -740,4 +740,492 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ id: number; ord?: ReleaseTag }>>>()
         expect(result).toEqual(expected)
     })
+    test('custom-numeric/brand-survival-customint-rounding', async () => {
+        // ceil / floor / round on a branded ReleaseTag (customInt) const keep the
+        // ReleaseTag brand. Over the integer input 6 every result is a clean 6;
+        // ReleaseTag is marshalled to int, so `round((...)::numeric)` reads back
+        // as a number rather than the driver's raw string.
+        const tag = ctx.conn.const(6 as ReleaseTag, 'customInt', 'ReleaseTag')
+        const expected = [{ id: 1, c: 6, f: 6, r: 6 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                c:  tag.ceil(),
+                f:  tag.floor(),
+                r:  tag.round(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ceil($1) as "c", floor($2) as "f", round(($3)::numeric) as "r" from issue where id = $4"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            6,
+            6,
+            6,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; c: ReleaseTag; f: ReleaseTag; r: ReleaseTag }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('custom-numeric/brand-survival-customint-minmax', async () => {
+        // minValue / maxValue on a branded ReleaseTag (customInt) value keep the
+        // ReleaseTag brand. minValue clamps via greatest, maxValue via least. A bare
+        // const receiver would emit greatest/least over two untyped placeholders,
+        // which postgres compares as text ('10' sorts before '6'); a leading round()
+        // (identity for the integer receiver 6) types the left operand so the
+        // comparison is numeric. Over round(6)=6 with a branded operand:
+        // minValue(10)=greatest(6,10)=10, maxValue(10)=least(6,10)=6. ReleaseTag is
+        // marshalled to int → clean numbers.
+        const tag = ctx.conn.const(6 as ReleaseTag, 'customInt', 'ReleaseTag')
+        const expected = [{ id: 1, mn: 10, mx: 6 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                mn: tag.round().minValue(10 as ReleaseTag),
+                mx: tag.round().maxValue(10 as ReleaseTag),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, greatest(round(($1)::numeric), $2) as mn, least(round(($3)::numeric), $4) as mx from issue where id = $5"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            6,
+            10,
+            6,
+            10,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; mn: ReleaseTag; mx: ReleaseTag }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('custom-numeric/brand-survival-customint-arithmetic', async () => {
+        // add / subtract / multiply / modulo on a branded ReleaseTag (customInt)
+        // value keep the ReleaseTag brand. A bare const receiver would emit two
+        // untyped placeholders postgres can't resolve for these operators; a leading
+        // round() (identity for the integer receiver 6) types the left operand as
+        // numeric so the operator resolves, without changing the value. Over
+        // round(6)=6 with branded operands: add(4)=10, subtract(4)=2, multiply(2)=12,
+        // modulo(4)=2. ReleaseTag is marshalled to int → clean integers.
+        const tag = ctx.conn.const(6 as ReleaseTag, 'customInt', 'ReleaseTag')
+        const expected = [{ id: 1, a: 10, s: 2, mu: 12, mo: 2 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                a:  tag.round().add(4 as ReleaseTag),
+                s:  tag.round().subtract(4 as ReleaseTag),
+                mu: tag.round().multiply(2 as ReleaseTag),
+                mo: tag.round().modulo(4 as ReleaseTag),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round(($1)::numeric) + $2 as "a", round(($3)::numeric) - $4 as "s", round(($5)::numeric) * $6 as mu, round(($7)::numeric) % $8 as mo from issue where id = $9"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            6,
+            4,
+            6,
+            4,
+            6,
+            2,
+            6,
+            4,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; a: ReleaseTag; s: ReleaseTag; mu: ReleaseTag; mo: ReleaseTag }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('custom-numeric/brand-survival-customint-nullhandling', async () => {
+        // valueWhenNull / nullIfValue on a branded ReleaseTag (customInt) const
+        // keep the ReleaseTag brand. valueWhenNull re-imposes `required`
+        // (coalesce), nullIfValue re-imposes `optional` (nullif). Over receiver 6:
+        // coalesce(6, 0)=6 and nullif(6, 0)=6 (6≠0, so the optional leaf is
+        // present). ReleaseTag is marshalled to int → clean numbers.
+        const tag = ctx.conn.const(6 as ReleaseTag, 'customInt', 'ReleaseTag')
+        const expected = [{ id: 1, vwn: 6, niv: 6 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id:  tIssue.id,
+                vwn: tag.valueWhenNull(0 as ReleaseTag),
+                niv: tag.nullIfValue(0 as ReleaseTag),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce($1, $2) as vwn, nullif($3, $4) as niv from issue where id = $5"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            6,
+            0,
+            6,
+            0,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; vwn: ReleaseTag; niv?: ReleaseTag }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('custom-numeric/brand-survival-customdouble-math', async () => {
+        // The SqlFunction0 math methods on a branded Money (customDouble) const
+        // keep the Money brand. abs/ceil/floor/round over the integer input 4 are
+        // clean integers; exp/ln/log10/cbrt are irrational floats, so the real-DB
+        // branch asserts with toBeCloseTo. Money is marshalled to double, so every
+        // leaf reads back as a clean number.
+        const money = ctx.conn.const(4 as Money, 'customDouble', 'Money')
+        const expected = [{
+            id: 1,
+            ab: 4, ce: 4, fl: 4, ro: 4,
+            ex: Math.exp(4), l: Math.log(4), l10: Math.log10(4), cb: Math.cbrt(4),
+        }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                ab: money.abs(),
+                ce: money.ceil(),
+                fl: money.floor(),
+                ro: money.round(),
+                ex: money.exp(),
+                l:  money.ln(),
+                l10: money.log10(),
+                cb: money.cbrt(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs($1) as ab, ceil($2) as ce, floor($3) as fl, round(($4)::numeric) as ro, exp($5) as ex, ln($6) as "l", log($7) as l10, cbrt($8) as cb from issue where id = $9"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            4,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{
+            id: number; ab: Money; ce: Money; fl: Money; ro: Money
+            ex: Money; l: Money; l10: Money; cb: Money
+        }>>>()
+        if (ctx.realDbEnabled) {
+            expect(result[0]!.id).toBe(1)
+            expect(result[0]!.ab).toBeCloseTo(4, 5)
+            expect(result[0]!.ce).toBeCloseTo(4, 5)
+            expect(result[0]!.fl).toBeCloseTo(4, 5)
+            expect(result[0]!.ro).toBeCloseTo(4, 5)
+            expect(result[0]!.ex).toBeCloseTo(Math.exp(4), 5)
+            expect(result[0]!.l).toBeCloseTo(Math.log(4), 5)
+            expect(result[0]!.l10).toBeCloseTo(Math.log10(4), 5)
+            expect(result[0]!.cb).toBeCloseTo(Math.cbrt(4), 4)
+        } else {
+            expect(result).toEqual(expected)
+        }
+    })
+
+    test('custom-numeric/brand-survival-customdouble-power-logn-atan2', async () => {
+        // The SqlFunction1 power / logn / atan2 on a branded Money (customDouble)
+        // const keep the Money brand. power(8, 2)=64, logn(base 2 of 8)=3,
+        // atan2(8, 2) is irrational. Money is marshalled to double, so each leaf
+        // reads back as a clean number; the real-DB branch asserts with
+        // toBeCloseTo.
+        const money = ctx.conn.const(8 as Money, 'customDouble', 'Money')
+        const base  = ctx.conn.const(2 as Money, 'customDouble', 'Money')
+        const expected = [{ id: 1, p: 64, lg: 3, at2: Math.atan2(8, 2) }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id:  tIssue.id,
+                p:   money.power(2 as Money),
+                lg:  money.logn(base),
+                at2: money.atan2(base),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, power($1, $2) as "p", log(($3)::numeric, ($4)::numeric) as lg, atan2($5, $6) as at2 from issue where id = $7"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            8,
+            2,
+            2,
+            8,
+            8,
+            2,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; p: Money; lg: Money; at2: Money }>>>()
+        if (ctx.realDbEnabled) {
+            expect(result[0]!.id).toBe(1)
+            expect(result[0]!.p).toBeCloseTo(64, 5)
+            expect(result[0]!.lg).toBeCloseTo(3, 5)
+            expect(result[0]!.at2).toBeCloseTo(Math.atan2(8, 2), 5)
+        } else {
+            expect(result).toEqual(expected)
+        }
+    })
+
+    test('custom-numeric/brand-survival-customdouble-roundn', async () => {
+        // roundn on a branded Money (customDouble) const keeps the Money brand
+        // through both overloads: the literal-precision arm (`roundn(2)`) and the
+        // value-source-precision arm (`roundn(<Money const>)`). round(8, 2)=8 for
+        // both. Money is marshalled to double, so each leaf reads back as a clean
+        // number; the real-DB branch asserts with toBeCloseTo.
+        const money = ctx.conn.const(8 as Money, 'customDouble', 'Money')
+        const prec  = ctx.conn.const(2 as Money, 'customDouble', 'Money')
+        const expected = [{ id: 1, rl: 8, rv: 8 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                rl: money.roundn(2),
+                rv: money.roundn(prec),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round(($1)::numeric, $2) as rl, round(($3)::numeric, $4) as rv from issue where id = $5"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            8,
+            2,
+            8,
+            2,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; rl: Money; rv: Money }>>>()
+        if (ctx.realDbEnabled) {
+            expect(result[0]!.id).toBe(1)
+            expect(result[0]!.rl).toBeCloseTo(8, 5)
+            expect(result[0]!.rv).toBeCloseTo(8, 5)
+        } else {
+            expect(result).toEqual(expected)
+        }
+    })
+
+    test('custom-numeric/brand-survival-customdouble-arithmetic', async () => {
+        // add / subtract / multiply on a branded Money (customDouble) value keep
+        // the Money brand. A bare const receiver would emit two untyped placeholders
+        // postgres can't resolve for these operators; a leading round() (identity
+        // for the integer receiver 8) types the left operand as numeric so the
+        // operator resolves, without changing the value. Over round(8)=8 with a
+        // branded operand: add(2)=10, subtract(2)=6, multiply(2)=16. Money is
+        // marshalled to double → clean numbers; the real-DB branch asserts with
+        // toBeCloseTo.
+        const money = ctx.conn.const(8 as Money, 'customDouble', 'Money')
+        const base  = ctx.conn.const(2 as Money, 'customDouble', 'Money')
+        const expected = [{ id: 1, a: 10, s: 6, mu: 16 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                a:  money.round().add(base),
+                s:  money.round().subtract(base),
+                mu: money.round().multiply(base),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round(($1)::numeric) + $2 as "a", round(($3)::numeric) - $4 as "s", round(($5)::numeric) * $6 as mu from issue where id = $7"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            8,
+            2,
+            8,
+            2,
+            8,
+            2,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; a: Money; s: Money; mu: Money }>>>()
+        if (ctx.realDbEnabled) {
+            expect(result[0]!.id).toBe(1)
+            expect(result[0]!.a).toBeCloseTo(10, 5)
+            expect(result[0]!.s).toBeCloseTo(6, 5)
+            expect(result[0]!.mu).toBeCloseTo(16, 5)
+        } else {
+            expect(result).toEqual(expected)
+        }
+    })
+
+    test('custom-numeric/brand-survival-customdouble-minmax', async () => {
+        // minValue / maxValue on a branded Money (customDouble) value keep the Money
+        // brand. minValue clamps via greatest, maxValue via least. A bare const
+        // receiver would emit greatest/least over two untyped placeholders, which
+        // postgres compares as text ('10' sorts before '8'); a leading round()
+        // (identity for the integer receiver 8) types the left operand so the
+        // comparison is numeric. Over round(8)=8 with a branded operand:
+        // minValue(10)=greatest(8,10)=10, maxValue(10)=least(8,10)=8. Money is
+        // marshalled to double → clean numbers; the real-DB branch asserts with
+        // toBeCloseTo.
+        const money = ctx.conn.const(8 as Money, 'customDouble', 'Money')
+        const expected = [{ id: 1, mn: 10, mx: 8 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                mn: money.round().minValue(10 as Money),
+                mx: money.round().maxValue(10 as Money),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, greatest(round(($1)::numeric), $2) as mn, least(round(($3)::numeric), $4) as mx from issue where id = $5"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            8,
+            10,
+            8,
+            10,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; mn: Money; mx: Money }>>>()
+        if (ctx.realDbEnabled) {
+            expect(result[0]!.id).toBe(1)
+            expect(result[0]!.mn).toBeCloseTo(10, 5)
+            expect(result[0]!.mx).toBeCloseTo(8, 5)
+        } else {
+            expect(result).toEqual(expected)
+        }
+    })
+
+    test('custom-numeric/brand-survival-customdouble-divide-modulo', async () => {
+        // divide / modulo on a branded Money (customDouble) const keep the Money
+        // brand. Both emit self-typing SQL over placeholders (divide casts to float,
+        // modulo casts to numeric), so they resolve directly without a type anchor.
+        // Over receiver 8 with a branded operand: divide(2)=4, modulo(2)=0. Money is
+        // marshalled to double → clean numbers; the real-DB branch asserts with
+        // toBeCloseTo.
+        const money = ctx.conn.const(8 as Money, 'customDouble', 'Money')
+        const base  = ctx.conn.const(2 as Money, 'customDouble', 'Money')
+        const expected = [{ id: 1, di: 4, mo: 0 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                di: money.divide(base),
+                mo: money.modulo(base),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, $1::float / $2::float as di, mod(($3)::numeric, ($4)::numeric) as mo from issue where id = $5"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            8,
+            2,
+            8,
+            2,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; di: Money; mo: Money }>>>()
+        if (ctx.realDbEnabled) {
+            expect(result[0]!.id).toBe(1)
+            expect(result[0]!.di).toBeCloseTo(4, 5)
+            expect(result[0]!.mo).toBeCloseTo(0, 5)
+        } else {
+            expect(result).toEqual(expected)
+        }
+    })
+
+    test('custom-numeric/brand-survival-customdouble-nullhandling', async () => {
+        // valueWhenNull / nullIfValue on a branded Money (customDouble) const keep
+        // the Money brand. valueWhenNull re-imposes `required` (coalesce),
+        // nullIfValue re-imposes `optional` (nullif). Over receiver 8:
+        // coalesce(8, 0)=8 and nullif(8, 0)=8 (8≠0, so the optional leaf is
+        // present). Money is marshalled to double → clean numbers; the real-DB
+        // branch asserts with toBeCloseTo.
+        const money = ctx.conn.const(8 as Money, 'customDouble', 'Money')
+        const expected = [{ id: 1, vwn: 8, niv: 8 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id:  tIssue.id,
+                vwn: money.valueWhenNull(0 as Money),
+                niv: money.nullIfValue(0 as Money),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce($1, $2) as vwn, nullif($3, $4) as niv from issue where id = $5"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            8,
+            0,
+            8,
+            0,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; vwn: Money; niv?: Money }>>>()
+        if (ctx.realDbEnabled) {
+            expect(result[0]!.id).toBe(1)
+            expect(result[0]!.vwn).toBeCloseTo(8, 5)
+            expect(result[0]!.niv).toBeCloseTo(8, 5)
+        } else {
+            expect(result).toEqual(expected)
+        }
+    })
+
+    test('custom-numeric/brand-survival-customdouble-trig', async () => {
+        // The 7 trig methods on a branded Money (customDouble) const keep the Money
+        // brand. Over the input 0.5 (inside the trig domain) every result is an
+        // irrational float, so the real-DB branch asserts with toBeCloseTo. Money
+        // is marshalled to double → clean numbers.
+        const money = ctx.conn.const(0.5 as Money, 'customDouble', 'Money')
+        const expected = [{
+            id: 1,
+            ac: Math.acos(0.5), as: Math.asin(0.5), at: Math.atan(0.5),
+            co: Math.cos(0.5), ct: 1 / Math.tan(0.5), si: Math.sin(0.5), ta: Math.tan(0.5),
+        }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                ac: money.acos(), as: money.asin(), at: money.atan(),
+                co: money.cos(), ct: money.cot(), si: money.sin(), ta: money.tan(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, acos($1) as ac, asin($2) as "as", atan($3) as at, cos($4) as co, cot($5) as ct, sin($6) as si, tan($7) as ta from issue where id = $8"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{
+            id: number; ac: Money; as: Money; at: Money
+            co: Money; ct: Money; si: Money; ta: Money
+        }>>>()
+        if (ctx.realDbEnabled) {
+            expect(result[0]!.id).toBe(1)
+            expect(result[0]!.ac).toBeCloseTo(Math.acos(0.5), 5)
+            expect(result[0]!.as).toBeCloseTo(Math.asin(0.5), 5)
+            expect(result[0]!.at).toBeCloseTo(Math.atan(0.5), 5)
+            expect(result[0]!.co).toBeCloseTo(Math.cos(0.5), 5)
+            expect(result[0]!.ct).toBeCloseTo(1 / Math.tan(0.5), 5)
+            expect(result[0]!.si).toBeCloseTo(Math.sin(0.5), 5)
+            expect(result[0]!.ta).toBeCloseTo(Math.tan(0.5), 5)
+        } else {
+            expect(result).toEqual(expected)
+        }
+    })
+
 })

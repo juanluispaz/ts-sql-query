@@ -17,7 +17,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue } from '../../domain/connection.js'
+import { tIssue, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -229,4 +229,53 @@ describe(ctx.label, () => {
         `)
         expect(keptRows).toEqual(kept)
     })
+    test('onlyWhenOrNull-true-on-custom-boolean-carries-read-remap', async () => {
+        // The passthrough arm of `onlyWhenOrNull` / `ignoreWhenAsNull` on a
+        // CUSTOM-BOOLEAN receiver (published, 't'/'f' adapter): `onlyWhenOrNull(true)`
+        // (and its mirror `ignoreWhenAsNull(false)`) passes the value source through
+        // unchanged, so the projection carries the custom-boolean read-remap; the
+        // result type is still widened to optional. project 1 is published.
+        const expected = [{ id: 1, pub: true }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({
+                id:  tProject.id,
+                pub: tProject.published.onlyWhenOrNull(true),
+            })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(case when published = 't' then 1 else 0 end as bit) as pub from project where id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; pub?: boolean }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('onlyWhenOrNull-false-on-custom-boolean-emits-null-literal', async () => {
+        // The NULL-substitution arm on the same custom-boolean receiver:
+        // `onlyWhenOrNull(false)` replaces the read-remap with a typed NULL at build
+        // time, so no `published` column is read and the optional `pub` property is
+        // absent in the optional-as-undefined shape.
+        ctx.mockNext([{ id: 1 }])
+        const result = await ctx.conn.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({
+                id:  tProject.id,
+                pub: tProject.published.onlyWhenOrNull(false),
+            })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, null as pub from project where id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; pub?: boolean }>>>()
+    })
+
 })

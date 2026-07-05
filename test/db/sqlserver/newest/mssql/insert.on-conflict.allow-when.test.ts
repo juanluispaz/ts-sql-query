@@ -76,4 +76,29 @@ describe(ctx.label, () => {
         expect((thrown as Error).message).toContain('on-conflict where gate blocks')
     })
     */
+    // NOT-APPLICABLE: SQL Server has no INSERT…ON CONFLICT (uses MERGE); `onConflictOn` is narrowed away.
+    /*
+    test('gate-on-on-conflict-partial-index-where-condition-fires-on-build', async () => {
+        // `allowWhen(false, ...)` on the ON CONFLICT (cols) WHERE <partial-index
+        // predicate>, set via `onConflictOn(cols).where(cond)` BEFORE `doUpdateSet`.
+        // The walker descends into it (query disallowed) and the build throws on execute.
+        const query = ctx.conn.insertInto(tProject)
+            .values({ organizationId: 1, slug: 'mktg-site', name: 'x' })
+            .onConflictOn(tProject.organizationId, tProject.slug)
+            .where(tProject.archivedAt.isNull().allowWhen(false, 'on-conflict partial-index where gate blocks'))
+            .doUpdateSet({ name: 'Updated' })
+
+        expect(isQueryAllowed(query)).toBe(false)
+
+        let thrown: unknown
+        try {
+            await query.executeInsert()
+        } catch (e) {
+            thrown = e
+        }
+        expect(thrown).toBeInstanceOf(Error)
+        expect((thrown as Error).message).toContain('on-conflict partial-index where gate blocks')
+    })
+    */
+
 })

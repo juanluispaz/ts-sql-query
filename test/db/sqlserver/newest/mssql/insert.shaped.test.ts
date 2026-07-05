@@ -455,4 +455,35 @@ describe(ctx.label, () => {
             expect(trueParams).not.toEqual(falseParams)
         })
     })
+    test('shaped-dynamic-values-single-object', async () => {
+        // The shaped single-object `.dynamicValues({...})` overload: the renamed keys
+        // map to their real columns in the emitted column list.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const inserted = await ctx.conn.insertInto(tProject)
+                .shapedAs({
+                    orgId:       'organizationId',
+                    projectName: 'name',
+                    projectSlug: 'slug',
+                })
+                .dynamicValues({
+                    orgId:       1,
+                    projectName: 'Shaped dyn single',
+                    projectSlug: 'shaped-dyn-single',
+                })
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (@0, @1, @2)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "Shaped dyn single",
+                "shaped-dyn-single",
+              ]
+            `)
+            assertType<Exact<typeof inserted, number>>()
+            expect(inserted).toBe(1)
+        })
+    })
+
 })

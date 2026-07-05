@@ -182,4 +182,31 @@ describe(ctx.label, () => {
 
         expect(result).toEqual(expected)
     })
+    test('executable-select-query-and-params-accessors', async () => {
+        // `.query()` / `.params()` on an ExecutableSelect return the built SQL string
+        // and params array WITHOUT executing; they must match what an execute path
+        // emits for the same builder.
+        const built = ctx.conn.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ id: tProject.id, name: tProject.name })
+            .orderBy('id')
+
+        const sql = built.query()
+        const params = built.params()
+        expect(sql).toMatchInlineSnapshot(`"select id as id, name as name from project where id = @0 order by id"`)
+        expect(params).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+
+        // Executing the same builder emits the identical SQL + params.
+        ctx.mockNext([{ id: 1, name: 'Marketing site' }])
+        const rows = await built.executeSelectMany()
+        expect(ctx.lastSql).toBe(sql)
+        expect(ctx.lastParams).toEqual(params)
+        assertType<Exact<typeof rows, Array<{ id: number; name: string }>>>()
+        expect(rows).toEqual([{ id: 1, name: 'Marketing site' }])
+    })
+
 })

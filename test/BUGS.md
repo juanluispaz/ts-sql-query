@@ -67,7 +67,90 @@ of that. Two minutes of triage and one paragraph is the bar.
 
 ## Open Bugs
 
-_None currently._
+## `subSelectUsing` / `subSelectDistinctUsing` arity-5 overload rejects five distinct correlated tables
+
+**Where**: `src/connections/AbstractConnection.ts:441` (`subSelectUsing`) and
+`:451` (`subSelectDistinctUsing`) — the **arity-5** overload. Its fifth
+parameter is typed `table5: T4 & SameDB<DB>` (a copy-paste from `table4`),
+while the return source union references a **distinct declared** type parameter
+`T5`. Every other position uses its own `Ti` (`table1: T1` … `table4: T4`),
+and the arity-4 overload (`:440`) is correct.
+
+**Reproduction**: `conn.subSelectUsing(tOrganization, tProject, tIssue, tAppUser, tIssueWorklog)`
+— five genuinely-distinct correlated tables — **does not compile**: `T4` is
+fixed to `TAppUser` by `table4`, so `table5: T4` then rejects the fifth
+argument with `TS2345: Argument of type 'TIssueWorklog' is not assignable to
+parameter of type 'TAppUser & SameDB<"postgreSql:DBConnection/">'`. The
+variadic runtime (`subSelectUsing(...tables)`) handles five distinct tables
+fine — only the type rejects them. Both `subSelectUsing` and
+`subSelectDistinctUsing` carry the identical typo. (Secondary effect: because
+`T5` is never inferred from an argument it falls back to its constraint
+`ITableOrView<any> | ForUseInLeftJoin<any>`, widening the correlated-source
+scope in the return type — masked in practice by the primary argument
+rejection.) Fix: `table5: T5 & SameDB<DB>` on both lines.
+
+Confirmed by a coordinator tsgo compile-repro in the reference cell (arity-4
+with four distinct tables compiles; arity-5 with five distinct tables emits
+`TS2345` on both `subSelectUsing` and `subSelectDistinctUsing`).
+
+**Current workaround in the suite**: none — the positive arity-5
+correlated-subquery test cannot be written until the typo is fixed (arities 1–4
+are covered and correct). When the fix lands, add a positive test building a
+five-table correlated subquery (SQL + params + value) in
+`select.subqueries.test.ts` / `select.subquery-shapes.test.ts`, and a
+`types.negative/` lock proving an out-of-scope correlated table is still
+rejected at arity 5.
+
+## `executeSelectPage` count query drops `customizeQuery` hooks on a plain select (functional extension)
+
+**Type**: functional extension — the `beforeQuery` / `afterQuery`
+`customizeQuery` hooks should decorate **every** statement the builder
+emits to the database, so they must ride on the auto-generated count
+query of `executeSelectPage()` as well as on the data query. Today the
+plain (non-`distinct`, non-grouped) select path drops them from the
+count query; the grouped / `distinct` / compound paths already keep
+them. This makes the behaviour consistent across all page shapes (a
+statement-level `beforeQuery` — e.g. a connection-pooler routing comment
+like `/* route=analytics-replica */` — currently rides on the data query
+but is silently lost from the count query on the plain path).
+
+**Where**: `src/queryBuilders/SelectQueryBuilder.ts` `__buildSelectCount`
+(~:846-860) — the branch that builds the count query for a plain select
+that is neither `distinct` nor grouped constructs `selectCountData`
+without `__customization`. Contrast the distinct/grouped branch
+(~:819-843) and the compound branch (~:1524-1546), both of which thread
+`__customization` (via `{...this.__asSelectData()}`) so the count query
+wraps the customized query in a CTE and keeps the hooks.
+
+**Reproduction**: (coordinator mock runtime-probe)
+```
+connection.selectFrom(tProject)
+    .select({ id: tProject.id, name: tProject.name })
+    .customizeQuery({
+        beforeQuery: connection.rawFragment`/* before */ `,
+        afterQuery:  connection.rawFragment` /* after */`,
+    })
+    .limit(10).offset(0)
+    .executeSelectPage()
+```
+- Data query (`ctx.history[0].sql`): `/* before */  select id as id, name as name from project limit $1 offset $2  /* after */` — hooks present.
+- Count query (`ctx.history[1].sql`): `select count(*) from project` — hooks **dropped**.
+- A **grouped** control keeps them: `with result_for_count as (/* before */  select … group by … /* after */) select count(*) from result_for_count`.
+
+Note: the plain count query rewrites to `select count(*) from <table>`
+(replacing the SELECT list), so there is no user SELECT to carry the
+hooks inline — the fix should render the count query the same way the
+grouped/compound path does (wrap the customized query in a
+`result_for_count` CTE, or otherwise emit `beforeQuery` before and
+`afterQuery` after the count statement) so the statement-level hooks
+survive.
+
+**Current workaround in the suite**: none — no test pins the plain-select
+× `customizeQuery` × `executeSelectPage` count-query behaviour today.
+When the extension lands, add a test asserting **both** `ctx.history[0]`
+(data) and `ctx.history[1]` (count) SQL carry the hooks on a plain
+select, as a sibling of the grouped/compound coverage in
+`customize-query.compound.test.ts`; propagate across all 17 cells.
 
 ## Common bug shapes (for the fixing agent)
 

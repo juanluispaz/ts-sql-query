@@ -11,6 +11,7 @@
 // below.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
+import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { tIssue } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
@@ -43,6 +44,7 @@ describe(ctx.label, () => {
             2,
           ]
         `)
+        assertType<Exact<typeof rows, Array<{ id: number; clamped: number }>>>()
         expect(rows).toEqual(expected)
     })
 
@@ -69,6 +71,7 @@ describe(ctx.label, () => {
             2,
           ]
         `)
+        assertType<Exact<typeof rows, Array<{ id: number; clamped: number }>>>()
         expect(rows).toEqual(expected)
     })
 
@@ -91,6 +94,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, greatest(priority, number) as "n" from issue order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ id: number; n: number }>>>()
         expect(rows).toEqual(expected)
     })
 
@@ -118,6 +122,7 @@ describe(ctx.label, () => {
             1,
           ]
         `)
+        assertType<Exact<typeof rows, Array<{ id: number; score: number }>>>()
         expect(rows).toEqual(expected)
     })
 })

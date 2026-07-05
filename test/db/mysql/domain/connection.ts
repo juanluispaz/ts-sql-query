@@ -714,3 +714,21 @@ export const tLedgerEntry = new class TLedgerEntry extends Table<DBConnection, '
     tag     = this.optionalVirtualColumnFromFragment('string', (fragment) => fragment.sql`upper('led')`, bracketAdapter)
     constructor() { super('ledger_entry') }
 }()
+
+// A dedicated table for the OPTIONAL-column NULL branch of the Nullable family on
+// the bare-base enum/custom/customComparable leaves (§B-1). The required siblings
+// live on tIssueWorklog.activity / tProjectRelease.channel / tProjectRelease.version;
+// here `stage` (enum), `channel` (custom, reusing ReleaseChannel) and `minVersion`
+// (customComparable, reusing the Semver typeName) are nullable, so a draft that has
+// not decided them yet leaves them NULL — letting valueWhenNull / nullIfValue /
+// isNull observe the real NULL branch. A caller-provided int PK (no identity) keeps
+// the per-dialect reset trivial.
+export type ReleaseStage = 'draft' | 'candidate' | 'final'
+export const tReleaseDraft = new class TReleaseDraft extends Table<DBConnection, 'TReleaseDraft'> {
+    id         = this.primaryKey('id', 'int')
+    title      = this.column('title', 'string')
+    stage      = this.optionalColumn<ReleaseStage, 'ReleaseStage'>('stage', 'enum', 'ReleaseStage')
+    channel    = this.optionalColumn<ReleaseChannel, 'ReleaseChannel'>('channel', 'custom', 'ReleaseChannel')
+    minVersion = this.optionalColumn<string, 'Semver'>('min_version', 'customComparable', 'Semver')
+    constructor() { super('release_draft') }
+}()

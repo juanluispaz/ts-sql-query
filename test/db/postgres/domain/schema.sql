@@ -18,6 +18,7 @@ DROP TABLE IF EXISTS project CASCADE;
 DROP TABLE IF EXISTS app_user CASCADE;
 DROP TABLE IF EXISTS organization CASCADE;
 
+DROP TABLE IF EXISTS release_draft;
 CREATE TABLE organization (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
@@ -262,3 +263,13 @@ SELECT r.id AS id,
        p.name AS project_name
 FROM project_release r
 INNER JOIN project p ON p.id = r.project_id;
+
+-- release_draft (§B-1): OPTIONAL enum/custom/customComparable columns so the
+-- Nullable family reaches a real NULL row. Caller-provided int PK (no identity).
+CREATE TABLE release_draft (
+    id INTEGER PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    stage VARCHAR(16),
+    channel VARCHAR(16),
+    min_version VARCHAR(32)
+);

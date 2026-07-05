@@ -17,6 +17,7 @@ DROP TABLE IF EXISTS project;
 DROP TABLE IF EXISTS app_user;
 DROP TABLE IF EXISTS organization;
 
+DROP TABLE IF EXISTS release_draft;
 CREATE TABLE organization (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name VARCHAR(255) NOT NULL,
@@ -239,3 +240,13 @@ INNER JOIN project p ON p.id = r.project_id;
 --       SELECT COUNT(*) FROM issue WHERE project_id = p_id AND status = 'open'
 --   CREATE FUNCTION project_name(p_id INTEGER) RETURNS TEXT
 --       SELECT name FROM project WHERE id = p_id
+
+-- release_draft (§B-1): OPTIONAL enum/custom/customComparable columns so the
+-- Nullable family reaches a real NULL row. Caller-provided int PK (no identity).
+CREATE TABLE release_draft (
+    id INTEGER PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    stage VARCHAR(16),
+    channel VARCHAR(16),
+    min_version VARCHAR(32)
+);

@@ -272,4 +272,40 @@ describe(ctx.label, () => {
         })
     })
     */
+
+    // TODO[LIMITATION]: see LIMITATIONS.md — RETURNING is not accepted on a multi-table DELETE (DELETE ... USING) as of MariaDB 12.3.2
+    /*
+    test('delete-using-returning-nested-using-joined-object', async () => {
+        // DELETE … USING … RETURNING folding the USING-joined table's columns into a
+        // NESTED returning sub-object (`proj.slug` / `proj.name`) rather than the flat
+        // shape the sibling auxiliary-column test uses. Both are required project
+        // columns, so `proj` is a required nested object. Filtered by an impossible
+        // issue id so no seed row is removed; executeDeleteNoneOrOne returns null on
+        // the real DB. Where the dialect has no DELETE … USING … RETURNING the test is
+        // commented out for symmetry.
+        const expectedMock = { id: 1, proj: { slug: 'mktg-site', name: 'Marketing site' } }
+        ctx.mockNext({ id: 1, 'proj.slug': 'mktg-site', 'proj.name': 'Marketing site' })
+        await ctx.withRollback(async () => {
+            const row = await ctx.conn.deleteFrom(tIssue)
+                .using(tProject)
+                .where(tIssue.projectId.equals(tProject.id))
+                .and(tIssue.id.equals(99999))
+                .returning({
+                    id:   tIssue.id,
+                    proj: { slug: tProject.slug, name: tProject.name },
+                })
+                .executeDeleteNoneOrOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using project where issue.project_id = project.id and issue.id = $1 returning issue.id as id, project.slug as "proj.slug", project.name as "proj.name""`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                99999,
+              ]
+            `)
+            assertType<Exact<typeof row, { id: number; proj: { slug: string; name: string } } | null>>()
+            if (!ctx.realDbEnabled) expect(row).toEqual(expectedMock)
+            else expect(row).toBeNull()
+        })
+    })
+    */
 })

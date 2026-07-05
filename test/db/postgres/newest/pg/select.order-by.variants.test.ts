@@ -16,6 +16,23 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
+    test('order-by-asc', async () => {
+        // The `'asc'` mode — the 13th and last OrderByMode, reached elsewhere only
+        // implicitly (a bare `orderBy(col)` defaults to ascending). Passing 'asc'
+        // through the mode-arg overload emits the explicit `asc` keyword. Ordered
+        // by the non-null id so the result order is deterministic on every dialect.
+        const expected = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .select({ id: tIssue.id })
+            .orderBy('id', 'asc')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by id asc"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
     test('order-by-asc-nulls-first', async () => {
         ctx.mockNext([])
         await ctx.conn.selectFrom(tIssue)

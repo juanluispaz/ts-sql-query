@@ -152,6 +152,76 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
+
+    test('sub-select-using-three-correlated-tables', async () => {
+        // subSelectUsing with THREE correlated outer tables (tOrganization +
+        // tProject + tIssue): the inline subquery counts each issue's worklogs
+        // while re-stating the whole org↔project↔issue link, so it references all
+        // three correlated tables. Fills the arity-3 rung of the overload ladder.
+        const expected = [
+            { issueId: 1, worklogCount: 2 },
+            { issueId: 2, worklogCount: 1 },
+            { issueId: 3, worklogCount: 0 },
+            { issueId: 4, worklogCount: 0 },
+        ]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tOrganization)
+            .innerJoin(tProject).on(tProject.organizationId.equals(tOrganization.id))
+            .innerJoin(tIssue).on(tIssue.projectId.equals(tProject.id))
+            .select({
+                issueId:      tIssue.id,
+                worklogCount: ctx.conn.subSelectUsing(tOrganization, tProject, tIssue).from(tIssueWorklog)
+                    .where(tIssueWorklog.issueId.equals(tIssue.id)
+                        .and(tIssue.projectId.equals(tProject.id))
+                        .and(tProject.organizationId.equals(tOrganization.id)))
+                    .selectCountAll()
+                    .forUseAsInlineQueryValue(),
+            })
+            .orderBy('issueId')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as "issueId", (select count(*) as result from issue_worklog where issue_id = issue.id and issue.project_id = project.id and project.organization_id = organization.id) as "worklogCount" from organization inner join project on project.organization_id = organization.id inner join issue on issue.project_id = project.id order by "issueId""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ issueId: number; worklogCount: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('sub-select-using-four-correlated-tables', async () => {
+        // subSelectUsing with FOUR correlated outer tables (tOrganization +
+        // tProject + tIssue + tAppUser): the outer query inner-joins each issue to
+        // its assignee (dropping the assignee-less issue 3), and the inline
+        // subquery counts the assigned issue's worklogs re-stating all four links.
+        // Fills the arity-4 rung of the overload ladder.
+        const expected = [
+            { issueId: 1, assignee: 'Ada Lovelace', worklogCount: 2 },
+            { issueId: 2, assignee: 'Grace Hopper', worklogCount: 1 },
+            { issueId: 4, assignee: 'Alan Turing',  worklogCount: 0 },
+        ]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tOrganization)
+            .innerJoin(tProject).on(tProject.organizationId.equals(tOrganization.id))
+            .innerJoin(tIssue).on(tIssue.projectId.equals(tProject.id))
+            .innerJoin(tAppUser).on(tAppUser.id.equals(tIssue.assigneeId))
+            .select({
+                issueId:      tIssue.id,
+                assignee:     tAppUser.fullName,
+                worklogCount: ctx.conn.subSelectUsing(tOrganization, tProject, tIssue, tAppUser).from(tIssueWorklog)
+                    .where(tIssueWorklog.issueId.equals(tIssue.id)
+                        .and(tIssue.projectId.equals(tProject.id))
+                        .and(tProject.organizationId.equals(tOrganization.id))
+                        .and(tAppUser.id.equals(tIssue.assigneeId)))
+                    .selectCountAll()
+                    .forUseAsInlineQueryValue(),
+            })
+            .orderBy('issueId')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as "issueId", app_user.full_name as assignee, (select count(*) as result from issue_worklog where issue_id = issue.id and issue.project_id = project.id and project.organization_id = organization.id and app_user.id = issue.assignee_id) as "worklogCount" from organization inner join project on project.organization_id = organization.id inner join issue on issue.project_id = project.id inner join app_user on app_user.id = issue.assignee_id order by "issueId""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ issueId: number; assignee: string; worklogCount: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
     test('sub-select-using-five-correlated-tables', async () => {
         // subSelectUsing with FIVE genuinely-distinct correlated outer tables
         // (tOrganization + tProject + tIssue + tAppUser + tIssueWorklog). The

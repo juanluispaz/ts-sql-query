@@ -353,4 +353,144 @@ describe(ctx.label, () => {
         expect(page.data).toEqual(dataRows)
     })
 
+
+    test('customize-select-plain-page-projection-hooks-render-in-count-wrap', async () => {
+        // The CD-2 tail arms: the count-wrap now fires for ANY customizeQuery hook
+        // (`|| this.__customization`), so a plain (non-distinct, non-grouped)
+        // executeSelectPage carrying the clause-internal hooks (afterSelectKeyword /
+        // beforeColumns / customWindow / beforeOrderByItems / afterOrderByItems)
+        // renders every one of them inside the `result_for_count` CTE's inner query,
+        // exactly where they land on the data query (minus the LIMIT). The sibling
+        // beforeQuery/afterQuery page test above pins the bracketing pair; this pins
+        // the clause-internal five. The three ORDER BY positions use distinct
+        // columns (organizationId / id / name) so SQL Server's "column specified
+        // more than once in the order by list" check (error 169) stays satisfied.
+        const dataRows = [
+            { id: 1, name: 'Marketing site' },
+            { id: 2, name: 'Internal tools' },
+        ]
+        ctx.mockNext(dataRows)
+        ctx.mockNext(3)
+        const connection = ctx.conn
+        const page = await connection.selectFrom(tProject)
+            .where(tProject.id.lessOrEqual(3))
+            .select({ id: tProject.id, name: tProject.name })
+            .orderBy('id')
+            .limit(2)
+            .customizeQuery({
+                afterSelectKeyword: connection.rawFragment`/* hint */`,
+                beforeColumns:      connection.rawFragment`/* cols */ `,
+                customWindow:       connection.rawFragment`w1 as (partition by ${tProject.organizationId})`,
+                beforeOrderByItems: connection.rawFragment`${tProject.organizationId} asc`,
+                afterOrderByItems:  connection.rawFragment`${tProject.name} desc`,
+            })
+            .executeSelectPage()
+
+        expect(ctx.history.length).toBe(2)
+        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select /* hint */ /* cols */  id as id, name as name from project where id <= ? window w1 as (partition by organization_id) order by project.organization_id asc, id, project.name desc limit ?"`)
+        expect(ctx.history[0]!.params).toMatchInlineSnapshot(`
+          [
+            3,
+            2,
+          ]
+        `)
+        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with result_for_count as (select /* hint */ /* cols */  id as id, name as name from project where id <= ? window w1 as (partition by organization_id) order by project.organization_id asc, id, project.name desc) select count(*) from result_for_count"`)
+        expect(ctx.history[1]!.params).toMatchInlineSnapshot(`
+          [
+            3,
+          ]
+        `)
+        assertType<Exact<typeof page, {
+            data:  Array<{ id: number; name: string }>
+            count: number
+        }>>()
+        expect(page.count).toBe(3)
+        expect(page.data).toEqual(dataRows)
+    })
+
+    test('customize-select-distinct-page-hooks-ride-count-wrap', async () => {
+        // A-2b: crossing __distinct with __customization on executeSelectPage. A
+        // DISTINCT select already forces the count-wrap even without customization;
+        // adding customizeQuery makes the beforeQuery/afterQuery hooks ride the
+        // wrapped inner count query too. Distinct ids of projects 1..3 → 3 rows.
+        const dataRows = [{ id: 1 }, { id: 2 }]
+        ctx.mockNext(dataRows)
+        ctx.mockNext(3)
+        const connection = ctx.conn
+        const page = await connection.selectDistinctFrom(tProject)
+            .where(tProject.id.lessOrEqual(3))
+            .select({ id: tProject.id })
+            .orderBy('id')
+            .limit(2)
+            .customizeQuery({
+                beforeQuery: connection.rawFragment`/* head */ `,
+                afterQuery:  connection.rawFragment` /* tail */`,
+            })
+            .executeSelectPage()
+
+        expect(ctx.history.length).toBe(2)
+        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"/* head */  select distinct id as id from project where id <= ? order by id limit ?  /* tail */"`)
+        expect(ctx.history[0]!.params).toMatchInlineSnapshot(`
+          [
+            3,
+            2,
+          ]
+        `)
+        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with result_for_count as (/* head */  select distinct id as id from project where id <= ? order by id  /* tail */) select count(*) from result_for_count"`)
+        expect(ctx.history[1]!.params).toMatchInlineSnapshot(`
+          [
+            3,
+          ]
+        `)
+        assertType<Exact<typeof page, {
+            data:  Array<{ id: number }>
+            count: number
+        }>>()
+        expect(page.count).toBe(3)
+        expect(page.data).toEqual(dataRows)
+    })
+
+    test('customize-select-group-by-page-hooks-ride-count-wrap', async () => {
+        // A-2b: crossing __groupBy with __customization on executeSelectPage. GROUP
+        // BY already forces the count-wrap (the outer count totals the groups);
+        // adding customizeQuery makes the beforeQuery/afterQuery hooks ride the
+        // wrapped inner count query. Issues grouped by status: closed(1),
+        // in_progress(1), open(2) → 3 groups; page returns the first two by status.
+        const dataRows = [
+            { status: 'closed',      total: 1 },
+            { status: 'in_progress', total: 1 },
+        ]
+        ctx.mockNext(dataRows)
+        ctx.mockNext(3)
+        const connection = ctx.conn
+        const page = await connection.selectFrom(tIssue)
+            .select({
+                status: tIssue.status,
+                total:  connection.count(tIssue.id),
+            })
+            .groupBy('status')
+            .orderBy('status')
+            .limit(2)
+            .customizeQuery({
+                beforeQuery: connection.rawFragment`/* head */ `,
+                afterQuery:  connection.rawFragment` /* tail */`,
+            })
+            .executeSelectPage()
+
+        expect(ctx.history.length).toBe(2)
+        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"/* head */  select status as status, count(id) as total from issue group by status order by status limit ?  /* tail */"`)
+        expect(ctx.history[0]!.params).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with result_for_count as (/* head */  select status as status, count(id) as total from issue group by status order by status  /* tail */) select count(*) from result_for_count"`)
+        expect(ctx.history[1]!.params).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof page, {
+            data:  Array<{ status: string; total: number }>
+            count: number
+        }>>()
+        expect(page.count).toBe(3)
+        expect(page.data).toEqual(dataRows)
+    })
 })

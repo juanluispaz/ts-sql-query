@@ -142,6 +142,70 @@ describe(ctx.label, () => {
             expect(inserted).toBe(2)
         })
     })
+
+    test('dynamic-values-keep-only-reopens-a-supplied-required-key-then-set-for-all-executes', async () => {
+        // The ADDITIVE (reopening) arm of MISSING_KEYS: unlike the tests above where
+        // `plan` was never supplied, here every row SUPPLIES the required `plan`, so
+        // it starts CLEARED. `keepOnly('name')` prunes `plan` back out of the row set,
+        // REOPENING it into the missing set (the builder type again demands it and
+        // hides `executeInsert`), so a following `setForAll({ plan })` must re-supply
+        // it before the insert executes. The per-row 'free'/'pro' are dropped; the
+        // shared 'enterprise' from setForAll lands in the (name, plan) column list.
+        ctx.mockNext(2)
+        await ctx.withRollback(async () => {
+            const inserted = await ctx.conn.insertInto(tOrganization)
+                .dynamicValues([
+                    { name: 'Mk-RA', plan: 'free' },
+                    { name: 'Mk-RB', plan: 'pro' },
+                ])
+                .keepOnly('name')
+                .setForAll({ plan: 'enterprise' })
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"begin insert into "organization" (name, "plan") values (:0, :1); insert into "organization" (name, "plan") values (:2, :3); end;"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Mk-RA",
+                "enterprise",
+                "Mk-RB",
+                "enterprise",
+              ]
+            `)
+            assertType<Exact<typeof inserted, number>>()
+            expect(inserted).toBe(2)
+        })
+    })
+
+    test('dynamic-values-ignore-if-set-reopens-a-supplied-required-key-then-set-for-all-executes', async () => {
+        // The reopening arm via `ignoreIfSet`: every row SUPPLIES `plan` (so it starts
+        // cleared), then `ignoreIfSet('plan')` drops it where set — REOPENING the
+        // required `plan` into the missing set — and `setForAll({ plan })` re-supplies
+        // it. The per-row values are dropped; the shared 'enterprise' is emitted.
+        ctx.mockNext(2)
+        await ctx.withRollback(async () => {
+            const inserted = await ctx.conn.insertInto(tOrganization)
+                .dynamicValues([
+                    { name: 'Mk-RC', plan: 'free' },
+                    { name: 'Mk-RD', plan: 'pro' },
+                ])
+                .ignoreIfSet('plan')
+                .setForAll({ plan: 'enterprise' })
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"begin insert into "organization" (name, "plan") values (:0, :1); insert into "organization" (name, "plan") values (:2, :3); end;"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Mk-RC",
+                "enterprise",
+                "Mk-RD",
+                "enterprise",
+              ]
+            `)
+            assertType<Exact<typeof inserted, number>>()
+            expect(inserted).toBe(2)
+        })
+    })
+
     test('shaped-dynamic-values-set-for-all-clears-missing-key-then-executes', async () => {
         // Shaped `setForAll({ orgPlan })` supplies the missing shaped key for every
         // row, clearing it so the shaped multi-row insert becomes executable.

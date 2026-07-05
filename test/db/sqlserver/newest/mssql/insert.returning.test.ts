@@ -321,4 +321,30 @@ describe(ctx.label, () => {
         })
     })
     */
+
+    test('insert-returning-one-column-nullable', async () => {
+        // `returningOneColumn(<nullable column>)` — the scalar single-column
+        // RETURNING shortcut over an OPTIONAL column, so the result carries the
+        // column-intrinsic `| null` (every other returningOneColumn call in the
+        // suite uses a required column). `archivedAt` is left unset on the inserted
+        // row, so the scalar comes back null.
+        ctx.mockNext(null)
+        await ctx.withRollback(async () => {
+            const archivedAt = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, name: 'Scalar nullable', slug: 'scalar-nullable' })
+                .returningOneColumn(tProject.archivedAt)
+                .executeInsertOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) output inserted.archived_at as [result] values (@0, @1, @2)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "Scalar nullable",
+                "scalar-nullable",
+              ]
+            `)
+            assertType<Exact<typeof archivedAt, Date | null>>()
+            expect(archivedAt).toBeNull()
+        })
+    })
 })

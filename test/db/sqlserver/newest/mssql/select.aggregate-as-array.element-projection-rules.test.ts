@@ -442,4 +442,137 @@ describe(ctx.label, () => {
             { pid: 4, opt: null },
         ] }])
     })
+
+    test('element-top-rule-1-required-in-optional-object-gate-null-drops-whole-element', async () => {
+        // The reqInOptObj gate at the ELEMENT TOP (not nested inside `meta`): `ref`
+        // is `body.asRequiredInOptionalObject()`, so an element whose `ref` gate is
+        // NULL is dropped from the array entirely — the tail arm of the existing
+        // never-null-gate rule-1 test. Org 1's issues 1, 2, 3 aggregate; issues 1 and
+        // 3 have a null body → their whole elements (including `assigneeId`) are
+        // omitted, leaving only issue 2. Type: `ref` is required (the gate),
+        // `assigneeId` optional.
+        ctx.mockNext([{ orgId: 1, items: [
+            { ref: null,             assigneeId: 1 },
+            { ref: 'Use new tokens', assigneeId: 2 },
+            { ref: null,             assigneeId: null },
+        ] }])
+        const rows = await ctx.conn.selectFrom(tProject)
+            .innerJoin(tIssue).on(tIssue.projectId.equals(tProject.id))
+            .where(tProject.organizationId.equals(1))
+            .select({
+                orgId: tProject.organizationId,
+                items: ctx.conn.aggregateAsArray({
+                    ref:        tIssue.body.asRequiredInOptionalObject(),
+                    assigneeId: tIssue.assigneeId,
+                }),
+            })
+            .groupBy('orgId')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.organization_id as orgId, json_arrayagg(json_object('ref':issue.body, 'assigneeId':issue.assignee_id)) as items from project inner join issue on issue.project_id = project.id where project.organization_id = @0 group by project.organization_id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            orgId: number
+            items: Array<{ ref: string; assigneeId?: number }>
+        }>>>()
+        const sorted = rows.map(r => ({ ...r, items: [...r.items].sort((a, b) => a.ref.localeCompare(b.ref)) }))
+        expect(sorted).toEqual([{ orgId: 1, items: [
+            { ref: 'Use new tokens', assigneeId: 2 },
+        ] }])
+        // Both null-gate elements (issues 1 and 3) are omitted → only one survives.
+        expect(rows[0]!.items.length).toBe(1)
+    })
+
+    test('element-containing-sole-optional-inner-object-collapses-on-aggregate-path-default', async () => {
+        // The aggregate-path twin of the 143fe3b2 sole-optional-inner fix: an element
+        // whose `wrapper` has a SOLE member (`inner`, an all-optional object). The
+        // container recursively inherits its sole member's optionality, so `wrapper`
+        // is `wrapper?` and collapses (absent) when the inner's every leaf is null.
+        // Org 1's issues aggregate: issue 1 (body null, assignee 1) → inner present
+        // with only assigneeId; issue 2 → inner fully present; issue 3 (body +
+        // assignee null) → inner collapses → wrapper dropped.
+        ctx.mockNext([{ orgId: 1, items: [
+            { iid: 1, wrapper: { inner: { body: null,             assigneeId: 1 } } },
+            { iid: 2, wrapper: { inner: { body: 'Use new tokens', assigneeId: 2 } } },
+            { iid: 3, wrapper: { inner: { body: null,             assigneeId: null } } },
+        ] }])
+        const rows = await ctx.conn.selectFrom(tProject)
+            .innerJoin(tIssue).on(tIssue.projectId.equals(tProject.id))
+            .where(tProject.organizationId.equals(1))
+            .select({
+                orgId: tProject.organizationId,
+                items: ctx.conn.aggregateAsArray({
+                    iid:     tIssue.id,
+                    wrapper: { inner: { body: tIssue.body, assigneeId: tIssue.assigneeId } },
+                }),
+            })
+            .groupBy('orgId')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.organization_id as orgId, json_arrayagg(json_object('iid':issue.id, 'wrapper.inner.body':issue.body, 'wrapper.inner.assigneeId':issue.assignee_id)) as items from project inner join issue on issue.project_id = project.id where project.organization_id = @0 group by project.organization_id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            orgId: number
+            items: Array<{ iid: number; wrapper?: { inner: { body: string | undefined; assigneeId: number | undefined } | undefined } }>
+        }>>>()
+        const sorted = rows.map(r => ({ ...r, items: [...r.items].sort((a, b) => a.iid - b.iid) }))
+        expect(sorted).toEqual([{ orgId: 1, items: [
+            { iid: 1, wrapper: { inner: { assigneeId: 1 } } },
+            { iid: 2, wrapper: { inner: { body: 'Use new tokens', assigneeId: 2 } } },
+            { iid: 3 },
+        ] }])
+        // issue 3's inner collapsed → `wrapper` is ABSENT (present-undefined would fail).
+        const issue3 = sorted[0]!.items.find(i => i.iid === 3)!
+        expect('wrapper' in issue3).toBe(false)
+    })
+
+    test('element-containing-sole-optional-inner-object-collapses-on-aggregate-path-as-nullable', async () => {
+        // The same sole-optional-inner aggregate element under
+        // `projectingOptionalValuesAsNullable()`: `wrapper` becomes `{...} | null`,
+        // the inner `{...} | null`, and its leaves flip to `| null`. Issue 3's
+        // all-null inner collapses the whole `wrapper` to null (not absent) — the
+        // nullable mirror of the default drop above.
+        ctx.mockNext([{ orgId: 1, items: [
+            { iid: 1, wrapper: { inner: { body: null,             assigneeId: 1 } } },
+            { iid: 2, wrapper: { inner: { body: 'Use new tokens', assigneeId: 2 } } },
+            { iid: 3, wrapper: { inner: { body: null,             assigneeId: null } } },
+        ] }])
+        const rows = await ctx.conn.selectFrom(tProject)
+            .innerJoin(tIssue).on(tIssue.projectId.equals(tProject.id))
+            .where(tProject.organizationId.equals(1))
+            .select({
+                orgId: tProject.organizationId,
+                items: ctx.conn.aggregateAsArray({
+                    iid:     tIssue.id,
+                    wrapper: { inner: { body: tIssue.body, assigneeId: tIssue.assigneeId } },
+                }).projectingOptionalValuesAsNullable(),
+            })
+            .groupBy('orgId')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.organization_id as orgId, json_arrayagg(json_object('iid':issue.id, 'wrapper.inner.body':issue.body, 'wrapper.inner.assigneeId':issue.assignee_id)) as items from project inner join issue on issue.project_id = project.id where project.organization_id = @0 group by project.organization_id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            orgId: number
+            items: Array<{ iid: number; wrapper: { inner: { body: string | null; assigneeId: number | null } | null } | null }>
+        }>>>()
+        const sorted = rows.map(r => ({ ...r, items: [...r.items].sort((a, b) => a.iid - b.iid) }))
+        expect(sorted).toEqual([{ orgId: 1, items: [
+            { iid: 1, wrapper: { inner: { body: null, assigneeId: 1 } } },
+            { iid: 2, wrapper: { inner: { body: 'Use new tokens', assigneeId: 2 } } },
+            { iid: 3, wrapper: null },
+        ] }])
+    })
 })

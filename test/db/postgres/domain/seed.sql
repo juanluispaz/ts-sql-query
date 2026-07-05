@@ -67,3 +67,9 @@ INSERT INTO invoice (invoice_no, total) VALUES (100, 500);
 -- ledger_entry: amount/memo stored x10 by scaledTenthAdapter (250 reads 25, 70 reads 7);
 -- entry_no autogenerates to 1, read +1000 by plusOffsetAdapter -> 1001.
 INSERT INTO ledger_entry (amount, memo, discount) VALUES (250, 70, 30);
+
+-- release_draft: draft 1 sets all three optional typed columns; draft 2 leaves
+-- stage/channel/min_version NULL so the Nullable family hits the real NULL branch.
+INSERT INTO release_draft (id, title, stage, channel, min_version) VALUES
+    (1, 'Alpha cut', 'candidate', 'beta', '1.0.0'),
+    (2, 'Nightly build', NULL, NULL, NULL);

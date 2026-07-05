@@ -18,6 +18,7 @@ DROP TABLE IF EXISTS project;
 DROP TABLE IF EXISTS app_user;
 DROP TABLE IF EXISTS organization;
 
+DROP TABLE IF EXISTS release_draft;
 CREATE TABLE organization (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
@@ -242,3 +243,13 @@ SELECT r.id AS id,
        p.name AS project_name
 FROM project_release r
 INNER JOIN project p ON p.id = r.project_id;
+
+-- release_draft (§B-1): OPTIONAL enum/custom/customComparable columns so the
+-- Nullable family reaches a real NULL row. Caller-provided int PK (no identity).
+CREATE TABLE release_draft (
+    id INT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    stage VARCHAR(16),
+    channel VARCHAR(16),
+    min_version VARCHAR(32)
+);

@@ -12,7 +12,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue } from '../../domain/connection.js'
+import { tAppUser, tIssue, tIssueWorklog, tOrganization, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -346,5 +346,199 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
         expect(rows).toEqual(expected)
+    })
+
+    test('always-if/two-table-source-union-matches-direct', async () => {
+        // The arity-2 `dynamicBooleanExpressionUsing(t1, t2)` overload — the
+        // variadic impl is a no-op, so the observable is the type-level correlated
+        // SOURCE union: the seed accepts a condition referencing BOTH tables and
+        // renders identically to the direct (non-dynamic) equivalent. Filters org 1
+        // joined to its project with slug 'mktg-site' → project 1.
+        const expected = [{ id: 1 }]
+        ctx.mockNext(expected)
+        let w = ctx.conn.dynamicBooleanExpressionUsing(tOrganization, tProject)
+        w = w.and(tOrganization.id.equals(1))
+        w = w.and(tProject.slug.equals('mktg-site'))
+        const dyn = await ctx.conn.selectFrom(tOrganization)
+            .innerJoin(tProject).on(tProject.organizationId.equals(tOrganization.id))
+            .where(w)
+            .select({ id: tProject.id })
+            .orderBy('id')
+            .executeSelectMany()
+        const dynSql = ctx.lastSql
+        const dynParams = ctx.lastParams
+
+        ctx.mockNext(expected)
+        const direct = await ctx.conn.selectFrom(tOrganization)
+            .innerJoin(tProject).on(tProject.organizationId.equals(tOrganization.id))
+            .where(tOrganization.id.equals(1).and(tProject.slug.equals('mktg-site')))
+            .select({ id: tProject.id })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(dynSql).toBe(ctx.lastSql)
+        expect(dynParams).toEqual(ctx.lastParams)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id from organization inner join project on project.organization_id = organization.id where organization.id = @0 and project.slug = @1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            "mktg-site",
+          ]
+        `)
+        assertType<Exact<typeof dyn, Array<{ id: number }>>>()
+        expect(dyn).toEqual(expected)
+        expect(direct).toEqual(expected)
+    })
+
+    test('always-if/three-table-source-union-matches-direct', async () => {
+        // Arity-3: the seed carries a three-table source union (organization +
+        // project + issue) and renders identically to the direct equivalent. Adds
+        // an issue-status predicate on top of the arity-2 filter → issue 1.
+        const expected = [{ id: 1 }]
+        ctx.mockNext(expected)
+        let w = ctx.conn.dynamicBooleanExpressionUsing(tOrganization, tProject, tIssue)
+        w = w.and(tOrganization.id.equals(1))
+        w = w.and(tProject.slug.equals('mktg-site'))
+        w = w.and(tIssue.status.equals('open'))
+        const dyn = await ctx.conn.selectFrom(tOrganization)
+            .innerJoin(tProject).on(tProject.organizationId.equals(tOrganization.id))
+            .innerJoin(tIssue).on(tIssue.projectId.equals(tProject.id))
+            .where(w)
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        const dynSql = ctx.lastSql
+        const dynParams = ctx.lastParams
+
+        ctx.mockNext(expected)
+        const direct = await ctx.conn.selectFrom(tOrganization)
+            .innerJoin(tProject).on(tProject.organizationId.equals(tOrganization.id))
+            .innerJoin(tIssue).on(tIssue.projectId.equals(tProject.id))
+            .where(tOrganization.id.equals(1)
+                .and(tProject.slug.equals('mktg-site'))
+                .and(tIssue.status.equals('open')))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(dynSql).toBe(ctx.lastSql)
+        expect(dynParams).toEqual(ctx.lastParams)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id from organization inner join project on project.organization_id = organization.id inner join issue on issue.project_id = project.id where organization.id = @0 and project.slug = @1 and issue.status = @2 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            "mktg-site",
+            "open",
+          ]
+        `)
+        assertType<Exact<typeof dyn, Array<{ id: number }>>>()
+        expect(dyn).toEqual(expected)
+        expect(direct).toEqual(expected)
+    })
+
+    test('always-if/four-table-source-union-matches-direct', async () => {
+        // Arity-4: a four-table source union (organization + project + issue +
+        // app_user). Adds an assignee-name predicate → issue 1 is assigned to Ada.
+        const expected = [{ id: 1 }]
+        ctx.mockNext(expected)
+        let w = ctx.conn.dynamicBooleanExpressionUsing(tOrganization, tProject, tIssue, tAppUser)
+        w = w.and(tOrganization.id.equals(1))
+        w = w.and(tProject.slug.equals('mktg-site'))
+        w = w.and(tIssue.status.equals('open'))
+        w = w.and(tAppUser.fullName.equals('Ada Lovelace'))
+        const dyn = await ctx.conn.selectFrom(tOrganization)
+            .innerJoin(tProject).on(tProject.organizationId.equals(tOrganization.id))
+            .innerJoin(tIssue).on(tIssue.projectId.equals(tProject.id))
+            .innerJoin(tAppUser).on(tAppUser.id.equals(tIssue.assigneeId))
+            .where(w)
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        const dynSql = ctx.lastSql
+        const dynParams = ctx.lastParams
+
+        ctx.mockNext(expected)
+        const direct = await ctx.conn.selectFrom(tOrganization)
+            .innerJoin(tProject).on(tProject.organizationId.equals(tOrganization.id))
+            .innerJoin(tIssue).on(tIssue.projectId.equals(tProject.id))
+            .innerJoin(tAppUser).on(tAppUser.id.equals(tIssue.assigneeId))
+            .where(tOrganization.id.equals(1)
+                .and(tProject.slug.equals('mktg-site'))
+                .and(tIssue.status.equals('open'))
+                .and(tAppUser.fullName.equals('Ada Lovelace')))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(dynSql).toBe(ctx.lastSql)
+        expect(dynParams).toEqual(ctx.lastParams)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id from organization inner join project on project.organization_id = organization.id inner join issue on issue.project_id = project.id inner join app_user on app_user.id = issue.assignee_id where organization.id = @0 and project.slug = @1 and issue.status = @2 and app_user.full_name = @3 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            "mktg-site",
+            "open",
+            "Ada Lovelace",
+          ]
+        `)
+        assertType<Exact<typeof dyn, Array<{ id: number }>>>()
+        expect(dyn).toEqual(expected)
+        expect(direct).toEqual(expected)
+    })
+
+    test('always-if/five-table-source-union-matches-direct', async () => {
+        // Arity-5: the full five-table source union (organization + project + issue
+        // + app_user + issue_worklog) — the top rung of the overload ladder. Adds a
+        // worklog-activity predicate → worklog 1 (issue 1's 'coding' worklog).
+        const expected = [{ id: 1 }]
+        ctx.mockNext(expected)
+        let w = ctx.conn.dynamicBooleanExpressionUsing(tOrganization, tProject, tIssue, tAppUser, tIssueWorklog)
+        w = w.and(tOrganization.id.equals(1))
+        w = w.and(tProject.slug.equals('mktg-site'))
+        w = w.and(tIssue.status.equals('open'))
+        w = w.and(tAppUser.fullName.equals('Ada Lovelace'))
+        w = w.and(tIssueWorklog.activity.equals('coding'))
+        const dyn = await ctx.conn.selectFrom(tOrganization)
+            .innerJoin(tProject).on(tProject.organizationId.equals(tOrganization.id))
+            .innerJoin(tIssue).on(tIssue.projectId.equals(tProject.id))
+            .innerJoin(tAppUser).on(tAppUser.id.equals(tIssue.assigneeId))
+            .innerJoin(tIssueWorklog).on(tIssueWorklog.issueId.equals(tIssue.id))
+            .where(w)
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        const dynSql = ctx.lastSql
+        const dynParams = ctx.lastParams
+
+        ctx.mockNext(expected)
+        const direct = await ctx.conn.selectFrom(tOrganization)
+            .innerJoin(tProject).on(tProject.organizationId.equals(tOrganization.id))
+            .innerJoin(tIssue).on(tIssue.projectId.equals(tProject.id))
+            .innerJoin(tAppUser).on(tAppUser.id.equals(tIssue.assigneeId))
+            .innerJoin(tIssueWorklog).on(tIssueWorklog.issueId.equals(tIssue.id))
+            .where(tOrganization.id.equals(1)
+                .and(tProject.slug.equals('mktg-site'))
+                .and(tIssue.status.equals('open'))
+                .and(tAppUser.fullName.equals('Ada Lovelace'))
+                .and(tIssueWorklog.activity.equals('coding')))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(dynSql).toBe(ctx.lastSql)
+        expect(dynParams).toEqual(ctx.lastParams)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue_worklog.id as id from organization inner join project on project.organization_id = organization.id inner join issue on issue.project_id = project.id inner join app_user on app_user.id = issue.assignee_id inner join issue_worklog on issue_worklog.issue_id = issue.id where organization.id = @0 and project.slug = @1 and issue.status = @2 and app_user.full_name = @3 and issue_worklog.activity = @4 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            "mktg-site",
+            "open",
+            "Ada Lovelace",
+            "coding",
+          ]
+        `)
+        assertType<Exact<typeof dyn, Array<{ id: number }>>>()
+        expect(dyn).toEqual(expected)
+        expect(direct).toEqual(expected)
     })
 })

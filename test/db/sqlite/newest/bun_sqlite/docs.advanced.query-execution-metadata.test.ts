@@ -19,7 +19,7 @@ import {
     getQueryExecutionMetadata,
     type FunctionExecutingQueryInformation,
 } from '../../../../../src/queryRunners/QueryRunner.js'
-import { tProject } from '../../domain/connection.js'
+import { tIssue, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -219,5 +219,58 @@ describe(ctx.label, () => {
             expect(getQueryExecutionName(ctx.lastSql, ctx.lastParams)).toBe('delete-project')
             expect(getQueryExecutionMetadata(ctx.lastSql, ctx.lastParams)).toEqual({ tag: 'delete-path' })
         })
+    })
+
+    test('docs-extra:query-execution-metadata/select-page-carries-name-and-metadata-on-count', async () => {
+        // A queryExecutionName / queryExecutionMetadata set on an executeSelectPage
+        // is retrievable by the interceptor on BOTH queries it runs: the data query
+        // AND the auto-generated COUNT query (the one place isSelectPageCountQuery is
+        // true). The metadata is non-SQL — it rides through to the runner regardless
+        // of the count query's shape — so a monitoring interceptor can label and tell
+        // apart both halves of the page. This is the user-facing reason the customized
+        // plain page's count is routed through the customization path.
+        ctx.mockNext([{ id: 1, name: 'Marketing site' }])
+        ctx.mockNext(3)
+        await ctx.conn.selectFrom(tProject)
+            .where(tProject.id.lessOrEqual(3))
+            .select({ id: tProject.id, name: tProject.name })
+            .orderBy('id')
+            .limit(2)
+            .customizeQuery({
+                queryExecutionName:     'projects-page',
+                queryExecutionMetadata: { tag: 'page-path' },
+            })
+            .executeSelectPage()
+
+        expect(ctx.history.length).toBe(2)
+        const data = ctx.history[0]!
+        const count = ctx.history[1]!
+        // data query: not the count, carries the name + metadata
+        expect(isSelectPageCountQuery(data.sql, data.params)).toBe(false)
+        expect(getQueryExecutionName(data.sql, data.params)).toBe('projects-page')
+        expect(getQueryExecutionMetadata(data.sql, data.params)).toEqual({ tag: 'page-path' })
+        // count query: flagged as the page count AND carries the same name + metadata
+        expect(isSelectPageCountQuery(count.sql, count.params)).toBe(true)
+        expect(getQueryExecutionName(count.sql, count.params)).toBe('projects-page')
+        expect(getQueryExecutionMetadata(count.sql, count.params)).toEqual({ tag: 'page-path' })
+    })
+
+    test('docs-extra:query-execution-metadata/compound-select-carries-name-and-metadata', async () => {
+        // queryExecutionName / queryExecutionMetadata set via customizeQuery on a
+        // COMPOUND select (the distinct CompoundSelectCustomization surface) ride
+        // through to the runner and are read back via the public helpers — the
+        // metadata is non-SQL, so the union snapshot is unchanged. The second branch
+        // matches nothing, so the mock returns just the first branch's row.
+        ctx.mockNext([{ label: 'Marketing site' }])
+        await ctx.conn.selectFrom(tProject).where(tProject.id.equals(1)).select({ label: tProject.name })
+            .union(ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(99999)).select({ label: tIssue.title }))
+            .customizeQuery({
+                queryExecutionName:     'compound-select',
+                queryExecutionMetadata: { tag: 'compound-path' },
+            })
+            .executeSelectMany()
+
+        expect(getQueryExecutionName(ctx.lastSql, ctx.lastParams)).toBe('compound-select')
+        expect(getQueryExecutionMetadata(ctx.lastSql, ctx.lastParams)).toEqual({ tag: 'compound-path' })
     })
 })

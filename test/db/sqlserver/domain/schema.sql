@@ -18,6 +18,7 @@ IF OBJECT_ID('project', 'U') IS NOT NULL DROP TABLE project;
 IF OBJECT_ID('app_user', 'U') IS NOT NULL DROP TABLE app_user;
 IF OBJECT_ID('organization', 'U') IS NOT NULL DROP TABLE organization;
 
+IF OBJECT_ID('release_draft', 'U') IS NOT NULL DROP TABLE release_draft;
 CREATE TABLE organization (
     id INT IDENTITY(1,1) PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
@@ -291,3 +292,13 @@ SELECT r.id AS id,
 FROM project_release r
 INNER JOIN project p ON p.id = r.project_id;
 GO
+
+-- release_draft (§B-1): OPTIONAL enum/custom/customComparable columns so the
+-- Nullable family reaches a real NULL row. Caller-provided int PK (no identity).
+CREATE TABLE release_draft (
+    id INT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    stage VARCHAR(16),
+    channel VARCHAR(16),
+    min_version VARCHAR(32)
+);

@@ -13,6 +13,7 @@
 -- the IDENTITY/sequence lists mirror schema.sql; keep them in sync when a table
 -- or sequence is added.
 DELETE FROM project_review;
+DELETE FROM release_draft;
 DELETE FROM project_release;
 DELETE FROM audit_entry;
 DELETE FROM webhook_event;

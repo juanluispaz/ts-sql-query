@@ -363,4 +363,27 @@ describe(ctx.label, () => {
         expect(result.slice().sort()).toEqual(expected)
     })
 
+
+    test('group-by-select-one-column-optional-aggregate-realizes-null-element', async () => {
+        // The scalar-shortcut counterpart of the object-projector null realization:
+        // groupBy(projectId).selectOneColumn(max(assigneeId)) where one group's max
+        // is NULL — project 2's only issue (id 3) has assignee_id NULL, so its
+        // group max is null. Unlike the sibling max(priority) shortcut above (whose
+        // groups are all non-empty), the `Array<number | null>` type's null
+        // inhabitant is realized in the VALUE here. Grouped maxes: project 1 →
+        // max(1,2)=2, project 2 → max(NULL)=null, project 3 → max(3)=3. Sort by a
+        // null-safe comparator for determinism across mock and real DB.
+        ctx.mockNext([2, null, 3])
+        const result = await ctx.conn.selectFrom(tIssue)
+            .groupBy(tIssue.projectId)
+            .selectOneColumn(ctx.conn.max(tIssue.assigneeId))
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(assignee_id) as result from issue group by project_id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<number | null>>>()
+        // the sorted array pins the exact multiset — the null inhabitant (project 2's
+        // group) is realized in the value, not just the Array<number | null> type
+        expect([...result].sort((a, b) => (a ?? 99) - (b ?? 99))).toEqual([2, 3, null])
+    })
 })

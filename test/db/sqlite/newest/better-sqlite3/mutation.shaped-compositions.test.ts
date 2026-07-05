@@ -169,4 +169,57 @@ describe(ctx.label, () => {
         })
     })
 
+
+    test('shaped-update-extend-shape-then-no-arg-dynamic-set-opener', async () => {
+        // The NO-ARG `dynamicSet()` opener on the shaped+extended where-REQUIRED
+        // update builder — the sibling of `shaped-update-extend-shape-then-dynamic-set`
+        // (which passes the columns straight to `dynamicSet({...})`). `dynamicSet()`
+        // opens an empty dynamic set that a following `.set({...})` fills against the
+        // widened shape, driving the same two-column SET.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.update(tProject)
+                .shapedAs({ projectName: 'name' })
+                .extendShape({ projectSlug: 'slug' })
+                .dynamicSet()
+                .set({ projectName: 'No-arg opener', projectSlug: 'no-arg-opener' })
+                .where(tProject.id.equals(1))
+                .executeUpdate()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?, slug = ? where id = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "No-arg opener",
+                "no-arg-opener",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(1)
+        })
+    })
+
+    test('shaped-update-allowing-no-where-extend-shape-then-no-arg-dynamic-set-opener', async () => {
+        // The same shaped+extended NO-ARG `dynamicSet()` opener on the
+        // `updateAllowingNoWhere` twin — executable WITHOUT a WHERE, so it touches
+        // every project row. Widens to (name, organization_id); organization 1 exists,
+        // so re-pointing every project to it keeps the FK valid for all rows.
+        ctx.mockNext(4)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.updateAllowingNoWhere(tProject)
+                .shapedAs({ projectName: 'name' })
+                .extendShape({ orgId: 'organizationId' })
+                .dynamicSet()
+                .set({ projectName: 'No-where widened', orgId: 1 })
+                .executeUpdate()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?, organization_id = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "No-where widened",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(4)
+        })
+    })
 })

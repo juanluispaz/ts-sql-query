@@ -192,6 +192,54 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ r?: number | undefined }>>>()
         expect(rows).toEqual(expected)
     })
+    test('build-fragment-with-maybe-optional-args-reads-optional-from-value-source-after-plain-arg', async () => {
+        // Regression for the `[value-source, plain-value, value-source]` argument
+        // shape: the third arg's optionalType must still reach the merged result.
+        // `conn.const('x','string')` is required, `'b'` is a plain literal, and
+        // `tIssue.body` is optional -> the merged optionalType is optional, so the
+        // result column is `r?: string | undefined`. `coalesce('x', ...)` = 'x'.
+        const expected = [{ r: 'x' }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({ r: ctx.conn.coalesce3(ctx.conn.const('x', 'string'), 'b', tIssue.body) })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select coalesce(?, ?, body) as \`r\` from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "x",
+            "b",
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ r?: string | undefined }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('build-fragment-with-maybe-optional-args-keeps-required-with-no-optional-value-source-after-plain-arg', async () => {
+        // Control for the regression above: `[value-source-required, plain-value,
+        // value-source-required]` has no optional arg, so the result stays
+        // required (`r: string`). Proves the fix is not "always optional".
+        const expected = [{ r: 'x' }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({ r: ctx.conn.coalesce3(ctx.conn.const('x', 'string'), 'b', tIssue.title) })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select coalesce(?, ?, title) as \`r\` from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "x",
+            "b",
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ r: string }>>>()
+        expect(rows).toEqual(expected)
+    })
+
     test('build-fragment-with-args-arity-1-over-bigint-arg', async () => {
         // A 1-ary `buildFragmentWithArgs` whose single arg is a `bigint` —
         // exercises the bigint arg coercion. abs(-5) = 5n.

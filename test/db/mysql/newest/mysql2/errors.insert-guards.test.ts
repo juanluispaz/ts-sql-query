@@ -102,4 +102,37 @@ describe(ctx.label, () => {
         expect(r).toEqual([])
     })
     */
+
+    // MySQL has no RETURNING clause, so the library refuses `.returning({...})`
+    // on the empty-`values([])` short-circuit at compile time. Kept here
+    // commented for symmetry with the other dialects.
+    // NOT-APPLICABLE: MySQL has no RETURNING
+    /*
+    test('insert-guards/empty-values-returning-many-resolves-empty-array', async () => {
+        const r = await ctx.conn.insertInto(tProject)
+            .values([]).returning({ id: tProject.id }).executeInsertMany()
+        expect(r).toEqual([])
+    })
+    */
+
+    // NOT-APPLICABLE: MySQL has no RETURNING
+    /*
+    test('insert-guards/empty-values-returning-none-or-one-resolves-null', async () => {
+        const r = await ctx.conn.insertInto(tProject)
+            .values([]).returning({ id: tProject.id }).executeInsertNoneOrOne()
+        expect(r).toBeNull()
+    })
+    */
+
+    // NOT-APPLICABLE: MySQL has no RETURNING
+    /*
+    test('insert-guards/empty-values-returning-one-throws-no-result', async () => {
+        let caught: unknown
+        try {
+            await ctx.conn.insertInto(tProject)
+                .values([]).returning({ id: tProject.id }).executeInsertOne()
+        } catch (e) { caught = e }
+        expect(reasonOf(caught)).toBe('NO_RESULT')
+    })
+    */
 })

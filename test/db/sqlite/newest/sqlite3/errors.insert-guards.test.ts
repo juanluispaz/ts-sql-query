@@ -99,4 +99,33 @@ describe(ctx.label, () => {
             .values([]).returningLastInsertedId().executeInsert()
         expect(r).toEqual([])
     })
+
+    test('insert-guards/empty-values-returning-many-resolves-empty-array', async () => {
+        // The empty `values([])` short-circuit also covers the RETURNING
+        // execute-shapes: no row to insert, so `executeInsertMany` resolves `[]`
+        // without dispatching the empty SQL string the driver would reject.
+        const r = await ctx.conn.insertInto(tProject)
+            .values([]).returning({ id: tProject.id }).executeInsertMany()
+        expect(r).toEqual([])
+    })
+
+    test('insert-guards/empty-values-returning-none-or-one-resolves-null', async () => {
+        // Same short-circuit for `executeInsertNoneOrOne`: zero inserted rows is
+        // the "none" case, so it resolves `null`.
+        const r = await ctx.conn.insertInto(tProject)
+            .values([]).returning({ id: tProject.id }).executeInsertNoneOrOne()
+        expect(r).toBeNull()
+    })
+
+    test('insert-guards/empty-values-returning-one-throws-no-result', async () => {
+        // `executeInsertOne` requires exactly one row; an empty batch has none, so
+        // it rejects with NO_RESULT (as its no-row branch does) instead of
+        // dispatching the empty SQL string.
+        let caught: unknown
+        try {
+            await ctx.conn.insertInto(tProject)
+                .values([]).returning({ id: tProject.id }).executeInsertOne()
+        } catch (e) { caught = e }
+        expect(reasonOf(caught)).toBe('NO_RESULT')
+    })
 })

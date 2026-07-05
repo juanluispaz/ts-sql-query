@@ -195,8 +195,14 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         __setQueryMetadata(source, this.__params, this.__customization)
         try {
             this.__sqlBuilder._resetUnique()
+            const multiple = this.__multiple
             let result
-            if (this.__oneColumn) {
+            if (multiple && multiple.length <= 0) {
+                // Empty batch (`values([])`): no row to insert, so no row is returned.
+                // Resolve `null` (the "none" case) instead of dispatching the empty SQL
+                // string `_buildInsertMultiple` produces, which every driver rejects.
+                result = this.__sqlBuilder._queryRunner.createResolvedPromise(null)
+            } else if (this.__oneColumn) {
                 result = this.__sqlBuilder._queryRunner.executeInsertReturningOneColumnOneRow(this.__query, this.__params).then((value) => {
                     const valueSource = this.__columns!['result']!
                     if (!isValueSource(valueSource)) {
@@ -231,8 +237,16 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         __setQueryMetadata(source, this.__params, this.__customization)
         try {
             this.__sqlBuilder._resetUnique()
+            const multiple = this.__multiple
             let result
-            if (this.__oneColumn) {
+            if (multiple && multiple.length <= 0) {
+                // Empty batch (`values([])`): no row to insert, so no row is returned.
+                // `executeInsertOne` requires exactly one row, so reject with NO_RESULT
+                // (as the no-row branch below does) instead of dispatching the empty SQL
+                // string `_buildInsertMultiple` produces, which every driver rejects.
+                const noResult = new TsSqlProcessingError({ reason: 'NO_RESULT' }, 'No result returned by the database')
+                result = this.__sqlBuilder._queryRunner.createRejectedPromise(new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(noResult), noResult))
+            } else if (this.__oneColumn) {
                 result = this.__sqlBuilder._queryRunner.executeInsertReturningOneColumnOneRow(this.__query, this.__params).then((value) => {
                     const valueSource = this.__columns!['result']!
                     if (!isValueSource(valueSource)) {
@@ -267,8 +281,15 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         __setQueryMetadata(source, this.__params, this.__customization)
         try {
             this.__sqlBuilder._resetUnique()
+            const multiple = this.__multiple
             let result
-            if (this.__oneColumn) {
+            if (multiple && multiple.length <= 0) {
+                // Empty batch (`values([])`): no row to insert, so no row is returned.
+                // Resolve `[]` instead of dispatching the empty SQL string
+                // `_buildInsertMultiple` produces, which every driver rejects. The
+                // `min`/`max` guards below still run against the resulting count of 0.
+                result = this.__sqlBuilder._queryRunner.createResolvedPromise([])
+            } else if (this.__oneColumn) {
                 result = this.__sqlBuilder._queryRunner.executeInsertReturningOneColumnManyRows(this.__query, this.__params).then((values) => {
                     const valueSource = this.__columns!['result']!
                     if (!isValueSource(valueSource)) {

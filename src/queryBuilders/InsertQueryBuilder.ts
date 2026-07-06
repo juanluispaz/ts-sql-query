@@ -65,10 +65,14 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
             let result
             let returningLastInsertedId = !!idColumn
             if (multiple && multiple.length <= 0) {
+                // Empty batch (`values([])`): no row to insert, so no row is returned.
+                // Resolve `[]`/`0` instead of dispatching the empty SQL string
+                // `_buildInsertMultiple` produces, which every driver rejects. The
+                // `min`/`max` guards below still run against the resulting count of 0.
                 if (idColumn) {
-                    return this.__sqlBuilder._queryRunner.createResolvedPromise([])
+                    result = this.__sqlBuilder._queryRunner.createResolvedPromise([])
                 } else {
-                    return this.__sqlBuilder._queryRunner.createResolvedPromise(0)
+                    result = this.__sqlBuilder._queryRunner.createResolvedPromise(0)
                 }
             } else if (!idColumn) {
                 result = this.__sqlBuilder._queryRunner.executeInsert(this.__query, this.__params).catch((e) => {

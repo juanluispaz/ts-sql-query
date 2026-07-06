@@ -52,15 +52,17 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         const source = new QueryExecutionSource('Query executed at')
         __setQueryMetadata(source, this.__params, this.__customization)
         try {
+            let result: Promise<number>
             if (Object.getOwnPropertyNames(this.__sets).length <= 0) {
-                // Nothing to update, nothing to set
-                return this.__sqlBuilder._queryRunner.createResolvedPromise(0)
+                // Nothing to update, nothing to set: resolve 0 without touching the
+                // database. The `min`/`max` guard below still runs against the count of 0.
+                result = this.__sqlBuilder._queryRunner.createResolvedPromise(0)
+            } else {
+                result = this.__sqlBuilder._queryRunner.executeUpdate(this.__query, this.__params).catch((e) => {
+                    throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
+                })
             }
 
-            let result = this.__sqlBuilder._queryRunner.executeUpdate(this.__query, this.__params).catch((e) => {
-                throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
-            })
-            
             if (min !== undefined) {
                 result = result.then((count) => {
                     if (count < min) {
@@ -165,14 +167,13 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         this.query()
         __setQueryMetadata(source, this.__params, this.__customization)
         try {
-            if (Object.getOwnPropertyNames(this.__sets).length <= 0) {
-                // Nothing to update, nothing to set
-                return this.__sqlBuilder._queryRunner.createResolvedPromise([])
-            }
-
-            this.__sqlBuilder._resetUnique()
             let result
-            if (this.__oneColumn) {
+            if (Object.getOwnPropertyNames(this.__sets).length <= 0) {
+                // Nothing to update, nothing to set: resolve [] without touching the
+                // database. The `min`/`max` guard below still runs against the count of 0.
+                result = this.__sqlBuilder._queryRunner.createResolvedPromise([])
+            } else if (this.__oneColumn) {
+                this.__sqlBuilder._resetUnique()
                 result = this.__sqlBuilder._queryRunner.executeUpdateReturningOneColumnManyRows(this.__query, this.__params).then((values) => {
                     const valueSource = this.__columns!['result']!
                     if (!isValueSource(valueSource)) {
@@ -189,6 +190,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                     throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
                 })
             } else {
+                this.__sqlBuilder._resetUnique()
                 result = this.__sqlBuilder._queryRunner.executeUpdateReturningManyRows(this.__query, this.__params).then((rows) => {
                     return rows.map((row, index) => {
                         return this.__transformRow(row, index)

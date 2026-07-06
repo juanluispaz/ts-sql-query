@@ -41,4 +41,30 @@ describe(ctx.label, () => {
         } catch (e) { caught = e }
         expect(reasonOf(caught)).toBe('INVALID_SHAPE_OVERRIDE')
     })
+
+    test('update-guards/no-sets-with-min-throws-minimum-rows', async () => {
+        // The empty-`dynamicSet()` short-circuit runs the min/max guard against the
+        // resulting count of 0: `executeUpdate(1)` with no columns set reaches its
+        // guard with count 0 < min 1, so it rejects with MINIMUM_ROWS_NOT_REACHED
+        // instead of resolving 0. No SQL is dispatched.
+        let caught: unknown
+        try {
+            await ctx.conn.update(tProject).dynamicSet()
+                .where(tProject.id.equals(1)).executeUpdate(1)
+        } catch (e) { caught = e }
+        expect(reasonOf(caught)).toBe('MINIMUM_ROWS_NOT_REACHED')
+    })
+
+    test('update-guards/no-sets-returning-many-with-min-throws-minimum-rows', async () => {
+        // Same for the returning-many shape: `executeUpdateMany(1)` on an empty
+        // `dynamicSet()` reaches its guard with count 0 < min 1, so it rejects with
+        // MINIMUM_ROWS_NOT_REACHED instead of resolving `[]`. No SQL is dispatched.
+        let caught: unknown
+        try {
+            await ctx.conn.update(tProject).dynamicSet()
+                .where(tProject.id.equals(1))
+                .returning({ id: tProject.id }).executeUpdateMany(1)
+        } catch (e) { caught = e }
+        expect(reasonOf(caught)).toBe('MINIMUM_ROWS_NOT_REACHED')
+    })
 })

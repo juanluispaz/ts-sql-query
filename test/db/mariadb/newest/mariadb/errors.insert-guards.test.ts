@@ -128,4 +128,20 @@ describe(ctx.label, () => {
         } catch (e) { caught = e }
         expect(reasonOf(caught)).toBe('NO_RESULT')
     })
+
+    test('insert-guards/empty-values-returning-many-with-min-throws-minimum-rows', async () => {
+        // The empty `values([])` short-circuit still runs the min/max guard against
+        // the resulting count of 0: `executeInsertMany(1)` on an empty batch reaches
+        // its guard with count 0 < min 1, so it rejects with MINIMUM_ROWS_NOT_REACHED
+        // instead of resolving `[]`. No SQL is dispatched.
+        // TODO[BUG]: this throw is inconsistent with executeInsert / executeUpdate /
+        // executeUpdateMany, which skip the guard on an empty operation — see BUGS.md
+        // "Empty-operation min/max guard is inconsistent across execute* shapes".
+        let caught: unknown
+        try {
+            await ctx.conn.insertInto(tProject)
+                .values([]).returning({ id: tProject.id }).executeInsertMany(1)
+        } catch (e) { caught = e }
+        expect(reasonOf(caught)).toBe('MINIMUM_ROWS_NOT_REACHED')
+    })
 })

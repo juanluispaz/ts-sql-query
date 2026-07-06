@@ -493,4 +493,82 @@ describe(ctx.label, () => {
         expect(page.data).toEqual(dataRows)
     })
 
+    test('customize-recursive-select-hooks-render-in-inline-scalar-value', async () => {
+        // A recursive select carrying its own `customizeQuery` used as an inline SCALAR
+        // subquery via `.forUseAsInlineQueryValue()`. All six hooks render: `beforeQuery`
+        // / `afterQuery` bracket the subquery, `afterSelectKeyword` / `beforeColumns` sit
+        // inside its SELECT, and `beforeWithQuery` / `afterWithQuery` wrap the hoisted
+        // `with recursive` parens. Every seeded issue leaves `parent_id` NULL, so the
+        // traversal from a single anchor yields one row (id 1).
+        const expected = [{ id: 1, root: 1 }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+        const rootIssueId = connection.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .selectOneColumn(tIssue.id)
+            .recursiveUnionAllOn((child) => tIssue.parentId.equals(child.result))
+            .customizeQuery({
+                beforeQuery:        connection.rawFragment`/* head */ `,
+                afterQuery:         connection.rawFragment` /* tail */`,
+                beforeWithQuery:    connection.rawFragment`/* warmup */`,
+                afterWithQuery:     connection.rawFragment`/* end-of-with */`,
+                afterSelectKeyword: connection.rawFragment`/* hint */`,
+                beforeColumns:      connection.rawFragment`/* cols */ `,
+            })
+            .forUseAsInlineQueryValue()
+
+        const result = await connection.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ id: tProject.id, root: rootIssueId })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as /* warmup */ (select id as result from issue where id = $1 union all select issue.id as result from issue join recursive_select_1 on issue.parent_id = recursive_select_1.result) /* end-of-with */ select id as id, (/* head */  select /* hint */ /* cols */  result as result from recursive_select_1  /* tail */) as root from project where id = $2"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; root?: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('customize-recursive-select-hooks-render-in-inline-aggregated-array-value', async () => {
+        // A recursive select carrying its own `customizeQuery` used as an inline
+        // AGGREGATED-ARRAY value via `.forUseAsInlineAggregatedArrayValue()`. The six
+        // hooks render around the hoisted `with recursive` and the `json_agg(...)`
+        // subquery. The traversal from a single anchor yields a one-element array.
+        const expected = [{ id: 1, tree: [1] }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+        const tree = connection.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .selectOneColumn(tIssue.id)
+            .recursiveUnionAllOn((child) => tIssue.parentId.equals(child.result))
+            .customizeQuery({
+                beforeQuery:        connection.rawFragment`/* head */ `,
+                afterQuery:         connection.rawFragment` /* tail */`,
+                beforeWithQuery:    connection.rawFragment`/* warmup */`,
+                afterWithQuery:     connection.rawFragment`/* end-of-with */`,
+                afterSelectKeyword: connection.rawFragment`/* hint */`,
+                beforeColumns:      connection.rawFragment`/* cols */ `,
+            })
+            .forUseAsInlineAggregatedArrayValue()
+
+        const result = await connection.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ id: tProject.id, tree })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as /* warmup */ (select id as result from issue where id = $1 union all select issue.id as result from issue join recursive_select_1 on issue.parent_id = recursive_select_1.result) /* end-of-with */ select id as id, (/* head */  select /* hint */ /* cols */  json_agg(result) from recursive_select_1  /* tail */) as tree from project where id = $2"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; tree: number[] }>>>()
+        expect(result).toEqual(expected)
+    })
+
 })

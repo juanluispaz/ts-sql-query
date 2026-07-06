@@ -241,6 +241,31 @@ describe(ctx.label, () => {
             expect(stage).toBe('candidate')
         })
     })
+
+    test('delete-release-draft-returning-object-optional-branded-default', async () => {
+        // Object-form RETURNING of an optional branded column on DELETE. Under the default
+        // projector the leaf is `stage?: ReleaseStage` (brand preserved, absent when NULL).
+        // RETURNING on DELETE sees the pre-delete value; draft 1's stage is 'candidate'.
+        // Nothing FKs into release_draft, so the delete is referential-integrity-safe.
+        const expected = { id: 1, stage: 'candidate' as ReleaseStage }
+        ctx.mockNext(expected)
+        await ctx.withRollback(async () => {
+            const row = await ctx.conn.deleteFrom(tReleaseDraft)
+                .where(tReleaseDraft.id.equals(1))
+                .returning({ id: tReleaseDraft.id, stage: tReleaseDraft.stage })
+                .executeDeleteOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from release_draft where id = ? returning id as id, stage as stage"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof row, { id: number; stage?: ReleaseStage }>>()
+            expect(row).toEqual(expected)
+        })
+    })
+
     test('delete-release-draft-returning-object-optional-branded-as-nullable', async () => {
         // Object-form RETURNING of an optional branded column on DELETE under
         // `projectingOptionalValuesAsNullable()` → `stage: ReleaseStage | null`. Deleting draft 2

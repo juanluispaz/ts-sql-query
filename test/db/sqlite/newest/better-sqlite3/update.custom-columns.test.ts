@@ -6,7 +6,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tCountry, tIssueWorklog, tProjectRelease, tProjectReview } from '../../domain/connection.js'
+import { tCountry, tIssueWorklog, tProjectRelease, tProjectReview, tReleaseDraft } from '../../domain/connection.js'
 import type { ReleaseChannel } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
@@ -31,6 +31,29 @@ describe(ctx.label, () => {
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "1.2.1",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof updated, number>>()
+            expect(updated).toBe(1)
+        })
+    })
+
+
+    test('update-release-draft-optional-custom-column-with-value-source-rhs', async () => {
+        // SET an optional column (`minVersion`, an optional customComparable) from a
+        // value source rather than a plain value. Draft 1's min_version is set from
+        // itself, so `set min_version = min_version` is a valid no-op that touches one row.
+        await ctx.withRollback(async () => {
+            ctx.mockNext(1)
+            const updated = await ctx.conn.update(tReleaseDraft)
+                .set({ minVersion: tReleaseDraft.minVersion })
+                .where(tReleaseDraft.id.equals(1))
+                .executeUpdate()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update release_draft set min_version = min_version where id = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
                 1,
               ]
             `)

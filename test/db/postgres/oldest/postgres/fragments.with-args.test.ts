@@ -862,4 +862,144 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
         expect(rows).toEqual(expected)
     })
+
+    test('maybe-optional-args-arity-4-value-source-after-plain-optional', async () => {
+        // One optional argument (`tIssue.body`) makes the whole result column optional
+        // (`r?: string`). coalesce('x', 'b', body, 'd') = 'x' (issue 1).
+        const expected = [{ r: 'x' }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({ r: ctx.conn.frag4MaybeOptional(ctx.conn.const('x', 'string'), 'b', tIssue.body, 'd') })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select coalesce($1, $2, body, $3) as "r" from issue where id = $4"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "x",
+            "b",
+            "d",
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ r?: string | undefined }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('maybe-optional-args-arity-4-value-source-after-plain-required-control', async () => {
+        // All arguments are required, so the result column stays required (`r: string`).
+        // coalesce('x', 'b', title, 'd') = 'x' (issue 1).
+        const expected = [{ r: 'x' }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({ r: ctx.conn.frag4MaybeOptional(ctx.conn.const('x', 'string'), 'b', tIssue.title, 'd') })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select coalesce($1, $2, title, $3) as "r" from issue where id = $4"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "x",
+            "b",
+            "d",
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ r: string }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('maybe-optional-args-arity-5-value-source-after-plain-optional', async () => {
+        // One optional argument (`tIssue.body`) makes the whole result column optional
+        // (`r?: string`). coalesce('x', 'b', body, 'd', 'e') = 'x' (issue 1).
+        const expected = [{ r: 'x' }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({ r: ctx.conn.frag5MaybeOptional(ctx.conn.const('x', 'string'), 'b', tIssue.body, 'd', 'e') })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select coalesce($1, $2, body, $3, $4) as "r" from issue where id = $5"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "x",
+            "b",
+            "d",
+            "e",
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ r?: string | undefined }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('maybe-optional-args-arity-5-value-source-after-plain-required-control', async () => {
+        // All arguments are required, so the result column stays required (`r: string`).
+        // coalesce('x', 'b', title, 'd', 'e') = 'x' (issue 1).
+        const expected = [{ r: 'x' }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({ r: ctx.conn.frag5MaybeOptional(ctx.conn.const('x', 'string'), 'b', tIssue.title, 'd', 'e') })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select coalesce($1, $2, title, $3, $4) as "r" from issue where id = $5"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "x",
+            "b",
+            "d",
+            "e",
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ r: string }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('maybe-optional-args-reads-optional-key-undefined-inhabitant-on-null', async () => {
+        // `intPlus` is optional because `tIssue.assigneeId` is optional. Issue 3 has
+        // assignee_id = NULL, so `3 + NULL = NULL` and the optional column comes back
+        // ABSENT (not present-null, not a throw).
+        ctx.mockNext([{ r: null }])
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(3))
+            .select({ r: ctx.conn.intPlus(ctx.conn.const(3, 'int'), tIssue.assigneeId) })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::int + assignee_id::int as "r" from issue where id = $2"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+            3,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ r?: number | undefined }>>>()
+        expect(rows).toEqual([{ r: undefined }])
+        // The optional key is ABSENT, not present-undefined.
+        expect('r' in rows[0]!).toBe(false)
+    })
+
+    test('maybe-optional-args-arity-3-value-source-after-plain-null-propagates-to-undefined', async () => {
+        // `sum3MaybeOptional` is optional because `tIssue.assigneeId` is optional. The sum
+        // propagates NULL, so with issue 3's assignee_id = NULL, `3 + 4 + NULL = NULL` and
+        // the optional result key is ABSENT.
+        ctx.mockNext([{ r: null }])
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(3))
+            .select({ r: ctx.conn.sum3MaybeOptional(ctx.conn.const(3, 'int'), 4, tIssue.assigneeId) })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::int + $2::int + assignee_id::int as "r" from issue where id = $3"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+            4,
+            3,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ r?: number | undefined }>>>()
+        expect(rows).toEqual([{ r: undefined }])
+        expect('r' in rows[0]!).toBe(false)
+    })
 })

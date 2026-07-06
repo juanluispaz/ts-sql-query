@@ -72,6 +72,62 @@ describe(ctx.label, () => {
         })
     })
 
+    test('returning-old-and-new-with-from-and-customize-query-three-way-stack', async () => {
+        // UPDATE … FROM combined with `oldValues()` in RETURNING and `customizeQuery`
+        // hooks: the `beforeQuery` / `afterUpdateKeyword` / `afterQuery` comment fragments
+        // render around the statement while the synthetic `old.name` subquery and the FROM
+        // registration both survive. project 1 → org 1 (Acme Corp).
+        ctx.mockNext({
+            id:      1,
+            oldName: 'Marketing site',
+            newName: 'Marketing site / Acme Corp',
+            orgName: 'Acme Corp',
+        })
+
+        await ctx.withRollback(async () => {
+            const oldProject = tProject.oldValues()
+            const row = await ctx.conn.update(tProject)
+                .from(tOrganization)
+                .set({
+                    name: tProject.name.concat(' / ').concat(tOrganization.name),
+                })
+                .where(tProject.id.equals(1))
+                .and(tProject.organizationId.equals(tOrganization.id))
+                .returning({
+                    id:      tProject.id,
+                    oldName: oldProject.name,
+                    newName: tProject.name,
+                    orgName: tOrganization.name,
+                })
+                .customizeQuery({
+                    beforeQuery:        ctx.conn.rawFragment`/* head */ `,
+                    afterUpdateKeyword: ctx.conn.rawFragment`/*+ hint */`,
+                    afterQuery:         ctx.conn.rawFragment` /* tail */`,
+                })
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  update /*+ hint */ project as _new_ set name = _new_.name || $1 || _old_.organization__name from (select _old_.*, organization.name as organization__name from project as _old_, organization where _old_.id = $2 and _old_.organization_id = organization.id for no key update of _old_) as _old_ where _new_.id = _old_.id returning _new_.id as id, _old_.name as "oldName", _new_.name as "newName", _old_.organization__name as "orgName"  /* tail */"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                " / ",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof row, {
+                id:      number
+                oldName: string
+                newName: string
+                orgName: string
+            }>>()
+            expect(row).toEqual({
+                id:      1,
+                oldName: 'Marketing site',
+                newName: 'Marketing site / Acme Corp',
+                orgName: 'Acme Corp',
+            })
+        })
+    })
+
     test('returning-old-values-with-primary-key-in-set-uses-for-update-of', async () => {
         // Including a PRIMARY KEY column in `.set()` flips the builder's
         // `updatePrimaryKey` flag, so the synthesised `_old_` subquery

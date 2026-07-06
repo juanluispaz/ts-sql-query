@@ -726,4 +726,74 @@ describe(ctx.label, () => {
             { pid: 4, iss: null },
         ] }])
     })
+
+    test('element-top-rule-2-all-left-join-element-drops-on-miss-default', async () => {
+        // An aggregate element whose EVERY leaf comes from the left-joined table, mixing
+        // originally-required (`id`, `title`) with optional (`body`). When the join
+        // MISSES, every leaf is null and the WHOLE element is dropped. Org 2 groups
+        // project 3 (left-joins issue 4 → element present) and project 4 (left-join
+        // miss → element dropped).
+        const tIssueLeft = tIssue.forUseInLeftJoin()
+        ctx.mockNext([{ orgId: 2, items: [
+            { id: 4, title: 'Document /v2/users', body: 'See ADR-014' },
+            { id: null, title: null, body: null },
+        ] }])
+        const rows = await ctx.conn.selectFrom(tProject)
+            .leftJoin(tIssueLeft).on(tIssueLeft.projectId.equals(tProject.id))
+            .where(tProject.organizationId.equals(2))
+            .select({
+                orgId: tProject.organizationId,
+                items: ctx.conn.aggregateAsArray({ id: tIssueLeft.id, title: tIssueLeft.title, body: tIssueLeft.body }),
+            })
+            .groupBy('orgId')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.organization_id as orgId, json_arrayagg(json_object('id':issue.id, 'title':issue.title, 'body':issue.body)) as items from project left join issue on issue.project_id = project.id where project.organization_id = @0 group by project.organization_id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            orgId: number
+            items: Array<{ id: number; title: string; body?: string }>
+        }>>>()
+        expect(rows).toEqual([{ orgId: 2, items: [{ id: 4, title: 'Document /v2/users', body: 'See ADR-014' }] }])
+        // The all-null (missed) element is dropped entirely — one element, not two.
+        expect(rows[0]!.items.length).toBe(1)
+    })
+
+    test('element-top-rule-2-all-left-join-element-drops-on-miss-as-nullable', async () => {
+        // Under `projectingOptionalValuesAsNullable()` a missed element is STILL dropped
+        // (not surfaced); the originally-required leaves stay `id: number` / `title: string`
+        // and the optional `body` becomes `string | null`.
+        const tIssueLeft = tIssue.forUseInLeftJoin()
+        ctx.mockNext([{ orgId: 2, items: [
+            { id: 4, title: 'Document /v2/users', body: 'See ADR-014' },
+            { id: null, title: null, body: null },
+        ] }])
+        const rows = await ctx.conn.selectFrom(tProject)
+            .leftJoin(tIssueLeft).on(tIssueLeft.projectId.equals(tProject.id))
+            .where(tProject.organizationId.equals(2))
+            .select({
+                orgId: tProject.organizationId,
+                items: ctx.conn.aggregateAsArray({ id: tIssueLeft.id, title: tIssueLeft.title, body: tIssueLeft.body })
+                    .projectingOptionalValuesAsNullable(),
+            })
+            .groupBy('orgId')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.organization_id as orgId, json_arrayagg(json_object('id':issue.id, 'title':issue.title, 'body':issue.body)) as items from project left join issue on issue.project_id = project.id where project.organization_id = @0 group by project.organization_id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            orgId: number
+            items: Array<{ id: number; title: string; body: string | null }>
+        }>>>()
+        expect(rows).toEqual([{ orgId: 2, items: [{ id: 4, title: 'Document /v2/users', body: 'See ADR-014' }] }])
+        expect(rows[0]!.items.length).toBe(1)
+    })
 })

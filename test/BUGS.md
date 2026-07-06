@@ -67,7 +67,46 @@ of that. Two minutes of triage and one paragraph is the bar.
 
 ## Open Bugs
 
-_None currently open._
+## Empty-operation `min`/`max` guard is inconsistent across `execute*` shapes and between INSERT and UPDATE
+
+Pending improvement: the `min`/`max` guard on an *empty* mutation (an INSERT of
+`values([])`, or an UPDATE whose `__sets` end up empty) is applied three different
+ways depending on which `execute*` shape is called. This should have been unified
+when the guards / the empty short-circuits were added (the `executeInsertMany`
+empty branch that runs the guard landed in `b5dc3f2e`, sharpening a pre-existing
+asymmetry instead of reconciling it).
+
+**Where**:
+- `src/queryBuilders/InsertQueryBuilder.ts` — `executeInsert` empty-batch branch
+  early-`return`s `0`/`[]` **before** its `min`/`max` guard, but `executeInsertMany`'s
+  empty branch **falls through** to its guard (its own comment: "the min/max guards
+  below still run against the resulting count of 0").
+- `src/queryBuilders/UpdateQueryBuilder.ts` — both `executeUpdate` (empty `__sets`
+  → `return … 0`) and `executeUpdateMany` (empty `__sets` → `return … []`)
+  early-`return` **before** their guards, so UPDATE is internally consistent but the
+  OPPOSITE way to `executeInsertMany`.
+- `src/queryBuilders/DeleteQueryBuilder.ts` — no empty short-circuit exists, so DELETE
+  always runs its guard against the real affected-row count. **Not affected.**
+
+**Reproduction** (each on an empty operation with `min = 3`):
+- `insertInto(t).values([]).executeInsert(3)` → resolves `0` (guard skipped)
+- `insertInto(t).values([]).returning({ id: t.id }).executeInsertMany(3)` → **throws** `MINIMUM_ROWS_NOT_REACHED`
+- `update(t).dynamicSet({}).where(t.id.equals(1)).executeUpdate(3)` → resolves `0` (guard skipped)
+- `update(t).dynamicSet({}).where(t.id.equals(1)).returning({ id: t.id }).executeUpdateMany(3)` → resolves `[]` (guard skipped)
+
+So the same logical "empty operation that asked for at least 3 rows" throws in
+`executeInsertMany` but silently succeeds in `executeInsert`, `executeUpdate` and
+`executeUpdateMany`. The fix should pick ONE contract and apply it uniformly across
+all four execute-shapes: either the guard always runs against a count of 0 (so a
+`min > 0` throws `MINIMUM_ROWS_NOT_REACHED` everywhere), or the empty short-circuit
+always bypasses the guard.
+
+**Current workaround in the suite**: none — no test fails; the suite pins the current
+(inconsistent) behavior. `errors.insert-guards.test.ts` →
+`empty-values-returning-many-with-min-throws-minimum-rows` pins the `executeInsertMany`
+throw, and `empty-values-resolves-zero` pins `executeInsert` → `0` (no `min`). Whichever
+contract is chosen, those assertions (plus any UPDATE equivalents added at fix time)
+must be updated.
 
 ## Common bug shapes (for the fixing agent)
 

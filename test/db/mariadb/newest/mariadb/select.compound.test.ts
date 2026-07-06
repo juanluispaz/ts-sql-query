@@ -914,6 +914,62 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ label: string }>>>()
         expect(result).toEqual(expected)
     })
+
+    test('distinct-right-arm-survives-into-compound', async () => {
+        // `selectDistinctFrom(...)` as the RIGHT arm of a compound: the `distinct` keyword
+        // survives into `… union all select distinct …`. The left arm is issue 1's 'open';
+        // the right arm distinct-collapses the four statuses {open, in_progress, open,
+        // closed} to three {closed, in_progress, open}, so `unionAll` gives four rows.
+        const expected = [
+            { label: 'closed' },
+            { label: 'in_progress' },
+            { label: 'open' },
+            { label: 'open' },
+        ]
+        ctx.mockNext(expected)
+        const left = ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({ label: tIssue.status })
+        const right = ctx.conn.selectDistinctFrom(tIssue)
+            .select({ label: tIssue.status })
+        const result = await left.unionAll(right).orderBy('label').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as label from issue where id = ? union all select distinct status as label from issue order by label"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ label: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('distinct-both-arms-survive-into-compound', async () => {
+        // `distinct` on BOTH arms: each arm carries its own `distinct` keyword →
+        // `select distinct … union all select distinct …`. The left arm distinct-collapses
+        // the four issue statuses to three {closed, in_progress, open}; the right arm is the
+        // distinct 'open' rows collapsed to one. `unionAll` keeps both, giving four rows.
+        const expected = [
+            { label: 'closed' },
+            { label: 'in_progress' },
+            { label: 'open' },
+            { label: 'open' },
+        ]
+        ctx.mockNext(expected)
+        const left = ctx.conn.selectDistinctFrom(tIssue)
+            .select({ label: tIssue.status })
+        const right = ctx.conn.selectDistinctFrom(tIssue)
+            .where(tIssue.status.equals('open'))
+            .select({ label: tIssue.status })
+        const result = await left.unionAll(right).orderBy('label').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select distinct status as label from issue union all select distinct status as label from issue where status = ? order by label"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "open",
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ label: string }>>>()
+        expect(result).toEqual(expected)
+    })
     test('compound-order-by-value-source-with-explicit-mode', async () => {
         // A compound `orderBy(valueSource, <mode>)`: the value source forces the `select * from
         // (...)` wrap and the mode rides on the secondary item. Primary `orderBy('label')` keeps the

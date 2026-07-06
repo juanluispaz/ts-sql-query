@@ -220,6 +220,17 @@ export class DBConnection extends OracleConnection<'DBConnection'> {
         this.arg('int', 'optional')
     ).as((a, b) => this.fragmentWithType('int', 'optional').sql`${a} + ${b}`)
 
+    // A 3-ary `buildFragmentWithMaybeOptionalArgs` over `int` args — the
+    // null-propagating sibling of intPlus. Used by fragments.with-args.test.ts
+    // to realise the merged-optional result's `undefined` inhabitant for the
+    // `[value-source-required, plain, value-source-optional]` shape at runtime
+    // (3 + 4 + NULL = NULL).
+    sum3MaybeOptional = this.buildFragmentWithMaybeOptionalArgs(
+        this.arg('int', 'optional'),
+        this.arg('int', 'optional'),
+        this.arg('int', 'optional')
+    ).as((a, b, c) => this.fragmentWithType('int', 'optional').sql`${a} + ${b} + ${c}`)
+
     // A 1-ary `buildFragmentWithArgs` over a `bigint` arg. abs(...) is portable.
     bigintAbs = this.buildFragmentWithArgs(
         this.arg('bigint', 'required')

@@ -68,6 +68,62 @@ describe(ctx.label, () => {
         })
     })
 
+    test('returning-old-and-new-with-from-and-customize-query-three-way-stack', async () => {
+        // UPDATE … FROM combined with `oldValues()` in RETURNING and `customizeQuery`
+        // hooks: the `beforeQuery` / `afterUpdateKeyword` / `afterQuery` comment fragments
+        // render around the statement while the synthetic `old.name` subquery and the FROM
+        // registration both survive. project 1 → org 1 (Acme Corp).
+        ctx.mockNext({
+            id:      1,
+            oldName: 'Marketing site',
+            newName: 'Marketing site / Acme Corp',
+            orgName: 'Acme Corp',
+        })
+
+        await ctx.withRollback(async () => {
+            const oldProject = tProject.oldValues()
+            const row = await ctx.conn.update(tProject)
+                .from(tOrganization)
+                .set({
+                    name: tProject.name.concat(' / ').concat(tOrganization.name),
+                })
+                .where(tProject.id.equals(1))
+                .and(tProject.organizationId.equals(tOrganization.id))
+                .returning({
+                    id:      tProject.id,
+                    oldName: oldProject.name,
+                    newName: tProject.name,
+                    orgName: tOrganization.name,
+                })
+                .customizeQuery({
+                    beforeQuery:        ctx.conn.rawFragment`/* head */ `,
+                    afterUpdateKeyword: ctx.conn.rawFragment`/*+ hint */`,
+                    afterQuery:         ctx.conn.rawFragment` /* tail */`,
+                })
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  update /*+ hint */ project set name = project.name + @0 + organization.name output inserted.id as id, deleted.name as oldName, inserted.name as newName, organization.name as orgName from organization where project.id = @1 and project.organization_id = organization.id  /* tail */"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                " / ",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof row, {
+                id:      number
+                oldName: string
+                newName: string
+                orgName: string
+            }>>()
+            expect(row).toEqual({
+                id:      1,
+                oldName: 'Marketing site',
+                newName: 'Marketing site / Acme Corp',
+                orgName: 'Acme Corp',
+            })
+        })
+    })
+
     // NOT-APPLICABLE: SQL Server cannot update an IDENTITY primary-key column, so the `updatePrimaryKey` -> `for update of` path is unreachable here.
     /*
     test('returning-old-values-with-primary-key-in-set-uses-for-update-of', async () => {

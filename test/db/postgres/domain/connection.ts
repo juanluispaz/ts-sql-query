@@ -225,6 +225,17 @@ export class DBConnection extends PostgreSqlConnection<'DBConnection'> {
         this.arg('int', 'optional')
     ).as((a, b) => this.fragmentWithType('int', 'optional').sql`${a}::int + ${b}::int`)
 
+    // A 3-ary `buildFragmentWithMaybeOptionalArgs` over `int` args — the
+    // null-propagating sibling of intPlus. Used by fragments.with-args.test.ts
+    // to realise the merged-optional result's `undefined` inhabitant for the
+    // `[value-source-required, plain, value-source-optional]` shape at runtime
+    // (3 + 4 + NULL = NULL). The `::int` casts keep `$1 + $2 + $3` resolvable.
+    sum3MaybeOptional = this.buildFragmentWithMaybeOptionalArgs(
+        this.arg('int', 'optional'),
+        this.arg('int', 'optional'),
+        this.arg('int', 'optional')
+    ).as((a, b, c) => this.fragmentWithType('int', 'optional').sql`${a}::int + ${b}::int + ${c}::int`)
+
     // A 1-ary `buildFragmentWithArgs` over a `bigint` arg. `abs(...)` is
     // portable; the bigint arg is cast so the literal coercion resolves on PG.
     bigintAbs = this.buildFragmentWithArgs(

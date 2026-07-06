@@ -1037,16 +1037,6 @@ or does the composition remove/replace it?**
   when you probe to refute a "drops X" claim, build the *minimal* shape the trace implies — not a
   convenient composition that also reaches the target through a covered path, or you refute a real
   bug by testing the wrong shape.
-- **customInt `valueWhenNull<VALUE>` / `nullIfValue<VALUE>` drop the `| VALUE[typeof source]` SOURCE
-  union — REAL src type-asymmetry, but COMPILE-ONLY → permanently OUT (do not re-file as §A each
-  round).** `CustomIntValueSource` (`values.ts:603/605`) is the lone outlier among ~10 value-source
-  types (its sibling `CustomDouble` at `:669/671`, Bigint, String, Uuid… all union `VALUE[source]`).
-  Effect: a customInt null-handling result loses the RHS table's compile-time provenance, weakening
-  the "column not in FROM" net for customInt only. But `SOURCE` is **phantom** — absent from the
-  projected shape / emitted SQL / runtime value — so it has **no Principle-#1 test**; it is
-  `types.negative/` territory (a src-owner fix + a negative-type lock), **not a §A/§B finding and not
-  a BUGS.md entry**. A permanent OUT recorded so an F1-CUSTOMNUM pass closes it on sight instead of
-  re-deriving it as new.
 - **The execute-shape INHABITANT-PARITY grid is a recurring §A vein — check the whole grid, not one
   branch.** Each mutation/select execute-shape family (`executeInsert*`/`executeUpdate*`/
   `executeDelete*`/`executeSelect*`) dispatches on `__oneColumn` (→ `execute…ReturningOneColumnOneRow`)

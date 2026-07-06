@@ -99,7 +99,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                             throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: idColumnPrivate.__valueTypeName }, e)
                         }
                     }
-                    if (!this.onConflictDoNothing) {
+                    if (!this.__onConflictDoNothing) {
                         if (result === undefined) {
                             throw new TsSqlProcessingError({ reason: 'NO_RESULT' }, 'No result returned by the database')
                         } else if (result === null) {

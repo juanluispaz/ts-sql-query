@@ -84,6 +84,9 @@ describe(ctx.label, () => {
         // high-level `.transaction(async () => {...})` helper.
         const connection = ctx.conn
 
+        // A plain `returningLastInsertedId()` requires an id back; mock one so
+        // the single-row path resolves it (the real engine returns its own).
+        ctx.mockNext(1)
         await ctx.withReseed(async () => {
             // doc-start
             await connection.beginTransaction()

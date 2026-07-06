@@ -185,6 +185,21 @@ describe(ctx.label, () => {
 
             if (!ctx.realDbEnabled) expect(id).toBe(100)
             else expect(id).toBeGreaterThan(2) // seed reserves org ids 1, 2
+
+            // The value arm the non-null mock above never realizes: a suppressed
+            // insert returns no id, so — with the mock forcing an absent id — the
+            // `onConflictDoNothing()` chain must RESOLVE `null` (the guard is
+            // skipped for do-nothing) rather than throw. On the real engine no key
+            // collides, so a real id still comes back.
+            ctx.mockNext(null)
+            const suppressedId = await ctx.conn.insertInto(tOrganization)
+                .values({ name: 'Conflict demo', plan: 'free' })
+                .onConflictDoNothing()
+                .returningLastInsertedId()
+                .executeInsert()
+            assertType<Exact<typeof suppressedId, number | null>>()
+            if (!ctx.realDbEnabled) expect(suppressedId).toBeNull()
+            else expect(suppressedId).toBeGreaterThan(2)
         })
     })
 

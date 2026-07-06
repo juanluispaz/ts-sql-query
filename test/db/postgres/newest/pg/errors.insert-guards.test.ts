@@ -10,13 +10,18 @@
 //     shape already maps.
 //   - The empty `values([])` short-circuit: it resolves without touching
 //     the database (0, or [] when returning the last inserted id).
+//   - The single-row `returningLastInsertedId()` null-id guard: a plain
+//     (non-`onConflictDoNothing`) chain is typed non-null, so a driver that
+//     returns no id must throw MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE
+//     rather than resolve `null` — mock-forced, since a real INSERT always
+//     produces an id.
 //
 // No SQL snapshots: the guards throw before execution and the empty-values
 // case emits no query.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { TsSqlError } from '../../../../../src/TsSqlError.js'
-import { tProject } from '../../domain/connection.js'
+import { tOrganization, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 function reasonOf(e: unknown): string | undefined {
@@ -178,4 +183,22 @@ describe(ctx.label, () => {
         } catch (e) { caught = e }
         expect(reasonOf(caught)).toBe('MINIMUM_ROWS_NOT_REACHED')
     })
+    test('insert-guards/returning-last-id-throws-when-id-is-null', async () => {
+        // A plain single-row `returningLastInsertedId()` (no `onConflictDoNothing()`)
+        // is typed non-null, so a driver returning no id violates that contract: the
+        // guard must throw MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE rather than
+        // resolve `null`. Mock-only: a real INSERT always produces the generated id,
+        // so the missing id can only be forced through the mock.
+        if (ctx.realDbEnabled) return
+        ctx.mockNext(null)
+        let caught: unknown
+        try {
+            await ctx.conn.insertInto(tOrganization)
+                .values({ name: 'Ghost', plan: 'free' })
+                .returningLastInsertedId()
+                .executeInsert()
+        } catch (e) { caught = e }
+        expect(reasonOf(caught)).toBe('MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE')
+    })
+
 })

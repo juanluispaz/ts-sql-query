@@ -600,9 +600,9 @@ export interface CustomIntValueSource</*in|out*/ SOURCE extends NSource, /*in|ou
     // atan2<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<SOURCE | VALUE[typeof source], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     // Redefined methods
     valueWhenNull(value: TYPE): CustomIntValueSource<SOURCE, TYPE, TYPE_NAME, 'required'>
-    valueWhenNull<VALUE extends IValueSource<any, TYPE, TYPE_NAME, any>>(value: VALUE): CustomIntValueSource<SOURCE, TYPE, TYPE_NAME, VALUE[typeof optionalType]>
+    valueWhenNull<VALUE extends IValueSource<any, TYPE, TYPE_NAME, any>>(value: VALUE): CustomIntValueSource<SOURCE | VALUE[typeof source], TYPE, TYPE_NAME, VALUE[typeof optionalType]>
     nullIfValue(value: TYPE): CustomIntValueSource<SOURCE, TYPE, TYPE_NAME, 'optional'>
-    nullIfValue<VALUE extends IValueSource<any, TYPE, TYPE_NAME, any>>(value: VALUE): CustomIntValueSource<SOURCE, TYPE, TYPE_NAME, 'optional'>
+    nullIfValue<VALUE extends IValueSource<any, TYPE, TYPE_NAME, any>>(value: VALUE): CustomIntValueSource<SOURCE | VALUE[typeof source], TYPE, TYPE_NAME, 'optional'>
     asOptional(): CustomIntValueSource<SOURCE, TYPE, TYPE_NAME, 'optional'>
     asRequiredInOptionalObject(): CustomIntValueSource<SOURCE, TYPE, TYPE_NAME, 'requiredInOptionalObject'>
     onlyWhenOrNull(when: boolean): CustomIntValueSource<SOURCE, TYPE, TYPE_NAME, 'optional'>

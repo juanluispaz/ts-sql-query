@@ -57,7 +57,7 @@ search:
 
 **Internal changes**:
 
-- **A custom-`int` arithmetic operation against another column now tracks both columns' source tables in its type.** `add` / `subtract` / `modulo` / `minValue` / `maxValue` on a `customInt` value source, when the argument was another value source, dropped that argument's table from the result's phantom source type — unlike `multiply` and every other numeric value source, which already tracked both. They now all behave the same. This only tightens the compile-time check that verifies a value belongs to a table in scope; the generated SQL and the runtime values are unchanged.
+- **A custom-`int` operation against another value source now tracks both operands' source tables in its type.** `add` / `subtract` / `modulo` / `minValue` / `maxValue` and the null-handling `valueWhenNull` / `nullIfValue` on a `customInt` value source, when the argument was another value source, dropped that argument's table from the result's phantom source type — unlike `multiply` and every other numeric / custom value source, which already tracked both. They now all behave the same. This only tightens the compile-time check that verifies a value belongs to a table in scope; the generated SQL and the runtime values are unchanged.
 
 ## v2.0.0-beta.1 (14 Jun 2026)
 

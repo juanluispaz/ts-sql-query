@@ -30,7 +30,7 @@
 > emitted SQL / result type / value is wrong — a type-vs-impl divergence on a
 > reachable-but-untested overload. That is exactly the class of bug this audit
 > has caught (e.g. `ShapedInsertOnConflictSetsExpression` → a real
-> MariaDB/MySQL `ON DUPLICATE KEY UPDATE` fix, commit `1149a866`), which **no
+> MariaDB/MySQL `ON DUPLICATE KEY UPDATE` fix), which **no
 > coverage report would have surfaced**. Use this runbook to drive the suite
 > toward *total coverage of the typed surface*; use the coverage runbook to
 > mop up genuinely-unexecuted lines.
@@ -44,8 +44,8 @@
 > "too small to test": a distinct reachable overload / interface / per-receiver
 > method / arity / kind / classification gets a test even when its output
 > coincides with a covered one. This is not completeness theatre — it is a
-> **proven bug-finding method** — the confirmed defects it has surfaced are
-> catalogued in §9, and each maximalist pass has tended to surface **more real
+> **proven bug-finding method** — the recurring fingerprints it has surfaced are
+> distilled in §9, and each maximalist pass has tended to surface **more real
 > `src/` bugs as its findings were implemented**. Every time the bar was
 > *lowered* ("this is borderline / degenerate / low-value, skip it") it skipped
 > over a real defect.
@@ -151,6 +151,26 @@ or the **surface decomposition** (§6) is refined by the user during a session,
 update this runbook in the same session — those three are the load-bearing
 rules and they have already shifted once (see §4's history note).
 
+**Timelessness discipline — teach the method, do NOT narrate the history.** This
+document is not a log of what each round found or a catalogue of what git already
+records fixed; it teaches **how to do the work** the meticulous way that has proven
+fruitful. The worked examples and illustrations here are **frozen** — an example
+proves its technique exactly as well as a newer one would, so swapping it for the
+latest instance, re-dating a round tag, or "fixing" a line number is pure churn that
+adds no rule and risks importing an error. **Leave them.** Staleness of an
+illustration is harmless: the §0.5 pre-flight re-derives every live count, filename
+and line before each round, so nothing here is trusted as current anyway. Touch this
+file in only three cases: **(a)** a round surfaces a **genuinely new failure mode /
+oracle / technique** not already stated — add it as a *timeless rule* (state the rule;
+keep any illustration to a clause; never delete the older illustration of the same
+rule; no round tag, no commit hash); **(b)** a round confirms a **new `src/` defect**
+that teaches a **new fingerprint** (§9) not already listed — add/refine that
+fingerprint (a defect matching an existing fingerprint needs no edit — git records the
+fix); **(c)** the user refines a load-bearing rule (above). Anything else — a fifth
+restatement of a rule already stated four ways, a newer example for a pattern already
+illustrated, a per-round or per-bug narrative — is churn to skip. When you *do* add,
+write it so it never needs re-touching: a rule, not a story.
+
 ## The loop, end to end
 
 One session runs this sequence once and stops at a written report. (Turning
@@ -242,7 +262,7 @@ discovery agents are told to do the same (§6).
 This is the rule the whole method turns on, and the one most easily gotten
 wrong. **It was deliberately narrowed mid-effort** — early passes were too
 quick to dismiss, and a path one pass had called "borderline / not reachable"
-later shipped a real bug fix (commit `1149a866`). Carry the narrowed bar:
+later shipped a real bug fix. Carry the narrowed bar:
 
 > **A path is DEGENERATE only when ALL of:** it is the **same overload** reached
 > through a **shared dispatcher**, the only difference is a **kind-string**, the
@@ -281,6 +301,34 @@ The test that settles a borderline call: *would a regression that breaks only
 this path leave every covered test green?* If yes, it is a distinct path worth
 a test. If a regression cannot break it without also breaking the tested
 representative (shared dispatcher, generic impl), it is degenerate.
+
+**Four classes the discovery agents (and the coordinator) systematically MIS-FILE as
+degenerate — they are DISTINCT type-paths; promote them to Tier-3 §A, don't drop them.**
+A generic *impl* does not make a path degenerate when the
+*declared type* or the *emitted SQL* differs — apply the settling test above before closing a
+surface "saturated":
+1. **Receiver-optionality variants.** A method on an `'optional'` receiver threads a different
+   `OPTIONAL_TYPE` → a distinct return-branch (`T | undefined` vs `T`), explicitly a type-path in
+   §2. `customLocalTime.asOptional().getHours()` is NOT covered by the required-receiver getter,
+   even though the SQL coincides — a recurring deferral; promote it.
+2. **Per-receiver-redeclared Nullable-family methods.** `valueWhenNull`/`nullIfValue`/`asOptional`/…
+   are redeclared on each leaf to re-thread the leaf's return type; a generic *impl* + a tested
+   *sibling method on the same leaf* does NOT cover `valueWhenNull × LocalDate` when only
+   `nullIfValue × LocalDate` is tested — different declared return type + different value.
+3. **Distinct emitted SQL with no type distinction.** The COVERED bar counts *emitted SQL + params*
+   in its own right — a per-operand emission branch that no snapshot pins is uncovered even if the
+   result *type* is identical. `intCol.modulo(2.5)` → `mod((col)::numeric,($1)::numeric)` vs
+   `intCol.modulo(2)` → `col % $1`: this is the int-receiver sibling of the
+   historical `double % x` emission bug. "Emission-only, no type distinction" is NOT a reason to
+   file OUT — it is a reason to write an *emission-snapshot* test.
+4. **Adapter column fed into a method it isn't yet tested with (Theme 9).** An adapter column tested
+   only via `.equals`/one transform leaves its other value-source methods (each propagating the
+   adapter to operand and/or result leaf) unrealized — `reviewerCode.toUpperCase()/trim()/reverse()/
+   substring()/concat()` beyond the tested `.toLowerCase()`/`.startsWith()`.
+The genuine OUT line stays firm: a distinction observable ONLY via `assertType` with byte-identical
+SQL **and** value (branded-leaf locks on optionality modifiers; a phantom SOURCE union) is compile-only
+→ negative-type territory, OUT. The discriminator is: *does the type, the emitted SQL, or a realized
+value differ?* If any does → distinct path (Tier-3 §A at worst). Only "none differ, type-only" is OUT.
 
 **Degenerate-by-non-validatability.** A type-path is also degenerate if it
 cannot be turned into a [`DESIGN.md`](./DESIGN.md) Principle-#1 test — a real
@@ -544,7 +592,16 @@ fires). The coordinator is the adjudicator.
      them" for the worked case (`disallowIfNoValueWhen`).
 3. **Absence at scale.** For any "this whole class is untested" claim, run the
    wide-grep yourself (`grep -rhoE "<col>\.(equals|notEquals|…)" test/db | sort
-   | uniq -c`) rather than trusting the count.
+   | uniq -c`) rather than trusting the count — **and capture the OPERAND, not
+   just the method** (`grep -rhoE "<col>\.<method>\([^)]*\)"`). Recurring
+   over-report (round 25, EQCMP): a "value-source-operand twin (`col.method(otherCol)`)
+   is missing for the custom leaves" claim collapsed once the operands were read —
+   `costCents`/`version`/`signingKey` already feed the value-source-operand overload
+   via **subquery** operands (`costCents.greaterThan(loSub)`, `version.in(verOfRelease1)`).
+   `col.method(anotherColumn)` and `col.method(scalarSubquery)` are the **same**
+   `method(IValueSource)` overload → col-vs-col is DEGENERATE where a subquery operand is
+   already tested; it is not a distinct type-path. Only a leaf whose receiver-redeclaration
+   is exercised by *neither* a const *nor any* value-source operand is a real gap.
 4. **Runtime emission / throw probe** → for a candidate **DEFECT** that is *not* a
    type question — a composition that emits **wrong / dropped / misplaced SQL** or
    **throws at build** — compile-repro can't see it (the types *accept* it; the bug
@@ -581,6 +638,39 @@ fires). The coordinator is the adjudicator.
      entry. Establish the render site survives before filing — see §9 "False positives &
      misclassified boundaries" for the worked case (`customizeQuery` non-bracketing hooks on
      `recursive × forUseInQueryAs`).
+
+5. **Adversarially re-check the confident §C / "saturated" DROPS — not only the §A claims.**
+   The agents' systematic error is not just false-ABSENT (over-reporting §A); it is **over-filing
+   degenerate** — a distinct path labelled "degenerate / saturated" and dropped, which silently
+   thins the round and is invisible in the report (a §C list *reads* as thoroughness). Verifying
+   only the positive claims (items 1–4) rubber-stamps that error. So sample the confident
+   degenerate/saturated verdicts and run the §4 settling test on each: *does the declared type, the
+   emitted SQL, or a realized value differ from the tested representative?* If any does, it is a
+   distinct path — promote it to Tier-3 §A. §4 names the four classes agents most often mis-drop
+   (receiver-optionality; per-leaf-redeclared Nullable methods; distinct-emission-same-type;
+   adapter-into-a-not-yet-tested method). The tell: a surface that returns "saturated" with a
+   **long** §C list is where to spend a probe — a genuinely saturated surface has a *short* §C; a
+   mis-filed one buries real Tier-3 tests in a long one. This is the discipline that keeps a mature
+   round from closing thinner than the surface warrants.
+
+**Resolve every self-hedged verdict to a firm one — a hedge is not report-ready.**
+A candidate the discovery agent (or you) labels *"low confidence / may be §A on
+closer look / possibly reachable / narrow — flag but don't prioritize"* is an
+**unresolved** verdict, not a finding. Close it **this session** to a firm §A (with
+the exact test to write) or §C/refuted (with the covering test named), by the same
+tools every other borderline claim uses — a compile-repro for the type, a wide-grep
+for absence. Do **not** ship the hedge to the report for the implementer to
+re-investigate: that just relocates the unfinished work, and the "on closer look" is
+*your* job. Two recurring traps when resolving one: **(a)** the path is already
+exercised in a **`docs.advanced.*` / `docs.*` utility file** (pick/dynamic-from-model/
+utility-type/order-by-from-model paths especially live there, not in the obvious
+`select.*`/`dynamic-condition.*` file) — grep those explicitly before calling it a
+gap; **(b)** the *premise* of the demotion/flip the hedge rests on may not actually
+manifest — e.g. a transform that **uniformly** rewrites its input (a pick that makes
+*every* leaf optional) has no "before" variant to change *from*, so the hypothesised
+rule-change is not an observable path. Construct the compile-repro, compare its type
+against the existing coverage, and if they coincide the item is §C — say so, don't
+hedge.
 
 A finding that survives verification is real. A finding refuted moves to the
 report's "refuted" list with the evidence — never silently dropped (so the next
@@ -636,7 +726,7 @@ these first; they are where output-coincidence most often masks a real defect:
 2. **Shaped builders.** `shapedAs(...)` reaches a parallel, re-typed interface
    (shape-renamed keys) for INSERT and UPDATE set/on-conflict — easy to leave
    tested on a single route. **This is the canonical bug class** (see the §9
-   ledger).
+   fingerprints).
 3. **Trailing-`adapter?` fan-out.** The optional trailing `TypeAdapter` overload
    on `const`/`optionalConst`/`fragmentWithType`/`aggregateFragmentWithType`/
    `executeFunction`/`sequence`/`arg`/`valueArg` — tested for one kind, and some
@@ -683,8 +773,8 @@ these first; they are where output-coincidence most often masks a real defect:
     required vs optional), a param-name typo, or a return type that silently drops a
     type parameter is either a **type-vs-impl bug** (one such defect:
     `ShapedInsertOnConflictSetsExpression` had a duplicated non-`When` block, a
-    *missing* `*When` family, and an `olumns` typo — the wrong block pasted; commit
-    `122458db`) or a missing-test path. Run this sweep on
+    *missing* `*When` family, and an `olumns` typo — the wrong block pasted) or a
+    missing-test path. Run this sweep on
     `insert.ts`/`update.ts`/`delete.ts`/`select.ts` first; it is cheap (reading
     types) and high-yield. Corollary coverage gap: once a twin is repaired, its newly-present
     family (e.g. the on-conflict `*When` octet) is typically still *unexercised at runtime* —
@@ -701,7 +791,7 @@ where to spend less time, never a licence to skip the enumeration.
 the mature phase (many single-surface agents returning 0/0), the round's headline
 value is no longer per-kind fan-out — it is the **parity sweep (theme 10)** and the
 **seam critic (theme 8)**, whose CANDIDATE DEFECTs, once **runtime-probed** (§7.4),
-are the confirmed bugs. The evidence: the confirmed-bug ledger below is increasingly
+are the confirmed bugs. The evidence: the fingerprints below are increasingly
 dominated by twin-asymmetry and cross-cutting-feature × special-builder defects that
 no per-surface agent could see. So when most surfaces come back saturated, that is
 **not** a signal to pad the round with degenerate per-kind gaps — it is the signal
@@ -723,167 +813,115 @@ bug reaches the coordinator. When that happens there is simply nothing to file t
 arms) is the round's whole value. **Do NOT manufacture a bug to "produce" one, and do NOT
 pad §A with degenerate per-kind gaps** — an honest "10 surfaces saturated, 0 bugs, N clean
 §A composition tests" report is exactly what a mature round should look like. The method's
-worth is proven by the ledger below across the effort's whole history, not by every single
+worth is proven by the fingerprints below across the effort's whole history, not by every single
 round landing a defect. (See "False positives & misclassified boundaries" for the two ways
 a forced bug goes wrong: a compile-divergence read as wrongness, and a probed drop read as a
 defect when its clause was actually removed by the composition.)
 
-### Verified bugs this method has caught
+### Fingerprints that have paid off — and the technique each rewards
 
-The durable proof the bar is worth holding (keep this list current — append each
-confirmed `src/` defect a finding surfaces, with its fix pointer, so the track
-record survives the transient reports):
+This is not a catalogue of past commits (git holds those, and this document is not a
+history of what was fixed); it is the set of **fingerprints** that keep yielding
+defects and the **technique** that surfaces each — so a context-free agent applies
+them instead of re-deriving them. The unifying observation: **every confirmed defect
+lived on a path that *looked like the same implementation* as a covered one.** The
+covered sibling executed fine, so the untested twin's wrong emission / dropped
+fragment / mis-folded type / build-time throw stayed hidden — coverage was green
+through every one. That is the case *for* the narrow bar (§4) and the maximalist
+standard (header). The recurring fingerprints, each an instance of a theme, with the
+technique that catches it:
 
-- **Shaped `INSERT … ON CONFLICT` key remapping.** The type advertised
-  shape-renamed keys in the on-conflict update-set
-  (`ShapedInsertOnConflictSetsExpression`); the impl didn't deliver it on
-  MariaDB/MySQL `ON DUPLICATE KEY UPDATE`. Found by enumerating a *reachable
-  overload an earlier pass had dismissed as "borderline / not reachable"*; fixed
-  in commit `1149a866`. Invisible to coverage (the lines executed; the remapping
-  was wrong). This is the canonical shaped-builder bug class (theme 2).
-- **Per-type numeric & compound-overload emission — two "valid SQL on the covered
-  path, invalid on the untested sibling" defects** (filed in [`BUGS.md`](./BUGS.md)
-  when found; the live entries are the source of truth):
-  - **`modulo(...)` on a `double` / `customDouble`** emits `float % x`, which
-    PostgreSQL rejects (`%` exists for `integer`/`numeric`, not `double
-    precision`). The suite only ever exercised `modulo` on `int`/`bigint`/
-    `customInt` receivers — found by the **value-source / per-type numeric**
-    enumeration (theme 1). Dialect-dependent (SQLite/MySQL/MariaDB accept it).
-  - **`orderBy(valueSource)` on a compound** emits an un-wrapped
-    `UNION … ORDER BY <expr>` that every engine rejects — the string / ordinal /
-    `rawFragment` order-by forms wrap the compound in `select * from (…)`, but
-    the value-source overload doesn't. Found by the **compound-interface
-    overload-subset** enumeration (theme 6 / the compound-order-by gap).
-- **Shaped UPDATE `*When` set family unusable as typed** (the shaped-key-remap
-  class above, resurfaced in a new arm). All 10 conditional set arms
-  (`setWhen`, `setIfValueWhen`, …) on `ShapedExecutableUpdateExpression` type their
-  `columns` param `UpdateSets<…, undefined>` (**unshaped**) while the non-When
-  siblings use `…SHAPE`. So the `*When` arms **reject** the renamed shape key the
-  runtime needs and **accept** only the real column keys the runtime then silently
-  drops (`__shape` is keyed by the renamed names) — the feature can't be used as
-  typed. Found by the **shaped-builder** enumeration (theme 2); **compile-verified**
-  by the coordinator (`setWhen(true,{projectName})` → TS2353; positive controls pass)
-  and confirmed against `UpdateQueryBuilder`. Filed in [`BUGS.md`](./BUGS.md) with a
-  source-confirmed milder INSERT sibling (static `onConflictDoUpdateSet` returns the
-  *non-shaped* node, so a chained shaped `.set` is type-rejected though the impl would
-  remap it). The lesson: **a shaped continuation that drops `SHAPE` from a param or a
-  return type is the highest-yield place to compile-repro** — always check the
-  shaped-vs-non-shaped param/return symmetry across the *whole* method family, not
-  just the happy-path `set`.
-- **Single-row insert `keepOnlyWhen` return type mis-folds `MISSING_KEYS`**
-  (the keep-tracking-parameter bug class — a further resurfacing of the
-  shaped / `*When` family of defects). On
-  `MissingKeysInsertExpression` (insert.ts:293) and its shaped twin
-  `ShapedMissingKeysInsertExpression` (:352), `keepOnlyWhen` returns
-  `Exclude<RequiredColumnsForSetOf<TABLE> | MISSING_KEYS, COLUMNS>` whereas the
-  runtime-identical `keepOnly` (:265) returns
-  `Exclude<RequiredColumnsForSetOf<TABLE>, COLUMNS> | MISSING_KEYS`. Since
-  `InsertQueryBuilder.keepOnlyWhen(true, ...c)` calls *exactly* `this.keepOnly(...c)`
-  (:1437-1442), the `when:true` result type must equal `keepOnly`'s — it doesn't:
-  `keepOnlyWhen` over-removes named columns from `MISSING_KEYS`, so naming all
-  required columns collapses `MISSING_KEYS` to `never` (typed executable) while
-  `keepOnly` keeps them missing (non-executable). Found by the **theme-10 parity
-  sweep**; **compile-verified** by the coordinator on both twins
-  (`assertType<Exact<keepOnly(all), keepOnlyWhen(true,all)>>` → TS2344 on both).
-  Filed in [`BUGS.md`](./BUGS.md). The multi-row twins and all executable insert
-  twins fold `MISSING_KEYS` correctly — only the single-row `MissingKeys` pair is
-  wrong. The lesson reinforces the shaped-`*When` entry above: **a `*When`
-  continuation that re-derives a key-tracking type parameter differently from its
-  non-`When` sibling is the highest-yield compile-repro** — diff the
-  `When`/non-`When` return types arm by arm. **But a divergence alone is NOT a bug:**
-  keepOnlyWhen was a bug because `keepOnly` is *monotonic* (it re-unions `| MISSING_KEYS`
-  and never clears an obligation), so the When form must match it. When the unconditional
-  sibling *clears* an obligation (`disallowIfNoValue`), the When form correctly does NOT
-  match — see "False positives … the oracle that refutes them" below. **The oracle is
-  soundness under `when === false`, not runtime delegation under `when === true`.**
-- **`customizeQuery` hooks silently dropped / mislanded on a recursive-union
-  SELECT.** `customizeQuery({beforeWithQuery, afterWithQuery, beforeQuery,
-  afterQuery})` is typed & callable on a `.recursiveUnion*(...)` select (both
-  before and after the union call), but the recursive-CTE emission path drops
-  `beforeWithQuery`/`afterWithQuery` entirely and renders `beforeQuery`/`afterQuery`
-  *inside* the CTE body around the anchor member (violating `beforeQuery`'s "before
-  any other SQL") — whereas the non-recursive `forUseInQueryAs` CTE path honors all
-  four (wraps the CTE parens). Found by the **seam critic** (composition ×
-  recursive-CTE); **verified by a coordinator runtime SQL probe** (build the
-  composition on the mock, capture `ctx.lastSql`, diff against the working
-  `forUseInQueryAs` snapshot). A "TS accepts what the impl doesn't deliver"
-  divergence; filed in [`BUGS.md`](./BUGS.md). The lesson: **when the type surface
-  lets a cross-cutting feature (customizeQuery, allowWhen, projectingOptional…)
-  compose onto a special builder (recursive/compound/shaped), probe the *emitted
-  SQL* of the composition — a silently-dropped or mis-placed fragment is invisible
-  to types and to any test that never composes the two.**
-- **Shaped-update `extendShape` drops the `dynamicSet` opener** (twin asymmetry;
-  TS *rejects* something that should work). `ShapedUpdateSetExpression.extendShape`
-  (update.ts:295) returns `ShapedNotExecutableUpdateExpression`, which has no
-  `dynamicSet` — while its AllowingNoWhere twin's `extendShape` (:319) returns its
-  own opener family (keeps `dynamicSet`) and the INSERT `ShapedInsertExpression.extendShape`
-  keeps its own family too. Runtime `extendShape` returns `this`, so `dynamicSet`
-  is callable; the type is over-restrictive. So `update(t).shapedAs(...).extendShape(...).dynamicSet()`
-  type-errors while the identical AllowingNoWhere chain compiles. Found by the
-  **parity sweep**; **compile-repro'd** by the coordinator (TS2339 on the normal
-  path, compiles on the AllowingNoWhere path, compiles on the normal opener without
-  `extendShape`). Filed in [`BUGS.md`](./BUGS.md).
-- **One-column recursive select as an inline query value throws `INTERNAL: Unexpected
-  inline select`** (TS accepts, impl throws). `selectOneColumn(...).recursiveUnion*(...).forUseAsInlineQueryValue()`
-  is type-permitted, but `__buildRecursive` (SelectQueryBuilder.ts ~586-593) copies
-  `__columns`/`__subSelectUsing`/`__projectOptionalValuesAsNullable` onto the outer
-  `recursiveSelect` and **omits `__oneColumn`**, so the inline scalar init throws.
-  The non-recursive one-column inline works, and the recursive one-column via
-  `forUseInQueryAs`/`executeSelectMany` works — only the recursive×one-column×inline
-  cell is broken. Found by the **seam critic**; **root-caused by source read + a
-  coordinator runtime throw-probe** (recursive path throws `INTERNAL`; non-recursive
-  control emits `select (select id … ) as "n" from project`). Filed in [`BUGS.md`](./BUGS.md).
-- **`customizeQuery` `beforeQuery`/`afterQuery` silently dropped on a recursive-union
-  select consumed via `forUseInQueryAs`** (the recursive-CTE customizeQuery-drop class,
-  resurfaced on a *composition the earlier fix didn't cover*). **CONFIRMED + FIXED.**
-  `.recursiveUnion*(…).customizeQuery({beforeQuery, afterQuery, …}).forUseInQueryAs(name)`
-  is typed & callable, but the recursive branch of `forUseInQueryAs`
-  (SelectQueryBuilder.ts ~:539-547) returned only `recursiveView` and discarded
-  `this.__recursiveSelect` (where the whole-statement hooks were parked by
-  `__applyRecursiveCustomization` ~:612-648), so `beforeQuery`/`afterQuery` vanished.
-  Found by the **seam critic**; **verified by a coordinator runtime SQL probe** with
-  two working-sibling controls — the SAME builder via `executeSelectMany` renders all four
-  hooks, and the non-recursive `forUseInQueryAs` renders them (`beforeQuery`/`afterQuery`
-  inside the CTE body); only `recursive × forUseInQueryAs` dropped them. Fixed by re-homing
-  the outer hooks onto the CTE body (mirroring the non-recursive path); live test added to
-  `customize-query.select.test.ts` in all 17 cells. A "TS accepts what the impl doesn't
-  deliver" divergence. Distinct from the earlier recursive-CTE customizeQuery bug (that fix
-  covered the direct/execute path). **Class fully closed later:** a follow-on round found the
-  *non-bracketing* hooks (`afterSelectKeyword`/`beforeColumns`/`customWindow`) were still
-  dropped on the same composition, but the repo owner re-adjudicated **that** as a legitimate
-  NOT-APPLICABLE boundary (those hooks target the outer projection, which is *replaced* by the
-  consuming query when the select becomes a CTE — no valid render site) rather than a bug. The
-  recursive branch of `forUseInQueryAs` was rewritten to re-home the outer customization via an
-  **explicit allow-list** (`beforeQuery`/`afterQuery` + order-by only), so the whack-a-mole
-  class cannot recur. See "boundaries" below for why the follow-on was NOT a bug.
-
-Pattern: **all nine confirmed bugs lived on a path that "looked like the same
-implementation" as a covered one** — int-modulo executed fine, so double-modulo's
-bad `%` stayed hidden; `orderBy('col')` on a compound executed fine, so
-`orderBy(valueSource)`'s missing wrap stayed hidden; the non-shaped on-conflict
-executed fine, so the shaped one's broken remap stayed hidden; the shaped `set`
-typed correctly, so the shaped `setWhen`'s dropped `SHAPE` stayed hidden;
-`keepOnly` typed correctly, so the runtime-identical `keepOnlyWhen`'s mis-folded
-`MISSING_KEYS` stayed hidden; `customizeQuery` on a plain CTE honored its hooks, so
-the recursive-CTE path's silently-dropped hooks stayed hidden; the shaped-update
-opener and the AllowingNoWhere `extendShape` kept `dynamicSet`, so the normal
-`extendShape`'s dropped opener stayed hidden; the non-recursive one-column
-inline worked, so the recursive one-column inline's `INTERNAL` throw stayed hidden;
-and both the direct-execute recursive path and the non-recursive CTE honored
-`customizeQuery`, so the `recursive × forUseInQueryAs` composition's silently-dropped
-`beforeQuery`/`afterQuery` stayed hidden (these DID have a valid render site — the CTE parens —
-so dropping them was a real bug). Coverage was green through every one (several weren't even
-reachable / executable as typed; several emitted valid-but-wrong or hook-dropped SQL; one threw
-at build). That is the case *for* the narrow degeneracy bar (§4) and the maximalist standard
-(header) — and, increasingly, for the **composition/twin seams** (§9 themes 8/10): eight of the
-nine lived where a cross-cutting feature or a twin interface met a special builder. Restated as
-evidence, not principle.
+- **Shaped continuation drops `SHAPE` from a param or return type** (theme 2). A
+  `shapedAs(...)` builder re-types keys; a continuation — a `*When` set arm typing its
+  `columns` param unshaped, an `extendShape` returning a node without the shaped opener,
+  a chained `.set` after a static on-conflict node that returns the non-shaped type —
+  is then unusable-as-typed (rejects the renamed key the runtime needs) or
+  over-restrictive (rejects a chain the runtime accepts). *Technique:* diff
+  shaped-vs-non-shaped param/return symmetry across the **whole** method family, not the
+  happy-path `set`; compile-repro the renamed-key call against a positive control.
+- **`*When` continuation re-derives a key-tracking type differently from its non-When
+  sibling** (theme 2/10). A `keepOnlyWhen` that mis-folds `MISSING_KEYS` vs `keepOnly`
+  makes an insert typed-executable while its required column is unset. *Technique:* diff
+  the `When`/non-`When` return type arm by arm — but the deciding question is
+  **soundness under `when === false`**, not delegation under `when === true` (the `*When`
+  oracle below: a *monotonic* sibling must match, a *clearing* sibling must NOT).
+- **Variadic overload SET with one arity's type-param wiring wrong** (theme 10). A
+  5-arg `subSelect(Distinct)Using` that typed its 5th param as the 4th's type rejected
+  five distinct correlated tables the variadic runtime accepts. *Technique:* treat a
+  variadic overload set as a twin family — diff every arity's `tableN: TN`
+  position-by-position; a value-level per-surface audit and arities 1–4 (correct) are
+  blind to a single dropped/duplicated type parameter in one arm.
+- **Overload-body optional-type COMPUTATION, not just param positions** (theme 10). A
+  fragment-builder overload wrote its merged optional type inside a **non-distributive**
+  helper, silently discarding an optional value-source arg's `'optional'` → a
+  `'required'` (unsound) result. *Technique:* diff not only the `TN`/`AN` positions but
+  the optional-type expression in each generated overload body; isolate each case in its
+  own `@ts-expect-error` key-omission probe (multiple `assertType<Exact>` in one scope
+  cascade and misattribute).
+- **Per-type emission valid on the covered receiver, invalid on the sibling** (theme
+  1/7). `modulo` on `double`/`customDouble` emits `float % x` (PostgreSQL rejects; `%` is
+  integer/numeric only), where the suite exercised only int/bigint/customInt receivers.
+  *Technique:* enumerate the emission per receiver-leaf, not per method, and dialect-check
+  (SQLite/MySQL/MariaDB accept `float % x`, so a mock or a single dialect hides it).
+- **Compound-interface overload subset — one arm wraps, another doesn't** (theme 6).
+  `orderBy(valueSource)` on a compound emitted an un-wrapped `UNION … ORDER BY <expr>`
+  every engine rejects, while the string/ordinal/`rawFragment` arms wrap in
+  `select * from (…)`. *Technique:* enumerate the compound interface's OWN overload set;
+  after the first arm is fixed a sibling arm (e.g. the raw-fragment one) often still lingers.
+- **Cross-cutting feature × special builder — the EMITTED SQL of the composition**
+  (theme 8, the highest-yield mature-phase vein). `customizeQuery` hooks dropped /
+  mislanded when composed onto a recursive-union select, while the direct-execute and the
+  plain CTE honored them. *Technique:* when the type surface lets `customizeQuery` /
+  `allowWhen` / `projectingOptional…` / `forUseAsInline*` compose onto a
+  recursive/compound/shaped/on-conflict/with-values builder, **probe `ctx.lastSql`** of
+  the composition against its working twin — a dropped/mis-placed fragment is invisible to
+  types and to any test that never composes the two.
+- **TS accepts what the impl THROWS or under-delivers** (theme 8). A one-column recursive
+  select consumed as an inline query value threw `INTERNAL` (the recursive rebuild copied
+  every projection flag onto the outer select but omitted `__oneColumn`); the non-recursive
+  and the `executeSelectMany` twins worked. *Technique:* runtime-probe the type-permitted
+  composition against its working control — the build-time throw / wrong shape shows only
+  when you run it, never in a compile-repro.
+- **Execute-shape twin missing a guard its covered sibling has** (theme 10). `values([])`
+  short-circuited `executeInsert` but not the RETURNING execute-shapes
+  (`executeInsert{Many,One,NoneOrOne}`), which built and dispatched the empty SQL string a
+  real driver rejects. *Technique:* walk the whole `{statement} × {execute-shape} ×
+  {column-arity} × {inhabitant}` grid and mock-probe `history.length` / the throw per cell;
+  the covered branch hides the un-guarded twin.
+- **Runtime-VALUE soundness invisible to a compile-repro.** A single-row
+  `returningLastInsertedId` null-id guard was dead code (a method-vs-field typo), so a
+  non-null-typed result silently resolved `null`. The type is internally consistent — no
+  compile-repro can see it. *Technique:* when a defensive guard enforces a non-null /
+  no-result contract, **mock the boundary value it defends against** (`mockNext(null)`) and
+  read the resolved result; do not reason "the type says non-null, so it must throw" (the
+  runtime analogue of the type-self-consistency ≠ runtime-soundness oracle below).
 
 ### False positives & misclassified boundaries this method has produced — and the oracles that refute them
 
 A maximalist bar surfaces real bugs; it also surfaces **plausible-but-wrong** candidates
 (two shapes: a claim that's simply wrong, and a *real* finding whose bug-vs-boundary
-*classification* is wrong). Keeping these prevents re-chasing them and sharpens the oracles:
+*classification* is wrong). It can also **wrongly REFUTE a real bug** — the inverse error, the
+most dangerous one, because the finding then never gets filed. Keeping all three prevents
+re-chasing / re-dismissing them and sharpens the oracles:
+
+- **A compile-repro that confirms a type matches its HYPOTHESIS does NOT establish the type
+  matches the RUNTIME — the "type-self-consistency ≠ runtime-soundness" oracle (a FALSE-NEGATIVE
+  the method produced).** A projection agent flagged a "sole-optional-inner container" as a
+  possible rule-misfire. The coordinator compile-repro'd it: it printed `wrapper: {…}` (REQUIRED),
+  which matched the hypothesis "the rule types it required," so the candidate was **refuted as a
+  clean §A gap**. That was **wrong**: the type was required but the RUNTIME dropped/nulled the
+  container when the inner was all-null — a genuine type-vs-runtime **soundness** bug (later
+  confirmed and fixed; the container is now typed optional). The
+  compile-repro only answered *"does the type equal what I guessed?"*, never *"does the type match
+  what the impl actually produces at runtime?"*. **Oracle:** whenever a candidate is an
+  **optionality / key-presence / nullability claim about a RESULT type** (a projection container,
+  an optional leaf, a `| null` inhabitant), a compile-repro is **necessary but NOT sufficient** —
+  you MUST also **runtime-probe the boundary row** (`ctx.mockNext` the collapse / all-null / no-row
+  case, read the value, and check `'k' in obj` / `=== null` / present-vs-absent) and confirm the
+  *runtime* key-presence matches what the *type* promises. If the type says a key is required but a
+  reachable runtime input omits/nulls it (or vice-versa), the type is unsound and it IS a bug — even
+  when the compile-repro "confirmed" the type. Do not close a result-optionality candidate on a
+  type check alone; the type and the value must be probed **together**.
 
 - **`disallowIfNoValueWhen` "drops the `MISSING_KEYS` narrowing" — FALSE POSITIVE
   (working as intended).** A round's parity sweep + INSERT agent both flagged, and a
@@ -935,8 +973,7 @@ question is **soundness under `when === false`**, not delegation under `when ===
   **not every customization is applicable in every context**). Contrast the *real* bug it
   followed (`beforeQuery`/`afterQuery` dropped on the same composition): those **do** have a
   valid render site — the CTE parens — so dropping them WAS a defect. The distinction is the
-  oracle below. Closed by rewriting the `forUseInQueryAs` re-home as an explicit allow-list +
-  a **passing** boundary test (no `// TODO[BUG]`); `BUGS.md` re-emptied.
+  oracle below.
 
 **Oracle for any "dropped / misplaced emitted fragment" candidate (the runtime-probe analogue
 of the `*When` oracle):** a runtime probe proving a fragment is **dropped or moved** answers
@@ -954,36 +991,82 @@ or does the composition remove/replace it?**
   hook), not a `BUGS.md` entry. When unsure, present the finding as a CANDIDATE with *both*
   readings and let the maintainer pick — do **not** assert "bug" from the drop alone.
 
-- **`recursiveUnion*(...).orderBy/limit/offset.forUseInQueryAs(...)` "drops the ordering/paging"
-  — same recursive-CTE shape, leans BOUNDARY (maintainer decision pending).** Found by the
-  select/CTE seam critic and runtime-probed by the coordinator (fluent `.orderBy/.limit/.offset`
-  vanish when the recursive result is consumed as a CTE; the direct-execute path renders them on
-  the outer `select … from <cte>` per commit `c3f64158`). Apply the oracle: c3f64158 defines
-  fluent `.orderBy()` on a recursive select as "order the **final result**" (the outer select),
-  which is **replaced by the consuming query** when the select becomes a CTE → the clause's
-  target is removed → the **same "outer projection replaced" shape** as the projection-only-hooks
-  boundary above. Presented as a CANDIDATE (not asserted as a bug); the one wrinkle is that the
-  drop is *silent* and `limit`/`offset` have a meaningful CTE-body site, so the maintainer may
-  prefer render / type-forbid over a documented boundary. **Do not re-file as a confirmed bug
-  without the maintainer's semantic decision.** This is the 4th recursive-CTE-consumption hook in
-  this lineage (beforeWithQuery/afterWithQuery, then beforeQuery/afterQuery [the one real bug],
-  then the projection-only hooks, now ordering/paging) — the stable pattern is that **consuming a
-  recursive select as a CTE replaces its outer projection, so anything targeting that projection
-  has no render site.**
+- **A HYPOTHESIZED invalid / rejecting emission is not a real one — bake it before you assert it
+  (the report-content analogue of "divergence ≠ defect").** Any claim about *what the SQL emits* —
+  that it is invalid, that it rejects on engine X, that an adapter column binds its transformed value
+  under the declared-type cast — is a **hypothesis until `ctx.lastSql` prints it**. It bites hardest on
+  a §B whose whole payoff is *"this emission is latent-invalid / rejects on PG/mssql/oracle"*: that
+  rationale asserts an emitted string the audit **never read**. The `SqlBuilder` routinely emits a
+  **smarter valid form** than the naive "bind the transformed value under the base-type cast" — a
+  `CASE`, a comparison, or a cast to the adapter's *underlying* type. An adapter that maps a boolean
+  `true → 'Y'` does **not** imply a `'Y'::<booltype>` binding: the builder recognises the adapter and
+  emits `case when ? then 'Y' else 'N' end` on write and `col = 'Y'` on read, valid on every dialect.
+  So before writing "emits invalid X" (or docker-scheduling it as a rejecting payoff), **build the
+  query on the mock, read `ctx.lastSql`, and confirm the emission actually is what you claim** — the
+  "rejecting" premise frequently evaporates, turning a §B-with-a-scary-hypothesis into a plain §A
+  round-trip test. (Same discipline as §7.4: probe the emission, don't reason about it — extended from
+  *defect* candidates to the *rationale* of any missing-test whose value rests on an emitted-SQL claim.)
 
-- **A structurally-reasoned emission DROP that a runtime probe REFUTES — FALSE POSITIVE (the
-  probe is the authority, not the trace).** A mutation seam critic reported that a nested-object
-  RETURNING (`update(t).from(aux).returning({ o: { name: aux.col } })` + `oldValues()`) silently
-  drops the FROM-table registration and emits invalid SQL, with a detailed root-cause (the
-  emission path's `_extractAdditionalRequired{Tables,Columns}ForUpdate` iterate only top-level
-  `__columns` with *non-recursive* register fns). The coordinator ran the probe on
-  `postgres/oldest/pg` (compat 17M, where the from-subquery path is active): **both the flat and
-  nested arms emit correct SQL** — `organization` IS registered, `organization__name` IS
-  projected in the `_old_` subquery, and RETURNING references `_old_.organization__name`. The
-  recursive registration path (`__registerTableOrViewOfColumns`) fires during query building; the
-  agent's structural trace missed it. Reinforces §7.4: **a plausible root-cause trace does not
-  establish the emission — probe it. When a seam agent hands you a "drops X, emits invalid SQL"
-  claim, the mock's printed string is the verdict, not the agent's call-graph reasoning.**
+- **Corollary to drop ≠ defect — "outer projection replaced → no render site" is NOT the only
+  resolution; wrapping is a third option.** The recursive-CTE-consumption family (a recursive
+  select's whole-statement hooks, projection-only hooks, and fluent `orderBy`/`limit`/`offset`,
+  all consumed via `forUseInQueryAs`) repeatedly looks like the boundary above: the outer
+  `select … from <cte>` projection is replaced by the consuming query, so anything targeting it has
+  no render site. But a dropped clause with a *meaningful* alternate site (ordering/paging over the
+  recursive member) can also be fixed by **wrapping the recursive member in an inner select that
+  carries it** — `<as> as (select … from <recursive-member> order by … limit … offset …)`. So when
+  the drop is silent AND the clause has a natural inner-select home, present it as a CANDIDATE with
+  *both* readings (boundary vs render-by-wrapping) rather than asserting either; the maintainer's
+  semantic decision picks. (`beforeQuery`/`afterQuery`→inner-body vs ordering→wrapping-select is a
+  real, valid dual re-home; `forUseAsInlineAggregatedArrayValue` relocates the `order by` into a
+  `(select … order by …) as a_N_` derived table under `json_agg`, valid on the engine.)
+
+- **A structurally-reasoned emission DROP that a runtime probe REFUTES — probe > trace, and probe
+  the MINIMAL trigger.** A seam critic reported a nested-object RETURNING
+  (`update(t).from(aux).returning({ o: { name: aux.col } })` + `oldValues()`) drops the FROM-table
+  registration and emits invalid SQL, with a detailed call-graph root-cause (the emission's
+  `_extractAdditionalRequired{Tables,Columns}ForUpdate` iterate only top-level `__columns`). The
+  coordinator probed it on a cell where the from-subquery path is active: the arm emitted **correct
+  SQL** — the table WAS registered and its column projected in the `_old_` subquery. **Lesson 1
+  (probe > trace):** a plausible root-cause trace does not establish the emission; when a seam agent
+  hands you a "drops X, emits invalid SQL" claim, the mock's printed string is the verdict, not the
+  call-graph reasoning. **But the trace was right about the mechanism** — a genuinely narrower shape
+  (a from-joined column referenced ONLY inside a nested RETURNING sub-object, not also in
+  `.set`/`.where`/a flat key) IS dropped; the probe that "refuted" it happened to reference the table
+  elsewhere too, so another discovery path masked the bug. **Lesson 2 (probe the MINIMAL trigger):**
+  when you probe to refute a "drops X" claim, build the *minimal* shape the trace implies — not a
+  convenient composition that also reaches the target through a covered path, or you refute a real
+  bug by testing the wrong shape.
+- **customInt `valueWhenNull<VALUE>` / `nullIfValue<VALUE>` drop the `| VALUE[typeof source]` SOURCE
+  union — REAL src type-asymmetry, but COMPILE-ONLY → permanently OUT (do not re-file as §A each
+  round).** `CustomIntValueSource` (`values.ts:603/605`) is the lone outlier among ~10 value-source
+  types (its sibling `CustomDouble` at `:669/671`, Bigint, String, Uuid… all union `VALUE[source]`).
+  Effect: a customInt null-handling result loses the RHS table's compile-time provenance, weakening
+  the "column not in FROM" net for customInt only. But `SOURCE` is **phantom** — absent from the
+  projected shape / emitted SQL / runtime value — so it has **no Principle-#1 test**; it is
+  `types.negative/` territory (a src-owner fix + a negative-type lock), **not a §A/§B finding and not
+  a BUGS.md entry**. A permanent OUT recorded so an F1-CUSTOMNUM pass closes it on sight instead of
+  re-deriving it as new.
+- **The execute-shape INHABITANT-PARITY grid is a recurring §A vein — check the whole grid, not one
+  branch.** Each mutation/select execute-shape family (`executeInsert*`/`executeUpdate*`/
+  `executeDelete*`/`executeSelect*`) dispatches on `__oneColumn` (→ `execute…ReturningOneColumnOneRow`)
+  vs row-shape (→ `execute…ReturningOneRow`) — **distinct runner methods** — and each *shape* has
+  distinct throw/`→null` **inhabitants** (`NO_RESULT` / `MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE` /
+  `MORE_THAN_ONE_ROW` / `→ null`). The full grid is `{statement (INS/UPD/DEL/SELECT)} × {execute-shape
+  (One/NoneOrOne/Many/…)} × {column-arity (one-column/row-shape)} × {inhabitant (throw/null/value)}`;
+  implementing one statement's inhabitants leaves the sibling statements/arities as the classic
+  "regression-lock at one form, twin untested" §A. Verify with a per-test grep on the *specific*
+  `(shape × arity × reason)` pairing, NOT the bare method name — a coarse "the method appears" grep
+  over-reports covered; a per-test multiline scan is the reliable check. `rowIndex` on a per-row
+  MANDATORY error is realized ONLY via a multi-row `returningLastInsertedId()` + `mockNext([id, null])`
+  — nowhere else in the suite.
+  - **Oracle when an inhabitant shares a runner with a covered sibling:** when two execute-shapes at
+    the same arity route through the *same* runner method whose throw is already covered (e.g.
+    `executeSelectOne` and `executeSelectNoneOrOne` both hit `executeSelectOneRow`, which throws
+    `MORE_THAN_ONE_ROW` before the shape-specific `.then`), the second is **runner-redundant** — a
+    defensible §C. BUT if the maintainer has already added the *other-arity* twin of that shape-pair,
+    completing the 2×2 matrix matches their revealed intent → a low-tier §A with both readings, not a
+    hard gap or a silent drop.
 
 ## Operational rules
 

@@ -453,4 +453,67 @@ describe(ctx.label, () => {
             if (!ctx.realDbEnabled) expect(count).toBe(1)
         })
     })
+
+    test('execute-insert-single-row-returning-last-inserted-id-with-min-max-passes', async () => {
+        // Single-row `.returningLastInsertedId()`: the executeInsert min/max count
+        // comes from the returned scalar id (1 when non-null), so it is in range for
+        // `executeInsert(1, 1)` and the id resolves.
+        ctx.mockNext(88)
+        await ctx.withRollback(async () => {
+            const id = await ctx.conn.insertInto(tOrganization)
+                .values({ name: 'Cyberdyne', plan: 'pro' })
+                .returningLastInsertedId()
+                .executeInsert(1, 1)
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into "organization" (name, "plan") values (:0, :1) returning id into :2"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Cyberdyne",
+                "pro",
+                {
+                  "dir": 3003,
+                },
+              ]
+            `)
+            assertType<Exact<typeof id, number>>()
+            if (ctx.realDbEnabled) expect(typeof id).toBe('number')
+            else expect(id).toBe(88)
+        })
+    })
+
+    test('execute-insert-single-row-returning-last-inserted-id-throws-when-fewer-than-min', async () => {
+        // Single-row `.returningLastInsertedId()` with `executeInsert(2)`: the id
+        // gives count 1, below the min of 2, so it throws MINIMUM_ROWS_NOT_REACHED.
+        ctx.mockNext(88)
+        await ctx.withRollback(async () => {
+            let caught: unknown
+            try {
+                await ctx.conn.insertInto(tOrganization)
+                    .values({ name: 'Tyrell', plan: 'pro' })
+                    .returningLastInsertedId()
+                    .executeInsert(2)
+            } catch (e) {
+                caught = e
+            }
+            expect(String(caught)).toMatch(/MINIMUM_ROWS_NOT_REACHED|didn't insert the minimum/)
+        })
+    })
+
+    test('execute-insert-single-row-returning-last-inserted-id-throws-when-too-many', async () => {
+        // Single-row `.returningLastInsertedId()` with `executeInsert(0, 0)`: the id
+        // gives count 1, above the max of 0, so it throws MAXIMUM_ROWS_EXCEEDED.
+        ctx.mockNext(88)
+        await ctx.withRollback(async () => {
+            let caught: unknown
+            try {
+                await ctx.conn.insertInto(tOrganization)
+                    .values({ name: 'Soylent', plan: 'free' })
+                    .returningLastInsertedId()
+                    .executeInsert(0, 0)
+            } catch (e) {
+                caught = e
+            }
+            expect(String(caught)).toMatch(/MAXIMUM_ROWS_EXCEEDED|insert more that the maximum/)
+        })
+    })
 })

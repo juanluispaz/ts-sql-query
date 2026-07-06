@@ -1236,4 +1236,36 @@ describe(ctx.label, () => {
         }
     })
 
+    test('custom-numeric/adapter-column-through-non-add-arithmetic', async () => {
+        // The per-column TypeAdapter (plusOffsetAdapter, read +1000) on the branded
+        // customInt view columns propagates through `subtract` and `multiply` (the
+        // arithmetic result reads +1000), keeping the ReleaseTag brand and the
+        // receiver's optionality. The view maps both ordinals to release id; release 1
+        // has a non-null download_count so `optionalReleaseOrdinal` is present, and both
+        // ordinals are 1 → `optSub` = (1 - 1) + 1000 = 1000, `reqMul` = (1 * 2) + 1000 = 1002.
+        const one = ctx.conn.const(1 as ReleaseTag, 'customInt', 'ReleaseTag')
+        const two = ctx.conn.const(2 as ReleaseTag, 'customInt', 'ReleaseTag')
+        const expected = [{ id: 1, optSub: 1000, reqMul: 1002 }]
+        ctx.mockNext([{ id: 1, optSub: 0, reqMul: 2 }])
+        const result = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(1))
+            .select({
+                id:     vReleaseOverview.id,
+                optSub: vReleaseOverview.optionalReleaseOrdinal.subtract(one),
+                reqMul: vReleaseOverview.releaseOrdinal.multiply(two),
+            })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, optional_release_ordinal - $1 as "optSub", release_ordinal * $2 as "reqMul" from release_overview where id = $3"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; optSub?: ReleaseTag; reqMul: ReleaseTag }>>>()
+        expect(result).toEqual(expected)
+    })
+
 })

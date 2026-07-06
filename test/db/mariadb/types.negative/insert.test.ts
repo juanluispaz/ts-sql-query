@@ -3,7 +3,7 @@
 
 import { test, expect } from '../../../lib/testRunner.js'
 import type { DBConnection } from '../domain/connection.js'
-import { tIssue, tProject } from '../domain/connection.js'
+import { tOrganization, tIssue, tProject } from '../domain/connection.js'
 
 // `connection` is type-only — the function below is checked by tsc but
 // never invoked at runtime, so we don't need a real instance and don't
@@ -106,6 +106,19 @@ function _typeNegatives() {
         .set({ number: 1, title: 'x', status: 'open', priority: 1 })
         // @ts-expect-error disallowIfNoValueWhen must not make a still-incomplete insert executable
         .executeInsert()
+
+    // Rule: `executeInsertOne` is not exposed on the optional-returning path.
+    // `onConflictDoNothing().returning(...)` yields an ExecutableInsertReturningOptional
+    // — an ON CONFLICT DO NOTHING may insert zero rows, so "exactly one row" is unsound;
+    // only executeInsertNoneOrOne / executeInsertMany are available. A plain
+    // `.returning(...)` (required) does expose executeInsertOne.
+    // Control: the NoneOrOne arm remains available on the optional path.
+    void connection.insertInto(tOrganization).values({ name: 'x', plan: 'free' })
+        .onConflictDoNothing().returning({ id: tOrganization.id }).executeInsertNoneOrOne()
+    void connection.insertInto(tOrganization).values({ name: 'x', plan: 'free' })
+        .onConflictDoNothing().returning({ id: tOrganization.id })
+        // @ts-expect-error executeInsertOne is dropped on the optional-returning (onConflictDoNothing) path
+        .executeInsertOne()
 }
 
 test('insert-negative-types', () => {

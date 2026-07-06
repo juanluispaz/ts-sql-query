@@ -257,6 +257,32 @@ function _typeNegatives() {
             // @ts-expect-error tCountry is not among the five correlated tables in scope at arity 5
             tCountry.code.equals('US')
         )
+
+    // Rule: the customInt `valueWhenNull<VALUE>` / `nullIfValue<VALUE>` value-source
+    // overloads union the OPERAND column's source into the result (like CustomDouble /
+    // Bigint / Number and the base value sources), so the "column not in FROM" net
+    // covers the operand for customInt too. `tIssueWorklog.costCents` is a
+    // `customInt 'Cents'` column; `worklog2` is a distinct self-aliased source of the
+    // same TYPE_NAME.
+    const worklog2 = tIssueWorklog.as('worklog2')
+    // Positive control: with both the receiver's and the operand's source joined,
+    // the coalesce/nullif projection compiles.
+    void connection.selectFrom(tIssueWorklog)
+        .join(worklog2).on(worklog2.id.equals(tIssueWorklog.id))
+        .select({ x: tIssueWorklog.costCents.valueWhenNull(worklog2.costCents) })
+    // Guard: `worklog2` is NOT in the FROM, so selecting a valueWhenNull result whose
+    // operand comes from it must not compile (the result carries worklog2's source).
+    void connection.selectFrom(tIssueWorklog)
+        .select({
+            // @ts-expect-error valueWhenNull operand worklog2.costCents is from a table not in the FROM
+            x: tIssueWorklog.costCents.valueWhenNull(worklog2.costCents),
+        })
+    // Guard: the nullIfValue twin unions the operand's source the same way.
+    void connection.selectFrom(tIssueWorklog)
+        .select({
+            // @ts-expect-error nullIfValue operand worklog2.costCents is from a table not in the FROM
+            x: tIssueWorklog.costCents.nullIfValue(worklog2.costCents),
+        })
 }
 
 test('select-negative-types', () => {

@@ -1180,4 +1180,89 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { id: number; req?: boolean; own?: boolean; ign?: boolean }>>()
         expect(row).toEqual(expected)
     })
+
+    test('modifier-trio-on-plain-temporal-leaves', async () => {
+        // The modifier trio on plain temporal columns: `workDate` (localDate),
+        // `startedAt` (localTime). `asRequiredInOptionalObject()` passes the column
+        // through (`*Req?: Date`); `onlyWhenOrNull(false)` / `ignoreWhenAsNull(true)`
+        // replace the value source with a build-time typed NULL, so `*Own` / `*Ign` are
+        // absent under optional-as-undefined. worklog 2: work_date 2024-03-05,
+        // started_at 14:00:00.
+        const expected = {
+            id:   2,
+            dReq: new Date(Date.UTC(2024, 2, 5, 10, 0, 0)),
+            tReq: new Date(Date.UTC(1970, 0, 1, 14, 0, 0)),
+        }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(2))
+            .select({
+                id:   tIssueWorklog.id,
+                dReq: tIssueWorklog.workDate.asRequiredInOptionalObject(),
+                dOwn: tIssueWorklog.workDate.onlyWhenOrNull(false),
+                dIgn: tIssueWorklog.workDate.ignoreWhenAsNull(true),
+                tReq: tIssueWorklog.startedAt.asRequiredInOptionalObject(),
+                tOwn: tIssueWorklog.startedAt.onlyWhenOrNull(false),
+                tIgn: tIssueWorklog.startedAt.ignoreWhenAsNull(true),
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, work_date as "dReq", null::date as "dOwn", null::date as "dIgn", started_at as "tReq", null::time as "tOwn", null::time as "tIgn" from issue_worklog where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            id:    number
+            dReq?: Date; dOwn?: Date; dIgn?: Date
+            tReq?: Date; tOwn?: Date; tIgn?: Date
+        }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('modifier-trio-on-custom-temporal-leaves', async () => {
+        // The modifier trio on custom temporal columns (branded Date types):
+        // `releasedOn` (customLocalDate), `cutoffTime` (customLocalTime), `signedOffAt`
+        // (customLocalDateTime). `asRequiredInOptionalObject()` keeps the mapped Date
+        // type (`*Req?: Date`); `onlyWhenOrNull(false)` / `ignoreWhenAsNull(true)` drop
+        // `*Own` / `*Ign` to absent. Release 1: released_on 2024-01-15,
+        // cutoff_time 17:00:00, signed_off_at 2024-01-14 12:30:00.
+        const expected = {
+            id:    1,
+            dReq:  new Date(Date.UTC(2024, 0, 15, 10, 0, 0)),
+            tReq:  new Date(Date.UTC(1970, 0, 1, 17, 0, 0)),
+            dtReq: new Date(Date.UTC(2024, 0, 14, 12, 30, 0)),
+        }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .select({
+                id:    tProjectRelease.id,
+                dReq:  tProjectRelease.releasedOn.asRequiredInOptionalObject(),
+                dOwn:  tProjectRelease.releasedOn.onlyWhenOrNull(false),
+                dIgn:  tProjectRelease.releasedOn.ignoreWhenAsNull(true),
+                tReq:  tProjectRelease.cutoffTime.asRequiredInOptionalObject(),
+                tOwn:  tProjectRelease.cutoffTime.onlyWhenOrNull(false),
+                tIgn:  tProjectRelease.cutoffTime.ignoreWhenAsNull(true),
+                dtReq: tProjectRelease.signedOffAt.asRequiredInOptionalObject(),
+                dtOwn: tProjectRelease.signedOffAt.onlyWhenOrNull(false),
+                dtIgn: tProjectRelease.signedOffAt.ignoreWhenAsNull(true),
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, released_on as "dReq", null as "dOwn", null as "dIgn", cutoff_time as "tReq", null as "tOwn", null as "tIgn", signed_off_at as "dtReq", null as "dtOwn", null as "dtIgn" from project_release where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            id:     number
+            dReq?:  Date; dOwn?:  Date; dIgn?:  Date
+            tReq?:  Date; tOwn?:  Date; tIgn?:  Date
+            dtReq?: Date; dtOwn?: Date; dtIgn?: Date
+        }>>()
+        expect(row).toEqual(expected)
+    })
 })

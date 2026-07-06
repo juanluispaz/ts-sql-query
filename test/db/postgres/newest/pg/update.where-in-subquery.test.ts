@@ -119,4 +119,22 @@ describe(ctx.label, () => {
             expect(affected).toBe(1)
         })
     })
+
+    test('update-dynamic-where-no-condition-throws-missing-where', async () => {
+        // A bare `.dynamicWhere()` with no `.and()`/`.or()` carries no predicate. On
+        // UPDATE that does not run a whole-table update: the MISSING_WHERE safety guard
+        // throws (opting into a no-WHERE update is the separate `updateAllowingNoWhere(...)`
+        // entry point). The guard throws before dispatch, so no row is touched and it
+        // fires the same in mock and real mode.
+        let caught: unknown
+        try {
+            await ctx.conn.update(tIssue)
+                .set({ priority: 99 })
+                .dynamicWhere()
+                .executeUpdate()
+        } catch (e) {
+            caught = e
+        }
+        expect(String(caught)).toMatch(/MISSING_WHERE|No where defined/)
+    })
 })

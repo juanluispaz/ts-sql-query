@@ -182,4 +182,21 @@ describe(ctx.label, () => {
         })
     })
 
+
+    test('delete-dynamic-where-no-condition-throws-missing-where', async () => {
+        // A bare `.dynamicWhere()` with no `.and()`/`.or()` carries no predicate. On
+        // DELETE that does not run a whole-table delete: the MISSING_WHERE safety guard
+        // throws (opting into a no-WHERE delete is the separate `deleteAllowingNoWhereFrom(...)`
+        // entry point). The guard throws before dispatch, so no row is touched and it
+        // fires the same in mock and real mode.
+        let caught: unknown
+        try {
+            await ctx.conn.deleteFrom(tIssue)
+                .dynamicWhere()
+                .executeDelete()
+        } catch (e) {
+            caught = e
+        }
+        expect(String(caught)).toMatch(/MISSING_WHERE|No where defined/)
+    })
 })

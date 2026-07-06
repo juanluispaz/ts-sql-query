@@ -24,6 +24,7 @@
 // case emits no query.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
+import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { TsSqlError } from '../../../../../src/TsSqlError.js'
 import { tLedgerEntry, tOrganization, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
@@ -136,6 +137,35 @@ describe(ctx.label, () => {
                 .values([]).returning({ id: tProject.id }).executeInsertOne()
         } catch (e) { caught = e }
         expect(reasonOf(caught)).toBe('NO_RESULT')
+    })
+
+    test('insert-guards/empty-values-returning-one-column-none-or-one-resolves-null', async () => {
+        // `values([])` with `returningOneColumn(...)`: the empty batch short-circuits,
+        // so `executeInsertNoneOrOne()` resolves `null` without dispatching SQL.
+        const r = await ctx.conn.insertInto(tProject)
+            .values([]).returningOneColumn(tProject.id).executeInsertNoneOrOne()
+        assertType<Exact<typeof r, number | null>>()
+        expect(r).toBeNull()
+    })
+
+    test('insert-guards/empty-values-returning-one-column-one-throws-no-result', async () => {
+        // `values([])` with `returningOneColumn(...)`: `executeInsertOne()` needs
+        // exactly one row, so the empty batch rejects with NO_RESULT (no SQL dispatched).
+        let caught: unknown
+        try {
+            await ctx.conn.insertInto(tProject)
+                .values([]).returningOneColumn(tProject.id).executeInsertOne()
+        } catch (e) { caught = e }
+        expect(reasonOf(caught)).toBe('NO_RESULT')
+    })
+
+    test('insert-guards/empty-values-returning-one-column-many-resolves-empty-array', async () => {
+        // `values([])` with `returningOneColumn(...)`: the empty batch short-circuits,
+        // so `executeInsertMany()` resolves `[]` without dispatching SQL.
+        const r = await ctx.conn.insertInto(tProject)
+            .values([]).returningOneColumn(tProject.id).executeInsertMany()
+        assertType<Exact<typeof r, number[]>>()
+        expect(r).toEqual([])
     })
 
     test('insert-guards/empty-values-with-min-throws-minimum-rows', async () => {

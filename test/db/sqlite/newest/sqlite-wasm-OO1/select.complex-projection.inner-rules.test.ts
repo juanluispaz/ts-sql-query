@@ -2083,6 +2083,64 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
+
+    test('mixed-container-required-object-inner-plus-optional-inner-keeps-container-required-as-nullable', async () => {
+        // A container holding a required inner object (`req`) and an optional inner
+        // object (`opt`, made optional by a requiredInOptionalObject leaf). The required
+        // inner keeps the container required; under `projectingOptionalValuesAsNullable()`
+        // `opt` becomes `{...} | null` (not `opt?`) and its `extra` leaf becomes
+        // `number | null`. When the requiredInOptionalObject leaf (`opt.gate`) is null the
+        // whole `opt` surfaces as `null` — a present key with a null value, not absent.
+        // issue 3: body null → opt is null, req intact.
+        const expectedNull = { iid: 3, container: { req: { title: 'Migrate to ESM', num: 1 }, opt: null } }
+        ctx.mockNext({ iid: 3, 'container.req.title': 'Migrate to ESM', 'container.req.num': 1, 'container.opt.gate': null, 'container.opt.extra': null })
+        const rowNull = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(3))
+            .select({
+                iid: tIssue.id,
+                container: {
+                    req: { title: tIssue.title, num: tIssue.number },
+                    opt: { gate: tIssue.body.asRequiredInOptionalObject(), extra: tIssue.assigneeId },
+                },
+            })
+            .projectingOptionalValuesAsNullable()
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, title as "container.req.title", number as "container.req.num", body as "container.opt.gate", assignee_id as "container.opt.extra" from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+          ]
+        `)
+        assertType<Exact<typeof rowNull, {
+            iid:       number
+            container: { req: { title: string; num: number }; opt: { gate: string; extra: number | null } | null }
+        }>>()
+        expect(rowNull).toEqual(expectedNull)
+        // The container is PRESENT (its required inner keeps it required) and
+        // `opt` is `null` — NOT absent — under the asNull projector.
+        expect('container' in rowNull).toBe(true)
+        expect(rowNull.container.opt).toBeNull()
+
+        // Companion all-non-null row: `opt` is present (the gate leaf is non-null).
+        // issue 2: body 'Use new tokens', assignee 2 → opt present.
+        const expectedPresent = { iid: 2, container: { req: { title: 'Redesign navbar', num: 2 }, opt: { gate: 'Use new tokens', extra: 2 } } }
+        ctx.mockNext({ iid: 2, 'container.req.title': 'Redesign navbar', 'container.req.num': 2, 'container.opt.gate': 'Use new tokens', 'container.opt.extra': 2 })
+        const rowPresent = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(2))
+            .select({
+                iid: tIssue.id,
+                container: {
+                    req: { title: tIssue.title, num: tIssue.number },
+                    opt: { gate: tIssue.body.asRequiredInOptionalObject(), extra: tIssue.assigneeId },
+                },
+            })
+            .projectingOptionalValuesAsNullable()
+            .executeSelectOne()
+        expect(rowPresent).toEqual(expectedPresent)
+        expect(rowPresent.container.opt).not.toBeNull()
+    })
+
     test('multi-level-sole-optional-chain-depth-4-present-default', async () => {
         // A FOUR-level sole-optional chain `{ w: { x: { y: { z: { body, assigneeId } } } } }`
         // whose innermost `z` is a rule-4 all-optional object, which drives the whole

@@ -146,6 +146,45 @@ describe(ctx.label, () => {
     */
 
 
+
+    // NOT-APPLICABLE: MySQL has no RETURNING — .returningOneColumn(...) narrows to `never`.
+    /*
+    test('insert-guards/empty-values-returning-one-column-none-or-one-resolves-null', async () => {
+        // `values([])` with `returningOneColumn(...)`: the empty batch short-circuits,
+        // so `executeInsertNoneOrOne()` resolves `null` without dispatching SQL.
+        const r = await ctx.conn.insertInto(tProject)
+            .values([]).returningOneColumn(tProject.id).executeInsertNoneOrOne()
+        assertType<Exact<typeof r, number | null>>()
+        expect(r).toBeNull()
+    })
+    */
+
+    // NOT-APPLICABLE: MySQL has no RETURNING — .returningOneColumn(...) narrows to `never`.
+    /*
+    test('insert-guards/empty-values-returning-one-column-one-throws-no-result', async () => {
+        // `values([])` with `returningOneColumn(...)`: `executeInsertOne()` needs
+        // exactly one row, so the empty batch rejects with NO_RESULT (no SQL dispatched).
+        let caught: unknown
+        try {
+            await ctx.conn.insertInto(tProject)
+                .values([]).returningOneColumn(tProject.id).executeInsertOne()
+        } catch (e) { caught = e }
+        expect(reasonOf(caught)).toBe('NO_RESULT')
+    })
+    */
+
+    // NOT-APPLICABLE: MySQL has no RETURNING — .returningOneColumn(...) narrows to `never`.
+    /*
+    test('insert-guards/empty-values-returning-one-column-many-resolves-empty-array', async () => {
+        // `values([])` with `returningOneColumn(...)`: the empty batch short-circuits,
+        // so `executeInsertMany()` resolves `[]` without dispatching SQL.
+        const r = await ctx.conn.insertInto(tProject)
+            .values([]).returningOneColumn(tProject.id).executeInsertMany()
+        assertType<Exact<typeof r, number[]>>()
+        expect(r).toEqual([])
+    })
+    */
+
     test('insert-guards/empty-values-with-min-throws-minimum-rows', async () => {
         // The empty `values([])` short-circuit runs the min/max guard against the
         // resulting count of 0: `executeInsert(1)` on an empty batch reaches its

@@ -1276,4 +1276,111 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
+
+    test('recursive-result-execute-select-page-with-whole-statement-customize', async () => {
+        // `customizeQuery({ beforeQuery, afterQuery })` on a recursive
+        // `executeSelectPage`. The data query brackets the whole `with recursive ...`
+        // statement; the count query wraps the recursive result in a nested
+        // `result_for_count as (...)` CTE, so the hooks still bracket its inner select.
+        // Anchor selects issues 1, 2, 3; the recursion adds nothing → page returns the
+        // first 2 ordered rows and total count 3.
+        const dataRows = [
+            { id: 1, title: 'Update hero copy' },
+            { id: 2, title: 'Redesign navbar' },
+        ]
+        ctx.mockNext(dataRows)
+        ctx.mockNext(3)
+        const connection = ctx.conn
+        const page = await connection.selectFrom(tIssue)
+            .where(tIssue.id.in([1, 2, 3]))
+            .select({ id: tIssue.id, title: tIssue.title })
+            .recursiveUnionAll((parent) => connection.selectFrom(tIssue)
+                .join(parent).on(tIssue.parentId.equals(parent.id))
+                .select({ id: tIssue.id, title: tIssue.title }))
+            .orderBy('id')
+            .limit(2)
+            .customizeQuery({
+                beforeQuery: connection.rawFragment`/* head */ `,
+                afterQuery:  connection.rawFragment` /* tail */`,
+            })
+            .executeSelectPage()
+
+        expect(ctx.history.length).toBe(2)
+        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"/* head */  with recursive recursive_select_1 as (select id as id, title as title from issue where id in ($1, $2, $3) union all select issue.id as id, issue.title as title from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id) select id as id, title as title from recursive_select_1 order by id limit $4  /* tail */"`)
+        expect(ctx.history[0]!.params).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+            3,
+            2,
+          ]
+        `)
+        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, title as title from issue where id in ($1, $2, $3) union all select issue.id as id, issue.title as title from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id), result_for_count as (/* head */  select id as id, title as title from recursive_select_1 order by id  /* tail */) select count(*) from result_for_count"`)
+        expect(ctx.history[1]!.params).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+            3,
+          ]
+        `)
+        assertType<Exact<typeof page, {
+            data:  Array<{ id: number, title: string }>
+            count: number
+        }>>()
+        expect(page.count).toBe(3)
+        expect(page.data).toEqual(dataRows)
+    })
+
+    test('recursive-result-execute-select-page-with-outer-projection-customize', async () => {
+        // `customizeQuery({ afterSelectKeyword, beforeColumns })` on a recursive
+        // `executeSelectPage`. These hooks render around the column list of the outer
+        // select in the data query, and around the inner select of the `result_for_count`
+        // wrap in the count query. Anchor selects issues 1, 2, 3; the recursion adds
+        // nothing → page returns the first 2 ordered rows and total count 3.
+        const dataRows = [
+            { id: 1, title: 'Update hero copy' },
+            { id: 2, title: 'Redesign navbar' },
+        ]
+        ctx.mockNext(dataRows)
+        ctx.mockNext(3)
+        const connection = ctx.conn
+        const page = await connection.selectFrom(tIssue)
+            .where(tIssue.id.in([1, 2, 3]))
+            .select({ id: tIssue.id, title: tIssue.title })
+            .recursiveUnionAll((parent) => connection.selectFrom(tIssue)
+                .join(parent).on(tIssue.parentId.equals(parent.id))
+                .select({ id: tIssue.id, title: tIssue.title }))
+            .orderBy('id')
+            .limit(2)
+            .customizeQuery({
+                afterSelectKeyword: connection.rawFragment`/* hint */`,
+                beforeColumns:      connection.rawFragment`/* cols */ `,
+            })
+            .executeSelectPage()
+
+        expect(ctx.history.length).toBe(2)
+        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, title as title from issue where id in ($1, $2, $3) union all select issue.id as id, issue.title as title from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id) select /* hint */ /* cols */  id as id, title as title from recursive_select_1 order by id limit $4"`)
+        expect(ctx.history[0]!.params).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+            3,
+            2,
+          ]
+        `)
+        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, title as title from issue where id in ($1, $2, $3) union all select issue.id as id, issue.title as title from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id), result_for_count as (select /* hint */ /* cols */  id as id, title as title from recursive_select_1 order by id) select count(*) from result_for_count"`)
+        expect(ctx.history[1]!.params).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+            3,
+          ]
+        `)
+        assertType<Exact<typeof page, {
+            data:  Array<{ id: number, title: string }>
+            count: number
+        }>>()
+        expect(page.count).toBe(3)
+        expect(page.data).toEqual(dataRows)
+    })
 })

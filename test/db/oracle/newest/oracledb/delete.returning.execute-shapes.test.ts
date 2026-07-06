@@ -5,13 +5,18 @@
 // covers `executeDeleteMany` returning a full row shape. The shapes
 // still uncovered are walked here:
 //
-//   1. `returning({ ... }) + executeDeleteNoneOrOne()` — the row-shape
-//      branch of `executeDeleteNoneOrOne` (current tests only cover
-//      `returningOneColumn` + `executeDeleteNoneOrOne`).
+//   1. `returning({ ... }) + executeDeleteNoneOrOne()` on no-match — the
+//      `| null` (None) arm of the row-shape branch of
+//      `executeDeleteNoneOrOne`, mock-asserted so the null inhabitant is
+//      realized under the default mocked run (twin of
+//      `update-returning-none-or-one-row-shape-null-on-no-match`).
 //   2. `returningOneColumn(col) + executeDeleteOne()` — non-empty path
 //      of `executeDeleteOne` on the `__oneColumn` branch.
 //   3. `returning({ ... }) + executeDeleteOne()` on no-match — fires
 //      `executeDeleteOne`'s NO_RESULT throw on the row branch.
+//   3b. `returningOneColumn(col) + executeDeleteOne()` on no-match — fires
+//      `executeDeleteOne`'s NO_RESULT throw on the `__oneColumn` branch
+//      (distinct executor from the row branch in 3).
 //   4. `returningOneColumn(col) + executeDeleteMany()` — pins the
 //      one-column-many path of `executeDeleteMany`.
 //   5. `with(cte) ... deleteFrom(...).returning(...)` — pins the CTE
@@ -30,13 +35,14 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('delete-returning-none-or-one-row-shape', async () => {
-        // `returning({ ... })` + `executeDeleteNoneOrOne()` lands on
-        // the row-shape branch of `executeDeleteNoneOrOne`. The mock
-        // returns the row; the real DB only deletes when the seeded id
-        // exists (we use a no-match id so the test is non-destructive
-        // and the real-DB returns null).
-        const expectedMock: { id: number; status: string } = { id: 99999, status: 'open' }
-        ctx.mockNext(expectedMock)
+        // `returning({ ... })` + `executeDeleteNoneOrOne()` lands on the
+        // row-shape branch of `executeDeleteNoneOrOne`. WHERE id=99999 matches
+        // no row, so the DELETE removes nothing and RETURNING yields no row —
+        // the None arm resolves `null` (not a throw). The mock returns the same
+        // "no row" sentinel, so BOTH modes realize the `| null` inhabitant
+        // under the default mocked run (structural twin of
+        // `update-returning-none-or-one-row-shape-null-on-no-match`).
+        ctx.mockNext(undefined)
         await ctx.withRollback(async () => {
             const row = await ctx.conn.deleteFrom(tIssue)
                 .where(tIssue.id.equals(99999))
@@ -64,9 +70,7 @@ describe(ctx.label, () => {
                 id:     number
                 status: string
             } | null>>()
-            // No-match id: the real DB deletes nothing and RETURNING is
-            // empty (null); the mock primes a synthetic row.
-            expect(row).toEqual(ctx.realDbEnabled ? null : expectedMock)
+            expect(row).toBeNull()
         })
     })
 
@@ -129,6 +133,38 @@ describe(ctx.label, () => {
             },
             {
               "as": "status",
+              "dir": 3003,
+            },
+          ]
+        `)
+    })
+
+    test('delete-returning-one-column-throws-no-result-on-empty', async () => {
+        // `returningOneColumn(col)` + `executeDeleteOne()` with a no-match
+        // filter fires the NO_RESULT throw on the `__oneColumn` branch of
+        // `executeDeleteOne` (distinct executor from the row-shape branch in
+        // `delete-returning-row-shape-throws-no-result-on-empty`). Same
+        // rejection contract in both modes — the real DB deletes no row and
+        // gets no RETURNING value, the mock returns the "no row" sentinel — so
+        // both assert on the rejection. Structural twin of
+        // `update-returning-one-column-throws-no-result-on-empty`.
+        ctx.mockNext(undefined)
+        let caught: unknown
+        try {
+            await ctx.conn.deleteFrom(tIssue)
+                .where(tIssue.id.equals(99999))
+                .returningOneColumn(tIssue.status)
+                .executeDeleteOne()
+        } catch (e) {
+            caught = e
+        }
+        expect(String(caught)).toMatch(/NO_RESULT|No result/)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where id = :0 returning status into :1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            99999,
+            {
+              "as": "result",
               "dir": 3003,
             },
           ]

@@ -19,10 +19,14 @@
 //     with `returning({...})` — covers both `__oneColumn` and row-shape
 //     branches of the many-returning path.
 //
-// Mock-only for the throw cases and for the multi-row last-inserted-id
-// path (the latter because the mock can pre-shape the id array while
-// real DBs hand back engine-assigned ids — the assertion then checks
-// the SQL/params only).
+// The empty-result coercion is reached on the real engine via a 0-row
+// INSERT ... SELECT (a never-matching source select returns no row), so it
+// is validated in both modes — except on Oracle, whose RETURNING INTO has no
+// INSERT ... SELECT form (the test is NOT-APPLICABLE there). The same 0-row
+// INSERT ... SELECT drives the row-shape `executeInsertNoneOrOne()` `→ null`
+// dispatch and the one-column `executeInsertOne()` NO_RESULT throw — the two
+// remaining empty-RETURNING inhabitants — each real-validatable the same way
+// (and NOT-APPLICABLE on Oracle/MySQL for the same reason).
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -202,6 +206,65 @@ describe(ctx.label, () => {
     test('execute-insert-none-or-one-with-returning-one-column-empty-result', async () => {
         // would drive a never-matching INSERT ... SELECT and assert
         // executeInsertNoneOrOne() coerces the empty result to null.
+    })
+    */
+
+    // NOT-APPLICABLE: Oracle rejects RETURNING with INSERT...SELECT (ORA-03049), so a 0-row returning insert is not expressible (returning on from-select is `never`).
+    /*
+    test('execute-insert-none-or-one-with-returning-row-shape-empty-result', async () => {
+        // The row-shape sibling of the one-column empty-result test above: a
+        // 0-row `INSERT ... SELECT` inserts nothing, so RETURNING yields no row
+        // and the row-shape branch of `executeInsertNoneOrOne()`
+        // (`executeInsertReturningOneRow` → no row → `null`) resolves `null`.
+        // Distinct executor from the `__oneColumn` branch above; driving it
+        // through a never-matching select reaches the null dispatch on the REAL
+        // engine, not only the mock.
+        await ctx.withRollback(async () => {
+            ctx.mockNext(undefined)
+            const source = ctx.conn.selectFrom(tOrganization)
+                .where(tOrganization.id.equals(-1))
+                .select({ name: tOrganization.name, plan: tOrganization.plan })
+            const result = await ctx.conn.insertInto(tOrganization)
+                .from(source)
+                .returning({ id: tOrganization.id })
+                .executeInsertNoneOrOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof result, { id: number } | null>>()
+            expect(result).toBeNull()
+        })
+    })
+    */
+
+    // NOT-APPLICABLE: Oracle rejects RETURNING with INSERT...SELECT (ORA-03049), so a 0-row returning insert is not expressible (returning on from-select is `never`).
+    /*
+    test('execute-insert-one-with-returning-one-column-empty-result-throws-no-result', async () => {
+        // The `executeInsertOne()` sibling of the one-column empty-result test
+        // above: a 0-row `INSERT ... SELECT` inserts nothing, so RETURNING
+        // yields no row and the `__oneColumn` branch of `executeInsertOne()`
+        // throws NO_RESULT (where `executeInsertNoneOrOne()` coerces to `null`).
+        // Driving it through a never-matching select reaches the throw on the
+        // REAL engine, not only the mock; the SQL is captured before the throw
+        // fires in the `.then`.
+        await ctx.withRollback(async () => {
+            ctx.mockNext(undefined)
+            const source = ctx.conn.selectFrom(tOrganization)
+                .where(tOrganization.id.equals(-1))
+                .select({ name: tOrganization.name, plan: tOrganization.plan })
+            let caught: unknown
+            try {
+                await ctx.conn.insertInto(tOrganization)
+                    .from(source)
+                    .returningOneColumn(tOrganization.id)
+                    .executeInsertOne()
+            } catch (e) {
+                caught = e
+            }
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            expect(String(caught)).toMatch(/NO_RESULT|No result returned/)
+        })
     })
     */
 

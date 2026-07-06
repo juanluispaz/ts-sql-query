@@ -15,6 +15,10 @@
 //     returns no id must throw MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE
 //     rather than resolve `null` — mock-forced, since a real INSERT always
 //     produces an id.
+//   - The multi-row `returningLastInsertedId()` per-row null-element guard:
+//     each returned id is validated individually, so a null element in the
+//     id array throws MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE decorated
+//     with the offending `rowIndex` — also mock-forced.
 //
 // No SQL snapshots: the guards throw before execution and the empty-values
 // case emits no query.
@@ -188,6 +192,32 @@ describe(ctx.label, () => {
                 .executeInsert()
         } catch (e) { caught = e }
         expect(reasonOf(caught)).toBe('MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE')
+    })
+
+    test('insert-guards/multi-row-returning-last-id-throws-when-an-id-is-null', async () => {
+        // The multi-row twin of the single-row null-id guard above. A multi-row
+        // `returningLastInsertedId()` validates each returned id INDIVIDUALLY, so a
+        // null element in the id array violates the non-null contract: the per-row
+        // guard throws MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE decorated with the
+        // offending `rowIndex` (here 1, the second row). Mock-only: a real INSERT
+        // always produces an id for every row, so a null element can only be forced
+        // through the mock. tOrganization's id carries no TypeAdapter, so this
+        // exercises the default-adapter arm of the per-row guard.
+        if (ctx.realDbEnabled) return
+        ctx.mockNext([1, null])
+        let caught: unknown
+        try {
+            await ctx.conn.insertInto(tOrganization)
+                .values([
+                    { name: 'Ghost A', plan: 'free' },
+                    { name: 'Ghost B', plan: 'pro' },
+                ])
+                .returningLastInsertedId()
+                .executeInsert()
+        } catch (e) { caught = e }
+        const reason = caught instanceof TsSqlError ? caught.errorReason : undefined
+        expect(reason?.reason).toBe('MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE')
+        expect(reason && reason.reason === 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE' ? reason.rowIndex : undefined).toBe(1)
     })
 
 })

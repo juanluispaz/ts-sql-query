@@ -277,4 +277,45 @@ describe(ctx.label, () => {
         })
     })
     */
+
+    // TODO[LIMITATION]: see LIMITATIONS.md — `oldValues()` emits `OLD_VALUE(col)`, only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Snapshot pre-baked for when mariadb:latest catches up to 13.0.1+; uncomment the body then.
+    /*
+    test('returning-old-optional-column-default-projector-drops-null-via-oldValues', async () => {
+        // The default-projector twin of the test above: the SAME optional old
+        // column (`tProject.archivedAt`) read via `oldValues()`, but WITHOUT
+        // `.projectingOptionalValuesAsNullable()`. Under the default projector an
+        // optional column whose value is NULL is DROPPED (absent key), not
+        // surfaced as `| null` — so the RETURNING type is `{ oldArchivedAt?: Date }`
+        // and the old NULL archived_at leaves `oldArchivedAt` absent from the row.
+        // A distinct type-path (`?: Date` vs `| null`) and inhabitant (absent-key
+        // vs present-null) over the `_old_`-aliased synthetic-subquery projection.
+        // Project 2 (Internal tools) is active (archived_at = NULL) and only its
+        // `name` is updated, so the OLD archived_at is null (→ dropped) with no
+        // temporal write. The emitted SQL is identical to the nullable-projector
+        // twin — the projector changes the result shape, not the query.
+        ctx.mockNext({ oldArchivedAt: null, newName: 'Internal tools v2' })
+        await ctx.withRollback(async () => {
+            const oldProject = tProject.oldValues()
+            const row = await ctx.conn.update(tProject)
+                .set({ name: 'Internal tools v2' })
+                .where(tProject.id.equals(2))
+                .returning({
+                    oldArchivedAt: oldProject.archivedAt,
+                    newName:       tProject.name,
+                })
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ? where id = ? returning old_value(archived_at) as oldArchivedAt, name as newName"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Internal tools v2",
+                2,
+              ]
+            `)
+            assertType<Exact<typeof row, { oldArchivedAt?: Date; newName: string }>>()
+            expect(row).toEqual({ newName: 'Internal tools v2' })
+            expect('oldArchivedAt' in row).toBe(false)
+        })
+    })
+    */
 })

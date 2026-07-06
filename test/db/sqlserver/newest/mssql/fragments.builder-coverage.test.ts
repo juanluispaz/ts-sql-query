@@ -75,6 +75,29 @@ describe(ctx.label, () => {
         expect(rows).toEqual([expected])
     })
 
+    test('build-fragment-maybe-optional-arity-1-optional-operand-nullable', async () => {
+        // `negateMaybeOptional` at arity 1 with an OPTIONAL operand. The test
+        // above passes a required column (`priority`), so the result is `number`;
+        // arity 1 is the one arity the b5dc3f2e MaybeOptional fan-out never
+        // touches. Feeding `tIssue.assigneeId` (optional) exercises the
+        // value-source-optional overload, flipping the result to `number | null`.
+        // Issue 3 has a NULL assignee_id, so `-assignee_id` resolves NULL — the
+        // `| null` inhabitant realized in both modes. `selectOneColumn` is used
+        // (not a `select({...})` projection) so the null surfaces directly as
+        // `number | null` rather than an optional-as-undefined property.
+        ctx.mockNext(null)
+        const r = await ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(3))
+            .selectOneColumn(ctx.conn.negateMaybeOptional(tIssue.assigneeId)).executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select -assignee_id as [result] from issue where id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+          ]
+        `)
+        assertType<Exact<typeof r, number | null>>()
+        expect(r).toBeNull()
+    })
+
     test('uuid-arg-coalesce-projected', async () => {
         // `coalesceUuid` exercises a `uuid` `arg`. Issue 1's plain-uuid
         // `external_ref` coalesced with itself.

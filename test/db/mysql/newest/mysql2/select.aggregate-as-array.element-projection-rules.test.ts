@@ -487,6 +487,53 @@ describe(ctx.label, () => {
         expect(rows[0]!.items.length).toBe(1)
     })
 
+    test('element-top-rule-1-required-in-optional-object-gate-null-drops-whole-element-as-nullable', async () => {
+        // The `projectingOptionalValuesAsNullable()` twin of the default rule-1
+        // top-element test above. The reqInOptObj gate at the ELEMENT TOP (`ref` is
+        // `body.asRequiredInOptionalObject()`) still DROPS an element whose gate is
+        // NULL — the nullable projector flips optional LEAVES to present-`| null`
+        // but does NOT surface a null-gated element as `{ ref: null }`. `ref` stays
+        // required (it is the gate), `assigneeId` flips `number | null`, and the
+        // element itself is NOT `| null`. Rule-2 (line ~769) and rule-4 (line ~614)
+        // have this asNullable twin; rule-1 did not. Org 1's issues 1, 2, 3
+        // aggregate; issues 1 and 3 have a null body → dropped, leaving only issue 2.
+        ctx.mockNext([{ orgId: 1, items: [
+            { ref: null,             assigneeId: 1 },
+            { ref: 'Use new tokens', assigneeId: 2 },
+            { ref: null,             assigneeId: null },
+        ] }])
+        const rows = await ctx.conn.selectFrom(tProject)
+            .innerJoin(tIssue).on(tIssue.projectId.equals(tProject.id))
+            .where(tProject.organizationId.equals(1))
+            .select({
+                orgId: tProject.organizationId,
+                items: ctx.conn.aggregateAsArray({
+                    ref:        tIssue.body.asRequiredInOptionalObject(),
+                    assigneeId: tIssue.assigneeId,
+                }).projectingOptionalValuesAsNullable(),
+            })
+            .groupBy('orgId')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.organization_id as orgId, json_arrayagg(json_object('ref', issue.body, 'assigneeId', issue.assignee_id)) as items from project inner join issue on issue.project_id = project.id where project.organization_id = ? group by project.organization_id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            orgId: number
+            items: Array<{ ref: string; assigneeId: number | null }>
+        }>>>()
+        const sorted = rows.map(r => ({ ...r, items: [...r.items].sort((a, b) => a.ref.localeCompare(b.ref)) }))
+        expect(sorted).toEqual([{ orgId: 1, items: [
+            { ref: 'Use new tokens', assigneeId: 2 },
+        ] }])
+        // Even under the nullable projector both null-gate elements DROP (they are
+        // not surfaced as `{ ref: null }`) → only one survives.
+        expect(rows[0]!.items.length).toBe(1)
+    })
+
     test('element-containing-sole-optional-inner-object-collapses-on-aggregate-path-default', async () => {
         // The aggregate-path twin of the 143fe3b2 sole-optional-inner fix: an element
         // whose `wrapper` has a SOLE member (`inner`, an all-optional object). The

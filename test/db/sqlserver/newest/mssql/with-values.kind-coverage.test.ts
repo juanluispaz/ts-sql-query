@@ -9,7 +9,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { Values } from '../../../../../src/Values.js'
-import type { TypeAdapter } from '../../../../../src/TypeAdapter.js'
+import { CustomBooleanTypeAdapter, type TypeAdapter } from '../../../../../src/TypeAdapter.js'
 import { DBConnection, type ReleaseChannel, type ReleaseTag, type WorklogActivity } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
@@ -35,6 +35,14 @@ const scaledTenthAdapter: TypeAdapter = {
 
 class VScaledSampler extends Values<DBConnection, 'scaledSampler'> {
     score = this.column('int', scaledTenthAdapter)
+}
+
+// A boolean VALUES column carrying a CustomBooleanTypeAdapter ('Y'/'N') — the
+// boolean × adapter-object arm of `Values.column('boolean', adapter)`. The write
+// path maps true→'Y' (a string), distinct from the plain boolean VALUES column
+// whose value binds directly under the dialect's boolean cast.
+class VBoolAdapterSampler extends Values<DBConnection, 'boolAdapterSampler'> {
+    flag = this.column('boolean', new CustomBooleanTypeAdapter('Y', 'N'))
 }
 
 // A value-shifting TypeAdapter (read +1000, write -1000) for the CUSTOM-kind
@@ -141,6 +149,29 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{ score: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('values-tuple-boolean-column-with-custom-boolean-adapter', async () => {
+        // The boolean × CustomBooleanTypeAdapter arm of `Values.column(type, adapter)`:
+        // the adapter maps true→'Y' / false→'N', so passing flag:true binds the STRING
+        // 'Y' in the VALUES tuple (distinct from the plain boolean VALUES column, which
+        // binds the boolean directly under the dialect's boolean cast), and the read
+        // maps 'Y' back to true. Observable in both the bound param ('Y') and the
+        // result value (true).
+        const expected = [{ flag: true }]
+        ctx.mockNext([{ flag: true }])
+        const v = Values.create(VBoolAdapterSampler, 'boolAdapterSampler', [{ flag: true }])
+        const rows = await ctx.conn.selectFrom(v)
+            .select({ flag: v.flag })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with boolAdapterSampler as (select * from (values (case when (@0 = 1) then 'Y' else 'N' end)) as boolAdapterSampler(flag)) select cast(case when flag = 'Y' then 1 else 0 end as bit) as flag from boolAdapterSampler"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            true,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ flag: boolean }>>>()
         expect(rows).toEqual(expected)
     })
 

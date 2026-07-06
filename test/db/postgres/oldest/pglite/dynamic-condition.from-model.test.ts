@@ -240,6 +240,24 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
     })
 
+    test('from-model/order-by-model-array-feeds-orderByFromStringArray', async () => {
+        // The documented idiomatic pairing: a typed `OrderByForModel<M>[]` array fed
+        // DIRECTLY to `orderByFromStringArray(...)` — no `.join(', ')` (see the header
+        // of src/dynamic/orderBy.ts and src/experimental/types.ts). The sibling test
+        // above joins the same clauses for `orderByFromString`; this consumes the
+        // array form the type is designed for. Same emitted SQL as the join route.
+        const order: OrderByForModel<IssueOrderModel>[] = ['priority desc', 'title asc']
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .select({ id: tIssue.id, title: tIssue.title, priority: tIssue.priority })
+            .orderByFromStringArray(order)
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title, priority as priority from issue order by priority desc, title asc"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+    })
+
     test('from-model/order-by-nested-leaf-in-complex-projection', async () => {
         // The runtime resolves a dotted order-by path into the nested projection, so
         // ordering by `organization.name` works on a complex projection. OrderByForModel

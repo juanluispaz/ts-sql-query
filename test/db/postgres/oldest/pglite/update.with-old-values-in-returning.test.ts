@@ -235,4 +235,38 @@ describe(ctx.label, () => {
             expect(row).toEqual({ id: 1, audit: { old: 'Marketing site', new: 'Mktg nested' } })
         })
     })
+
+    test('returning-old-optional-column-as-nullable-via-oldValues', async () => {
+        // An OPTIONAL old column returned via `oldValues()` driven through
+        // `projectingOptionalValuesAsNullable()`. `tProject.archivedAt` is optional,
+        // so `old.archived_at` in RETURNING is normally `oldArchivedAt?: Date`;
+        // under the nullable projector it flips to a present `Date | null`. This is
+        // the `_old_`-aliased synthetic-subquery projection × the nullable projector
+        // — the two never co-occurred before. Project 2 (Internal tools) is active
+        // (archived_at = NULL), and only its `name` is updated, so the OLD
+        // archived_at is null (present, not absent) with no temporal write.
+        ctx.mockNext({ oldArchivedAt: null, newName: 'Internal tools v2' })
+        await ctx.withRollback(async () => {
+            const oldProject = tProject.oldValues()
+            const row = await ctx.conn.update(tProject)
+                .set({ name: 'Internal tools v2' })
+                .where(tProject.id.equals(2))
+                .returning({
+                    oldArchivedAt: oldProject.archivedAt,
+                    newName:       tProject.name,
+                })
+                .projectingOptionalValuesAsNullable()
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project as _new_ set name = $1 from (select _old_.* from project as _old_ where _old_.id = $2 for no key update of _old_) as _old_ where _new_.id = _old_.id returning _old_.archived_at as "oldArchivedAt", _new_.name as "newName""`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Internal tools v2",
+                2,
+              ]
+            `)
+            assertType<Exact<typeof row, { oldArchivedAt: Date | null; newName: string }>>()
+            expect(row).toEqual({ oldArchivedAt: null, newName: 'Internal tools v2' })
+        })
+    })
 })

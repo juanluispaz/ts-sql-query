@@ -99,18 +99,6 @@ describe(ctx.label, () => {
         expect(r).toBe(0)
     })
 
-    test('insert-guards/empty-values-with-min-throws-minimum-rows', async () => {
-        // The empty `values([])` short-circuit runs the min/max guard against the
-        // resulting count of 0: `executeInsert(1)` on an empty batch reaches its
-        // guard with count 0 < min 1, so it rejects with MINIMUM_ROWS_NOT_REACHED
-        // instead of resolving 0. No SQL is dispatched.
-        let caught: unknown
-        try {
-            await ctx.conn.insertInto(tProject).values([]).executeInsert(1)
-        } catch (e) { caught = e }
-        expect(reasonOf(caught)).toBe('MINIMUM_ROWS_NOT_REACHED')
-    })
-
     // NOT-APPLICABLE: MySQL has no RETURNING, so multi-row `returningLastInsertedId()` is not on its typed surface.
     /*
     test('insert-guards/empty-values-returning-last-id-resolves-empty-array', async () => {

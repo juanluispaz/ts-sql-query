@@ -609,6 +609,84 @@ describe(ctx.label, () => {
         expect(r).toBe(7)
     })
 
+    // ── buildAggregateFragmentWithMaybeOptionalArgs: OPTIONAL-result branch.
+    // The five arity tests above pass only REQUIRED columns, so the result is
+    // always `number`. `buildAggregateFragmentWithMaybeOptionalArgs` is a
+    // distinct runtime impl whose optional-stamping fires when ANY passed
+    // value source is optional: feeding `tIssue.assigneeId` (an optional int
+    // column) flips the result to `number | null`. Issue 3 has a NULL
+    // assignee_id, so filtering to it makes `max(... assignee_id)` resolve
+    // NULL — the `| null` inhabitant realized in both modes. ──
+    test('aggregate-maybe-optional-arity-1-optional-operand-nullable', async () => {
+        ctx.mockNext(null)
+        const r = await ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(3))
+            .selectOneColumn(ctx.conn.aggMaxColumnOptional(tIssue.assigneeId)).executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(assignee_id) as result from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+          ]
+        `)
+        assertType<Exact<typeof r, number | null>>()
+        expect(r).toBeNull()
+    })
+
+    test('aggregate-maybe-optional-arity-2-optional-operand-nullable', async () => {
+        ctx.mockNext(null)
+        const r = await ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(3))
+            .selectOneColumn(ctx.conn.aggMO2Max(tIssue.priority, tIssue.assigneeId)).executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(priority + assignee_id) as result from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+          ]
+        `)
+        assertType<Exact<typeof r, number | null>>()
+        expect(r).toBeNull()
+    })
+
+    test('aggregate-maybe-optional-arity-3-optional-operand-nullable', async () => {
+        ctx.mockNext(null)
+        const r = await ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(3))
+            .selectOneColumn(ctx.conn.aggMO3Max(tIssue.priority, tIssue.id, tIssue.assigneeId)).executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(priority + id + assignee_id) as result from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+          ]
+        `)
+        assertType<Exact<typeof r, number | null>>()
+        expect(r).toBeNull()
+    })
+
+    test('aggregate-maybe-optional-arity-4-optional-operand-nullable', async () => {
+        ctx.mockNext(null)
+        const r = await ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(3))
+            .selectOneColumn(ctx.conn.aggMO4Max(tIssue.priority, tIssue.id, tIssue.number, tIssue.assigneeId)).executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(priority + id + number + assignee_id) as result from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+          ]
+        `)
+        assertType<Exact<typeof r, number | null>>()
+        expect(r).toBeNull()
+    })
+
+    test('aggregate-maybe-optional-arity-5-optional-operand-nullable', async () => {
+        ctx.mockNext(null)
+        const r = await ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(3))
+            .selectOneColumn(ctx.conn.aggMO5Max(tIssue.priority, tIssue.id, tIssue.number, tIssue.projectId, tIssue.assigneeId)).executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(priority + id + number + project_id + assignee_id) as result from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+          ]
+        `)
+        assertType<Exact<typeof r, number | null>>()
+        expect(r).toBeNull()
+    })
+
     // ── buildAggregateFragmentWithArgsIfValue (used in HAVING,
     // the canonical surface for aggregate IfValue predicates) ──
     test('aggregate-if-value-arity-0-predicate', async () => {

@@ -239,4 +239,36 @@ describe(ctx.label, () => {
         })
     })
     */
+
+    // NOT-APPLICABLE: MySQL has no RETURNING (and no OUTPUT equivalent), so `tTable.oldValues()` is typed `never` on `MySqlConnection`; audit-style pre/post reads need an explicit SELECT before the UPDATE.
+    /*
+    test('returning-old-optional-column-as-nullable-via-oldValues', async () => {
+        // An OPTIONAL old column returned via `oldValues()` driven through
+        // `projectingOptionalValuesAsNullable()`. `tProject.archivedAt` is optional,
+        // so `old.archived_at` in RETURNING is normally `oldArchivedAt?: Date`;
+        // under the nullable projector it flips to a present `Date | null`. This is
+        // the `_old_`-aliased synthetic-subquery projection × the nullable projector
+        // — the two never co-occurred before. Project 2 (Internal tools) is active
+        // (archived_at = NULL), and only its `name` is updated, so the OLD
+        // archived_at is null (present, not absent) with no temporal write.
+        ctx.mockNext({ oldArchivedAt: null, newName: 'Internal tools v2' })
+        await ctx.withRollback(async () => {
+            const oldProject = tProject.oldValues()
+            const row = await ctx.conn.update(tProject)
+                .set({ name: 'Internal tools v2' })
+                .where(tProject.id.equals(2))
+                .returning({
+                    oldArchivedAt: oldProject.archivedAt,
+                    newName:       tProject.name,
+                })
+                .projectingOptionalValuesAsNullable()
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof row, { oldArchivedAt: Date | null; newName: string }>>()
+            expect(row).toEqual({ oldArchivedAt: null, newName: 'Internal tools v2' })
+        })
+    })
+    */
 })

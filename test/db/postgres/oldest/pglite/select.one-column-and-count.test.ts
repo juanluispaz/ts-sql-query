@@ -274,6 +274,43 @@ describe(ctx.label, () => {
         }
     })
 
+    test('select-one-column-execute-none-or-one-multiple-rows-throws-more-than-one-row', async () => {
+        // `executeSelectNoneOrOne()` widens the null (None) arm, but MORE-than-one
+        // row is still a hard error: it routes through the same
+        // `executeSelectOneColumnOneRow` runner method as `executeSelectOne`, which
+        // rejects >1 rows with MORE_THAN_ONE_ROW. The null arm is covered by
+        // `select-one-column-execute-none-or-one-can-return-null`; this pins the
+        // too-many-rows inhabitant. Project 1 has two issues (ids 1, 2), so
+        // project_id = 1 returns two rows. The mock returns a single queued value
+        // and cannot produce two rows, so the throw is asserted only on real-DB /
+        // native-SQLite cells; on mock the single value returns without a throw. The
+        // SQL is captured (before the throw fires) in both modes.
+        ctx.mockNext('open')
+        let caught: unknown
+        let result: string | null | undefined
+        try {
+            result = await ctx.conn.selectFrom(tIssue)
+                .where(tIssue.projectId.equals(1))
+                .selectOneColumn(tIssue.status)
+                .executeSelectNoneOrOne()
+        } catch (e) {
+            caught = e
+        }
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as result from issue where project_id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        if (ctx.realDbEnabled) {
+            expect(String(caught)).toMatch(/MORE_THAN_ONE_ROW|Too many rows/)
+            expect(caught instanceof TsSqlError ? caught.errorReason.reason : undefined).toBe('MORE_THAN_ONE_ROW')
+        } else {
+            expect(caught).toBeUndefined()
+            expect(result).toBe('open')
+        }
+    })
+
     test('select-one-column-execute-page-returns-scalar-array-and-count', async () => {
         // `executeSelectPage` on a one-column `selectOneColumn(...)` query: `data` is
         // a bare scalar array (`number[]`, not `Array<{...}>`) alongside `count`. It

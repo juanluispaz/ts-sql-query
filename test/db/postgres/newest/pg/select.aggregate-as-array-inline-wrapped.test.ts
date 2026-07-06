@@ -718,4 +718,74 @@ describe(ctx.label, () => {
             ],
         })
     })
+
+    test('inline-aggregate-of-distinct-one-column', async () => {
+        // A `select distinct` source consumed via forUseAsInlineAggregatedArrayValue().
+        // `distinct` is a wrap trigger (like group by / having / compound), so the
+        // builder wraps the inner select in the aggregate-over-derived-table form:
+        // json_agg(...) from (select distinct ...) as a_1_. Project 1 has issue 1
+        // (open) and issue 2 (in_progress); the distinct statuses are
+        // {open, in_progress}. The inner aggregate has no order by, so sort before
+        // comparing.
+        ctx.mockNext({ id: 1, statuses: JSON.stringify(['open', 'in_progress']) })
+        const distinctStatuses = ctx.conn.subSelectDistinctUsing(tProject).from(tIssue)
+            .where(tIssue.projectId.equals(tProject.id))
+            .selectOneColumn(tIssue.status)
+            .forUseAsInlineAggregatedArrayValue()
+
+        const row = await ctx.conn.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ id: tProject.id, statuses: distinctStatuses })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select json_agg(a_1_.result) from (select distinct status as result from issue where project_id = project.id) as a_1_) as statuses from project where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; statuses: string[] }>>()
+        expect({ ...row, statuses: [...row.statuses].sort() }).toEqual({ id: 1, statuses: ['in_progress', 'open'] })
+    })
+
+    test('inline-aggregate-of-distinct-object', async () => {
+        // The distinct-source wrap with a multi-column projection → object array.
+        // Project 1's issues have {status, priority} pairs {(open, 2), (in_progress,
+        // 1)}, both distinct. The inner aggregate is unordered, so sort before
+        // comparing.
+        ctx.mockNext({
+            id: 1,
+            issueKinds: JSON.stringify([
+                { status: 'in_progress', priority: 1 },
+                { status: 'open', priority: 2 },
+            ]),
+        })
+        const distinctKinds = ctx.conn.subSelectDistinctUsing(tProject).from(tIssue)
+            .where(tIssue.projectId.equals(tProject.id))
+            .select({ status: tIssue.status, priority: tIssue.priority })
+            .forUseAsInlineAggregatedArrayValue()
+
+        const row = await ctx.conn.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ id: tProject.id, issueKinds: distinctKinds })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select json_agg(json_build_object('status', a_1_.status, 'priority', a_1_.priority)) from (select distinct status as status, priority as priority from issue where project_id = project.id) as a_1_) as "issueKinds" from project where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            id:         number
+            issueKinds: Array<{ status: string; priority: number }>
+        }>>()
+        expect({ ...row, issueKinds: [...row.issueKinds].sort((a, b) => a.priority - b.priority) }).toEqual({
+            id: 1,
+            issueKinds: [
+                { status: 'in_progress', priority: 1 },
+                { status: 'open', priority: 2 },
+            ],
+        })
+    })
 })

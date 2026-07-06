@@ -242,4 +242,31 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ status: string }>>>()
         expect(rows).toEqual(expected)
     })
+
+    test('distinct-source-consumed-as-user-cte', async () => {
+        // A `selectDistinctFrom(...)` result named via `forUseInQueryAs('d')` — a
+        // user-defined CTE built from a DISTINCT select. Emits
+        // `with d as (select distinct ...) select ... from d`; the `distinct`
+        // FEATURE renders inside the CTE body (the distinct-source twin of the
+        // plain CTE in select.cte.test.ts, and a different render site from the
+        // internal `result_for_count` count-wrap). The 4 seeded issues have
+        // statuses {open, in_progress, open, closed} → distinct {open,
+        // in_progress, closed}, ordered → {closed, in_progress, open}.
+        const expected = [{ status: 'closed' }, { status: 'in_progress' }, { status: 'open' }]
+        ctx.mockNext(expected)
+
+        const distinctStatuses = ctx.conn.selectDistinctFrom(tIssue)
+            .select({ status: tIssue.status })
+            .forUseInQueryAs('d')
+
+        const rows = await ctx.conn.selectFrom(distinctStatuses)
+            .select({ status: distinctStatuses.status })
+            .orderBy('status')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with d as (select distinct \`status\` as \`status\` from issue) select \`status\` as \`status\` from d order by \`status\`"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ status: string }>>>()
+        expect(rows).toEqual(expected)
+    })
 })

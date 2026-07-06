@@ -81,6 +81,19 @@ const uuidBracket: TypeAdapter = {
     },
 }
 
+// The boolean marshaller yields a `boolean`; negate it so the adapter's effect
+// on a boolean const is observable. `transformValueToDB` delegates to `next`,
+// so the const boolean is sent verbatim and the placeholder/cast is unchanged.
+const boolNegate: TypeAdapter = {
+    transformValueFromDB(value, type, next) {
+        const v = next.transformValueFromDB(value, type)
+        return typeof v === 'boolean' ? !v : v
+    },
+    transformValueToDB(value, type, next) {
+        return next.transformValueToDB(value, type)
+    },
+}
+
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
     afterAll(() => ctx.down(), ctx.timeoutMs)
@@ -444,5 +457,41 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof v, number | null>>()
         expect(v).toBeNull()
+    })
+
+    // ── const/optionalConst(value, 'boolean', adapter) ──────────────────
+    // The const `true` is sent verbatim; the value read back (raw true) is
+    // negated to false by `boolNegate`.
+
+    test('const/boolean-adapter-transforms-read-value', async () => {
+        ctx.mockNext(true)
+        const v = await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.const(true, 'boolean', boolNegate))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof v, boolean>>()
+        expect(v).toBe(false)
+    })
+
+    test('optional-const/boolean-adapter-transforms-read-value', async () => {
+        // Same transform through the `optional` overload; the flag only widens
+        // the leaf to `boolean | null`.
+        ctx.mockNext(true)
+        const v = await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.optionalConst(true, 'boolean', boolNegate))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof v, boolean | null>>()
+        expect(v).toBe(false)
     })
 })

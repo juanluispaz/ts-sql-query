@@ -505,4 +505,117 @@ describe(ctx.label, () => {
         assertType<Exact<typeof key, string | null>>()
         expect(key).toEqual(REF1)
     })
+
+    // Nullable-family modifiers (the modifier trio + value-source valueWhenNull /
+    // nullIfValue) on the uuid and customUuid leaves.
+
+    test('uuid-receiver-modifier-trio', async () => {
+        // The modifier trio on a uuid column (externalRef). asRequiredInOptionalObject()
+        // passes the value through (req?: string); onlyWhenOrNull(false) /
+        // ignoreWhenAsNull(true) replace the source with a build-time typed NULL, so
+        // own / ign are absent under optional-as-undefined. Issue 1 external_ref REF1.
+        const expected = { id: 1, req: REF1 }
+        ctx.mockNext({ id: 1, req: REF1 })
+        const row = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id:  tIssue.id,
+                req: tIssue.externalRef.asRequiredInOptionalObject(),
+                own: tIssue.externalRef.onlyWhenOrNull(false),
+                ign: tIssue.externalRef.ignoreWhenAsNull(true),
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", raw_to_uuid(external_ref) as "req", raw_to_uuid(null) as "own", raw_to_uuid(null) as "ign" from issue where id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; req?: string; own?: string; ign?: string }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('uuid-receiver-value-when-null-source', async () => {
+        // valueWhenNull(value source) on the uuid receiver: the optional VS default
+        // (.asOptional() on the same column) keeps the result optional. Issue 1
+        // external_ref non-null → the column value.
+        ctx.mockNext(REF1)
+        const ref = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .selectOneColumn(tIssue.externalRef.valueWhenNull(tIssue.externalRef.asOptional()))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select raw_to_uuid(nvl(external_ref, external_ref)) as "result" from issue where id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof ref, string | null>>()
+        expect(ref).toEqual(REF1)
+    })
+
+    test('uuid-receiver-null-if-value-source', async () => {
+        // nullIfValue(value source) on the uuid receiver: the probe is a const uuid
+        // value source (a different uuid), so issue 1's ref (REF1) is kept.
+        ctx.mockNext(REF1)
+        const ref = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .selectOneColumn(tIssue.externalRef.nullIfValue(ctx.conn.const(UUID_VALUE, 'uuid')))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select raw_to_uuid(nullif(external_ref, uuid_to_raw(:0))) as "result" from issue where id = :1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+            1,
+          ]
+        `)
+        assertType<Exact<typeof ref, string | null>>()
+        expect(ref).toEqual(REF1)
+    })
+
+    test('custom-uuid-receiver-modifier-trio', async () => {
+        // The modifier trio on a customUuid column (signingKey / 'SigningKey' branded).
+        // asRequiredInOptionalObject() keeps the mapped string (req?: string); the two
+        // NULL-substitution modifiers drop own / ign to absent. Release 1 signing_key
+        // SIGNING_KEY1.
+        const expected = { id: 1, req: SIGNING_KEY1 }
+        ctx.mockNext({ id: 1, req: SIGNING_KEY1 })
+        const row = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .select({
+                id:  tProjectRelease.id,
+                req: tProjectRelease.signingKey.asRequiredInOptionalObject(),
+                own: tProjectRelease.signingKey.onlyWhenOrNull(false),
+                ign: tProjectRelease.signingKey.ignoreWhenAsNull(true),
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", raw_to_uuid(signing_key) as "req", raw_to_uuid(null) as "own", raw_to_uuid(null) as "ign" from project_release where id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; req?: string; own?: string; ign?: string }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('custom-uuid-receiver-null-if-value-source', async () => {
+        // nullIfValue(value source) on the customUuid receiver: the probe is a const
+        // customUuid value source (SIGNING_KEY3, a different key), so release 1's
+        // signing_key (SIGNING_KEY1) is kept.
+        ctx.mockNext(SIGNING_KEY1)
+        const key = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .selectOneColumn(tProjectRelease.signingKey.nullIfValue(ctx.conn.const<string, 'SigningKey'>(SIGNING_KEY3, 'customUuid', 'SigningKey')))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select raw_to_uuid(nullif(signing_key, uuid_to_raw(:0))) as "result" from project_release where id = :1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "7b3e9d20-2222-4c55-9b66-dddd00009999",
+            1,
+          ]
+        `)
+        assertType<Exact<typeof key, string | null>>()
+        expect(key).toEqual(SIGNING_KEY1)
+    })
 })

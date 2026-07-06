@@ -865,6 +865,69 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
+    test('view-custom-localDate-asOptional-getters', async () => {
+        // The 4 LocalDateValueSource getters on the View custom-localDate column
+        // releasedOn demoted via `.asOptional()` — each carries the optional
+        // marker to a `number | undefined` leaf. Release 1: released_on 2024-01-15
+        // (a Monday) -> year 2024, month 0 (January, JS 0-indexed), date 15,
+        // day-of-week 1.
+        const expected = [{ y: 2024, mo: 0, d: 15, dow: 1 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(1))
+            .select({
+                y:   vReleaseOverview.releasedOn.asOptional().getFullYear(),
+                mo:  vReleaseOverview.releasedOn.asOptional().getMonth(),
+                d:   vReleaseOverview.releasedOn.asOptional().getDate(),
+                dow: vReleaseOverview.releasedOn.asOptional().getDay(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select year(released_on) as \`y\`, month(released_on) - 1 as mo, dayofmonth(released_on) as \`d\`, dayofweek(released_on) - 1 as dow from release_overview where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ y?: number | undefined; mo?: number | undefined; d?: number | undefined; dow?: number | undefined }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    // ------------------------------------------------------------------
+    // View custom-source `.asOptional()` getters — vReleaseOverview.cutoffClock
+    // ('CutoffClock', customLocalTime) surfaced through the view then demoted to
+    // optional via `.asOptional()` before the LocalTime getters (the View read
+    // path, distinct from the Table read path). asOptional() carries the optional
+    // marker to each getter's number leaf (`?: number | undefined`). Release 1
+    // through the view: cutoff_clock 17:00:00 -> hours 17, minutes 0, seconds 0,
+    // milliseconds 0.
+    // ------------------------------------------------------------------
+
+    test('view-custom-localTime-asOptional-getters', async () => {
+        // The 4 LocalTimeValueSource getters on the View custom-localTime column
+        // cutoffClock demoted via `.asOptional()` — each carries the optional
+        // marker to a `number | undefined` leaf. Release 1: cutoff_clock 17:00:00
+        // -> hours 17, minutes 0, seconds 0, milliseconds 0.
+        const expected = [{ h: 17, m: 0, s: 0, ms: 0 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(1))
+            .select({
+                h:  vReleaseOverview.cutoffClock.asOptional().getHours(),
+                m:  vReleaseOverview.cutoffClock.asOptional().getMinutes(),
+                s:  vReleaseOverview.cutoffClock.asOptional().getSeconds(),
+                ms: vReleaseOverview.cutoffClock.asOptional().getMilliseconds(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select hour(cutoff_clock) as \`h\`, minute(cutoff_clock) as \`m\`, second(cutoff_clock) as \`s\`, round(microsecond(cutoff_clock) / 1000) as ms from release_overview where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ h?: number | undefined; m?: number | undefined; s?: number | undefined; ms?: number | undefined }>>>()
+        expect(rows).toEqual(expected)
+    })
+
     // ------------------------------------------------------------------
     // View plain localDate — vReleaseOverview.releaseDayPlain: the release's
     // release_day_plain surfaced through the view (a plain, non-custom localDate

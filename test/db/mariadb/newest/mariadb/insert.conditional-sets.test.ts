@@ -59,6 +59,41 @@ describe(ctx.label, () => {
         })
     })
 
+    test('set-if-has-no-value-fills-only-when-current-has-no-value', async () => {
+        // Opposite gate to `set-if-has-value...`: the bare non-`When`
+        // `setIfHasNoValue` sets a column only where its currently-staged value IS
+        // null. `body` is staged null → filled with the default; `title` has a
+        // value so it is left untouched.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.insertInto(tIssue)
+                .set({
+                    projectId: 1,
+                    number:    150,
+                    title:     'Triage',
+                    body:      null,
+                    status:    'open',
+                    priority:  2,
+                })
+                .setIfHasNoValue({ title: 'should-be-ignored', body: 'Backfilled' })
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, \`body\`, status, priority) values (?, ?, ?, ?, ?, ?)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                150,
+                "Triage",
+                "Backfilled",
+                "open",
+                2,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            if (!ctx.realDbEnabled) expect(affected).toBe(1)
+        })
+    })
+
     test('set-if-set-if-value-needs-both-prior-set-and-non-empty-incoming', async () => {
         // `setIfSetIfValue` only assigns columns where both the prior
         // set is present AND the incoming value passes `_isValue`.

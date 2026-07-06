@@ -184,6 +184,58 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
+    test('cte-with-nested-object-of-only-optional-columns-rule-4-under-projecting-optional-values-as-nullable', async () => {
+        // The rule-4 CTE re-projection above (an all-optional `opt` object read back
+        // out of a `forUseInQueryAs(...)` CTE) under
+        // `projectingOptionalValuesAsNullable()`: the object becomes `{...} | null`
+        // and its leaves flip to `| null`. When every leaf is null the object
+        // surfaces as `opt: null` (present-key/null) instead of being dropped — the
+        // genuine null-vs-absent distinction the asUndefined sibling cannot show.
+        // issue 1: body null, assignee 1 -> { body: null, assigneeId: 1 };
+        // issue 3: body null, assignee null -> opt null.
+        ctx.mockNext([
+            { iid: 1, 'opt.body': null,             'opt.assigneeId': 1 },
+            { iid: 2, 'opt.body': 'Use new tokens', 'opt.assigneeId': 2 },
+            { iid: 3, 'opt.body': null,             'opt.assigneeId': null },
+            { iid: 4, 'opt.body': 'See ADR-014',    'opt.assigneeId': 3 },
+        ])
+        const expected = [
+            { iid: 1, opt: { body: null, assigneeId: 1 } },
+            { iid: 2, opt: { body: 'Use new tokens', assigneeId: 2 } },
+            { iid: 3, opt: null },
+            { iid: 4, opt: { body: 'See ADR-014', assigneeId: 3 } },
+        ]
+        const connection = ctx.conn
+
+        const optionalsCte = connection.selectFrom(tIssue)
+            .select({
+                iid: tIssue.id,
+                opt: { body: tIssue.body, assigneeId: tIssue.assigneeId },
+            })
+            .forUseInQueryAs('opt_cte')
+
+        const rows = await connection.selectFrom(optionalsCte)
+            .select({
+                iid: optionalsCte.iid,
+                opt: optionalsCte.opt,
+            })
+            .projectingOptionalValuesAsNullable()
+            .orderBy('iid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with opt_cte as (select id as iid, body as "opt.body", assignee_id as "opt.assigneeId" from issue) select iid as iid, "opt.body" as "opt.body", "opt.assigneeId" as "opt.assigneeId" from opt_cte order by iid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{
+            iid: number
+            opt: { body: string | null; assigneeId: number | null } | null
+        }>>>()
+        expect(rows).toEqual(expected)
+        // issue 3's leaves are all null, so the optional `opt` object surfaces as
+        // present-`null` under the asNull projector (not dropped).
+        expect('opt' in rows[2]!).toBe(true)
+        expect(rows[2]!.opt).toBeNull()
+    })
+
     test('plain-select-nested-object-of-only-optional-columns-applies-rule-4', async () => {
         // The nested object is built directly in the select, with no intermediate
         // CTE. Two optional
@@ -2242,6 +2294,56 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
+    test('requiredInOptionalObject-leaf-demoted-through-with-view-as-nullable', async () => {
+        // The with-view demotion above under `projectingOptionalValuesAsNullable()`:
+        // the re-projected `meta` object is all-optional (its `gate` was demoted from
+        // requiredInOptionalObject to `string | null` by the CTE re-select, `extra`
+        // is plain-optional), so the object becomes `{...} | null`. `status` is a
+        // required column, so `gate` is always present and the object never fully
+        // collapses; the plain-optional `extra` (assignee_id) flips to `number | null`
+        // and surfaces as present-`null` on the row whose assignee is null — not
+        // absent, the asNull distinction.
+        // issue 1: status 'open', assignee 1 -> { gate: 'open', extra: 1 };
+        // issue 3: status 'open', assignee NULL -> { gate: 'open', extra: null }.
+        ctx.mockNext([
+            { iid: 1, 'meta.gate': 'open', 'meta.extra': 1 },
+            { iid: 3, 'meta.gate': 'open', 'meta.extra': null },
+        ])
+        const expected = [
+            { iid: 1, meta: { gate: 'open', extra: 1 } },
+            { iid: 3, meta: { gate: 'open', extra: null } },
+        ]
+        const metaCte = ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.in([1, 3]))
+            .select({
+                iid:  tIssue.id,
+                meta: { gate: tIssue.status.asRequiredInOptionalObject(), extra: tIssue.assigneeId },
+            })
+            .forUseInQueryAs('meta_cte')
+        const rows = await ctx.conn.selectFrom(metaCte)
+            .select({ iid: metaCte.iid, meta: metaCte.meta })
+            .projectingOptionalValuesAsNullable()
+            .orderBy('iid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with meta_cte as (select id as iid, status as "meta.gate", assignee_id as "meta.extra" from issue where id in ($1, $2)) select iid as iid, "meta.gate" as "meta.gate", "meta.extra" as "meta.extra" from meta_cte order by iid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            3,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            iid:  number
+            meta: { gate: string | null; extra: number | null } | null
+        }>>>()
+        expect(rows).toEqual(expected)
+        // issue 3's `extra` (assignee_id) is null; under the asNull projector it is
+        // PRESENT-`null` inside the (present) `meta` object, not absent.
+        expect('extra' in rows[1]!.meta!).toBe(true)
+        expect(rows[1]!.meta!.extra).toBeNull()
+    })
+
     test('requiredInOptionalObject-leaf-preserved-through-for-use-in-left-join', async () => {
         // The companion composition to the with-view demotion above: a CTE nested
         // object carrying a `requiredInOptionalObject` `gate` — already demoted to
@@ -2286,6 +2388,57 @@ describe(ctx.label, () => {
             meta?:  { gate: string | undefined; ownReq: number }
         }>>>()
         expect(rows).toEqual(expected)
+    })
+
+    test('requiredInOptionalObject-leaf-preserved-through-for-use-in-left-join-as-nullable', async () => {
+        // The forUseInLeftJoin-over-CTE composition above under
+        // `projectingOptionalValuesAsNullable()`: all of `meta`'s leaves come from the
+        // same left-joined CTE, so the whole object becomes `{...} | null` and
+        // surfaces as `meta: null` when the join misses. The own-required `ownReq`
+        // stays required inside a present object, while the demoted `gate` leaf is
+        // `string | null`. This is the genuine object-collapse-to-null boundary
+        // (a missed left join), not just a leaf flip.
+        // project 2 -> issue 3 (join hits) -> meta present;
+        // project 4 (Legacy app) has no issue -> the join misses -> meta null.
+        ctx.mockNext([
+            { projId: 2, 'meta.gate': 'open', 'meta.ownReq': 1 },
+            { projId: 4, 'meta.gate': null, 'meta.ownReq': null },
+        ])
+        const expected = [
+            { projId: 2, meta: { gate: 'open', ownReq: 1 } },
+            { projId: 4, meta: null },
+        ]
+        const issueMetaCte = ctx.conn.selectFrom(tIssue)
+            .select({
+                pid:  tIssue.projectId,
+                meta: { gate: tIssue.status.asRequiredInOptionalObject(), ownReq: tIssue.number },
+            })
+            .forUseInQueryAs('issue_meta_cte')
+        const issueMetaLeft = issueMetaCte.forUseInLeftJoin()
+        const rows = await ctx.conn.selectFrom(tProject)
+            .leftJoin(issueMetaLeft).on(issueMetaLeft.pid.equals(tProject.id))
+            .where(tProject.id.in([2, 4]))
+            .select({ projId: tProject.id, meta: issueMetaLeft.meta })
+            .projectingOptionalValuesAsNullable()
+            .orderBy('projId')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with issue_meta_cte as (select project_id as pid, status as "meta.gate", number as "meta.ownReq" from issue) select project.id as "projId", issue_meta_cte."meta.gate" as "meta.gate", issue_meta_cte."meta.ownReq" as "meta.ownReq" from project left join issue_meta_cte on issue_meta_cte.pid = project.id where project.id in ($1, $2) order by "projId""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+            4,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            projId: number
+            meta:   { gate: string | null; ownReq: number } | null
+        }>>>()
+        expect(rows).toEqual(expected)
+        // project 4 has no issue, so the join misses and the whole `meta` object is
+        // PRESENT-`null` under the asNull projector (not absent).
+        expect('meta' in rows[1]!).toBe(true)
+        expect(rows[1]!.meta).toBeNull()
     })
 
     test('merge-optional-requiredInOptionalObject-demoted-to-optional-through-operator', async () => {

@@ -84,6 +84,27 @@ describe(ctx.label, () => {
         expect(result).toBeNull()
     })
 
+    test('select-one-column-execute-none-or-one-present-scalar', async () => {
+        // The `noneOrOne` variant returns the present scalar (not null) when the
+        // WHERE matches exactly one row — the non-null arm of
+        // `select-one-column-execute-none-or-one-can-return-null`. Issue 1's
+        // status is 'open'.
+        ctx.mockNext('open')
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .selectOneColumn(tIssue.status)
+            .executeSelectNoneOrOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as result from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, string | null>>()
+        expect(result).toBe('open')
+    })
+
     test('select-one-column-optional-present-row-null-value', async () => {
         // A one-column OPTIONAL scalar whose row exists but whose value is NULL:
         // issue 3 exists but its `body` is NULL, so

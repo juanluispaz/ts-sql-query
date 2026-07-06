@@ -648,4 +648,31 @@ describe(ctx.label, () => {
         })
     })
 
+
+    test('update-from-table-then-join-on-from-tables', async () => {
+        // The bare `.join` alias (not `.innerJoin`) after `.from()` — emits the plain
+        // ` join ` keyword instead of ` inner join `, otherwise identical to
+        // update-from-table-then-inner-join-on-from-tables. Update project 1's name to
+        // its issue-1 assignee's name → 1 row.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.update(tProject)
+                .from(tIssue)
+                .join(tAppUser).on(tAppUser.id.equals(tIssue.assigneeId))
+                .set({ name: tAppUser.fullName })
+                .where(tProject.id.equals(tIssue.projectId))
+                    .and(tIssue.id.equals(1))
+                .executeUpdate()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = app_user.full_name from issue join app_user on app_user.id = issue.assignee_id where project.id = issue.project_id and issue.id = $1"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            if (ctx.realDbEnabled) expect(typeof affected).toBe('number')
+            else expect(affected).toBe(1)
+        })
+    })
 })

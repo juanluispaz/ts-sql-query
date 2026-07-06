@@ -7,7 +7,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
 import type { TypeAdapter } from '../../../../../src/TypeAdapter.js'
-import { tIssue, tIssueWorklog, tProjectRelease, type ReleaseChannel, type WorklogActivity } from '../../domain/connection.js'
+import { tIssue, tIssueWorklog, tProjectRelease, tOrganization, type ReleaseChannel, type WorklogActivity } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 // A non-identity TypeAdapter: brackets any string read from the DB so the
@@ -333,4 +333,115 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
+
+    test('fragment-with-type-optional-arms-over-worklog', async () => {
+        // The `'optional'` arms of the boolean / localDate / localTime /
+        // customInt / customDouble / enum return families. The SQL is identical
+        // to the required form; only the leaf widens to `?: T | undefined`.
+        // Worklog 1: billable TRUE, work_date 2024-03-04, started_at 09:15,
+        // cost_cents 100 (Cents -> number), billed_amount 200 (Money -> number),
+        // activity 'coding'. Every column is present, so each value round-trips.
+        const expected = {
+            bill: true,
+            wd:   new Date(Date.UTC(2024, 2, 4, 10, 0, 0)),
+            st:   new Date(Date.UTC(1970, 0, 1, 9, 15, 0)),
+            cost: 100,
+            amt:  200,
+            act:  'coding' as WorklogActivity,
+        }
+        ctx.mockNext([expected])
+        const c = ctx.conn
+        const rows = await c.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .select({
+                bill: c.fragmentWithType('boolean', 'optional').sql`${tIssueWorklog.billable}`,
+                wd:   c.fragmentWithType('localDate', 'optional').sql`${tIssueWorklog.workDate}`,
+                st:   c.fragmentWithType('localTime', 'optional').sql`${tIssueWorklog.startedAt}`,
+                cost: c.fragmentWithType<number, 'Cents'>('customInt', 'Cents', 'optional').sql`${tIssueWorklog.costCents}`,
+                amt:  c.fragmentWithType<number, 'Money'>('customDouble', 'Money', 'optional').sql`${tIssueWorklog.billedAmount}`,
+                act:  c.fragmentWithType<WorklogActivity, 'WorklogActivity'>('enum', 'WorklogActivity', 'optional').sql`${tIssueWorklog.activity}`,
+            })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select billable as bill, work_date as wd, started_at as st, cost_cents as cost, billed_amount as amt, activity as act from issue_worklog where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            bill?: boolean | undefined; wd?: Date | undefined; st?: Date | undefined;
+            cost?: number | undefined; amt?: number | undefined; act?: WorklogActivity | undefined
+        }>>>()
+        expect(rows).toEqual([expected])
+    })
+
+    test('fragment-with-type-optional-arms-over-release', async () => {
+        // The `'optional'` arms of the customUuid / customLocalDate /
+        // customLocalTime / customLocalDateTime / customComparable return
+        // families. The SQL is identical to the required form; only the leaf
+        // widens to `?: T | undefined`. Release 1: signing key the seeded uuid,
+        // released 2024-01-15, cutoff 17:00, signed off 2024-01-14 12:30,
+        // version 1.2.0. Every column is present, so each value round-trips.
+        const REF1 = '0a8f9c1e-1111-4222-8333-444455556666'
+        const expected = {
+            key:  REF1,
+            rOn:  new Date(Date.UTC(2024, 0, 15, 10, 0, 0)),
+            cut:  new Date(Date.UTC(1970, 0, 1, 17, 0, 0)),
+            soff: new Date(Date.UTC(2024, 0, 14, 12, 30, 0)),
+            v:    '1.2.0',
+        }
+        ctx.mockNext([expected])
+        const c = ctx.conn
+        const rows = await c.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .select({
+                key:  c.fragmentWithType<string, 'SigningKey'>('customUuid', 'SigningKey', 'optional').sql`${tProjectRelease.signingKey}`,
+                rOn:  c.fragmentWithType<Date, 'ReleaseDay'>('customLocalDate', 'ReleaseDay', 'optional').sql`${tProjectRelease.releasedOn}`,
+                cut:  c.fragmentWithType<Date, 'CutoffClock'>('customLocalTime', 'CutoffClock', 'optional').sql`${tProjectRelease.cutoffTime}`,
+                soff: c.fragmentWithType<Date, 'SignOffStamp'>('customLocalDateTime', 'SignOffStamp', 'optional').sql`${tProjectRelease.signedOffAt}`,
+                v:    c.fragmentWithType<string, 'Semver'>('customComparable', 'Semver', 'optional').sql`${tProjectRelease.version}`,
+            })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select signing_key as key, released_on as "rOn", cutoff_time as cut, signed_off_at as soff, version as "v" from project_release where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            key?: string | undefined; rOn?: Date | undefined; cut?: Date | undefined;
+            soff?: Date | undefined; v?: string | undefined
+        }>>>()
+        expect(rows).toEqual([expected])
+    })
+
+    test('fragment-with-type-optional-arm-plain-local-date-time', async () => {
+        // The `'optional'` arm of the plain `localDateTime` return family, over a
+        // genuinely plain localDateTime column (the release date/time columns are
+        // custom-branded). Organization 1's created_at carries an explicit,
+        // deterministic 2023-06-15 08:00 (not the CURRENT_TIMESTAMP default), so
+        // the present value round-trips; the leaf widens to `?: Date | undefined`.
+        const expected = {
+            ca: new Date(Date.UTC(2023, 5, 15, 8, 0, 0)),
+        }
+        ctx.mockNext([expected])
+        const c = ctx.conn
+        const rows = await c.selectFrom(tOrganization)
+            .where(tOrganization.id.equals(1))
+            .select({
+                ca: c.fragmentWithType('localDateTime', 'optional').sql`${tOrganization.createdAt}`,
+            })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select created_at as ca from organization where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ ca?: Date | undefined }>>>()
+        expect(rows).toEqual([expected])
+    })
 })

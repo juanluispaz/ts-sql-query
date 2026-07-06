@@ -192,4 +192,41 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ id: number }>>>()
         expect(result).toEqual(expected)
     })
+
+    test('limit-if-value-applies-when-value-present', async () => {
+        // `.limitIfValue(n)` with a real value behaves like `.limit(n)` on a
+        // plain (non-compound) select. Issues ordered by id, capped at 2.
+        const expected = [{ id: 1 }, { id: 2 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .limitIfValue(2)
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by id limit ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('limit-if-value-elides-limit-when-null', async () => {
+        // `.limitIfValue(null)` drops the LIMIT clause entirely (the elide twin
+        // of the present-value case above; `offset-without-limit` covers the
+        // `undefined` elide). All four issues come back in id order.
+        const expected = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .limitIfValue(null)
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+        expect(result).toEqual(expected)
+    })
 })

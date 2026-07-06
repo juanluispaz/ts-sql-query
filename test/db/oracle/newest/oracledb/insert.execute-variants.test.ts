@@ -30,6 +30,9 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
+import { TsSqlError } from '../../../../../src/TsSqlError.js'
+// TsSqlError is referenced only by the commented-out NOT-APPLICABLE tests below (this dialect has no RETURNING).
+void TsSqlError
 import { tCountry, tIssue, tOrganization, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
@@ -516,4 +519,340 @@ describe(ctx.label, () => {
             expect(String(caught)).toMatch(/MAXIMUM_ROWS_EXCEEDED|insert more that the maximum/)
         })
     })
+    test('execute-insert-many-with-returning-row-shape-in-range-passes', async () => {
+        // `executeInsertMany(min, max)` with a `.returning({...})` row-shape and
+        // an in-range count: insert 2 rows, count 2 is in [1, 5], and the
+        // RETURNING row-shape array comes back. `id` is engine-assigned so its
+        // value is pinned mock-only; the deterministic `name`/`plan` columns are
+        // asserted unconditionally (sorted by name to be order-independent).
+        ctx.mockNext([
+            { id: 301, name: 'Initech', plan: 'free' },
+            { id: 302, name: 'Hooli', plan: 'pro' },
+        ])
+        await ctx.withRollback(async () => {
+            const rows = await ctx.conn.insertInto(tOrganization)
+                .values([
+                    { name: 'Initech', plan: 'free' },
+                    { name: 'Hooli', plan: 'pro' },
+                ])
+                .returning({ id: tOrganization.id, name: tOrganization.name, plan: tOrganization.plan })
+                .executeInsertMany(1, 5)
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"begin insert into "organization" (name, "plan") values (:0, :1) returning id, name, "plan" into :2, :3, :4; insert into "organization" (name, "plan") values (:5, :6) returning id, name, "plan" into :7, :8, :9; end;"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Initech",
+                "free",
+                {
+                  "as": "id",
+                  "dir": 3003,
+                },
+                {
+                  "as": "name",
+                  "dir": 3003,
+                },
+                {
+                  "as": "plan",
+                  "dir": 3003,
+                },
+                "Hooli",
+                "pro",
+                {
+                  "as": "id",
+                  "dir": 3003,
+                },
+                {
+                  "as": "name",
+                  "dir": 3003,
+                },
+                {
+                  "as": "plan",
+                  "dir": 3003,
+                },
+              ]
+            `)
+            assertType<Exact<typeof rows, Array<{ id: number, name: string, plan: string }>>>()
+            expect(rows.length).toBe(2)
+            const byName = rows.map(r => ({ name: r.name, plan: r.plan })).sort((a, b) => a.name.localeCompare(b.name))
+            expect(byName).toEqual([{ name: 'Hooli', plan: 'pro' }, { name: 'Initech', plan: 'free' }])
+            if (!ctx.realDbEnabled) expect(rows).toEqual([{ id: 301, name: 'Initech', plan: 'free' }, { id: 302, name: 'Hooli', plan: 'pro' }])
+        })
+    })
+
+    test('execute-insert-many-with-returning-one-column-in-range-passes', async () => {
+        // The one-column arity of the many-in-range PASS: `executeInsertMany(min,
+        // max)` with `returningOneColumn(col)`. Insert 2 rows, count 2 is in
+        // [1, 5], and the projected id array comes back. Engine-assigned ids are
+        // pinned mock-only; the length is asserted unconditionally.
+        ctx.mockNext([211, 212])
+        await ctx.withRollback(async () => {
+            const ids = await ctx.conn.insertInto(tOrganization)
+                .values([
+                    { name: 'Umbrella', plan: 'free' },
+                    { name: 'Tyrell', plan: 'pro' },
+                ])
+                .returningOneColumn(tOrganization.id)
+                .executeInsertMany(1, 5)
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"begin insert into "organization" (name, "plan") values (:0, :1) returning id into :2; insert into "organization" (name, "plan") values (:3, :4) returning id into :5; end;"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Umbrella",
+                "free",
+                {
+                  "as": "result",
+                  "dir": 3003,
+                },
+                "Tyrell",
+                "pro",
+                {
+                  "as": "result",
+                  "dir": 3003,
+                },
+              ]
+            `)
+            assertType<Exact<typeof ids, number[]>>()
+            expect(ids.length).toBe(2)
+            if (!ctx.realDbEnabled) expect(ids).toEqual([211, 212])
+        })
+    })
+
+    test('execute-insert-none-or-one-with-returning-row-shape', async () => {
+        // `.values({...})` + `.returning({...})` + `executeInsertNoneOrOne()`
+        // inserts one row and returns the RETURNING row object (present, not
+        // null). `id` is engine-assigned so pinned mock-only; the deterministic
+        // `name`/`plan` are asserted unconditionally.
+        ctx.mockNext({ id: 900, name: 'Wonka', plan: 'pro' })
+        await ctx.withRollback(async () => {
+            const result = await ctx.conn.insertInto(tOrganization)
+                .values({ name: 'Wonka', plan: 'pro' })
+                .returning({ id: tOrganization.id, name: tOrganization.name, plan: tOrganization.plan })
+                .executeInsertNoneOrOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into "organization" (name, "plan") values (:0, :1) returning id, name, "plan" into :2, :3, :4"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Wonka",
+                "pro",
+                {
+                  "as": "id",
+                  "dir": 3003,
+                },
+                {
+                  "as": "name",
+                  "dir": 3003,
+                },
+                {
+                  "as": "plan",
+                  "dir": 3003,
+                },
+              ]
+            `)
+            assertType<Exact<typeof result, { id: number, name: string, plan: string } | null>>()
+            expect(result).not.toBeNull()
+            expect(result?.name).toBe('Wonka')
+            expect(result?.plan).toBe('pro')
+            if (!ctx.realDbEnabled) expect(result).toEqual({ id: 900, name: 'Wonka', plan: 'pro' })
+        })
+    })
+
+    test('execute-insert-many-one-column-with-min-throws-when-empty', async () => {
+        // The one-column arity of the many min-throw arm: `executeInsertMany(min)`
+        // with `returningOneColumn(col)`. Insert 2 rows but require min = 3, so
+        // the one-column-many result has length 2 < 3 and throws
+        // `MINIMUM_ROWS_NOT_REACHED` in both modes.
+        ctx.mockNext([1, 2])
+        await ctx.withRollback(async () => {
+            let caught: unknown
+            try {
+                await ctx.conn.insertInto(tOrganization)
+                    .values([
+                        { name: 'Aperture Science', plan: 'free' },
+                        { name: 'Black Mesa', plan: 'pro' },
+                    ])
+                    .returningOneColumn(tOrganization.id)
+                    .executeInsertMany(3)
+            } catch (e) {
+                caught = e
+            }
+            expect(String(caught)).toMatch(/MINIMUM_ROWS_NOT_REACHED|didn't insert the minimum/)
+        })
+    })
+
+    // NOT-APPLICABLE: Oracle has no INSERT ... SELECT ... RETURNING — the from(select) + returning path narrows to never.
+    /*
+    test('execute-insert-from-multi-row-select-returning-row-shape-execute-one-throws-more-than-one-row', async () => {
+        // `INSERT ... SELECT` whose source matches MORE THAN ONE row (both seeded
+        // organizations) inserts 2 rows; `.returning({...}).executeInsertOne()`
+        // routes the 2 RETURNING rows through the `executeInsertReturningOneRow`
+        // runner guard, which throws MORE_THAN_ONE_ROW on a real engine. The mock
+        // returns a single queued object and cannot produce two rows, so on mock
+        // it returns without a throw. The SQL is captured (before the throw fires)
+        // in both modes.
+        ctx.mockNext({ id: 900 })
+        await ctx.withRollback(async () => {
+            const source = ctx.conn.selectFrom(tOrganization)
+                .where(tOrganization.id.greaterOrEqual(1))
+                .select({ name: tOrganization.name, plan: tOrganization.plan })
+            let caught: unknown
+            let result: { id: number } | undefined
+            try {
+                result = await ctx.conn.insertInto(tOrganization)
+                    .from(source)
+                    .returning({ id: tOrganization.id })
+                    .executeInsertOne()
+            } catch (e) {
+                caught = e
+            }
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into "organization" (name, "plan") select name as "name", "plan" as "plan" from "organization" where id >= :0 returning id into :1"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                {
+                  "as": "id",
+                  "dir": 3003,
+                },
+              ]
+            `)
+            if (ctx.realDbEnabled) {
+                expect(String(caught)).toMatch(/MORE_THAN_ONE_ROW|Too many rows/)
+                expect(caught instanceof TsSqlError ? caught.errorReason.reason : undefined).toBe('MORE_THAN_ONE_ROW')
+            } else {
+                expect(caught).toBeUndefined()
+                expect(result).toEqual({ id: 900 })
+            }
+        })
+    })
+    */
+
+    // NOT-APPLICABLE: Oracle has no INSERT ... SELECT ... RETURNING — the from(select) + returning path narrows to never.
+    /*
+    test('execute-insert-from-multi-row-select-returning-row-shape-execute-none-or-one-throws-more-than-one-row', async () => {
+        // Same MORE_THAN_ONE_ROW guard on the none-or-one row-shape path:
+        // `.returning({...}).executeInsertNoneOrOne()` widens the None arm to
+        // null, but >1 RETURNING rows is still a hard error through the same
+        // `executeInsertReturningOneRow` runner. The mock returns a single queued
+        // object, so on mock it returns without a throw.
+        ctx.mockNext({ id: 900 })
+        await ctx.withRollback(async () => {
+            const source = ctx.conn.selectFrom(tOrganization)
+                .where(tOrganization.id.greaterOrEqual(1))
+                .select({ name: tOrganization.name, plan: tOrganization.plan })
+            let caught: unknown
+            let result: { id: number } | null | undefined
+            try {
+                result = await ctx.conn.insertInto(tOrganization)
+                    .from(source)
+                    .returning({ id: tOrganization.id })
+                    .executeInsertNoneOrOne()
+            } catch (e) {
+                caught = e
+            }
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into "organization" (name, "plan") select name as "name", "plan" as "plan" from "organization" where id >= :0 returning id into :1"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                {
+                  "as": "id",
+                  "dir": 3003,
+                },
+              ]
+            `)
+            if (ctx.realDbEnabled) {
+                expect(String(caught)).toMatch(/MORE_THAN_ONE_ROW|Too many rows/)
+                expect(caught instanceof TsSqlError ? caught.errorReason.reason : undefined).toBe('MORE_THAN_ONE_ROW')
+            } else {
+                expect(caught).toBeUndefined()
+                expect(result).toEqual({ id: 900 })
+            }
+        })
+    })
+    */
+
+    // NOT-APPLICABLE: Oracle has no INSERT ... SELECT ... RETURNING — the from(select) + returning path narrows to never.
+    /*
+    test('execute-insert-from-multi-row-select-returning-one-column-execute-one-throws-more-than-one-row', async () => {
+        // The one-column arity of the MORE_THAN_ONE_ROW guard on insert:
+        // `.returningOneColumn(col).executeInsertOne()` over a 2-row
+        // `INSERT ... SELECT` throws MORE_THAN_ONE_ROW on a real engine. The mock
+        // returns a single queued value, so on mock it returns without a throw.
+        ctx.mockNext(900)
+        await ctx.withRollback(async () => {
+            const source = ctx.conn.selectFrom(tOrganization)
+                .where(tOrganization.id.greaterOrEqual(1))
+                .select({ name: tOrganization.name, plan: tOrganization.plan })
+            let caught: unknown
+            let result: number | undefined
+            try {
+                result = await ctx.conn.insertInto(tOrganization)
+                    .from(source)
+                    .returningOneColumn(tOrganization.id)
+                    .executeInsertOne()
+            } catch (e) {
+                caught = e
+            }
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into "organization" (name, "plan") select name as "name", "plan" as "plan" from "organization" where id >= :0 returning id into :1"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                {
+                  "as": "result",
+                  "dir": 3003,
+                },
+              ]
+            `)
+            if (ctx.realDbEnabled) {
+                expect(String(caught)).toMatch(/MORE_THAN_ONE_ROW|Too many rows/)
+                expect(caught instanceof TsSqlError ? caught.errorReason.reason : undefined).toBe('MORE_THAN_ONE_ROW')
+            } else {
+                expect(caught).toBeUndefined()
+                expect(result).toBe(900)
+            }
+        })
+    })
+    */
+
+    // NOT-APPLICABLE: Oracle has no INSERT ... SELECT ... RETURNING — the from(select) + returning path narrows to never.
+    /*
+    test('execute-insert-from-multi-row-select-returning-one-column-execute-none-or-one-throws-more-than-one-row', async () => {
+        // Same MORE_THAN_ONE_ROW guard on the one-column none-or-one path:
+        // `.returningOneColumn(col).executeInsertNoneOrOne()` widens None to null
+        // but >1 RETURNING rows still throws. The mock returns a single queued
+        // value, so on mock it returns without a throw.
+        ctx.mockNext(900)
+        await ctx.withRollback(async () => {
+            const source = ctx.conn.selectFrom(tOrganization)
+                .where(tOrganization.id.greaterOrEqual(1))
+                .select({ name: tOrganization.name, plan: tOrganization.plan })
+            let caught: unknown
+            let result: number | null | undefined
+            try {
+                result = await ctx.conn.insertInto(tOrganization)
+                    .from(source)
+                    .returningOneColumn(tOrganization.id)
+                    .executeInsertNoneOrOne()
+            } catch (e) {
+                caught = e
+            }
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into "organization" (name, "plan") select name as "name", "plan" as "plan" from "organization" where id >= :0 returning id into :1"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                {
+                  "as": "result",
+                  "dir": 3003,
+                },
+              ]
+            `)
+            if (ctx.realDbEnabled) {
+                expect(String(caught)).toMatch(/MORE_THAN_ONE_ROW|Too many rows/)
+                expect(caught instanceof TsSqlError ? caught.errorReason.reason : undefined).toBe('MORE_THAN_ONE_ROW')
+            } else {
+                expect(caught).toBeUndefined()
+                expect(result).toBe(900)
+            }
+        })
+    })
+    */
+
 })

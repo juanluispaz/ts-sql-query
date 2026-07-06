@@ -174,4 +174,57 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ status: string; cnt: number }>>>()
         expect(result).toEqual(expected)
     })
+
+    test('order-by-value-source-column-desc', async () => {
+        // `orderBy(<value source>, mode)` with a plain COLUMN value source
+        // rather than a projected property name — the builder renders the
+        // column's full expression (`issue.priority`), not the result alias
+        // (`priority`). Priorities: issue 1 -> 2, issue 2 -> 1, issue 3 -> 3,
+        // issue 4 -> 2. Ordered by priority desc, then id asc as the tiebreaker.
+        const expected = [
+            { id: 3, priority: 3 },
+            { id: 1, priority: 2 },
+            { id: 4, priority: 2 },
+            { id: 2, priority: 1 },
+        ]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .select({
+                id:       tIssue.id,
+                priority: tIssue.priority,
+            })
+            .orderBy(tIssue.priority, 'desc')
+            .orderBy(tIssue.id, 'asc')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority as priority from issue order by issue.priority desc, issue.id asc"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ id: number; priority: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('order-by-value-source-column-asc-nulls-last', async () => {
+        // `orderBy(<value source>, 'asc nulls last')` — the value-source overload
+        // carrying a nulls-placement mode. assignee_id: issue 1 -> 1, issue 2 -> 2,
+        // issue 3 -> NULL, issue 4 -> 3. Nulls sort last, id asc breaks ties.
+        // Issue 3's null assignee_id is stripped from the result row.
+        const expected = [
+            { id: 1, assigneeId: 1 },
+            { id: 2, assigneeId: 2 },
+            { id: 4, assigneeId: 3 },
+            { id: 3, assigneeId: undefined },
+        ]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .select({
+                id:         tIssue.id,
+                assigneeId: tIssue.assigneeId,
+            })
+            .orderBy(tIssue.assigneeId, 'asc nulls last')
+            .orderBy(tIssue.id, 'asc')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, assignee_id as assigneeId from issue order by iif(issue.assignee_id is null, 1, 0), issue.assignee_id asc, issue.id asc"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ id: number; assigneeId?: number }>>>()
+        expect(result).toEqual(expected)
+    })
 })

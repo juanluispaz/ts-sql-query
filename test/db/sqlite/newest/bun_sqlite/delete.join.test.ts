@@ -600,4 +600,29 @@ describe(ctx.label, () => {
     })
     */
 
+
+    // NOT-APPLICABLE: SQLite does not support DELETE … USING; the library type-excludes it for sqlite connections.
+    /*
+    test('delete-using-table-then-join-on-using-tables', async () => {
+        // The bare `.join` alias (not `.innerJoin`) after `.using()` — emits the plain
+        // ` join ` keyword instead of ` inner join `, otherwise identical to
+        // delete-using-table-then-inner-join-on-using-tables. Delete project 2's only
+        // issue (issue 3) → 1 row.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.deleteFrom(tIssue)
+                .using(tProject)
+                .join(tOrganization).on(tOrganization.id.equals(tProject.organizationId))
+                .where(tIssue.projectId.equals(tProject.id))
+                    .and(tProject.id.equals(2))
+                .executeDelete()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof affected, number>>()
+            if (ctx.realDbEnabled) expect(typeof affected).toBe('number')
+            else expect(affected).toBe(1)
+        })
+    })
+    */
 })

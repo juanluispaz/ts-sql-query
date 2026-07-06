@@ -4,7 +4,8 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue } from '../../domain/connection.js'
+import { tIssue, tIssueWorklog, vReleaseOverview } from '../../domain/connection.js'
+import type { ReleaseTag } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -607,5 +608,81 @@ describe(ctx.label, () => {
             }>>()
             expect(row).toEqual(expected)
         })
+    })
+
+    // Optional-receiver unary math on the bigint / customInt / customDouble
+    // leaves: `abs()` keeps the leaf type (`?: bigint` / `?: ReleaseTag` /
+    // `?: Money`) while `sign()` narrows to a number leaf (`?: number`).
+
+    test('optional-bigint-receiver-unary-math', async () => {
+        // `durationMs` is an OPTIONAL bigint column (worklog 1 duration_ms
+        // 5400000, no adapter). abs keeps the bigint leaf; sign returns a number.
+        const expected = { id: 1, a: 5400000n, s: 1 }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .select({
+                id: tIssueWorklog.id,
+                a:  tIssueWorklog.durationMs.abs(),
+                s:  tIssueWorklog.durationMs.sign(),
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs(duration_ms) as [a], sign(duration_ms) as [s] from issue_worklog where id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; a?: bigint; s?: number }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('optional-custom-int-receiver-unary-math', async () => {
+        // `optionalReleaseOrdinal` is an OPTIONAL customInt View column (ReleaseTag,
+        // plusOffsetAdapter read +1000). Release 1 resolves optional_release_ordinal
+        // to id 1 (download_count present). abs keeps the branded leaf (?: ReleaseTag);
+        // sign returns a number leaf.
+        const expected = { id: 1, a: 1001 as ReleaseTag, s: 1001 }
+        ctx.mockNext({ id: 1, a: 1, s: 1 })
+        const row = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(1))
+            .select({
+                id: vReleaseOverview.id,
+                a:  vReleaseOverview.optionalReleaseOrdinal.abs(),
+                s:  vReleaseOverview.optionalReleaseOrdinal.sign(),
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs(optional_release_ordinal) as [a], sign(optional_release_ordinal) as [s] from release_overview where id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; a?: ReleaseTag; s?: number }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('optional-custom-double-receiver-unary-math', async () => {
+        // `billedAmount.asOptional()` is an OPTIONAL customDouble receiver (Money,
+        // no adapter). Worklog 1 billed_amount 200. abs keeps the branded leaf
+        // (?: Money); sign returns a number leaf.
+        const expected = { id: 1, a: 200, s: 1 }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .select({
+                id: tIssueWorklog.id,
+                a:  tIssueWorklog.billedAmount.asOptional().abs(),
+                s:  tIssueWorklog.billedAmount.asOptional().sign(),
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs(billed_amount) as [a], sign(billed_amount) as [s] from issue_worklog where id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; a?: number; s?: number }>>()
+        expect(row).toEqual(expected)
     })
 })

@@ -221,4 +221,113 @@ describe(ctx.label, () => {
         assertType<Exact<typeof v, string | null>>()
         expect(v).toBe('[hello]')
     })
+
+    // optionalConst(null, kind): `null` driven through `selectOneColumn` gives a
+    // `T | null` leaf and pins the emitted placeholder cast for each keyword. A
+    // null value skips the per-kind marshaller, so it round-trips cleanly.
+
+    test('optional-const/double-null-cast', async () => {
+        ctx.mockNext(null)
+        const v = await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.optionalConst(null, 'double'))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::float8 as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            null,
+          ]
+        `)
+        assertType<Exact<typeof v, number | null>>()
+        expect(v).toBeNull()
+    })
+
+    test('optional-const/bigint-null-cast', async () => {
+        ctx.mockNext(null)
+        const v = await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.optionalConst(null, 'bigint'))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::int8 as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            null,
+          ]
+        `)
+        assertType<Exact<typeof v, bigint | null>>()
+        expect(v).toBeNull()
+    })
+
+    test('optional-const/boolean-null-cast', async () => {
+        ctx.mockNext(null)
+        const v = await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.optionalConst(null, 'boolean'))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::bool as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            null,
+          ]
+        `)
+        assertType<Exact<typeof v, boolean | null>>()
+        expect(v).toBeNull()
+    })
+
+    test('optional-const/string-null-cast', async () => {
+        ctx.mockNext(null)
+        const v = await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.optionalConst(null, 'string'))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::text as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            null,
+          ]
+        `)
+        assertType<Exact<typeof v, string | null>>()
+        expect(v).toBeNull()
+    })
+
+    test('optional-const/uuid-null-cast', async () => {
+        ctx.mockNext(null)
+        const v = await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.optionalConst(null, 'uuid'))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::uuid as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            null,
+          ]
+        `)
+        assertType<Exact<typeof v, string | null>>()
+        expect(v).toBeNull()
+    })
+
+    test('optional-const/localtime-null-cast', async () => {
+        ctx.mockNext(null)
+        const v = await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.optionalConst(null, 'localTime'))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::time as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            null,
+          ]
+        `)
+        assertType<Exact<typeof v, Date | null>>()
+        expect(v).toBeNull()
+    })
+
+    test('optional-const/localdatetime-null-cast', async () => {
+        ctx.mockNext(null)
+        const v = await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.optionalConst(null, 'localDateTime'))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::timestamp as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            null,
+          ]
+        `)
+        assertType<Exact<typeof v, Date | null>>()
+        expect(v).toBeNull()
+    })
 })

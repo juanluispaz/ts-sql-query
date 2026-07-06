@@ -260,4 +260,249 @@ describe(ctx.label, () => {
             .executeUpdateMany()
         expect(rows).toEqual([])
     })
+    test('execute-update-many-with-min-max-in-range-passes', async () => {
+        // `executeUpdateMany(min, max)` with an in-range count and a
+        // `.returning({...})` row-shape: WHERE matches project 1's two issues
+        // (ids 1, 2), count 2 is in [1, 5], and the RETURNING row-shape array
+        // comes back. Sorted by id for a deterministic comparison in both modes.
+        const expected = [
+            { id: 1, status: 'reviewed' },
+            { id: 2, status: 'reviewed' },
+        ]
+        ctx.mockNext(expected)
+        await ctx.withRollback(async () => {
+            const rows = await ctx.conn.update(tIssue)
+                .set({ status: 'reviewed' })
+                .where(tIssue.projectId.equals(1))
+                .returning({ id: tIssue.id, status: tIssue.status })
+                .executeUpdateMany(1, 5)
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ? where project_id = ? returning id as id, status as status"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "reviewed",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof rows, Array<{ id: number, status: string }>>>()
+            const sorted = rows.slice().sort((a, b) => a.id - b.id)
+            expect(sorted).toEqual(expected)
+        })
+    })
+
+    test('execute-update-one-column-many-non-empty-result', async () => {
+        // `returningOneColumn(col)` + `executeUpdateMany()` returns a NON-EMPTY
+        // scalar array — the one-column-many RETURNING path with matches. WHERE
+        // matches project 1's two issues (ids 1, 2); both get status 'reviewed'.
+        const expected = ['reviewed', 'reviewed']
+        ctx.mockNext(expected)
+        await ctx.withRollback(async () => {
+            const statuses = await ctx.conn.update(tIssue)
+                .set({ status: 'reviewed' })
+                .where(tIssue.projectId.equals(1))
+                .returningOneColumn(tIssue.status)
+                .executeUpdateMany()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ? where project_id = ? returning status as result"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "reviewed",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof statuses, string[]>>()
+            expect(statuses).toEqual(expected)
+        })
+    })
+
+    test('execute-update-one-column-many-in-range-passes', async () => {
+        // The one-column arity of the many-in-range PASS: `executeUpdateMany(min,
+        // max)` with `returningOneColumn(col)`. WHERE matches project 1's two
+        // issues (ids 1, 2), count 2 is in [1, 5], and the status array comes back
+        // (both 'reviewed').
+        const expected = ['reviewed', 'reviewed']
+        ctx.mockNext(expected)
+        await ctx.withRollback(async () => {
+            const statuses = await ctx.conn.update(tIssue)
+                .set({ status: 'reviewed' })
+                .where(tIssue.projectId.equals(1))
+                .returningOneColumn(tIssue.status)
+                .executeUpdateMany(1, 5)
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ? where project_id = ? returning status as result"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "reviewed",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof statuses, string[]>>()
+            expect(statuses).toEqual(expected)
+        })
+    })
+
+    test('execute-update-one-column-many-with-max-throws-when-over-max', async () => {
+        // The one-column arity of the many max-throw arm: `executeUpdateMany(min,
+        // max)` with `returningOneColumn(col)`. WHERE matches all 4 seeded issues
+        // (priority >= 1), max = 1, so the one-column-many result length 4 > 1
+        // throws `MAXIMUM_ROWS_EXCEEDED` in both modes.
+        ctx.mockNext(['reviewed', 'reviewed', 'reviewed', 'reviewed'])
+        await ctx.withRollback(async () => {
+            let caught: unknown
+            try {
+                await ctx.conn.update(tIssue)
+                    .set({ status: 'reviewed' })
+                    .where(tIssue.priority.greaterOrEqual(1))
+                    .returningOneColumn(tIssue.status)
+                    .executeUpdateMany(0, 1)
+            } catch (e) {
+                caught = e
+            }
+            expect(String(caught)).toMatch(/MAXIMUM_ROWS_EXCEEDED|updated more/)
+        })
+    })
+
+    test('execute-update-returning-row-shape-execute-one-multiple-rows-throws-more-than-one-row', async () => {
+        // `.returning({...}).executeUpdateOne()` over a WHERE matching MORE THAN
+        // ONE row (project 1 has issues 1, 2) routes the RETURNING rows through
+        // the `executeUpdateReturningOneRow` runner guard, which throws
+        // MORE_THAN_ONE_ROW on a real engine. The mock returns a single queued
+        // object and cannot produce two rows, so on mock it returns without a
+        // throw. The SQL is captured (before the throw fires) in both modes.
+        ctx.mockNext({ id: 1, status: 'reviewed' })
+        await ctx.withRollback(async () => {
+            let caught: unknown
+            let result: { id: number; status: string } | undefined
+            try {
+                result = await ctx.conn.update(tIssue)
+                    .set({ status: 'reviewed' })
+                    .where(tIssue.projectId.equals(1))
+                    .returning({ id: tIssue.id, status: tIssue.status })
+                    .executeUpdateOne()
+            } catch (e) {
+                caught = e
+            }
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ? where project_id = ? returning id as id, status as status"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "reviewed",
+                1,
+              ]
+            `)
+            if (ctx.realDbEnabled) {
+                expect(String(caught)).toMatch(/MORE_THAN_ONE_ROW|Too many rows/)
+                expect(caught instanceof TsSqlError ? caught.errorReason.reason : undefined).toBe('MORE_THAN_ONE_ROW')
+            } else {
+                expect(caught).toBeUndefined()
+                expect(result).toEqual({ id: 1, status: 'reviewed' })
+            }
+        })
+    })
+
+    test('execute-update-returning-row-shape-execute-none-or-one-multiple-rows-throws-more-than-one-row', async () => {
+        // Same MORE_THAN_ONE_ROW guard on the none-or-one row-shape path:
+        // `.returning({...}).executeUpdateNoneOrOne()` widens the None arm to
+        // null, but >1 RETURNING rows is still a hard error through the same
+        // `executeUpdateReturningOneRow` runner. The mock returns a single queued
+        // object, so on mock it returns without a throw.
+        ctx.mockNext({ id: 1, status: 'reviewed' })
+        await ctx.withRollback(async () => {
+            let caught: unknown
+            let result: { id: number; status: string } | null | undefined
+            try {
+                result = await ctx.conn.update(tIssue)
+                    .set({ status: 'reviewed' })
+                    .where(tIssue.projectId.equals(1))
+                    .returning({ id: tIssue.id, status: tIssue.status })
+                    .executeUpdateNoneOrOne()
+            } catch (e) {
+                caught = e
+            }
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ? where project_id = ? returning id as id, status as status"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "reviewed",
+                1,
+              ]
+            `)
+            if (ctx.realDbEnabled) {
+                expect(String(caught)).toMatch(/MORE_THAN_ONE_ROW|Too many rows/)
+                expect(caught instanceof TsSqlError ? caught.errorReason.reason : undefined).toBe('MORE_THAN_ONE_ROW')
+            } else {
+                expect(caught).toBeUndefined()
+                expect(result).toEqual({ id: 1, status: 'reviewed' })
+            }
+        })
+    })
+
+    test('execute-update-returning-one-column-execute-one-multiple-rows-throws-more-than-one-row', async () => {
+        // The one-column arity of the MORE_THAN_ONE_ROW guard on update:
+        // `.returningOneColumn(col).executeUpdateOne()` over a WHERE matching two
+        // rows (project 1) throws MORE_THAN_ONE_ROW on a real engine. The mock
+        // returns a single queued value, so on mock it returns without a throw.
+        ctx.mockNext('reviewed')
+        await ctx.withRollback(async () => {
+            let caught: unknown
+            let result: string | undefined
+            try {
+                result = await ctx.conn.update(tIssue)
+                    .set({ status: 'reviewed' })
+                    .where(tIssue.projectId.equals(1))
+                    .returningOneColumn(tIssue.status)
+                    .executeUpdateOne()
+            } catch (e) {
+                caught = e
+            }
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ? where project_id = ? returning status as result"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "reviewed",
+                1,
+              ]
+            `)
+            if (ctx.realDbEnabled) {
+                expect(String(caught)).toMatch(/MORE_THAN_ONE_ROW|Too many rows/)
+                expect(caught instanceof TsSqlError ? caught.errorReason.reason : undefined).toBe('MORE_THAN_ONE_ROW')
+            } else {
+                expect(caught).toBeUndefined()
+                expect(result).toBe('reviewed')
+            }
+        })
+    })
+
+    test('execute-update-returning-one-column-execute-none-or-one-multiple-rows-throws-more-than-one-row', async () => {
+        // Same MORE_THAN_ONE_ROW guard on the one-column none-or-one path:
+        // `.returningOneColumn(col).executeUpdateNoneOrOne()` widens None to null
+        // but >1 RETURNING rows still throws. The mock returns a single queued
+        // value, so on mock it returns without a throw.
+        ctx.mockNext('reviewed')
+        await ctx.withRollback(async () => {
+            let caught: unknown
+            let result: string | null | undefined
+            try {
+                result = await ctx.conn.update(tIssue)
+                    .set({ status: 'reviewed' })
+                    .where(tIssue.projectId.equals(1))
+                    .returningOneColumn(tIssue.status)
+                    .executeUpdateNoneOrOne()
+            } catch (e) {
+                caught = e
+            }
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ? where project_id = ? returning status as result"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "reviewed",
+                1,
+              ]
+            `)
+            if (ctx.realDbEnabled) {
+                expect(String(caught)).toMatch(/MORE_THAN_ONE_ROW|Too many rows/)
+                expect(caught instanceof TsSqlError ? caught.errorReason.reason : undefined).toBe('MORE_THAN_ONE_ROW')
+            } else {
+                expect(caught).toBeUndefined()
+                expect(result).toBe('reviewed')
+            }
+        })
+    })
+
 })

@@ -62,10 +62,10 @@ describe(ctx.label, () => {
 
     test('customize-compound-with-query-hooks-wrap-cte', async () => {
         // A CTE feeds the left side of an INTERSECT; the compound
-        // carries `beforeWithQuery` / `afterWithQuery` hooks that
-        // wrap the WITH clause itself (NOT the inner select), so the
-        // snapshot shows the comments adjacent to `with` / before the
-        // first compound branch. Lands on
+        // carries `beforeWithQuery` / `afterWithQuery` hooks. At the ROOT of a
+        // compound the compound is NOT itself a with-view, so these hooks have no
+        // attachment point and render NOTHING — the snapshot is unchanged (they DO
+        // render when the compound is materialised as a CTE). Lands on
         // `_buildWith` → `customization.beforeWithQuery / afterWithQuery`
         // at AbstractSqlBuilder.
         const connection = ctx.conn
@@ -327,4 +327,76 @@ describe(ctx.label, () => {
         expect(page.data).toEqual(dataRows)
     })
 
+
+    test('customize-compound-as-cte-with-query-hooks-render-around-cte-parens', async () => {
+        // A CUSTOMIZED compound consumed as a CTE via forUseInQueryAs, carrying ALL
+        // FOUR hooks. When the compound is materialised as a with-view, `_buildWith`
+        // reads the with-view's own __customization, so beforeWithQuery / afterWithQuery
+        // DO render — bracketing the CTE definition (`with combined as /* with-head */
+        // (...) /* with-tail */`); beforeQuery / afterQuery bracket the union INSIDE the
+        // CTE parens. (At the root of a compound the with-hooks have no attachment point
+        // and render nothing — see customize-compound-with-query-hooks-wrap-cte.)
+        const expected = [
+            { id: 1, label: 'Marketing site' },
+            { id: 2, label: 'Internal tools' },
+        ]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+        const combined = connection.selectFrom(tProject).where(tProject.id.equals(1)).select({ id: tProject.id, label: tProject.name })
+            .union(connection.selectFrom(tProject).where(tProject.id.equals(2)).select({ id: tProject.id, label: tProject.name }))
+            .customizeQuery({
+                beforeWithQuery: connection.rawFragment`/* with-head */ `,
+                afterWithQuery:  connection.rawFragment` /* with-tail */`,
+                beforeQuery:     connection.rawFragment`/* compound-head */ `,
+                afterQuery:      connection.rawFragment` /* compound-tail */`,
+            })
+            .forUseInQueryAs('combined')
+        const result = await connection.selectFrom(combined)
+            .select({ id: combined.id, label: combined.label })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with combined as /* with-head */  (/* compound-head */  select id as id, \`name\` as label from project where id = ? union select id as id, \`name\` as label from project where id = ?  /* compound-tail */)  /* with-tail */ select id as id, label as label from combined order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; label: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('customize-compound-inline-aggregated-array-via-for-use-as-inline-aggregated-array-value', async () => {
+        // A CUSTOMIZED one-column compound consumed as an inline aggregated-array
+        // value via forUseAsInlineAggregatedArrayValue: the compound beforeQuery /
+        // afterQuery hooks bracket the union INSIDE the aggregate's derived-table
+        // subquery in the outer select list. Both branches select a project name;
+        // the union dedups and the rows aggregate into the array (aggregate order is
+        // engine-defined, so the array is JS-sorted before the exact comparison).
+        const expected = [{ names: ['Internal tools', 'Marketing site'] }]
+        ctx.mockNext([{ names: ['Marketing site', 'Internal tools'] }])
+        const connection = ctx.conn
+        const names = connection.selectFrom(tProject).where(tProject.id.equals(1)).selectOneColumn(tProject.name)
+            .union(connection.selectFrom(tProject).where(tProject.id.equals(2)).selectOneColumn(tProject.name))
+            .customizeQuery({
+                beforeQuery: connection.rawFragment`/* compound-head */ `,
+                afterQuery:  connection.rawFragment` /* compound-tail */`,
+            })
+            .forUseAsInlineAggregatedArrayValue()
+        const rows = await connection.selectFromNoTable()
+            .select({ names })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select json_arrayagg(a_1_.result) from (/* compound-head */  select \`name\` as result from project where id = ? union select \`name\` as result from project where id = ?  /* compound-tail */) as a_1_) as \`names\`"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ names: string[] }>>>()
+        const sorted = rows.map((r) => ({ ...r, names: [...r.names].sort() }))
+        expect(sorted).toEqual(expected)
+    })
 })

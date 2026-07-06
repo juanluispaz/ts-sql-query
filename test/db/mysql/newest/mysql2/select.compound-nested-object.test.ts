@@ -103,6 +103,52 @@ describe(ctx.label, () => {
         expect('opt' in rows[1]!).toBe(false)
     })
 
+    test('union-all-of-rule-4-all-optional-arms-under-projecting-optional-values-as-nullable', async () => {
+        // The rule-4 UNION ALL above under `projectingOptionalValuesAsNullable()`:
+        // the compound carries the all-optional `opt` object through as `{...} | null`
+        // with its leaves flipped to `| null`. Arm 2 (issue 3, every leaf null)
+        // surfaces as `opt: null` (present-key/null) instead of being dropped; arm 1
+        // (issue 1, body null, assignee 1) keeps a present `opt` with `body: null`.
+        // This is the null-vs-absent value distinction the asUndefined sibling cannot
+        // stand in for.
+        ctx.mockNext([
+            { iid: 1, 'opt.body': null, 'opt.assigneeId': 1 },
+            { iid: 3, 'opt.body': null, 'opt.assigneeId': null },
+        ])
+        const expected = [
+            { iid: 1, opt: { body: null, assigneeId: 1 } },
+            { iid: 3, opt: null },
+        ]
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({ iid: tIssue.id, opt: { body: tIssue.body, assigneeId: tIssue.assigneeId } })
+            .unionAll(
+                ctx.conn.selectFrom(tIssue)
+                    .where(tIssue.id.equals(3))
+                    .select({ iid: tIssue.id, opt: { body: tIssue.body, assigneeId: tIssue.assigneeId } }),
+            )
+            .projectingOptionalValuesAsNullable()
+            .orderBy('iid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as \`opt.body\`, assignee_id as \`opt.assigneeId\` from issue where id = ? union all select id as iid, body as \`opt.body\`, assignee_id as \`opt.assigneeId\` from issue where id = ? order by iid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            3,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            iid: number
+            opt: { body: string | null; assigneeId: number | null } | null
+        }>>>()
+        expect(rows).toEqual(expected)
+        // Arm 2 (issue 3) has every leaf null, so the `opt` object is PRESENT-`null`
+        // under the asNull projector, not absent.
+        expect('opt' in rows[1]!).toBe(true)
+        expect(rows[1]!.opt).toBeNull()
+    })
+
     test('union-of-rule-1-required-in-optional-object-arms-stays-optional', async () => {
         // Each arm projects a rule-1 nested `meta` object made optional by its
         // `requiredInOptionalObject` leaf (`gate`, status). The compound keeps the
@@ -146,6 +192,58 @@ describe(ctx.label, () => {
             meta?: { gate: string; assigneeId: number | undefined }
         }>>>()
         expect(rows).toEqual(expected)
+    })
+
+    test('union-of-rule-1-required-in-optional-object-arms-under-projecting-optional-values-as-nullable', async () => {
+        // The rule-1 UNION above under `projectingOptionalValuesAsNullable()`: the
+        // compound carries the `meta` object through as `{...} | null`, its
+        // `requiredInOptionalObject` `gate` (status, a required column) stays required
+        // and keeps the object present, and the plain-optional `assigneeId` flips to
+        // `number | null`. Arm 2 uses issue 3 (assignee NULL) so `assigneeId` surfaces
+        // as present-`null` (not absent); arm 1 = issue 1 (assignee 1). Both statuses
+        // are present, so `meta` itself never collapses here.
+        ctx.mockNext([
+            { iid: 1, 'meta.gate': 'open', 'meta.assigneeId': 1 },
+            { iid: 3, 'meta.gate': 'open', 'meta.assigneeId': null },
+        ])
+        const expected = [
+            { iid: 1, meta: { gate: 'open', assigneeId: 1 } },
+            { iid: 3, meta: { gate: 'open', assigneeId: null } },
+        ]
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                iid:  tIssue.id,
+                meta: { gate: tIssue.status.asRequiredInOptionalObject(), assigneeId: tIssue.assigneeId },
+            })
+            .union(
+                ctx.conn.selectFrom(tIssue)
+                    .where(tIssue.id.equals(3))
+                    .select({
+                        iid:  tIssue.id,
+                        meta: { gate: tIssue.status.asRequiredInOptionalObject(), assigneeId: tIssue.assigneeId },
+                    }),
+            )
+            .projectingOptionalValuesAsNullable()
+            .orderBy('iid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, \`status\` as \`meta.gate\`, assignee_id as \`meta.assigneeId\` from issue where id = ? union select id as iid, \`status\` as \`meta.gate\`, assignee_id as \`meta.assigneeId\` from issue where id = ? order by iid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            3,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            iid:  number
+            meta: { gate: string; assigneeId: number | null } | null
+        }>>>()
+        expect(rows).toEqual(expected)
+        // Arm 2 (issue 3) has a null assignee; under the asNull projector
+        // `assigneeId` is PRESENT-`null` inside the (present) `meta` object, not absent.
+        expect('assigneeId' in rows[1]!.meta!).toBe(true)
+        expect(rows[1]!.meta!.assigneeId).toBeNull()
     })
 
     test('union-all-of-aggregate-as-array-arms-merges-array-typed-columns', async () => {

@@ -26,7 +26,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tIssueWorklog, tProjectRelease, tReleaseDraft, type ReleaseChannel, type ReleaseStage, type WorklogActivity } from '../../domain/connection.js'
+import { tIssue, tIssueWorklog, tOrganization, tProject, tProjectRelease, tReleaseDraft, type ReleaseChannel, type ReleaseStage, type WorklogActivity } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -403,6 +403,186 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof row, { id: number; x: Date }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('temporal/local-date-value-when-null', async () => {
+        // `valueWhenNull` on a plain localDate column (workDate, required).
+        // Both overloads in one projection — `d` a literal-Date fallback, `d2` a
+        // value-source fallback (workDate itself). workDate is never null, so the
+        // coalesce always yields the column value → required `Date` on both.
+        // worklog 2: work_date 2024-03-05.
+        const expected = {
+            id: 2,
+            d:  new Date(Date.UTC(2024, 2, 5, 10, 0, 0)),
+            d2: new Date(Date.UTC(2024, 2, 5, 10, 0, 0)),
+        }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(2))
+            .select({
+                id: tIssueWorklog.id,
+                d:  tIssueWorklog.workDate.valueWhenNull(new Date(Date.UTC(2024, 0, 1, 0, 0, 0))),
+                d2: tIssueWorklog.workDate.valueWhenNull(tIssueWorklog.workDate),
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(work_date, ?) as "d", ifnull(work_date, work_date) as d2 from issue_worklog where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2024-01-01",
+            2,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; d: Date; d2: Date }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('temporal/local-date-time-value-when-null', async () => {
+        // `valueWhenNull` on a plain localDateTime column
+        // (organization created_at, required — seeded with an explicit timestamp
+        // so the value is deterministic). Both overloads — `d` a literal-DateTime
+        // fallback, `d2` a value-source fallback (created_at itself). created_at is
+        // never null → required `Date` on both. organization 1: 2023-06-15 08:00:00.
+        const expected = {
+            id: 1,
+            d:  new Date(Date.UTC(2023, 5, 15, 8, 0, 0)),
+            d2: new Date(Date.UTC(2023, 5, 15, 8, 0, 0)),
+        }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.id.equals(1))
+            .select({
+                id: tOrganization.id,
+                d:  tOrganization.createdAt.valueWhenNull(new Date(Date.UTC(2099, 0, 1, 0, 0, 0))),
+                d2: tOrganization.createdAt.valueWhenNull(tOrganization.createdAt),
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(created_at, ?) as "d", ifnull(created_at, created_at) as d2 from organization where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2099-01-01 00:00:00",
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; d: Date; d2: Date }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('temporal/custom-local-date-value-when-null', async () => {
+        // `valueWhenNull` on a customLocalDate column
+        // (releasedOn / 'ReleaseDay', required). Both overloads — `d` a literal-Date
+        // fallback, `d2` a value-source fallback (releasedOn itself). releasedOn is
+        // never null → required `Date` on both. release 2: released_on 2024-02-20.
+        const expected = {
+            id: 2,
+            d:  new Date(Date.UTC(2024, 1, 20, 10, 0, 0)),
+            d2: new Date(Date.UTC(2024, 1, 20, 10, 0, 0)),
+        }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(2))
+            .select({
+                id: tProjectRelease.id,
+                d:  tProjectRelease.releasedOn.valueWhenNull(new Date(Date.UTC(2099, 0, 1, 0, 0, 0))),
+                d2: tProjectRelease.releasedOn.valueWhenNull(tProjectRelease.releasedOn),
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(released_on, ?) as "d", ifnull(released_on, released_on) as d2 from project_release where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2099-01-01",
+            2,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; d: Date; d2: Date }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('temporal/local-time-null-if-value', async () => {
+        // `nullIfValue` on a plain localTime column (startedAt, optional).
+        // Both overloads — `t` a literal-Time probe (08:00:00 ≠ the column, so the
+        // value is kept), `t2` a value-source probe (startedAt itself, so nullif is
+        // always NULL and the leaf is absent). nullIfValue widens to optional on both.
+        // worklog 1: started_at 09:15:00.
+        const expected = { id: 1, t: new Date(Date.UTC(1970, 0, 1, 9, 15, 0)) }
+        ctx.mockNext({ id: 1, t: new Date(Date.UTC(1970, 0, 1, 9, 15, 0)), t2: null })
+        const row = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .select({
+                id: tIssueWorklog.id,
+                t:  tIssueWorklog.startedAt.nullIfValue(new Date(Date.UTC(1970, 0, 1, 8, 0, 0))),
+                t2: tIssueWorklog.startedAt.nullIfValue(tIssueWorklog.startedAt),
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, nullif(started_at, ?) as "t", nullif(started_at, started_at) as t2 from issue_worklog where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "08:00:00",
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; t?: Date; t2?: Date }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('temporal/custom-local-time-null-if-value', async () => {
+        // `nullIfValue` on a customLocalTime column
+        // (cutoffTime / 'CutoffClock', required). Both overloads — `t` a literal-Time
+        // probe (16:00:00 ≠ the column, value kept), `t2` a value-source probe
+        // (cutoffTime itself → always NULL, leaf absent). nullIfValue widens to
+        // optional on both. release 1: cutoff_time 17:00:00.
+        const expected = { id: 1, t: new Date(Date.UTC(1970, 0, 1, 17, 0, 0)) }
+        ctx.mockNext({ id: 1, t: new Date(Date.UTC(1970, 0, 1, 17, 0, 0)), t2: null })
+        const row = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .select({
+                id: tProjectRelease.id,
+                t:  tProjectRelease.cutoffTime.nullIfValue(new Date(Date.UTC(1970, 0, 1, 16, 0, 0))),
+                t2: tProjectRelease.cutoffTime.nullIfValue(tProjectRelease.cutoffTime),
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, nullif(cutoff_time, ?) as "t", nullif(cutoff_time, cutoff_time) as t2 from project_release where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "16:00:00",
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; t?: Date; t2?: Date }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('temporal/custom-local-date-time-null-if-value', async () => {
+        // `nullIfValue` on a customLocalDateTime column
+        // (signedOffAt / 'SignOffStamp', optional). Both overloads — `x` a
+        // literal-DateTime probe (2099-01-01 ≠ the column, value kept), `x2` a
+        // value-source probe (signedOffAt itself → always NULL, leaf absent).
+        // nullIfValue widens to optional on both. release 1: signed_off_at
+        // 2024-01-14 12:30:00.
+        const expected = { id: 1, x: new Date(Date.UTC(2024, 0, 14, 12, 30, 0)) }
+        ctx.mockNext({ id: 1, x: new Date(Date.UTC(2024, 0, 14, 12, 30, 0)), x2: null })
+        const row = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .select({
+                id: tProjectRelease.id,
+                x:  tProjectRelease.signedOffAt.nullIfValue(new Date(Date.UTC(2099, 0, 1, 0, 0, 0))),
+                x2: tProjectRelease.signedOffAt.nullIfValue(tProjectRelease.signedOffAt),
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, nullif(signed_off_at, ?) as "x", nullif(signed_off_at, signed_off_at) as x2 from project_release where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2099-01-01 00:00:00",
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; x?: Date; x2?: Date }>>()
         expect(row).toEqual(expected)
     })
 
@@ -965,6 +1145,35 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof row, { id: number; req?: string; own?: string; ign?: string }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('modifier-trio-on-custom-boolean-leaf', async () => {
+        // The modifier trio on a REQUIRED customBoolean column (published,
+        // 't'/'f' CustomBooleanTypeAdapter). `asRequiredInOptionalObject()` passes
+        // the column through — the adapter remaps it to a boolean predicate, so `req`
+        // keeps the boolean type (`req?: boolean`); the two NULL-substitution
+        // modifiers replace the value source with a typed NULL, so `own` / `ign` are
+        // absent under optional-as-undefined. Project 1 published 't' → true.
+        const expected = { id: 1, req: true }
+        ctx.mockNext({ id: 1, req: true })
+        const row = await ctx.conn.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({
+                id:  tProject.id,
+                req: tProject.published.asRequiredInOptionalObject(),
+                own: tProject.published.onlyWhenOrNull(false),
+                ign: tProject.published.ignoreWhenAsNull(true),
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (published = 't') as req, null as own, null as ign from project where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; req?: boolean; own?: boolean; ign?: boolean }>>()
         expect(row).toEqual(expected)
     })
 })

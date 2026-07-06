@@ -312,13 +312,10 @@ describe(ctx.label, () => {
     })
 
     test('select-multi-column-execute-none-or-one-multiple-rows-throws-more-than-one-row', async () => {
-        // The multi-column twin of the one-column NoneOrOne too-many-rows test
-        // above: `executeSelectNoneOrOne()` over a ROW-shape projection widens
-        // the null (None) arm, but MORE-than-one row is still a hard error — it
-        // routes through the same `executeSelectOneRow` runner as the
-        // multi-column `executeSelectOne` (see
-        // `select-multi-column-execute-one-multiple-rows-throws-more-than-one-row`),
-        // which rejects >1 rows with MORE_THAN_ONE_ROW. Project 1 has two issues
+        // `executeSelectNoneOrOne()` over a ROW-shape projection widens the null
+        // (None) arm, but MORE-than-one row is still a hard error — it routes
+        // through the `executeSelectOneRow` runner, which rejects >1 rows with
+        // MORE_THAN_ONE_ROW. Project 1 has two issues
         // (ids 1, 2), so project_id = 1 returns two rows. The mock returns a
         // single queued object and cannot produce two rows, so the throw is
         // asserted only on real-DB / native-SQLite cells; on mock the single

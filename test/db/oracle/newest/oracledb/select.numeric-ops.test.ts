@@ -97,6 +97,33 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
+    test('modulo-fractional-literal', async () => {
+        // A `.modulo()` on an int receiver with a FRACTIONAL literal carries the
+        // result as `double` internally and can emit a distinct float-handling
+        // form from the integer-literal `.modulo()` above — the exact SQL is
+        // pinned by the snapshot. Seeded priorities are {2,1,3,2}; `x % 2.5`
+        // yields {2,1,0.5,2}.
+        const expected = [
+            { id: 1, m: 2 }, { id: 2, m: 1 }, { id: 3, m: 0.5 }, { id: 4, m: 2 },
+        ]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .select({
+                id: tIssue.id,
+                m:  tIssue.priority.modulo(2.5),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", mod(priority, :0) as "m" from issue order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2.5,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; m: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
     test('floor', async () => {
         const expected = [{ id: 1, f: 1 }]
         ctx.mockNext(expected)

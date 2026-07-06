@@ -208,13 +208,11 @@ describe(ctx.label, () => {
     })
 
     test('execute-insert-none-or-one-with-returning-row-shape-empty-result', async () => {
-        // The row-shape sibling of the one-column empty-result test above: a
-        // 0-row `INSERT ... SELECT` inserts nothing, so RETURNING yields no row
-        // and the row-shape branch of `executeInsertNoneOrOne()`
+        // A 0-row `INSERT ... SELECT` inserts nothing, so RETURNING yields no
+        // row and the row-shape branch of `executeInsertNoneOrOne()`
         // (`executeInsertReturningOneRow` → no row → `null`) resolves `null`.
-        // Distinct executor from the `__oneColumn` branch above; driving it
-        // through a never-matching select reaches the null dispatch on the REAL
-        // engine, not only the mock.
+        // Driving it through a never-matching select reaches the null dispatch
+        // on the REAL engine, not only the mock.
         await ctx.withRollback(async () => {
             ctx.mockNext(undefined)
             const source = ctx.conn.selectFrom(tOrganization)
@@ -237,10 +235,9 @@ describe(ctx.label, () => {
     })
 
     test('execute-insert-one-with-returning-one-column-empty-result-throws-no-result', async () => {
-        // The `executeInsertOne()` sibling of the one-column empty-result test
-        // above: a 0-row `INSERT ... SELECT` inserts nothing, so RETURNING
-        // yields no row and the `__oneColumn` branch of `executeInsertOne()`
-        // throws NO_RESULT (where `executeInsertNoneOrOne()` coerces to `null`).
+        // A 0-row `INSERT ... SELECT` inserts nothing, so RETURNING yields no
+        // row and the `__oneColumn` branch of `executeInsertOne()` throws
+        // NO_RESULT (where `executeInsertNoneOrOne()` coerces to `null`).
         // Driving it through a never-matching select reaches the throw on the
         // REAL engine, not only the mock; the SQL is captured before the throw
         // fires in the `.then`.

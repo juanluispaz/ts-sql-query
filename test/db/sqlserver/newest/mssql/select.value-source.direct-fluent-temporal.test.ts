@@ -796,6 +796,143 @@ describe(ctx.label, () => {
         })
     })
 
+    // ------------------------------------------------------------------
+    // custom-source `.asOptional()` getters — tProjectRelease.releasedOn
+    // ('ReleaseDay', customLocalDate) demoted to optional via `.asOptional()`
+    // then fed the LocalDate getters. asOptional() carries the optional
+    // marker to each getter's number leaf (`?: number | undefined`). Release 1
+    // -> released_on 2024-01-15 (a Monday) -> month 0 (January, JS 0-indexed),
+    // date 15, day-of-week 1.
+    // ------------------------------------------------------------------
+
+    test('custom-localDate-asOptional-getters', async () => {
+        // The `getMonth`/`getDate`/`getDay` LocalDateValueSource getters on the
+        // custom-localDate column releasedOn demoted via `.asOptional()` — each carries the
+        // optional marker to a `number | undefined` leaf. Release 1: released_on
+        // 2024-01-15 (a Monday) -> month 0 (January, JS 0-indexed), date 15,
+        // day-of-week 1.
+        const expected = [{ mo: 0, d: 15, dow: 1 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .select({
+                mo:  tProjectRelease.releasedOn.asOptional().getMonth(),
+                d:   tProjectRelease.releasedOn.asOptional().getDate(),
+                dow: tProjectRelease.releasedOn.asOptional().getDay(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(month, released_on) - 1 as mo, datepart(day, released_on) as [d], datepart(weekday, released_on) - 1 as dow from project_release where id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ mo?: number | undefined; d?: number | undefined; dow?: number | undefined }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    // ------------------------------------------------------------------
+    // custom-source `.asOptional()` getters — tProjectRelease.cutoffTime
+    // ('CutoffClock', customLocalTime) demoted to optional via `.asOptional()`
+    // then fed the LocalTime getters. asOptional() carries the optional marker
+    // to each getter's number leaf (`?: number | undefined`). Release 1 ->
+    // cutoff_time 17:00:00 -> hours 17, minutes 0, seconds 0, milliseconds 0.
+    // ------------------------------------------------------------------
+
+    test('custom-localTime-asOptional-getters', async () => {
+        // The 4 LocalTimeValueSource getters on the custom-localTime column
+        // cutoffTime demoted via `.asOptional()` — each carries the optional
+        // marker to a `number | undefined` leaf. Release 1: cutoff_time 17:00:00
+        // -> hours 17, minutes 0, seconds 0, milliseconds 0.
+        const expected = [{ h: 17, m: 0, s: 0, ms: 0 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .select({
+                h:  tProjectRelease.cutoffTime.asOptional().getHours(),
+                m:  tProjectRelease.cutoffTime.asOptional().getMinutes(),
+                s:  tProjectRelease.cutoffTime.asOptional().getSeconds(),
+                ms: tProjectRelease.cutoffTime.asOptional().getMilliseconds(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(hour, cutoff_time) as [h], datepart(minute, cutoff_time) as [m], datepart(second, cutoff_time) as [s], datepart(millisecond, cutoff_time) as ms from project_release where id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ h?: number | undefined; m?: number | undefined; s?: number | undefined; ms?: number | undefined }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    // ------------------------------------------------------------------
+    // View plain localDate — vReleaseOverview.releaseDayPlain: the release's
+    // release_day_plain surfaced through the view (a plain, non-custom localDate
+    // View column — a distinct read path from the custom View getters, a bare
+    // DBColumnImpl). Release 1 -> release_day_plain 2024-01-15 (a Monday) -> year
+    // 2024, month 0 (January, JS 0-indexed), date 15, day-of-week 1.
+    // ------------------------------------------------------------------
+
+    test('view-plain-localDate-getters', async () => {
+        // The 4 LocalDateValueSource getters on the plain (non-custom) REQUIRED
+        // View localDate column releaseDayPlain — each is a required `number`
+        // leaf. Release 1: release_day_plain 2024-01-15 (a Monday) -> year 2024,
+        // month 0 (January, JS 0-indexed), date 15, day-of-week 1.
+        const expected = [{ y: 2024, mo: 0, d: 15, dow: 1 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(1))
+            .select({
+                y:   vReleaseOverview.releaseDayPlain.getFullYear(),
+                mo:  vReleaseOverview.releaseDayPlain.getMonth(),
+                d:   vReleaseOverview.releaseDayPlain.getDate(),
+                dow: vReleaseOverview.releaseDayPlain.getDay(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(year, release_day_plain) as [y], datepart(month, release_day_plain) - 1 as mo, datepart(day, release_day_plain) as [d], datepart(weekday, release_day_plain) - 1 as dow from release_overview where id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ y: number; mo: number; d: number; dow: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    // ------------------------------------------------------------------
+    // View plain localTime — vReleaseOverview.cutoffPlain: the release's
+    // cutoff_plain surfaced through the view (a plain, non-custom localTime View
+    // column — a distinct read path from the custom View getters, a bare
+    // DBColumnImpl). Release 1 -> cutoff_plain 17:00:00 -> hours 17, minutes 0,
+    // seconds 0, milliseconds 0.
+    // ------------------------------------------------------------------
+
+    test('view-plain-localTime-getters', async () => {
+        // The 4 LocalTimeValueSource getters on the plain (non-custom) REQUIRED
+        // View localTime column cutoffPlain — each is a required `number` leaf.
+        // Release 1: cutoff_plain 17:00:00 -> hours 17, minutes 0, seconds 0,
+        // milliseconds 0.
+        const expected = [{ h: 17, m: 0, s: 0, ms: 0 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(1))
+            .select({
+                h:  vReleaseOverview.cutoffPlain.getHours(),
+                m:  vReleaseOverview.cutoffPlain.getMinutes(),
+                s:  vReleaseOverview.cutoffPlain.getSeconds(),
+                ms: vReleaseOverview.cutoffPlain.getMilliseconds(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(hour, cutoff_plain) as [h], datepart(minute, cutoff_plain) as [m], datepart(second, cutoff_plain) as [s], datepart(millisecond, cutoff_plain) as ms from release_overview where id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ h: number; m: number; s: number; ms: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
     test('customLocalTime-is-is-not', async () => {
         // `.is` / `.isNot` (null-safe equality) on a required custom-localTime
         // column. `.is(17:00)` matches release 1; `.isNot(17:00)` matches

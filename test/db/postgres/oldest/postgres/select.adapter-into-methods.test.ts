@@ -123,6 +123,129 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
+    test('adapter-string-column-into-upper-and-trim-methods-keep-result-leaf-bracketed', async () => {
+        // `toUpperCase` / `trim` / `trimLeft` / `trimRight` are string-returning
+        // transforms whose result leaf inherits bracketAdapter, so each DB value
+        // reads back bracketed. reviewer_code 'R-7A2' has no lower-case letters
+        // and no surrounding whitespace, so every op is a value no-op — the
+        // observable effect is the re-bracketing of the result leaf.
+        const expected = { id: 1, up: '[R-7A2]', tm: '[R-7A2]', tl: '[R-7A2]', tr: '[R-7A2]' }
+        ctx.mockNext({ id: 1, up: 'R-7A2', tm: 'R-7A2', tl: 'R-7A2', tr: 'R-7A2' })
+        const row = await ctx.conn.selectFrom(tProjectReview)
+            .where(tProjectReview.id.equals(1))
+            .select({
+                id: tProjectReview.id,
+                up: tProjectReview.reviewerCode.toUpperCase(),
+                tm: tProjectReview.reviewerCode.trim(),
+                tl: tProjectReview.reviewerCode.trimLeft(),
+                tr: tProjectReview.reviewerCode.trimRight(),
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, upper(reviewer_code) as up, trim(reviewer_code) as tm, ltrim(reviewer_code) as tl, rtrim(reviewer_code) as tr from project_review where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; up: string; tm: string; tl: string; tr: string }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('adapter-string-column-into-reverse-keeps-result-leaf-bracketed', async () => {
+        // `reverse()` is a string-returning transform whose result leaf inherits
+        // bracketAdapter, so reverse('R-7A2') = '2A7-R' reads back bracketed →
+        // '[2A7-R]'. (Also makes the string op observable — reverse is not a
+        // no-op on this value.)
+        const expected = { id: 1, rev: '[2A7-R]' }
+        ctx.mockNext({ id: 1, rev: '2A7-R' })
+        const row = await ctx.conn.selectFrom(tProjectReview)
+            .where(tProjectReview.id.equals(1))
+            .select({ id: tProjectReview.id, rev: tProjectReview.reviewerCode.reverse() })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, reverse(reviewer_code) as rev from project_review where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; rev: string }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('adapter-string-column-into-substring-and-substr-keep-result-leaf-bracketed', async () => {
+        // `substring(0, 3)` and `substr(0, 3)` both return the first 3 chars of
+        // 'R-7A2' = 'R-7'; the result leaf inherits bracketAdapter, so each reads
+        // back bracketed → '[R-7]'.
+        const expected = { id: 1, sg: '[R-7]', sb: '[R-7]' }
+        ctx.mockNext({ id: 1, sg: 'R-7', sb: 'R-7' })
+        const row = await ctx.conn.selectFrom(tProjectReview)
+            .where(tProjectReview.id.equals(1))
+            .select({
+                id: tProjectReview.id,
+                sg: tProjectReview.reviewerCode.substring(0, 3),
+                sb: tProjectReview.reviewerCode.substr(0, 3),
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, substr(reviewer_code, $1, $2) as sg, substr(reviewer_code, $3, $4) as sb from project_review where id = $5"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            3,
+            1,
+            3,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; sg: string; sb: string }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('adapter-string-column-into-concat-keeps-result-leaf-bracketed', async () => {
+        // `reviewerCode.concat('!')` is a string-returning transform whose result
+        // leaf inherits the receiver's bracketAdapter, so 'R-7A2' || '!' =
+        // 'R-7A2!' reads back bracketed → '[R-7A2!]'.
+        const expected = { id: 1, cc: '[R-7A2!]' }
+        ctx.mockNext({ id: 1, cc: 'R-7A2!' })
+        const row = await ctx.conn.selectFrom(tProjectReview)
+            .where(tProjectReview.id.equals(1))
+            .select({ id: tProjectReview.id, cc: tProjectReview.reviewerCode.concat('!') })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, reviewer_code || $1 as cc from project_review where id = $2"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "!",
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; cc: string }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('adapter-string-column-into-length-passes-through-number-leaf', async () => {
+        // `length()` returns a NUMBER result leaf, so bracketAdapter no-ops (it
+        // only wraps string reads; a number passes through raw). length('R-7A2')
+        // = 5 reads back as the raw number 5, NOT bracketed.
+        const expected = { id: 1, len: 5 }
+        ctx.mockNext({ id: 1, len: 5 })
+        const row = await ctx.conn.selectFrom(tProjectReview)
+            .where(tProjectReview.id.equals(1))
+            .select({ id: tProjectReview.id, len: tProjectReview.reviewerCode.length() })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, length(reviewer_code) as len from project_review where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; len: number }>>()
+        expect(row).toEqual(expected)
+    })
+
     test('custom-boolean-string-column-as-equals-if-value-receiver', async () => {
         // `published.equalsIfValue(true)` — the receiver is a custom-boolean
         // column (t/f) and `true` passes `_isValue`, so the predicate is

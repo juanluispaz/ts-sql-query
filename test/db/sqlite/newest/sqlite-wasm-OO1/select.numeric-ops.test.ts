@@ -97,6 +97,33 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
+    test('modulo-fractional-literal', async () => {
+        // A `.modulo()` on an int receiver with a FRACTIONAL literal carries the
+        // result as `double` internally; the exact SQL is pinned by the snapshot.
+        // SQLite's `%` casts both operands to integer, so the 2.5 literal
+        // truncates to 2 and `x % 2.5` yields the same {0,1,1,0} as `x % 2` over
+        // the seeded priorities {2,1,3,2}.
+        const expected = [
+            { id: 1, m: 0 }, { id: 2, m: 1 }, { id: 3, m: 1 }, { id: 4, m: 0 },
+        ]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .select({
+                id: tIssue.id,
+                m:  tIssue.priority.modulo(2.5),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority % ? as "m" from issue order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2.5,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; m: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
     test('floor', async () => {
         const expected = [{ id: 1, f: 1 }]
         ctx.mockNext(expected)

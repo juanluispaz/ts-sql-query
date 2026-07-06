@@ -8,8 +8,7 @@
 //   1. `returning({ ... }) + executeDeleteNoneOrOne()` on no-match — the
 //      `| null` (None) arm of the row-shape branch of
 //      `executeDeleteNoneOrOne`, mock-asserted so the null inhabitant is
-//      realized under the default mocked run (twin of
-//      `update-returning-none-or-one-row-shape-null-on-no-match`).
+//      realized under the default mocked run.
 //   2. `returningOneColumn(col) + executeDeleteOne()` — non-empty path
 //      of `executeDeleteOne` on the `__oneColumn` branch.
 //   3. `returning({ ... }) + executeDeleteOne()` on no-match — fires
@@ -40,8 +39,7 @@ describe(ctx.label, () => {
         // no row, so the DELETE removes nothing and RETURNING yields no row —
         // the None arm resolves `null` (not a throw). The mock returns the same
         // "no row" sentinel, so BOTH modes realize the `| null` inhabitant
-        // under the default mocked run (structural twin of
-        // `update-returning-none-or-one-row-shape-null-on-no-match`).
+        // under the default mocked run.
         ctx.mockNext(undefined)
         await ctx.withRollback(async () => {
             const row = await ctx.conn.deleteFrom(tIssue)
@@ -126,8 +124,7 @@ describe(ctx.label, () => {
         // `delete-returning-row-shape-throws-no-result-on-empty`). Same
         // rejection contract in both modes — the real DB deletes no row and
         // gets no RETURNING value, the mock returns the "no row" sentinel — so
-        // both assert on the rejection. Structural twin of
-        // `update-returning-one-column-throws-no-result-on-empty`.
+        // both assert on the rejection.
         ctx.mockNext(undefined)
         let caught: unknown
         try {

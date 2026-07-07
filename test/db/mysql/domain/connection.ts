@@ -45,6 +45,30 @@ const plusOffsetAdapter: TypeAdapter = {
         return next.transformValueToDB(typeof value === 'number' ? value - 1000 : value, type)
     },
 }
+// Bigint observable TypeAdapter: read +1000n / write -1000n (the bigint sibling
+// of plusOffsetAdapter, whose number-only guard would pass a bigint through
+// unchanged). Used by the bigint + adapter Table column shiftedCount.
+const plusThousandBigintAdapter: TypeAdapter = {
+    transformValueFromDB(value, type, next) {
+        const v = next.transformValueFromDB(value, type)
+        return typeof v === 'bigint' ? v + 1000n : v
+    },
+    transformValueToDB(value, type, next) {
+        return next.transformValueToDB(typeof value === 'bigint' ? value - 1000n : value, type)
+    },
+}
+// Temporal observable TypeAdapter: shifts a Date +1 hour on read / -1 hour on
+// write, so the adapter's effect is visible in a temporal result. Used by the
+// customLocalDateTime + adapter Table column shiftedStamp.
+const shiftHourAdapter: TypeAdapter = {
+    transformValueFromDB(value, type, next) {
+        const v = next.transformValueFromDB(value, type)
+        return v instanceof Date ? new Date(v.getTime() + 3600000) : v
+    },
+    transformValueToDB(value, type, next) {
+        return next.transformValueToDB(value instanceof Date ? new Date(value.getTime() - 3600000) : value, type)
+    },
+}
 const publishedAdapter = new CustomBooleanTypeAdapter('t', 'f')
 // Nullable custom-boolean adapter — the optional sibling of verified/published.
 const approvedAdapter  = new CustomBooleanTypeAdapter('A', 'R')
@@ -196,6 +220,92 @@ export class DBConnection extends MySqlConnection<'DBConnection'> {
         return this.executeFunction<Money>('estimated_total', [
             this.const(projectId, 'int'),
         ], 'customDouble', 'Money', 'optional')
+    }
+
+    // executeFunction return-kind fan-out: one required + one optional wrapper
+    // per remaining return kind, each routing that kind's transformValueFromDB
+    // marshaller and the required/optional null-gate. Plain kinds reuse the
+    // constant functions (ret_flag / ret_uuid / ret_day / ret_clock /
+    // ret_activity / ret_channel / ret_semver); double / customInt /
+    // customLocalDateTime reuse estimated_total / count_open_issues /
+    // latest_issue_at. The custom kinds thread the typeName generic.
+    callRetBoolean(id: number): Promise<boolean> {
+        return this.executeFunction('ret_flag', [this.const(id, 'int')], 'boolean', 'required')
+    }
+    callRetBooleanOptional(id: number): Promise<boolean | null> {
+        return this.executeFunction('ret_flag', [this.const(id, 'int')], 'boolean', 'optional')
+    }
+    callRetDouble(id: number): Promise<number> {
+        return this.executeFunction('estimated_total', [this.const(id, 'int')], 'double', 'required')
+    }
+    callRetDoubleOptional(id: number): Promise<number | null> {
+        return this.executeFunction('estimated_total', [this.const(id, 'int')], 'double', 'optional')
+    }
+    callRetUuid(id: number): Promise<string> {
+        return this.executeFunction('ret_uuid', [this.const(id, 'int')], 'uuid', 'required')
+    }
+    callRetUuidOptional(id: number): Promise<string | null> {
+        return this.executeFunction('ret_uuid', [this.const(id, 'int')], 'uuid', 'optional')
+    }
+    callRetLocalDate(id: number): Promise<Date> {
+        return this.executeFunction('ret_day', [this.const(id, 'int')], 'localDate', 'required')
+    }
+    callRetLocalDateOptional(id: number): Promise<Date | null> {
+        return this.executeFunction('ret_day', [this.const(id, 'int')], 'localDate', 'optional')
+    }
+    callRetLocalTime(id: number): Promise<Date> {
+        return this.executeFunction('ret_clock', [this.const(id, 'int')], 'localTime', 'required')
+    }
+    callRetLocalTimeOptional(id: number): Promise<Date | null> {
+        return this.executeFunction('ret_clock', [this.const(id, 'int')], 'localTime', 'optional')
+    }
+    callRetEnum(id: number): Promise<WorklogActivity> {
+        return this.executeFunction<WorklogActivity>('ret_activity', [this.const(id, 'int')], 'enum', 'WorklogActivity', 'required')
+    }
+    callRetEnumOptional(id: number): Promise<WorklogActivity | null> {
+        return this.executeFunction<WorklogActivity>('ret_activity', [this.const(id, 'int')], 'enum', 'WorklogActivity', 'optional')
+    }
+    callRetCustom(id: number): Promise<ReleaseChannel> {
+        return this.executeFunction<ReleaseChannel>('ret_channel', [this.const(id, 'int')], 'custom', 'ReleaseChannel', 'required')
+    }
+    callRetCustomOptional(id: number): Promise<ReleaseChannel | null> {
+        return this.executeFunction<ReleaseChannel>('ret_channel', [this.const(id, 'int')], 'custom', 'ReleaseChannel', 'optional')
+    }
+    callRetCustomComparable(id: number): Promise<string> {
+        return this.executeFunction<string>('ret_semver', [this.const(id, 'int')], 'customComparable', 'Semver', 'required')
+    }
+    callRetCustomComparableOptional(id: number): Promise<string | null> {
+        return this.executeFunction<string>('ret_semver', [this.const(id, 'int')], 'customComparable', 'Semver', 'optional')
+    }
+    callRetCustomInt(id: number): Promise<number> {
+        return this.executeFunction<number>('count_open_issues', [this.const(id, 'int')], 'customInt', 'Cents', 'required')
+    }
+    callRetCustomIntOptional(id: number): Promise<number | null> {
+        return this.executeFunction<number>('count_open_issues', [this.const(id, 'int')], 'customInt', 'Cents', 'optional')
+    }
+    callRetCustomUuid(id: number): Promise<string> {
+        return this.executeFunction<string>('ret_uuid', [this.const(id, 'int')], 'customUuid', 'SigningKey', 'required')
+    }
+    callRetCustomUuidOptional(id: number): Promise<string | null> {
+        return this.executeFunction<string>('ret_uuid', [this.const(id, 'int')], 'customUuid', 'SigningKey', 'optional')
+    }
+    callRetCustomLocalDate(id: number): Promise<Date> {
+        return this.executeFunction<Date>('ret_day', [this.const(id, 'int')], 'customLocalDate', 'ReleaseDay', 'required')
+    }
+    callRetCustomLocalDateOptional(id: number): Promise<Date | null> {
+        return this.executeFunction<Date>('ret_day', [this.const(id, 'int')], 'customLocalDate', 'ReleaseDay', 'optional')
+    }
+    callRetCustomLocalTime(id: number): Promise<Date> {
+        return this.executeFunction<Date>('ret_clock', [this.const(id, 'int')], 'customLocalTime', 'CutoffClock', 'required')
+    }
+    callRetCustomLocalTimeOptional(id: number): Promise<Date | null> {
+        return this.executeFunction<Date>('ret_clock', [this.const(id, 'int')], 'customLocalTime', 'CutoffClock', 'optional')
+    }
+    callRetCustomLocalDateTime(id: number): Promise<Date> {
+        return this.executeFunction<Date>('latest_issue_at', [this.const(id, 'int')], 'customLocalDateTime', 'SignOffStamp', 'required')
+    }
+    callRetCustomLocalDateTimeOptional(id: number): Promise<Date | null> {
+        return this.executeFunction<Date>('latest_issue_at', [this.const(id, 'int')], 'customLocalDateTime', 'SignOffStamp', 'optional')
     }
 
     // Reusable typed SQL fragments — exercised by
@@ -671,6 +781,13 @@ export const vReleaseOverview = new class VReleaseOverview extends View<DBConnec
     // trailing TypeAdapter (plusOffsetAdapter, read +1000). The view computes it
     // as the release id when download_count is present, else NULL.
     optionalReleaseOrdinal = this.optionalColumn<ReleaseTag, 'ReleaseTag'>('optional_release_ordinal', 'customInt', 'ReleaseTag', plusOffsetAdapter)
+    // A REQUIRED plain localDateTime View column and its REQUIRED
+    // customLocalDateTime ('PublishStamp') twin — both surface the release's
+    // published_at through the view, so the required-on-read localDateTime getter
+    // surface is observed on a View source (the optional archivedAt View getters
+    // and the Table-side publishedAt are the other sides).
+    publishStampPlain = this.column('published_stamp_plain', 'localDateTime')
+    publishStamp      = this.column<Date, 'PublishStamp'>('published_stamp', 'customLocalDateTime', 'PublishStamp')
     constructor() { super('release_overview') }
 }()
 
@@ -741,5 +858,24 @@ export const tReleaseDraft = new class TReleaseDraft extends Table<DBConnection,
     stage      = this.optionalColumn<ReleaseStage, 'ReleaseStage'>('stage', 'enum', 'ReleaseStage')
     channel    = this.optionalColumn<ReleaseChannel, 'ReleaseChannel'>('channel', 'custom', 'ReleaseChannel')
     minVersion = this.optionalColumn<string, 'Semver'>('min_version', 'customComparable', 'Semver')
+    // Optional custom-kind columns (customDouble 'Money', customLocalDate
+    // 'ReleaseDay', customLocalTime 'CutoffClock') so isNull / isNotNull reach a
+    // realizable NULL branch on these kinds. Draft 2 leaves them NULL.
+    budget     = this.optionalColumn<number, 'Money'>('budget', 'customDouble', 'Money')
+    targetDay  = this.optionalColumn<Date, 'ReleaseDay'>('target_day', 'customLocalDate', 'ReleaseDay')
+    cutoff     = this.optionalColumn<Date, 'CutoffClock'>('cutoff', 'customLocalTime', 'CutoffClock')
+    // Trailing-TypeAdapter ([a2] slot) on Table columns of each remaining kind —
+    // no other Table column factory carries a custom-kind trailing adapter. Each
+    // is a columnWithDefaultValue reading its DB DEFAULT through the adapter, so
+    // the adapter's read effect is observable: the numeric kinds scale/shift, the
+    // string kinds bracket, the customLocalDateTime shifts +1h.
+    scaledCost      = this.columnWithDefaultValue<number, 'Cents'>('scaled_cost', 'customInt', 'Cents', scaledTenthAdapter)
+    shiftedAmount   = this.columnWithDefaultValue<number, 'Money'>('shifted_amount', 'customDouble', 'Money', plusOffsetAdapter)
+    bracketVersion  = this.columnWithDefaultValue<string, 'Semver'>('bracket_version', 'customComparable', 'Semver', bracketAdapter)
+    bracketChannel  = this.columnWithDefaultValue<ReleaseChannel, 'ReleaseChannel'>('bracket_channel', 'custom', 'ReleaseChannel', bracketAdapter)
+    bracketActivity = this.columnWithDefaultValue<WorklogActivity, 'WorklogActivity'>('bracket_activity', 'enum', 'WorklogActivity', bracketAdapter)
+    shiftedStamp    = this.columnWithDefaultValue<Date, 'PublishStamp'>('shifted_stamp', 'customLocalDateTime', 'PublishStamp', shiftHourAdapter)
+    shiftedCount    = this.columnWithDefaultValue('shifted_count', 'bigint', plusThousandBigintAdapter)
+    shiftedRating   = this.columnWithDefaultValue('shifted_rating', 'double', plusOffsetAdapter)
     constructor() { super('release_draft') }
 }()

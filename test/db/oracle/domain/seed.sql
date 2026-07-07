@@ -74,5 +74,5 @@ INSERT INTO ledger_entry (amount, memo, discount) VALUES (250, 70, 30);
 
 -- release_draft: draft 1 sets all three optional typed columns; draft 2 leaves
 -- stage/channel/min_version NULL so the Nullable family hits the real NULL branch.
-INSERT INTO release_draft (id, title, stage, channel, min_version) VALUES (1, 'Alpha cut', 'candidate', 'beta', '1.0.0');
-INSERT INTO release_draft (id, title, stage, channel, min_version) VALUES (2, 'Nightly build', NULL, NULL, NULL);
+INSERT INTO release_draft (id, title, stage, channel, min_version, budget, target_day, cutoff) VALUES (1, 'Alpha cut', 'candidate', 'beta', '1.0.0', 1500.5, DATE '2024-07-10', TIMESTAMP '1970-01-01 08:30:00');
+INSERT INTO release_draft (id, title, stage, channel, min_version, budget, target_day, cutoff) VALUES (2, 'Nightly build', NULL, NULL, NULL, NULL, NULL, NULL);

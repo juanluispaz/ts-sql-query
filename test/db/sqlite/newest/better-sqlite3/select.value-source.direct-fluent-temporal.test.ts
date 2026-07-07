@@ -717,6 +717,73 @@ describe(ctx.label, () => {
     // Release 1 -> released_on 2024-01-15 -> year 2024.
     // ------------------------------------------------------------------
 
+
+    test('view-required-localDateTime-getters', async () => {
+        // All 9 LocalDateTimeValueSource getters on the REQUIRED plain (non-custom)
+        // View localDateTime column publishStampPlain — every getter is a required
+        // `number` leaf (not `?: number`). Release 1: published_stamp_plain
+        // 2024-01-16 09:00:00 (a Tuesday) -> year 2024, month 0 (January, JS
+        // 0-indexed), date 16, day-of-week 2, hours 9, minutes 0, seconds 0,
+        // milliseconds 0, and epoch millis for getTime().
+        const epoch = Date.UTC(2024, 0, 16, 9, 0, 0)
+        const expected = [{ y: 2024, mo: 0, d: 16, dow: 2, h: 9, m: 0, s: 0, ms: 0, t: epoch }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(1))
+            .select({
+                y:   vReleaseOverview.publishStampPlain.getFullYear(),
+                mo:  vReleaseOverview.publishStampPlain.getMonth(),
+                d:   vReleaseOverview.publishStampPlain.getDate(),
+                dow: vReleaseOverview.publishStampPlain.getDay(),
+                h:   vReleaseOverview.publishStampPlain.getHours(),
+                m:   vReleaseOverview.publishStampPlain.getMinutes(),
+                s:   vReleaseOverview.publishStampPlain.getSeconds(),
+                ms:  vReleaseOverview.publishStampPlain.getMilliseconds(),
+                t:   vReleaseOverview.publishStampPlain.getTime(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%Y', published_stamp_plain) as integer) as "y", cast(strftime('%m', published_stamp_plain) as integer) - 1 as mo, cast(strftime('%d', published_stamp_plain) as integer) as "d", cast(strftime('%w',published_stamp_plain) as integer) as dow, cast(strftime('%H', published_stamp_plain) as integer) as "h", cast(strftime('%M', published_stamp_plain) as integer) as "m", cast(strftime('%S', published_stamp_plain) as integer) as "s", strftime('%f', published_stamp_plain) * 1000 % 1000 as ms, round(unixepoch(published_stamp_plain, 'subsec') * 1000) as "t" from release_overview where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ y: number; mo: number; d: number; dow: number; h: number; m: number; s: number; ms: number; t: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('view-required-customLocalDateTime-getters', async () => {
+        // All 9 LocalDateTimeValueSource getters on the REQUIRED custom View
+        // localDateTime column publishStamp ('PublishStamp') — every getter is a
+        // required `number` leaf. Release 1: published_stamp 2024-01-16 09:00:00
+        // (a Tuesday) -> the same components as the plain twin above.
+        const epoch = Date.UTC(2024, 0, 16, 9, 0, 0)
+        const expected = [{ y: 2024, mo: 0, d: 16, dow: 2, h: 9, m: 0, s: 0, ms: 0, t: epoch }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(1))
+            .select({
+                y:   vReleaseOverview.publishStamp.getFullYear(),
+                mo:  vReleaseOverview.publishStamp.getMonth(),
+                d:   vReleaseOverview.publishStamp.getDate(),
+                dow: vReleaseOverview.publishStamp.getDay(),
+                h:   vReleaseOverview.publishStamp.getHours(),
+                m:   vReleaseOverview.publishStamp.getMinutes(),
+                s:   vReleaseOverview.publishStamp.getSeconds(),
+                ms:  vReleaseOverview.publishStamp.getMilliseconds(),
+                t:   vReleaseOverview.publishStamp.getTime(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%Y', published_stamp) as integer) as "y", cast(strftime('%m', published_stamp) as integer) - 1 as mo, cast(strftime('%d', published_stamp) as integer) as "d", cast(strftime('%w',published_stamp) as integer) as dow, cast(strftime('%H', published_stamp) as integer) as "h", cast(strftime('%M', published_stamp) as integer) as "m", cast(strftime('%S', published_stamp) as integer) as "s", strftime('%f', published_stamp) * 1000 % 1000 as ms, round(unixepoch(published_stamp, 'subsec') * 1000) as "t" from release_overview where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ y: number; mo: number; d: number; dow: number; h: number; m: number; s: number; ms: number; t: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
     test('custom-source-asOptional-getter', async () => {
         // `.asOptional().getFullYear()` on the required custom-localDate column
         // releasedOn — asOptional() carries the optional marker through to the
@@ -1366,4 +1433,5 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release order by id"`)
         expect(inElide).toEqual(all)
     })
+
 })

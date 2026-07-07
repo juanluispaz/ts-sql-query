@@ -67,7 +67,28 @@ of that. Two minutes of triage and one paragraph is the bar.
 
 ## Open Bugs
 
-_None open._
+## `Values.create` does not enforce the row column shape
+
+**Where**: `Values.create` in [`src/Values.ts`](../src/Values.ts) (the
+`values: Array<MandatoryInsertSets<T, …>>` parameter).
+**Reproduction**: with `class VProjectPatch extends Values<DBConnection,
+'projectPatch'> { id = this.column('int'); name = this.column('string') }`,
+every one of these compiles under `tsgo` when it should be a type error:
+`Values.create(VProjectPatch, 'projectPatch', [{ id: 1 }])` (required `name`
+omitted), `[{ id: '1', name: 'one' }]` (wrong value type), `[{ id: 1, name:
+'one', bogus: 1 }]` (excess key), even `['notanobject']`. `MandatoryInsertSets`
+appears to resolve to `{}` for a `Values` view (`RequiredColumnsForSetOf` /
+`OptionalColumnsForSetOf` yield `never`), so the row parameter enforces nothing.
+By contrast `connection.insertInto(tCountry).values({ code: 'US' })` (missing
+`name`/`region`) is correctly rejected — the enforcement works for a `Table`
+insert but is lost for a `Values` view. The only part of the `Values.create`
+signature that is enforced today is the view-name argument.
+**Current workaround in the suite**: the four would-be row-shape locks are
+present but commented out (with this `TODO[BUG]` reference) in
+[`test/db/postgres/types.negative/with-values.test.ts`](./db/postgres/types.negative/with-values.test.ts);
+that file locks the parts that ARE enforced (the view name, undeclared-column
+access, column scalar type). Re-enable the commented `@ts-expect-error` locks
+once row-shape enforcement lands.
 
 ## Common bug shapes (for the fixing agent)
 

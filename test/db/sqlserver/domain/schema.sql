@@ -229,6 +229,32 @@ GO
 CREATE FUNCTION estimated_total(@p_id INT) RETURNS FLOAT AS BEGIN RETURN (SELECT COALESCE(SUM(estimated_hours),0) FROM issue WHERE project_id = @p_id) END;
 GO
 
+-- Constant-returning functions, one per remaining executeFunction return kind.
+-- boolean is BIT; ret_uuid returns uniqueidentifier (read back uppercased, then
+-- lowercased in transformValueFromDB). Each CREATE FUNCTION leads its own batch.
+IF OBJECT_ID('ret_flag',     'FN') IS NOT NULL DROP FUNCTION ret_flag;
+IF OBJECT_ID('ret_uuid',     'FN') IS NOT NULL DROP FUNCTION ret_uuid;
+IF OBJECT_ID('ret_day',      'FN') IS NOT NULL DROP FUNCTION ret_day;
+IF OBJECT_ID('ret_clock',    'FN') IS NOT NULL DROP FUNCTION ret_clock;
+IF OBJECT_ID('ret_activity', 'FN') IS NOT NULL DROP FUNCTION ret_activity;
+IF OBJECT_ID('ret_channel',  'FN') IS NOT NULL DROP FUNCTION ret_channel;
+IF OBJECT_ID('ret_semver',   'FN') IS NOT NULL DROP FUNCTION ret_semver;
+GO
+CREATE FUNCTION ret_flag(@p_id INT) RETURNS BIT AS BEGIN RETURN 1 END;
+GO
+CREATE FUNCTION ret_uuid(@p_id INT) RETURNS uniqueidentifier AS BEGIN RETURN '0a8f9c1e-1111-4222-8333-444455556666' END;
+GO
+CREATE FUNCTION ret_day(@p_id INT) RETURNS DATE AS BEGIN RETURN '2024-02-03' END;
+GO
+CREATE FUNCTION ret_clock(@p_id INT) RETURNS TIME AS BEGIN RETURN '14:25:36' END;
+GO
+CREATE FUNCTION ret_activity(@p_id INT) RETURNS VARCHAR(16) AS BEGIN RETURN 'coding' END;
+GO
+CREATE FUNCTION ret_channel(@p_id INT) RETURNS VARCHAR(16) AS BEGIN RETURN 'stable' END;
+GO
+CREATE FUNCTION ret_semver(@p_id INT) RETURNS VARCHAR(32) AS BEGIN RETURN '1.0.0' END;
+GO
+
 -- Sequences exercised by `sequence.next-current-value.test.ts`.
 -- `auditTagSeq` is typed `'bigint'` on the domain connection, so
 -- created `AS BIGINT` here; `issueIdSeq` defaults to INT.
@@ -277,6 +303,8 @@ SELECT r.id AS id,
        r.version AS version,
        r.released_on AS released_on,
        r.signed_off_at AS signed_off_at,
+       r.published_at AS published_stamp,
+       r.published_at AS published_stamp_plain,
        r.version AS version_bracketed,
        CASE WHEN r.channel <> 'beta' THEN r.channel ELSE NULL END AS channel_bracketed,
        r.cutoff_time AS cutoff_clock,
@@ -300,5 +328,16 @@ CREATE TABLE release_draft (
     title VARCHAR(255) NOT NULL,
     stage VARCHAR(16),
     channel VARCHAR(16),
-    min_version VARCHAR(32)
+    min_version VARCHAR(32),
+    budget FLOAT,
+    target_day DATE,
+    cutoff TIME,
+    scaled_cost INT NOT NULL DEFAULT 250,
+    shifted_amount FLOAT NOT NULL DEFAULT 300,
+    bracket_version VARCHAR(32) NOT NULL DEFAULT '2.0.0',
+    bracket_channel VARCHAR(16) NOT NULL DEFAULT 'stable',
+    bracket_activity VARCHAR(16) NOT NULL DEFAULT 'coding',
+    shifted_stamp DATETIME NOT NULL DEFAULT '2024-06-01 10:00:00',
+    shifted_count BIGINT NOT NULL DEFAULT 5000,
+    shifted_rating FLOAT NOT NULL DEFAULT 4.5
 );

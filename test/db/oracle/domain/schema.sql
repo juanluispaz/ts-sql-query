@@ -202,6 +202,24 @@ CREATE OR REPLACE FUNCTION latest_issue_at(p_id IN NUMBER) RETURN TIMESTAMP AS v
 
 CREATE OR REPLACE FUNCTION estimated_total(p_id IN NUMBER) RETURN BINARY_DOUBLE AS v BINARY_DOUBLE; BEGIN SELECT COALESCE(SUM(estimated_hours),0) INTO v FROM issue WHERE project_id = p_id; RETURN v; END;
 
+-- Constant-returning functions, one per remaining executeFunction return kind.
+-- Oracle has no TIME type (localTime rides in a TIMESTAMP) and no SQL boolean
+-- (booleans are NUMBER 0/1). ret_uuid returns the string form.
+
+CREATE OR REPLACE FUNCTION ret_flag(p_id IN NUMBER) RETURN NUMBER AS BEGIN RETURN 1; END;
+
+CREATE OR REPLACE FUNCTION ret_uuid(p_id IN NUMBER) RETURN VARCHAR2 AS BEGIN RETURN '0a8f9c1e-1111-4222-8333-444455556666'; END;
+
+CREATE OR REPLACE FUNCTION ret_day(p_id IN NUMBER) RETURN DATE AS BEGIN RETURN DATE '2024-02-03'; END;
+
+CREATE OR REPLACE FUNCTION ret_clock(p_id IN NUMBER) RETURN TIMESTAMP AS BEGIN RETURN TIMESTAMP '1970-01-01 14:25:36'; END;
+
+CREATE OR REPLACE FUNCTION ret_activity(p_id IN NUMBER) RETURN VARCHAR2 AS BEGIN RETURN 'coding'; END;
+
+CREATE OR REPLACE FUNCTION ret_channel(p_id IN NUMBER) RETURN VARCHAR2 AS BEGIN RETURN 'stable'; END;
+
+CREATE OR REPLACE FUNCTION ret_semver(p_id IN NUMBER) RETURN VARCHAR2 AS BEGIN RETURN '1.0.0'; END;
+
 BEGIN EXECUTE IMMEDIATE 'DROP SEQUENCE issue_id_seq'; EXCEPTION WHEN OTHERS THEN NULL; END;
 
 BEGIN EXECUTE IMMEDIATE 'DROP SEQUENCE audit_tag_seq'; EXCEPTION WHEN OTHERS THEN NULL; END;
@@ -241,6 +259,8 @@ SELECT r.id AS id,
        r.version AS version,
        r.released_on AS released_on,
        r.signed_off_at AS signed_off_at,
+       r.published_at AS published_stamp,
+       r.published_at AS published_stamp_plain,
        r.version AS version_bracketed,
        CASE WHEN r.channel <> 'beta' THEN r.channel ELSE NULL END AS channel_bracketed,
        r.cutoff_time AS cutoff_clock,
@@ -263,5 +283,16 @@ CREATE TABLE release_draft (
     title VARCHAR2(255) NOT NULL,
     stage VARCHAR2(16),
     channel VARCHAR2(16),
-    min_version VARCHAR2(32)
+    min_version VARCHAR2(32),
+    budget BINARY_DOUBLE,
+    target_day DATE,
+    cutoff TIMESTAMP,
+    scaled_cost NUMBER(10) DEFAULT 250 NOT NULL,
+    shifted_amount BINARY_DOUBLE DEFAULT 300 NOT NULL,
+    bracket_version VARCHAR2(32) DEFAULT '2.0.0' NOT NULL,
+    bracket_channel VARCHAR2(16) DEFAULT 'stable' NOT NULL,
+    bracket_activity VARCHAR2(16) DEFAULT 'coding' NOT NULL,
+    shifted_stamp TIMESTAMP DEFAULT TIMESTAMP '2024-06-01 10:00:00' NOT NULL,
+    shifted_count NUMBER(19) DEFAULT 5000 NOT NULL,
+    shifted_rating BINARY_DOUBLE DEFAULT 4.5 NOT NULL
 );

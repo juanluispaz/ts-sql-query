@@ -989,6 +989,78 @@ describe(ctx.label, () => {
         expect(nullIds).toEqual([2])
     })
 
+
+
+
+    test('is-null-is-not-null-on-optional-custom-double', async () => {
+        // isNull / isNotNull on the OPTIONAL customDouble column `budget` ('Money')
+        // on tReleaseDraft. Draft 1 sets budget 1500.5 (present -> n false, nn true);
+        // draft 2 leaves it NULL (-> n true, nn false), so the NULL branch is real.
+        const expected = [
+            { id: 1, n: false, nn: true },
+            { id: 2, n: true,  nn: false },
+        ]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tReleaseDraft)
+            .select({
+                id: tReleaseDraft.id,
+                n:  tReleaseDraft.budget.isNull(),
+                nn: tReleaseDraft.budget.isNotNull(),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, budget is null as "n", budget is not null as nn from release_draft order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ id: number; n: boolean; nn: boolean }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('is-null-is-not-null-on-optional-custom-local-date', async () => {
+        // isNull / isNotNull on the OPTIONAL customLocalDate column `targetDay`
+        // ('ReleaseDay') on tReleaseDraft. Draft 1 sets target_day 2024-07-10
+        // (present); draft 2 leaves it NULL, realising the NULL branch.
+        const expected = [
+            { id: 1, n: false, nn: true },
+            { id: 2, n: true,  nn: false },
+        ]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tReleaseDraft)
+            .select({
+                id: tReleaseDraft.id,
+                n:  tReleaseDraft.targetDay.isNull(),
+                nn: tReleaseDraft.targetDay.isNotNull(),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, target_day is null as "n", target_day is not null as nn from release_draft order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ id: number; n: boolean; nn: boolean }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('is-null-is-not-null-on-optional-custom-local-time', async () => {
+        // isNull / isNotNull on the OPTIONAL customLocalTime column `cutoff`
+        // ('CutoffClock') on tReleaseDraft. Draft 1 sets cutoff 08:30:00 (present);
+        // draft 2 leaves it NULL, realising the NULL branch.
+        const expected = [
+            { id: 1, n: false, nn: true },
+            { id: 2, n: true,  nn: false },
+        ]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tReleaseDraft)
+            .select({
+                id: tReleaseDraft.id,
+                n:  tReleaseDraft.cutoff.isNull(),
+                nn: tReleaseDraft.cutoff.isNotNull(),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cutoff is null as "n", cutoff is not null as nn from release_draft order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ id: number; n: boolean; nn: boolean }>>>()
+        expect(rows).toEqual(expected)
+    })
+
     test('value-source-null-modifiers-on-optional-enum-leaf', async () => {
         // The value-source overloads of `valueWhenNull` / `nullIfValue` on an enum column —
         // the fallback/probe is another value source (a self-reference to `stage`), so the

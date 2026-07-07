@@ -209,6 +209,41 @@ LANGUAGE sql AS $$ SELECT MAX(created_at) FROM issue WHERE project_id = p_id $$;
 CREATE FUNCTION estimated_total(p_id integer) RETURNS double precision
 LANGUAGE sql AS $$ SELECT COALESCE(SUM(estimated_hours), 0)::double precision FROM issue WHERE project_id = p_id $$;
 
+-- Constant-returning functions, one per remaining executeFunction return kind
+-- (boolean / uuid / date / time / and the varchar bases behind enum / custom /
+-- customComparable). Each takes an ignored int arg to keep the `select fn($1)`
+-- call shape identical to the functions above. The uuid function returns the
+-- string form (not a native uuid/raw) so the value reaches the driver already
+-- unwrapped.
+DROP FUNCTION IF EXISTS ret_flag(integer);
+DROP FUNCTION IF EXISTS ret_uuid(integer);
+DROP FUNCTION IF EXISTS ret_day(integer);
+DROP FUNCTION IF EXISTS ret_clock(integer);
+DROP FUNCTION IF EXISTS ret_activity(integer);
+DROP FUNCTION IF EXISTS ret_channel(integer);
+DROP FUNCTION IF EXISTS ret_semver(integer);
+
+CREATE FUNCTION ret_flag(p_id integer) RETURNS boolean
+LANGUAGE sql AS $$ SELECT true $$;
+
+CREATE FUNCTION ret_uuid(p_id integer) RETURNS varchar
+LANGUAGE sql AS $$ SELECT CAST('0a8f9c1e-1111-4222-8333-444455556666' AS varchar) $$;
+
+CREATE FUNCTION ret_day(p_id integer) RETURNS date
+LANGUAGE sql AS $$ SELECT DATE '2024-02-03' $$;
+
+CREATE FUNCTION ret_clock(p_id integer) RETURNS time
+LANGUAGE sql AS $$ SELECT TIME '14:25:36' $$;
+
+CREATE FUNCTION ret_activity(p_id integer) RETURNS varchar
+LANGUAGE sql AS $$ SELECT CAST('coding' AS varchar) $$;
+
+CREATE FUNCTION ret_channel(p_id integer) RETURNS varchar
+LANGUAGE sql AS $$ SELECT CAST('stable' AS varchar) $$;
+
+CREATE FUNCTION ret_semver(p_id integer) RETURNS varchar
+LANGUAGE sql AS $$ SELECT CAST('1.0.0' AS varchar) $$;
+
 -- Sequences exercised by `sequence.next-current-value.test.ts`.
 -- `issueIdSeq` (typed `'int'`) reuses the sequence implicitly
 -- created by `issue.id SERIAL` (PostgreSQL names it `issue_id_seq`);
@@ -249,6 +284,8 @@ SELECT r.id AS id,
        r.version AS version,
        r.released_on AS released_on,
        r.signed_off_at AS signed_off_at,
+       r.published_at AS published_stamp,
+       r.published_at AS published_stamp_plain,
        r.version AS version_bracketed,
        CASE WHEN r.channel <> 'beta' THEN r.channel ELSE NULL END AS channel_bracketed,
        r.cutoff_time AS cutoff_clock,
@@ -271,5 +308,16 @@ CREATE TABLE release_draft (
     title VARCHAR(255) NOT NULL,
     stage VARCHAR(16),
     channel VARCHAR(16),
-    min_version VARCHAR(32)
+    min_version VARCHAR(32),
+    budget DOUBLE PRECISION,
+    target_day DATE,
+    cutoff TIME,
+    scaled_cost INTEGER NOT NULL DEFAULT 250,
+    shifted_amount DOUBLE PRECISION NOT NULL DEFAULT 300,
+    bracket_version VARCHAR(32) NOT NULL DEFAULT '2.0.0',
+    bracket_channel VARCHAR(16) NOT NULL DEFAULT 'stable',
+    bracket_activity VARCHAR(16) NOT NULL DEFAULT 'coding',
+    shifted_stamp TIMESTAMP NOT NULL DEFAULT '2024-06-01 10:00:00',
+    shifted_count BIGINT NOT NULL DEFAULT 5000,
+    shifted_rating DOUBLE PRECISION NOT NULL DEFAULT 4.5
 );

@@ -190,6 +190,22 @@ DROP FUNCTION IF EXISTS estimated_total;
 CREATE FUNCTION total_view_count(p_id INT) RETURNS BIGINT DETERMINISTIC RETURN (SELECT COALESCE(SUM(view_count),0) FROM issue WHERE project_id = p_id);
 CREATE FUNCTION latest_issue_at(p_id INT) RETURNS DATETIME DETERMINISTIC RETURN (SELECT MAX(created_at) FROM issue WHERE project_id = p_id);
 CREATE FUNCTION estimated_total(p_id INT) RETURNS DOUBLE DETERMINISTIC RETURN (SELECT COALESCE(SUM(estimated_hours),0) FROM issue WHERE project_id = p_id);
+DROP FUNCTION IF EXISTS ret_flag;
+DROP FUNCTION IF EXISTS ret_uuid;
+DROP FUNCTION IF EXISTS ret_day;
+DROP FUNCTION IF EXISTS ret_clock;
+DROP FUNCTION IF EXISTS ret_activity;
+DROP FUNCTION IF EXISTS ret_channel;
+DROP FUNCTION IF EXISTS ret_semver;
+-- Constant-returning functions, one per remaining executeFunction return kind.
+-- boolean rides in TINYINT(1); ret_uuid returns the string form (not BINARY).
+CREATE FUNCTION ret_flag(p_id INT) RETURNS TINYINT(1) DETERMINISTIC RETURN 1;
+CREATE FUNCTION ret_uuid(p_id INT) RETURNS CHAR(36) DETERMINISTIC RETURN '0a8f9c1e-1111-4222-8333-444455556666';
+CREATE FUNCTION ret_day(p_id INT) RETURNS DATE DETERMINISTIC RETURN DATE '2024-02-03';
+CREATE FUNCTION ret_clock(p_id INT) RETURNS TIME DETERMINISTIC RETURN TIME '14:25:36';
+CREATE FUNCTION ret_activity(p_id INT) RETURNS VARCHAR(16) DETERMINISTIC RETURN 'coding';
+CREATE FUNCTION ret_channel(p_id INT) RETURNS VARCHAR(16) DETERMINISTIC RETURN 'stable';
+CREATE FUNCTION ret_semver(p_id INT) RETURNS VARCHAR(32) DETERMINISTIC RETURN '1.0.0';
 
 -- Sequences exercised by `sequence.next-current-value.test.ts`.
 -- MariaDB has named sequences since 10.3 (typed via the connection's
@@ -229,6 +245,8 @@ SELECT r.id AS id,
        r.version AS version,
        r.released_on AS released_on,
        r.signed_off_at AS signed_off_at,
+       r.published_at AS published_stamp,
+       r.published_at AS published_stamp_plain,
        r.version AS version_bracketed,
        CASE WHEN r.channel <> 'beta' THEN r.channel ELSE NULL END AS channel_bracketed,
        r.cutoff_time AS cutoff_clock,
@@ -251,5 +269,16 @@ CREATE TABLE release_draft (
     title VARCHAR(255) NOT NULL,
     stage VARCHAR(16),
     channel VARCHAR(16),
-    min_version VARCHAR(32)
+    min_version VARCHAR(32),
+    budget DOUBLE,
+    target_day DATE,
+    cutoff TIME,
+    scaled_cost INT NOT NULL DEFAULT 250,
+    shifted_amount DOUBLE NOT NULL DEFAULT 300,
+    bracket_version VARCHAR(32) NOT NULL DEFAULT '2.0.0',
+    bracket_channel VARCHAR(16) NOT NULL DEFAULT 'stable',
+    bracket_activity VARCHAR(16) NOT NULL DEFAULT 'coding',
+    shifted_stamp DATETIME NOT NULL DEFAULT '2024-06-01 10:00:00',
+    shifted_count BIGINT NOT NULL DEFAULT 5000,
+    shifted_rating DOUBLE NOT NULL DEFAULT 4.5
 );

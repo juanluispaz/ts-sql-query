@@ -165,6 +165,108 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
+    test('aggregate-fragment-with-type-optional-scalar-arms', async () => {
+        // The `'optional'` arm of aggregateFragmentWithType for the scalar kinds
+        // int / double / string / boolean. A no-match WHERE makes each aggregate
+        // resolve over an EMPTY group, so `max(...)` / `avg(...)` / the boolean
+        // comparison are NULL — the optional leaf's `undefined` inhabitant. The
+        // boolean arm uses `max(priority) > 5` (portable, NULL over an empty group)
+        // rather than max on a boolean column.
+        const expected = {}
+        ctx.mockNext({ mi: null, md: null, ms: null, mb: null })
+        const c = ctx.conn
+        const result = await c.selectFrom(tIssue)
+            .where(tIssue.id.equals(-1))
+            .select({
+                mi: c.aggregateFragmentWithType('int', 'optional').sql`max(${tIssue.priority})`,
+                md: c.aggregateFragmentWithType('double', 'optional').sql`avg(${tIssue.priority})`,
+                ms: c.aggregateFragmentWithType('string', 'optional').sql`max(${tIssue.title})`,
+                mb: c.aggregateFragmentWithType('boolean', 'optional').sql`max(${tIssue.priority}) > 5`,
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(priority) as mi, avg(priority) as md, max(title) as ms, max(priority) > 5 as mb from issue where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            -1,
+          ]
+        `)
+        assertType<Exact<typeof result, { mi?: number | undefined; md?: number | undefined; ms?: string | undefined; mb?: boolean | undefined }>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('aggregate-fragment-with-type-optional-temporal-arms', async () => {
+        // The `'optional'` arm of aggregateFragmentWithType for the temporal kinds
+        // (plain localDate/localTime/localDateTime and their custom twins). Each
+        // aggregate resolves over an EMPTY group (no-match WHERE), so `max(...)` is
+        // NULL — the optional Date leaf's absent inhabitant.
+        const c = ctx.conn
+        ctx.mockNext({ mld: null, mlt: null })
+        const plain = await c.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(-1))
+            .select({
+                mld: c.aggregateFragmentWithType('localDate', 'optional').sql`max(${tIssueWorklog.workDate})`,
+                mlt: c.aggregateFragmentWithType('localTime', 'optional').sql`max(${tIssueWorklog.startedAt})`,
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(work_date) as mld, max(started_at) as mlt from issue_worklog where id = $1"`)
+        assertType<Exact<typeof plain, { mld?: Date | undefined; mlt?: Date | undefined }>>()
+        expect(plain).toEqual({})
+
+        ctx.mockNext({ mldt: null })
+        const dt = await c.selectFrom(tIssue)
+            .where(tIssue.id.equals(-1))
+            .select({ mldt: c.aggregateFragmentWithType('localDateTime', 'optional').sql`max(${tIssue.createdAt})` })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(created_at) as mldt from issue where id = $1"`)
+        assertType<Exact<typeof dt, { mldt?: Date | undefined }>>()
+        expect(dt).toEqual({})
+
+        ctx.mockNext({ mcld: null, mclt: null, mcldt: null })
+        const custom = await c.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(-1))
+            .select({
+                mcld:  c.aggregateFragmentWithType<Date, 'ReleaseDay'>('customLocalDate', 'ReleaseDay', 'optional').sql`max(${tProjectRelease.releasedOn})`,
+                mclt:  c.aggregateFragmentWithType<Date, 'CutoffClock'>('customLocalTime', 'CutoffClock', 'optional').sql`max(${tProjectRelease.cutoffTime})`,
+                mcldt: c.aggregateFragmentWithType<Date, 'SignOffStamp'>('customLocalDateTime', 'SignOffStamp', 'optional').sql`max(${tProjectRelease.signedOffAt})`,
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(released_on) as mcld, max(cutoff_time) as mclt, max(signed_off_at) as mcldt from project_release where id = $1"`)
+        assertType<Exact<typeof custom, { mcld?: Date | undefined; mclt?: Date | undefined; mcldt?: Date | undefined }>>()
+        expect(custom).toEqual({})
+    })
+
+    test('aggregate-fragment-with-type-optional-custom-scalar-arms', async () => {
+        // The `'optional'` arm of aggregateFragmentWithType for the branded scalar
+        // kinds customInt / customDouble / enum (over worklogs) and customComparable
+        // / custom (over releases). A no-match WHERE resolves each aggregate over an
+        // EMPTY group -> NULL -> the optional branded leaf's absent inhabitant.
+        const c = ctx.conn
+        ctx.mockNext({ mci: null, mcd: null, men: null })
+        const wl = await c.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(-1))
+            .select({
+                mci: c.aggregateFragmentWithType<number, 'Cents'>('customInt', 'Cents', 'optional').sql`max(${tIssueWorklog.costCents})`,
+                mcd: c.aggregateFragmentWithType<number, 'Money'>('customDouble', 'Money', 'optional').sql`max(${tIssueWorklog.billedAmount})`,
+                men: c.aggregateFragmentWithType<WorklogActivity, 'WorklogActivity'>('enum', 'WorklogActivity', 'optional').sql`max(${tIssueWorklog.activity})`,
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(cost_cents) as mci, max(billed_amount) as mcd, max(activity) as men from issue_worklog where id = $1"`)
+        assertType<Exact<typeof wl, { mci?: number | undefined; mcd?: number | undefined; men?: WorklogActivity | undefined }>>()
+        expect(wl).toEqual({})
+
+        ctx.mockNext({ mcc: null, mc: null })
+        const rel = await c.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(-1))
+            .select({
+                mcc: c.aggregateFragmentWithType<string, 'Semver'>('customComparable', 'Semver', 'optional').sql`max(${tProjectRelease.version})`,
+                mc:  c.aggregateFragmentWithType<ReleaseChannel, 'ReleaseChannel'>('custom', 'ReleaseChannel', 'optional').sql`max(${tProjectRelease.channel})`,
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(version) as mcc, max(channel) as mc from project_release where id = $1"`)
+        assertType<Exact<typeof rel, { mcc?: string | undefined; mc?: ReleaseChannel | undefined }>>()
+        expect(rel).toEqual({})
+    })
+
     test('aggregate-fragment-with-type-enum-and-custom-arms', async () => {
         // `aggregateFragmentWithType` carrying the branded leaf: `enum`
         // (max activity over issue 1's worklogs) and `custom` (max channel over

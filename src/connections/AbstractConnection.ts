@@ -1165,6 +1165,16 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                 if (typeof value === 'bigint') {
                     return !!value
                 }
+                if (typeof value === 'string') {
+                    // Engines without a native boolean type store it as 0/1, and
+                    // some drivers (notably oracledb) hand a numeric column back
+                    // as a string to preserve precision — exactly as the `int`
+                    // case below already accommodates. Accept a numeric string
+                    // the same way the `number` branch does (`!!value`).
+                    if (/^(-?\d+)$/g.test(value)) {
+                        return !!(+value)
+                    }
+                }
                 throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid boolean value received from the db: ' + value)
             case 'int':
                 if (typeof value === 'number') {

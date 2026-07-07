@@ -50,15 +50,17 @@ function _typeNegatives() {
     Values.create(VProjectPatch, 'projectPatch', [{ id: 1, name: 'one' }])
     Values.create(VProjectPatch, 'projectPatch', [{ id: 1, name: 'one', newName: 'patched' }])
 
-    // TODO[BUG]: Values.create does not enforce the ROW column shape — see
-    // test/BUGS.md. Unlike insert().values() (which rejects a missing required
-    // column / a wrong-typed value), MandatoryInsertSets resolves to `{}` for a
-    // Values view, so each row below compiles today even though it is malformed.
-    // Re-enable these @ts-expect-error locks once the row-shape enforcement lands.
-    //   Values.create(VProjectPatch, 'projectPatch', [{ id: 1 }])                     // required `name` omitted
-    //   Values.create(VProjectPatch, 'projectPatch', [{ id: '1', name: 'one' }])      // `id` is int, string given
-    //   Values.create(VProjectPatch, 'projectPatch', [{ id: 1, name: 2 }])            // `name` is string, number given
-    //   Values.create(VProjectPatch, 'projectPatch', [{ id: 1, name: 'x', bogus: 1 }])// unknown column key
+    // Rule: Values.create enforces the ROW column shape, like insert().values()
+    // does for a table — a required column must be present, a value must match
+    // its column's scalar type, and no undeclared key is allowed.
+    // @ts-expect-error required `name` omitted
+    Values.create(VProjectPatch, 'projectPatch', [{ id: 1 }])
+    // @ts-expect-error `id` is an int column; a string value is rejected
+    Values.create(VProjectPatch, 'projectPatch', [{ id: '1', name: 'one' }])
+    // @ts-expect-error `name` is a string column; a number value is rejected
+    Values.create(VProjectPatch, 'projectPatch', [{ id: 1, name: 2 }])
+    // @ts-expect-error `bogus` is not a column of the Values view
+    Values.create(VProjectPatch, 'projectPatch', [{ id: 1, name: 'x', bogus: 1 }])
 }
 
 test('postgres-negative-types-with-values', () => {

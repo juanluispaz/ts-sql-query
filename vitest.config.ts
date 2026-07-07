@@ -19,6 +19,23 @@ export default defineConfig({
         // already override per-call with `ctx.timeoutMs` (180_000),
         // so the inherited default never bites them.
         testTimeout: 60_000,
+        // Reuse each worker's module graph across the test files it runs
+        // instead of tearing the environment down and re-importing every
+        // module per file. With ~3k+ files the per-file re-import is the
+        // dominant cost: on the full `newest` matrix it took the cumulative
+        // `import` phase from ~493s to ~64s and cut wall time ~8x
+        // (79s -> 9.5s), bringing vitest into bun's ballpark — bun is fast
+        // for exactly this reason (it never re-isolates per file). This is
+        // the vitest equivalent of that model. Trade-off: module-level state
+        // now persists across files within a worker, so a test that mutates a
+        // shared singleton could leak into the next file; the suite's cells
+        // are self-contained (a fresh connection + mock/real runner per test),
+        // so this stays green across mock + native-real. Kept on the default
+        // `forks` pool on purpose — `threads` would additionally need
+        // `TZ=UTC` in the ENVIRONMENT (the late `process.env.TZ` mutation in
+        // test/lib/setupTimezone.ts is ignored once a worker isolate has
+        // touched Date) and has shown an intermittent native-addon segfault.
+        isolate: false,
         // Tolerate files that declare a `describe` with every `test(...)`
         // commented out per the symmetry rule (DESIGN.md §4). Without
         // this, vitest treats those as failed suites — a soft failure

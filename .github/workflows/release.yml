@@ -41,7 +41,13 @@ permissions:
 
 jobs:
   # ── v2 line (master) ───────────────────────────────────────────────────────
-  # Full test suite on Bun (~4 min). Gates the v2 publish via `needs: bun`.
+  # Full test suite on BOTH runtimes, in parallel: Bun (`bun test`) and
+  # Node/vitest. Both gate the v2 publish via `needs: [bun, node]`. The
+  # Node/vitest run was dropped in the past because vitest took ~25 min, but with
+  # `isolate: false` in vitest.config.ts it is fast again (see
+  # test/BENCHMARKS.md), so it is back as an independent gate — the artifact
+  # publishes from Node, so validating the Node/vitest path before publishing is
+  # worthwhile.
   bun:
     if: inputs.release_type != 'v1'
     name: bun validation
@@ -96,9 +102,66 @@ jobs:
       - name: Bun new test suite
         run: bun run test:no-docker
 
+  # Node/vitest counterpart of the bun job above — runs in parallel (no `needs`,
+  # so GitHub schedules them concurrently). Same suite, but the test matrix runs
+  # under vitest (`isolate: false`, fast again) and the legacy examples under
+  # tsx/node, so both runtimes' execution paths are validated before publishing.
+  # Mirrors the `build` job in ci.yml (single Node version instead of the 22/24/26
+  # matrix). `validate:tests:tsc` stays out (local-only cross-check — CI/release
+  # gate the test scope with tsgo only; the whole matrix + src in one tsc program
+  # exhausts V8's heap).
+  node:
+    if: inputs.release_type != 'v1'
+    name: node validation
+    runs-on: ubuntu-latest
+
+    steps:
+      # Setup environment
+      - uses: actions/checkout@v6
+
+      # Validate branch
+      - name: Validate if in master branch
+        run: '[ "$GITHUB_REF_NAME" == "master" ] || { echo "Not in master: $GITHUB_REF_NAME"; exit 1; }'
+
+      - name: Use Node.js 26.x
+        uses: actions/setup-node@v6
+        with:
+          node-version: '26.x'
+
+      # Install dependencies
+      - name: Install dependencies
+        run: npm install
+
+      # Build
+      - name: Prepare
+        run: npm run codegen
+      - name: Build
+        run: npm run build
+      # Type-check src with tsgo (preview TS 7 compiler) in addition to the tsc
+      # check covered by `npm run build` above.
+      - name: Validate src (tsgo)
+        run: npm run validate:tsgo
+
+      # Type-check the test/ tree against the published library types (tsgo,
+      # authoritative — same gate as the bun job and ci.yml).
+      - name: Validate tests (tsgo, authoritative)
+        run: npm run validate:tests
+
+      # Symmetry audit (DESIGN §4) — structural check of test/db/.
+      - name: Audit test symmetry
+        run: npm run tests:audit
+
+      # Light tests (docker tests not supported yet) — legacy examples under tsx/node.
+      - name: Light tests
+        run: npm run no-docker-examples
+
+      # New test suite — full matrix mocked + real WASM phase (no docker), under vitest.
+      - name: New test suite (vitest)
+        run: npm run test:no-docker
+
   publish:
     if: inputs.release_type != 'v1'
-    needs: bun
+    needs: [bun, node]
     name: build & publish (v2)
     runs-on: ubuntu-latest
     environment: npm-release
@@ -135,10 +198,10 @@ jobs:
       - name: Validate src (tsgo)
         run: npm run validate:tsgo
 
-      # Tests (new matrix + legacy examples) and the test-tree typecheck run
-      # ONLY on the bun job above: Bun runs the full suite in ~4 min vs ~25 min
-      # on Node, and `needs: bun` already gates this job on a green Bun run, so
-      # the Node side only builds the publishable artifact and publishes it.
+      # Tests (new matrix + legacy examples) and the test-tree typecheck run on
+      # the `bun` and `node` jobs above (in parallel); `needs: [bun, node]` gates
+      # this job on both being green, so this Node step only builds the
+      # publishable artifact and publishes it.
 
       # Stage-publish via OIDC trusted publishing — no NODE_AUTH_TOKEN. Each
       # `dist*` script runs `npm stage publish`, so the version lands in the

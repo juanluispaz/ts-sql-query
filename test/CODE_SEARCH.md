@@ -76,14 +76,14 @@ tests:where-is  <door>  [<section> <level>]…  [<filter>]…  [--for <intent>] 
 ```
 
 ```bash
-bun run tests:where-is --search __addOrderBy                              # an exact name
-bun run tests:where-is --search-pattern 'orderBy'                         # regex → full reports
-bun run tests:where-is --search-location src/sqlBuilders/AbstractSqlBuilder.ts:1119               # a source line → enclosing fn
-bun run tests:where-is --search-location …:1119 --location-target produces                        # the TYPE it returns → its def (and more: see --location-target)
-bun run tests:where-is --search-location src/Table.ts:389 --location-target types                  # the indexed TYPES named on that line → each one's def
-bun run tests:where-is --search-location test/db/postgres/newest/pg/select.basic.test.ts:45       # a TEST line → inverse search
-bun run tests:where-is --emits-keyword 'returning old.'                  # a SQL token → the code that emits it
-bun run tests:where-is --search orderBy --coord postgres --chain full --for coverage-gap          # combine freely
+npm run tests:where-is -- --search __addOrderBy                              # an exact name
+npm run tests:where-is -- --search-pattern 'orderBy'                         # regex → full reports
+npm run tests:where-is -- --search-location src/sqlBuilders/AbstractSqlBuilder.ts:1119               # a source line → enclosing fn
+npm run tests:where-is -- --search-location …:1119 --location-target produces                        # the TYPE it returns → its def (and more: see --location-target)
+npm run tests:where-is -- --search-location src/Table.ts:389 --location-target types                  # the indexed TYPES named on that line → each one's def
+npm run tests:where-is -- --search-location test/db/postgres/newest/pg/select.basic.test.ts:45       # a TEST line → inverse search
+npm run tests:where-is -- --emits-keyword 'returning old.'                  # a SQL token → the code that emits it
+npm run tests:where-is -- --search orderBy --coord postgres --chain full --for coverage-gap          # combine freely
 ```
 
 ### Doors — WHAT to search for (exactly one)
@@ -272,7 +272,7 @@ explicit `--cell-caveats` still overrides.
 the index once** before the first search and refresh it when stale:
 
 ```bash
-bun run tests:index                  # build / refresh the index (~28 s)
+npm run tests:index                  -- # build / refresh the index (~28 s)
 ```
 
 ## When you'd use it
@@ -282,7 +282,7 @@ You're generating tests from a coverage report and you hold a symbol — often a
 file:line from the report. Ask:
 
 ```bash
-bun run tests:where-is --search __addOrderBy
+npm run tests:where-is -- --search __addOrderBy
 ```
 
 and you get, in one markdown report: does it exist? public or internal? the public
@@ -348,10 +348,10 @@ implemented/explained/tested). The **searches** answer "where/how is this used?"
 its own levelled flag:
 
 ```bash
-bun run tests:where-is --search <name>                          # --chain strict (default)
-bun run tests:where-is --search <name> --chain broad            # climb past the public callers
-bun run tests:where-is --search <name> --chain full             # the WHOLE internal stack
-bun run tests:where-is --search <name> --name-search full       # every place the name appears
+npm run tests:where-is -- --search <name>                          # --chain strict (default)
+npm run tests:where-is -- --search <name> --chain broad            # climb past the public callers
+npm run tests:where-is -- --search <name> --chain full             # the WHOLE internal stack
+npm run tests:where-is -- --search <name> --name-search full       # every place the name appears
 ```
 
 | level | how it searches | answers |
@@ -403,5 +403,5 @@ provenance and warns when it's likely out of date:
 ```
 
 If you see those warnings and your question is about code you just changed, re-run
-`bun run tests:index`. If the searcher ever refuses the index outright instead of
+`npm run tests:index`. If the searcher ever refuses the index outright instead of
 just warning, the same rebuild is the fix.

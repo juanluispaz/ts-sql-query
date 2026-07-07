@@ -44,7 +44,7 @@ one idea rejected for noise (a combined `--tests` detail+gaps shape, P2a) is fla
 
 ## The setup (the real repo)
 
-I'm the agent. The human ran `bun run coverage:for-discover-tests`; I have no memory beyond the
+I'm the agent. The human ran `npm run coverage:for-discover-tests`; I have no memory beyond the
 repo. The discovery report hands me one red line — `src/sqlBuilders/AbstractSqlBuilder.ts:1119`,
 the `else` branch of `_appendOrderByColumnAliasInsensitive`:
 
@@ -65,7 +65,7 @@ existing test I half-remember. **(7)** which other dbs still miss it?
 The biggest lesson up front: **combine sections**. One call answers what/route/feature/signature:
 
 ```bash
-bun run tests:where-is --search-location src/sqlBuilders/AbstractSqlBuilder.ts:1119 \
+npm run tests:where-is -- --search-location src/sqlBuilders/AbstractSqlBuilder.ts:1119 \
     --classification full --chain full --docs full --signature public-interface --simplified full \
     --ref-implements summary --tests summary
 ```
@@ -117,7 +117,7 @@ stack, `--docs full` alone for just the feature — but the opening move is the 
 ## A.2 — locate (fold problems 5 + 6): this cell's order-by files, by name
 
 ```bash
-bun run tests:where-is --search orderBy \
+npm run tests:where-is -- --search orderBy \
     --tests detail --coord postgres/newest/pg --file-name-pattern order --test-name-pattern insensitive \
     --classification none --chain none --signature none --ref-implements none --docs none --simplified none --examples none --neg-types none
 ```
@@ -129,7 +129,7 @@ don't create a file. **Searches saved:** `ls … | grep order` + opening each fi
 ## A.3 — gaps to propagate (problem 7)
 
 ```bash
-bun run tests:where-is --search orderBy --tests gaps --test-name-pattern insensitive
+npm run tests:where-is -- --search orderBy --tests gaps --test-name-pattern insensitive
 ```
 
 ```markdown
@@ -150,7 +150,7 @@ does it **already** have the test (skip vs overwrite), what **shape** to match, 
 **declared caveat** in that cell I'd be writing into. That's the `--for propagation` preset (**built**):
 
 ```bash
-bun run tests:where-is --search orderBy --coord '*/newest' --for propagation
+npm run tests:where-is -- --search orderBy --coord '*/newest' --for propagation
 ```
 
 ```markdown
@@ -178,7 +178,7 @@ enclosing function. Line 1119 calls `_appendOrderByColumnAlias` (the shared *sen
 different symbol). **This shipped** as `--location-target callees`:
 
 ```bash
-bun run tests:where-is --search-location src/sqlBuilders/AbstractSqlBuilder.ts:1119 --location-target callees
+npm run tests:where-is -- --search-location src/sqlBuilders/AbstractSqlBuilder.ts:1119 --location-target callees
 ```
 
 → resolves to `_appendOrderByColumnAlias`; ≥1 callee on a line → a report per callee. It confirms
@@ -216,7 +216,7 @@ the precondition is the receiver's value *type* (uuid), and uuid needs per-conne
 ## B.1 — orient (with `--ref-return`)
 
 ```bash
-bun run tests:where-is --search-location src/internal/ValueSourceImpl.ts:157 \
+npm run tests:where-is -- --search-location src/internal/ValueSourceImpl.ts:157 \
     --classification full --ref-return full --chain full --docs full \
     --signature public-interface --simplified full --tests summary
 ```
@@ -247,7 +247,7 @@ the chain), without which I can't even construct a failing test.
 ## B.2 — locate + per-connector uuid setup (examples earn their keep)
 
 ```bash
-bun run tests:where-is --search asOptionalNonEmptyArray \
+npm run tests:where-is -- --search asOptionalNonEmptyArray \
     --tests detail --examples full --coord postgres/newest/pg --file-name-pattern aggregate \
     --classification none --chain none --docs none --simplified none --signature none --ref-return none --neg-types none
 ```
@@ -288,7 +288,7 @@ A **test** `--search-location` is the inverse door — it reports the `test_bloc
 it exercises (banner-only; it does **not** take section flags):
 
 ```bash
-bun run tests:where-is --search-location test/db/sqlserver/newest/mssql/docs.select.test.ts:482
+npm run tests:where-is -- --search-location test/db/sqlserver/newest/mssql/docs.select.test.ts:482
 ```
 
 ```markdown
@@ -302,7 +302,7 @@ The suspect is `orderBy`. Now search **that**, with the debug sections — the e
 dialect emission, focused on the failing db:
 
 ```bash
-bun run tests:where-is --search orderBy --coord sqlserver/newest/mssql \
+npm run tests:where-is -- --search orderBy --coord sqlserver/newest/mssql \
     --emitted-sql full --ref-implements full --bugs full \
     --classification summary --chain none --docs none --simplified none --tests detail --examples none --neg-types none
 ```
@@ -366,7 +366,7 @@ subquery.
 ## D.1 — from the SQL fragment to the emission site (no chain)
 
 ```bash
-bun run tests:where-is --emits-keyword 'returning old.'
+npm run tests:where-is -- --emits-keyword 'returning old.'
 ```
 
 ```markdown
@@ -379,7 +379,7 @@ Methods to search next (the overriders are the usual suspects): `_appendRawColum
 Then the dialect decision — search the toggle, foreground who does **not** override it:
 
 ```bash
-bun run tests:where-is --search _useUpdateOldValueInFrom --ref-implements full --version-gates full \
+npm run tests:where-is -- --search _useUpdateOldValueInFrom --ref-implements full --version-gates full \
     --classification summary --chain none --signature summary --docs none --simplified none --tests none --examples none --neg-types none
 ```
 
@@ -421,7 +421,7 @@ PG≥18, keep the emulation for <18, add a new `newest` cell (today's → a `<18
 ## E.1 — the version mechanism + the feature's blast radius
 
 ```bash
-bun run tests:where-is --search compatibilityVersion --version-gates full --classification summary \
+npm run tests:where-is -- --search compatibilityVersion --version-gates full --classification summary \
     --docs full --chain none --signature none --ref-implements none --tests none --examples none --neg-types none
 ```
 
@@ -437,8 +437,8 @@ For the **blast radius** across statement kinds (the release note covers INSERT/
 the searcher gives the emission sites by fragment, not a single "feature" door:
 
 ```bash
-bun run tests:where-is --emits-keyword 'returning'        # every RETURNING emission site, per builder
-bun run tests:where-is --emits-keyword 'old.'             # the old-qualification sites
+npm run tests:where-is -- --emits-keyword 'returning'        # every RETURNING emission site, per builder
+npm run tests:where-is -- --emits-keyword 'old.'             # the old-qualification sites
 ```
 
 → the agent reads off `_buildUpdateReturning` / `_buildInsertReturning` / `_buildDeleteReturning`
@@ -450,8 +450,8 @@ Creating a new `newest` is governed by `tests:audit` (every cell holds the same 
 **test CLI's** job, not the searcher's:
 
 ```bash
-bun run tests postgres --list-files        # the files a new postgres version cell must mirror
-bun run tests:audit                        # the symmetry gate
+npm run tests -- postgres --list-files        # the files a new postgres version cell must mirror
+npm run tests:audit                        -- # the symmetry gate
 ```
 
 ### What E taught → what shipped
@@ -471,7 +471,7 @@ F **doesn't need the searcher** — but it's a useful safety net, and it taught 
 ends. After a fix changes the emitted SQL, every place that *shows* it is stale, and they refresh
 differently:
 
-- **test snapshots** — refresh with `bun run tests <coord> --update-snapshots`; they fail loudly.
+- **test snapshots** — refresh with `npm run tests -- <coord> --update-snapshots`; they fail loudly.
 - **docs** — the `.md` is the source the doc-code extractor turns into generated, then indexed,
   tests; a stale doc SQL silently propagates. User-owned (`test/templates/doc-code/`).
 - **legacy examples** — hand-written, **assert at runtime, not via inline snapshots** — so their SQL
@@ -480,7 +480,7 @@ differently:
 ## F.1 — find the stale SQL the searcher *can* see (tests + docs)
 
 ```bash
-bun run tests:where-is --search <feature> --emitted-sql full --docs full \
+npm run tests:where-is -- --search <feature> --emitted-sql full --docs full \
     --classification summary --chain none --tests detail --examples summary
 ```
 
@@ -550,7 +550,7 @@ I'm fixing around `virtualColumnFromFragment` (an emission-bug / post-fix round)
 there's an open bug on it:
 
 ```bash
-bun run tests:where-is --search virtualColumnFromFragment --bugs summary
+npm run tests:where-is -- --search virtualColumnFromFragment --bugs summary
 ```
 
 ```markdown
@@ -571,7 +571,7 @@ and I see cells missing it in `mariadb/newest/mariadb`. I propose a wave — "ad
 test on MariaDB" — and run:
 
 ```bash
-bun run tests:where-is --search oldValues --for coverage-gap
+npm run tests:where-is -- --search oldValues --for coverage-gap
 ```
 
 A `--limitation` in the preset (P1a) would catch the markers whose text says `oldValues()` — but
@@ -586,7 +586,7 @@ shipped** as `--cell-caveats` (and it rides the `coverage-gap` preset, so the `-
 above already includes it once a `--coord` is given):
 
 ```bash
-bun run tests:where-is --search oldValues --coord mariadb/newest --for coverage-gap
+npm run tests:where-is -- --search oldValues --coord mariadb/newest --for coverage-gap
 ```
 
 ```markdown
@@ -685,7 +685,7 @@ wording, the rejected snippet, the file:line. The count was all `--neg-types` us
 `snippet` / `marker_line`):
 
 ```bash
-bun run tests:where-is --search onConflictDoUpdateSet --neg-types full
+npm run tests:where-is -- --search onConflictDoUpdateSet --neg-types full
 ```
 
 ```markdown
@@ -751,7 +751,7 @@ cells take it. Two frictions:
 ## I.1 — the premise: "`--for emission-bug` doesn't carry the negative surface" — FALSE
 
 ```bash
-bun run tests:where-is --search onConflictDoUpdateSet --for emission-bug | grep -i negative
+npm run tests:where-is -- --search onConflictDoUpdateSet --for emission-bug | grep -i negative
 # → ## Negative-type assertions      ← it IS there.
 ```
 
@@ -809,7 +809,7 @@ so I grepped those two and **missed Table.ts** — the human had to remind me.
 all three owners:
 
 ```bash
-bun run tests:where-is --search virtualColumnFromFragment --declared full
+npm run tests:where-is -- --search virtualColumnFromFragment --declared full
 ```
 
 ```markdown
@@ -833,7 +833,7 @@ asking the index. (Same shape as Case I: the headline premise dissolves on conta
 `path:line` is the method's own site, not the alias's:
 
 ```bash
-bun run tests:where-is --search virtualColumnFromFragment --signature full
+npm run tests:where-is -- --search virtualColumnFromFragment --signature full
 ```
 
 ```markdown
@@ -848,7 +848,7 @@ To reach the helper at the heart of the fix I take its **name** out of the signa
 *second* exact search:
 
 ```bash
-bun run tests:where-is --search NSourceAllowingNoTableOrViewRequired --declared full
+npm run tests:where-is -- --search NSourceAllowingNoTableOrViewRequired --declared full
 # → internal type NSourceAllowingNoTableOrViewRequired — src/utils/sourceName.ts:64
 ```
 
@@ -859,7 +859,7 @@ signature hands me the names without the sites. That second hop is the gap.
 ## J.3 — the closest preset is the wrong shape
 
 ```bash
-bun run tests:where-is --search virtualColumnFromFragment --for emission-bug | grep '^##'
+npm run tests:where-is -- --search virtualColumnFromFragment --for emission-bug | grep '^##'
 # ## Classification ## Signature ## Referenced in implements/extends (implemented by) ## Version gates ## Explained in docs ## Shown in simplified-def docs
 ```
 
@@ -938,7 +938,7 @@ this union". But the shape isn't nameless — it *references* `NNoTableOrViewReq
 name-fragment search over that token surfaces every sibling alias built around it:
 
 ```bash
-bun run tests:where-is --search-pattern-summary 'NoTableOrViewRequired'
+npm run tests:where-is -- --search-pattern-summary 'NoTableOrViewRequired'
 ```
 
 ```markdown
@@ -991,7 +991,7 @@ keyed by the `source` **unique symbol** (`src/utils/symbols.ts`) on `HasSource`
 ## L.1 — the index finds the symbol, not the computed-key member
 
 ```bash
-bun run tests:where-is --search source --signature full
+npm run tests:where-is -- --search source --signature full
 ```
 
 ```markdown

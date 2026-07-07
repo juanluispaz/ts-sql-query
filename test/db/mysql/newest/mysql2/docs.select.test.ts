@@ -3,8 +3,7 @@
 // Tests prefixed `docs:` are scraped by the docs build. Inside each test,
 // the code BETWEEN `// doc-start` and `// doc-end` is the snippet that
 // appears on the page; SQL + params live in `toMatchInlineSnapshot(...)`
-// so the test gates the snippet against drift and the snapshot can be
-// refreshed in bulk via `bun test --update-snapshots`.
+// so the test gates the snippet against drift.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'

@@ -2,10 +2,6 @@
 // then four assertions — emitted SQL (inline snapshot), emitted params
 // (inline snapshot), exact result type, returned value.
 //
-// SQL and params live in `toMatchInlineSnapshot(...)` so they can be
-// updated en masse via `bun test --update-snapshots` (or
-// `bunx vitest run -u`) whenever the library's emitted SQL changes.
-//
 // The seed dataset and the values primed via `ctx.mockNext(...)` are kept
 // aligned so a single `expect(result).toEqual(expected)` line covers
 // both modes.

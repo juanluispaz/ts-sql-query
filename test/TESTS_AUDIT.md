@@ -1,6 +1,6 @@
 # Using `tests:audit`
 
-`bun run tests:audit` (or `npm run tests:audit`) is the **mechanical anti-cheat
+`npm run tests:audit` (or `npm run tests:audit`) is the **mechanical anti-cheat
 check** for the `test/` matrix. It walks `test/db/` statically — no docker, no
 WASM, no database — and reports tests that have been weakened to pass
 dishonestly, or whose structure diverges from the symmetry rule.
@@ -28,14 +28,14 @@ a per-connector caveat — it will not move here.
 ## Run it
 
 ```bash
-bun run tests:audit                       # whole matrix
-bun run tests:audit postgres/newest/pg    # one cell (same coord grammar as `tests`)
-bun run tests:audit 'postgres/*/pg'       # globs / {a,b} braces work
-bun run tests:audit --only weak-matcher   # a single rule
-bun run tests:audit --explain             # print a fix hint per finding
-bun run tests:audit --all                 # list every finding (default groups large backlogs)
-bun run tests:audit --strict              # force `error` for any rule still at `warn` (no-op today; every rule is already `error`)
-bun run tests:audit --help
+npm run tests:audit                       -- # whole matrix
+npm run tests:audit -- postgres/newest/pg    # one cell (same coord grammar as `tests`)
+npm run tests:audit -- 'postgres/*/pg'       # globs / {a,b} braces work
+npm run tests:audit -- --only weak-matcher   # a single rule
+npm run tests:audit -- --explain             # print a fix hint per finding
+npm run tests:audit -- --all                 # list every finding (default groups large backlogs)
+npm run tests:audit -- --strict              # force `error` for any rule still at `warn` (no-op today; every rule is already `error`)
+npm run tests:audit -- --help
 ```
 Under `npm run`, put flags behind `--`: `npm run tests:audit -- --only weak-matcher --all`.
 

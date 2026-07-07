@@ -1,7 +1,7 @@
 # Tests Audit
 
 The **mechanical anti-cheat enforcement** for the `test/` matrix — the tool
-behind `bun run tests:audit`. It walks `test/db/` statically (no docker, no
+behind `npm run tests:audit`. It walks `test/db/` statically (no docker, no
 WASM, no DB) and **fails** (exit 1) when a test has been weakened to pass
 dishonestly, or when its structure diverges from the symmetry rule.
 
@@ -254,7 +254,7 @@ output.
 
 ### Scope (positional coords)
 
-`bun run tests:audit [<coord>…]` scopes the run, same grammar as the `tests`
+`npm run tests:audit -- [<coord>…]` scopes the run, same grammar as the `tests`
 CLI ([`CLI.md` § Coord patterns](../../CLI.md#coord-patterns)):
 `<db>[/<version>[/<connector>[/<file>]]]` with `*` globs and `{a,b}` braces,
 several coords unioned. No coord → the whole matrix. A coord matching nothing
@@ -269,7 +269,7 @@ matrix). The matcher is the **shared**
 uses (`coordMatch` / `cellFromPath`), extracted there so both tools agree on
 coordinate semantics. Scoping is the practical way to triage any future
 backlog (e.g. a newly-landed `warn` rule) one cell or canonical at a time, e.g.
-`bun run tests:audit postgres/newest/pg --only mirror-image --all --explain`.
+`npm run tests:audit -- postgres/newest/pg --only mirror-image --all --explain`.
 
 ## The rules
 

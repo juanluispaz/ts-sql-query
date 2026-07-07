@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-// Orchestrator + CLI entry for `bun run tests:audit`. Runs the structural
+// Orchestrator + CLI entry for `npm run tests:audit`. Runs the structural
 // symmetry check, then the anti-cheat content rules over every cell, applies
 // the `tests-audit-disable-*` suppressions, reports, and exits 1 on any error.
 // See AUDIT.md.

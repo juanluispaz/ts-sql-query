@@ -25,7 +25,7 @@ and [`schema.ts`](../codeIndexer/schema.ts) (the `SCHEMA_VERSION` it gates on).
 > own/full + span, the precise chain, the `bare` preset, not-found), run against the built index and
 > **skipped** when it isn't there. Volatile line numbers are **derived from the index**, never
 > hard-coded, so unrelated edits don't break it. It is **not** a `*.test.ts`, so the `test/` matrix never
-> collects it; run it on demand. Validate types with `bun run validate:tests` (tsgo) / `:tsc`.
+> collects it; run it on demand. Validate types with `npm run validate:tests` (tsgo) / `:tsc`.
 
 > **Just want to USE it?** Read [`test/CODE_SEARCH.md`](../../CODE_SEARCH.md) instead —
 > the agent-facing usage doc. This file is the **implementation reference** (modules,
@@ -38,10 +38,10 @@ and [`schema.ts`](../codeIndexer/schema.ts) (the `SCHEMA_VERSION` it gates on).
 WHAT to search for — exactly one (resolved in `search.ts`):
 
 ```bash
-bun run tests:where-is --search <name>                                   # an exact name
-bun run tests:where-is --search-pattern '<regex>'                        # regex → a full report per match
-bun run tests:where-is --search-pattern-summary '<regex>'               # regex → a compact pick-list
-bun run tests:where-is --search-location src/foo/Bar.ts:84               # a source location → enclosing fn
+npm run tests:where-is -- --search <name>                                   # an exact name
+npm run tests:where-is -- --search-pattern '<regex>'                        # regex → a full report per match
+npm run tests:where-is -- --search-pattern-summary '<regex>'               # regex → a compact pick-list
+npm run tests:where-is -- --search-location src/foo/Bar.ts:84               # a source location → enclosing fn
 ```
 
 Plus the v4 doors: `--location-target callees` (the fn invoked ON a src line), a TEST-file
@@ -51,18 +51,18 @@ Plus the v4 doors: `--location-target callees` (the fn invoked ON a src line), a
 HOW to shape the report — **one levelled flag per section** (`--search-mode` was removed):
 
 ```bash
-bun run tests:where-is --search <name> --chain full          # whole internal stack (vs strict/broad)
-bun run tests:where-is --search <name> --tests gaps          # who's-missing per db
-bun run tests:where-is --search <name> --ref-return full --version-gates full --bugs full
-bun run tests:where-is --search <name> --name-search full    # name-based discovery (was --search-mode name)
-bun run tests:where-is --search <name> --for emission-bug    # preset a section set
-bun run tests:where-is --search <name> --db <path>           # non-default index file
+npm run tests:where-is -- --search <name> --chain full          # whole internal stack (vs strict/broad)
+npm run tests:where-is -- --search <name> --tests gaps          # who's-missing per db
+npm run tests:where-is -- --search <name> --ref-return full --version-gates full --bugs full
+npm run tests:where-is -- --search <name> --name-search full    # name-based discovery (was --search-mode name)
+npm run tests:where-is -- --search <name> --for emission-bug    # preset a section set
+npm run tests:where-is -- --search <name> --db <path>           # non-default index file
 # or, directly:
 bun test/lib/codeSearcher/search.ts --search <name> [flags]
 npx tsx test/lib/codeSearcher/search.ts --search <name> [flags]          # under Node
 ```
 
-Full flag reference: `bun run tests:where-is --help` (and [`MODEL.md`](./MODEL.md) for the model —
+Full flag reference: `npm run tests:where-is -- --help` (and [`MODEL.md`](./MODEL.md) for the model —
 doors × levelled sections × `--coord` focus × presets, and the rationale behind them).
 
 - **`--search-pattern`** resolves to matching names and prints a **full report for each**

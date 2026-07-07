@@ -2,9 +2,6 @@
 // `ctx.withRollback(...)` so any rows written to a real DB are reverted at
 // the end of the test (no-op in mock mode).
 //
-// SQL and params use `toMatchInlineSnapshot(...)` so they can be refreshed
-// with `bun test --update-snapshots` (or `bunx vitest run -u`).
-//
 // Auto-generated columns (PK ids) are mock-primed for predictable mock-mode
 // equality. In real-DB mode the actual id is whatever sqlite assigns next;
 // the test then asserts a structural invariant (`id > <max-seed-id>`).

@@ -147,7 +147,7 @@ Then, for the round-shaping presets:
 | Add a `@ts-expect-error` rule, consistent with existing locks | `--neg-types full` | [`WRITING_TESTS.md` § Negative type tests](./WRITING_TESTS.md#negative-type-tests) |
 | Browse declared caveats on cells (all three categories per cell: `NOT-APPLICABLE`, `TODO[BUG]`, `TODO[LIMITATION]`) | `--cell-caveats summary` (or `full` with `--coord`) | [`LIMITATIONS.md`](./LIMITATIONS.md), [`EXTERNAL_CAVEATS.md`](./EXTERNAL_CAVEATS.md), [`ANTIPATTERNS.md` § Blind copy](./ANTIPATTERNS.md#3-blind-copy-to-bun_sql_postgres) |
 
-`bun run tests:index` builds the underlying index (~28 s, gitignored).
+`npm run tests:index` builds the underlying index (~28 s, gitignored).
 The implementation references under `lib/codeSearcher/` and
 `lib/codeIndexer/` are for the agent **modifying** the tools, not for
 the agent consuming them.
@@ -215,31 +215,32 @@ cells simply do not exist.
 ## TL;DR commands
 
 ```bash
-# Daily mocked loop, ~8 s under bun.
-bun run tests
+# Daily mocked loop, ~13 s under vitest (isolate:false) / ~19 s under bun.
+npm run tests            # or `npm run tests` — mocked is fast under both
 
 # One cell, fastest possible iteration.
-bun run tests postgres/newest/pg
+npm run tests -- postgres/newest/pg
 
-# Real-DB validation of one cell (docker). Add --bail to abort on first
-# failure while iterating — saves wall-time on the slow lane.
-bun run tests postgres/newest/pg --docker --bail
+# Real-DB validation of one cell (docker). Use vitest — the real-DB matrix is
+# ~20x faster under vitest (bun rebuilds the pool per file). Add --bail to abort
+# on first failure while iterating — saves wall-time on the slow lane.
+npm run tests -- postgres/newest/pg --docker --bail
 
 # Real WASM on a wasm cell.
-bun run tests postgres/oldest/pglite --wasm
+npm run tests -- postgres/oldest/pglite --wasm
 
 # Update snapshots.
-bun run tests postgres/newest/pg --update-snapshots
+npm run tests -- postgres/newest/pg --update-snapshots
 
 # Enumerate the active cells (sorted, one per line, no test execution).
 # Handy before propagating a wave or scoping a focused run.
-bun run tests --list-cells
+npm run tests -- --list-cells
 
 # Pre-push sanity sweep.
-bun run tests:audit && bun run validate:tests && bun run tests
+npm run tests:audit -- && npm run validate:tests && npm run tests
 
 # Full real matrix (the user's confidence check).
-bun run tests --docker --wasm
+npm run tests -- --docker --wasm
 ```
 
 Full reference: [`CLI.md`](./CLI.md).

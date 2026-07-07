@@ -51,7 +51,7 @@ tests on the first wave.
    and going straight to `grep` is the pattern that recently lost
    `Table.ts` from a bug fix — the entry listed two files; `--declared
    full` would have listed the three. Refresh the index at session start:
-   `bun run tests:index`.
+   `npm run tests:index`.
 3. **[`DESIGN.md`](./DESIGN.md)** in full — the normative core. Pay
    specific attention to:
    - § Real-DB validation — the `mock-validated` vs `real-validated`
@@ -104,13 +104,13 @@ touched; do not let it overrule the working tree.
 
 1. **Run the audit to enumerate the matrix as it stands today**:
    ```bash
-   bun run tests:audit
+   npm run tests:audit
    ```
    The summary line per database (`postgres: N cells, M test files, K
    tests per cell`) is the authoritative count for this session.
 
    For a flat, machine-readable listing of every active cell (sorted, one
-   per line, no audit narrative), use `bun run tests --list-cells` — same
+   per line, no audit narrative), use `npm run tests -- --list-cells` — same
    set, no test execution. Useful when verifying the propagation target
    set in §8 before copy-baking.
 
@@ -172,7 +172,7 @@ cost of shipping is hours of cleanup the next session.
 
 ## Discovery
 
-The user runs `bun run coverage:for-discover-tests` **before** the
+The user runs `npm run coverage:for-discover-tests` **before** the
 session. The alias produces
 `.test-report/coverage/coverage-summary.json` and `coverage-final.json` in
 istanbul JSON format, scoped to `--run-versions newest` (older `<db>/<version>/`
@@ -216,7 +216,7 @@ rounds.
 ### Verify the API actually exists
 
 ```bash
-bun run tests:where-is --search <api-symbol>
+npm run tests:where-is -- --search <api-symbol>
 ```
 
 The `Classification` block tells you immediately whether the symbol
@@ -229,14 +229,14 @@ artifact. See [`CODE_SEARCH.md`](./CODE_SEARCH.md) for the full report
 shape and [`ANTIPATTERNS.md` § Hallucinated API](./ANTIPATTERNS.md#5-hallucinated-api)
 for context.
 
-If the index isn't built yet, run `bun run tests:index` first (~28 s).
+If the index isn't built yet, run `npm run tests:index` first (~28 s).
 A bare `grep -rn "<api-symbol>\b" src/` is an acceptable fallback when
 the index is unavailable — same exit rule (no hits → hallucination).
 
 ### Verify the existing test inventory
 
 ```bash
-bun run tests:where-is --search <api-symbol> --for coverage-gap
+npm run tests:where-is -- --search <api-symbol> --for coverage-gap
 ```
 
 `--for coverage-gap` is the preset for this step — it expands to
@@ -334,7 +334,7 @@ The list this produces is what §8 re-wraps after propagation.
 ## Proposing waves
 
 Generous batches. The user runs the full validation matrix
-(`bun run tests --docker --wasm`) once per round, ~7 minutes including
+(`npm run tests -- --docker --wasm`) once per round, ~7 minutes including
 warm container reuse; concentrate as much work as possible into one round
 so the validation cost amortises.
 
@@ -412,7 +412,7 @@ in the proposal / report — not a re-paraphrase.
 Iterate locally:
 
 ```bash
-bun run tests <canonical-path> --update-snapshots
+npm run tests -- <canonical-path> --update-snapshots
 ```
 
 Read the diff of every test you added before moving on. The user will
@@ -430,16 +430,16 @@ its cell**, before propagating. Per
   real-DB. The canonical is real-validated; no flag needed.
 - **Canonical is docker-backed** (`postgres/newest/pg`, mariadb / mysql /
   oracle / sqlserver canonical cells): run
-  `bun run tests <canonical-path> --docker`.
+  `npm run tests -- <canonical-path> --docker`.
 - **Canonical is WASM** (rare for canonical, but in some dialect-specific
-  tests): run `bun run tests <canonical-path> --wasm`.
+  tests): run `npm run tests -- <canonical-path> --wasm`.
 
 The above runs the path AND the kind's full real layer. If you want only
 the canonical cell to come up real while the rest of the run stays mock
 (useful when the wave touches a `SqlBuilder` branch shared with siblings
 and you want a fast sanity sweep of the whole family with one cell
 real-validated), pass the cell as the flag's argument:
-`bun run tests <wave-coord-glob> --docker postgres/newest/pg` — only
+`npm run tests -- <wave-coord-glob> --docker postgres/newest/pg` — only
 `postgres/newest/pg` comes up against its real engine; every other docker
 cell falls through to the mock. Same shape for `--wasm <cell>` and
 `--native <cell>`.
@@ -487,17 +487,17 @@ Once the canonical is GREEN/YELLOW, propagate via a small `cp` script (or
    `domain/` + `types.negative/` for you):
 
    ```bash
-   bun run tests --list-cells              # every active cell, sorted
+   npm run tests -- --list-cells              # every active cell, sorted
    ```
 
    It honours the path filters, so you can preview exactly the set a
    scoped propagation will touch before copy-baking:
 
    ```bash
-   bun run tests 'postgres/*/{pg,postgres}' --run-versions newest --list-cells
+   npm run tests -- 'postgres/*/{pg,postgres}' --run-versions newest --list-cells
    ```
 
-   The single normative count is `bun run tests:audit`'s output, which
+   The single normative count is `npm run tests:audit`'s output, which
    prints one summary line per database (`postgres: N cells, …`).
 
    To see, per cell, the **propagation delta** for the symbol you're
@@ -505,7 +505,7 @@ Once the canonical is GREEN/YELLOW, propagate via a small `cp` script (or
    declared caveats), add a focused `tests:where-is` call:
 
    ```bash
-   bun run tests:where-is --search <canonical-fn> --for propagation --coord '<focused-cells>'
+   npm run tests:where-is -- --search <canonical-fn> --for propagation --coord '<focused-cells>'
    ```
 
    `--for propagation` bundles `classification · tests gaps · examples
@@ -535,7 +535,7 @@ Once the canonical is GREEN/YELLOW, propagate via a small `cp` script (or
 
 3. **Bake snapshots per cell**:
    ```bash
-   bun run tests '<db>/<version>/<connector>/<file>.test.ts' --update-snapshots
+   npm run tests -- '<db>/<version>/<connector>/<file>.test.ts' --update-snapshots
    ```
 
 4. **Apply the EXTERNAL_CAVEATS re-wrap list from §4.5 / §7.** Block-comment
@@ -559,14 +559,14 @@ Once the canonical is GREEN/YELLOW, propagate via a small `cp` script (or
 
 6. **Audit symmetry**:
    ```bash
-   bun run tests:audit
+   npm run tests:audit
    ```
    Must pass before the round closes.
 
 7. **Typecheck**:
    ```bash
-   bun run validate:tests
-   bun run validate:tests:tsc
+   npm run validate:tests
+   npm run validate:tests:tsc
    ```
    Both must pass. Errors often signal that the cell's connection type
    rejects an API used in the test — re-check whether the right answer is
@@ -579,10 +579,10 @@ Once the canonical is GREEN/YELLOW, propagate via a small `cp` script (or
 
 In order:
 
-1. `bun run tests:audit` — symmetry, must be green.
-2. `bun run validate:tests` (tsgo) — must be green.
-3. `bun run validate:tests:tsc` — must be green.
-4. `bun run tests` — full mock matrix end to end, must be green.
+1. `npm run tests:audit` — symmetry, must be green.
+2. `npm run validate:tests` (tsgo) — must be green.
+3. `npm run validate:tests:tsc` — must be green.
+4. `npm run tests` — full mock matrix end to end, must be green.
 5. **Report to the user** with the new vocabulary:
 
    For every test the wave shipped, list its state:
@@ -615,7 +615,7 @@ In order:
    ```
 
    This report is what tells the user which cells to expect changes in
-   when they run their `bun run tests --docker --wasm` pass over the full
+   when they run their `npm run tests -- --docker --wasm` pass over the full
    matrix.
 
 6. **Additional fields in the report**:
@@ -634,7 +634,12 @@ In order:
 
 ## Operational rules
 
-- **Bun first**. `bun run …` always; `npm run …` only on user request.
+- **Use `npm run …` for everything** — the matrix, coverage, and the helpers
+  (`tests:index`, `tests:where-is`, `validate:tests`). One consistent runtime
+  avoids confusing the agent; the matrix under vitest (`isolate:false`) is faster
+  incl. ~20× on `--docker` (bun rebuilds each cell's DB pool per file; see
+  [`BENCHMARKS.md`](./BENCHMARKS.md)), coverage is vitest-only anyway, and for the
+  helpers the launcher is a no-op. Reach for `bun` only for bun-native cells.
 - **Never** touch the user's `test` / `test:*` aliases in `package.json`.
   They are reserved. Canonical CLI vocabulary is `tests` / `tests:audit`
   / `tests:stop-containers` / `tests:reopen` (see

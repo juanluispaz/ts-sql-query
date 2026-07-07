@@ -24,7 +24,7 @@
 //     dialect-specific, so it need not exist in the other cells.
 //
 // Usage:
-//   bun run tests:audit
+//   npm run tests:audit
 //
 // Exit code 0 if the matrix is symmetric, 1 if any divergence is found.
 

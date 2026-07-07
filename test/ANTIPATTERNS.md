@@ -159,7 +159,7 @@ from existing tests). Applies to **every** `Date` parameter for `localDate`
 or `localDateTime`, not just the three names currently commented out. To see
 the existing Bun#29010 wraps already in place across `bun_sql_postgres` cells
 (the shape your new wrap must match), run
-`bun run tests:where-is --search <api> --cell-caveats full --coord 'postgres/*/bun_sql_postgres'`.
+`npm run tests:where-is -- --search <api> --cell-caveats full --coord 'postgres/*/bun_sql_postgres'`.
 
 **Gate today**: caught by the validation sub-agent's `EXTERNAL_CAVEATS`
 sweep (see [`QUALITY_GATE.md`](./QUALITY_GATE.md)) on the canonical
@@ -211,7 +211,7 @@ each with its own first-class reason marker (see
    `// TODO[LIMITATION]: see LIMITATIONS.md — <one-line>`.
 3. The lib has a bug — open an entry in [`BUGS.md`](./BUGS.md), block-comment
    the test with the canonical body and `// TODO[BUG]: see test/BUGS.md`.
-4. The API doesn't exist — verify with `bun run tests:where-is --search <name>`
+4. The API doesn't exist — verify with `npm run tests:where-is -- --search <name>`
    (see [`CODE_SEARCH.md` § When the symbol is not found](./CODE_SEARCH.md#when-the-symbol-is-not-found))
    before proposing the test.
 
@@ -265,7 +265,7 @@ compile" with an `as any` cast (see antipattern #4).
 **Remedy**: before proposing any wave, run
 
 ```bash
-bun run tests:where-is --search <api-symbol>
+npm run tests:where-is -- --search <api-symbol>
 ```
 
 The `Classification` block answers existence directly — `public` /

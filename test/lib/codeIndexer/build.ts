@@ -7,8 +7,8 @@
 // .test-report/, which the test harness wipes even when the index is still valid.
 // Other tooling (the where-is searcher) queries it instead of re-parsing the tree.
 //
-// Usage:  bun test/lib/codeIndexer/build.ts [--out <path>] [--no-resolve]
-//         (or via `bun run tests:index`). --no-resolve = name-based, low-memory/fast build
+// Usage:  npm run tests:index [-- --out <path>] [-- --no-resolve]
+//         (or run the file directly: tsx/bun test/lib/codeIndexer/build.ts). --no-resolve = name-based, low-memory/fast build
 //         (~1–2 GB / ~3 s vs ~8 GB / ~28 s): resolved_*_id FKs stay NULL, everything else same.
 
 import { mkdirSync, rmSync, existsSync } from 'node:fs'

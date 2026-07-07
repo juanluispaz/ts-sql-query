@@ -44,7 +44,7 @@ Most entries below are dialect boundaries → `// NOT-APPLICABLE: …`. To
 browse the caveat map mechanically:
 
 ```bash
-bun run tests:where-is --search <any-api> --cell-caveats summary
+npm run tests:where-is -- --search <any-api> --cell-caveats summary
 ```
 
 returns the per-cell **map** of every reason marker
@@ -247,13 +247,13 @@ When any of these are added to the main matrix:
    `DESIGN.md §8`.
 2. Copy every `docs.*.test.ts` from a sibling cell (sqlite canonical
    is the cheapest source).
-3. Run `bun run tests <db>/<version>/<connector> --update-snapshots`
+3. Run `npm run tests -- <db>/<version>/<connector> --update-snapshots`
    to bake per-cell SQL.
 4. Triage compile errors → comment out the offending tests with the
    one-line reason. Cross-reference the dialect notes above so you
    don't re-discover constraints already characterised in another
    cell of the same database.
-5. Run `bun run tests:audit` and `bun run validate:tests` before
+5. Run `npm run tests:audit` and `npm run validate:tests` before
    merging.
 
 ## Connection-subclass patterns not testable in the shared domain
@@ -318,12 +318,12 @@ itself; the `if (ctx.realDbEnabled)` switch already covers it.
 3. **Triage** compile errors against the dialect notes above. Cell
    that matches the new dialect on commented tests usually points to
    the same restriction.
-4. **Re-run** `bun run validate:tests:tsgo` (fast) and `bun run
+4. **Re-run** `npm run validate:tests:tsgo` (fast) and `bun run
    validate:tests` (authoritative) — both must be clean before
    committing.
-5. **Run** `bun run tests:audit`; symmetry must be intact.
+5. **Run** `npm run tests:audit`; symmetry must be intact.
 6. **If the new connector exposes a real DB** (docker or in-process),
-   also run `bun run tests --docker` (and `--wasm` for WASM
+   also run `npm run tests -- --docker` (and `--wasm` for WASM
    connectors). The `if (ctx.realDbEnabled)` branches in existing
    tests will fire — fix any data assertions that mismatch the real
    seed.

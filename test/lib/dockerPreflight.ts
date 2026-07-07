@@ -172,7 +172,7 @@ async function checkResources(engines: readonly string[]): Promise<boolean> {
     console.error('')
     for (const line of howToRaiseMemory(recommend)) console.error(line)
     console.error('')
-    console.error(`      Or run fewer engines at once, e.g. \`bun run tests postgres/newest/pg --docker\`.`)
+    console.error(`      Or run fewer engines at once, e.g. \`npm run tests -- postgres/newest/pg --docker\`.`)
     console.error('')
 
     if (block) {

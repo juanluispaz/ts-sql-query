@@ -1,7 +1,6 @@
 // Coverage of `UPDATE ... RETURNING` / `OUTPUT inserted.*` paths.
 //
-// Each mutation runs inside `ctx.withRollback(...)`. Snapshots can be
-// refreshed with `bun run tests <cell> --use-vitest -u`.
+// Each mutation runs inside `ctx.withRollback(...)`.
 
 import { afterAll, beforeAll, beforeEach, describe } from '../../../../lib/testRunner.js'
 import { ctx } from './setup.js'

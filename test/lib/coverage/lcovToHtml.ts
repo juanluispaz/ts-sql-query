@@ -16,7 +16,7 @@
 //
 // The file lives under test/ rather than scripts/ so the TypeScript
 // compiler can validate its assumptions about LCOV and istanbul
-// shapes via `bun run validate:tests`.
+// shapes via `npm run validate:tests`.
 //
 // CLI:
 //   bun test/lib/coverage/lcovToHtml.ts <lcov.info> <outDir>

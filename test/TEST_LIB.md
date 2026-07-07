@@ -109,7 +109,7 @@ the callback so it is impossible to miss when reading the test.
 
 **When in doubt** → fall back to a fresh container by passing
 `--docker-mode no-reuse` once, or by stopping the warm containers
-(`bun run tests:stop-containers` — see
+(`npm run tests:stop-containers` — see
 [`ENGINE_LIFECYCLE.md` § Stopping the reused containers](./ENGINE_LIFECYCLE.md#stopping-the-reused-containers)).
 A run against a fresh container is ground truth; if a test passes there and
 fails under reuse, that is the signal some test is leaking state through a
@@ -286,7 +286,7 @@ route.
 The audit moved into its own folder, [`audit/`](./lib/audit/), beside its
 design doc [`AUDIT.md`](./lib/audit/AUDIT.md) — the same convention as
 `codeIndexer/` and `codeSearcher/`. The symmetry check (the script behind
-`bun run tests:audit`) lives at [`audit/symmetry.ts`](./lib/audit/symmetry.ts):
+`npm run tests:audit`) lives at [`audit/symmetry.ts`](./lib/audit/symmetry.ts):
 it walks `test/db/`, lists every `(database × version × connector)` cell of the
 **whole matrix**, extracts test names from each `.test.ts` (including ones inside
 `/* … */` blocks — they count) and reports any divergence in the file set, the

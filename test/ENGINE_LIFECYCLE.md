@@ -47,13 +47,18 @@ in explicit `--docker-mode` flags:
 `TESTCONTAINERS_REUSE_ENABLE=true`. `--docker-mode no-reuse` clears it, giving
 the hermetic behaviour CI wants:
 
+Run `--docker` under **vitest** (`npm run tests -- …`) — it's ~20× faster on
+the real-DB matrix than bun, which rebuilds each cell's pool per file (see
+[`BENCHMARKS.md`](./BENCHMARKS.md)). The container lifecycle below is identical
+under both runtimes.
+
 ```bash
 # Local iterative loop (default — reuse).
-bun run tests --docker
-bun run tests postgres/newest/pg --docker
+npm run tests -- --docker
+npm run tests -- postgres/newest/pg --docker
 
 # Hermetic — fresh containers every run.
-bun run tests --docker --docker-mode no-reuse
+npm run tests -- --docker --docker-mode no-reuse
 ```
 
 **Rule of thumb: locally, leave the default.** The hermetic mode is for the
@@ -138,7 +143,7 @@ versions transparently fall back to the mock for that run.
 
 ```bash
 # Real backends only on `newest`; older versions go through the mock.
-bun run tests --docker newest
+npm run tests -- --docker newest
 ```
 
 Same shape as `--wasm` (a narrower scope than the full matrix), different
@@ -185,8 +190,8 @@ older-version cells are not even enumerated:
 Practical use: coverage runs. Older-version coverage is almost always a
 subset of the newest cell's coverage (same SQL builder, same expressions), so
 feeding the runner an extra ~570 file invocations only pads the report.
-`--run-versions newest` skips them — `bun run tests` drops from 14k tests / 8 s
-to 11k tests / 5 s on a typical box.
+`--run-versions newest` skips them — the mocked matrix drops from ~44k tests /
+~13 s (vitest) to ~34k tests / ~9 s on a typical box.
 
 Focused runs (`tests <coord>`) accept `--run-versions newest` too, and combine it
 with the multi-coord / glob / brace-expansion support to address arbitrary
@@ -319,7 +324,7 @@ imported. The cell falls back to the mock for its real-DB branch.
 
 There is **no obligation** to stop the reused containers between runs — that
 is the whole point. They consume some RAM in the background while you
-iterate, and the next `bun run tests --docker` (or `tests <coord> --docker`)
+iterate, and the next `npm run tests -- --docker` (or `tests <coord> --docker`)
 invocation attaches to them in ~1 s instead of paying the full container
 start-up. Agents in particular should not bother calling `tests:stop-containers`
 as a clean-up step.
@@ -330,7 +335,7 @@ from scratch after editing a `test/db/<database>/domain/schema.sql` that
 changes column types in ways the reused container hasn't yet picked up:
 
 ```bash
-bun run tests:stop-containers
+npm run tests:stop-containers
 ```
 
 (`npm run tests:stop-containers` works the same — it's the same shell script

@@ -9,8 +9,8 @@
 //
 // It is a SEPARATE tool from the indexer: it never writes the index, only reads it.
 //
-// Usage:  bun test/lib/codeSearcher/search.ts <door> [<section> <level>]… [<filter>]… [--db <path>]
-//         (or via `bun run tests:where-is …`).
+// Usage:  npm run tests:where-is -- <door> [<section> <level>]… [<filter>]… [--db <path>]
+//         (or run the file directly: tsx/bun test/lib/codeSearcher/search.ts …).
 
 import { existsSync } from 'node:fs'
 import { resolve, relative, isAbsolute } from 'node:path'

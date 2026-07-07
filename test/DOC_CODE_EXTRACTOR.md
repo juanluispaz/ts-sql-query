@@ -38,14 +38,14 @@ For the navigation map see [`README.md`](./README.md); for `test/lib/` see
 ## Run it
 
 ```bash
-bun run codegen:doc-code      # regenerate the test/db/<db>/newest/documentation/ cells
+npm run codegen:doc-code      # regenerate the test/db/<db>/newest/documentation/ cells
 npm run codegen:doc-code      # same, via tsx
-bun run codegen               # umbrella: codegen:prisma + codegen:doc-code (what CI runs)
+npm run codegen               # umbrella: codegen:prisma + codegen:doc-code (what CI runs)
 ```
 
 Wrapper: [`scripts/codegen-doc-code.sh`](../scripts/codegen-doc-code.sh)
 (`--help` prints the full behaviour). The generated files are type-checked by
-`bun run validate:tests` (tsgo) and `bun run validate:tests:tsc` (tsc); the
+`npm run validate:tests` (tsgo) and `npm run validate:tests:tsc` (tsc); the
 non-v1 CI runs `codegen` before `validate:tests`.
 
 ## Run the SQL tests
@@ -58,10 +58,10 @@ template lands in that db's `newest` version under a `documentation` connector
 with the same coords as any other cell:
 
 ```bash
-bun run tests '*/newest/documentation'                                   # every doc test cell
-bun run tests postgres/newest/documentation                              # one db's doc cell
-bun run tests general/newest/documentation                               # the non-db (general) docs
-bun run tests postgres/newest/documentation/doc-code.generated.test.ts   # one file
+npm run tests -- '*/newest/documentation'                                   # every doc test cell
+npm run tests -- postgres/newest/documentation                              # one db's doc cell
+npm run tests -- general/newest/documentation                               # the non-db (general) docs
+npm run tests -- postgres/newest/documentation/doc-code.generated.test.ts   # one file
 ```
 
 See [`CLI.md` § Documentation tests are ordinary matrix cells](./CLI.md#documentation-tests-are-ordinary-matrix-cells).

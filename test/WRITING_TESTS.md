@@ -84,13 +84,13 @@ Whenever the library's emitted SQL or params change, refresh snapshots:
 
 ```bash
 # Whole version
-bun run tests postgres/newest --docker --update-snapshots
+npm run tests -- postgres/newest --docker --update-snapshots
 
 # One file
-bun run tests postgres/newest/pg/select.basic.test.ts --docker --update-snapshots
+npm run tests -- postgres/newest/pg/select.basic.test.ts --docker --update-snapshots
 
 # One test inside one file (composes with --test-name-pattern)
-bun run tests postgres/newest/pg/select.basic.test.ts --docker \
+npm run tests -- postgres/newest/pg/select.basic.test.ts --docker \
               --test-name-pattern inner-join --update-snapshots
 ```
 
@@ -117,13 +117,13 @@ run the cell against its real engine:
 
 ```bash
 # SQLite native — real-DB by default, no flag needed:
-bun run tests sqlite/newest/bun_sqlite/<file>.test.ts
+npm run tests -- sqlite/newest/bun_sqlite/<file>.test.ts
 
 # Docker-backed — add --docker:
-bun run tests postgres/newest/pg/<file>.test.ts --docker
+npm run tests -- postgres/newest/pg/<file>.test.ts --docker
 
 # WASM — add --wasm:
-bun run tests postgres/oldest/pglite/<file>.test.ts --wasm
+npm run tests -- postgres/oldest/pglite/<file>.test.ts --wasm
 ```
 
 If snapshots stay green, the test is `real-validated` in that cell. See
@@ -190,7 +190,7 @@ re-validate" loop benefits the most. Full flag reference in
 5. **Bake snapshots** for the canonical:
 
    ```bash
-   bun run tests sqlite/newest/bun_sqlite/<slug>.test.ts --update-snapshots
+   npm run tests -- sqlite/newest/bun_sqlite/<slug>.test.ts --update-snapshots
    ```
 
 6. **Real-validate the canonical** — see
@@ -209,9 +209,9 @@ re-validate" loop benefits the most. Full flag reference in
 9. **Verify**:
 
    ```bash
-   bun run tests:audit         # mechanical anti-cheat gate (symmetry + ~24 rules)
-   bun run validate:tests      # typecheck ✓ (tsgo)
-   bun run tests               # mock matrix ✓
+   npm run tests:audit         -- # mechanical anti-cheat gate (symmetry + ~24 rules)
+   npm run validate:tests      # typecheck ✓ (tsgo)
+   npm run tests               -- # mock matrix ✓
    ```
 
    `tests:audit` walks `test/db/` statically and reports tests that have
@@ -252,7 +252,7 @@ test('postgres-negative-types', () => {
   from firing.
 - Each `// @ts-expect-error` MUST be paired with a one-line comment naming
   the rule it enforces.
-- `bun run validate:tests` (or `validate:tests:tsgo`) is the real
+- `npm run validate:tests` (or `validate:tests:tsgo`) is the real
   assertion. If a directive becomes "unused", the build fails — exactly the
   regression signal we want.
 - The `types.negative/` folder is **not** part of the cell matrix and is
@@ -263,7 +263,7 @@ the symbol so the new one is **consistent with what's already there**
 (rule-comment convention, snippet granularity, scope):
 
 ```bash
-bun run tests:where-is --search <symbol> --neg-types full
+npm run tests:where-is -- --search <symbol> --neg-types full
 ```
 
 `--neg-types full` returns each existing assertion's **rule comment +
@@ -274,9 +274,9 @@ negative test is the second step of fixing a typing bug (see
 
 ## Handling tsgo / tsc divergences
 
-`bun run validate:tests` runs `tsgo -p test/tsconfig.json --noEmit` (the
+`npm run validate:tests` runs `tsgo -p test/tsconfig.json --noEmit` (the
 TypeScript 7 Go-based compiler) and is the **authoritative** check for the
-`test/` matrix. `bun run validate:tests:tsc` runs `tsc -p test/tsconfig.tsc.json --noEmit`
+`test/` matrix. `npm run validate:tests:tsc` runs `tsc -p test/tsconfig.tsc.json --noEmit`
 as a sub-experience.
 
 The role split applies only to tests because tests don't ship — there's no
@@ -428,8 +428,8 @@ shared-domain extension.
    (`sqlite/newest/bun_sqlite/`) once, copy to the other cells, re-bake the
    snapshot for `extract-columns-select-all` (it lists the full select
    clause).
-5. **Re-run** `bun run tests:audit && bun run validate:tests:tsc &&
-   bun run tests` end to end. If the new column has a
+5. **Re-run** `npm run tests:audit -- && npm run validate:tests:tsc &&
+   npm run tests` end to end. If the new column has a
    `CustomBooleanTypeAdapter`, the select snapshot will surface as
    `(<col> = '<true-value>') as <col>` — sanity-check that, the adapter
    mapping was your call.
@@ -638,7 +638,7 @@ behaviour was documented on.
    value with `expect(result).toEqual(expected)`.
 4. **Bake snapshots** in the sqlite cell:
    ```bash
-   bun run tests sqlite/newest/bun_sqlite/docs.<slug>.test.ts --update-snapshots
+   npm run tests -- sqlite/newest/bun_sqlite/docs.<slug>.test.ts --update-snapshots
    ```
 5. **Mirror to every other cell.** For each `(db, version, connector)`
    under `test/db/`, copy the file and re-bake snapshots.
@@ -659,7 +659,7 @@ three different questions in one report — paste the output into the
 entry as the verifiable artifact:
 
 ```bash
-bun run tests:where-is --search <api> --bugs summary --limitation summary --not-applicable summary --declared full
+npm run tests:where-is -- --search <api> --bugs summary --limitation summary --not-applicable summary --declared full
 ```
 
 - `--bugs / --limitation / --not-applicable` → if any of the three
@@ -684,7 +684,7 @@ inventing a new helper or type alias to work around the bug, check
 that the shape doesn't already exist under a different name:
 
 ```bash
-bun run tests:where-is --search-pattern-summary '<shared-token>'
+npm run tests:where-is -- --search-pattern-summary '<shared-token>'
 ```
 
 (Past near-miss: nearly re-introduced `AllowsNoTableOrViewRequired` by

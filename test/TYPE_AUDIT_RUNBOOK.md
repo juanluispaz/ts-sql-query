@@ -101,7 +101,7 @@ audit is only as good as the rules the discovery agents carry.
 5. **[`CODE_SEARCH.md`](./CODE_SEARCH.md)** § "This tool vs. textual search" —
    so you know the dividing line: **discovery never uses the searcher** (see
    §6), but coordinator *coverage-checking* and *reachability* questions do.
-   Refresh the index once at session start: `bun run tests:index`.
+   Refresh the index once at session start: `npm run tests:index`.
 6. **[`BUGS.md`](./BUGS.md)** + **[`LIMITATIONS.md`](./LIMITATIONS.md)** —
    every entry. A "missing test" that is actually a known bug or a declared
    library limitation is not a gap. A divergence this audit *finds* goes to
@@ -120,10 +120,10 @@ surface list in **this** file is a snapshot.
 
 **Pre-flight at session start:**
 
-1. `bun run tests:audit` — the authoritative per-database cell/test counts for
+1. `npm run tests:audit` — the authoritative per-database cell/test counts for
    today's matrix. Reference cell is still `postgres/newest/pg/` unless this
    prints otherwise.
-2. `bun run tests:index` (~30 s) — the semantic index, for coverage-checking
+2. `npm run tests:index` (~30 s) — the semantic index, for coverage-checking
    and reachability later. (Discovery itself is raw reading; the index is not
    needed for it.)
 3. Re-read `domain/connection.ts` — fixtures change between rounds (this round
@@ -364,7 +364,7 @@ Reference cell `postgres/newest/pg/` (PostgreSQL is the superset dialect). The
 matrix is **symmetric**: a gap in the reference cell is a gap everywhere, so
 the audit reasons about the reference cell and the generation step propagates.
 A *cell* is `test/db/<db>/<version>/<connector>` (enumerate them with
-`bun run tests --list-cells`); the symmetry rule (see [`DESIGN.md`](./DESIGN.md))
+`npm run tests -- --list-cells`); the symmetry rule (see [`DESIGN.md`](./DESIGN.md))
 keeps the same file and test names in every cell, which is why reference-cell
 reasoning carries to the whole matrix and why a §B fixture added to the shared
 `domain/connection.ts` reaches every cell at once.
@@ -569,7 +569,7 @@ fires). The coordinator is the adjudicator.
      `assertType<Exact<typeof x, …>>()`; to disambiguate which of two rules /
      overloads fires, write *both* hypotheses as separate `assertType` lines and
      see which errors.
-   - `bun run validate:tests 2>&1 | grep <reprofile>` — no error means the
+   - `npm run validate:tests 2>&1 | grep <reprofile>` — no error means the
      chain typechecks and the asserted type holds; an error reveals the actual.
      (`validate:tests` runs **tsgo** over `test/tsconfig.json`; under `npm` it
      needs the separator: `npm run validate:tests --`. Full command/flag
@@ -613,7 +613,7 @@ fires). The coordinator is the adjudicator.
      `ctx.mockNext([...])`, `await …execute*()`, then `console.log(ctx.lastSql)`
      (emission diff) **or** wrap in `try/catch` and log `e.message` /
      `e.errorReason?.reason` (throw).
-   - `bun run tests 'postgres/newest/pg/<probe>.test.ts' --no-color` and read the
+   - `npm run tests -- 'postgres/newest/pg/<probe>.test.ts' --no-color` and read the
      logged SQL / throw. **Always include the WORKING sibling as a control in the
      same probe** (the non-recursive / non-shaped / plain form): the bug is proven by
      the *diff* between the composed cell and its working twin, not by the composed
@@ -1060,7 +1060,12 @@ or does the composition remove/replace it?**
 
 ## Operational rules
 
-- **Bun first.** `bun run …` always; `npm run …` only on user request.
+- **Use `npm run …` for everything** — `validate:tests`/`:tsgo`, `tests:where-is`,
+  `tests:index`, and the matrix itself. One consistent runtime avoids confusing
+  the agent; for the compiler/searcher helpers the launcher is a no-op (same tsgo,
+  same index), and for the matrix vitest (`isolate:false`) is faster incl. ~20× on
+  `--docker` (see [`BENCHMARKS.md`](./BENCHMARKS.md)). Reach for `bun` only for the
+  bun-native connector cells.
 - **Agents are READ-ONLY.** The working tree must end the session clean — only
   the new `MISSING_TESTS_AUDIT_<N>.md` (plus any pre-existing untracked files)
   should appear in `git status`. Delete every compile-repro you wrote.

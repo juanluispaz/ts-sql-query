@@ -47,7 +47,7 @@ paired `types.negative/` assertion that locks the compile-time rejection.
 To find affected tests:
 
 ```bash
-bun run tests:where-is --search <api> --limitation full
+npm run tests:where-is -- --search <api> --limitation full
 ```
 
 returns each `// TODO[LIMITATION]` that **names the API** across the

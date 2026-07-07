@@ -6,7 +6,7 @@
 // guards the SHAPE of the index — counts in range, referential integrity of the structural
 // FKs, id uniqueness, the reconcile sources, the negative-type rows.
 //
-// Exits non-zero on the first failing invariant set. Usage: `bun run tests:index:verify`.
+// Exits non-zero on the first failing invariant set. Usage: `npm run tests:index:verify`.
 
 import { setResolveEnabled, buildProgram } from './resolve.js'
 import { extractSrc } from './extractSrc.js'

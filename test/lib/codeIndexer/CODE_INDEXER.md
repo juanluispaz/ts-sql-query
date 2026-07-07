@@ -25,9 +25,9 @@ reuses this tool's [`db.ts`](db.ts) (its read-only `openIndexDbReadonly`) and
 ## Build it
 
 ```bash
-bun run tests:index                          # preferred (precise, type-resolved)
-bun run tests:index -- --no-resolve          # name-based, low-memory / fast build
-bun run tests:index:verify                   # structural smoke test of the extractors (~4 s)
+npm run tests:index                          -- # preferred (precise, type-resolved)
+npm run tests:index -- -- --no-resolve          # name-based, low-memory / fast build
+npm run tests:index:verify                   -- # structural smoke test of the extractors (~4 s)
 # or, directly:
 bun test/lib/codeIndexer/build.ts [--out <path>] [--no-resolve]
 npx tsx test/lib/codeIndexer/build.ts [--out <path>] [--no-resolve]   # under Node
@@ -542,13 +542,13 @@ wire it into the `openIndexDb` dispatcher. Everything above `db.ts` is backend-a
   `test/tsconfig.json`), shared by every extractor — no per-file `createSourceFile`, no
   in-memory slicing. The classic `typescript` package (not tsgo, which has no programmatic
   API yet). `src/examples/prisma/` is excluded.
-- Typecheck edits with `bun run validate:tests` (tsgo) and `bun run validate:tests:tsc`.
+- Typecheck edits with `npm run validate:tests` (tsgo) and `npm run validate:tests:tsc`.
 
 ## Notes
 
 - The `.sqlite` is a **disposable derived artifact** — gitignored; don't commit it.
 - Rebuild after `src/`, `test/` or `docs/` change. If `docs/` changed, regenerate the
-  doc-code cells first (`bun run codegen:doc-code`) so the documentation dimension is
+  doc-code cells first (`npm run codegen:doc-code`) so the documentation dimension is
   current.
 - It uses the classic `typescript` package (not tsgo, which has no programmatic API yet).
   Unlike a pure-parse pass, it builds a real type-checked Program over the whole tree, so

@@ -16,9 +16,9 @@ matrix cells (gitignored via *.generated.test.ts), built from the templates in
 test/templates/doc-code/newest/documentation/. Each db template lands in
 test/db/<db>/newest/documentation/doc-code.generated.test.ts; the non-db (general)
 templates in test/db/general/newest/documentation/<name>.generated.test.ts. The
-generated files are type-checked by `bun run validate:tests` AND a ```ts paired with
+generated files are type-checked by `npm run validate:tests` AND a ```ts paired with
 a dialect SQL fence becomes a mock test asserting the emitted SQL == the documented
-SQL (run them like any matrix cell, e.g. `bun run tests '*/newest/documentation'`).
+SQL (run them like any matrix cell, e.g. `npm run tests -- '*/newest/documentation'`).
 Full reference: test/DOC_CODE_EXTRACTOR.md.
 Extraction is purely textual: imports in a snippet are stripped (the template
 owns them); first-level declarations get usage marks (noUnusedLocals).

@@ -1,7 +1,6 @@
 // Coverage of `DELETE ... RETURNING` / `OUTPUT deleted.*` paths.
 //
-// Each mutation runs inside `ctx.withRollback(...)`. Snapshots can be
-// refreshed with `bun run tests <cell> --use-vitest -u`.
+// Each mutation runs inside `ctx.withRollback(...)`.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'

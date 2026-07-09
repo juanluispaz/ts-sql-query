@@ -423,4 +423,27 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ id: number; name: string }>>>()
         expect(rows).toEqual(expected)
     })
+
+    test('reviewer-code-replace-all-rebrackets-result', async () => {
+        // `reviewerCode.replaceAll('-', '_')` is a string-returning transform whose
+        // result leaf inherits the receiver's bracketAdapter, so
+        // replace('R-7A2', '-', '_') = 'R_7A2' reads back bracketed → '[R_7A2]'.
+        const expected = { id: 1, rp: '[R_7A2]' }
+        ctx.mockNext({ id: 1, rp: 'R_7A2' })
+        const row = await ctx.conn.selectFrom(tProjectReview)
+            .where(tProjectReview.id.equals(1))
+            .select({ id: tProjectReview.id, rp: tProjectReview.reviewerCode.replaceAll('-', '_') })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(reviewer_code, @0, @1) as rp from project_review where id = @2"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "-",
+            "_",
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; rp: string }>>()
+        expect(row).toEqual(expected)
+    })
 })

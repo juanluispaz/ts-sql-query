@@ -272,4 +272,27 @@ describe(ctx.label, () => {
         })
     })
 
+
+    test('disallow-if-value-error-instance-thrown-as-is', () => {
+        // The Error-INSTANCE overload of `disallowIfValue` on the plain
+        // multi-row chain. Passing an `Error` object instead of a message throws
+        // THAT SAME instance as-is — not wrapped in a TsSqlError — carrying
+        // `disallowedProperty` and the per-row `disallowedIndex`. Row 0 has
+        // `body: null` (fails the value gate); row 1 has `body: 'real'` (passes)
+        // → the guard fires on row 1.
+        const sentinel = new Error('body must be staged by the workflow')
+        let caught: unknown
+        try {
+            ctx.conn.insertInto(tIssue)
+                .values([
+                    { projectId: 1, number: 320, title: 'A', body: null,   status: 'open', priority: 1 },
+                    { projectId: 1, number: 321, title: 'B', body: 'real', status: 'open', priority: 1 },
+                ])
+                .disallowIfValue(sentinel, 'body')
+        } catch (e) { caught = e }
+        expect(caught).toBe(sentinel)
+        const err = caught as DisallowError
+        expect(err.disallowedProperty).toBe('body')
+        expect(err.disallowedIndex).toBe(1)
+    })
 })

@@ -94,6 +94,21 @@ const boolNegate: TypeAdapter = {
     },
 }
 
+// The temporal marshallers (`localTime` / `localDateTime`) yield a `Date`;
+// shift it forward one hour so the adapter's read transform is observable on a
+// Date — a distinct `transformValueFromDB` marshaller family from the numeric /
+// uuid / boolean adapters above. `transformValueToDB` delegates to `next`, so
+// the const Date is sent verbatim and the placeholder/cast is unchanged.
+const shiftHourFromDb: TypeAdapter = {
+    transformValueFromDB(value, type, next) {
+        const v = next.transformValueFromDB(value, type)
+        return v instanceof Date ? new Date(v.getTime() + 3600000) : v
+    },
+    transformValueToDB(value, type, next) {
+        return next.transformValueToDB(value, type)
+    },
+}
+
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
     afterAll(() => ctx.down(), ctx.timeoutMs)
@@ -493,5 +508,71 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof v, boolean | null>>()
         expect(v).toBe(false)
+    })
+
+    test('const/local-time-adapter-transforms-read-value', async () => {
+        const lt = new Date(Date.UTC(1970, 0, 1, 17, 0, 0))
+        ctx.mockNext(lt)
+        const v = await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.const(lt, 'localTime', shiftHourFromDb))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "17:00:00",
+          ]
+        `)
+        assertType<Exact<typeof v, Date>>()
+        expect(v).toEqual(new Date(Date.UTC(1970, 0, 1, 18, 0, 0)))
+    })
+
+    test('const/local-date-time-adapter-transforms-read-value', async () => {
+        const ldt = new Date(Date.UTC(2024, 0, 14, 12, 30, 0))
+        ctx.mockNext(ldt)
+        const v = await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.const(ldt, 'localDateTime', shiftHourFromDb))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2024-01-14 12:30:00",
+          ]
+        `)
+        assertType<Exact<typeof v, Date>>()
+        expect(v).toEqual(new Date(Date.UTC(2024, 0, 14, 13, 30, 0)))
+    })
+
+    test('optional-const/local-time-adapter-transforms-read-value', async () => {
+        // Same transform through the `optional` overload; the flag only widens
+        // the leaf to `Date | null`.
+        const lt = new Date(Date.UTC(1970, 0, 1, 17, 0, 0))
+        ctx.mockNext(lt)
+        const v = await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.optionalConst(lt, 'localTime', shiftHourFromDb))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "17:00:00",
+          ]
+        `)
+        assertType<Exact<typeof v, Date | null>>()
+        expect(v).toEqual(new Date(Date.UTC(1970, 0, 1, 18, 0, 0)))
+    })
+
+    test('optional-const/local-date-time-adapter-transforms-read-value', async () => {
+        const ldt = new Date(Date.UTC(2024, 0, 14, 12, 30, 0))
+        ctx.mockNext(ldt)
+        const v = await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.optionalConst(ldt, 'localDateTime', shiftHourFromDb))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2024-01-14 12:30:00",
+          ]
+        `)
+        assertType<Exact<typeof v, Date | null>>()
+        expect(v).toEqual(new Date(Date.UTC(2024, 0, 14, 13, 30, 0)))
     })
 })

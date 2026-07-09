@@ -6,8 +6,16 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
+import { TsSqlError } from '../../../../../src/TsSqlError.js'
 import { tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+
+// The disallow rules throw a `TsSqlProcessingError` (an `Error`) onto which
+// the InsertQueryBuilder attaches the runtime-only `disallowedProperty` /
+// `disallowedIndex` fields (set via direct assignment in src, not part of the
+// public typed surface). This shape narrows the caught `unknown` so the
+// assertions read those fields without an `any` local.
+type DisallowError = Error & { disallowedProperty?: unknown; disallowedIndex?: unknown }
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -1819,4 +1827,295 @@ describe(ctx.label, () => {
     })
     */
 
+
+    test('shaped-multi-row-ignore-if-set', async () => {
+        // `.shapedAs({...}).values([...]).ignoreIfSet('archived')` — the shaped
+        // multi-row `ignoreIfSet`. The renamed `archived` (→ archived_at) is
+        // staged in both rows; ignoreIfSet drops it from the whole batch, so the
+        // emitted column list omits archived_at entirely.
+        ctx.mockNext(2)
+        await ctx.withRollback(async () => {
+            const inserted = await ctx.conn.insertInto(tProject)
+                .shapedAs({ orgId: 'organizationId', projectName: 'name', projectSlug: 'slug', archived: 'archivedAt' })
+                .values([
+                    { orgId: 1, projectName: 'Shaped II A', projectSlug: 'shaped-ii-a', archived: new Date('2024-01-02T00:00:00Z') },
+                    { orgId: 1, projectName: 'Shaped II B', projectSlug: 'shaped-ii-b', archived: new Date('2024-01-03T00:00:00Z') },
+                ])
+                .ignoreIfSet('archived')
+                .executeInsert()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (@0, @1, @2), (@3, @4, @5)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "Shaped II A",
+                "shaped-ii-a",
+                1,
+                "Shaped II B",
+                "shaped-ii-b",
+              ]
+            `)
+            assertType<Exact<typeof inserted, number>>()
+            expect(inserted).toBe(2)
+        })
+    })
+
+    test('shaped-multi-row-keep-only', async () => {
+        // `.shapedAs({...}).values([...]).keepOnly(...)` — the shaped multi-row
+        // `keepOnly` prunes every row down to the listed renamed keys. The
+        // renamed `archived` staged in both rows is swept away, so the emitted
+        // column list is just the three kept columns.
+        ctx.mockNext(2)
+        await ctx.withRollback(async () => {
+            const inserted = await ctx.conn.insertInto(tProject)
+                .shapedAs({ orgId: 'organizationId', projectName: 'name', projectSlug: 'slug', archived: 'archivedAt' })
+                .values([
+                    { orgId: 1, projectName: 'Shaped KO A', projectSlug: 'shaped-ko-a', archived: new Date('2024-02-02T00:00:00Z') },
+                    { orgId: 1, projectName: 'Shaped KO B', projectSlug: 'shaped-ko-b', archived: new Date('2024-02-03T00:00:00Z') },
+                ])
+                .keepOnly('orgId', 'projectName', 'projectSlug')
+                .executeInsert()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (@0, @1, @2), (@3, @4, @5)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "Shaped KO A",
+                "shaped-ko-a",
+                1,
+                "Shaped KO B",
+                "shaped-ko-b",
+              ]
+            `)
+            assertType<Exact<typeof inserted, number>>()
+            expect(inserted).toBe(2)
+        })
+    })
+
+    test('shaped-multi-row-ignore-if-has-value', async () => {
+        // `.ignoreIfHasValue('archived')` on the shaped multi-row chain: drops
+        // the renamed `archived` from any row where it carries a value. Row 0
+        // stages a date (dropped), row 1 stages null.
+        ctx.mockNext(2)
+        await ctx.withRollback(async () => {
+            const inserted = await ctx.conn.insertInto(tProject)
+                .shapedAs({ orgId: 'organizationId', projectName: 'name', projectSlug: 'slug', archived: 'archivedAt' })
+                .values([
+                    { orgId: 1, projectName: 'Shaped IHV A', projectSlug: 'shaped-ihv-a', archived: new Date('2024-03-02T00:00:00Z') },
+                    { orgId: 1, projectName: 'Shaped IHV B', projectSlug: 'shaped-ihv-b', archived: null },
+                ])
+                .ignoreIfHasValue('archived')
+                .executeInsert()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, archived_at) values (@0, @1, @2, @3), (@4, @5, @6, @7)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "Shaped IHV A",
+                "shaped-ihv-a",
+                null,
+                1,
+                "Shaped IHV B",
+                "shaped-ihv-b",
+                null,
+              ]
+            `)
+            assertType<Exact<typeof inserted, number>>()
+            expect(inserted).toBe(2)
+        })
+    })
+
+    test('shaped-multi-row-ignore-if-has-no-value', async () => {
+        // `.ignoreIfHasNoValue('archived')` on the shaped multi-row chain: drops
+        // the renamed `archived` from any row where it is null/absent. Row 0
+        // stages a date (kept), row 1 stages null (dropped).
+        ctx.mockNext(2)
+        await ctx.withRollback(async () => {
+            const inserted = await ctx.conn.insertInto(tProject)
+                .shapedAs({ orgId: 'organizationId', projectName: 'name', projectSlug: 'slug', archived: 'archivedAt' })
+                .values([
+                    { orgId: 1, projectName: 'Shaped IHNV A', projectSlug: 'shaped-ihnv-a', archived: new Date('2024-04-02T00:00:00Z') },
+                    { orgId: 1, projectName: 'Shaped IHNV B', projectSlug: 'shaped-ihnv-b', archived: null },
+                ])
+                .ignoreIfHasNoValue('archived')
+                .executeInsert()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, archived_at) values (@0, @1, @2, @3), (@4, @5, @6, @7)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "Shaped IHNV A",
+                "shaped-ihnv-a",
+                2024-04-02T00:00:00.000Z,
+                1,
+                "Shaped IHNV B",
+                "shaped-ihnv-b",
+                null,
+              ]
+            `)
+            assertType<Exact<typeof inserted, number>>()
+            expect(inserted).toBe(2)
+        })
+    })
+
+    test('shaped-multi-row-ignore-any-set-with-no-value', async () => {
+        // `.ignoreAnySetWithNoValue()` on the shaped multi-row chain: sweeps any
+        // renamed key staged as null out of each row. Both rows stage the
+        // renamed `archived` as null, so archived_at drops from the batch.
+        ctx.mockNext(2)
+        await ctx.withRollback(async () => {
+            const inserted = await ctx.conn.insertInto(tProject)
+                .shapedAs({ orgId: 'organizationId', projectName: 'name', projectSlug: 'slug', archived: 'archivedAt' })
+                .values([
+                    { orgId: 1, projectName: 'Shaped IASWNV A', projectSlug: 'shaped-iaswnv-a', archived: null },
+                    { orgId: 1, projectName: 'Shaped IASWNV B', projectSlug: 'shaped-iaswnv-b', archived: null },
+                ])
+                .ignoreAnySetWithNoValue()
+                .executeInsert()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (@0, @1, @2), (@3, @4, @5)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "Shaped IASWNV A",
+                "shaped-iaswnv-a",
+                1,
+                "Shaped IASWNV B",
+                "shaped-iaswnv-b",
+              ]
+            `)
+            assertType<Exact<typeof inserted, number>>()
+            expect(inserted).toBe(2)
+        })
+    })
+
+    test('shaped-multi-row-disallow-if-set', () => {
+        // Multi-row branch of the shaped `disallowIfSet`. Row 0 omits the renamed
+        // `archived` (its column is optional); row 1 stages it → throws with the
+        // renamed key as `disallowedProperty` and the row index as
+        // `disallowedIndex`.
+        let thrown: unknown
+        try {
+            ctx.conn.insertInto(tProject)
+                .shapedAs({ orgId: 'organizationId', projectName: 'name', projectSlug: 'slug', archived: 'archivedAt' })
+                .values([
+                    { orgId: 1, projectName: 'A', projectSlug: 'a' },
+                    { orgId: 1, projectName: 'B', projectSlug: 'b', archived: new Date('2024-05-02T00:00:00Z') },
+                ])
+                .disallowIfSet('archived must never be staged in bulk import', 'archived')
+        } catch (e) { thrown = e }
+        expect(thrown).toBeInstanceOf(Error)
+        const err = thrown as DisallowError
+        expect(err.message).toContain('archived must never be staged in bulk import')
+        expect(err.disallowedProperty).toBe('archived')
+        expect(err.disallowedIndex).toBe(1)
+        expect(thrown instanceof TsSqlError ? thrown.errorReason.reason : undefined).toBe('DISALLOWED_BY_QUERY_RULE')
+    })
+
+    test('shaped-multi-row-disallow-if-not-set', () => {
+        // Multi-row branch of the shaped `disallowIfNotSet`. Row 1 omits the
+        // required renamed `projectSlug`; the shaped row type forbids that, so
+        // the row is cast to reach the runtime guard, which fires on the first
+        // row missing the key.
+        let thrown: unknown
+        try {
+            ctx.conn.insertInto(tProject)
+                .shapedAs({ orgId: 'organizationId', projectName: 'name', projectSlug: 'slug' })
+                .values([
+                    { orgId: 1, projectName: 'A', projectSlug: 'a' },
+                    // Cast bypasses the shaped-row type so the required renamed key
+                    // `projectSlug` can be omitted, reaching the runtime guard.
+                    { orgId: 1, projectName: 'B' } as any,
+                ])
+                .disallowIfNotSet('slug is mandatory in bulk import', 'projectSlug')
+        } catch (e) { thrown = e }
+        expect(thrown).toBeInstanceOf(Error)
+        const err = thrown as DisallowError
+        expect(err.message).toContain('slug is mandatory in bulk import')
+        expect(err.disallowedProperty).toBe('projectSlug')
+        expect(err.disallowedIndex).toBe(1)
+    })
+
+    test('shaped-multi-row-disallow-if-value', () => {
+        // Multi-row branch of the shaped `disallowIfValue`. Row 0 stages the
+        // renamed `archived` as null (fails the value gate); row 1 stages a date
+        // (passes) → the throw fires on row 1.
+        let thrown: unknown
+        try {
+            ctx.conn.insertInto(tProject)
+                .shapedAs({ orgId: 'organizationId', projectName: 'name', projectSlug: 'slug', archived: 'archivedAt' })
+                .values([
+                    { orgId: 1, projectName: 'A', projectSlug: 'a', archived: null },
+                    { orgId: 1, projectName: 'B', projectSlug: 'b', archived: new Date('2024-06-02T00:00:00Z') },
+                ])
+                .disallowIfValue('archived must be set by the workflow', 'archived')
+        } catch (e) { thrown = e }
+        expect(thrown).toBeInstanceOf(Error)
+        const err = thrown as DisallowError
+        expect(err.message).toContain('archived must be set by the workflow')
+        expect(err.disallowedProperty).toBe('archived')
+        expect(err.disallowedIndex).toBe(1)
+    })
+
+    test('shaped-multi-row-disallow-if-no-value', () => {
+        // Multi-row branch of the shaped `disallowIfNoValue`. Row 0 stages the
+        // renamed `archived` with a date (passes); row 1 stages null (fails) →
+        // the throw fires on row 1.
+        let thrown: unknown
+        try {
+            ctx.conn.insertInto(tProject)
+                .shapedAs({ orgId: 'organizationId', projectName: 'name', projectSlug: 'slug', archived: 'archivedAt' })
+                .values([
+                    { orgId: 1, projectName: 'A', projectSlug: 'a', archived: new Date('2024-07-02T00:00:00Z') },
+                    { orgId: 1, projectName: 'B', projectSlug: 'b', archived: null },
+                ])
+                .disallowIfNoValue('archived is required for every row', 'archived')
+        } catch (e) { thrown = e }
+        expect(thrown).toBeInstanceOf(Error)
+        const err = thrown as DisallowError
+        expect(err.message).toContain('archived is required for every row')
+        expect(err.disallowedProperty).toBe('archived')
+        expect(err.disallowedIndex).toBe(1)
+    })
+
+    test('shaped-multi-row-disallow-any-other-set', () => {
+        // Multi-row branch of the shaped `disallowAnyOtherSet`. Row 0 stages only
+        // allowed renamed keys; row 1 stages the renamed `isPublished`, not in the
+        // allow-list → throws with the renamed key as `disallowedProperty` and the
+        // row index as `disallowedIndex`.
+        let thrown: unknown
+        try {
+            ctx.conn.insertInto(tProject)
+                .shapedAs({ orgId: 'organizationId', projectName: 'name', projectSlug: 'slug', isPublished: 'published' })
+                .values([
+                    { orgId: 1, projectName: 'A', projectSlug: 'a' },
+                    { orgId: 1, projectName: 'B', projectSlug: 'b', isPublished: true },
+                ])
+                .disallowAnyOtherSet('only org/name/slug may be bulk-imported', 'orgId', 'projectName', 'projectSlug')
+        } catch (e) { thrown = e }
+        expect(thrown).toBeInstanceOf(Error)
+        const err = thrown as DisallowError
+        expect(err.message).toContain('only org/name/slug may be bulk-imported')
+        expect(err.disallowedProperty).toBe('isPublished')
+        expect(err.disallowedIndex).toBe(1)
+    })
+
+    test('shaped-multi-row-disallow-if-value-error-instance', () => {
+        // The Error-INSTANCE overload of the disallow guards on the shaped
+        // multi-row chain. Passing an `Error` object instead of a message throws
+        // THAT SAME instance as-is — not wrapped in a TsSqlError — with the
+        // tripped renamed key as `disallowedProperty` and the row index as
+        // `disallowedIndex`. Row 1 stages the renamed `archived` with a value,
+        // so the guard fires on row 1.
+        const sentinel = new Error('archived must be set by the workflow')
+        let caught: unknown
+        try {
+            ctx.conn.insertInto(tProject)
+                .shapedAs({ orgId: 'organizationId', projectName: 'name', projectSlug: 'slug', archived: 'archivedAt' })
+                .values([
+                    { orgId: 1, projectName: 'A', projectSlug: 'a', archived: null },
+                    { orgId: 1, projectName: 'B', projectSlug: 'b', archived: new Date('2024-08-02T00:00:00Z') },
+                ])
+                .disallowIfValue(sentinel, 'archived')
+        } catch (e) { caught = e }
+        expect(caught).toBe(sentinel)
+        const err = caught as DisallowError
+        expect(err.disallowedProperty).toBe('archived')
+        expect(err.disallowedIndex).toBe(1)
+    })
 })

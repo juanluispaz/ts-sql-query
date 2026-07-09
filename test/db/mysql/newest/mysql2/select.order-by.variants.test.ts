@@ -227,4 +227,142 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ id: number; assigneeId?: number }>>>()
         expect(result).toEqual(expected)
     })
+
+    test('order-by-value-source-column-asc-nulls-first', async () => {
+        // `orderBy(<value source>, 'asc nulls first')` — nulls sort first, then
+        // ascending. assignee_id: issue 1 -> 1, issue 2 -> 2, issue 3 -> NULL,
+        // issue 4 -> 3. Issue 3's null assignee_id is stripped from the row.
+        const expected = [
+            { id: 3, assigneeId: undefined },
+            { id: 1, assigneeId: 1 },
+            { id: 2, assigneeId: 2 },
+            { id: 4, assigneeId: 3 },
+        ]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .select({ id: tIssue.id, assigneeId: tIssue.assigneeId })
+            .orderBy(tIssue.assigneeId, 'asc nulls first')
+            .orderBy(tIssue.id, 'asc')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, assignee_id as assigneeId from issue order by issue.assignee_id asc, issue.id asc"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ id: number; assigneeId?: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('order-by-value-source-column-desc-nulls-first', async () => {
+        // `orderBy(<value source>, 'desc nulls first')` — nulls sort first, then
+        // descending. Nulls (issue 3) lead, then 3, 2, 1.
+        const expected = [
+            { id: 3, assigneeId: undefined },
+            { id: 4, assigneeId: 3 },
+            { id: 2, assigneeId: 2 },
+            { id: 1, assigneeId: 1 },
+        ]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .select({ id: tIssue.id, assigneeId: tIssue.assigneeId })
+            .orderBy(tIssue.assigneeId, 'desc nulls first')
+            .orderBy(tIssue.id, 'asc')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, assignee_id as assigneeId from issue order by issue.assignee_id is not null, issue.assignee_id desc, issue.id asc"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ id: number; assigneeId?: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('order-by-value-source-column-desc-nulls-last', async () => {
+        // `orderBy(<value source>, 'desc nulls last')` — descending, nulls last.
+        // 3, 2, 1, then the null assignee_id (issue 3) trails.
+        const expected = [
+            { id: 4, assigneeId: 3 },
+            { id: 2, assigneeId: 2 },
+            { id: 1, assigneeId: 1 },
+            { id: 3, assigneeId: undefined },
+        ]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .select({ id: tIssue.id, assigneeId: tIssue.assigneeId })
+            .orderBy(tIssue.assigneeId, 'desc nulls last')
+            .orderBy(tIssue.id, 'asc')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, assignee_id as assigneeId from issue order by issue.assignee_id desc, issue.id asc"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ id: number; assigneeId?: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('order-by-value-source-column-insensitive', async () => {
+        // `orderBy(<value source>, 'insensitive')` — the value-source overload
+        // renders the full column expression, wrapped by the dialect's
+        // case-insensitive ordering. Collation-dependent, so only the SQL is
+        // asserted.
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .select({ id: tIssue.id, title: tIssue.title })
+            .orderBy(tIssue.title, 'insensitive')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title from issue order by lower(issue.title)"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+    })
+
+    test('order-by-value-source-column-asc-insensitive', async () => {
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .select({ id: tIssue.id, title: tIssue.title })
+            .orderBy(tIssue.title, 'asc insensitive')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title from issue order by lower(issue.title) asc"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+    })
+
+    test('order-by-value-source-column-desc-insensitive', async () => {
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .select({ id: tIssue.id, title: tIssue.title })
+            .orderBy(tIssue.title, 'desc insensitive')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title from issue order by lower(issue.title) desc"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+    })
+
+    test('order-by-value-source-column-asc-nulls-first-insensitive', async () => {
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .select({ id: tIssue.id, title: tIssue.title })
+            .orderBy(tIssue.title, 'asc nulls first insensitive')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title from issue order by lower(issue.title) asc"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+    })
+
+    test('order-by-value-source-column-asc-nulls-last-insensitive', async () => {
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .select({ id: tIssue.id, title: tIssue.title })
+            .orderBy(tIssue.title, 'asc nulls last insensitive')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title from issue order by issue.title is null, issue.title asc"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+    })
+
+    test('order-by-value-source-column-desc-nulls-first-insensitive', async () => {
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .select({ id: tIssue.id, title: tIssue.title })
+            .orderBy(tIssue.title, 'desc nulls first insensitive')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title from issue order by issue.title is not null, issue.title desc"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+    })
+
+    test('order-by-value-source-column-desc-nulls-last-insensitive', async () => {
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .select({ id: tIssue.id, title: tIssue.title })
+            .orderBy(tIssue.title, 'desc nulls last insensitive')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title from issue order by lower(issue.title) desc"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+    })
 })

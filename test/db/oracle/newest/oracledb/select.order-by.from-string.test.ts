@@ -199,4 +199,83 @@ describe(ctx.label, () => {
 
         expect(emptySql).toBe(ctx.lastSql)
     })
+
+    test('order-by-from-string-bare-column-dialect-default', async () => {
+        // A bare column with no ordering keyword routes through the
+        // no-explicit-ordering branch — the dialect's default direction,
+        // no `asc`/`desc` token appended.
+        const expected = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .select({ id: tIssue.id })
+            .orderByFromString('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('order-by-from-string-asc-nulls-last-and-desc-nulls-first', async () => {
+        // The remaining two of the four asc/desc × nulls corners
+        // (`asc nulls last`, `desc nulls first`), each a distinct case arm.
+        ctx.mockNext([])
+        const result = await ctx.conn.selectFrom(tIssue)
+            .select({ id: tIssue.id, priority: tIssue.priority })
+            .orderByFromString('priority asc nulls last, id desc nulls first')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", priority as "priority" from issue order by "priority" asc nulls last, "id" desc nulls first"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ id: number; priority: number }>>>()
+    })
+
+    test('order-by-from-string-asc-insensitive', async () => {
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .select({ id: tIssue.id, title: tIssue.title })
+            .orderByFromString('title asc insensitive')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", title as "title" from issue order by lower("title") asc"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+    })
+
+    test('order-by-from-string-desc-insensitive', async () => {
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .select({ id: tIssue.id, title: tIssue.title })
+            .orderByFromString('title desc insensitive')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", title as "title" from issue order by lower("title") desc"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+    })
+
+    test('order-by-from-string-asc-nulls-last-insensitive', async () => {
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .select({ id: tIssue.id, title: tIssue.title })
+            .orderByFromString('title asc nulls last insensitive')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", title as "title" from issue order by lower("title") asc nulls last"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+    })
+
+    test('order-by-from-string-desc-nulls-first-insensitive', async () => {
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .select({ id: tIssue.id, title: tIssue.title })
+            .orderByFromString('title desc nulls first insensitive')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", title as "title" from issue order by lower("title") desc nulls first"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+    })
+
+    test('order-by-from-string-desc-nulls-last-insensitive', async () => {
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .select({ id: tIssue.id, title: tIssue.title })
+            .orderByFromString('title desc nulls last insensitive')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", title as "title" from issue order by lower("title") desc nulls last"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+    })
 })

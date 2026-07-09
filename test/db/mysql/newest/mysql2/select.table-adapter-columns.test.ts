@@ -225,4 +225,87 @@ describe(ctx.label, () => {
         assertType<Exact<typeof opt, { id: number; v?: number }>>()
         expect(opt).toEqual({ id: 1, v: 1004.5 })
     })
+
+    test('custom-uuid-trailing-adapter-column-read', async () => {
+        // bracketSigningKey: customUuid 'SigningKey' + bracketAdapter (read wraps in
+        // [...]). Draft 1's bracket_signing_key DEFAULT
+        // 00000000-0000-4000-8000-000000000000 (a digits-only uuid, so no dialect's
+        // case normalization changes it) reads back through the uuid base marshaller,
+        // then bracketed.
+        ctx.mockNext({ id: 1, v: '00000000-0000-4000-8000-000000000000' })
+        const row = await ctx.conn.selectFrom(tReleaseDraft)
+            .where(tReleaseDraft.id.equals(1))
+            .select({ id: tReleaseDraft.id, v: tReleaseDraft.bracketSigningKey })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, bin_to_uuid(bracket_signing_key) as \`v\` from release_draft where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v: string }>>()
+        expect(row).toEqual({ id: 1, v: '[00000000-0000-4000-8000-000000000000]' })
+
+        ctx.mockNext({ id: 1, v: '00000000-0000-4000-8000-000000000000' })
+        const opt = await ctx.conn.selectFrom(tReleaseDraft)
+            .where(tReleaseDraft.id.equals(1))
+            .select({ id: tReleaseDraft.id, v: tReleaseDraft.bracketSigningKey.asOptional() })
+            .executeSelectOne()
+        assertType<Exact<typeof opt, { id: number; v?: string }>>()
+        expect(opt).toEqual({ id: 1, v: '[00000000-0000-4000-8000-000000000000]' })
+    })
+
+    test('custom-local-date-trailing-adapter-column-read', async () => {
+        // shiftedReleaseDay: customLocalDate 'ReleaseDay' + shiftHourAdapter (read
+        // +1h). Draft 1's shifted_release_day DEFAULT 2025-03-01 reads back through the
+        // localDate base marshaller, then shifted +1h.
+        ctx.mockNext({ id: 1, v: new Date(Date.UTC(2025, 2, 1, 0, 0, 0)) })
+        const row = await ctx.conn.selectFrom(tReleaseDraft)
+            .where(tReleaseDraft.id.equals(1))
+            .select({ id: tReleaseDraft.id, v: tReleaseDraft.shiftedReleaseDay })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, shifted_release_day as \`v\` from release_draft where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v: Date }>>()
+        expect(row).toEqual({ id: 1, v: new Date(Date.UTC(2025, 2, 1, 11, 0, 0)) })
+
+        ctx.mockNext({ id: 1, v: new Date(Date.UTC(2025, 2, 1, 0, 0, 0)) })
+        const opt = await ctx.conn.selectFrom(tReleaseDraft)
+            .where(tReleaseDraft.id.equals(1))
+            .select({ id: tReleaseDraft.id, v: tReleaseDraft.shiftedReleaseDay.asOptional() })
+            .executeSelectOne()
+        assertType<Exact<typeof opt, { id: number; v?: Date }>>()
+        expect(opt).toEqual({ id: 1, v: new Date(Date.UTC(2025, 2, 1, 11, 0, 0)) })
+    })
+
+    test('custom-local-time-trailing-adapter-column-read', async () => {
+        // shiftedCutoff: customLocalTime 'CutoffClock' + shiftHourAdapter (read +1h).
+        // Draft 1's shifted_cutoff DEFAULT 09:00:00 reads back through the localTime
+        // base marshaller, then shifted +1h to 10:00:00.
+        ctx.mockNext({ id: 1, v: new Date(Date.UTC(1970, 0, 1, 9, 0, 0)) })
+        const row = await ctx.conn.selectFrom(tReleaseDraft)
+            .where(tReleaseDraft.id.equals(1))
+            .select({ id: tReleaseDraft.id, v: tReleaseDraft.shiftedCutoff })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, shifted_cutoff as \`v\` from release_draft where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v: Date }>>()
+        expect(row).toEqual({ id: 1, v: new Date(Date.UTC(1970, 0, 1, 10, 0, 0)) })
+
+        ctx.mockNext({ id: 1, v: new Date(Date.UTC(1970, 0, 1, 9, 0, 0)) })
+        const opt = await ctx.conn.selectFrom(tReleaseDraft)
+            .where(tReleaseDraft.id.equals(1))
+            .select({ id: tReleaseDraft.id, v: tReleaseDraft.shiftedCutoff.asOptional() })
+            .executeSelectOne()
+        assertType<Exact<typeof opt, { id: number; v?: Date }>>()
+        expect(opt).toEqual({ id: 1, v: new Date(Date.UTC(1970, 0, 1, 10, 0, 0)) })
+    })
 })

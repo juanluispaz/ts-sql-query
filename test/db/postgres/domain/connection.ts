@@ -525,6 +525,9 @@ export class DBConnection extends PostgreSqlConnection<'DBConnection'> {
     // read value is shifted by the adapter (observable on nextValue/currentValue).
     issueIdSeqOffset = this.sequence('issue_id_seq', 'int', plusOffsetAdapter)
     auditTagSeq = this.sequence('audit_tag_seq', 'bigint')
+    // A BIGINT sequence carrying a trailing bigint TypeAdapter
+    // (plusThousandBigintAdapter, read +1000n), reusing audit_tag_seq.
+    auditTagSeqOffset = this.sequence('audit_tag_seq', 'bigint', plusThousandBigintAdapter)
 
     // A sequence whose value type is a branded customInt (ReleaseTag)
     // rather than the plain int / bigint of issueIdSeq / auditTagSeq — the
@@ -934,5 +937,11 @@ export const tReleaseDraft = new class TReleaseDraft extends Table<DBConnection,
     shiftedStamp    = this.columnWithDefaultValue<Date, 'PublishStamp'>('shifted_stamp', 'customLocalDateTime', 'PublishStamp', shiftHourAdapter)
     shiftedCount    = this.columnWithDefaultValue('shifted_count', 'bigint', plusThousandBigintAdapter)
     shiftedRating   = this.columnWithDefaultValue('shifted_rating', 'double', plusOffsetAdapter)
+    // customUuid / customLocalDate / customLocalTime columns carrying a trailing
+    // TypeAdapter, each reading its DB DEFAULT through the adapter (uuid bracketed;
+    // date/time shifted +1h on read).
+    bracketSigningKey = this.columnWithDefaultValue<string, 'SigningKey'>('bracket_signing_key', 'customUuid', 'SigningKey', bracketAdapter)
+    shiftedReleaseDay = this.columnWithDefaultValue<Date, 'ReleaseDay'>('shifted_release_day', 'customLocalDate', 'ReleaseDay', shiftHourAdapter)
+    shiftedCutoff     = this.columnWithDefaultValue<Date, 'CutoffClock'>('shifted_cutoff', 'customLocalTime', 'CutoffClock', shiftHourAdapter)
     constructor() { super('release_draft') }
 }()

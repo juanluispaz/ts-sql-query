@@ -629,4 +629,166 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         expect(rows).toEqual(expected)
     })
+
+    // ── The literal-boolean overload of `.and` / `.or` on a REMAPPING receiver ──
+    // `and(value: boolean)` / `or(value: boolean)` compose a bound literal with a
+    // custom-boolean receiver, whose predicate remaps to its adapter's true-value.
+    // Seed: organization.verified 1 'Y', 2 'N'; project.published 1 't',
+    // 2 'f', 3 't', 4 'f'; issue_worklog.approved 1 'A', 2 'R', 3 NULL; invoiced 1->1,
+    // 2->0, 3->1.
+
+    test('combinator: verified custom boolean and literal true', async () => {
+        // `verified.and(true)` → `<verified-remap> and $1`, param [true]. The
+        // remapped predicate AND true reduces to the predicate: the verified
+        // organization (1, 'Y') matches; 2 ('N') is excluded.
+        const expected = [{ id: 1 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.verified.and(true))
+            .select({ id: tOrganization.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from \`organization\` where verified = 'Y' and ? order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            true,
+          ]
+        `)
+        expect(rows).toEqual(expected)
+    })
+
+    test('combinator: verified custom boolean or literal false', async () => {
+        // `verified.or(false)` → `<verified-remap> or $1`, param [false]. The
+        // remapped predicate OR false reduces to the predicate: organization 1
+        // ('Y') matches; 2 ('N') is excluded.
+        const expected = [{ id: 1 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.verified.or(false))
+            .select({ id: tOrganization.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from \`organization\` where verified = 'Y' or ? order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            false,
+          ]
+        `)
+        expect(rows).toEqual(expected)
+    })
+
+    test('combinator: published custom boolean and literal true', async () => {
+        // `published.and(true)` → `<published-remap> and $1`, param [true]. The
+        // published-true projects (1 't', 3 't') match.
+        const expected = [{ id: 1 }, { id: 3 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tProject)
+            .where(tProject.published.and(true))
+            .select({ id: tProject.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project where published = 't' and ? order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            true,
+          ]
+        `)
+        expect(rows).toEqual(expected)
+    })
+
+    test('combinator: published custom boolean or literal false', async () => {
+        // `published.or(false)` → `<published-remap> or $1`, param [false]. The
+        // published-true projects (1, 3) match; the false ones (2, 4) are excluded.
+        const expected = [{ id: 1 }, { id: 3 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tProject)
+            .where(tProject.published.or(false))
+            .select({ id: tProject.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project where published = 't' or ? order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            false,
+          ]
+        `)
+        expect(rows).toEqual(expected)
+    })
+
+    test('combinator: approved nullable custom boolean and literal true', async () => {
+        // `approved.and(true)` → `<approved-remap> and $1`, param [true]. worklog 1
+        // ('A') matches; 2 ('R') fails; 3 (NULL) is excluded by NULL semantics.
+        const expected = [{ id: 1 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.approved.and(true))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where approved = 'A' and ? order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            true,
+          ]
+        `)
+        expect(rows).toEqual(expected)
+    })
+
+    test('combinator: approved nullable custom boolean or literal false', async () => {
+        // `approved.or(false)` → `<approved-remap> or $1`, param [false]. worklog 1
+        // ('A') matches; 2 ('R' or false = false) and 3 (NULL or false = NULL) are
+        // excluded.
+        const expected = [{ id: 1 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.approved.or(false))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where approved = 'A' or ? order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            false,
+          ]
+        `)
+        expect(rows).toEqual(expected)
+    })
+
+    test('combinator: invoiced numeric custom boolean and literal true', async () => {
+        // `invoiced.and(true)` → `<invoiced-remap> and $1`, param [true]. The invoiced
+        // worklogs (1, 3) match; worklog 2 (invoiced 0) is excluded.
+        const expected = [{ id: 1 }, { id: 3 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.invoiced.and(true))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where invoiced = 1 and ? order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            true,
+          ]
+        `)
+        expect(rows).toEqual(expected)
+    })
+
+    test('combinator: invoiced numeric custom boolean or literal false', async () => {
+        // `invoiced.or(false)` → `<invoiced-remap> or $1`, param [false]. The invoiced
+        // worklogs (1, 3) match; worklog 2 (invoiced 0 or false = false) is excluded.
+        const expected = [{ id: 1 }, { id: 3 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.invoiced.or(false))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where invoiced = 1 or ? order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            false,
+          ]
+        `)
+        expect(rows).toEqual(expected)
+    })
 })

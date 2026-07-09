@@ -297,4 +297,50 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { id: number; projectName: string }>>()
         expect(row).toEqual(expected)
     })
+
+    test('inner-join-with-dynamic-on-or-seeds-join-condition', async () => {
+        // The `.or(...)` SEEDING arm of the SELECT inner-join's dynamic-ON predicate:
+        // `innerJoin(...).dynamicOn()` opens an empty predicate and the FIRST `.or(...)`
+        // seeds it. On an empty predicate a seeding `.or(...)` renders the bare
+        // condition (the `.and(...)` seeding arm and the `.and().or()` accumulation on a
+        // leftJoin are covered above). Issue 1 belongs to project 1 (Marketing site).
+        const expected = { id: 1, projectName: 'Marketing site' }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tIssue)
+            .innerJoin(tProject).dynamicOn()
+                .or(tProject.id.equals(tIssue.projectId))
+            .where(tIssue.id.equals(1))
+            .select({ id: tIssue.id, projectName: tProject.name })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, project.name as projectName from issue inner join project on project.id = issue.project_id where issue.id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; projectName: string }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('optional-join-emitted-when-column-referenced', async () => {
+        // The INCLUDED branch of `optionalJoin(other).on(...)` — the docs test covers
+        // the elided branch (no column of `other` referenced); here a column of the
+        // optionally-joined table IS selected, so the join is emitted. Issue 1 belongs
+        // to project 1 (Marketing site).
+        const expected = { id: 1, projectName: 'Marketing site' }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tIssue)
+            .optionalJoin(tProject).on(tProject.id.equals(tIssue.projectId))
+            .where(tIssue.id.equals(1))
+            .select({ id: tIssue.id, projectName: tProject.name })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, project.name as projectName from issue join project on project.id = issue.project_id where issue.id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; projectName: string }>>()
+        expect(row).toEqual(expected)
+    })
 })

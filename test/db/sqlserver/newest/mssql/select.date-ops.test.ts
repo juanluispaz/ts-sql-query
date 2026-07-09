@@ -4,7 +4,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tOrganization, tIssueWorklog, tProject, tProjectRelease, tProjectReview, vReleaseOverview } from '../../domain/connection.js'
+import { tIssue, tOrganization, tIssueWorklog, tProject, tProjectRelease, tProjectReview, vReleaseOverview, tReleaseDraft } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -773,4 +773,45 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
+
+    test('optional-custom-temporal-getters-realize-the-undefined-inhabitant', async () => {
+        // OPTIONAL-custom-temporal getters on a 2-row projection where the second row
+        // is NULL, so the getter leaves realize both a value and `undefined`.
+        // `targetDay` (optional customLocalDate) getters and `cutoff`
+        // (optional customLocalTime) getters both carry the optional marker to a
+        // `?: number` leaf. Draft 1: target_day 2024-07-10 (a Wednesday) ->
+        // year 2024, month 6 (July, JS 0-indexed), date 10, day-of-week 3; cutoff
+        // 08:30:00 -> hours 8, minutes 30, seconds 0, milliseconds 0. Draft 2 leaves
+        // both NULL, so every getter leaf is absent.
+        const expected = [
+            { id: 1, y: 2024, mo: 6, d: 10, dow: 3, h: 8, mi: 30, s: 0, ms: 0 },
+            { id: 2 },
+        ]
+        ctx.mockNext([
+            { id: 1, y: 2024, mo: 6, d: 10, dow: 3, h: 8, mi: 30, s: 0, ms: 0 },
+            { id: 2, y: null, mo: null, d: null, dow: null, h: null, mi: null, s: null, ms: null },
+        ])
+        const rows = await ctx.conn.selectFrom(tReleaseDraft)
+            .select({
+                id:  tReleaseDraft.id,
+                y:   tReleaseDraft.targetDay.getFullYear(),
+                mo:  tReleaseDraft.targetDay.getMonth(),
+                d:   tReleaseDraft.targetDay.getDate(),
+                dow: tReleaseDraft.targetDay.getDay(),
+                h:   tReleaseDraft.cutoff.getHours(),
+                mi:  tReleaseDraft.cutoff.getMinutes(),
+                s:   tReleaseDraft.cutoff.getSeconds(),
+                ms:  tReleaseDraft.cutoff.getMilliseconds(),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, datepart(year, target_day) as [y], datepart(month, target_day) - 1 as mo, datepart(day, target_day) as [d], datepart(weekday, target_day) - 1 as dow, datepart(hour, cutoff) as [h], datepart(minute, cutoff) as mi, datepart(second, cutoff) as [s], datepart(millisecond, cutoff) as ms from release_draft order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{
+            id: number
+            y?: number; mo?: number; d?: number; dow?: number
+            h?: number; mi?: number; s?: number; ms?: number
+        }>>>()
+        expect(rows).toEqual(expected)
+    })
 })

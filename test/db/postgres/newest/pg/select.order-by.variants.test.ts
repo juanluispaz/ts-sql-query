@@ -365,4 +365,59 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
     })
 
+    test('order-by-raw-fragment-plain-desc-mode', async () => {
+        // The `orderBy(rawFragment, mode)` overload on the PLAIN select builder — the
+        // direction is passed as the `mode` argument, not embedded in the fragment.
+        // priorities: 1->2,
+        // 2->1, 3->3, 4->2. Ordered by priority desc with id asc as the tiebreaker.
+        const expected = [{ id: 3 }, { id: 1 }, { id: 4 }, { id: 2 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .select({ id: tIssue.id })
+            .orderBy(ctx.conn.rawFragment`${tIssue.priority}`, 'desc')
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by issue.priority desc, id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('order-by-raw-fragment-insensitive-mode', async () => {
+        // The `orderBy(rawFragment, mode)` overload carrying an INSENSITIVE mode. The
+        // builder only wraps the entry in `lower(...)` / `collate` when it can identify
+        // it as a string column; a raw fragment is opaque, so the insensitive term
+        // renders nothing extra and the bare fragment is emitted with just the
+        // direction. Titles: 1 'Update hero copy', 2 'Redesign navbar', 3 'Migrate to
+        // ESM', 4 'Document /v2/users'. Ordered ascending: Document (4), Migrate (3),
+        // Redesign (2), Update (1).
+        const expected = [{ id: 4 }, { id: 3 }, { id: 2 }, { id: 1 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .select({ id: tIssue.id })
+            .orderBy(ctx.conn.rawFragment`${tIssue.title}`, 'asc insensitive')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by issue.title asc"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('order-by-raw-fragment-nulls-mode', async () => {
+        // The `orderBy(rawFragment, mode)` overload carrying a NULLS-placement mode:
+        // pins how the builder renders nulls-last over a raw fragment. assignee_id: 1
+        // -> 1, 2 -> 2, 3 -> NULL, 4 -> 3. Ordered ascending with nulls last, id asc
+        // as the tiebreaker: issue 1, 2, 4, then issue 3 (null) last.
+        const expected = [{ id: 1 }, { id: 2 }, { id: 4 }, { id: 3 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .select({ id: tIssue.id })
+            .orderBy(ctx.conn.rawFragment`${tIssue.assigneeId}`, 'asc nulls last')
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by issue.assignee_id asc nulls last, id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+        expect(result).toEqual(expected)
+    })
 })

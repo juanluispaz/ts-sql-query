@@ -290,4 +290,23 @@ describe(ctx.label, () => {
         expect(extractProvidedIdColumnNamesFrom(tProjectRelease)).toEqual([])
     })
 
+
+    test('docs-extra:columns-from-object/values-view-writable-extractor-type-and-columns', () => {
+        // The Values-view writable extractors: the writable SHAPE return TYPE is locked
+        // Exact, the writable NAMES type as `Extends string[]`, and
+        // `extractWritableColumnsFrom` (the columns-object form) is asserted at runtime.
+        // `display` is a virtualColumnFromFragment (non-writable) and is dropped from
+        // every writable helper.
+        class VPatchTypes extends Values<DBConnection, 'patchTypes'> {
+            id      = this.column('int')
+            note    = this.optionalColumn('string')
+            display = this.virtualColumnFromFragment('string', f => f.sql`'x'`)
+        }
+        const patch = Values.create(VPatchTypes, 'patchTypes', [{ id: 1 }])
+        const shape = extractWritableShapeFrom(patch)
+        assertType<Exact<typeof shape, { id: 'id'; note: 'note' }>>()
+        const names = extractWritableColumnNamesFrom(patch)
+        assertType<Extends<typeof names, string[]>>()
+        expect(Object.keys(extractWritableColumnsFrom(patch)).sort()).toEqual(['id', 'note'])
+    })
 })

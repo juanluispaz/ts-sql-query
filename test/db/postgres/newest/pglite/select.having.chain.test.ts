@@ -106,4 +106,29 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ status: string; total: number }>>>()
         expect(result).toEqual(expected)
     })
+
+    test('dynamic-having-then-or-seeds-having-clause', async () => {
+        // The `.or(...)` SEEDING arm of `dynamicHaving()`: an empty HAVING opened by
+        // `dynamicHaving()` is seeded by the FIRST `.or(cond)` (the `.and(cond)` seeding
+        // arm and the no-condition elision are covered above). On an empty predicate the
+        // seeding `.or(...)` renders the bare condition. Only the open status group has
+        // count > 1.
+        const expected = [{ status: 'open', total: 2 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .select({ status: tIssue.status, total: ctx.conn.count(tIssue.id) })
+            .groupBy('status')
+            .dynamicHaving()
+                .or(ctx.conn.count(tIssue.id).greaterThan(1))
+            .orderBy('status')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status, count(id) as total from issue group by status having count(id) > $1 order by status"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ status: string; total: number }>>>()
+        expect(result).toEqual(expected)
+    })
 })

@@ -204,4 +204,46 @@ describe(ctx.label, () => {
             expect(updated).toBe(1)
         })
     })
+
+    test('write-through value-transforming adapters shift the bound param and round-trip on read', async () => {
+        // shiftedStamp (customLocalDateTime + shiftHourAdapter, write -1h) and
+        // shiftedCount (bigint + plusThousandBigintAdapter, write -1000n): an UPDATE
+        // routes each value through the adapter's write transform, binding
+        // `value - offset`; reading the column back applies the
+        // read transform (`+ offset`), round-tripping to the original value.
+        await ctx.withRollback(async () => {
+            const stamp = new Date(Date.UTC(2025, 0, 15, 12, 0, 0))
+            const count = 8000n
+            ctx.mockNext(1)
+            const affected = await ctx.conn.update(tReleaseDraft)
+                .set({ shiftedStamp: stamp, shiftedCount: count })
+                .where(tReleaseDraft.id.equals(1))
+                .executeUpdate()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update release_draft set shifted_stamp = $1, shifted_count = $2 where id = $3"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                2025-01-15T11:00:00.000Z,
+                7000n,
+                1,
+              ]
+            `)
+            if (!ctx.realDbEnabled) expect(affected).toBe(1)
+
+            ctx.mockNext({ stamp: new Date(Date.UTC(2025, 0, 15, 11, 0, 0)), count: 7000n })
+            const row = await ctx.conn.selectFrom(tReleaseDraft)
+                .where(tReleaseDraft.id.equals(1))
+                .select({ stamp: tReleaseDraft.shiftedStamp, count: tReleaseDraft.shiftedCount })
+                .executeSelectOne()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select shifted_stamp as stamp, shifted_count as count from release_draft where id = $1"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof row, { stamp: Date; count: bigint }>>()
+            // The read adapters undo the write shift: stamp back to +1h, count +1000n.
+            expect(row.stamp).toEqual(stamp)
+            expect(row.count).toBe(count)
+        })
+    })
 })

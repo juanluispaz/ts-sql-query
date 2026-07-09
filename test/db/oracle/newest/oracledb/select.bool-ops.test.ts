@@ -182,4 +182,52 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         expect(result).toEqual(expected)
     })
+
+    // ── The literal-boolean overload of `.and` / `.or` on a plain-column receiver ──
+    // `and(value: boolean)` / `or(value: boolean)` route the literal through a bound
+    // param ANDed/ORed with the receiver predicate — here the receiver is a plain
+    // native-boolean COLUMN (`billable`).
+    // Seed billable: worklog 1 TRUE, 2 FALSE, 3 NULL.
+
+    test('plain-boolean-column-and-literal-true', async () => {
+        // `billable.and(true)` → `<billable> and $1`, param [true]. `billable AND true`
+        // reduces to `billable`, so only worklog 1 (TRUE) matches; 2 (FALSE) and 3
+        // (NULL) are excluded.
+        const expected = [{ id: 1 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.billable.and(true))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue_worklog where (billable = 1) and (:0 = 1) order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('plain-boolean-column-or-literal-false', async () => {
+        // `billable.or(false)` → `<billable> or $1`, param [false]. `billable OR false`
+        // reduces to `billable`, so only worklog 1 (TRUE) matches; 2 (FALSE) and 3
+        // (NULL or false = NULL) are excluded.
+        const expected = [{ id: 1 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.billable.or(false))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue_worklog where (billable = 1) or (:0 = 1) order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            0,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+        expect(result).toEqual(expected)
+    })
 })

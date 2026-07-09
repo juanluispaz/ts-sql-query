@@ -261,5 +261,8 @@ CREATE TABLE release_draft (
     bracket_activity VARCHAR(16) NOT NULL DEFAULT 'coding',
     shifted_stamp DATETIME NOT NULL DEFAULT '2024-06-01 10:00:00',
     shifted_count BIGINT NOT NULL DEFAULT 5000,
-    shifted_rating DOUBLE NOT NULL DEFAULT 4.5
+    shifted_rating DOUBLE NOT NULL DEFAULT 4.5,
+    bracket_signing_key BINARY(16) NOT NULL DEFAULT (UNHEX('00000000000040008000000000000000')),
+    shifted_release_day DATE NOT NULL DEFAULT '2025-03-01',
+    shifted_cutoff TIME NOT NULL DEFAULT '09:00:00'
 );

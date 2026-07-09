@@ -313,4 +313,79 @@ describe(ctx.label, () => {
         const sorted = rows.map(r => ({ ...r, projects: [...r.projects].sort((a, b) => a.id - b.id) }))
         expect(sorted).toEqual(expected)
     })
+
+    test('union-of-rule-3-required-object-with-optional-leaf-under-projecting-optional-values-as-nullable', async () => {
+        // Each arm projects a rule-3 nested `detail` object: a REQUIRED leaf (`title`)
+        // keeps the object required, plus an OPTIONAL `body` leaf. Under
+        // `projectingOptionalValuesAsNullable()` the object stays required (never
+        // `| null`) while `body` flips to `| null`. Arm 1 = issue 1 (body null ->
+        // present-`null`); arm 2 = issue 2 (body 'Use new tokens').
+        ctx.mockNext([
+            { iid: 1, 'detail.title': 'Update hero copy', 'detail.body': null },
+            { iid: 2, 'detail.title': 'Redesign navbar', 'detail.body': 'Use new tokens' },
+        ])
+        const expected = [
+            { iid: 1, detail: { title: 'Update hero copy', body: null } },
+            { iid: 2, detail: { title: 'Redesign navbar', body: 'Use new tokens' } },
+        ]
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({ iid: tIssue.id, detail: { title: tIssue.title, body: tIssue.body } })
+            .union(
+                ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(2))
+                    .select({ iid: tIssue.id, detail: { title: tIssue.title, body: tIssue.body } }),
+            )
+            .projectingOptionalValuesAsNullable()
+            .orderBy('iid')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, title as "detail.title", body as "detail.body" from issue where id = $1 union select id as iid, title as "detail.title", body as "detail.body" from issue where id = $2 order by iid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            iid: number
+            detail: { title: string; body: string | null }
+        }>>>()
+        expect(rows).toEqual(expected)
+        // The rule-3 object is present on the null-body row; only `body` is null.
+        expect(rows[0]!.detail.body).toBeNull()
+    })
+
+    test('union-of-depth-3-nested-objects-recurses-through-columns-for-with-view', async () => {
+        // Each arm projects a depth-3 nested object `{ outer: { mid: { title, num } } }`
+        // of REQUIRED leaves; the compound merges them level by level. Every leaf
+        // required -> every level required.
+        const expected = [
+            { iid: 1, outer: { mid: { title: 'Update hero copy', num: 1 } } },
+            { iid: 2, outer: { mid: { title: 'Redesign navbar', num: 2 } } },
+        ]
+        ctx.mockNext([
+            { iid: 1, 'outer.mid.title': 'Update hero copy', 'outer.mid.num': 1 },
+            { iid: 2, 'outer.mid.title': 'Redesign navbar', 'outer.mid.num': 2 },
+        ])
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({ iid: tIssue.id, outer: { mid: { title: tIssue.title, num: tIssue.number } } })
+            .union(
+                ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(2))
+                    .select({ iid: tIssue.id, outer: { mid: { title: tIssue.title, num: tIssue.number } } }),
+            )
+            .orderBy('iid')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, title as "outer.mid.title", number as "outer.mid.num" from issue where id = $1 union select id as iid, title as "outer.mid.title", number as "outer.mid.num" from issue where id = $2 order by iid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            iid: number
+            outer: { mid: { title: string; num: number } }
+        }>>>()
+        expect(rows).toEqual(expected)
+    })
 })

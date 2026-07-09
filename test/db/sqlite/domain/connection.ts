@@ -717,5 +717,11 @@ export const tReleaseDraft = new class TReleaseDraft extends Table<DBConnection,
     shiftedStamp    = this.columnWithDefaultValue<Date, 'PublishStamp'>('shifted_stamp', 'customLocalDateTime', 'PublishStamp', shiftHourAdapter)
     shiftedCount    = this.columnWithDefaultValue('shifted_count', 'bigint', plusThousandBigintAdapter)
     shiftedRating   = this.columnWithDefaultValue('shifted_rating', 'double', plusOffsetAdapter)
+    // customUuid / customLocalDate / customLocalTime columns carrying a trailing
+    // TypeAdapter, each reading its DB DEFAULT through the adapter (uuid bracketed;
+    // date/time shifted +1h on read).
+    bracketSigningKey = this.columnWithDefaultValue<string, 'SigningKey'>('bracket_signing_key', 'customUuid', 'SigningKey', bracketAdapter)
+    shiftedReleaseDay = this.columnWithDefaultValue<Date, 'ReleaseDay'>('shifted_release_day', 'customLocalDate', 'ReleaseDay', shiftHourAdapter)
+    shiftedCutoff     = this.columnWithDefaultValue<Date, 'CutoffClock'>('shifted_cutoff', 'customLocalTime', 'CutoffClock', shiftHourAdapter)
     constructor() { super('release_draft') }
 }()

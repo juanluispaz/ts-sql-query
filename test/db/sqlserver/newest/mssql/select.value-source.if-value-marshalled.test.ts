@@ -361,4 +361,29 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
         expect(rows).toEqual(expected)
     })
+
+    test('customComparable-greater-than-if-value-fires-and-elides', async () => {
+        // `greaterThanIfValue('1.0.0')` fires → `version > $1`; on the
+        // seeded semver text that keeps releases 1 ('1.2.0') and 2 ('1.3.0-beta.1');
+        // release 3 ('0.9.0') sorts below. The AND'd `greaterOrEqualIfValue(undefined)`
+        // elides, so the emitted WHERE carries only the fired `version > $1` predicate.
+        const expected = [{ id: 1 }, { id: 2 }]
+        ctx.mockNext(expected)
+        const lo: string | undefined = '1.0.0'
+        const other: string | undefined = undefined
+        const rows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.version.greaterThanIfValue(lo)
+                .and(tProjectRelease.version.greaterOrEqualIfValue(other)))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where version > @0 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "1.0.0",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
 })

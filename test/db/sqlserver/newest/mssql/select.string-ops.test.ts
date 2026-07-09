@@ -4,7 +4,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tAppUser, tIssue } from '../../domain/connection.js'
+import { tAppUser, tIssue, tProjectReview, vReleaseOverview, tIssueWorklog } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -743,4 +743,192 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
+
+    // ── substrToEnd on adapter-bearing columns ─────────────────────────
+    // A string transform propagates its receiver's per-column TypeAdapter to the
+    // result, so `substrToEnd(n)` over a bracket-adapter column
+    // reads the substring wrapped in [...]. The mock is primed with the RAW DB
+    // substring, so the assertion proves the adapter ran on the transform result.
+
+    test('substr-to-end-on-adapter-view-column', async () => {
+        // `versionBracketed` (view column, string + bracketAdapter) mapping
+        // `r.version`. Release 1: version '1.2.0' → substr from 0-based 2 → '2.0',
+        // read bracketed → '[2.0]'.
+        const expected = { id: 1, sub: '[2.0]' }
+        ctx.mockNext({ id: 1, sub: '2.0' })
+        const row = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(1))
+            .select({ id: vReleaseOverview.id, sub: vReleaseOverview.versionBracketed.substrToEnd(2) })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, substring(version_bracketed, @0) as sub from release_overview where id = @1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; sub: string }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('substr-to-end-on-optional-adapter-view-column', async () => {
+        // `channelBracketed` (view column, OPTIONAL string + bracketAdapter): the
+        // optional receiver keeps the leaf optional. Release 1: channel_bracketed
+        // 'stable' (channel <> 'beta') → substr from 0-based 2 → 'able', read
+        // bracketed → '[able]'.
+        const expected = { id: 1, sub: '[able]' }
+        ctx.mockNext({ id: 1, sub: 'able' })
+        const row = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(1))
+            .select({ id: vReleaseOverview.id, sub: vReleaseOverview.channelBracketed.substrToEnd(2) })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, substring(channel_bracketed, @0) as sub from release_overview where id = @1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; sub?: string }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('substr-to-end-on-adapter-table-column', async () => {
+        // `reviewerCode` (table column, string + bracketAdapter). Review 1:
+        // reviewer_code 'R-7A2' → substr from 0-based 2 → '7A2', read bracketed →
+        // '[7A2]'.
+        const expected = { id: 1, sub: '[7A2]' }
+        ctx.mockNext({ id: 1, sub: '7A2' })
+        const row = await ctx.conn.selectFrom(tProjectReview)
+            .where(tProjectReview.id.equals(1))
+            .select({ id: tProjectReview.id, sub: tProjectReview.reviewerCode.substrToEnd(2) })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, substring(reviewer_code, @0) as sub from project_review where id = @1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; sub: string }>>()
+        expect(row).toEqual(expected)
+    })
+
+    // ── More transforms on an OPTIONAL string receiver (`body`) ─────────
+    // `trim` / `substr` / `substrToEnd` / `replaceAll` on the optional `body`
+    // column keep the optional marker (`?: string`). Issue 2 has body
+    // 'Use new tokens' (present), so the values are observed.
+
+    test('trim-substr-substr-to-end-replace-all-on-optional-receiver', async () => {
+        const expected = { id: 2, tr: 'Use new tokens', s2: 'Use', se: 'new tokens', ra: 'UsE nEw tokEns' }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(2))
+            .select({
+                id: tIssue.id,
+                tr: tIssue.body.trim(),
+                s2: tIssue.body.substr(0, 3),
+                se: tIssue.body.substrToEnd(4),
+                ra: tIssue.body.replaceAll('e', 'E'),
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, trim(body) as tr, substring(body, @0, @1) as s2, substring(body, @2) as se, replace(body, @3, @4) as ra from issue where id = @5"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            3,
+            5,
+            "e",
+            "E",
+            2,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; tr?: string; s2?: string; se?: string; ra?: string }>>()
+        expect(row).toEqual(expected)
+    })
+
+    // ── An optional-receiver transform on a NULL row → absent value ─────
+    // On a NULL row the transform is NULL and the optionals-as-undefined projector
+    // omits the key at runtime.
+
+    test('to-upper-case-on-optional-receiver-null-row-absent', async () => {
+        // Issue 1 has body NULL → `upper(body)` is NULL → the optional leaf is absent.
+        const expected = { id: 1 }
+        ctx.mockNext({ id: 1, up: null })
+        const row = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({ id: tIssue.id, up: tIssue.body.toUpperCase() })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, upper(body) as up from issue where id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; up?: string }>>()
+        expect(row).toEqual(expected)
+        expect(row.up).toBeUndefined()
+    })
+
+    test('to-upper-case-on-optional-adapter-view-column-null-row-absent', async () => {
+        // Release 2 has channel 'beta' → channel_bracketed NULL → `upper(...)` NULL
+        // → the optional adapter leaf is absent (the adapter never runs on NULL).
+        const expected = { id: 2 }
+        ctx.mockNext({ id: 2, up: null })
+        const row = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(2))
+            .select({ id: vReleaseOverview.id, up: vReleaseOverview.channelBracketed.toUpperCase() })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, upper(channel_bracketed) as up from release_overview where id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; up?: string }>>()
+        expect(row).toEqual(expected)
+        expect(row.up).toBeUndefined()
+    })
+
+    // ── A virtual/computed bracket column fed into a string transform ───
+    // `toUpperCase()` wraps the virtual fragment in another `upper(...)` and the
+    // bracket adapter still reads the result wrapped in [...].
+
+    test('to-upper-case-on-virtual-bracket-view-column', async () => {
+        // `versionTagged` = `upper(version)` + bracketAdapter (view). Release 1:
+        // upper(upper('1.2.0')) = '1.2.0', read bracketed → '[1.2.0]'.
+        const expected = { id: 1, t: '[1.2.0]' }
+        ctx.mockNext({ id: 1, t: '1.2.0' })
+        const row = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(1))
+            .select({ id: vReleaseOverview.id, t: vReleaseOverview.versionTagged.toUpperCase() })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, upper(upper(version)) as [t] from release_overview where id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; t: string }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('to-upper-case-on-virtual-bracket-table-column', async () => {
+        // `activityTagged` = `upper(activity)` + bracketAdapter (table). Worklog 1:
+        // upper(upper('coding')) = 'CODING', read bracketed → '[CODING]'.
+        const expected = { id: 1, t: '[CODING]' }
+        ctx.mockNext({ id: 1, t: 'CODING' })
+        const row = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .select({ id: tIssueWorklog.id, t: tIssueWorklog.activityTagged.toUpperCase() })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, upper(upper(activity)) as [t] from issue_worklog where id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; t: string }>>()
+        expect(row).toEqual(expected)
+    })
 })

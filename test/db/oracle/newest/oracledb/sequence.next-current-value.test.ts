@@ -244,4 +244,46 @@ describe(ctx.label, () => {
             else expect(typeof curr).toBe('number')
         })
     })
+
+    test('sequence-bigint-next-value-with-trailing-adapter', async () => {
+        await ctx.withCommit(async () => {
+            // auditTagSeqOffset reuses audit_tag_seq and carries a trailing bigint
+            // TypeAdapter (plusThousandBigintAdapter, read +1000n). The mock is primed
+            // with the RAW 5000n, so nextValue() comes back as 6000n. Real DB returns
+            // an engine-assigned bigint
+            // (serialized as bigint / string / number by the driver), so the real branch
+            // only checks the shape.
+            ctx.mockNext(5000n)
+            const next = await ctx.conn.selectFromNoTable()
+                .selectOneColumn(ctx.conn.auditTagSeqOffset.nextValue())
+                .executeSelectOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select audit_tag_seq.nextval as "result" from dual"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+            if (!ctx.realDbEnabled) expect(next).toBe(6000n)
+            else expect(typeof next === 'bigint' || typeof next === 'string' || typeof next === 'number').toBe(true)
+        })
+    })
+
+    test('sequence-bigint-current-value-with-trailing-adapter', async () => {
+        await ctx.withCommit(async () => {
+            // currentValue() over the same bigint + adapter sequence reference: the read
+            // value is shifted by plusThousandBigintAdapter (+1000n). currval is
+            // session-scoped, so a prior nextValue primes it on the real DB.
+            ctx.mockNext(5000n)
+            if (ctx.realDbEnabled) {
+                await ctx.conn.selectFromNoTable()
+                    .selectOneColumn(ctx.conn.auditTagSeqOffset.nextValue())
+                    .executeSelectOne()
+            }
+            const curr = await ctx.conn.selectFromNoTable()
+                .selectOneColumn(ctx.conn.auditTagSeqOffset.currentValue())
+                .executeSelectOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select audit_tag_seq.currval as "result" from dual"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+            if (!ctx.realDbEnabled) expect(curr).toBe(6000n)
+            else expect(typeof curr === 'bigint' || typeof curr === 'string' || typeof curr === 'number').toBe(true)
+        })
+    })
 })

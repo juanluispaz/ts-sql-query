@@ -1525,4 +1525,72 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { id: number; n: boolean; nn: boolean }>>()
         expect(row).toEqual(expected)
     })
+
+    test('nullIfValue-numeric-value-source-overload', async () => {
+        // The VALUE-SOURCE overload of `nullIfValue` on the base Number leaf:
+        // `priority.nullIfValue(id)` → `nullif(priority, id)` (two columns, no
+        // params). priority {2,1,3,2}, id {1,2,3,4}: nullif collapses issue 3
+        // (3 == 3) to an absent key; the rest keep their priority.
+        const expected = [
+            { id: 1, p: 2 }, { id: 2, p: 1 }, { id: 3 }, { id: 4, p: 2 },
+        ]
+        ctx.mockNext([
+            { id: 1, p: 2 }, { id: 2, p: 1 }, { id: 3, p: null }, { id: 4, p: 2 },
+        ])
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .select({ id: tIssue.id, p: tIssue.priority.nullIfValue(tIssue.id) })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, nullif(priority, id) as "p" from issue order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ id: number; p?: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('asOptional-on-boolean-and-plain-temporal-leaves', async () => {
+        // `asOptional()` on the boolean / localDate / localTime / localDateTime leaves
+        // widens a required column's leaf to optional (`col as alias`, value unchanged).
+        // Query 1 (worklog 2): billable
+        // (boolean, FALSE), workDate (localDate), startedAt (localTime). Query 2
+        // (organization 1): createdAt (localDateTime).
+        const expected1 = {
+            id: 2,
+            b: false,
+            d: new Date(Date.UTC(2024, 2, 5, 10, 0, 0)),
+            t: new Date(Date.UTC(1970, 0, 1, 14, 0, 0)),
+        }
+        ctx.mockNext(expected1)
+        const row1 = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(2))
+            .select({
+                id: tIssueWorklog.id,
+                b: tIssueWorklog.billable.asOptional(),
+                d: tIssueWorklog.workDate.asOptional(),
+                t: tIssueWorklog.startedAt.asOptional(),
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, billable as "b", work_date as "d", started_at as "t" from issue_worklog where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof row1, { id: number; b?: boolean; d?: Date; t?: Date }>>()
+        expect(row1).toEqual(expected1)
+
+        const expected2 = { id: 1, c: new Date(Date.UTC(2023, 5, 15, 8, 0, 0)) }
+        ctx.mockNext(expected2)
+        const row2 = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.id.equals(1))
+            .select({ id: tOrganization.id, c: tOrganization.createdAt.asOptional() })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, created_at as "c" from organization where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row2, { id: number; c?: Date }>>()
+        expect(row2).toEqual(expected2)
+    })
 })

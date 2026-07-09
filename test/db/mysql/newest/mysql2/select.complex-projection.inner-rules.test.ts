@@ -2665,4 +2665,239 @@ describe(ctx.label, () => {
         expect('iid' in rows[1]!.wrapper!.inner!).toBe(false)
     })
 
+
+    test('nested-object-cte-used-via-for-use-in-left-join-as-nullable', async () => {
+        // A CTE projecting a nested object, filtered to project 1, is read back via a
+        // left join; the main query reads issues in projects 1 and 2, so issue 3
+        // (project 2) misses the CTE left join. Under `projectingOptionalValuesAsNullable()`
+        // the read-back nested object becomes `{...} | null`, so the miss surfaces
+        // `proj: null` (a present key) rather than an absent key. issue 1 -> project 1
+        // (hit); issue 3 -> miss.
+        const expected = [
+            { iid: 1, proj: { name: 'Marketing site', slug: 'mktg-site' } },
+            { iid: 3, proj: null },
+        ]
+        ctx.mockNext([
+            { iid: 1, 'proj.name': 'Marketing site', 'proj.slug': 'mktg-site' },
+            { iid: 3, 'proj.name': null, 'proj.slug': null },
+        ])
+        const projCte = ctx.conn.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ pid: tProject.id, info: { name: tProject.name, slug: tProject.slug } })
+            .forUseInQueryAs('proj_cte')
+        const projCteLeft = projCte.forUseInLeftJoin()
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .leftJoin(projCteLeft).on(projCteLeft.pid.equals(tIssue.projectId))
+            .where(tIssue.id.in([1, 3]))
+            .select({ iid: tIssue.id, proj: projCteLeft.info })
+            .projectingOptionalValuesAsNullable()
+            .orderBy('iid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with proj_cte as (select id as pid, \`name\` as \`info.name\`, slug as \`info.slug\` from project where id = ?) select issue.id as iid, proj_cte.\`info.name\` as \`proj.name\`, proj_cte.\`info.slug\` as \`proj.slug\` from issue left join proj_cte on proj_cte.pid = issue.project_id where issue.id in (?, ?) order by iid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            1,
+            3,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            iid:  number
+            proj: { name: string; slug: string } | null
+        }>>>()
+        expect(rows).toEqual(expected)
+        expect(rows[1]!.proj).toBeNull()
+    })
+
+    test('multi-level-sole-optional-chain-depth-4-present-as-nullable', async () => {
+        // A four-level sole-optional chain under `projectingOptionalValuesAsNullable()`:
+        // the outer `w` becomes a required key with a `| null` value and every inner
+        // level's `| undefined` flips to `| null`. issue 2: body present -> the whole
+        // chain is present, no nulls.
+        const expected = { iid: 2, w: { x: { y: { z: { body: 'Use new tokens', assigneeId: 2 } } } } }
+        ctx.mockNext({ iid: 2, 'w.x.y.z.body': 'Use new tokens', 'w.x.y.z.assigneeId': 2 })
+        const row = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(2))
+            .select({
+                iid: tIssue.id,
+                w: { x: { y: { z: { body: tIssue.body, assigneeId: tIssue.assigneeId } } } },
+            })
+            .projectingOptionalValuesAsNullable()
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as \`w.x.y.z.body\`, assignee_id as \`w.x.y.z.assigneeId\` from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            iid: number
+            w: { x: { y: { z: { body: string | null; assigneeId: number | null } | null } | null } | null } | null
+        }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('multi-level-sole-optional-chain-depth-4-collapse-as-nullable', async () => {
+        // A four-level sole-optional chain where the innermost `z` collapses (every leaf
+        // null): under `projectingOptionalValuesAsNullable()` the collapse propagates up
+        // three levels and the outer `w` surfaces as `null` — a PRESENT key with a null
+        // value, not absent. issue 3: body null, assignee null.
+        const expected = { iid: 3, w: null }
+        ctx.mockNext({ iid: 3, 'w.x.y.z.body': null, 'w.x.y.z.assigneeId': null })
+        const row = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(3))
+            .select({
+                iid: tIssue.id,
+                w: { x: { y: { z: { body: tIssue.body, assigneeId: tIssue.assigneeId } } } },
+            })
+            .projectingOptionalValuesAsNullable()
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as \`w.x.y.z.body\`, assignee_id as \`w.x.y.z.assigneeId\` from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            iid: number
+            w: { x: { y: { z: { body: string | null; assigneeId: number | null } | null } | null } | null } | null
+        }>>()
+        expect(row).toEqual(expected)
+        // The outer `w` key is PRESENT with a null value under the asNull projector.
+        expect('w' in row).toBe(true)
+        expect(row.w).toBeNull()
+    })
+
+    test('rule-2-wrapper-of-sole-rule-2-inner-with-const-required-leaf-as-nullable', async () => {
+        // A rule-2 wrapper whose sole inner is a rule-2 object mixing a left-join leaf
+        // (`iid`) with an always-present const (`constReq`). Under
+        // `projectingOptionalValuesAsNullable()` the optional `wrapper`/`inner` objects
+        // become `{...} | null`. When the join misses, `inner`/`wrapper` survive (the
+        // const keeps them present) and only `iid` surfaces as `null` at runtime.
+        // project 3 -> issue 4 (join hits); project 4 -> no issue (join misses).
+        const expected = [
+            { pid: 3, wrapper: { inner: { iid: 4, constReq: 1 } } },
+            { pid: 4, wrapper: { inner: { iid: null, constReq: 1 } } },
+        ]
+        ctx.mockNext([
+            { pid: 3, 'wrapper.inner.iid': 4,    'wrapper.inner.constReq': 1 },
+            { pid: 4, 'wrapper.inner.iid': null, 'wrapper.inner.constReq': 1 },
+        ])
+        const tIssueLeft = tIssue.forUseInLeftJoin()
+        const rows = await ctx.conn.selectFrom(tProject)
+            .leftJoin(tIssueLeft).on(tIssueLeft.projectId.equals(tProject.id))
+            .where(tProject.id.in([3, 4]))
+            .select({
+                pid: tProject.id,
+                wrapper: {
+                    inner: {
+                        iid:      tIssueLeft.id,
+                        constReq: ctx.conn.const(1, 'int'),
+                    },
+                },
+            })
+            .projectingOptionalValuesAsNullable()
+            .orderBy('pid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.id as \`wrapper.inner.iid\`, ? as \`wrapper.inner.constReq\` from project left join issue on issue.project_id = project.id where project.id in (?, ?) order by pid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            3,
+            4,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            pid:     number
+            wrapper: { inner: { iid: number; constReq: number } | null } | null
+        }>>>()
+        expect(rows).toEqual(expected)
+        // On the join-miss row `iid` is null (present key), not absent.
+        expect(rows[1]!.wrapper!.inner!.iid).toBeNull()
+    })
+
+    test('cte-re-projected-rule-2-object-as-nullable-surfaces-null-on-miss', async () => {
+        // A CTE builds a rule-2 nested object from a LEFT-JOINED issue (both leaves
+        // share the same left join); project 4 has no issue so the CTE join misses for
+        // it. Re-selecting the CTE object under `projectingOptionalValuesAsNullable()`
+        // surfaces the missed object as `null` (a present key) and its leaves as
+        // `| null`. project 3 -> issue 4 (hit); project 4 -> miss.
+        const expected = [
+            { pid: 3, iss: { id: 4, title: 'Document /v2/users' } },
+            { pid: 4, iss: null },
+        ]
+        ctx.mockNext([
+            { pid: 3, 'iss.id': 4, 'iss.title': 'Document /v2/users' },
+            { pid: 4, 'iss.id': null, 'iss.title': null },
+        ])
+        const connection = ctx.conn
+        const tIssueLeft = tIssue.forUseInLeftJoin()
+        const projectIssueCte = connection.selectFrom(tProject)
+            .leftJoin(tIssueLeft).on(tIssueLeft.projectId.equals(tProject.id))
+            .where(tProject.id.in([3, 4]))
+            .select({ pid: tProject.id, iss: { id: tIssueLeft.id, title: tIssueLeft.title } })
+            .forUseInQueryAs('project_issue_cte')
+        const rows = await connection.selectFrom(projectIssueCte)
+            .select({ pid: projectIssueCte.pid, iss: projectIssueCte.iss })
+            .projectingOptionalValuesAsNullable()
+            .orderBy('pid')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with project_issue_cte as (select project.id as pid, issue.id as \`iss.id\`, issue.title as \`iss.title\` from project left join issue on issue.project_id = project.id where project.id in (?, ?)) select pid as pid, \`iss.id\` as \`iss.id\`, \`iss.title\` as \`iss.title\` from project_issue_cte order by pid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+            4,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            pid: number
+            iss: { id: number | null; title: string | null } | null
+        }>>>()
+        expect(rows).toEqual(expected)
+        // The join-miss row surfaces the whole re-projected object as null (present key).
+        expect(rows[1]!.iss).toBeNull()
+    })
+
+    test('cte-re-projected-rule-3-object-with-optional-leaf-as-nullable', async () => {
+        // A CTE projects a rule-3 nested `detail` object (a REQUIRED own-table leaf
+        // `title` keeps the object required, plus an OPTIONAL `body` leaf). Re-selected
+        // under `projectingOptionalValuesAsNullable()` the object stays required (never
+        // `| null`) and the optional `body` leaf flips to `| null`. issue 1: body null ->
+        // present-null; issue 2: body 'Use new tokens'.
+        const expected = [
+            { iid: 1, detail: { title: 'Update hero copy', body: null } },
+            { iid: 2, detail: { title: 'Redesign navbar', body: 'Use new tokens' } },
+        ]
+        ctx.mockNext([
+            { iid: 1, 'detail.title': 'Update hero copy', 'detail.body': null },
+            { iid: 2, 'detail.title': 'Redesign navbar', 'detail.body': 'Use new tokens' },
+        ])
+        const connection = ctx.conn
+        const issueCte = connection.selectFrom(tIssue)
+            .where(tIssue.projectId.equals(1))
+            .select({ iid: tIssue.id, detail: { title: tIssue.title, body: tIssue.body } })
+            .forUseInQueryAs('issue_detail_cte')
+        const rows = await connection.selectFrom(issueCte)
+            .select({ iid: issueCte.iid, detail: issueCte.detail })
+            .projectingOptionalValuesAsNullable()
+            .orderBy('iid')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with issue_detail_cte as (select id as iid, title as \`detail.title\`, body as \`detail.body\` from issue where project_id = ?) select iid as iid, \`detail.title\` as \`detail.title\`, \`detail.body\` as \`detail.body\` from issue_detail_cte order by iid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            iid: number
+            detail: { title: string; body: string | null }
+        }>>>()
+        expect(rows).toEqual(expected)
+        // The rule-3 object is present on the null-body row; only `body` is null.
+        expect(rows[0]!.detail.body).toBeNull()
+    })
 })

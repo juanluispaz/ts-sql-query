@@ -67,26 +67,7 @@ of that. Two minutes of triage and one paragraph is the bar.
 
 ## Open Bugs
 
-## Dynamic-condition error `path` has a stray space (`"a .b"`) at nesting depth ≥2
-
-**Where**: `src/queryBuilders/DynamicConditionBuilder.ts:93` — the nested
-non-value-source recursion builds the prefix as `prefix + ' .' + key` (a stray
-space before the dot). The intended separator is `'.'`, as used by the sibling
-`column + '.' + key` at line 142.
-**Reproduction**: a dynamic filter over a nested **non-value-source** projection
-at depth ≥2 (e.g. `selectFields = { project: { assignee: { … } } }`) that then
-throws a `TsSqlProcessingError` inside the nested object
-(`DYNAMIC_CONDITION_UNKNOWN_COLUMN` / `INVALID_FILTER` / `UNKNOWN_OPERATION`).
-The error's public `errorReason.path` field reads e.g. `"project .assignee"`
-instead of `"project.assignee"`. **No emitted SQL is affected** — only the error
-path string. Low-severity / cosmetic; surfaced by the Round-37 type audit
-(F6-DYN), not by a running test.
-**Current workaround in the suite**: none — the depth-≥2 nested-error `path` is
-untested entirely; existing depth-3 tests (`nested-extension.test.ts`) recurse
-through value-source columns (hitting line 91, `processColumnFilter`), never
-line 93. A negative test asserting the exact `errorReason.path` on a depth-≥2
-nested unknown-column error would pin (and, after the one-token fix, correct)
-the value.
+_(none)_
 
 ## Common bug shapes (for the fixing agent)
 

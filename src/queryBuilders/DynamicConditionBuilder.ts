@@ -5,6 +5,14 @@ import { SqlOperationValueSourceIfValueAlwaysNoop } from '../internal/ValueSourc
 import type { QueryColumns, SqlBuilder } from '../sqlBuilders/SqlBuilder.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 
+// Joins an accumulated nested-filter path prefix with the next key using a dot
+// separator, matching the `column + '.' + key` form used deeper in the builder.
+// An empty prefix (the top level) yields the bare key, so single-level paths are
+// unchanged.
+function joinPath(prefix: string, key: string): string {
+    return prefix ? prefix + '.' + key : key
+}
+
 export class DynamicConditionBuilder implements DynamicConditionExpression<any, any> {
     sqlBuilder: SqlBuilder
     definition: Filterable
@@ -61,16 +69,16 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
                 }
                 const extensionResult = extension[key](value)
                 if (!isValueSource(extensionResult)) {
-                    const error = new TsSqlProcessingError({ reason: 'DYNAMIC_CONDITION_INVALID_EXTENSION_RETURN_TYPE', processedValue: value, returnedValue: value, path: prefix + key, extensionName: key}, 'Invalid return type for the extension ' + prefix + key + '. Expected a boolean value source, but found ' + extensionResult + '. Processed value: ' +  value);
-                    (error as any).key = prefix + key;
+                    const error = new TsSqlProcessingError({ reason: 'DYNAMIC_CONDITION_INVALID_EXTENSION_RETURN_TYPE', processedValue: value, returnedValue: value, path: joinPath(prefix, key), extensionName: key}, 'Invalid return type for the extension ' + joinPath(prefix, key) + '. Expected a boolean value source, but found ' + extensionResult + '. Processed value: ' +  value);
+                    (error as any).key = joinPath(prefix, key);
                     (error as any).extensionResult = extensionResult;
                     (error as any).processedValue = value;
                     throw error
                 }
                 const valueSourcePrivate = __getValueSourcePrivate(extensionResult)
                 if (!__isBooleanValueSource(valueSourcePrivate)) {
-                    const error = new TsSqlProcessingError({ reason: 'DYNAMIC_CONDITION_INVALID_EXTENSION_RETURN_TYPE', processedValue: value, returnedValue: value, returnedTypeName: valueSourcePrivate.__valueTypeName, path: prefix + key, extensionName: key}, 'Invalid return type for the extension ' + prefix + key + '. Expected a boolean value source, but found a value source with type ' + valueSourcePrivate.__valueTypeName + '. Processed value: ' +  value);
-                    (error as any).key = prefix + key;
+                    const error = new TsSqlProcessingError({ reason: 'DYNAMIC_CONDITION_INVALID_EXTENSION_RETURN_TYPE', processedValue: value, returnedValue: value, returnedTypeName: valueSourcePrivate.__valueTypeName, path: joinPath(prefix, key), extensionName: key}, 'Invalid return type for the extension ' + joinPath(prefix, key) + '. Expected a boolean value source, but found a value source with type ' + valueSourcePrivate.__valueTypeName + '. Processed value: ' +  value);
+                    (error as any).key = joinPath(prefix, key);
                     (error as any).extensionResult = extensionResult;
                     (error as any).processedValue = value;
                     throw error
@@ -79,20 +87,18 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
             } else {
                 const column = definitionColumns[key]
                 if (!column) {
-                    throw new TsSqlProcessingError({ reason: 'DYNAMIC_CONDITION_UNKNOWN_COLUMN', path: prefix + key }, 'Unknown column with name "' + prefix + key + '" provided as dynamic filter condition')
+                    throw new TsSqlProcessingError({ reason: 'DYNAMIC_CONDITION_UNKNOWN_COLUMN', path: joinPath(prefix, key) }, 'Unknown column with name "' + joinPath(prefix, key) + '" provided as dynamic filter condition')
                 }
                 if (value === null || value === undefined) {
                     continue
                 }
                 if (typeof value !== 'object' || value instanceof Date) {
-                    throw new TsSqlProcessingError({ reason: 'DYNAMIC_CONDITION_INVALID_FILTER', value: filter, path: prefix }, 'Invalid dynamic filter condition received for the column "' + prefix + key + '"; an object is expected. Received value: ' + value)
+                    throw new TsSqlProcessingError({ reason: 'DYNAMIC_CONDITION_INVALID_FILTER', value: filter, path: prefix }, 'Invalid dynamic filter condition received for the column "' + joinPath(prefix, key) + '"; an object is expected. Received value: ' + value)
                 }
                 if (isValueSource(column)) {
-                    condition = this.processColumnFilter(value, column, extension, prefix + key)
-                } else if (prefix) {
-                    condition = this.processFilter(value, column, extension ? extension[key] : undefined, prefix + ' .' + key)
+                    condition = this.processColumnFilter(value, column, extension, joinPath(prefix, key))
                 } else {
-                    condition = this.processFilter(value, column, extension ? extension[key] : undefined, key)
+                    condition = this.processFilter(value, column, extension ? extension[key] : undefined, joinPath(prefix, key))
                 }
             }
             result = result.and(condition)

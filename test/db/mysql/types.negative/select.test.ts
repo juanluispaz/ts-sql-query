@@ -271,6 +271,71 @@ function _typeNegatives() {
             // @ts-expect-error nullIfValue operand worklog2.costCents is from a table not in the FROM
             x: tIssueWorklog.costCents.nullIfValue(worklog2.costCents),
         })
+
+    // Rule: ordered-comparison methods (lessThan / greaterThan / lessOrEquals /
+    // greaterOrEquals / between / notBetween) exist only on a
+    // ComparableValueSource. A boolean / enum / custom leaf is Equalable but NOT
+    // Comparable, so these must not compile. `lessThan` pins the not-Comparable
+    // contract; `between` pins the range-comparison group (a distinct signature).
+    // @ts-expect-error boolean is not ordered-comparable — no lessThan
+    void tIssueWorklog.billable.lessThan(true)
+    // @ts-expect-error boolean is not ordered-comparable — no between
+    void tIssueWorklog.billable.between(true, false)
+    // @ts-expect-error enum is not ordered-comparable — no lessThan
+    void tIssueWorklog.activity.lessThan('coding')
+    // @ts-expect-error enum is not ordered-comparable — no between
+    void tIssueWorklog.activity.between('coding', 'review')
+    // @ts-expect-error custom (branded union) is not ordered-comparable — no lessThan
+    void connection.const<string, 'ReleaseChannel'>('stable', 'custom', 'ReleaseChannel').lessThan('beta')
+
+    // Rule: equalsInsensitive / notEqualsInsensitive are string-only (case
+    // folding is meaningless off a StringValueSource), so they must not exist on
+    // an int / boolean / enum leaf.
+    // @ts-expect-error equalsInsensitive is string-only — absent on int
+    void tProject.id.equalsInsensitive(1)
+    // @ts-expect-error notEqualsInsensitive is string-only — absent on int
+    void tProject.id.notEqualsInsensitive(1)
+    // @ts-expect-error equalsInsensitive is string-only — absent on boolean
+    void tIssueWorklog.billable.equalsInsensitive(true)
+    // @ts-expect-error equalsInsensitive is string-only — absent on enum
+    void tIssueWorklog.activity.equalsInsensitive('coding')
+
+    // Rule: a custom value source captures its brand (TYPE_NAME) as a type
+    // parameter, and `equals` requires the operand to carry the SAME brand
+    // (`IEqualableValueSource<…, TYPE, TYPE_NAME, …>`). Two sources of the same
+    // kind but DIFFERENT brands must not compile — the brand is the type-level
+    // guard keeping distinct domains from mixing. One lock per branded
+    // value-source class. Each `@ts-expect-error` sits on the `.equals(...)`
+    // line because that is where the overload-mismatch error lands.
+    void connection.const<number, 'ReleaseTag'>(7, 'customInt', 'ReleaseTag')
+        // @ts-expect-error customInt 'ReleaseTag' is not equals-comparable with customInt 'Cents'
+        .equals(connection.const<number, 'Cents'>(5, 'customInt', 'Cents'))
+    void connection.const<number, 'Money'>(1.5, 'customDouble', 'Money')
+        // @ts-expect-error customDouble 'Money' is not equals-comparable with customDouble 'Rate'
+        .equals(connection.const<number, 'Rate'>(2.5, 'customDouble', 'Rate'))
+    void connection.const<string, 'SigningKey'>('0a8f9c1e-1111-4222-8333-444455556666', 'customUuid', 'SigningKey')
+        // @ts-expect-error customUuid 'SigningKey' is not equals-comparable with customUuid 'SessionKey'
+        .equals(connection.const<string, 'SessionKey'>('0a8f9c1e-1111-4222-8333-444455556666', 'customUuid', 'SessionKey'))
+    void connection.const<string, 'Semver'>('1.0.0', 'customComparable', 'Semver')
+        // @ts-expect-error customComparable 'Semver' is not equals-comparable with customComparable 'Calver'
+        .equals(connection.const<string, 'Calver'>('2024.01', 'customComparable', 'Calver'))
+    void connection.const<string, 'ReleaseChannel'>('stable', 'custom', 'ReleaseChannel')
+        // @ts-expect-error custom 'ReleaseChannel' is not equals-comparable with custom 'Tier'
+        .equals(connection.const<string, 'Tier'>('gold', 'custom', 'Tier'))
+    void connection.const<Date, 'ReleaseDay'>(new Date(), 'customLocalDate', 'ReleaseDay')
+        // @ts-expect-error customLocalDate 'ReleaseDay' is not equals-comparable with customLocalDate 'SprintDay'
+        .equals(connection.const<Date, 'SprintDay'>(new Date(), 'customLocalDate', 'SprintDay'))
+    void connection.const<Date, 'CutoffClock'>(new Date(), 'customLocalTime', 'CutoffClock')
+        // @ts-expect-error customLocalTime 'CutoffClock' is not equals-comparable with customLocalTime 'ShiftClock'
+        .equals(connection.const<Date, 'ShiftClock'>(new Date(), 'customLocalTime', 'ShiftClock'))
+    void connection.const<Date, 'SignOffStamp'>(new Date(), 'customLocalDateTime', 'SignOffStamp')
+        // @ts-expect-error customLocalDateTime 'SignOffStamp' is not equals-comparable with customLocalDateTime 'PublishStamp'
+        .equals(connection.const<Date, 'PublishStamp'>(new Date(), 'customLocalDateTime', 'PublishStamp'))
+
+    // Positive control: the SAME brand on the same kind IS equals-comparable and
+    // must keep compiling — proves the brand lock is not over-broad.
+    void connection.const<number, 'ReleaseTag'>(7, 'customInt', 'ReleaseTag')
+        .equals(connection.const<number, 'ReleaseTag'>(5, 'customInt', 'ReleaseTag'))
 }
 
 test('select-negative-types', () => {

@@ -67,7 +67,13 @@ of that. Two minutes of triage and one paragraph is the bar.
 
 ## Open Bugs
 
-_None open._
+## MySQL / MariaDB over-escape a literal backslash in the LIKE affix predicates
+
+**Where**: the mysql / mariadb `SqlBuilder` LIKE-wildcard escaping (the override that doubles the base `\`→`\\` a second time to `\\\\`), reached by the affix predicates `contains` / `startsWith` / `endsWith` (and their `not*` / `*Insensitive` / `*IfValue` twins) when the needle contains a literal backslash. The baked param is visible in `select.where.like-escape-literal.test.ts`'s `contains-literal-with-backslash-bracket` (`a\\\\b[c` — four backslashes for a one-backslash needle).
+
+**Reproduction**: `test/db/{mysql/newest/mysql2, mariadb/newest/mariadb}/select.where.like-escape-match.test.ts > contains-backslash-literal-matches-only-the-backslash-row`. Seed a row whose `email` holds a single literal backslash (`a\b@x`), then `email.contains('\')`. The lib binds the needle as four backslashes, which the mysql2 / mariadb prepared-statement LIKE reads as *two* literal backslashes, so a single-backslash row does NOT match: the query resolves `[]` where the sound result is `['a\b@x']`. A wildcard-free control (`endsWith('b@x')`) matches the same row, proving it persisted, so the empty set is the escape, not a failed insert. Every other engine (postgres, native sqlite, oracle, sqlserver) matches the row correctly — the over-escape is specific to the mysql/mariadb quadruple on the bound-param path.
+
+**Current workaround in the suite**: the mysql + mariadb copies of `contains-backslash-literal-matches-only-the-backslash-row` assert the buggy engine result (`[]`) under `if (ctx.realDbEnabled)` with a `// TODO[BUG]` header; the mock branch still asserts the sound `['a\b@x']`. The other 15 cells assert `['a\b@x']` unconditionally.
 
 ## Common bug shapes (for the fixing agent)
 

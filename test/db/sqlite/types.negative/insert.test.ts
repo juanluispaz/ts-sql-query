@@ -128,6 +128,28 @@ function _typeNegatives() {
         .onConflictDoNothing().returning({ id: tOrganization.id })
         // @ts-expect-error executeInsertOne is dropped on the optional-returning (onConflictDoNothing) path
         .executeInsertOne()
+
+    // Rule (round-39 candidate C2): INSERT's `ignoreIfHasValue` /
+    // `ignoreIfHasNoValue` accept only OPTIONAL columns
+    // (`OptionalColumnsForSetOf`), whereas UPDATE's accept ALL settable columns
+    // (`ColumnsForSetOf`). A REQUIRED column (`title`) is therefore rejected on
+    // INSERT but accepted on UPDATE — this locks that intentional param-type
+    // divergence. Control: an optional column (`body`) is accepted on INSERT.
+    void connection.insertInto(tIssue)
+        .values({ projectId: 1, number: 1, title: 'x', status: 'open', priority: 1 })
+        .ignoreIfHasValue('body')
+    void connection.insertInto(tIssue)
+        .values({ projectId: 1, number: 1, title: 'x', status: 'open', priority: 1 })
+        // @ts-expect-error `title` is required, so it is not in OptionalColumnsForSetOf on INSERT
+        .ignoreIfHasValue('title')
+    void connection.insertInto(tIssue)
+        .values({ projectId: 1, number: 1, title: 'x', status: 'open', priority: 1 })
+        // @ts-expect-error `title` is required, so it is not in OptionalColumnsForSetOf on INSERT
+        .ignoreIfHasNoValue('title')
+    // Positive companion — UPDATE's `ignoreIfHasValue` / `ignoreIfHasNoValue`
+    // accept the same required column (ColumnsForSetOf includes required columns).
+    void connection.update(tIssue).set({ title: 'x' }).ignoreIfHasValue('title')
+    void connection.update(tIssue).set({ title: 'x' }).ignoreIfHasNoValue('title')
 }
 
 test('insert-negative-types', () => {

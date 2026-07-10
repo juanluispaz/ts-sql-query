@@ -125,7 +125,11 @@ surface list in **this** file is a snapshot.
    prints otherwise.
 2. `npm run tests:index` (~30 s) — the semantic index, for coverage-checking
    and reachability later. (Discovery itself is raw reading; the index is not
-   needed for it.)
+   needed for it — so if the build fails, don't block the fan-out; grep +
+   compile-repro are the authoritative §7 verifiers anyway.) **Gotcha:** the
+   indexer can exceed the default V8 heap (~4 GB) on a large matrix / recent
+   Node and abort with `Ineffective mark-compacts near heap limit`; rebuild with
+   a raised heap — `NODE_OPTIONS="--max-old-space-size=12288" npm run tests:index`.
 3. Re-read `domain/connection.ts` — fixtures change between rounds (this round
    may add the columns a prior round's §B asked for, which converts §B items to
    covered or to §A).
@@ -638,6 +642,27 @@ fires). The coordinator is the adjudicator.
      entry. Establish the render site survives before filing — see §9 "False positives &
      misclassified boundaries" for the worked case (`customizeQuery` non-bracketing hooks on
      `recursive × forUseInQueryAs`).
+   - **Real-DB / `--docker` extension — for a claim about what the ENGINE does, not what the
+     builder emits.** The mock probe proves the emitted SQL / the build-time throw but is BLIND to
+     engine runtime behavior: whether the query MATCHES the right rows, whether a value ROUND-TRIPS,
+     whether the engine REJECTS the SQL (an escape that never matches, a placeholder the engine
+     rejects, a per-driver marshalling). A snapshot proves the emitted *token*, never that the
+     query *behaves* correctly — those surface only on a real DB. Confirm with a `--docker` probe:
+     - `npm run tests -- --docker <db>/<version>/<connector> --test-name-pattern <name>` —
+       **`--docker` does NOT accept a 4th-level `<file>` coord**; give it the CELL coord plus a
+       `--test-name-pattern` that selects your probe test.
+     - Vitest **swallows `console.log`/`console.error`** under the runner, so a logged value never
+       prints. Make the test **ASSERT a sentinel** — `expect({ sql: ctx.lastSql, matched:
+       rows.map(r => r.x) }).toEqual('SENTINEL')` — so the ACTUAL SQL / params / result land in the
+       failure diff. Under `--docker` the real DB runs (`mockNext` is ignored), so the diff is
+       genuine engine behavior.
+     - **Isolate the signal with a control that pins the setup** — insert the row, then a
+       wildcard-free / trivially-true query that MUST match it, proving it persisted, before
+       trusting a "matched nothing" result (a bare `matched: []` is ambiguous — a real bug, or the
+       insert never landed — until the control proves persistence).
+     - Delete the probe; `git status --porcelain` clean. The flaky/slow docker cells (mssql,
+       oracle) are worth it for a filed defect, and any custom-type / per-kind emission claim (§9
+       branded-twin) needs this real-DB pass — the mock hides what the engine rejects.
 
 5. **Adversarially re-check the confident §C / "saturated" DROPS — not only the §A claims.**
    The agents' systematic error is not just false-ABSENT (over-reporting §A); it is **over-filing
@@ -678,30 +703,56 @@ round doesn't re-chase it).
 
 ## The report
 
-Write `test/MISSING_TESTS_AUDIT_<N>.md`. Structure that has worked:
+Write `test/MISSING_TESTS_AUDIT_<N>.md`. **The report is an EXHAUSTIVE,
+ITEM-BY-ITEM IMPLEMENTATION BACKLOG — not a thematic summary.** The single failure
+mode this section exists to prevent: **collapsing findings into semantic clusters**
+("~8 sibling-operator cells", "the per-kind sequence fan-out", "the receiver-optionality
+variants") so the report *reads* tidy while the individual tests — the actual work —
+stay implicit. That is the wrong direction: it makes the audit harder than the
+implementation, and it guarantees the next round re-discovers the un-enumerated tail
+as "new" findings (the exact churn the effort is trying to end). So **enumerate every
+single test as its own discrete line item** with a stable ID, its fixture, its exact
+assertion, and the grep proving absence. The **tier is a risk/priority label on each
+item, never a device that replaces enumerating the items under it** — "Tier 3: sibling
+operators (8 cells)" is a *failure*; write the 8 items. Deliberate target: the
+implementer's work-list is *longer* than the audit was, and implementing all of it
+drives the surface to true saturation so future rounds surface only genuinely-new
+`src/` changes, not residual completeness. A long report is the correct shape — prefer
+excess by default; **never write "N variants" where you can name the N.**
 
-- **Header** — the mandate this round (and the degeneracy bar in force), the
-  method, and the headline counts.
-- **Themes** — group findings into the recurring cross-cutting patterns (§9),
-  ranked by **risk tier**, not raw count:
-  - **Tier 1** — distinct code-path / runtime-branch / the bug class; output-
-    coincidence masks real risk. (Shaped builders, adapter-dispatch fan-out,
-    projection-classification boundaries, compound-interface overloads,
-    custom-temporal getters, brand-keep boundaries.) Highest value, usually
-    cheapest (existing fixtures).
-  - **Tier 2** — distinct overloads / per-type emission; shared dispatcher but
-    observably distinct. (Value-source-operand twins, optional-receiver
-    branches, direct-fluent-per-type, connection per-kind fan-outs.)
-  - **Tier 3** — mechanical per-kind completeness fan-out (usually §B, needs
-    fixtures). In scope under "every variant", lowest priority.
-- **Per-surface counts** — a table of §A / §B per agent + which surfaces are
-  **saturated** (genuinely 0/0 — name them; that is a real, valuable result).
-- **Coordinator verification notes** — what you checked yourself and how the
-  contradictions resolved.
+Structure that has worked:
+
+- **Header** — the mandate, the method, the headline counts.
+- **Confirmed bugs + candidates** — each `src/` defect (→ `BUGS.md`), each candidate
+  with BOTH readings.
+- **The enumerated backlog** — every test as its own item `<SURFACE-PREFIX>-<n> · T<tier>`,
+  grouped by **SURFACE** (so the implementer lands on the fixture file), NOT by theme.
+  Each item spells out: what to write · the fixture · the exact assertion · the grep
+  proving absence. Tiers are the risk/priority label carried by each item:
+  - **T1** — distinct code-path / runtime-branch / the bug class (output-coincidence
+    masks real risk: shaped builders, adapter-dispatch fan-out, projection-classification
+    boundaries, compound-interface overloads, custom-temporal getters, brand-keep
+    boundaries, masked-emission branches). Highest value, usually cheapest.
+  - **T2** — distinct overloads / per-type emission / seam compositions; shared
+    dispatcher but observably distinct.
+  - **T3** — genuine per-variant completeness (often §B, needs a fixture).
+  - **T4** — output-coincident completeness fan-out (same dispatcher, byte-identical
+    emission but a distinct reachable overload/kind/arity/leaf). LOWEST priority but
+    **ENUMERATED one line per variant** (`notInN` on bigint, on double, on customInt, …
+    — *not* "notInN on 10 leaves"): this is precisely the tail a themed report hides
+    and the next round re-finds, so name each one. A distinction reaches OUT (below)
+    only when it has ZERO runtime/SQL/value surface (pure compile-only) — never a silent
+    omission.
+- **OUT list** — the genuinely-unwritable items EACH named with its reason (compile-only /
+  `src/queryRunners/` / new matrix cell / non-existent API), so they are not re-chased.
+- **Per-surface table** — §A/§B/enumerated-item count per agent + which surfaces are
+  **saturated**. "Saturated" means no item with a runtime surface remains — a surface
+  that still has a Tier-4 tail is NOT saturated, it has a *listed* tail.
+- **Coordinator verification notes** — what you checked yourself and how it resolved.
 - **§B fixture-addition plan** — concrete columns/helpers/files to add.
-- **Recommended implementation order** — Tier-1-on-existing-fixtures first.
-- **Verdict** — honest: "saturated" if it is; otherwise the tiered gap list. If
-  a source bug surfaced, it goes here *and* to `BUGS.md` (never fixed here).
+- **Recommended implementation order** — bugs → T1 → T2 → T3 → the T4 churn.
+- **Verdict** — honest; if a source bug surfaced it goes here *and* to `BUGS.md`
+  (never fixed here).
 
 Findings should be self-contained and verifiable: each lists the type-path, why
 it is distinct, the exact `src` location, where to test, and the wide-grep (or
@@ -863,6 +914,38 @@ technique that catches it:
   integer/numeric only), where the suite exercised only int/bigint/customInt receivers.
   *Technique:* enumerate the emission per receiver-leaf, not per method, and dialect-check
   (SQLite/MySQL/MariaDB accept `float % x`, so a mock or a single dialect hides it).
+- **A conditional emission branch EXECUTES on existing tests but its distinguishing output is
+  masked because no test input carries the triggering feature** (the sharpest form of
+  "output-coincidence"; theme 1). The method/receiver *is* covered, yet a branch inside its
+  emission only fires its distinct string for a specific input the suite never supplies — an
+  affix predicate's `_escapeLikeWildcard` string arm is a no-op unless the literal contains
+  `%`/`_`/`\` (per-dialect `\%` vs `[%]`); a temporal getter's `isConstValue()` cast arm
+  (`extract(part from $1::date)`) fires only on a **const** receiver, never a column; `_or`'s
+  right-parenthesising arm (`A or (B and C)`) fires only when an `.or(...)` operand is itself an
+  `.and(...)`. *Technique:* grep for the branch's **distinguishing output token** (the escaped
+  `\%`/`[%]`, the `::date` inside `extract`, the `or (… and …)` shape), NOT the method name — a
+  method-name grep reports it covered; then write the test that feeds the triggering input.
+- **The BRANDED / custom-typeName twin DIVERGES from the plain twin at a typeName-keyed emission
+  path — coverage-invisible, and usually a by-design LIMITATION, not a bug** (theme 1/7; the
+  custom-type analogue of "valid on the covered receiver, invalid on the sibling"). When a
+  `SqlBuilder`/connection path switches on a **type name** — a `transformPlaceholder` cast switch, a
+  value-marshalling map, a per-type emission `case` — the plain names
+  (`'localDate'`/`'localTime'`/`'localDateTime'`) are handled but the **custom twin** carries its
+  **brand** typeName (`'ReleaseDay'`) that matches no case → it falls through to the default
+  (e.g. `const(d,'customLocalDate','ReleaseDay').getMonth()` emits a **bare** `extract(month from
+  $1)` where the plain leaf emits `$1::date` — PostgreSQL rejects the bare parameter). **Classify
+  before filing:** in this codebase this landed on **by-design LIMITATION** — custom typeNames carry
+  no built-in SQL type, so casting/marshalling a custom placeholder is the **USER's responsibility**
+  (they write `transformPlaceholder` — and the value marshalling — in their own `DBConnection`). So
+  do **not** file it as a `src/` bug; it is at most a **§B fixture gap** (a user-side
+  `transformPlaceholder` the domain `DBConnection` doesn't model, unlike its `baseTypeForCustom`
+  value marshalling). Only file a bug if the maintainer confirms the library is meant to derive it.
+  *Technique:* whenever a path keys on a base type name, enumerate the **custom / branded kind of the
+  same family** (customLocal* for temporal, `customInt`/`customDouble` for numeric, `custom`/`enum`
+  for equality) and **`--docker`-probe the branded twin** — the plain twin passes on both mock and
+  real DB while the branded twin passes on the mock but the engine rejects it (only the real-DB cell
+  surfaces it). The same root cause recurs across paths that resolve a typeName (placeholder cast AND
+  value marshalling) — check them together.
 - **Compound-interface overload subset — one arm wraps, another doesn't** (theme 6).
   `orderBy(valueSource)` on a compound emitted an un-wrapped `UNION … ORDER BY <expr>`
   every engine rejects, while the string/ordinal/`rawFragment` arms wrap in
@@ -1087,8 +1170,10 @@ or does the composition remove/replace it?**
   in one session** (a quick pass may scope to a few surfaces) — never *whether*
   a distinct reachable path is worth a test. Do not label a distinct
   overload/interface/arity/classification "low value" and drop it; tier it
-  (§8) and report it. And never silently truncate — if you bound the round, say
-  exactly what was left for next time.
+  (§8) and report it **as its own enumerated line item, never a themed count**
+  — "8 sibling-operator cells" hides the work; the report must name the 8 (§8,
+  the enumerated-backlog mandate). And never silently truncate — if you bound the
+  round, say exactly what was left for next time.
 
 ## Where this runbook ends
 

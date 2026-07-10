@@ -67,7 +67,38 @@ of that. Two minutes of triage and one paragraph is the bar.
 
 ## Open Bugs
 
-_No open bugs._
+## Nullable-projected inline aggregated array declares optional leaves absent but produces them present-null
+
+**Where**: runtime `src/queryBuilders/SelectQueryBuilder.ts`
+`forUseAsInlineAggregatedArrayValue()` — the `if (this.__projectOptionalValuesAsNullable)`
+branch (~line 641) returns `result.projectingOptionalValuesAsNullable()`. Type side
+`src/expressions/select.ts`: `projectingOptionalValuesAsNullable()` on the select
+(~line 401) changes only the RESULT type param to
+`ResultObjectValuesProjectedAsNullable<COLUMNS>` and leaves `COLUMNS` unchanged, while
+`forUseAsInlineAggregatedArrayValue`'s element type (`ForUseAsInlineAggregatedArrayValueFn`,
+~line 499) derives from `COLUMNS` — so it ignores the nullable flag.
+
+**Reproduction**: `conn.subSelectUsing(tOrganization).from(tProject).where(...)
+.select({ id: tProject.id, archived: tProject.archivedAt })
+.projectingOptionalValuesAsNullable().forUseAsInlineAggregatedArrayValue()`, used as a
+projected column in an outer select. On a row whose optional leaf (`archived`) is NULL:
+- **Runtime** element is `{ id: 1, archived: null }` (present-null) — mock-probe confirmed
+  `'archived' in el === true`, `el.archived === null`.
+- **Declared** element type is `{ id: number; archived?: Date }` (optionals-as-undefined /
+  absent) — tsgo compile-repro confirmed: asserting `Exact<…, { archived: Date | null }>`
+  fails; asserting `{ archived?: Date }` compiles.
+
+Type and runtime disagree: the type says the key may be absent (`el.archived: Date | undefined`)
+but the runtime always produces it present as `null`. Unsound (the "type-self-consistency ≠
+runtime-soundness" class).
+
+**Current workaround in the suite**: none — the composition is untested. A test carries
+`// TODO[BUG]`. Fix direction (maintainer's call, both readings): (i) thread the nullable flag
+into the `forUseAsInlineAggregatedArrayValue` element type so it uses
+`ResultObjectValuesProjectedAsNullable<COLUMNS>` (present-null, matching runtime); or
+(ii) drop the runtime `:641` branch, requiring the user to call
+`.projectingOptionalValuesAsNullable()` on the aggregated-array value source (which retypes
+correctly to `AggregatedArrayValueSourceProjectableAsNullable`).
 
 ## Common bug shapes (for the fixing agent)
 

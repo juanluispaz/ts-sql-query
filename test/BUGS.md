@@ -67,7 +67,65 @@ of that. Two minutes of triage and one paragraph is the bar.
 
 ## Open Bugs
 
-_None currently open._
+## Affix predicates with a literal `_` never match on SQL Server & Oracle (`_escapeLikeWildcard` maps `_` → `[]`)
+
+**Where**: `src/sqlBuilders/SqlServerSqlBuilder.ts` `_escapeLikeWildcard`
+(`value.replace(/_/g, '[]')`) and `src/sqlBuilders/OracleSqlBuilder.ts`
+(same). The sibling escapes wrap the char in a bracket class (`%`→`[%]`,
+`[`→`[[]`); the `_` arm is missing the char inside the brackets — it should
+be `[_]`, not `[]`. `[]` is an empty character class that matches nothing.
+
+**Reproduction** (docker-confirmed on both engines): insert
+`email = 'a_b@probe.test'`, then
+`tAppUser.email.startsWith('a_b').executeSelectMany()` returns **[]** (no
+match) on `sqlserver/newest/mssql` and `oracle/newest/oracledb`; a
+wildcard-free control `startsWith('a')` matches the same row, proving it
+persisted. Affects every affix predicate
+(`startsWith`/`endsWith`/`contains` + their `not`/`Insensitive`/`IfValue`
+variants) whose needle contains a literal `_`. Mock-invisible: the mock
+never runs the LIKE, and the existing
+`select.where.like-escape-literal.test.ts` locks the emitted `50[%][]x` param
+but its runtime assertion is trivially satisfied (`mockNext([])` + a needle
+no row contains → `toEqual([])` passes whether or not the escape works).
+Additionally on Oracle the whole bracket-escaping approach is inconsistent
+with the affix predicates' `... escape '\'` clause — Oracle LIKE has no
+`[...]` character classes, so `%`→`[%]` / `[`→`[[]` are also emitted as
+literal bracket text rather than escaped wildcards (the underscore case is
+the confirmed, clearest manifestation).
+
+**Current workaround in the suite**: none yet — a positive-match test
+(insert a row with a literal `_`/`%`, assert the affix predicate matches it)
+would carry `// TODO[BUG]` until the escape is fixed.
+
+## Rule-2 left-join object with a `const` leaf keeps the object on a join miss with the left-join leaf absent, violating its declared-required type
+
+**Where**: type side `src/complexProjections/projectionRules.ts`
+(`AllFromSameLeftJoinWithOriginallyRequired` ignores no-table leaves via
+`NNoTableOrViewRequiredFrom`, so rule 2 applies and the object is typed
+`proj?: { name: string; tag: string }` — required-when-present). Runtime side
+`src/queryBuilders/AbstractQueryBuilder.ts` (`alwaysSameRequiredTablesSize`
+tracking + the rule-2 drop gate): the const's required-table set is not
+ignored the way the type ignores it, so the rule-2 "drop the whole object on
+a miss" never fires.
+
+**Reproduction** (mock-confirmed): a nested object mixing a left-join
+`originallyRequired` leaf with a `connection.const()` no-table leaf —
+`selectFrom(tIssue).leftJoin(tProjLeft).on(...).select({ iid: tIssue.id,
+proj: { name: tProjLeft.name, tag: conn.const('rel','string') } })` — on a
+join MISS (`mockNext({ iid:1, 'proj.name': null, 'proj.tag':'rel' })`)
+resolves `{ iid:1, proj:{ tag:'rel' } }`: `proj` is PRESENT with `name`
+ABSENT, while the type promises `proj?: { name: string; tag: string }`
+(present ⟹ `name: string`). The pure rule-2 control (two left-join leaves,
+no const) correctly drops the object → `{ iid:1 }`; the const leaf is the
+differentiator. Same divergence under `projectingOptionalValuesAsNullable()`
+(runtime `proj: { name: null, tag:'rel' }` vs typed `name: string`). Either
+the runtime should drop `proj` on a full-left-join miss (matching the type),
+or the type should demote `name` to optional — currently they disagree.
+
+**Current workaround in the suite**: the existing
+`rule-2-left-join-object-mixing-a-const-leaf-*` tests in
+`select.complex-projection.mixed-rules.test.ts` mock only the join HIT, so
+they never exercise the miss. A miss-row test carries `// TODO[BUG]`.
 
 ## Common bug shapes (for the fixing agent)
 

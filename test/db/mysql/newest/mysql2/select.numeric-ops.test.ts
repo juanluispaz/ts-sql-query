@@ -688,4 +688,123 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { id: number; a?: number; s?: number }>>()
         expect(row).toEqual(expected)
     })
+
+    // Direct `ceil()` / `floor()` / `round()` / `logn()` / `roundn()` on a bare
+    // int column receiver (`tIssue.priority`), with no `.divide()` / `.power()`
+    // in front. The wrapper and result type match the prefixed forms above; the
+    // only difference is that the receiver isn't the `::float` / `power(...)`
+    // expression a preceding op would produce, so the function wraps the column
+    // directly. priority(id=1) is 2.
+
+    test('ceil-int-receiver', async () => {
+        const expected = [{ id: 1, c: 2 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                c:  tIssue.priority.ceil(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ceil(priority) as \`c\` from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; c: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('floor-int-receiver', async () => {
+        const expected = [{ id: 1, f: 2 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                f:  tIssue.priority.floor(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, floor(priority) as \`f\` from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; f: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('round-int-receiver', async () => {
+        const expected = [{ id: 1, r: 2 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                r:  tIssue.priority.round(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round(priority) as \`r\` from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; r: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('logn-int-receiver', async () => {
+        // Two-arg logarithm on a bare int receiver: log base 2 of priority(id=1)=2 = 1.
+        const expected = [{ id: 1, l: 1 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                l:  tIssue.priority.logn(2),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, log(?, priority) as \`l\` from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; l: number }>>>()
+        if (ctx.realDbEnabled) {
+            expect(result[0]!.l).toBeCloseTo(1, 5)
+        } else {
+            expect(result).toEqual(expected)
+        }
+    })
+
+    test('roundn-int-receiver', async () => {
+        // `.roundn(n)` on a bare int receiver: round(priority(id=1)=2, 2) = 2.
+        const expected = [{ id: 1, r: 2 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                r:  tIssue.priority.roundn(2),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round(priority, ?) as \`r\` from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; r: number }>>>()
+        if (ctx.realDbEnabled) {
+            expect(result[0]!.r).toBeCloseTo(2, 2)
+        } else {
+            expect(result).toEqual(expected)
+        }
+    })
 })

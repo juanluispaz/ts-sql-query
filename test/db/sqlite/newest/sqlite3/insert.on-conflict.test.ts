@@ -591,4 +591,192 @@ describe(ctx.label, () => {
             }
         })
     })
+
+    test('on-conflict-on-columns-with-where-do-nothing', async () => {
+        // `onConflictOn(cols).where(cond).doNothing()` — the DO NOTHING arm off
+        // a partial-INDEX conflict target (the do-update counterpart lives in
+        // `insert.on-conflict-do-update-extras.test.ts`). The partial-index
+        // predicate `.where(tProject.published.equals(true))` targets a real
+        // partial unique index. Seeded row id=1 (`mktg-site`, organizationId=1,
+        // published='t') matches the target, so the insert is suppressed.
+        ctx.mockNext(0)
+        await ctx.withRollback(async () => {
+            const inserted = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, slug: 'mktg-site', name: 'ignored' })
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .where(tProject.published.equals(true))
+                .doNothing()
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) where (published = 't') = ? do nothing"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "mktg-site",
+                "ignored",
+                true,
+              ]
+            `)
+            assertType<Exact<typeof inserted, number>>()
+            if (ctx.realDbEnabled) expect(typeof inserted).toBe('number')
+            else expect(inserted).toBe(0)
+        })
+    })
+
+    test('on-conflict-on-columns-dynamic-where-do-nothing', async () => {
+        // The conflict-target `dynamicWhere()` variant of the test above: an
+        // empty `dynamicWhere()` seeded by a single `.and(...)` builds the same
+        // partial-index predicate as the direct `.where(...)` form, terminated by
+        // `.doNothing()`. Pins the `dynamicWhere` dispatch on the conflict target
+        // paired with DO NOTHING.
+        ctx.mockNext(0)
+        await ctx.withRollback(async () => {
+            const inserted = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, slug: 'mktg-site', name: 'ignored' })
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .dynamicWhere()
+                    .and(tProject.published.equals(true))
+                .doNothing()
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) where (published = 't') = ? do nothing"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "mktg-site",
+                "ignored",
+                true,
+              ]
+            `)
+            assertType<Exact<typeof inserted, number>>()
+            if (ctx.realDbEnabled) expect(typeof inserted).toBe('number')
+            else expect(inserted).toBe(0)
+        })
+    })
+
+    test('from-select-on-conflict-on-columns-with-where-do-nothing', async () => {
+        // `from(select).onConflictOn(cols).where(cond).doNothing()` — the
+        // partial-index conflict target × DO NOTHING on a from-select upsert.
+        // The source re-selects project 1's (organization_id, slug, name), which
+        // collides with UNIQUE (organization_id, slug); the partial-index
+        // predicate `published = 't'` matches the seeded row, so the insert is
+        // suppressed.
+        ctx.mockNext(0)
+        await ctx.withRollback(async () => {
+            const source = ctx.conn.selectFrom(tProject)
+                .where(tProject.id.equals(1))
+                .select({
+                    organizationId: tProject.organizationId,
+                    slug:           tProject.slug,
+                    name:           tProject.name,
+                })
+
+            const inserted = await ctx.conn.insertInto(tProject)
+                .from(source)
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .where(tProject.published.equals(true))
+                .doNothing()
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) select organization_id as organizationId, slug as slug, name as name from project where id = ? on conflict (organization_id, slug) where (published = 't') = ? do nothing"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                true,
+              ]
+            `)
+            assertType<Exact<typeof inserted, number>>()
+            if (ctx.realDbEnabled) expect(typeof inserted).toBe('number')
+            else expect(inserted).toBe(0)
+        })
+    })
+
+    // NOT-APPLICABLE: SQLite has no ON CONFLICT ON CONSTRAINT
+    //     test('on-conflict-on-constraint-do-update-returning-one-column', async () => {
+    //         // `onConflictOnConstraint(rawFragment`name`).doUpdateSet({...}).returningOneColumn(col)`
+    //         // — the single-column RETURNING tail off a named-constraint DO UPDATE.
+    //         // The upsert always writes a row (insert or update), so the column is
+    //         // required (`string`). Inserting `ada@acme.test` collides with the seeded
+    //         // user via the `app_user_email_key` UNIQUE constraint, so DO UPDATE
+    //         // refreshes full_name and RETURNING gives the new full_name back.
+    //         ctx.mockNext('Ada Lovelace v2')
+    //         await ctx.withRollback(async () => {
+    //             const fullName = await ctx.conn.insertInto(tAppUser)
+    //                 .values({ email: 'ada@acme.test', fullName: 'Ada Lovelace v2' })
+    //                 .onConflictOnConstraint(ctx.conn.rawFragment`app_user_email_key`)
+    //                 .doUpdateSet({ fullName: 'Ada Lovelace v2' })
+    //                 .returningOneColumn(tAppUser.fullName)
+    //                 .executeInsertOne()
+    //
+    //             expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into app_user (email, full_name) values ($1, $2) on conflict on constraint app_user_email_key do update set full_name = $3 returning full_name as result"`)
+    //             expect(ctx.lastParams).toMatchInlineSnapshot(`
+    //               [
+    //                 "ada@acme.test",
+    //                 "Ada Lovelace v2",
+    //                 "Ada Lovelace v2",
+    //               ]
+    //             `)
+    //             assertType<Exact<typeof fullName, string>>()
+    //             expect(fullName).toBe('Ada Lovelace v2')
+    //         })
+    //     })
+    //
+    // NOT-APPLICABLE: SQLite has no ON CONFLICT ON CONSTRAINT
+    //     test('on-conflict-on-constraint-do-update-returning-object', async () => {
+    //         // Object-form RETURNING off the named-constraint DO UPDATE. The upsert
+    //         // always writes a row, so RETURNING is required (`{id, fullName}`).
+    //         // `ada@acme.test` collides with the seeded user id=1 via the
+    //         // `app_user_email_key` UNIQUE constraint, so DO UPDATE refreshes full_name
+    //         // and RETURNING yields the row's {id, fullName}.
+    //         const expected = { id: 1, fullName: 'Ada Lovelace v2' }
+    //         ctx.mockNext(expected)
+    //         await ctx.withRollback(async () => {
+    //             const row = await ctx.conn.insertInto(tAppUser)
+    //                 .values({ email: 'ada@acme.test', fullName: 'Ada Lovelace v2' })
+    //                 .onConflictOnConstraint(ctx.conn.rawFragment`app_user_email_key`)
+    //                 .doUpdateSet({ fullName: 'Ada Lovelace v2' })
+    //                 .returning({ id: tAppUser.id, fullName: tAppUser.fullName })
+    //                 .executeInsertOne()
+    //
+    //             expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into app_user (email, full_name) values ($1, $2) on conflict on constraint app_user_email_key do update set full_name = $3 returning id as id, full_name as "fullName""`)
+    //             expect(ctx.lastParams).toMatchInlineSnapshot(`
+    //               [
+    //                 "ada@acme.test",
+    //                 "Ada Lovelace v2",
+    //                 "Ada Lovelace v2",
+    //               ]
+    //             `)
+    //             assertType<Exact<typeof row, { id: number, fullName: string }>>()
+    //             expect(row).toEqual(expected)
+    //         })
+    //     })
+    //
+    // NOT-APPLICABLE: SQLite has no ON CONFLICT ON CONSTRAINT
+    //     test('on-conflict-on-constraint-do-nothing-returning-object', async () => {
+    //         // Object-form RETURNING off a named-constraint DO NOTHING — the None arm.
+    //         // A DO NOTHING may suppress the insert, so RETURNING is None-or-One
+    //         // (`{email, fullName} | null`). A fresh email is inserted so no unique key
+    //         // collides; the row inserts and its {email, fullName} — exactly what was
+    //         // inserted — come back in both modes.
+    //         const expected = { email: 'grace2@acme.test', fullName: 'Grace Hopper II' }
+    //         ctx.mockNext(expected)
+    //         await ctx.withRollback(async () => {
+    //             const row = await ctx.conn.insertInto(tAppUser)
+    //                 .values({ email: 'grace2@acme.test', fullName: 'Grace Hopper II' })
+    //                 .onConflictOnConstraint(ctx.conn.rawFragment`app_user_email_key`)
+    //                 .doNothing()
+    //                 .returning({ email: tAppUser.email, fullName: tAppUser.fullName })
+    //                 .executeInsertNoneOrOne()
+    //
+    //             expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into app_user (email, full_name) values ($1, $2) on conflict on constraint app_user_email_key do nothing returning email as email, full_name as "fullName""`)
+    //             expect(ctx.lastParams).toMatchInlineSnapshot(`
+    //               [
+    //                 "grace2@acme.test",
+    //                 "Grace Hopper II",
+    //               ]
+    //             `)
+    //             assertType<Exact<typeof row, { email: string, fullName: string } | null>>()
+    //             expect(row).toEqual(expected)
+    //         })
+    //     })
 })

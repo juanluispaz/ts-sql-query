@@ -3,7 +3,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tProject } from '../../domain/connection.js'
+import { tIssue, tOrganization, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -1025,5 +1025,170 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{ label: string }>>>()
         expect(result).toEqual(expected)
+    })
+
+    test('compound-insensitive-order-by-wrap-with-limit-offset', async () => {
+        // A compound whose INSENSITIVE order-by wraps the union in
+        // `select * from (...) as o_1_ order by lower(label) …`, combined with
+        // `limit` + `offset`. The 8 union labels are all distinct-case, so
+        // `asc insensitive` yields plain ascending order; offset 2 + limit 2 selects
+        // rows 3-4 ('Legacy app', 'Marketing site').
+        const expected = [{ label: 'Legacy app' }, { label: 'Marketing site' }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tProject)
+            .select({ label: tProject.name })
+            .union(ctx.conn.selectFrom(tIssue).select({ label: tIssue.title }))
+            .orderBy('label', 'asc insensitive')
+            .limit(2)
+            .offset(2)
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select name as "label" from project union select title as "label" from issue) o_1_ order by lower("label") asc offset :0 rows fetch next :1 rows only"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ label: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('compound-value-source-order-by-wrap-with-limit', async () => {
+        // A compound value-source order-by (the no-table `const(1)` secondary key)
+        // forces the `select * from (...) as o_1_` wrap; chaining `limit(2)` pages the
+        // wrapped result. Primary `orderBy('label')` keeps it deterministic — the first
+        // two ascending labels come back.
+        const expected = [{ label: 'Document /v2/users' }, { label: 'Internal tools' }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tProject)
+            .select({ label: tProject.name })
+            .union(ctx.conn.selectFrom(tIssue).select({ label: tIssue.title }))
+            .orderBy('label')
+            .orderBy(ctx.conn.const(1, 'int'))
+            .limit(2)
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select name as "label" from project union select title as "label" from issue) o_1_ order by "label", :0 fetch next :1 rows only"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ label: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('compound-wrap-execute-select-page', async () => {
+        // A compound consumed via `executeSelectPage` where the DATA query WRAPS (the
+        // insensitive order-by forces `select * from (...) as o_1_`): the data query
+        // pages the wrapped union while the count query wraps the compound in a
+        // `result_for_count` CTE (`select count(*) from result_for_count`). Offset 2 +
+        // limit 2 over the 8 ascending labels returns rows 3-4; the count is the full 8.
+        const dataRows = [{ label: 'Legacy app' }, { label: 'Marketing site' }]
+        ctx.mockNext(dataRows)
+        ctx.mockNext(8)
+        const page = await ctx.conn.selectFrom(tProject)
+            .select({ label: tProject.name })
+            .union(ctx.conn.selectFrom(tIssue).select({ label: tIssue.title }))
+            .orderBy('label', 'asc insensitive')
+            .limit(2)
+            .offset(2)
+            .executeSelectPage()
+
+        expect(ctx.history.length).toBe(2)
+        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select * from (select name as "label" from project union select title as "label" from issue) o_1_ order by lower("label") asc offset :0 rows fetch next :1 rows only"`)
+        expect(ctx.history[0]!.params).toMatchInlineSnapshot(`
+          [
+            2,
+            2,
+          ]
+        `)
+        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with result_for_count("label") as (select * from (select name as "label" from project union select title as "label" from issue) o_1_ order by lower("label") asc) select count(*) from result_for_count"`)
+        expect(ctx.history[1]!.params).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof page, { data: Array<{ label: string }>; count: number }>>()
+        expect(page).toEqual({ data: dataRows, count: 8 })
+    })
+
+    test('compound-arm-parenthesized-by-its-own-customize-before-order-by-items', async () => {
+        // A compound ARM whose own `customizeQuery({ beforeOrderByItems })` injects an
+        // ORDER BY forces the arm to be parenthesized so the operator binds it, not the
+        // whole compound: `(select … order by <frag>) union …`. The left arm (project
+        // names) orders itself by name via the hook; the outer `orderBy('label')` makes
+        // the union deterministic (all 8 labels ascending).
+        const expected = [
+            { label: 'Document /v2/users' },
+            { label: 'Internal tools' },
+            { label: 'Legacy app' },
+            { label: 'Marketing site' },
+            { label: 'Migrate to ESM' },
+            { label: 'Public API' },
+            { label: 'Redesign navbar' },
+            { label: 'Update hero copy' },
+        ]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tProject)
+            .select({ label: tProject.name })
+            .customizeQuery({ beforeOrderByItems: ctx.conn.rawFragment`${tProject.name} asc` })
+            .union(ctx.conn.selectFrom(tIssue).select({ label: tIssue.title }))
+            .orderBy('label')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select name as "label" from project order by project.name asc) union select title as "label" from issue order by 1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ label: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('inline-aggregated-array-with-group-by-and-order-by', async () => {
+        // An inline aggregated-array subquery (`forUseAsInlineAggregatedArrayValue`)
+        // carrying BOTH `groupBy` AND `orderBy`: the ordering rides inside the wrapped
+        // derived table `(select … group by … order by …) as a_1_`, so the aggregated
+        // array comes back in that order. Org 1 owns project 1 (issues 1,2 → count 2)
+        // and project 2 (issue 3 → count 1); `order by id` fixes the array order.
+        // (Placed here per the round-39 audit's file assignment; the surface exercised
+        // is the grouped+ordered inline-aggregate derived table, not a compound.)
+        ctx.mockNext({
+            id: 1, name: 'Acme Corp',
+            projectStats: JSON.stringify([
+                { id: 1, count: 2 },
+                { id: 2, count: 1 },
+            ]),
+        })
+        const projectStats = ctx.conn.subSelectUsing(tOrganization).from(tProject)
+            .innerJoin(tIssue).on(tIssue.projectId.equals(tProject.id))
+            .where(tProject.organizationId.equals(tOrganization.id))
+            .select({
+                id:    tProject.id,
+                count: ctx.conn.count(tIssue.id),
+            })
+            .groupBy('id')
+            .orderBy('id')
+            .forUseAsInlineAggregatedArrayValue()
+
+        const row = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.id.equals(1))
+            .select({
+                id:           tOrganization.id,
+                name:         tOrganization.name,
+                projectStats,
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", name as "name", (select json_arrayagg(json_object('id' value a_1_.id, 'count' value a_1_.count)) from (select project.id as id, count(issue.id) as count from project inner join issue on issue.project_id = project.id where project.organization_id = "organization".id group by project.id order by id offset 0 rows) a_1_) as "projectStats" from "organization" where id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            id:           number
+            name:         string
+            projectStats: Array<{ id: number; count: number }>
+        }>>()
+        expect(row).toEqual({
+            id: 1, name: 'Acme Corp',
+            projectStats: [
+                { id: 1, count: 2 },
+                { id: 2, count: 1 },
+            ],
+        })
     })
 })

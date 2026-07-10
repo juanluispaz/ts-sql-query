@@ -6,7 +6,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tOrganization, tProject, tReleaseDraft, type ReleaseChannel } from '../../domain/connection.js'
+import { tAppUser, tIssue, tOrganization, tProject, tReleaseDraft, type ReleaseChannel } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -376,5 +376,316 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number; channel: ReleaseChannel | null }>>>()
         expect(rows).toEqual(expected)
+    })
+
+    test('rule-3-required-container-own-and-left-join-leaf-dropped-on-join-miss-default', async () => {
+        // Rule 3 (required container) on a JOIN MISS. `mix` mixes an OWN-TABLE
+        // required leaf (`ownId` = project.id, always present) with a LEFT-JOIN
+        // originallyRequired leaf (`issTitle` = issue.title via left join). The
+        // own-table leaf makes the object REQUIRED (`mix:`, never dropped); the
+        // left-join leaf is demoted to `string | undefined`. project 3 -> issue 4
+        // (join hits, `issTitle` present); project 4 -> no issue (join misses, so
+        // `issTitle` drops while `mix` itself stays present with only `ownId`).
+        const expected = [
+            { pid: 3, mix: { ownId: 3, issTitle: 'Document /v2/users' } },
+            { pid: 4, mix: { ownId: 4 } },
+        ]
+        ctx.mockNext([
+            { pid: 3, 'mix.ownId': 3, 'mix.issTitle': 'Document /v2/users' },
+            { pid: 4, 'mix.ownId': 4, 'mix.issTitle': null },
+        ])
+        const tIssueLeft = tIssue.forUseInLeftJoin()
+        const rows = await ctx.conn.selectFrom(tProject)
+            .leftJoin(tIssueLeft).on(tIssueLeft.projectId.equals(tProject.id))
+            .where(tProject.id.in([3, 4]))
+            .select({
+                pid: tProject.id,
+                mix: { ownId: tProject.id, issTitle: tIssueLeft.title },
+            })
+            .orderBy('pid')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, project.id as "mix.ownId", issue.title as "mix.issTitle" from project left join issue on issue.project_id = project.id where project.id in ($1, $2) order by pid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+            4,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            pid: number
+            mix: { ownId: number; issTitle?: string }
+        }>>>()
+        const miss = rows[1]!
+        expect('mix' in miss).toBe(true)
+        expect('issTitle' in miss.mix).toBe(false)
+        expect(rows).toEqual(expected)
+    })
+
+    test('rule-3-required-container-own-and-left-join-leaf-dropped-on-join-miss-projecting-optional-values-as-nullable', async () => {
+        // Same rule-3 miss under `projectingOptionalValuesAsNullable()`: the object
+        // stays REQUIRED (own-table leaf keeps it present), but the demoted
+        // left-join leaf flips to `string | null` and surfaces as `null` on the
+        // miss instead of being absent. project 4 -> no issue -> `issTitle: null`.
+        const expected = [
+            { pid: 3, mix: { ownId: 3, issTitle: 'Document /v2/users' } },
+            { pid: 4, mix: { ownId: 4, issTitle: null } },
+        ]
+        ctx.mockNext([
+            { pid: 3, 'mix.ownId': 3, 'mix.issTitle': 'Document /v2/users' },
+            { pid: 4, 'mix.ownId': 4, 'mix.issTitle': null },
+        ])
+        const tIssueLeft = tIssue.forUseInLeftJoin()
+        const rows = await ctx.conn.selectFrom(tProject)
+            .leftJoin(tIssueLeft).on(tIssueLeft.projectId.equals(tProject.id))
+            .where(tProject.id.in([3, 4]))
+            .select({
+                pid: tProject.id,
+                mix: { ownId: tProject.id, issTitle: tIssueLeft.title },
+            })
+            .projectingOptionalValuesAsNullable()
+            .orderBy('pid')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, project.id as "mix.ownId", issue.title as "mix.issTitle" from project left join issue on issue.project_id = project.id where project.id in ($1, $2) order by pid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+            4,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            pid: number
+            mix: { ownId: number; issTitle: string | null }
+        }>>>()
+        const miss = rows[1]!
+        expect(miss.mix.issTitle).toBe(null)
+        expect(rows).toEqual(expected)
+    })
+
+    test('two-different-left-joins-full-miss-drops-object-default', async () => {
+        // Rule 4 (two DIFFERENT left joins in one object) on a FULL miss. `obj`
+        // mixes an issue-left-join leaf (`issTitle` = issue.title) with a chained
+        // user-left-join leaf (`assigneeName` = app_user.full_name). Because the
+        // two leaves come from different left joins, the object is OPTIONAL
+        // (`obj?`, dropped only when BOTH leaves are null). project 3 -> issue 4 ->
+        // assignee 3 (Alan Turing): both joins hit, `obj` present. project 4 -> no
+        // issue -> the user join misses too: BOTH null, so the whole object drops.
+        const expected = [
+            { pid: 3, obj: { issTitle: 'Document /v2/users', assigneeName: 'Alan Turing' } },
+            { pid: 4 },
+        ]
+        ctx.mockNext([
+            { pid: 3, 'obj.issTitle': 'Document /v2/users', 'obj.assigneeName': 'Alan Turing' },
+            { pid: 4, 'obj.issTitle': null, 'obj.assigneeName': null },
+        ])
+        const tIssueLeft = tIssue.forUseInLeftJoin()
+        const tUserLeft = tAppUser.forUseInLeftJoin()
+        const rows = await ctx.conn.selectFrom(tProject)
+            .leftJoin(tIssueLeft).on(tIssueLeft.projectId.equals(tProject.id))
+            .leftJoin(tUserLeft).on(tUserLeft.id.equals(tIssueLeft.assigneeId))
+            .where(tProject.id.in([3, 4]))
+            .select({
+                pid: tProject.id,
+                obj: { issTitle: tIssueLeft.title, assigneeName: tUserLeft.fullName },
+            })
+            .orderBy('pid')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.title as "obj.issTitle", app_user.full_name as "obj.assigneeName" from project left join issue on issue.project_id = project.id left join app_user on app_user.id = issue.assignee_id where project.id in ($1, $2) order by pid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+            4,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            pid: number
+            obj?: { issTitle: string | undefined; assigneeName: string | undefined }
+        }>>>()
+        const miss = rows[1]!
+        expect('obj' in miss).toBe(false)
+        expect(rows).toEqual(expected)
+    })
+
+    test('two-different-left-joins-full-miss-drops-object-projecting-optional-values-as-nullable', async () => {
+        // Same rule-4 full miss under `projectingOptionalValuesAsNullable()`: the
+        // dropped object surfaces as `null` (not absent). project 4 -> both leaves
+        // null -> `obj: null`.
+        const expected = [
+            { pid: 3, obj: { issTitle: 'Document /v2/users', assigneeName: 'Alan Turing' } },
+            { pid: 4, obj: null },
+        ]
+        ctx.mockNext([
+            { pid: 3, 'obj.issTitle': 'Document /v2/users', 'obj.assigneeName': 'Alan Turing' },
+            { pid: 4, 'obj.issTitle': null, 'obj.assigneeName': null },
+        ])
+        const tIssueLeft = tIssue.forUseInLeftJoin()
+        const tUserLeft = tAppUser.forUseInLeftJoin()
+        const rows = await ctx.conn.selectFrom(tProject)
+            .leftJoin(tIssueLeft).on(tIssueLeft.projectId.equals(tProject.id))
+            .leftJoin(tUserLeft).on(tUserLeft.id.equals(tIssueLeft.assigneeId))
+            .where(tProject.id.in([3, 4]))
+            .select({
+                pid: tProject.id,
+                obj: { issTitle: tIssueLeft.title, assigneeName: tUserLeft.fullName },
+            })
+            .projectingOptionalValuesAsNullable()
+            .orderBy('pid')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.title as "obj.issTitle", app_user.full_name as "obj.assigneeName" from project left join issue on issue.project_id = project.id left join app_user on app_user.id = issue.assignee_id where project.id in ($1, $2) order by pid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+            4,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            pid: number
+            obj: { issTitle: string | null; assigneeName: string | null } | null
+        }>>>()
+        const miss = rows[1]!
+        expect(miss.obj).toBe(null)
+        expect(rows).toEqual(expected)
+    })
+
+    test('two-different-left-joins-partial-miss-keeps-object-default', async () => {
+        // Rule 4 (two DIFFERENT left joins) on a PARTIAL miss — the strongest of
+        // the four boundaries, exercising per-leaf source discrimination. project 2
+        // -> issue 3 ('Migrate to ESM'), whose assignee_id is NULL: the issue join
+        // HITS (`issTitle` present) but the user join MISSES (`assigneeName` null).
+        // At least one leaf has a value, so the object is KEPT; the null leaf drops.
+        const expected = { pid: 2, obj: { issTitle: 'Migrate to ESM' } }
+        ctx.mockNext({ pid: 2, 'obj.issTitle': 'Migrate to ESM', 'obj.assigneeName': null })
+        const tIssueLeft = tIssue.forUseInLeftJoin()
+        const tUserLeft = tAppUser.forUseInLeftJoin()
+        const row = await ctx.conn.selectFrom(tProject)
+            .leftJoin(tIssueLeft).on(tIssueLeft.projectId.equals(tProject.id))
+            .leftJoin(tUserLeft).on(tUserLeft.id.equals(tIssueLeft.assigneeId))
+            .where(tProject.id.equals(2))
+            .select({
+                pid: tProject.id,
+                obj: { issTitle: tIssueLeft.title, assigneeName: tUserLeft.fullName },
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.title as "obj.issTitle", app_user.full_name as "obj.assigneeName" from project left join issue on issue.project_id = project.id left join app_user on app_user.id = issue.assignee_id where project.id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            pid: number
+            obj?: { issTitle: string | undefined; assigneeName: string | undefined }
+        }>>()
+        expect('obj' in row).toBe(true)
+        expect(row.obj!.issTitle).toBe('Migrate to ESM')
+        expect('assigneeName' in row.obj!).toBe(false)
+        expect(row).toEqual(expected)
+    })
+
+    test('two-different-left-joins-partial-miss-keeps-object-projecting-optional-values-as-nullable', async () => {
+        // Same rule-4 partial miss under `projectingOptionalValuesAsNullable()`: the
+        // object is kept, the present leaf carries its value, and the missing leaf
+        // surfaces as `null` instead of being absent. project 2 -> issue 3 present,
+        // assignee null -> `{ issTitle: 'Migrate to ESM', assigneeName: null }`.
+        const expected = { pid: 2, obj: { issTitle: 'Migrate to ESM', assigneeName: null } }
+        ctx.mockNext({ pid: 2, 'obj.issTitle': 'Migrate to ESM', 'obj.assigneeName': null })
+        const tIssueLeft = tIssue.forUseInLeftJoin()
+        const tUserLeft = tAppUser.forUseInLeftJoin()
+        const row = await ctx.conn.selectFrom(tProject)
+            .leftJoin(tIssueLeft).on(tIssueLeft.projectId.equals(tProject.id))
+            .leftJoin(tUserLeft).on(tUserLeft.id.equals(tIssueLeft.assigneeId))
+            .where(tProject.id.equals(2))
+            .select({
+                pid: tProject.id,
+                obj: { issTitle: tIssueLeft.title, assigneeName: tUserLeft.fullName },
+            })
+            .projectingOptionalValuesAsNullable()
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.title as "obj.issTitle", app_user.full_name as "obj.assigneeName" from project left join issue on issue.project_id = project.id left join app_user on app_user.id = issue.assignee_id where project.id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            pid: number
+            obj: { issTitle: string | null; assigneeName: string | null } | null
+        }>>()
+        expect(row.obj!.assigneeName).toBe(null)
+        expect(row.obj!.issTitle).toBe('Migrate to ESM')
+        expect(row).toEqual(expected)
+    })
+
+    test('rule-1-required-in-optional-object-marker-hits-while-demoted-leaf-misses-default', async () => {
+        // Rule 1 (asRequiredInOptionalObject marker) with the marked leaf and the
+        // demoted leaf drawn from DIFFERENT left joins so one HITS and the other
+        // MISSES. `mix` marks the issue-left-join `title`
+        // (`.asRequiredInOptionalObject()`) — that marker makes the object OPTIONAL
+        // (`mix?`) and keeps it present as long as the MARKED leaf has a value;
+        // the sibling user-left-join `assigneeName` (originallyRequired) is demoted
+        // to `string | undefined`. project 2 -> issue 3 ('Migrate to ESM', assignee
+        // NULL): the issue join hits so the marked leaf keeps `mix` present, while
+        // the user join misses so the demoted `assigneeName` drops.
+        const expected = { pid: 2, mix: { title: 'Migrate to ESM' } }
+        ctx.mockNext({ pid: 2, 'mix.title': 'Migrate to ESM', 'mix.assigneeName': null })
+        const tIssueLeft = tIssue.forUseInLeftJoin()
+        const tUserLeft = tAppUser.forUseInLeftJoin()
+        const row = await ctx.conn.selectFrom(tProject)
+            .leftJoin(tIssueLeft).on(tIssueLeft.projectId.equals(tProject.id))
+            .leftJoin(tUserLeft).on(tUserLeft.id.equals(tIssueLeft.assigneeId))
+            .where(tProject.id.equals(2))
+            .select({
+                pid: tProject.id,
+                mix: { title: tIssueLeft.title.asRequiredInOptionalObject(), assigneeName: tUserLeft.fullName },
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.title as "mix.title", app_user.full_name as "mix.assigneeName" from project left join issue on issue.project_id = project.id left join app_user on app_user.id = issue.assignee_id where project.id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            pid: number
+            mix?: { title: string; assigneeName: string | undefined }
+        }>>()
+        expect('mix' in row).toBe(true)
+        expect(row.mix!.title).toBe('Migrate to ESM')
+        expect('assigneeName' in row.mix!).toBe(false)
+        expect(row).toEqual(expected)
+    })
+
+    test('rule-1-required-in-optional-object-marker-hits-while-demoted-leaf-misses-projecting-optional-values-as-nullable', async () => {
+        // Same rule-1 boundary under `projectingOptionalValuesAsNullable()`: the
+        // object stays present (marked leaf hits) and becomes `{...} | null`, the
+        // marked `title` stays required inside it, and the demoted `assigneeName`
+        // surfaces as `null` instead of being absent. project 2 -> marked leaf
+        // present, user join misses -> `{ title: 'Migrate to ESM', assigneeName: null }`.
+        const expected = { pid: 2, mix: { title: 'Migrate to ESM', assigneeName: null } }
+        ctx.mockNext({ pid: 2, 'mix.title': 'Migrate to ESM', 'mix.assigneeName': null })
+        const tIssueLeft = tIssue.forUseInLeftJoin()
+        const tUserLeft = tAppUser.forUseInLeftJoin()
+        const row = await ctx.conn.selectFrom(tProject)
+            .leftJoin(tIssueLeft).on(tIssueLeft.projectId.equals(tProject.id))
+            .leftJoin(tUserLeft).on(tUserLeft.id.equals(tIssueLeft.assigneeId))
+            .where(tProject.id.equals(2))
+            .select({
+                pid: tProject.id,
+                mix: { title: tIssueLeft.title.asRequiredInOptionalObject(), assigneeName: tUserLeft.fullName },
+            })
+            .projectingOptionalValuesAsNullable()
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.title as "mix.title", app_user.full_name as "mix.assigneeName" from project left join issue on issue.project_id = project.id left join app_user on app_user.id = issue.assignee_id where project.id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            pid: number
+            mix: { title: string; assigneeName: string | null } | null
+        }>>()
+        expect(row.mix!.assigneeName).toBe(null)
+        expect(row.mix!.title).toBe('Migrate to ESM')
+        expect(row).toEqual(expected)
     })
 })

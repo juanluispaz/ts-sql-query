@@ -271,6 +271,13 @@ describe(ctx.label, () => {
         const err = thrown as Error
         expect(String(err.message)).toContain('found a value source with type')
         expect(String(err.message)).toContain('string')
+        // The object-of-rules guard also populates the structured reason: the
+        // dotted `path` down to the rule group (`id.idRules`) and the offending
+        // leaf rule name (`stringify`).
+        const errorReason = (thrown as TsSqlError).errorReason
+        expect(errorReason.reason).toBe('DYNAMIC_CONDITION_INVALID_EXTENSION_RETURN_TYPE')
+        expect('path' in errorReason ? errorReason.path : undefined).toBe('id.idRules')
+        expect('extensionName' in errorReason ? errorReason.extensionName : undefined).toBe('stringify')
     })
 
     test('extension-scoped-under-nested-projection-key-returning-non-value-source-throws-path-depth-2', async () => {
@@ -315,5 +322,41 @@ describe(ctx.label, () => {
         expect(err.key).toBe('project.broken')
         expect(thrown instanceof TsSqlError ? thrown.errorReason.reason : undefined).toBe('DYNAMIC_CONDITION_INVALID_EXTENSION_RETURN_TYPE')
         expect(thrown instanceof TsSqlError && 'path' in thrown.errorReason ? thrown.errorReason.path : undefined).toBe('project.broken')
+    })
+
+    test('column-level-object-extension-non-value-source-return-throws-typed-error', async () => {
+        // The object-of-rules error path when a leaf rule returns a
+        // NON-value-source (a plain string, not a ValueSource): the guard fires
+        // and the structured `errorReason` carries the dotted `path`
+        // (`id.idRules` — the column joined to the rule-group key) and the leaf
+        // `extensionName` (`broken`). The Error is additionally decorated with
+        // `.rule`, `.extensionResult`, and `.processedValue` so calling code
+        // can localise the mistake.
+        const connection = ctx.conn
+        const selectFields = { id: tIssue.id }
+        const extension = {
+            idRules: {
+                broken: ((_v: number) => 'not-a-value-source') as unknown as BoolRule<number>,
+            },
+        }
+        const filter = { id: { idRules: { broken: 5 } } } as DynamicCondition<{ id: 'int' }>
+
+        let thrown: unknown
+        try {
+            await connection.selectFrom(tIssue)
+                .where(connection.dynamicConditionFor(selectFields, extension).withValues(filter))
+                .select({ id: tIssue.id })
+                .executeSelectMany()
+        } catch (e) { thrown = e }
+
+        expect(thrown).toBeInstanceOf(TsSqlError)
+        const err = thrown as Error & { rule?: unknown; extensionResult?: unknown; processedValue?: unknown }
+        const errorReason = (thrown as TsSqlError).errorReason
+        expect(errorReason.reason).toBe('DYNAMIC_CONDITION_INVALID_EXTENSION_RETURN_TYPE')
+        expect('path' in errorReason ? errorReason.path : undefined).toBe('id.idRules')
+        expect('extensionName' in errorReason ? errorReason.extensionName : undefined).toBe('broken')
+        expect(err.rule).toBe('broken')
+        expect(err.extensionResult).toBe('not-a-value-source')
+        expect(err.processedValue).toBe(5)
     })
 })

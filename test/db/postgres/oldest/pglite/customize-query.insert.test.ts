@@ -7,7 +7,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tLedgerEntry, tProject } from '../../domain/connection.js'
+import { tAppUser, tIssue, tLedgerEntry, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -381,6 +381,37 @@ describe(ctx.label, () => {
             assertType<Exact<typeof affected, number>>()
             if (!ctx.realDbEnabled) expect(affected).toBe(1)
             else expect(typeof affected).toBe('number')
+        })
+    })
+
+    test('customize-insert-on-conflict-on-constraint-do-update-with-hooks', async () => {
+        // `onConflictOnConstraint(rawFragment`name`).doUpdateSet({...}).customizeQuery({afterInsertKeyword})`
+        // — the customize hook on a named-constraint DO UPDATE upsert (the other
+        // on-conflict customize tests use the column-target `onConflictOn(...)`).
+        // The hook lands just after the INSERT keyword. `ada@acme.test` collides
+        // with the seeded user via the `app_user_email_key` UNIQUE constraint, so
+        // DO UPDATE refreshes full_name.
+        ctx.mockNext(1)
+        const connection = ctx.conn
+        await ctx.withRollback(async () => {
+            const affected = await connection.insertInto(tAppUser)
+                .values({ email: 'ada@acme.test', fullName: 'Reactivated' })
+                .onConflictOnConstraint(connection.rawFragment`app_user_email_key`)
+                .doUpdateSet({ fullName: 'Reactivated' })
+                .customizeQuery({ afterInsertKeyword: connection.rawFragment`/*+ hint */` })
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert /*+ hint */ into app_user (email, full_name) values ($1, $2) on conflict on constraint app_user_email_key do update set full_name = $3"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "ada@acme.test",
+                "Reactivated",
+                "Reactivated",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            if (ctx.realDbEnabled) expect(typeof affected).toBe('number')
+            else expect(affected).toBe(1)
         })
     })
 })

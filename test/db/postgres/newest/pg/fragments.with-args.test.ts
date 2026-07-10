@@ -1081,4 +1081,40 @@ describe(ctx.label, () => {
         expect(rows).toEqual([{ r: undefined }])
         expect('r' in rows[0]!).toBe(false)
     })
+
+    test('arg-keyword-bigint', async () => {
+        // duration_ms is an optional bigint column; worklog 1 = 5400000. The
+        // valueArg('bigint') binds the bigint value.
+        const expected = [{ id: 1 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(ctx.conn.bigintValueEq(tIssueWorklog.durationMs, 5400000n))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where duration_ms = $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            5400000n,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('arg-keyword-uuid', async () => {
+        // external_ref is an optional uuid column; issue 1 carries the seeded
+        // uuid. The valueArg('uuid') binds the uuid string.
+        const expected = [{ id: 1 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.uuidValueEq(tIssue.externalRef, '0a8f9c1e-1111-4222-8333-444455556666'))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref = $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "0a8f9c1e-1111-4222-8333-444455556666",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
 })

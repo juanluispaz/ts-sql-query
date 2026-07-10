@@ -618,4 +618,116 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
+
+    // ── 8. valueWhenNull / nullIfValue with a CROSS-TABLE value-source operand ─
+
+    test('value-source-rhs/customint-value-when-null-cross-table-operand', async () => {
+        // `valueWhenNull` with a value-source operand drawn from a DIFFERENT
+        // table (a self-join alias): `worklog2` is joined on the same id, so
+        // `coalesce(issue_worklog.cost_cents, worklog2.cost_cents)` qualifies
+        // both operands with distinct table aliases. cost_cents is required
+        // (non-null), so coalesce keeps the left value and the optionality stays
+        // required. Worklog 1: cost_cents 100 -> 100.
+        const worklog2 = tIssueWorklog.as('worklog2')
+        const expected = [{ id: 1, wn: 100 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssueWorklog)
+            .join(worklog2).on(worklog2.id.equals(tIssueWorklog.id))
+            .where(tIssueWorklog.id.equals(1))
+            .select({
+                id: tIssueWorklog.id,
+                wn: tIssueWorklog.costCents.valueWhenNull(worklog2.costCents),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue_worklog.id as "id", nvl(issue_worklog.cost_cents, worklog2.cost_cents) as "wn" from issue_worklog join issue_worklog worklog2 on worklog2.id = issue_worklog.id where issue_worklog.id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; wn: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('value-source-rhs/customint-null-if-value-cross-table-operand', async () => {
+        // `nullIfValue` with a value-source operand from a self-join alias:
+        // `nullif(issue_worklog.cost_cents, worklog2.cost_cents)` qualifies both
+        // operands with distinct table aliases. worklog2 joins on the same id, so
+        // the two cost_cents are equal (100 == 100) and `nullif` collapses to
+        // NULL -> the leaf is optional and absent under optional-as-undefined.
+        const worklog2 = tIssueWorklog.as('worklog2')
+        const expected = [{ id: 1 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssueWorklog)
+            .join(worklog2).on(worklog2.id.equals(tIssueWorklog.id))
+            .where(tIssueWorklog.id.equals(1))
+            .select({
+                id: tIssueWorklog.id,
+                ni: tIssueWorklog.costCents.nullIfValue(worklog2.costCents),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue_worklog.id as "id", nullif(issue_worklog.cost_cents, worklog2.cost_cents) as "ni" from issue_worklog join issue_worklog worklog2 on worklog2.id = issue_worklog.id where issue_worklog.id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; ni?: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('value-source-rhs/customdouble-value-when-null-cross-table-operand', async () => {
+        // `valueWhenNull` with a value-source operand from a self-join alias:
+        // `coalesce(issue_worklog.billed_amount, worklog2.billed_amount)`
+        // qualifies both operands with distinct table aliases. billed_amount
+        // ('Money', marshalled) is required, so coalesce keeps the left value and
+        // the optionality stays required. Worklog 1: billed_amount 200 -> 200.
+        const worklog2 = tIssueWorklog.as('worklog2')
+        const expected = [{ id: 1, wn: 200 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssueWorklog)
+            .join(worklog2).on(worklog2.id.equals(tIssueWorklog.id))
+            .where(tIssueWorklog.id.equals(1))
+            .select({
+                id: tIssueWorklog.id,
+                wn: tIssueWorklog.billedAmount.valueWhenNull(worklog2.billedAmount),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue_worklog.id as "id", nvl(issue_worklog.billed_amount, worklog2.billed_amount) as "wn" from issue_worklog join issue_worklog worklog2 on worklog2.id = issue_worklog.id where issue_worklog.id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; wn: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('value-source-rhs/customdouble-null-if-value-cross-table-operand', async () => {
+        // `nullIfValue` with a value-source operand from a self-join alias:
+        // `nullif(issue_worklog.billed_amount, worklog2.billed_amount)` qualifies
+        // both operands with distinct table aliases. worklog2 joins on the same
+        // id, so the two billed_amount are equal (200 == 200) and `nullif`
+        // collapses to NULL -> the leaf is optional and absent under
+        // optional-as-undefined.
+        const worklog2 = tIssueWorklog.as('worklog2')
+        const expected = [{ id: 1 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssueWorklog)
+            .join(worklog2).on(worklog2.id.equals(tIssueWorklog.id))
+            .where(tIssueWorklog.id.equals(1))
+            .select({
+                id: tIssueWorklog.id,
+                ni: tIssueWorklog.billedAmount.nullIfValue(worklog2.billedAmount),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue_worklog.id as "id", nullif(issue_worklog.billed_amount, worklog2.billed_amount) as "ni" from issue_worklog join issue_worklog worklog2 on worklog2.id = issue_worklog.id where issue_worklog.id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; ni?: number }>>>()
+        expect(result).toEqual(expected)
+    })
 })

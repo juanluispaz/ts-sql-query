@@ -396,4 +396,23 @@ describe(ctx.label, () => {
         assertType<Exact<typeof page, { data: number[]; count: number }>>()
         expect(page).toEqual({ data: [1, 2], count: 4 })
     })
+
+    test('select-one-column-optional-execute-many-null-elements', async () => {
+        // A one-column OPTIONAL scalar consumed by `executeSelectMany` yields an
+        // `Array<string | null>`: the seeded issue bodies include NULLs (issues 1 and
+        // 3 have a NULL body), which surface as `null` ELEMENTS in the array — not
+        // dropped, not coerced. `asc nulls last` pins the null placement across
+        // dialects so the value stays deterministic (the two present bodies first,
+        // then the two nulls).
+        ctx.mockNext(['See ADR-014', 'Use new tokens', null, null])
+        const result = await ctx.conn.selectFrom(tIssue)
+            .selectOneColumn(tIssue.body)
+            .orderBy('result', 'asc nulls last')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select body as [result] from issue order by iif(issue.body is null, 1, 0), [result] asc"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<string | null>>>()
+        expect(result).toEqual(['See ADR-014', 'Use new tokens', null, null])
+    })
 })

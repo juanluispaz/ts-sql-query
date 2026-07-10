@@ -279,4 +279,32 @@ describe(ctx.label, () => {
         if (ctx.realDbEnabled) return
         expect(await aggregatedArrayReason('{"a":1}')).toBe('INVALID_JSON_RECEIVED_FROM_DATABASE')
     })
+
+    // ---- from-db-validation: per-row error location (mock-only, §18) ----
+
+    test('marshalling/from-db-validation/mandatory-error-carries-row-index-and-column-path', async () => {
+        // A per-row MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE raised by
+        // `executeSelectMany` pins WHERE it happened: the 0-based `rowIndex` of the
+        // offending row and the projection `columnPath`. Here the second row (index 1)
+        // hands back null for the required `title` column, so the projector rejects it
+        // and the reason carries rowIndex=1, columnPath='title'. mock-only by
+        // construction (a real driver never returns null for the NOT NULL `title`
+        // column); `columnPath` is asserted nowhere else in the suite.
+        if (ctx.realDbEnabled) return
+        ctx.mockNext([{ title: 'ok' }, { title: null }])
+        let caught: unknown
+        try {
+            await ctx.conn.selectFrom(tIssue)
+                .select({ title: tIssue.title })
+                .executeSelectMany()
+        } catch (e) {
+            caught = e
+        }
+        const reason = caught instanceof TsSqlError ? caught.errorReason : undefined
+        expect(reason?.reason).toBe('MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE')
+        if (reason?.reason === 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE') {
+            expect(reason.rowIndex).toBe(1)
+            expect(reason.columnPath).toBe('title')
+        }
+    })
 })

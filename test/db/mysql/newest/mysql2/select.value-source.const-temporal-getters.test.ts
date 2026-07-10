@@ -12,6 +12,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
+import { tIssueWorklog, tProjectRelease, tProjectReview } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -99,6 +100,228 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{ y: number; mo: number; h: number; t: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('const-localtime-milliseconds', async () => {
+        // getMilliseconds on a `const(..., 'localTime')` — the sub-second arm of
+        // the const-cast surface. 12:34:56 has a zero millisecond component, so
+        // `extract(millisecond from $N::time)::integer % 1000` -> 0. The const
+        // cast on the placeholder is pinned by the snapshot.
+        const t = ctx.conn.const(new Date('1970-01-01T12:34:56Z'), 'localTime')
+        const expected = [{ ms: 0 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFromNoTable()
+            .select({
+                ms: t.getMilliseconds(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select round(microsecond(?) / 1000) as ms"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "12:34:56",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ ms: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('const-localdatetime-more-getters', async () => {
+        // getDate/getDay/getMinutes/getSeconds/getMilliseconds on a
+        // `const(..., 'localDateTime')` — the remaining component getters of the
+        // const-cast surface. 2024-01-15 12:34:56 UTC is a Monday -> date 15,
+        // day-of-week 1, minutes 34, seconds 56, milliseconds 0. Each
+        // `extract(... from $N::timestamp)` carries the const cast.
+        const ts = ctx.conn.const(new Date('2024-01-15T12:34:56Z'), 'localDateTime')
+        const expected = [{ d: 15, dow: 1, m: 34, s: 56, ms: 0 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFromNoTable()
+            .select({
+                d:   ts.getDate(),
+                dow: ts.getDay(),
+                m:   ts.getMinutes(),
+                s:   ts.getSeconds(),
+                ms:  ts.getMilliseconds(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select dayofmonth(?) as \`d\`, dayofweek(?) - 1 as dow, minute(?) as \`m\`, second(?) as \`s\`, round(microsecond(?) / 1000) as ms"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2024-01-15T12:34:56.000Z,
+            2024-01-15T12:34:56.000Z,
+            2024-01-15T12:34:56.000Z,
+            2024-01-15T12:34:56.000Z,
+            2024-01-15T12:34:56.000Z,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ d: number; dow: number; m: number; s: number; ms: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    // ------------------------------------------------------------------
+    // Chained getter after a projection modifier — each modifier returns the
+    // temporal leaf unchanged (up to its optional marker), so the following
+    // date-part getter still fires on a COLUMN receiver. The column arm carries
+    // no const cast; the modifier shapes the extracted expression (coalesce /
+    // nullif / plain) and the projected optional marker of the number leaf.
+    // ------------------------------------------------------------------
+
+    test('chained-valuewhennull-localdate-getmonth', async () => {
+        // `workDate.valueWhenNull(fallback).getMonth()` — valueWhenNull re-imposes
+        // the `required` marker, so the getMonth leaf is a required `number`.
+        // work_date is non-null on worklog 1 (2024-03-04), so coalesce yields
+        // 2024-03-04 -> month 2 (March, JS 0-indexed).
+        const fallback = new Date(Date.UTC(2000, 0, 1))
+        const expected = [{ mo: 2 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .select({
+                mo: tIssueWorklog.workDate.valueWhenNull(fallback).getMonth(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select month(ifnull(work_date, ?)) - 1 as mo from issue_worklog where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2000-01-01T00:00:00.000Z,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ mo: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('chained-nullifvalue-localdate-getmonth', async () => {
+        // `workDate.nullIfValue(other).getMonth()` — nullIfValue widens the leaf
+        // to optional (nullif could yield NULL), so the getMonth leaf is
+        // `?: number | undefined`. `other` (2000-01-01) differs from work_date, so
+        // nullif yields 2024-03-04 -> month 2 (March, JS 0-indexed).
+        const other = new Date(Date.UTC(2000, 0, 1))
+        const expected = [{ mo: 2 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .select({
+                mo: tIssueWorklog.workDate.nullIfValue(other).getMonth(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select month(nullif(work_date, ?)) - 1 as mo from issue_worklog where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2000-01-01T00:00:00.000Z,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ mo?: number | undefined }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('chained-asrequiredinoptionalobject-localdate-getmonth', async () => {
+        // `reviewDate.asRequiredInOptionalObject().getMonth()` — the optional
+        // review_date column re-marked `requiredInOptionalObject`. As the sole
+        // projected field (no required sibling) the object is treated as optional,
+        // so the getMonth leaf carries the undefined arm (`?: number | undefined`).
+        // review 1: review_date 2024-05-20 -> month 4 (May, JS 0-indexed).
+        const expected = [{ mo: 4 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tProjectReview)
+            .where(tProjectReview.id.equals(1))
+            .select({
+                mo: tProjectReview.reviewDate.asRequiredInOptionalObject().getMonth(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select month(review_date) - 1 as mo from project_review where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ mo?: number | undefined }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('chained-onlywhenornull-localtime-gethours', async () => {
+        // `startedAt.onlyWhenOrNull(true).getHours()` — onlyWhenOrNull(true) keeps
+        // the value source unchanged; the getHours leaf stays optional
+        // (`?: number | undefined`). worklog 1: started_at 09:15:00 -> hours 9.
+        const expected = [{ h: 9 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .select({
+                h: tIssueWorklog.startedAt.onlyWhenOrNull(true).getHours(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select hour(started_at) as \`h\` from issue_worklog where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ h?: number | undefined }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('chained-ignorewhenasnull-localtime-gethours', async () => {
+        // `startedAt.ignoreWhenAsNull(false).getHours()` — ignoreWhenAsNull(false)
+        // is the pass-through branch (the value flows unchanged); the getHours leaf
+        // stays optional (`?: number | undefined`). worklog 1: started_at 09:15:00
+        // -> hours 9.
+        const expected = [{ h: 9 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .select({
+                h: tIssueWorklog.startedAt.ignoreWhenAsNull(false).getHours(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select hour(started_at) as \`h\` from issue_worklog where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ h?: number | undefined }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('chained-modifiers-customlocaldatetime-getfullyear', async () => {
+        // The five projection modifiers on the customLocalDateTime column
+        // signedOffAt, each followed by getFullYear — proving the modifier returns
+        // the custom-temporal leaf so the getter still fires, and pinning each
+        // modifier's SQL shape + projected optional marker:
+        //   valueWhenNull            -> coalesce(...), required `number` leaf
+        //   nullIfValue              -> nullif(...),   optional leaf
+        //   asRequiredInOptionalObject -> plain,       requiredInOptionalObject leaf
+        //   onlyWhenOrNull(true)     -> plain (kept),  optional leaf
+        //   ignoreWhenAsNull(false)  -> plain (kept),  optional leaf
+        // vwn is required, so it anchors the object and the other four leaves
+        // project as `?: number` (no undefined arm). release 1: signed_off_at
+        // 2024-01-14 12:30:00 -> year 2024 for every arm (coalesce/nullif fall
+        // through to the non-null column value).
+        const fallback = new Date(Date.UTC(2000, 0, 1, 0, 0, 0))
+        const other = new Date(Date.UTC(1999, 0, 1, 0, 0, 0))
+        const expected = [{ vwn: 2024, nif: 2024, rio: 2024, own: 2024, ign: 2024 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .select({
+                vwn: tProjectRelease.signedOffAt.valueWhenNull(fallback).getFullYear(),
+                nif: tProjectRelease.signedOffAt.nullIfValue(other).getFullYear(),
+                rio: tProjectRelease.signedOffAt.asRequiredInOptionalObject().getFullYear(),
+                own: tProjectRelease.signedOffAt.onlyWhenOrNull(true).getFullYear(),
+                ign: tProjectRelease.signedOffAt.ignoreWhenAsNull(false).getFullYear(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select year(ifnull(signed_off_at, ?)) as vwn, year(nullif(signed_off_at, ?)) as nif, year(signed_off_at) as rio, year(signed_off_at) as own, year(signed_off_at) as ign from project_release where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2000-01-01T00:00:00.000Z,
+            1999-01-01T00:00:00.000Z,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ vwn: number; nif?: number; rio?: number; own?: number; ign?: number }>>>()
         expect(rows).toEqual(expected)
     })
 })

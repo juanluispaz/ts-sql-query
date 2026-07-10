@@ -521,6 +521,17 @@ export class DBConnection extends MariaDBConnection<'DBConnection'> {
     customDoubleEq = this.buildFragmentWithArgsIfValue(
         this.arg<number, 'Money'>('customDouble', 'Money', 'optional'), this.valueArg<number, 'Money'>('customDouble', 'Money', 'optional')
     ).as((c, v) => this.fragmentWithType('boolean', 'required').sql`${c} = ${v}`)
+    // bigint / uuid arg + valueArg arms — `${col} = ${value}` in a column
+    // context (the arg binds a typed column at the call site, so the SQL stays
+    // portable and only the placeholder syntax differs per cell). The valueArg
+    // marshals a distinct bound value per kind: a bigint through
+    // valueArg('bigint'), a uuid string through valueArg('uuid').
+    bigintValueEq = this.buildFragmentWithArgsIfValue(
+        this.arg('bigint', 'optional'), this.valueArg('bigint', 'optional')
+    ).as((c, v) => this.fragmentWithType('boolean', 'required').sql`${c} = ${v}`)
+    uuidValueEq = this.buildFragmentWithArgsIfValue(
+        this.arg('uuid', 'optional'), this.valueArg('uuid', 'optional')
+    ).as((c, v) => this.fragmentWithType('boolean', 'required').sql`${c} = ${v}`)
 
     // Sequence references — exercised by sequence.next-current-value.test.ts.
     // Sequences are only typed on AbstractAdvancedConnection-derived
@@ -608,6 +619,21 @@ export class DBConnection extends MariaDBConnection<'DBConnection'> {
     withMinIdFilter = this.createTableOrViewCustomization<number>((table, alias, minId) => {
         const min = this.const(minId, 'int')
         return this.rawFragment`(select * from ${table} where ${min} >= 0) ${alias}`
+    })
+
+    // Higher-arity siblings of withMinIdFilter — the P3/P4/P5 overloads of
+    // createTableOrViewCustomization (withSqlHint is P0, withMinIdFilter is P1).
+    // Each threads N runtime int params into the derived-table predicate as real
+    // bound placeholders (`<pN> >= 0`, all constant-true so every row is kept),
+    // so the extra params ride ahead of any outer WHERE param.
+    withThreeParams = this.createTableOrViewCustomization<number, number, number>((table, alias, a, b, c) => {
+        return this.rawFragment`(select * from ${table} where ${this.const(a, 'int')} >= 0 and ${this.const(b, 'int')} >= 0 and ${this.const(c, 'int')} >= 0) ${alias}`
+    })
+    withFourParams = this.createTableOrViewCustomization<number, number, number, number>((table, alias, a, b, c, d) => {
+        return this.rawFragment`(select * from ${table} where ${this.const(a, 'int')} >= 0 and ${this.const(b, 'int')} >= 0 and ${this.const(c, 'int')} >= 0 and ${this.const(d, 'int')} >= 0) ${alias}`
+    })
+    withFiveParams = this.createTableOrViewCustomization<number, number, number, number, number>((table, alias, a, b, c, d, e) => {
+        return this.rawFragment`(select * from ${table} where ${this.const(a, 'int')} >= 0 and ${this.const(b, 'int')} >= 0 and ${this.const(c, 'int')} >= 0 and ${this.const(d, 'int')} >= 0 and ${this.const(e, 'int')} >= 0) ${alias}`
     })
 }
 

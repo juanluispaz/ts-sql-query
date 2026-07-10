@@ -381,4 +381,36 @@ describe(ctx.label, () => {
             else expect(typeof affected).toBe('number')
         })
     })
+
+    // NOT-APPLICABLE: Oracle has no ON CONFLICT ON CONSTRAINT
+    //     test('customize-insert-on-conflict-on-constraint-do-update-with-hooks', async () => {
+    //         // `onConflictOnConstraint(rawFragment`name`).doUpdateSet({...}).customizeQuery({afterInsertKeyword})`
+    //         // — the customize hook on a named-constraint DO UPDATE upsert (the other
+    //         // on-conflict customize tests use the column-target `onConflictOn(...)`).
+    //         // The hook lands just after the INSERT keyword. `ada@acme.test` collides
+    //         // with the seeded user via the `app_user_email_key` UNIQUE constraint, so
+    //         // DO UPDATE refreshes full_name.
+    //         ctx.mockNext(1)
+    //         const connection = ctx.conn
+    //         await ctx.withRollback(async () => {
+    //             const affected = await connection.insertInto(tAppUser)
+    //                 .values({ email: 'ada@acme.test', fullName: 'Reactivated' })
+    //                 .onConflictOnConstraint(connection.rawFragment`app_user_email_key`)
+    //                 .doUpdateSet({ fullName: 'Reactivated' })
+    //                 .customizeQuery({ afterInsertKeyword: connection.rawFragment`/*+ hint */` })
+    //                 .executeInsert()
+    //
+    //             expect(ctx.lastSql).toMatchInlineSnapshot(`"insert /*+ hint */ into app_user (email, full_name) values ($1, $2) on conflict on constraint app_user_email_key do update set full_name = $3"`)
+    //             expect(ctx.lastParams).toMatchInlineSnapshot(`
+    //               [
+    //                 "ada@acme.test",
+    //                 "Reactivated",
+    //                 "Reactivated",
+    //               ]
+    //             `)
+    //             assertType<Exact<typeof affected, number>>()
+    //             if (ctx.realDbEnabled) expect(typeof affected).toBe('number')
+    //             else expect(affected).toBe(1)
+    //         })
+    //     })
 })

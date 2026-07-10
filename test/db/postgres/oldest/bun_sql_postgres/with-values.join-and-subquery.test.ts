@@ -161,4 +161,126 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ firstVersion?: string | undefined }>>>()
         expect(rows).toEqual(expected)
     })
+
+    test('values-for-use-in-query-as-hoists-with-above-derived-table', async () => {
+        // A `Values` fed to `forUseInQueryAs('sub')` — the DERIVED-TABLE / CTE
+        // position (distinct from the scalar `forUseAsInlineQueryValue` above).
+        // The `WITH projectCode(...) AS (values ...)` clause the inline Values
+        // produces must hoist ABOVE the `sub` derived table that reads from it.
+        // The single code row survives, so the projected row is that code.
+        const expected = [{ code: 'MKTG', projectId: 1 }]
+        ctx.mockNext(expected)
+        const codes = Values.create(VProjectCode, 'projectCode', [
+            { projectId: 1, code: 'MKTG' },
+        ])
+
+        const sub = ctx.conn.selectFrom(codes)
+            .select({
+                code:      codes.code,
+                projectId: codes.projectId,
+            })
+            .forUseInQueryAs('sub')
+
+        const rows = await ctx.conn.selectFrom(sub)
+            .select({
+                code:      sub.code,
+                projectId: sub.projectId,
+            })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectCode(projectId, code) as (values ($1::int4, $2::text)), sub as (select code as code, projectId as projectId from projectCode) select code as code, projectId as "projectId" from sub"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            "MKTG",
+          ]
+        `)
+        // Derived-table projection keeps the columns REQUIRED (no widening).
+        assertType<Exact<typeof rows, Array<{ code: string; projectId: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('view-for-use-in-query-as-hoists-source-above-derived-table', async () => {
+        // A `View` fed to `forUseInQueryAs('sub')` — the same derived-table /
+        // CTE position with a View source (the WITH-hoist position never
+        // asserted with a View). The `sub` derived table reads from
+        // release_overview; filtering to project 1 yields releases 1 & 2.
+        const expected = [
+            { projectName: 'Marketing site', version: '1.2.0' },
+            { projectName: 'Marketing site', version: '1.3.0-beta.1' },
+        ]
+        ctx.mockNext(expected)
+
+        const sub = ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.projectId.equals(1))
+            .select({
+                projectName: vReleaseOverview.projectName,
+                version:     vReleaseOverview.version,
+            })
+            .forUseInQueryAs('sub')
+
+        const rows = await ctx.conn.selectFrom(sub)
+            .select({
+                projectName: sub.projectName,
+                version:     sub.version,
+            })
+            .orderBy('version')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with sub as (select project_name as projectName, version as version from release_overview where project_id = $1) select projectName as "projectName", version as version from sub order by version"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        // Derived-table projection keeps the columns REQUIRED (no widening).
+        assertType<Exact<typeof rows, Array<{ projectName: string; version: string }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('view-direct-read-plain-localdatetime-column', async () => {
+        // Direct raw read of the REQUIRED plain localDateTime View column
+        // publishStampPlain as a `{ x: view.publishStampPlain }` projection (no
+        // fluent getter) — a required `Date` leaf. Release 1:
+        // published_stamp_plain 2024-01-16 09:00:00.
+        const expected = [{ x: new Date(Date.UTC(2024, 0, 16, 9, 0, 0)) }]
+        ctx.mockNext(expected)
+
+        const rows = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(1))
+            .select({ x: vReleaseOverview.publishStampPlain })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select published_stamp_plain as "x" from release_overview where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ x: Date }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('view-direct-read-custom-localdatetime-column', async () => {
+        // Direct raw read of the REQUIRED custom localDateTime View column
+        // publishStamp ('PublishStamp') as a `{ x: view.publishStamp }`
+        // projection — a required `Date` leaf (the brand erases at the
+        // projection boundary). Release 1: published_stamp 2024-01-16 09:00:00.
+        const expected = [{ x: new Date(Date.UTC(2024, 0, 16, 9, 0, 0)) }]
+        ctx.mockNext(expected)
+
+        const rows = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(1))
+            .select({ x: vReleaseOverview.publishStamp })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select published_stamp as "x" from release_overview where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ x: Date }>>>()
+        expect(rows).toEqual(expected)
+    })
 })

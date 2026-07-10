@@ -77,6 +77,23 @@ function valueOf(build: () => unknown): unknown {
     return '<no throw>'
 }
 
+// Same shape, reporting the structured `name` an UNKNOWN_OPERATION reason
+// carries — the offending operation key, raised both for an unrecognised
+// operator on a value-source column and for any operator on an aggregated-array
+// value source.
+function nameOf(build: () => unknown): unknown {
+    try {
+        build()
+    } catch (e) {
+        if (e instanceof TsSqlError) {
+            const reason = e.errorReason
+            return 'name' in reason ? reason.name : `<no name on ${reason.reason}>`
+        }
+        return `non-TsSqlError: ${String(e)}`
+    }
+    return '<no throw>'
+}
+
 // A depth-3 nested projection: `project` and `project.assignee` are plain
 // objects (non-value-sources), so a filter descending into them forces the
 // builder to recurse twice and accumulate a dotted path prefix. The tables are
@@ -200,5 +217,111 @@ describe(ctx.label, () => {
         const path = pathOf(() =>
             ctx.conn.dynamicConditionFor(nestedFields).withValues({ project: { assignee: { id: { bogusOp: 1 } } } } as any))
         expect(path).toBe('project.assignee.id')
+    })
+
+    test('errors/column-date-value-and-path-depth-1', () => {
+        // A Date is `typeof 'object'` but rejected by the `instanceof Date`
+        // arm, so it trips the column-level INVALID_FILTER guard: the
+        // structured `value` is the SAME Date received for the column, and the
+        // `path` is the bare column key.
+        const d = new Date('2020-01-01T00:00:00.000Z')
+        expect(valueOf(() =>
+            ctx.conn.dynamicConditionFor(selectFields).withValues({ id: d } as any))).toBe(d)
+        expect(pathOf(() =>
+            ctx.conn.dynamicConditionFor(selectFields).withValues({ id: d } as any))).toBe('id')
+    })
+
+    test('errors/nested-column-date-value-and-path-depth-2', () => {
+        // The same Date one level down: the column guard fires on `project.id`,
+        // carrying the Date as `value` and the dotted trail as `path`.
+        const d = new Date('2020-01-01T00:00:00.000Z')
+        expect(valueOf(() =>
+            ctx.conn.dynamicConditionFor(nestedFields).withValues({ project: { id: d } } as any))).toBe(d)
+        expect(pathOf(() =>
+            ctx.conn.dynamicConditionFor(nestedFields).withValues({ project: { id: d } } as any))).toBe('project.id')
+    })
+
+    test('errors/and-not-array-value', () => {
+        // `and` given a non-array carries the WHOLE enclosing filter object as
+        // the structured `value`, not the bare `'x'`.
+        const value = valueOf(() =>
+            ctx.conn.dynamicConditionFor(selectFields).withValues({ and: 'x' } as any))
+        expect(value).toEqual({ and: 'x' })
+    })
+
+    test('errors/and-not-array-path', () => {
+        // At the top level the enclosing scope is empty, so the path is ``.
+        const path = pathOf(() =>
+            ctx.conn.dynamicConditionFor(selectFields).withValues({ and: 'x' } as any))
+        expect(path).toBe('')
+    })
+
+    test('errors/or-not-array-value', () => {
+        // `or` given a non-array carries the WHOLE enclosing filter object as
+        // the structured `value`, mirroring the `and` branch.
+        const value = valueOf(() =>
+            ctx.conn.dynamicConditionFor(selectFields).withValues({ or: 'x' } as any))
+        expect(value).toEqual({ or: 'x' })
+    })
+
+    test('errors/or-not-array-path', () => {
+        // Same as `and`: the top-level enclosing scope is empty.
+        const path = pathOf(() =>
+            ctx.conn.dynamicConditionFor(selectFields).withValues({ or: 'x' } as any))
+        expect(path).toBe('')
+    })
+
+    test('errors/non-object-filter-value-and-path', () => {
+        // A top-level non-object filter carries that value verbatim as `value`,
+        // with an empty `path`.
+        expect(valueOf(() =>
+            ctx.conn.dynamicConditionFor(selectFields).withValues('not-an-object' as any))).toBe('not-an-object')
+        expect(pathOf(() =>
+            ctx.conn.dynamicConditionFor(selectFields).withValues('not-an-object' as any))).toBe('')
+    })
+
+    test('errors/date-as-filter-value-and-path', () => {
+        // A top-level Date is caught by the same guard: `value` is the Date
+        // itself and `path` is empty.
+        const d = new Date('2020-01-01T00:00:00.000Z')
+        expect(valueOf(() =>
+            ctx.conn.dynamicConditionFor(selectFields).withValues(d as any))).toBe(d)
+        expect(pathOf(() =>
+            ctx.conn.dynamicConditionFor(selectFields).withValues(d as any))).toBe('')
+    })
+
+    test('errors/unknown-operation-name', () => {
+        // The UNKNOWN_OPERATION reason carries the offending operation key as
+        // the structured `name`.
+        const name = nameOf(() =>
+            ctx.conn.dynamicConditionFor(selectFields).withValues({ id: { bogusOp: 1 } } as any))
+        expect(name).toBe('bogusOp')
+    })
+
+    test('errors/aggregated-array-operation-name', () => {
+        // An aggregated-array value source rejects any operator through the
+        // same guard; the rejected operator key surfaces as `name`.
+        const aggFields = {
+            id:     tIssue.id,
+            titles: ctx.conn.aggregateAsArrayOfOneColumn(tIssue.title),
+        }
+        const name = nameOf(() =>
+            ctx.conn.dynamicConditionFor(aggFields).withValues({ titles: { equals: 'x' } } as any))
+        expect(name).toBe('equals')
+    })
+
+    test('errors/operation-name-carried-at-both-throw-conditions', () => {
+        // The UNKNOWN_OPERATION reason is raised at a SINGLE site guarding two
+        // conditions: an unrecognised operator on a value-source column, and
+        // ANY operator on an aggregated-array value source. In both, the `name`
+        // field carries the offending operator key.
+        const aggFields = {
+            id:     tIssue.id,
+            titles: ctx.conn.aggregateAsArrayOfOneColumn(tIssue.title),
+        }
+        expect(nameOf(() =>
+            ctx.conn.dynamicConditionFor(selectFields).withValues({ id: { bogusOp: 1 } } as any))).toBe('bogusOp')
+        expect(nameOf(() =>
+            ctx.conn.dynamicConditionFor(aggFields).withValues({ titles: { bogusOp: 1 } } as any))).toBe('bogusOp')
     })
 })

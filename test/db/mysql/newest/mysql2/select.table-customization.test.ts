@@ -142,4 +142,74 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ id: number; name: string }>>>()
         expect(rows).toEqual(expected)
     })
+
+    test('table-customization: three-param customization threads three bound params', async () => {
+        // `withThreeParams` is the P3 overload of createTableOrViewCustomization
+        // (withSqlHint is P0, withMinIdFilter is P1). Its factory takes three
+        // runtime ints and threads each into the derived-table predicate as a
+        // real bound placeholder (`<pN> >= 0`, constant-true, keeping every row),
+        // so all three params ride ahead of any outer WHERE param.
+        const expected = [{ id: 1 }, { id: 2 }]
+        ctx.mockNext(expected)
+        const tOrgFiltered = ctx.conn.withThreeParams(tOrganization.as('o'), 'tOrgFiltered', 0, 0, 0)
+        const rows = await ctx.conn.selectFrom(tOrgFiltered)
+            .select({ id: tOrgFiltered.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`o\`.id as id from (select * from \`organization\` where ? >= 0 and ? >= 0 and ? >= 0) as \`o\` order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            0,
+            0,
+            0,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('table-customization: four-param customization threads four bound params', async () => {
+        // The P4 overload — four bound int params in the derived-table predicate.
+        const expected = [{ id: 1 }, { id: 2 }]
+        ctx.mockNext(expected)
+        const tOrgFiltered = ctx.conn.withFourParams(tOrganization.as('o'), 'tOrgFiltered', 0, 0, 0, 0)
+        const rows = await ctx.conn.selectFrom(tOrgFiltered)
+            .select({ id: tOrgFiltered.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`o\`.id as id from (select * from \`organization\` where ? >= 0 and ? >= 0 and ? >= 0 and ? >= 0) as \`o\` order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            0,
+            0,
+            0,
+            0,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('table-customization: five-param customization threads five bound params', async () => {
+        // The P5 overload — five bound int params in the derived-table predicate.
+        const expected = [{ id: 1 }, { id: 2 }]
+        ctx.mockNext(expected)
+        const tOrgFiltered = ctx.conn.withFiveParams(tOrganization.as('o'), 'tOrgFiltered', 0, 0, 0, 0, 0)
+        const rows = await ctx.conn.selectFrom(tOrgFiltered)
+            .select({ id: tOrgFiltered.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`o\`.id as id from (select * from \`organization\` where ? >= 0 and ? >= 0 and ? >= 0 and ? >= 0 and ? >= 0) as \`o\` order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
 })

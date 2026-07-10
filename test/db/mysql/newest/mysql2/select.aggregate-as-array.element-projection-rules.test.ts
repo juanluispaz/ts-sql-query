@@ -843,4 +843,84 @@ describe(ctx.label, () => {
         expect(rows).toEqual([{ orgId: 2, items: [{ id: 4, title: 'Document /v2/users', body: 'See ADR-014' }] }])
         expect(rows[0]!.items.length).toBe(1)
     })
+
+    test('inline-element-own-table-optional-leaf-default-drops-null', async () => {
+        // The `forUseAsInlineAggregatedArrayValue()` sibling of the default
+        // `aggregateAsArray` case above: a null optional `body` leaf is dropped
+        // from the inlined element (`body?: string`). Project 1 has issue 1
+        // (body NULL → absent) and issue 2 ('Use new tokens' → survives).
+        ctx.mockNext({ pid: 1, issues: [
+            { title: 'Update hero copy', body: null },
+            { title: 'Redesign navbar',  body: 'Use new tokens' },
+        ] })
+        const issues = ctx.conn.subSelectUsing(tProject).from(tIssue)
+            .where(tIssue.projectId.equals(tProject.id))
+            .select({ title: tIssue.title, body: tIssue.body })
+            .forUseAsInlineAggregatedArrayValue()
+        const row = await ctx.conn.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ pid: tProject.id, issues })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, (select json_arrayagg(json_object('title', title, 'body', body)) from issue where project_id = project.id) as issues from project where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            pid:    number
+            issues: Array<{ title: string; body?: string }>
+        }>>()
+        const sorted = [...row.issues].sort((a, b) => a.title.localeCompare(b.title))
+        expect(sorted).toEqual([
+            { title: 'Redesign navbar', body: 'Use new tokens' },
+            { title: 'Update hero copy' },
+        ])
+        // Issue 1's null body is ABSENT under the default projector.
+        const issue1 = row.issues.find(i => i.title === 'Update hero copy')!
+        expect('body' in issue1).toBe(false)
+    })
+
+    test('inline-element-own-table-optional-leaf-as-nullable-surfaces-null', async () => {
+        // Regression: `projectingOptionalValuesAsNullable()` called on the
+        // inlined select makes the optional `body` leaf surface present-as-null
+        // in each array element (`body: string | null`) instead of being
+        // dropped — the type now matches the runtime, which honours the flag
+        // for the inline aggregated array just like
+        // `aggregateAsArray(...).projectingOptionalValuesAsNullable()`.
+        ctx.mockNext({ pid: 1, issues: [
+            { title: 'Update hero copy', body: null },
+            { title: 'Redesign navbar',  body: 'Use new tokens' },
+        ] })
+        const issues = ctx.conn.subSelectUsing(tProject).from(tIssue)
+            .where(tIssue.projectId.equals(tProject.id))
+            .select({ title: tIssue.title, body: tIssue.body })
+            .projectingOptionalValuesAsNullable()
+            .forUseAsInlineAggregatedArrayValue()
+        const row = await ctx.conn.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ pid: tProject.id, issues })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, (select json_arrayagg(json_object('title', title, 'body', body)) from issue where project_id = project.id) as issues from project where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            pid:    number
+            issues: Array<{ title: string; body: string | null }>
+        }>>()
+        const sorted = [...row.issues].sort((a, b) => a.title.localeCompare(b.title))
+        expect(sorted).toEqual([
+            { title: 'Redesign navbar', body: 'Use new tokens' },
+            { title: 'Update hero copy', body: null },
+        ])
+        // Issue 1's null body is PRESENT as null under projectingOptionalValuesAsNullable().
+        const issue1 = row.issues.find(i => i.title === 'Update hero copy')!
+        expect('body' in issue1).toBe(true)
+        expect(issue1.body).toBe(null)
+    })
 })

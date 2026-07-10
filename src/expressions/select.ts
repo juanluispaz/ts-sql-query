@@ -4,7 +4,7 @@ import type { WithView } from '../utils/tableOrViewUtils.js'
 import type { resultType, compoundableColumns, valueType, from, using, source, selectColumnsType } from '../utils/symbols.js'
 import type { NAnyNoTableOrViewRequired, NDbType, NNoTableOrViewRequiredFrom, NRecursiveFrom, NSource, NSourceAllowingAggregate, NWithFrom } from '../utils/sourceName.js'
 import type { DataToProject, RequiredColumnNames } from '../complexProjections/dataToProject.js'
-import type { ResultObjectValuesProjectedAsNullable } from '../complexProjections/resultWithOptionalsAsNull.js'
+import type { ResultObjectValuesProjectedAsNullable, ResultObjectValuesProjectedAsNullableForAggregatedArray } from '../complexProjections/resultWithOptionalsAsNull.js'
 import type { ResultObjectValues } from '../complexProjections/resultWithOptionalsAsUndefined.js'
 import type { ColumnsForCompound } from '../complexProjections/compound.js'
 import type { ColumnsForWithView } from '../complexProjections/asWithView.js'
@@ -188,7 +188,7 @@ export interface OrderByExecutableSelectExpression</*in|out*/ FROM extends HasSo
 }
 
 export interface OrderByExecutableSelectExpressionProjectableAsNullable</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
-    projectingOptionalValuesAsNullable(): OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, ResultObjectValuesProjectedAsNullable<COLUMNS>, FEATURES>
+    projectingOptionalValuesAsNullable(): OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, ResultObjectValuesProjectedAsNullable<COLUMNS>, FEATURES | 'projectingOptionalValuesAsNullable'>
 }
 
 export interface OrderedExecutableSelectExpression</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
@@ -207,7 +207,7 @@ export interface CompoundedExecutableSelectExpression</*in|out*/ FROM extends Ha
 }
 
 export interface CompoundedExecutableSelectExpressionProjectableAsNullable</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends CompoundedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
-    projectingOptionalValuesAsNullable(): CompoundedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, ResultObjectValuesProjectedAsNullable<COLUMNS>, FEATURES>
+    projectingOptionalValuesAsNullable(): CompoundedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, ResultObjectValuesProjectedAsNullable<COLUMNS>, FEATURES | 'projectingOptionalValuesAsNullable'>
 }
 
 export interface OrderableExecutableSelectExpressionWithoutWhere</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends CompoundableCustomizableExecutableSelectExpressionWitoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
@@ -283,7 +283,7 @@ export interface GroupByOrderByExecutableSelectExpression</*in|out*/ FROM extend
 }
 
 export interface GroupByOrderByExecutableSelectExpressionProjectableAsNullable</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends GroupByOrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
-    projectingOptionalValuesAsNullable(): GroupByOrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, ResultObjectValuesProjectedAsNullable<COLUMNS>, FEATURES>
+    projectingOptionalValuesAsNullable(): GroupByOrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, ResultObjectValuesProjectedAsNullable<COLUMNS>, FEATURES | 'projectingOptionalValuesAsNullable'>
 }
 
 export interface GroupByOrderByHavingExecutableSelectExpression</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
@@ -362,7 +362,7 @@ export interface WhereableExecutableSelectExpressionWithGroupBy</*in|out*/ FROM 
 }
 
 export interface WhereableExecutableSelectExpressionWithGroupByProjectableAsNullable</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends WhereableExecutableSelectExpressionWithGroupBy<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
-    projectingOptionalValuesAsNullable(): WhereableExecutableSelectExpressionWithGroupBy<FROM, REQUIRED, COLUMNS, ResultObjectValuesProjectedAsNullable<COLUMNS>, FEATURES>
+    projectingOptionalValuesAsNullable(): WhereableExecutableSelectExpressionWithGroupBy<FROM, REQUIRED, COLUMNS, ResultObjectValuesProjectedAsNullable<COLUMNS>, FEATURES | 'projectingOptionalValuesAsNullable'>
 }
 
 export interface DynamicWhereExecutableSelectExpressionWithGroupBy</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
@@ -398,7 +398,7 @@ export interface ExecutableSelectExpressionWithoutWhere</*in|out*/ FROM extends 
 }
 
 export interface ExecutableSelectExpressionWithoutWhereProjectableAsNullable</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends ExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
-    projectingOptionalValuesAsNullable(): ExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, ResultObjectValuesProjectedAsNullable<COLUMNS>, FEATURES>
+    projectingOptionalValuesAsNullable(): ExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, ResultObjectValuesProjectedAsNullable<COLUMNS>, FEATURES | 'projectingOptionalValuesAsNullable'>
 }
 
 export interface RecursivelyConnectedSelectWhereExpression</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ FEATURES> extends SelectExpressionBase<FROM, REQUIRED> {
@@ -481,11 +481,11 @@ type ForUseAsInlineAggregatedArrayValue<FROM extends HasSource<any>, REQUIRED ex
     [REQUIRED] extends [OfDB<'sqlServer' | 'oracle' | 'mariaDB'>]
     ? (
         [REQUIRED] extends [NoTableOrViewRequiredOfSameDB<REQUIRED>]
-        ? ForUseAsInlineAggregatedArrayValueFn<FROM, REQUIRED, COLUMNS>
+        ? ForUseAsInlineAggregatedArrayValueFn<FROM, REQUIRED, COLUMNS, FEATURES>
         : 'recursive' extends FEATURES
         ? never // Not supported by SqlServer (No inner with), Oracle (No outer references in inner with) and MariaDB (No outer references in inner with)
         : REQUIRED extends OfDB<'sqlServer' | 'oracle'>
-        ? ForUseAsInlineAggregatedArrayValueFn<FROM, REQUIRED, COLUMNS>
+        ? ForUseAsInlineAggregatedArrayValueFn<FROM, REQUIRED, COLUMNS, FEATURES>
         // Only in MariaDB
         : 'compound' extends FEATURES
         ? never // Not supported by MariaDB (No outer references in inner from)
@@ -493,12 +493,17 @@ type ForUseAsInlineAggregatedArrayValue<FROM extends HasSource<any>, REQUIRED ex
         ? never // Not supported by MariaDB (No outer references in inner from)
         : 'distinct' extends FEATURES
         ? never // Not supported by MariaDB (No outer references in inner from)
-        : ForUseAsInlineAggregatedArrayValueFn<FROM, REQUIRED, COLUMNS>
-    ) : ForUseAsInlineAggregatedArrayValueFn<FROM, REQUIRED, COLUMNS>
+        : ForUseAsInlineAggregatedArrayValueFn<FROM, REQUIRED, COLUMNS, FEATURES>
+    ) : ForUseAsInlineAggregatedArrayValueFn<FROM, REQUIRED, COLUMNS, FEATURES>
 
-type ForUseAsInlineAggregatedArrayValueFn<_FROM extends HasSource<any>, REQUIRED extends HasSource<any>, COLUMNS> =
+type ForUseAsInlineAggregatedArrayValueFn<_FROM extends HasSource<any>, REQUIRED extends HasSource<any>, COLUMNS, FEATURES> =
     COLUMNS extends IValueSource<any, any, any, any>
     ? () => AggregatedArrayValueSource<REQUIRED[typeof source], Array<COLUMNS[typeof valueType]>, 'required'>
+    // When `projectingOptionalValuesAsNullable()` was called on the select, the runtime honours the flag
+    // for the inline aggregated array too (SelectQueryBuilder.forUseAsInlineAggregatedArrayValue) and emits
+    // each optional leaf present-as-null, exactly like `connection.aggregateAsArray(...).projectingOptionalValuesAsNullable()`.
+    : 'projectingOptionalValuesAsNullable' extends FEATURES
+    ? () => AggregatedArrayValueSource<REQUIRED[typeof source], Array<{ [P in keyof ResultObjectValuesProjectedAsNullableForAggregatedArray<COLUMNS>]: ResultObjectValuesProjectedAsNullableForAggregatedArray<COLUMNS>[P] }>, 'required'>
     : () => AggregatedArrayValueSource<REQUIRED[typeof source], Array<{ [P in keyof ResultObjectValues<COLUMNS>]: ResultObjectValues<COLUMNS>[P] }>, 'required'>
 
 type CompoundFunction<SUPPORTED_DB extends NDbType, FROM extends HasSource<any>, REQUIRED extends HasSource<any>, COLUMNS, RESULT, FEATURES> =

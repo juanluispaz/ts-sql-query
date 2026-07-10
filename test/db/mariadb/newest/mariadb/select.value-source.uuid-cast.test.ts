@@ -554,6 +554,44 @@ describe(ctx.label, () => {
         expect(ref).toEqual(REF1)
     })
 
+    test('uuid-receiver-value-when-null-source-realizes-the-null-inhabitant', async () => {
+        // The NULL inhabitant of a still-optional `valueWhenNull(optional)` coalesce. Issue
+        // 3's external_ref is NULL and the default (`.asOptional()` on the same column) is
+        // NULL too, so `coalesce(external_ref, external_ref)` resolves NULL and the scalar
+        // result's `| null` arm is realized. The object-projector twin drops the optional
+        // leaf (absent) when NULL under the default asUndefined projector.
+        ctx.mockNext(null)
+        const ref = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(3))
+            .selectOneColumn(tIssue.externalRef.valueWhenNull(tIssue.externalRef.asOptional()))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ifnull(external_ref, external_ref) as result from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+          ]
+        `)
+        assertType<Exact<typeof ref, string | null>>()
+        expect(ref).toBeNull()
+
+        // The object-projector twin: the still-optional coalesce leaf is dropped
+        // (absent) when NULL under the default asUndefined projector.
+        ctx.mockNext({ id: 3, ref: null })
+        const row = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(3))
+            .select({ id: tIssue.id, ref: tIssue.externalRef.valueWhenNull(tIssue.externalRef.asOptional()) })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(external_ref, external_ref) as ref from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; ref?: string }>>()
+        expect('ref' in row).toBe(false)
+        expect(row).toEqual({ id: 3 })
+    })
+
     test('uuid-receiver-null-if-value-source', async () => {
         // nullIfValue(value source) on the uuid receiver: the probe is a const uuid
         // value source (a different uuid), so issue 1's ref (REF1) is kept.

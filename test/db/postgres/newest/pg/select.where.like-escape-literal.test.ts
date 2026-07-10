@@ -158,7 +158,7 @@ describe(ctx.label, () => {
 
     // The literal-escape sub-branch fed a needle containing a backslash (`\`)
     // and a bracket (`[`). Each dialect encodes these differently in the bound
-    // param (backslash doubling, the quadruple-backslash override, `[` → `[[]`
+    // param (backslash doubling, `[` → `[[]`
     // bracket-escaping); the escaped param below pins this dialect's form. No
     // seeded email contains this needle, so the positive predicates return [].
 

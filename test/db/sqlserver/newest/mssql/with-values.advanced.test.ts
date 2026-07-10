@@ -84,6 +84,13 @@ class VBatchRow extends Values<DBConnection, 'batchRow'> {
     note  = this.optionalVirtualColumnFromFragment('string', fragment => fragment.sql`null`)
 }
 
+// A Values whose `virtualColumnFromFragment` interpolates a SIBLING Values
+// column (`this.id`) rather than a bare literal.
+class VDoubling extends Values<DBConnection, 'vdouble'> {
+    id      = this.column('int')
+    doubled = this.virtualColumnFromFragment('int', fragment => fragment.sql`${this.id} * 2`)
+}
+
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
     afterAll(() => ctx.down(), ctx.timeoutMs)
@@ -444,6 +451,32 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number; seq: number; tag: string }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('values-virtual-column-referencing-a-sibling-column-inlines-the-reference', async () => {
+        // A Values `virtualColumnFromFragment` whose fragment interpolates a SIBLING Values
+        // column (`this.id`). The virtual column is NOT a VALUES tuple member (only `id`
+        // appears in the `vdouble(id)` list); reading `nums.doubled` inlines `id * 2`
+        // wherever it's selected.
+        const expected = [
+            { id: 3, doubled: 6 },
+            { id: 5, doubled: 10 },
+        ]
+        ctx.mockNext(expected)
+        const nums = Values.create(VDoubling, 'vdouble', [{ id: 3 }, { id: 5 }])
+        const rows = await ctx.conn.selectFrom(nums)
+            .select({ id: nums.id, doubled: nums.doubled })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with vdouble as (select * from (values (@0), (@1)) as vdouble(id)) select id as id, id * 2 as doubled from vdouble order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+            5,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; doubled: number }>>>()
         expect(rows).toEqual(expected)
     })
 })

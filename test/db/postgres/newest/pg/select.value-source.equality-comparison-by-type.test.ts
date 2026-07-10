@@ -9,7 +9,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tIssueWorklog, tOrganization, tProjectRelease, tProjectReview } from '../../domain/connection.js'
+import { tIssue, tIssueWorklog, tOrganization, tProjectRelease, tProjectReview, vReleaseOverview } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -2015,6 +2015,64 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signed_off_at is not null order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notNullRows).toEqual(expectedNotNull)
+    })
+
+    test('optional-customInt-is-null-is-not-null', async () => {
+        // `isNull` / `isNotNull` on an optional customInt column. `optional_release_ordinal`
+        // ('ReleaseTag') on the release_overview view is the release id when download_count
+        // is present, else NULL — release 1 -> 1, release 2 -> NULL, release 3 -> 3.
+        // `.isNull()` matches release 2; `.isNotNull()` matches releases 1,3.
+        const expectedNull = [{ id: 2 }]
+        ctx.mockNext(expectedNull)
+        const nullRows = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.optionalReleaseOrdinal.isNull())
+            .select({ id: vReleaseOverview.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from release_overview where optional_release_ordinal is null order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof nullRows, Array<{ id: number }>>>()
+        expect(nullRows).toEqual(expectedNull)
+
+        const expectedNotNull = [{ id: 1 }, { id: 3 }]
+        ctx.mockNext(expectedNotNull)
+        const notNullRows = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.optionalReleaseOrdinal.isNotNull())
+            .select({ id: vReleaseOverview.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from release_overview where optional_release_ordinal is not null order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notNullRows).toEqual(expectedNotNull)
+    })
+
+    test('required-customInt-is-null-is-not-null', async () => {
+        // `isNull` / `isNotNull` on a required-on-read customInt column. `cost_cents`
+        // ('Cents') is set on every seeded worklog (100, 100, 400), so `.isNull()` matches
+        // none and `.isNotNull()` matches all three — the methods are declared on a
+        // required leaf too (always false / always true).
+        const expectedNull: Array<{ id: number }> = []
+        ctx.mockNext(expectedNull)
+        const nullRows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.costCents.isNull())
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where cost_cents is null order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof nullRows, Array<{ id: number }>>>()
+        expect(nullRows).toEqual(expectedNull)
+
+        const expectedNotNull = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        ctx.mockNext(expectedNotNull)
+        const notNullRows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.costCents.isNotNull())
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where cost_cents is not null order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         expect(notNullRows).toEqual(expectedNotNull)
     })

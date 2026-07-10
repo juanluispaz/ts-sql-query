@@ -688,4 +688,208 @@ describe(ctx.label, () => {
         expect(row.mix!.title).toBe('Migrate to ESM')
         expect(row).toEqual(expected)
     })
+
+    test('rule-2-const-FIRST-leaf-order-object-dropped-on-join-miss-default', async () => {
+        // A rule-2 nested object with the `connection.const()` NO-TABLE leaf FIRST and
+        // the LEFT-JOIN originallyRequired leaf (`title` = issue.title) second. Rule 2
+        // ignores the leading const and treats the left-join leaf as the object's presence
+        // signal, so the object is OPTIONAL (`iss?`) and drops on a join MISS even though
+        // the const has a value. project 3 -> issue 4 (join hits, `iss` present); project
+        // 4 -> no issue (join misses, `iss` dropped).
+        const expected = [
+            { pid: 3, iss: { tag: 'rel', title: 'Document /v2/users' } },
+            { pid: 4 },
+        ]
+        ctx.mockNext([
+            { pid: 3, 'iss.tag': 'rel', 'iss.title': 'Document /v2/users' },
+            { pid: 4, 'iss.tag': 'rel', 'iss.title': null },
+        ])
+        const tIssueLeft = tIssue.forUseInLeftJoin()
+        const rows = await ctx.conn.selectFrom(tProject)
+            .leftJoin(tIssueLeft).on(tIssueLeft.projectId.equals(tProject.id))
+            .where(tProject.id.in([3, 4]))
+            .select({
+                pid: tProject.id,
+                iss: { tag: ctx.conn.const('rel', 'string'), title: tIssueLeft.title },
+            })
+            .orderBy('pid')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, $1::text as "iss.tag", issue.title as "iss.title" from project left join issue on issue.project_id = project.id where project.id in ($2, $3) order by pid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "rel",
+            3,
+            4,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            pid: number
+            iss?: { tag: string; title: string }
+        }>>>()
+        const miss = rows[1]!
+        expect('iss' in miss).toBe(false)
+        expect(rows).toEqual(expected)
+    })
+
+    test('rule-2-const-FIRST-leaf-order-object-dropped-on-join-miss-projecting-optional-values-as-nullable', async () => {
+        // Same const-FIRST boundary under `projectingOptionalValuesAsNullable()`:
+        // the dropped object surfaces as `null` (not absent), and the leading const
+        // still does not keep it alive. project 3 hits; project 4 misses -> `iss: null`.
+        const expected = [
+            { pid: 3, iss: { tag: 'rel', title: 'Document /v2/users' } },
+            { pid: 4, iss: null },
+        ]
+        ctx.mockNext([
+            { pid: 3, 'iss.tag': 'rel', 'iss.title': 'Document /v2/users' },
+            { pid: 4, 'iss.tag': 'rel', 'iss.title': null },
+        ])
+        const tIssueLeft = tIssue.forUseInLeftJoin()
+        const rows = await ctx.conn.selectFrom(tProject)
+            .leftJoin(tIssueLeft).on(tIssueLeft.projectId.equals(tProject.id))
+            .where(tProject.id.in([3, 4]))
+            .select({
+                pid: tProject.id,
+                iss: { tag: ctx.conn.const('rel', 'string'), title: tIssueLeft.title },
+            })
+            .projectingOptionalValuesAsNullable()
+            .orderBy('pid')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, $1::text as "iss.tag", issue.title as "iss.title" from project left join issue on issue.project_id = project.id where project.id in ($2, $3) order by pid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "rel",
+            3,
+            4,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            pid: number
+            iss: { tag: string; title: string } | null
+        }>>>()
+        const miss = rows[1]!
+        expect(miss.iss).toBe(null)
+        expect(rows).toEqual(expected)
+    })
+
+    test('all-const-nested-object-is-required-and-never-dropped', async () => {
+        // A nested object whose EVERY leaf is a `connection.const()` NO-TABLE source. With
+        // no table-bound leaf, the object is REQUIRED (`tags:`, never dropped) and both
+        // leaves are required (`{ a: string; b: string }`).
+        const expected = { pid: 1, tags: { a: 'x', b: 'y' } }
+        ctx.mockNext({ pid: 1, 'tags.a': 'x', 'tags.b': 'y' })
+        const row = await ctx.conn.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({
+                pid: tProject.id,
+                tags: { a: ctx.conn.const('x', 'string'), b: ctx.conn.const('y', 'string') },
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, $1::text as "tags.a", $2::text as "tags.b" from project where id = $3"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "x",
+            "y",
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            pid: number
+            tags: { a: string; b: string }
+        }>>()
+        expect('tags' in row).toBe(true)
+        expect(row).toEqual(expected)
+    })
+
+    test('two-different-left-joins-plus-const-promotes-to-rule-3-container-survives-full-miss-default', async () => {
+        // Two DIFFERENT left joins in one object PLUS a `connection.const()` NO-TABLE leaf.
+        // The always-present const anchors the container's presence, so the object is
+        // REQUIRED (`obj:`) and the two left-join leaves are demoted to optional; on a FULL
+        // miss the container SURVIVES carrying only the const. project 3 -> issue 4 ->
+        // assignee 3 (Alan Turing): both joins hit. project 4 -> no issue -> user join
+        // misses too: both left-join leaves drop, but `obj` stays present with just `tag`.
+        const expected = [
+            { pid: 3, obj: { issTitle: 'Document /v2/users', assigneeName: 'Alan Turing', tag: 'rel' } },
+            { pid: 4, obj: { tag: 'rel' } },
+        ]
+        ctx.mockNext([
+            { pid: 3, 'obj.issTitle': 'Document /v2/users', 'obj.assigneeName': 'Alan Turing', 'obj.tag': 'rel' },
+            { pid: 4, 'obj.issTitle': null, 'obj.assigneeName': null, 'obj.tag': 'rel' },
+        ])
+        const tIssueLeft = tIssue.forUseInLeftJoin()
+        const tUserLeft = tAppUser.forUseInLeftJoin()
+        const rows = await ctx.conn.selectFrom(tProject)
+            .leftJoin(tIssueLeft).on(tIssueLeft.projectId.equals(tProject.id))
+            .leftJoin(tUserLeft).on(tUserLeft.id.equals(tIssueLeft.assigneeId))
+            .where(tProject.id.in([3, 4]))
+            .select({
+                pid: tProject.id,
+                obj: { issTitle: tIssueLeft.title, assigneeName: tUserLeft.fullName, tag: ctx.conn.const('rel', 'string') },
+            })
+            .orderBy('pid')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.title as "obj.issTitle", app_user.full_name as "obj.assigneeName", $1::text as "obj.tag" from project left join issue on issue.project_id = project.id left join app_user on app_user.id = issue.assignee_id where project.id in ($2, $3) order by pid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "rel",
+            3,
+            4,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            pid: number
+            obj: { issTitle?: string; assigneeName?: string; tag: string }
+        }>>>()
+        const miss = rows[1]!
+        expect('obj' in miss).toBe(true)
+        expect('issTitle' in miss.obj).toBe(false)
+        expect('assigneeName' in miss.obj).toBe(false)
+        expect(miss.obj.tag).toBe('rel')
+        expect(rows).toEqual(expected)
+    })
+
+    test('two-different-left-joins-plus-const-promotes-to-rule-3-container-survives-full-miss-projecting-optional-values-as-nullable', async () => {
+        // Same rule-3 promotion under `projectingOptionalValuesAsNullable()`: the
+        // object stays REQUIRED (const anchors it) and the two demoted left-join
+        // leaves flip to `| null`, surfacing as `null` on the full miss instead of
+        // being absent. project 4 -> full miss -> `obj: { issTitle: null,
+        // assigneeName: null, tag: 'rel' }`.
+        const expected = [
+            { pid: 3, obj: { issTitle: 'Document /v2/users', assigneeName: 'Alan Turing', tag: 'rel' } },
+            { pid: 4, obj: { issTitle: null, assigneeName: null, tag: 'rel' } },
+        ]
+        ctx.mockNext([
+            { pid: 3, 'obj.issTitle': 'Document /v2/users', 'obj.assigneeName': 'Alan Turing', 'obj.tag': 'rel' },
+            { pid: 4, 'obj.issTitle': null, 'obj.assigneeName': null, 'obj.tag': 'rel' },
+        ])
+        const tIssueLeft = tIssue.forUseInLeftJoin()
+        const tUserLeft = tAppUser.forUseInLeftJoin()
+        const rows = await ctx.conn.selectFrom(tProject)
+            .leftJoin(tIssueLeft).on(tIssueLeft.projectId.equals(tProject.id))
+            .leftJoin(tUserLeft).on(tUserLeft.id.equals(tIssueLeft.assigneeId))
+            .where(tProject.id.in([3, 4]))
+            .select({
+                pid: tProject.id,
+                obj: { issTitle: tIssueLeft.title, assigneeName: tUserLeft.fullName, tag: ctx.conn.const('rel', 'string') },
+            })
+            .projectingOptionalValuesAsNullable()
+            .orderBy('pid')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.title as "obj.issTitle", app_user.full_name as "obj.assigneeName", $1::text as "obj.tag" from project left join issue on issue.project_id = project.id left join app_user on app_user.id = issue.assignee_id where project.id in ($2, $3) order by pid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "rel",
+            3,
+            4,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            pid: number
+            obj: { issTitle: string | null; assigneeName: string | null; tag: string }
+        }>>>()
+        const miss = rows[1]!
+        expect(miss.obj.issTitle).toBe(null)
+        expect(miss.obj.assigneeName).toBe(null)
+        expect(miss.obj.tag).toBe('rel')
+        expect(rows).toEqual(expected)
+    })
 })

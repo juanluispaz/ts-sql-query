@@ -157,10 +157,11 @@ describe(ctx.label, () => {
     })
 
     // The literal-escape sub-branch fed a needle containing a backslash (`\`)
-    // and a bracket (`[`). Each dialect encodes these differently in the bound
-    // param (backslash doubling, the quadruple-backslash override, `[` → `[[]`
-    // bracket-escaping); the escaped param below pins this dialect's form. No
-    // seeded email contains this needle, so the positive predicates return [].
+    // and a bracket (`[`). This dialect doubles the backslash in the bound param
+    // (`\` → `\\`, matched literally under the default `\` escape character) and
+    // leaves `[` untouched — it is not a LIKE metacharacter here; the escaped
+    // param below pins this dialect's form. No seeded email contains this needle,
+    // so the positive predicates return [].
 
     test('contains-literal-with-backslash-bracket', async () => {
         ctx.mockNext([])
@@ -172,7 +173,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email like concat('%', ?, '%') order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "a\\\\\\\\b[c",
+            "a\\\\b[c",
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
@@ -190,7 +191,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email like concat(?, '%') order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "a\\\\\\\\b[c",
+            "a\\\\b[c",
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
@@ -208,7 +209,7 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email like concat('%', ?) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            "a\\\\\\\\b[c",
+            "a\\\\b[c",
           ]
         `)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()

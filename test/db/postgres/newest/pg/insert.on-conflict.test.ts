@@ -725,4 +725,87 @@ describe(ctx.label, () => {
             expect(row).toEqual(expected)
         })
     })
+
+    test('on-conflict-on-constraint-do-update-returning-last-inserted-id', async () => {
+        // `onConflictOnConstraint(name).doUpdateSet(...).returningLastInsertedId()` — the
+        // DO UPDATE arm always writes a row (insert or update), so the returned id is
+        // required (`number`). `ada@acme.test` collides with the seeded user id=1 via the
+        // `app_user_email_key` UNIQUE constraint, so DO UPDATE refreshes full_name and
+        // RETURNING id gives the row's id back.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const id = await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'ada@acme.test', fullName: 'Ada Lovelace v2' })
+                .onConflictOnConstraint(ctx.conn.rawFragment`app_user_email_key`)
+                .doUpdateSet({ fullName: 'Ada Lovelace v2' })
+                .returningLastInsertedId()
+                .executeInsert()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into app_user (email, full_name) values ($1, $2) on conflict on constraint app_user_email_key do update set full_name = $3 returning id"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "ada@acme.test",
+                "Ada Lovelace v2",
+                "Ada Lovelace v2",
+              ]
+            `)
+            assertType<Exact<typeof id, number>>()
+            expect(id).toBe(1)
+        })
+    })
+
+    test('on-conflict-on-constraint-do-nothing-returning-last-inserted-id-is-nullable', async () => {
+        // `onConflictOnConstraint(name).doNothing().returningLastInsertedId()` — a DO
+        // NOTHING may suppress the insert, so the returned id is nullable (`number | null`).
+        // A fresh email is inserted so no unique key collides and a real id comes back (the
+        // `| null` arm is the type promise this pins).
+        ctx.mockNext(100)
+        await ctx.withRollback(async () => {
+            const id = await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'grace2@acme.test', fullName: 'Grace Hopper II' })
+                .onConflictOnConstraint(ctx.conn.rawFragment`app_user_email_key`)
+                .doNothing()
+                .returningLastInsertedId()
+                .executeInsert()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into app_user (email, full_name) values ($1, $2) on conflict on constraint app_user_email_key do nothing returning id"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "grace2@acme.test",
+                "Grace Hopper II",
+              ]
+            `)
+            assertType<Exact<typeof id, number | null>>()
+            if (!ctx.realDbEnabled) expect(id).toBe(100)
+            else expect(id).toBeGreaterThan(3) // seed reserves app_user ids 1, 2, 3
+        })
+    })
+
+    test('on-conflict-on-constraint-do-update-where', async () => {
+        // `onConflictOnConstraint(name).doUpdateSet(...).where(cond).and(cond)` — the
+        // partial-UPDATE-WHERE (with an `.and` chain) off a named-constraint conflict
+        // target. `ada@acme.test` collides via `app_user_email_key`; the WHERE (full_name
+        // differs AND email matches) is satisfied, so DO UPDATE runs.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'ada@acme.test', fullName: 'Ada Lovelace v2' })
+                .onConflictOnConstraint(ctx.conn.rawFragment`app_user_email_key`)
+                .doUpdateSet({ fullName: 'Ada Lovelace v2' })
+                .where(tAppUser.fullName.notEquals('Ada Lovelace v2'))
+                .and(tAppUser.email.equals('ada@acme.test'))
+                .executeInsert()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into app_user (email, full_name) values ($1, $2) on conflict on constraint app_user_email_key do update set full_name = $3 where app_user.full_name <> $4 and app_user.email = $5"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "ada@acme.test",
+                "Ada Lovelace v2",
+                "Ada Lovelace v2",
+                "Ada Lovelace v2",
+                "ada@acme.test",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            if (ctx.realDbEnabled) expect(typeof affected).toBe('number')
+            else expect(affected).toBe(1)
+        })
+    })
 })

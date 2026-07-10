@@ -67,7 +67,33 @@ of that. Two minutes of triage and one paragraph is the bar.
 
 ## Open Bugs
 
-_(none)_
+## Dynamic-condition INVALID_FILTER `errorReason.path` is the parent, not the offending column (message/path mismatch)
+
+**Where**: `src/queryBuilders/DynamicConditionBuilder.ts:96` — the
+column-value-not-object `DYNAMIC_CONDITION_INVALID_FILTER` throw uses
+`path: prefix` (the parent scope) while its **message** names the full column via
+`joinPath(prefix, key)`. The structurally-identical `DYNAMIC_CONDITION_UNKNOWN_COLUMN`
+sibling at line 90 uses `joinPath(prefix, key)` for **both** `path` and message.
+Looks like the `5bea04f7` `joinPath` fix updated line 96's message but not its
+`path` field (an incomplete application of the same fix).
+**Reproduction** (Round-38 audit, F6-DYN + F-RECENT, two-agent convergence):
+`dynamicConditionFor(nestedFields).withValues({ project: { id: 5 } } as any)`
+(where `project` is a nested projection and `id` a column, `5` not an object)
+throws `errorReason.path === 'project'` while the message reads
+`...for the column "project.id"...`. At depth 1 (`{ id: 5 }`) `path === ''` while
+the message says `"id"`. No cell asserts the INVALID_FILTER `path` at any depth
+(existing tests check `.reason` only), so the mismatch went unnoticed.
+The scope-level INVALID_FILTER throws at lines 39/50/58 (bad top-level filter,
+`and`/`or` not an array) correctly keep `path: prefix` — those are not
+column-specific, so only line 96 is inconsistent.
+**Both readings**: (a) **BUG** — line 96 should be
+`path: joinPath(prefix, key)` to match its message and the sibling UNKNOWN_COLUMN
+throw (the offending item IS the column). (b) deliberate — `path` deliberately
+points at the containing scope for INVALID_FILTER; then the message should be
+made consistent instead. Low-severity (error-metadata only, no SQL impact).
+**Current workaround in the suite**: none — add a nested column-value-not-object
+test pinning the current `errorReason.path` (+ a depth-1 control), which both
+closes the one unpinned reason×depth cell and forces the adjudication.
 
 ## Common bug shapes (for the fixing agent)
 

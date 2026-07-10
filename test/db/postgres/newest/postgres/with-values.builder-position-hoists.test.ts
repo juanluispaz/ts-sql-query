@@ -1,31 +1,18 @@
-// A `Values` view hoisted through builder positions the rest of the
-// with-values.* coverage skips. The existing files drive a `Values` through
-// `selectFrom(...)` / `leftJoin(...)` / update-FROM / an inline scalar
-// subquery / a compound-union arm; this file closes three remaining hoist
-// paths, each pinned by the `with name(cols) as (values ...)` prefix its
-// snapshot emits:
+// A `Values` view whose `with name(cols) as (values ...)` clause hoists
+// through three builder positions, each pinned by that prefix in its snapshot:
 //
-//   T3-9  — `projectingOptionalValuesAsNullable()` over a `selectFrom(Values)`
-//           whose row set carries an OPTIONAL column. The nullable projector
-//           flips the optional leaf from absent (`note?: string`) to
-//           present-null (`note: string | null`), so a null VALUES cell reads
-//           back as `null` (distinct value AND type). No other with-values
-//           file uses `.projectingOptionalValuesAsNullable()`.
-//   T3-10 — a `Values` used as the SELECT source of an INSERT … FROM SELECT:
-//           the values view's `WITH name(cols) AS (VALUES ...)` clause must
-//           bubble up through `InsertQueryBuilder` to the top of the emitted
-//           `INSERT … SELECT … FROM name` statement.
-//   T3-11 — a `Values` used as the USING source of a DELETE … USING: the same
-//           WITH-hoist through `DeleteQueryBuilder` (`DELETE … USING name
-//           WHERE …`).
+//   - `projectingOptionalValuesAsNullable()` over a `selectFrom(Values)` whose
+//     row set carries an OPTIONAL column: the nullable projector flips the
+//     optional leaf from absent (`note?: string`) to present-null (`note:
+//     string | null`), so a null VALUES cell reads back as `null`.
+//   - a `Values` used as the SELECT source of an INSERT ... FROM SELECT: the
+//     values view's WITH clause bubbles up through `InsertQueryBuilder` to the
+//     top of the emitted `INSERT ... SELECT ... FROM name` statement.
+//   - a `Values` used as the USING source of a DELETE ... USING: the same
+//     WITH-hoist through `DeleteQueryBuilder` (`DELETE ... USING name WHERE ...`).
 //
-// `Values` is typed on every dialect (`Values.create(...)` is constrained to
-// all six SQL dialects), so T3-9 runs live everywhere. DELETE … USING and a
-// `Values`-as-source, however, are not typed on every dialect (e.g. the
-// SqliteConnection surface), so the T3-10 / T3-11 copies become
-// NOT-APPLICABLE in the cells whose dialect doesn't type them — this file is
-// only the postgres canonical; the coordinator handles that during
-// propagation.
+// DELETE ... USING is not typed on SqliteConnection and Oracle has no
+// WITH-before-DELETE, so the DELETE ... USING test is NOT-APPLICABLE there.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -34,20 +21,20 @@ import { DBConnection, tCalendarYear, tCountry } from '../../domain/connection.j
 import { ctx } from './setup.js'
 
 // A values row set with a required `id` and an OPTIONAL `note`, so a null
-// `note` cell exercises the nullable-projector null flip (T3-9).
+// `note` cell exercises the nullable-projector null flip.
 class VOptNoteSampler extends Values<DBConnection, 'optNoteSampler'> {
     id   = this.column('int')
     note = this.optionalColumn('string')
 }
 
 // A values row set matching tCalendarYear's insertable columns (provided int
-// PK `yearValue` + required `label`), used as an INSERT … FROM SELECT source (T3-10).
+// PK `yearValue` + required `label`), used as an INSERT ... FROM SELECT source.
 class VNewYears extends Values<DBConnection, 'newYears'> {
     yearValue = this.column('int')
     label     = this.column('string')
 }
 
-// A values row set of country codes, used as a DELETE … USING source (T3-11).
+// A values row set of country codes, used as a DELETE ... USING source.
 class VCountryCodes extends Values<DBConnection, 'countryCodes'> {
     code = this.column('string')
 }

@@ -533,12 +533,8 @@ describe(ctx.label, () => {
         // The default asUndefined projector × a plain select × a rule-2 nested
         // object (both leaves from the SAME left join, both originallyRequired)
         // on a real left-join MISS: the whole object key is DROPPED (absent), not
-        // present-undefined. The three sibling quadrants pin their arm — the
-        // as-nullable plain miss surfaces `null`, the aggregate default miss drops
-        // the key — but this plain × default × rule-2 miss's key-ABSENCE is
-        // otherwise only checked via `toEqual` (which a present-undefined would
-        // also satisfy). project 3 -> issue 4 (hit); project 4 (Legacy app) has
-        // no issue, so its left join misses and the `iss` key is absent.
+        // present-undefined. project 3 -> issue 4 (hit); project 4 (Legacy app)
+        // has no issue, so its left join misses and the `iss` key is absent.
         const expected = [
             { pid: 3, iss: { id: 4, title: 'Document /v2/users' } },
             { pid: 4 },

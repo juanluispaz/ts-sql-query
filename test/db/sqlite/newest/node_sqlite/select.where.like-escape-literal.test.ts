@@ -1,12 +1,10 @@
-// Coverage of the LITERAL-string branch of `_escapeLikeWildcard` in every
-// SqlBuilder — the sibling of `select.where.like-escape.test.ts` (which
-// covers the value-source `replace(...)` branch). Every other affix test in
-// the suite passes a wildcard-FREE literal, where the three `.replace()`
-// calls in the string arm are no-ops, so the escape of `\`->`\\`, `%`->`\%`,
-// `_`->`\_` in the BOUND PARAM is never observed. Here the literal carries
-// `%` / `_`, so each dialect's escaped param is pinned by the snapshot:
-// pg/sqlite escape with a backslash, mysql/maria double the backslash, and
-// sqlserver/oracle bracket-escape (`%`->`[%]`, `_`->`[_]`, `[`->`[[]`).
+// Coverage of the LITERAL-string branch of `_escapeLikeWildcard`: an affix
+// predicate (contains / startsWith / endsWith and their not / Insensitive /
+// IfValue twins) fed a literal that CONTAINS `%` / `_`, so the `.replace()`
+// calls in the string arm escape them in the BOUND PARAM. Each dialect's
+// escaped param is pinned by the snapshot: pg/sqlite escape with a backslash,
+// mysql/maria double the backslash, and sqlserver/oracle bracket-escape
+// (`%`->`[%]`, `_`->`[_]`).
 //
 // The needle is a literal that no seeded `email` contains, so every dialect
 // returns the empty set — the load-bearing assertion is the escaped param.

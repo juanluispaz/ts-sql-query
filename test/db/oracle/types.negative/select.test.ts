@@ -285,11 +285,9 @@ function _typeNegatives() {
         })
 
     // Rule: the customInt ARITHMETIC value-source overloads (add / subtract /
-    // modulo / minValue / maxValue) were widened to union the OPERAND column's
-    // source into the result (commit 8d4585c2), the same table-tracking fix
-    // class as valueWhenNull / nullIfValue above — so an operand from a table not
-    // in the FROM must not compile. The joined positive control lives in
-    // select.value-source.numeric-operand-coverage.test.ts.
+    // modulo / minValue / maxValue) union the OPERAND column's source into the
+    // result, the same table-tracking as valueWhenNull / nullIfValue above — so
+    // an operand from a table not in the FROM must not compile.
     void connection.selectFrom(tIssueWorklog)
         .select({
             // @ts-expect-error add operand worklog2.costCents is from a table not in the FROM

@@ -1,19 +1,15 @@
-// Recursive select projecting a NESTED OBJECT (dot-alias through anchor +
-// recursion). Every other recursive test projects FLAT columns; here the
-// projection is `select({ id, header: { num, title } })`, so the two leaf
-// columns carry the `"header.num"` / `"header.title"` dot-aliases.
+// Recursive select projecting a NESTED OBJECT: `select({ id, header: { num,
+// title } })`, so the two leaf columns carry the `"header.num"` /
+// `"header.title"` dot-aliases. Those dot-aliased columns are emitted in BOTH
+// the recursion anchor AND the recursive member (the recursive arm re-projects
+// `issue.number as "header.num"`, not a bare `header`), and the nested object
+// survives the recursion into the outer `select ... from recursive_select_1`
+// and into the projected result type (`header: { num; title }` stays a required
+// nested object).
 //
-// What this pins that the flat recursive tests cannot:
-//   - the dot-aliased columns are emitted in BOTH the recursion anchor AND
-//     the recursive member (distinct emission — the recursive arm re-projects
-//     `issue.number as "header.num"`, not a bare `header`), and
-//   - the nested object survives the recursion into the outer
-//     `select ... from recursive_select_1` and into the projected result type
-//     (`header: { num; title }` stays a required nested object).
-//
-// Every seeded issue has a NULL parent_id, so the child traversal from an
-// anchor adds no rows and the recursion terminates returning exactly the
-// anchor rows — deterministic values without needing a populated tree.
+// Every seeded issue has a NULL parent_id, so the child traversal from an anchor
+// adds no rows and the recursion terminates returning exactly the anchor rows —
+// deterministic values without needing a populated tree.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'

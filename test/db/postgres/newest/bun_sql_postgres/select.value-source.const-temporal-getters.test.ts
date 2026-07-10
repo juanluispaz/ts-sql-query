@@ -2,11 +2,10 @@
 // `AbstractSqlBuilder._appendSqlForDatePartArgument` has two arms: a
 // `isConstValue()` -> `forceTypeCast = true` arm that wraps the placeholder in
 // a `::date`/`::time`/`::timestamp` cast inside `extract(...)`, and a plain
-// column arm with no cast. Every existing getter test in `select.date-ops.test.ts`
-// uses a COLUMN receiver, so the const-cast arm — the one that exists precisely
-// so an untyped `$1` inside `extract(...)` resolves on PostgreSQL — is never
-// observed. Here the receiver is a `const(new Date(...), 'localDate'|...)`, so
-// each dialect's cast form is pinned by the snapshot.
+// column arm with no cast (the const-cast arm exists so an untyped `$1` inside
+// `extract(...)` resolves on PostgreSQL). Here the receiver is a
+// `const(new Date(...), 'localDate'|...)`, so it takes the const-cast arm; each
+// dialect's cast form is pinned by the snapshot.
 //
 // The const values are fixed and TZ-independent under the suite's forced UTC,
 // so every getter's realized value is deterministic and real-DB-validatable.

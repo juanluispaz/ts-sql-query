@@ -1,12 +1,10 @@
-// arg / valueArg keyword-arm coverage for the temporal and custom-fractional
-// argument types — localDate / localTime / localDateTime / customDouble. The
-// int / string / uuid / double / customComparable / custom / enum / customUuid /
-// boolean arms are covered by `fragments.with-args.test.ts`; these four were
-// unexercised across the whole matrix. Each `<Kind>Eq` fragment field emits
-// `<col> = $1` in a column context; the load-bearing detail is the distinct
-// bound value each kind's `valueArg` marshals (a Date through
-// `valueArg('localTime')` binds 'HH:MM:SS', through `valueArg('localDate')`
-// binds the Date, a number through `valueArg('customDouble')` binds the number).
+// arg / valueArg keyword-arm fragments for the temporal and custom-fractional
+// argument types — localDate / localTime / localDateTime / customDouble. Each
+// `<Kind>Eq` fragment field emits `<col> = $1` in a column context; the
+// load-bearing detail is the distinct bound value each kind's `valueArg`
+// marshals: a Date through `valueArg('localTime')` binds 'HH:MM:SS', through
+// `valueArg('localDate')` binds the Date, a number through
+// `valueArg('customDouble')` binds the number.
 //
 // The custom-temporal `valueArg` kinds (customLocalDate / customLocalTime /
 // customLocalDateTime) are intentionally NOT covered here: their `valueArg`

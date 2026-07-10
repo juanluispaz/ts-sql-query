@@ -510,14 +510,10 @@ describe(ctx.label, () => {
     // ── 6. CustomInt arithmetic with a CROSS-TABLE value-source operand ────
 
     test('value-source-rhs/customint-add-cross-table-operand', async () => {
-        // The customInt arithmetic siblings (add/subtract/modulo/minValue/
-        // maxValue) were widened to accept `SOURCE | VALUE[typeof source]`, so a
-        // customInt operand drawn from a DIFFERENT table (a joined alias) is
-        // accepted. Every other customInt-arithmetic runtime test uses the SAME
-        // column, which collapses the source union to `SOURCE` and never
-        // exercises the added `VALUE[source]` arm. Here `worklog2` is a self-join
-        // alias joined on the same id, so `cost_cents + worklog2.cost_cents` is a
-        // genuine cross-table operand. Worklog 1: cost_cents 100 -> 100 + 100 = 200.
+        // customInt arithmetic (add) with a value-source operand drawn from a
+        // DIFFERENT table (a joined alias): `worklog2` is a self-join alias joined
+        // on the same id, so `cost_cents + worklog2.cost_cents` is a cross-table
+        // operand. Worklog 1: cost_cents 100 -> 100 + 100 = 200.
         const worklog2 = tIssueWorklog.as('worklog2')
         const expected = [{ id: 1, sum: 200 }]
         ctx.mockNext(expected)
@@ -543,10 +539,10 @@ describe(ctx.label, () => {
 
     test('nullable-const/double-value-when-null-and-null-if-value', async () => {
         // `valueWhenNull(0)` / `nullIfValue(0)` on a plain OPTIONAL double
-        // receiver — only int/bigint/customDouble pin these const forms. estimated_hours
-        // is NULL for issue 1: valueWhenNull(0) flips the optionality to required
-        // and realizes 0 (`coalesce(estimated_hours, $1)`); nullIfValue(0) keeps
-        // it optional and `nullif(NULL, $2)` stays NULL -> the leaf is absent.
+        // receiver. estimated_hours is NULL for issue 1: valueWhenNull(0) flips
+        // the optionality to required and realizes 0 (`coalesce(estimated_hours,
+        // $1)`); nullIfValue(0) keeps it optional and `nullif(NULL, $2)` stays
+        // NULL -> the leaf is absent.
         const expected = [{ id: 1, wn: 0 }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssue)

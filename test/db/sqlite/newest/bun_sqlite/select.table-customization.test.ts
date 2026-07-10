@@ -122,9 +122,8 @@ describe(ctx.label, () => {
     })
 
     test('table-customization: withSqlHint applied to a VIEW emits the hint on the view name', async () => {
-        // `createTableOrViewCustomization` wraps a VIEW as readily as a table —
-        // every other call site in the suite wraps a Table, so the view arm is
-        // otherwise unexercised. The hint comment renders on the view's name.
+        // `createTableOrViewCustomization` wraps a VIEW as readily as a table.
+        // The hint comment renders on the view's name.
         // project_overview row for project 1: name 'Marketing site'.
         const vProjCustom = ctx.conn.withSqlHint(vProjectOverview.as('v'), 'vProjCustom')
         const expected = [{ id: 1, name: 'Marketing site' }]

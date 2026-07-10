@@ -521,12 +521,11 @@ export class DBConnection extends SqlServerConnection<'DBConnection'> {
         this.arg('boolean', 'optional'), this.valueArg('boolean', 'optional')
     ).as((c, v) => this.fragmentWithType('boolean', 'required').sql`${c} or ${v}`)
 
-    // arg / valueArg over the temporal and custom-fractional keywords — the
-    // still-uncovered argument types (int/string/uuid/double/customComparable/
-    // custom/enum/customUuid/boolean are covered above). Each is `${col} = ${value}`
-    // in a column context (the arg binds to a typed column at the call site), so
-    // the SQL stays portable and the valueArg marshals a distinct bound value per
-    // kind (e.g. a Date through valueArg('localTime') binds 'HH:MM:SS').
+    // arg / valueArg over the temporal and custom-fractional keywords. Each is
+    // `${col} = ${value}` in a column context (the arg binds to a typed column at
+    // the call site), so the SQL stays portable and the valueArg marshals a
+    // distinct bound value per kind (e.g. a Date through valueArg('localTime')
+    // binds 'HH:MM:SS').
     localDateEq = this.buildFragmentWithArgsIfValue(
         this.arg('localDate', 'optional'), this.valueArg('localDate', 'optional')
     ).as((c, v) => this.fragmentWithType('boolean', 'required').sql`${c} = ${v}`)

@@ -138,6 +138,87 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
+    test('rule-2-left-join-object-mixing-a-const-leaf-dropped-on-join-miss-default', async () => {
+        // The rule-2 boundary on a JOIN MISS. `iss` mixes a LEFT-JOIN
+        // originallyRequired leaf (`title` = issue.title, NOT NULL in the
+        // schema) with a `connection.const()` NO-TABLE leaf (`tag`, always
+        // present). Rule 2 treats the originallyRequired left-join leaf as the
+        // object's presence signal and IGNORES the no-table const leaf, so when
+        // the join misses the WHOLE object is dropped — even though the const
+        // still has a value. project 3 -> issue 4 (join hits, `iss` present);
+        // project 4 -> no issue (join misses, `iss` absent). Matches the typed
+        // `iss?: { title: string; tag: string }` (present ⟹ `title` is a string).
+        const expected = [
+            { pid: 3, iss: { title: 'Document /v2/users', tag: 'rel' } },
+            { pid: 4 },
+        ]
+        ctx.mockNext([
+            { pid: 3, 'iss.title': 'Document /v2/users', 'iss.tag': 'rel' },
+            { pid: 4, 'iss.title': null, 'iss.tag': 'rel' },
+        ])
+        const tIssueLeft = tIssue.forUseInLeftJoin()
+        const rows = await ctx.conn.selectFrom(tProject)
+            .leftJoin(tIssueLeft).on(tIssueLeft.projectId.equals(tProject.id))
+            .where(tProject.id.in([3, 4]))
+            .select({
+                pid: tProject.id,
+                iss: { title: tIssueLeft.title, tag: ctx.conn.const('rel', 'string') },
+            })
+            .orderBy('pid')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.title as "iss.title", ? as "iss.tag" from project left join issue on issue.project_id = project.id where project.id in (?, ?) order by pid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "rel",
+            3,
+            4,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            pid: number
+            iss?: { title: string; tag: string }
+        }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('rule-2-left-join-object-mixing-a-const-leaf-dropped-on-join-miss-projecting-optional-values-as-nullable', async () => {
+        // Same miss under `projectingOptionalValuesAsNullable()`: the dropped
+        // object surfaces as `null` (not absent), and the const leaf still does
+        // not keep it alive. project 3 hits; project 4 misses -> `iss: null`.
+        const expected = [
+            { pid: 3, iss: { title: 'Document /v2/users', tag: 'rel' } },
+            { pid: 4, iss: null },
+        ]
+        ctx.mockNext([
+            { pid: 3, 'iss.title': 'Document /v2/users', 'iss.tag': 'rel' },
+            { pid: 4, 'iss.title': null, 'iss.tag': 'rel' },
+        ])
+        const tIssueLeft = tIssue.forUseInLeftJoin()
+        const rows = await ctx.conn.selectFrom(tProject)
+            .leftJoin(tIssueLeft).on(tIssueLeft.projectId.equals(tProject.id))
+            .where(tProject.id.in([3, 4]))
+            .select({
+                pid: tProject.id,
+                iss: { title: tIssueLeft.title, tag: ctx.conn.const('rel', 'string') },
+            })
+            .projectingOptionalValuesAsNullable()
+            .orderBy('pid')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, issue.title as "iss.title", ? as "iss.tag" from project left join issue on issue.project_id = project.id where project.id in (?, ?) order by pid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "rel",
+            3,
+            4,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            pid: number
+            iss: { title: string; tag: string } | null
+        }>>>()
+        expect(rows).toEqual(expected)
+    })
+
     test('two-different-left-joins-in-one-object-demotes-both-leaves-default', async () => {
         // A single nested object whose two leaves come from TWO DIFFERENT left
         // joins (`projName` = project.name, `orgName` = organization.name via a

@@ -2916,16 +2916,17 @@ describe(ctx.label, () => {
 
     test('rule-2-wrapper-of-sole-rule-2-inner-with-const-required-leaf-default', async () => {
         // A two-level container whose only member is a nested `inner` object whose
-        // table leaf (`iid`) comes from a left join — so `inner` is optional (all
-        // its table leaves share the same left join) — but which also carries a
-        // genuinely-required NoTableOrView `constReq` leaf (a `const(...)`). The
-        // optional `inner` keeps `wrapper` optional. The const leaf is always
-        // present, so when the left join misses only the join leaf `iid` drops
-        // while `inner` and `wrapper` survive carrying just `constReq`.
+        // table leaf (`iid`) comes from a left join — so `inner` is a rule-2
+        // optional object (all its table leaves share the same left join) — but
+        // which also carries a genuinely-required NoTableOrView `constReq` leaf (a
+        // `const(...)`). Rule 2 treats the originallyRequired left-join leaf as the
+        // presence signal and IGNORES the no-table const, so when the join misses
+        // the whole `inner` is dropped — even though `constReq` still has a value —
+        // and `wrapper` (whose sole member is `inner`) is dropped with it.
         // project 3 → issue 4 (join hits); project 4 → no issue (join misses).
         const expected = [
             { pid: 3, wrapper: { inner: { iid: 4, constReq: 1 } } },
-            { pid: 4, wrapper: { inner: { constReq: 1 } } },
+            { pid: 4 },
         ]
         ctx.mockNext([
             { pid: 3, 'wrapper.inner.iid': 4,    'wrapper.inner.constReq': 1 },
@@ -2960,10 +2961,9 @@ describe(ctx.label, () => {
             wrapper?: { inner: { iid: number; constReq: number } | undefined }
         }>>>()
         expect(rows).toEqual(expected)
-        // On the join-miss row the left-join leaf `iid` is dropped while the
-        // always-present `constReq` keeps the inner (and wrapper) — assert `iid`
-        // is ABSENT.
-        expect('iid' in rows[1]!.wrapper!.inner!).toBe(false)
+        // On the join-miss row the whole rule-2 `inner` is dropped (the const
+        // does not keep it), so `wrapper` is absent — assert the key is ABSENT.
+        expect('wrapper' in rows[1]!).toBe(false)
     })
 
 
@@ -3076,12 +3076,12 @@ describe(ctx.label, () => {
         // A rule-2 wrapper whose sole inner is a rule-2 object mixing a left-join leaf
         // (`iid`) with an always-present const (`constReq`). Under
         // `projectingOptionalValuesAsNullable()` the optional `wrapper`/`inner` objects
-        // become `{...} | null`. When the join misses, `inner`/`wrapper` survive (the
-        // const keeps them present) and only `iid` surfaces as `null` at runtime.
+        // become `{...} | null`. When the join misses the whole rule-2 `inner` is
+        // dropped (the const does not keep it), so `wrapper` surfaces as `null`.
         // project 3 -> issue 4 (join hits); project 4 -> no issue (join misses).
         const expected = [
             { pid: 3, wrapper: { inner: { iid: 4, constReq: 1 } } },
-            { pid: 4, wrapper: { inner: { iid: null, constReq: 1 } } },
+            { pid: 4, wrapper: null },
         ]
         ctx.mockNext([
             { pid: 3, 'wrapper.inner.iid': 4,    'wrapper.inner.constReq': 1 },
@@ -3117,8 +3117,9 @@ describe(ctx.label, () => {
             wrapper: { inner: { iid: number; constReq: number } | null } | null
         }>>>()
         expect(rows).toEqual(expected)
-        // On the join-miss row `iid` is null (present key), not absent.
-        expect(rows[1]!.wrapper!.inner!.iid).toBeNull()
+        // On the join-miss row the whole rule-2 `inner` is dropped, so `wrapper`
+        // surfaces as `null`.
+        expect(rows[1]!.wrapper).toBeNull()
     })
 
     test('cte-re-projected-rule-2-object-as-nullable-surfaces-null-on-miss', async () => {

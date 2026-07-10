@@ -872,10 +872,10 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         if (typeof value === 'string') {
             value = value.replace(/\[/g, '[[]')
             value = value.replace(/%/g, '[%]')
-            value = value.replace(/_/g, '[]')
+            value = value.replace(/_/g, '[_]')
             return this._appendValue(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast)
         } else {
-            return "replace(replace(replace(" + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast) + ", '[', '[[]'), '%', '[%]'), '_', '[]')"
+            return "replace(replace(replace(" + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast) + ", '[', '[[]'), '%', '[%]'), '_', '[_]')"
         }
     }
     override _startsWith(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {

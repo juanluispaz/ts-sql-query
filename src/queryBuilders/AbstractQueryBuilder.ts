@@ -239,21 +239,33 @@ export class AbstractQueryBuilder {
                 }
 
                 // For rule 2
-                if (alwaysSameRequiredTablesSize === undefined) {
-                    valueSourcePrivate.__registerTableOrView(this.__sqlBuilder, firstRequiredTables)
-                    alwaysSameRequiredTablesSize = true
-                } else if (alwaysSameRequiredTablesSize) {
-                    let valueSourceRequiredTables = new Set<AnyTableOrView>()
-                    valueSourcePrivate.__registerTableOrView(this.__sqlBuilder, valueSourceRequiredTables)
-                    const initialSize = firstRequiredTables.size
-                    if (initialSize !== valueSourceRequiredTables.size) {
-                        alwaysSameRequiredTablesSize = false
-                    } else {
-                        valueSourceRequiredTables.forEach(table => {
-                            firstRequiredTables.add(table)
-                        })
-                        if (initialSize !== firstRequiredTables.size) {
+                // A leaf with no required table (e.g. a `connection.const()`) is
+                // a no-table source. The type-level rule 2
+                // (AllFromSameLeftJoinWithOriginallyRequired) absorbs no-table
+                // leaves via NNoTableOrViewRequiredFrom — they don't disqualify
+                // the "all from the same left join" detection — so they must be
+                // ignored here too. Counting the const's empty required-tables
+                // set as a size mismatch would wrongly disable the rule-2 drop,
+                // keeping the object alive on a join miss (const present, the
+                // left-join leaf absent) in violation of its required-when-present
+                // type.
+                let valueSourceRequiredTables = new Set<AnyTableOrView>()
+                valueSourcePrivate.__registerTableOrView(this.__sqlBuilder, valueSourceRequiredTables)
+                if (valueSourceRequiredTables.size > 0) {
+                    if (alwaysSameRequiredTablesSize === undefined) {
+                        firstRequiredTables = valueSourceRequiredTables
+                        alwaysSameRequiredTablesSize = true
+                    } else if (alwaysSameRequiredTablesSize) {
+                        const initialSize = firstRequiredTables.size
+                        if (initialSize !== valueSourceRequiredTables.size) {
                             alwaysSameRequiredTablesSize = false
+                        } else {
+                            valueSourceRequiredTables.forEach(table => {
+                                firstRequiredTables.add(table)
+                            })
+                            if (initialSize !== firstRequiredTables.size) {
+                                alwaysSameRequiredTablesSize = false
+                            }
                         }
                     }
                 }

@@ -1,12 +1,10 @@
 // Coverage of the LITERAL-string branch of `_escapeLikeWildcard`: an affix
 // predicate (contains / startsWith / endsWith and their not / Insensitive /
 // IfValue twins) fed a literal that CONTAINS `%` / `_`, so the `.replace()`
-// calls in the string arm escape them in the BOUND PARAM. Each dialect's
-// escaped param is pinned by the snapshot: pg/sqlite escape with a backslash,
-// mysql/maria double the backslash, and sqlserver/oracle bracket-escape
-// (`%`->`[%]`, `_`->`[_]`).
+// calls in the string arm escape them in the BOUND PARAM. The exact escaped
+// form this dialect emits is pinned by the snapshot below.
 //
-// The needle is a literal that no seeded `email` contains, so every dialect
+// The needle is a literal that no seeded `email` contains, so this dialect
 // returns the empty set — the load-bearing assertion is the escaped param.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'

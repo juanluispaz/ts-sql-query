@@ -1089,16 +1089,10 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             return 'listagg(distinct ' + this._appendSql(value, params, false) + ', ' + this._appendValue(separator, params, 'string', 'string', undefined, false) + ') within group (order by ' +  this._appendSql(value, params, false) + ')'
         }
     }
-    override _escapeLikeWildcard(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
-        if (typeof value === 'string') {
-            value = value.replace(/\[/g, '[[]')
-            value = value.replace(/%/g, '[%]')
-            value = value.replace(/_/g, '[]')
-            return this._appendValue(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast)
-        } else {
-            return "replace(replace(replace(" + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast) + ", '[', '[[]'), '%', '[%]'), '_', '[]')"
-        }
-    }
+    // Oracle LIKE has no `[...]` character classes; wildcards are escaped with
+    // the backslash declared by the `escape '\'` clause every affix predicate
+    // below emits. The inherited `_escapeLikeWildcard` produces exactly that
+    // backslash escaping (`%`->`\%`, `_`->`\_`, `\`->`\\`), so no override.
     override _like(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         return this._appendSqlParenthesis(valueSource, params, false) + ' like ' + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, false) + " escape '\\'"
     }

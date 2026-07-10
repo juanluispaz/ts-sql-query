@@ -28,7 +28,7 @@ describe(ctx.label, () => {
             .select({ id: tIssue.id })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where body like ('%' + replace(replace(replace(title, '[', '[[]'), '%', '[%]'), '_', '[]') + '%') order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where body like ('%' + replace(replace(replace(title, '[', '[[]'), '%', '[%]'), '_', '[_]') + '%') order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
     })
 
@@ -39,7 +39,7 @@ describe(ctx.label, () => {
             .select({ id: tIssue.id })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where body like (replace(replace(replace(title, '[', '[[]'), '%', '[%]'), '_', '[]') + '%') order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where body like (replace(replace(replace(title, '[', '[[]'), '%', '[%]'), '_', '[_]') + '%') order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
     })
 
@@ -50,7 +50,7 @@ describe(ctx.label, () => {
             .select({ id: tIssue.id })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where body like ('%' + replace(replace(replace(title, '[', '[[]'), '%', '[%]'), '_', '[]')) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where body like ('%' + replace(replace(replace(title, '[', '[[]'), '%', '[%]'), '_', '[_]')) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
     })
 
@@ -85,7 +85,7 @@ describe(ctx.label, () => {
             .select({ id: tIssue.id })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where body not like ('%' + replace(replace(replace(title, '[', '[[]'), '%', '[%]'), '_', '[]') + '%') order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where body not like ('%' + replace(replace(replace(title, '[', '[[]'), '%', '[%]'), '_', '[_]') + '%') order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
     })
 
@@ -96,7 +96,7 @@ describe(ctx.label, () => {
             .select({ id: tIssue.id })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where body not like (replace(replace(replace(title, '[', '[[]'), '%', '[%]'), '_', '[]') + '%') order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where body not like (replace(replace(replace(title, '[', '[[]'), '%', '[%]'), '_', '[_]') + '%') order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
     })
 
@@ -107,7 +107,7 @@ describe(ctx.label, () => {
             .select({ id: tIssue.id })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where body not like ('%' + replace(replace(replace(title, '[', '[[]'), '%', '[%]'), '_', '[]')) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where body not like ('%' + replace(replace(replace(title, '[', '[[]'), '%', '[%]'), '_', '[_]')) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
     })
 })

@@ -61,6 +61,22 @@ function pathOf(build: () => unknown): string {
     return '<no throw>'
 }
 
+// Same shape, reporting the structured `value` an INVALID_FILTER reason carries
+// — the specific offending value received for the column, matching the message's
+// "Received value", not the enclosing filter object.
+function valueOf(build: () => unknown): unknown {
+    try {
+        build()
+    } catch (e) {
+        if (e instanceof TsSqlError) {
+            const reason = e.errorReason
+            return 'value' in reason ? reason.value : `<no value on ${reason.reason}>`
+        }
+        return `non-TsSqlError: ${String(e)}`
+    }
+    return '<no throw>'
+}
+
 // A depth-3 nested projection: `project` and `project.assignee` are plain
 // objects (non-value-sources), so a filter descending into them forces the
 // builder to recurse twice and accumulate a dotted path prefix. The tables are
@@ -109,6 +125,32 @@ describe(ctx.label, () => {
         const reason = reasonOf(() =>
             ctx.conn.dynamicConditionFor(selectFields).withValues({ id: 5 } as any))
         expect(reason).toBe('DYNAMIC_CONDITION_INVALID_FILTER')
+    })
+
+    test('errors/column-value-not-object-path-depth-1', () => {
+        // The offending column's own path is reported (the bare column key at
+        // the top level), matching the column named in the thrown message — not
+        // the empty enclosing scope.
+        const path = pathOf(() =>
+            ctx.conn.dynamicConditionFor(selectFields).withValues({ id: 5 } as any))
+        expect(path).toBe('id')
+    })
+
+    test('errors/nested-column-value-not-object-path-depth-2', () => {
+        // One level down, the dotted path runs to the offending column
+        // (`project.id`), not the enclosing `project` scope.
+        const path = pathOf(() =>
+            ctx.conn.dynamicConditionFor(nestedFields).withValues({ project: { id: 5 } } as any))
+        expect(path).toBe('project.id')
+    })
+
+    test('errors/column-value-not-object-value', () => {
+        // The structured `value` is the specific non-object value received for
+        // the column (matching the message's "Received value"), not the
+        // enclosing filter object.
+        const value = valueOf(() =>
+            ctx.conn.dynamicConditionFor(selectFields).withValues({ id: 5 } as any))
+        expect(value).toBe(5)
     })
 
     test('errors/and-not-array-reason', () => {

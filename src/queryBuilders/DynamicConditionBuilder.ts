@@ -93,7 +93,7 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
                     continue
                 }
                 if (typeof value !== 'object' || value instanceof Date) {
-                    throw new TsSqlProcessingError({ reason: 'DYNAMIC_CONDITION_INVALID_FILTER', value: filter, path: prefix }, 'Invalid dynamic filter condition received for the column "' + joinPath(prefix, key) + '"; an object is expected. Received value: ' + value)
+                    throw new TsSqlProcessingError({ reason: 'DYNAMIC_CONDITION_INVALID_FILTER', value, path: joinPath(prefix, key) }, 'Invalid dynamic filter condition received for the column "' + joinPath(prefix, key) + '"; an object is expected. Received value: ' + value)
                 }
                 if (isValueSource(column)) {
                     condition = this.processColumnFilter(value, column, extension, joinPath(prefix, key))

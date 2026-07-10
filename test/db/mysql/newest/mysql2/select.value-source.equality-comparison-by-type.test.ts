@@ -4874,7 +4874,7 @@ describe(ctx.label, () => {
 
 
     // ==================================================================
-    // §B (EQ-1..24): the remaining direct-fluent equality / comparison
+    // The remaining direct-fluent equality / comparison
     // arms per leaf — customDouble ordered-const, string membership +
     // notBetween, plain / custom localDateTime ordered comparison (const +
     // value-source operand) and the `notInN` / `inN` variadic siblings

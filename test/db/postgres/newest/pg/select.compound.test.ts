@@ -1140,8 +1140,6 @@ describe(ctx.label, () => {
         // derived table `(select … group by … order by …) as a_1_`, so the aggregated
         // array comes back in that order. Org 1 owns project 1 (issues 1,2 → count 2)
         // and project 2 (issue 3 → count 1); `order by id` fixes the array order.
-        // (Placed here per the round-39 audit's file assignment; the surface exercised
-        // is the grouped+ordered inline-aggregate derived table, not a compound.)
         ctx.mockNext({
             id: 1, name: 'Acme Corp',
             projectStats: JSON.stringify([

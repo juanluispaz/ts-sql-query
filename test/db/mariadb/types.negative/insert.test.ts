@@ -120,7 +120,7 @@ function _typeNegatives() {
         // @ts-expect-error executeInsertOne is dropped on the optional-returning (onConflictDoNothing) path
         .executeInsertOne()
 
-    // Rule (round-39 candidate C2): INSERT's `ignoreIfHasValue` /
+    // Rule: INSERT's `ignoreIfHasValue` /
     // `ignoreIfHasNoValue` accept only OPTIONAL columns
     // (`OptionalColumnsForSetOf`), whereas UPDATE's accept ALL settable columns
     // (`ColumnsForSetOf`). A REQUIRED column (`title`) is therefore rejected on

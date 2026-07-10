@@ -119,7 +119,7 @@ function _typeNegatives() {
         // @ts-expect-error disallowIfNoValueWhen must not make a still-incomplete insert executable
         .executeInsert()
 
-    // Rule (round-39 candidate C2): INSERT's `ignoreIfHasValue` /
+    // Rule: INSERT's `ignoreIfHasValue` /
     // `ignoreIfHasNoValue` accept only OPTIONAL columns
     // (`OptionalColumnsForSetOf`), whereas UPDATE's accept ALL settable columns
     // (`ColumnsForSetOf`). A REQUIRED column (`title`) is therefore rejected on

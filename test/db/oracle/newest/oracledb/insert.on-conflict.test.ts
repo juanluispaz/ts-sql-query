@@ -564,8 +564,7 @@ describe(ctx.label, () => {
     // NOT-APPLICABLE: Oracle has no INSERT…ON CONFLICT (uses MERGE); `onConflictOn` is narrowed away.
     //     test('on-conflict-on-columns-with-where-do-nothing', async () => {
     //         // `onConflictOn(cols).where(cond).doNothing()` — the DO NOTHING arm off
-    //         // a partial-INDEX conflict target (the do-update counterpart lives in
-    //         // `insert.on-conflict-do-update-extras.test.ts`). The partial-index
+    //         // a partial-INDEX conflict target. The partial-index
     //         // predicate `.where(tProject.published.equals(true))` targets a real
     //         // partial unique index. Seeded row id=1 (`mktg-site`, organizationId=1,
     //         // published='t') matches the target, so the insert is suppressed.

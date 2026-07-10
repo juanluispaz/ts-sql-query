@@ -521,6 +521,25 @@ export class DBConnection extends SqlServerConnection<'DBConnection'> {
         this.arg('boolean', 'optional'), this.valueArg('boolean', 'optional')
     ).as((c, v) => this.fragmentWithType('boolean', 'required').sql`${c} or ${v}`)
 
+    // arg / valueArg over the temporal and custom-fractional keywords — the
+    // still-uncovered argument types (int/string/uuid/double/customComparable/
+    // custom/enum/customUuid/boolean are covered above). Each is `${col} = ${value}`
+    // in a column context (the arg binds to a typed column at the call site), so
+    // the SQL stays portable and the valueArg marshals a distinct bound value per
+    // kind (e.g. a Date through valueArg('localTime') binds 'HH:MM:SS').
+    localDateEq = this.buildFragmentWithArgsIfValue(
+        this.arg('localDate', 'optional'), this.valueArg('localDate', 'optional')
+    ).as((c, v) => this.fragmentWithType('boolean', 'required').sql`${c} = ${v}`)
+    localTimeEq = this.buildFragmentWithArgsIfValue(
+        this.arg('localTime', 'optional'), this.valueArg('localTime', 'optional')
+    ).as((c, v) => this.fragmentWithType('boolean', 'required').sql`${c} = ${v}`)
+    localDateTimeEq = this.buildFragmentWithArgsIfValue(
+        this.arg('localDateTime', 'optional'), this.valueArg('localDateTime', 'optional')
+    ).as((c, v) => this.fragmentWithType('boolean', 'required').sql`${c} = ${v}`)
+    customDoubleEq = this.buildFragmentWithArgsIfValue(
+        this.arg<number, 'Money'>('customDouble', 'Money', 'optional'), this.valueArg<number, 'Money'>('customDouble', 'Money', 'optional')
+    ).as((c, v) => this.fragmentWithType('boolean', 'required').sql`${c} = ${v}`)
+
     // Sequence references — exercised by sequence.next-current-value.test.ts.
     // Sequences are only typed on AbstractAdvancedConnection-derived
     // dialects (mariaDB ≥ 10.3, oracle, postgreSql, sqlServer); see

@@ -504,4 +504,62 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
+    test('value-source-rhs/customint-add-cross-table-operand', async () => {
+        // The customInt arithmetic siblings (add/subtract/modulo/minValue/
+        // maxValue) were widened to accept `SOURCE | VALUE[typeof source]`, so a
+        // customInt operand drawn from a DIFFERENT table (a joined alias) is
+        // accepted. Every other customInt-arithmetic runtime test uses the SAME
+        // column, which collapses the source union to `SOURCE` and never
+        // exercises the added `VALUE[source]` arm. Here `worklog2` is a self-join
+        // alias joined on the same id, so `cost_cents + worklog2.cost_cents` is a
+        // genuine cross-table operand. Worklog 1: cost_cents 100 -> 100 + 100 = 200.
+        const worklog2 = tIssueWorklog.as('worklog2')
+        const expected = [{ id: 1, sum: 200 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssueWorklog)
+            .join(worklog2).on(worklog2.id.equals(tIssueWorklog.id))
+            .where(tIssueWorklog.id.equals(1))
+            .select({
+                id:  tIssueWorklog.id,
+                sum: tIssueWorklog.costCents.add(worklog2.costCents),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue_worklog.id as id, issue_worklog.cost_cents + worklog2.cost_cents as sum from issue_worklog join issue_worklog as worklog2 on worklog2.id = issue_worklog.id where issue_worklog.id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; sum: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('nullable-const/double-value-when-null-and-null-if-value', async () => {
+        // `valueWhenNull(0)` / `nullIfValue(0)` on a plain OPTIONAL double
+        // receiver — only int/bigint/customDouble pin these const forms. estimated_hours
+        // is NULL for issue 1: valueWhenNull(0) flips the optionality to required
+        // and realizes 0 (`coalesce(estimated_hours, $1)`); nullIfValue(0) keeps
+        // it optional and `nullif(NULL, $2)` stays NULL -> the leaf is absent.
+        const expected = [{ id: 1, wn: 0 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                wn: tIssue.estimatedHours.valueWhenNull(0),
+                ni: tIssue.estimatedHours.nullIfValue(0),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce(estimated_hours, $1) as wn, nullif(estimated_hours, $2) as ni from issue where id = $3"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            0,
+            0,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; wn: number; ni?: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
 })

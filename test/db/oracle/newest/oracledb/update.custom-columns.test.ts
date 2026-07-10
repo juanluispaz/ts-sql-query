@@ -255,4 +255,47 @@ describe(ctx.label, () => {
             expect(row.count).toBe(count)
         })
     })
+
+    test('write-through custom-kind-then-adapter columns scale/shift the bound param and round-trip on read', async () => {
+        // scaledCost (customInt 'Cents' + scaledTenthAdapter, write x10) and
+        // shiftedAmount (customDouble 'Money' + plusOffsetAdapter, write -1000):
+        // an UPDATE marshals the value through the custom kind and then the
+        // adapter's WRITE transform, so `set({ scaledCost: 1, shiftedAmount: 5 })`
+        // binds `10` and `-995`. Every other adapter-write test pins the adapter
+        // on a PLAIN int/double column; this is the one custom-kind-marshal-THEN-
+        // adapter write. Reading back applies the read transforms (/10, +1000),
+        // round-tripping to the original 1 and 5.
+        await ctx.withRollback(async () => {
+            ctx.mockNext(1)
+            const affected = await ctx.conn.update(tReleaseDraft)
+                .set({ scaledCost: 1, shiftedAmount: 5 })
+                .where(tReleaseDraft.id.equals(1))
+                .executeUpdate()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update release_draft set scaled_cost = :0, shifted_amount = :1 where id = :2"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                10,
+                -995,
+                1,
+              ]
+            `)
+            if (!ctx.realDbEnabled) expect(affected).toBe(1)
+
+            ctx.mockNext({ cost: 10, amount: -995 })
+            const row = await ctx.conn.selectFrom(tReleaseDraft)
+                .where(tReleaseDraft.id.equals(1))
+                .select({ cost: tReleaseDraft.scaledCost, amount: tReleaseDraft.shiftedAmount })
+                .executeSelectOne()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select scaled_cost as "cost", shifted_amount as "amount" from release_draft where id = :0"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof row, { cost: number; amount: number }>>()
+            // The read adapters undo the write transforms: cost /10, amount +1000.
+            expect(row.cost).toBe(1)
+            expect(row.amount).toBe(5)
+        })
+    })
 })

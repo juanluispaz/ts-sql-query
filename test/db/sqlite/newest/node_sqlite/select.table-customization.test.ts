@@ -16,7 +16,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tOrganization, tProject } from '../../domain/connection.js'
+import { tOrganization, tProject, vProjectOverview } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -118,6 +118,29 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{ projectId: number; orgName: string }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('table-customization: withSqlHint applied to a VIEW emits the hint on the view name', async () => {
+        // `createTableOrViewCustomization` wraps a VIEW as readily as a table —
+        // every other call site in the suite wraps a Table, so the view arm is
+        // otherwise unexercised. The hint comment renders on the view's name.
+        // project_overview row for project 1: name 'Marketing site'.
+        const vProjCustom = ctx.conn.withSqlHint(vProjectOverview.as('v'), 'vProjCustom')
+        const expected = [{ id: 1, name: 'Marketing site' }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(vProjCustom)
+            .where(vProjCustom.id.equals(1))
+            .select({ id: vProjCustom.id, name: vProjCustom.name })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select "v".id as id, "v".name as name from /*+ hint */ project_overview as "v" where "v".id = ? order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; name: string }>>>()
         expect(rows).toEqual(expected)
     })
 })

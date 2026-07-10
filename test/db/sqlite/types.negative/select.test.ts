@@ -296,6 +296,102 @@ function _typeNegatives() {
             x: tIssueWorklog.costCents.nullIfValue(worklog2.costCents),
         })
 
+    // Rule: the customInt ARITHMETIC value-source overloads (add / subtract /
+    // modulo / minValue / maxValue) were widened to union the OPERAND column's
+    // source into the result (commit 8d4585c2), the same table-tracking fix
+    // class as valueWhenNull / nullIfValue above — so an operand from a table not
+    // in the FROM must not compile. The joined positive control lives in
+    // select.value-source.numeric-operand-coverage.test.ts.
+    void connection.selectFrom(tIssueWorklog)
+        .select({
+            // @ts-expect-error add operand worklog2.costCents is from a table not in the FROM
+            x: tIssueWorklog.costCents.add(worklog2.costCents),
+        })
+    void connection.selectFrom(tIssueWorklog)
+        .select({
+            // @ts-expect-error subtract operand worklog2.costCents is from a table not in the FROM
+            x: tIssueWorklog.costCents.subtract(worklog2.costCents),
+        })
+    void connection.selectFrom(tIssueWorklog)
+        .select({
+            // @ts-expect-error modulo operand worklog2.costCents is from a table not in the FROM
+            x: tIssueWorklog.costCents.modulo(worklog2.costCents),
+        })
+    void connection.selectFrom(tIssueWorklog)
+        .select({
+            // @ts-expect-error minValue operand worklog2.costCents is from a table not in the FROM
+            x: tIssueWorklog.costCents.minValue(worklog2.costCents),
+        })
+    void connection.selectFrom(tIssueWorklog)
+        .select({
+            // @ts-expect-error maxValue operand worklog2.costCents is from a table not in the FROM
+            x: tIssueWorklog.costCents.maxValue(worklog2.costCents),
+        })
+
+    // Rule: CustomDouble source-tracking is symmetric with CustomInt — the
+    // valueWhenNull / nullIfValue / arithmetic overloads union the operand's
+    // source too. Only CustomInt was previously locked (the comment above even
+    // asserts "like CustomDouble" without a CustomDouble lock). billedAmount is a
+    // customDouble 'Money' column; worklog2.billedAmount is a distinct self-alias
+    // of the same TYPE_NAME.
+    void connection.selectFrom(tIssueWorklog)
+        .select({
+            // @ts-expect-error valueWhenNull operand worklog2.billedAmount is from a table not in the FROM
+            x: tIssueWorklog.billedAmount.valueWhenNull(worklog2.billedAmount),
+        })
+    void connection.selectFrom(tIssueWorklog)
+        .select({
+            // @ts-expect-error nullIfValue operand worklog2.billedAmount is from a table not in the FROM
+            x: tIssueWorklog.billedAmount.nullIfValue(worklog2.billedAmount),
+        })
+    void connection.selectFrom(tIssueWorklog)
+        .select({
+            // @ts-expect-error add operand worklog2.billedAmount is from a table not in the FROM
+            x: tIssueWorklog.billedAmount.add(worklog2.billedAmount),
+        })
+
+    // Rule: BigintValueSource deliberately OMITS the float-only math methods
+    // (multiply / divide / power / sqrt / exp / ln / log10 / cbrt / atan2 / logn
+    // / roundn / sin) — bigint arithmetic stays exact. Each must stay absent so
+    // that an accidentally-uncommented method would be caught here. viewCount is
+    // a bigint column.
+    // @ts-expect-error multiply is not a BigintValueSource method
+    void tIssue.viewCount.multiply(2n)
+    // @ts-expect-error divide is not a BigintValueSource method
+    void tIssue.viewCount.divide(2n)
+    // @ts-expect-error power is not a BigintValueSource method
+    void tIssue.viewCount.power(2n)
+    // @ts-expect-error sqrt is not a BigintValueSource method
+    void tIssue.viewCount.sqrt()
+    // @ts-expect-error exp is not a BigintValueSource method
+    void tIssue.viewCount.exp()
+    // @ts-expect-error ln is not a BigintValueSource method
+    void tIssue.viewCount.ln()
+    // @ts-expect-error log10 is not a BigintValueSource method
+    void tIssue.viewCount.log10()
+    // @ts-expect-error cbrt is not a BigintValueSource method
+    void tIssue.viewCount.cbrt()
+    // @ts-expect-error atan2 is not a BigintValueSource method
+    void tIssue.viewCount.atan2(2n)
+    // @ts-expect-error logn is not a BigintValueSource method
+    void tIssue.viewCount.logn(2n)
+    // @ts-expect-error roundn is not a BigintValueSource method
+    void tIssue.viewCount.roundn(2)
+    // @ts-expect-error sin is not a BigintValueSource method
+    void tIssue.viewCount.sin()
+
+    // Rule: numeric arithmetic requires operands of the SAME leaf kind — a bigint
+    // receiver rejects a number/int operand and an int receiver rejects a bigint
+    // operand, so distinct numeric domains cannot silently mix.
+    // @ts-expect-error bigint receiver rejects a plain number operand
+    void tIssue.viewCount.add(1)
+    // @ts-expect-error int receiver rejects a bigint operand
+    void tIssue.priority.add(1n)
+    // @ts-expect-error bigint receiver rejects an int-column operand
+    void tIssue.viewCount.add(tIssue.priority)
+    // @ts-expect-error int receiver rejects a bigint-column operand
+    void tIssue.priority.add(tIssue.viewCount)
+
     // Rule: ordered-comparison methods (lessThan / greaterThan / lessOrEquals /
     // greaterOrEquals / between / notBetween) exist only on a
     // ComparableValueSource. A boolean / enum / custom leaf is Equalable but NOT

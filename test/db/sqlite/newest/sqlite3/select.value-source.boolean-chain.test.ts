@@ -103,6 +103,36 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
+
+    test('boolean-or-of-and-parenthesises-inner-and', async () => {
+        // Mixed: `status='open' OR (priority > 1 AND priority < 3)`.
+        // The RIGHT operand of the OR is an AND, so `_or` must parenthesise it
+        // — the `op2 === '_and'` branch, the mirror of the inner-OR case above
+        // and the only precedence branch of `_or` not otherwise pinned. issue 1
+        // (open) and 3 (open) match on the left; issue 4 (closed, priority 2)
+        // matches on the right `(2 > 1 and 2 < 3)`; issue 2 (priority 1) matches
+        // neither.
+        const expected = [{ id: 1 }, { id: 3 }, { id: 4 }]
+        ctx.mockNext(expected)
+        const priorityMid = tIssue.priority.greaterThan(1)
+            .and(tIssue.priority.lessThan(3))
+        const predicate = tIssue.status.equals('open').or(priorityMid)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(predicate)
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where status = ? or (priority > ? and priority < ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "open",
+            1,
+            3,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+        expect(result).toEqual(expected)
+    })
     test('boolean-chain-negate-wraps-in-not', async () => {
         // `.negate()` on a chained boolean expression wraps the whole
         // thing in `NOT (...)`. The snapshot proves the parens reach

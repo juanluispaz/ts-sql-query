@@ -184,6 +184,34 @@ describe(ctx.label, () => {
         expect(await fromDbReason(tIssue.priority.greaterThan(0), 'x')).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')
     })
 
+    test('marshalling/from-db-validation/boolean-from-numeric-string-one', async () => {
+        // The numeric-string boolean branch (`/^(-?\d+)$/` -> `!!(+value)`):
+        // engines without a native boolean store it as 0/1 and some drivers
+        // (oracledb) hand a numeric column back as a string. `'1'` -> true.
+        if (ctx.realDbEnabled) return
+        expect(await fromDbValue(tIssue.priority.greaterThan(0), '1')).toBe(true)
+    })
+
+    test('marshalling/from-db-validation/boolean-from-numeric-string-zero', async () => {
+        // `'0'` -> false, the other side of the numeric-string branch.
+        if (ctx.realDbEnabled) return
+        expect(await fromDbValue(tIssue.priority.greaterThan(0), '0')).toBe(false)
+    })
+
+    test('marshalling/from-db-validation/boolean-from-negative-numeric-string', async () => {
+        // The regex accepts a leading minus, so `'-5'` -> `!!(-5)` -> true.
+        if (ctx.realDbEnabled) return
+        expect(await fromDbValue(tIssue.priority.greaterThan(0), '-5')).toBe(true)
+    })
+
+    test('marshalling/from-db-validation/boolean-from-decimal-string-throws', async () => {
+        // A decimal string does NOT match the integer regex, so it falls through
+        // to the reject — the boundary between the numeric-string branch and the
+        // non-numeric throw.
+        if (ctx.realDbEnabled) return
+        expect(await fromDbReason(tIssue.priority.greaterThan(0), '1.5')).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')
+    })
+
     test('marshalling/from-db-validation/string-non-string-throws', async () => {
         if (ctx.realDbEnabled) return
         expect(await fromDbReason(tIssue.title, 12345)).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')

@@ -84,6 +84,14 @@ function _typeNegatives() {
     // VALUES tuple, so it is not a writable row key and must be rejected as one.
     // @ts-expect-error `display` is a virtual column, not a writable row key
     Values.create(VProjectPatchVirtual, 'projectPatchVirtual', [{ id: 1, display: 'x' }])
+
+    // Rule: the Values subclass constructor takes an `OpaqueValues` brand
+    // (`[dontCallConstructor]`) as its second argument, so `Values.create(...)` is
+    // the ONLY entry point — constructing a view directly with `new` and a plain
+    // row array cannot satisfy the brand and must not compile. This is the safety
+    // mechanism that forces every Values view through `Values.create`.
+    // @ts-expect-error direct construction is blocked — a row array is not an OpaqueValues; use Values.create
+    new VProjectPatch('projectPatch', [{ id: 1, name: 'one' }])
 }
 
 test('postgres-negative-types-with-values', () => {

@@ -336,6 +336,19 @@ function _typeNegatives() {
             x: tIssueWorklog.billedAmount.add(worklog2.billedAmount),
         })
 
+    // Rule: CustomDoubleValueSource deliberately OMITS the numeric CAST methods
+    // asInt / asDouble / asBigint — a custom double carries its own brand +
+    // TYPE_NAME, and casting it to a plain int/double/bigint would erase that
+    // brand, so those casts are `NumberValueSource`-only (commented out in the
+    // CustomDoubleValueSource interface). Each must stay absent so an accidental
+    // un-comment would be caught here. billedAmount is a customDouble 'Money' column.
+    // @ts-expect-error asInt is a NumberValueSource-only cast, absent on customDouble
+    void tIssueWorklog.billedAmount.asInt()
+    // @ts-expect-error asDouble is a NumberValueSource-only cast, absent on customDouble
+    void tIssueWorklog.billedAmount.asDouble()
+    // @ts-expect-error asBigint is a NumberValueSource-only cast, absent on customDouble
+    void tIssueWorklog.billedAmount.asBigint()
+
     // Rule: BigintValueSource deliberately OMITS the float-only math methods
     // (multiply / divide / power / sqrt / exp / ln / log10 / cbrt / atan2 / logn
     // / roundn / sin) — bigint arithmetic stays exact. Each must stay absent so
@@ -365,6 +378,50 @@ function _typeNegatives() {
     void tIssue.viewCount.roundn(2)
     // @ts-expect-error sin is not a BigintValueSource method
     void tIssue.viewCount.sin()
+
+    // Rule: CustomIntValueSource — like BigintValueSource — OMITS the float-only
+    // math methods so a custom INT stays exact: exp / ln / log10 / sqrt / cbrt, the
+    // trigonometric acos / asin / atan / cos / cot / sin / tan, and power / logn /
+    // roundn / divide / atan2 are all absent (commented out in the interface). Only
+    // the integer-preserving arithmetic (add / subtract / multiply / modulo /
+    // minValue / maxValue) plus abs / ceil / floor / round / sign are offered — so
+    // `multiply` is NOT locked here (it is active on customInt, unlike on bigint).
+    // Each absent method must stay absent so an accidental un-comment is caught.
+    // costCents is a customInt 'Cents' column.
+    // @ts-expect-error exp is not a CustomIntValueSource method
+    void tIssueWorklog.costCents.exp()
+    // @ts-expect-error ln is not a CustomIntValueSource method
+    void tIssueWorklog.costCents.ln()
+    // @ts-expect-error log10 is not a CustomIntValueSource method
+    void tIssueWorklog.costCents.log10()
+    // @ts-expect-error sqrt is not a CustomIntValueSource method
+    void tIssueWorklog.costCents.sqrt()
+    // @ts-expect-error cbrt is not a CustomIntValueSource method
+    void tIssueWorklog.costCents.cbrt()
+    // @ts-expect-error acos is not a CustomIntValueSource method
+    void tIssueWorklog.costCents.acos()
+    // @ts-expect-error asin is not a CustomIntValueSource method
+    void tIssueWorklog.costCents.asin()
+    // @ts-expect-error atan is not a CustomIntValueSource method
+    void tIssueWorklog.costCents.atan()
+    // @ts-expect-error cos is not a CustomIntValueSource method
+    void tIssueWorklog.costCents.cos()
+    // @ts-expect-error cot is not a CustomIntValueSource method
+    void tIssueWorklog.costCents.cot()
+    // @ts-expect-error sin is not a CustomIntValueSource method
+    void tIssueWorklog.costCents.sin()
+    // @ts-expect-error tan is not a CustomIntValueSource method
+    void tIssueWorklog.costCents.tan()
+    // @ts-expect-error power is not a CustomIntValueSource method
+    void tIssueWorklog.costCents.power(2)
+    // @ts-expect-error logn is not a CustomIntValueSource method
+    void tIssueWorklog.costCents.logn(2)
+    // @ts-expect-error roundn is not a CustomIntValueSource method
+    void tIssueWorklog.costCents.roundn(2)
+    // @ts-expect-error divide is not a CustomIntValueSource method
+    void tIssueWorklog.costCents.divide(2)
+    // @ts-expect-error atan2 is not a CustomIntValueSource method
+    void tIssueWorklog.costCents.atan2(2)
 
     // Rule: numeric arithmetic requires operands of the SAME leaf kind — a bigint
     // receiver rejects a number/int operand and an int receiver rejects a bigint

@@ -225,6 +225,39 @@ describe(ctx.label, () => {
         expect(affected).toBe(0)
     })
 
+    test('execute-update-empty-set-with-min-throws-minimum-rows', async () => {
+        // The empty `dynamicSet()` short-circuit still runs the min/max guard
+        // against the resulting count of 0: `executeUpdate(1)` with no columns set
+        // reaches its guard with count 0 < min 1, so it rejects with
+        // MINIMUM_ROWS_NOT_REACHED instead of resolving 0. No query is dispatched.
+        let caught: unknown
+        try {
+            await ctx.conn.update(tIssue)
+                .dynamicSet()
+                .where(tIssue.id.equals(1))
+                .executeUpdate(1)
+        } catch (e) { caught = e }
+        expect(String(caught)).toMatch(/MINIMUM_ROWS_NOT_REACHED|didn't update the minimum/)
+        expect(caught instanceof TsSqlError ? caught.errorReason.reason : undefined).toBe('MINIMUM_ROWS_NOT_REACHED')
+    })
+
+    test('execute-update-many-empty-set-with-min-throws-minimum-rows', async () => {
+        // Same empty-set short-circuit on the RETURNING-many path: `.returning({...})
+        // .executeUpdateMany(1)` with no columns set reaches its guard with count 0 <
+        // min 1, so it rejects with MINIMUM_ROWS_NOT_REACHED instead of resolving [].
+        // No query is dispatched.
+        let caught: unknown
+        try {
+            await ctx.conn.update(tIssue)
+                .dynamicSet()
+                .where(tIssue.id.equals(1))
+                .returning({ id: tIssue.id, status: tIssue.status })
+                .executeUpdateMany(1)
+        } catch (e) { caught = e }
+        expect(String(caught)).toMatch(/MINIMUM_ROWS_NOT_REACHED|didn't update the minimum/)
+        expect(caught instanceof TsSqlError ? caught.errorReason.reason : undefined).toBe('MINIMUM_ROWS_NOT_REACHED')
+    })
+
     test('execute-update-none-or-one-with-no-sets-resolves-null', async () => {
         // Same empty-set short-circuit on the none-or-one path: with no
         // columns set, the executor resolves null and emits no query. By

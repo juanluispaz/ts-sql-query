@@ -13,6 +13,7 @@
 //     naming the returned type.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
+import { TsSqlError } from '../../../../../src/TsSqlError.js'
 import type { DynamicCondition } from '../../../../../src/dynamic/condition.js'
 import { tAppUser, tIssue, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
@@ -270,5 +271,49 @@ describe(ctx.label, () => {
         const err = thrown as Error
         expect(String(err.message)).toContain('found a value source with type')
         expect(String(err.message)).toContain('string')
+    })
+
+    test('extension-scoped-under-nested-projection-key-returning-non-value-source-throws-path-depth-2', async () => {
+        // The top-level extension error carries the offending rule's FULL
+        // dotted path one level down a nested projection. `broken` is an extension
+        // rule registered under the `project` projection scope (not a column of it),
+        // so the recursion invokes it with a non-empty `project` prefix. The callback
+        // returns a plain string (not a ValueSource), so the guard fires and the
+        // structured `errorReason.path` is `project.broken` — the dotted trail to the
+        // rule, not the bare `broken` or the enclosing `project` scope.
+        const connection = ctx.conn
+        const project = tProject.forUseInLeftJoin()
+        const selectFields = {
+            id:      tIssue.id,
+            project: { id: project.id, name: project.name },
+        }
+        const extension = {
+            project: {
+                broken: ((_v: string) => 'not-a-value-source') as unknown as BoolRule<string>,
+            },
+        }
+        const filter = { project: { broken: 'whatever' } } as DynamicCondition<{
+            id: 'int', project: { id: 'int', name: 'string' },
+        }>
+
+        let thrown: unknown
+        try {
+            await connection.selectFrom(tIssue)
+                .leftJoin(project).on(project.id.equals(tIssue.projectId))
+                .where(connection.dynamicConditionFor(selectFields, extension).withValues(filter))
+                .select({ id: tIssue.id })
+                .executeSelectMany()
+        } catch (e) { thrown = e }
+
+        expect(thrown).toBeInstanceOf(Error)
+        const err = thrown as Error & { extensionResult?: unknown; processedValue?: unknown; key?: unknown }
+        expect(String(err.message)).toContain('Expected a boolean value source')
+        expect(err.extensionResult).toBe('not-a-value-source')
+        expect(err.processedValue).toBe('whatever')
+        // The decorated `key` and the structured `errorReason.path` both carry the
+        // dotted depth-2 trail.
+        expect(err.key).toBe('project.broken')
+        expect(thrown instanceof TsSqlError ? thrown.errorReason.reason : undefined).toBe('DYNAMIC_CONDITION_INVALID_EXTENSION_RETURN_TYPE')
+        expect(thrown instanceof TsSqlError && 'path' in thrown.errorReason ? thrown.errorReason.path : undefined).toBe('project.broken')
     })
 })

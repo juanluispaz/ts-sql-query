@@ -530,6 +530,66 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
+
+    test('value-source-rhs/bigint-add-cross-table-operand', async () => {
+        // bigint `add` with a value-source operand from a self-join alias: `issue2` is
+        // joined on the same id, so `view_count + issue2.view_count` uses qualified
+        // columns from two instances of the issue table. view_count = 0 (seed default)
+        // for every issue, so 0 + 0 = 0.
+        const issue2 = tIssue.as('issue2')
+        const expected = [{ id: 1, sum: 0n }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .join(issue2).on(issue2.id.equals(tIssue.id))
+            .where(tIssue.id.equals(1))
+            .select({
+                id:  tIssue.id,
+                sum: tIssue.viewCount.add(issue2.viewCount),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, issue.view_count + issue2.view_count as [sum] from issue join issue as issue2 on issue2.id = issue.id where issue.id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; sum: bigint }>>>()
+        // A bigint sum can come back as a string on some drivers, so the real-DB
+        // branch coerces it through BigInt(...); the mock keeps the exact shape.
+        if (ctx.realDbEnabled) {
+            expect(result[0]!.id).toBe(1)
+            expect(BigInt(result[0]!.sum)).toBe(0n)
+        } else {
+            expect(result).toEqual(expected)
+        }
+    })
+
+    test('value-source-rhs/customdouble-add-cross-table-operand', async () => {
+        // customDouble `add` with a value-source operand from a self-join alias:
+        // `worklog2` is joined on the same id, so `billed_amount +
+        // worklog2.billed_amount` uses qualified columns from two instances of the
+        // worklog table. billed_amount ('Money', marshalled) = 200 for worklog 1, so
+        // 200 + 200 = 400.
+        const worklog2 = tIssueWorklog.as('worklog2')
+        const expected = [{ id: 1, sum: 400 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssueWorklog)
+            .join(worklog2).on(worklog2.id.equals(tIssueWorklog.id))
+            .where(tIssueWorklog.id.equals(1))
+            .select({
+                id:  tIssueWorklog.id,
+                sum: tIssueWorklog.billedAmount.add(worklog2.billedAmount),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue_worklog.id as id, issue_worklog.billed_amount + worklog2.billed_amount as [sum] from issue_worklog join issue_worklog as worklog2 on worklog2.id = issue_worklog.id where issue_worklog.id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; sum: number }>>>()
+        expect(result).toEqual(expected)
+    })
     test('nullable-const/double-value-when-null-and-null-if-value', async () => {
         // `valueWhenNull(0)` / `nullIfValue(0)` on a plain OPTIONAL double
         // receiver. estimated_hours is NULL for issue 1: valueWhenNull(0) flips

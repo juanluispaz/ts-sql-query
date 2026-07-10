@@ -1793,6 +1793,103 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
+
+    test('matrix-rule-4-outer-rule-4-inner-default', async () => {
+        // A rule-4 (all-optional) OUTER object whose members are an optional OWN
+        // scalar (`own` = body) AND a rule-4 (all-optional) INNER object (`inner` =
+        // estimated_hours + parent_id, both optional). The outer is
+        // dropped only when EVERY leaf — own and both inner leaves — is null; the
+        // inner is dropped when both its leaves are null. Default asUndefined:
+        // `outer?`, `outer.inner?`, and each optional leaf `| undefined`.
+        // estimated_hours and parent_id are NULL for every seeded issue, so `inner`
+        // always collapses; the two runtime cases turn on `own` (= body).
+        //   issue 2 (project 1): body 'Use new tokens' → outer PRESENT (own non-null),
+        //                        inner collapsed → `inner` key ABSENT.
+        //   issue 3 (project 2): body null, all inner leaves null → outer collapsed →
+        //                        `outer` key ABSENT.
+        const expected = [
+            { iid: 2, outer: { own: 'Use new tokens' } },
+            { iid: 3 },
+        ]
+        ctx.mockNext([
+            { iid: 2, 'outer.own': 'Use new tokens', 'outer.inner.est': null, 'outer.inner.parent': null },
+            { iid: 3, 'outer.own': null,             'outer.inner.est': null, 'outer.inner.parent': null },
+        ])
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.in([2, 3]))
+            .select({
+                iid: tIssue.id,
+                outer: {
+                    own:   tIssue.body,
+                    inner: { est: tIssue.estimatedHours, parent: tIssue.parentId },
+                },
+            })
+            .orderBy('iid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as "outer.own", estimated_hours as "outer.inner.est", parent_id as "outer.inner.parent" from issue where id in ($1, $2) order by iid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+            3,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            iid:    number
+            outer?: { own: string | undefined; inner: { est: number | undefined; parent: number | undefined } | undefined }
+        }>>>()
+        expect(rows).toEqual(expected)
+        // issue 2: outer present (own non-null), inner collapsed → key ABSENT.
+        expect('inner' in rows[0]!.outer!).toBe(false)
+        // issue 3: every leaf null → outer collapsed → key ABSENT.
+        expect('outer' in rows[1]!).toBe(false)
+    })
+
+    test('matrix-rule-4-outer-rule-4-inner-as-nullable', async () => {
+        // The same nesting under projectingOptionalValuesAsNullable(): the rule-4
+        // outer becomes `{...} | null` (null only when every leaf is null), the rule-4
+        // inner becomes `{...} | null`, and every optional leaf flips to `| null`.
+        //   issue 2 (project 1): body 'Use new tokens' → outer PRESENT, inner all-null
+        //                        → `inner: null`.
+        //   issue 3 (project 2): every leaf null → `outer: null`.
+        const expected = [
+            { iid: 2, outer: { own: 'Use new tokens', inner: null } },
+            { iid: 3, outer: null },
+        ]
+        ctx.mockNext([
+            { iid: 2, 'outer.own': 'Use new tokens', 'outer.inner.est': null, 'outer.inner.parent': null },
+            { iid: 3, 'outer.own': null,             'outer.inner.est': null, 'outer.inner.parent': null },
+        ])
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.in([2, 3]))
+            .select({
+                iid: tIssue.id,
+                outer: {
+                    own:   tIssue.body,
+                    inner: { est: tIssue.estimatedHours, parent: tIssue.parentId },
+                },
+            })
+            .projectingOptionalValuesAsNullable()
+            .orderBy('iid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as "outer.own", estimated_hours as "outer.inner.est", parent_id as "outer.inner.parent" from issue where id in ($1, $2) order by iid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+            3,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            iid:   number
+            outer: { own: string | null; inner: { est: number | null; parent: number | null } | null } | null
+        }>>>()
+        expect(rows).toEqual(expected)
+        // issue 2: outer present (own non-null), inner all-null → present-`null`.
+        expect(rows[0]!.outer!.inner).toBeNull()
+        // issue 3: every leaf null → outer present-`null`.
+        expect(rows[1]!.outer).toBeNull()
+    })
     test('sole-optional-inner-own-table-rule-4-object-makes-wrapper-optional-present-default', async () => {
         // A nested object (`wrapper`) whose sole member is an all-optional inner
         // object (no scalar sibling): the container recursively inherits the

@@ -126,4 +126,57 @@ describe(ctx.label, () => {
         }>>()
         expect(page.count).toBe(42)
     })
+
+    test('union-all-execute-select-page-over-a-nested-object-wraps-dot-columns-in-count-cte', async () => {
+        // `executeSelectPage()` over a compound whose arms re-project a NESTED OBJECT.
+        // The count query wraps the whole compound — dot-aliased nested columns and
+        // all — inside `with result_for_count as (...)` and counts it. Arm 1 = issue 1,
+        // arm 2 = issue 2 (both project 1); UNION ALL keeps both, the page (limit 5)
+        // returns both, count = 2. The `data` rows reconstruct the nested `detail`
+        // object from the dot-aliased columns.
+        const dataRows = [
+            { iid: 1, detail: { title: 'Update hero copy', num: 1 } },
+            { iid: 2, detail: { title: 'Redesign navbar', num: 2 } },
+        ]
+        ctx.mockNext([
+            { iid: 1, 'detail.title': 'Update hero copy', 'detail.num': 1 },
+            { iid: 2, 'detail.title': 'Redesign navbar', 'detail.num': 2 },
+        ])
+        ctx.mockNext(2)
+
+        const a = ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(1))
+            .select({ iid: tIssue.id, detail: { title: tIssue.title, num: tIssue.number } })
+        const b = ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(2))
+            .select({ iid: tIssue.id, detail: { title: tIssue.title, num: tIssue.number } })
+
+        const page = await a
+            .unionAll(b)
+            .orderBy('iid')
+            .limit(5)
+            .executeSelectPage()
+
+        expect(ctx.history.length).toBe(2)
+        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select id as iid, title as "detail.title", number as "detail.num" from issue where id = ? union all select id as iid, title as "detail.title", number as "detail.num" from issue where id = ? order by iid limit ?"`)
+        expect(ctx.history[0]!.params).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+            5,
+          ]
+        `)
+        // The count query wraps the compound (nested dot-columns included) in a CTE.
+        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with result_for_count as (select id as iid, title as "detail.title", number as "detail.num" from issue where id = ? union all select id as iid, title as "detail.title", number as "detail.num" from issue where id = ? order by iid) select count(*) from result_for_count"`)
+        expect(ctx.history[1]!.params).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof page, {
+            data:  Array<{ iid: number; detail: { title: string; num: number } }>
+            count: number
+        }>>()
+        expect(page.count).toBe(2)
+        expect(page.data).toEqual(dataRows)
+    })
 })

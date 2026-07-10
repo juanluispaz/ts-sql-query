@@ -17,7 +17,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { TsSqlError } from '../../../../../src/TsSqlError.js'
 import type { DynamicCondition } from '../../../../../src/dynamic/condition.js'
-import { tIssue } from '../../domain/connection.js'
+import { tIssue, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 // A publicly-typed boolean value source — the type an extension rule
@@ -89,5 +89,49 @@ describe(ctx.label, () => {
         expect(err.processedValue).toBe(7)
         expect(err.rule).toBe('stringifyId')
         expect(err.path).toBe('id')
+    })
+
+    test('column-rule-extension-nested-column-returning-non-value-source-throws-path-depth-2', async () => {
+        // The per-column extension error carries the offending column's FULL dotted
+        // path even one level down a nested projection. `withinRange` is a custom
+        // rule registered under the `project` projection scope; it is seen when the
+        // per-column path iterates filter rules for the nested `project.id` column.
+        // The callback returns a plain string (not a ValueSource), so the first
+        // guard fires and the thrown error reports `path = 'project.id'` (the nested
+        // column, not the bare `id` or the enclosing `project` scope) and
+        // `rule = 'withinRange'`.
+        const connection = ctx.conn
+        const project = tProject.forUseInLeftJoin()
+        const selectFields = {
+            id:      tIssue.id,
+            project: { id: project.id, name: project.name },
+        }
+        const extension = {
+            project: {
+                withinRange: ((_v: number) => 'not-a-value-source') as unknown as BoolRule<number>,
+            },
+        }
+        const filter = { project: { id: { withinRange: 5 } } } as DynamicCondition<{
+            id: 'int', project: { id: 'int', name: 'string' },
+        }>
+
+        let thrown: unknown
+        try {
+            await connection.selectFrom(tIssue)
+                .leftJoin(project).on(project.id.equals(tIssue.projectId))
+                .where(connection.dynamicConditionFor(selectFields, extension).withValues(filter))
+                .select({ id: tIssue.id })
+                .executeSelectMany()
+        } catch (e) { thrown = e }
+
+        expect(thrown).toBeInstanceOf(Error)
+        const err = thrown as Error & { extensionResult?: unknown; processedValue?: unknown; rule?: unknown; path?: unknown }
+        expect(String(err.message)).toContain('Expected a boolean value source')
+        expect(err.extensionResult).toBe('not-a-value-source')
+        expect(err.processedValue).toBe(5)
+        expect(err.rule).toBe('withinRange')
+        expect(err.path).toBe('project.id')
+        expect(thrown instanceof TsSqlError ? thrown.errorReason.reason : undefined).toBe('DYNAMIC_CONDITION_INVALID_EXTENSION_RETURN_TYPE')
+        expect(thrown instanceof TsSqlError && 'path' in thrown.errorReason ? thrown.errorReason.path : undefined).toBe('project.id')
     })
 })

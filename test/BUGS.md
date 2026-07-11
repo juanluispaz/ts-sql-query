@@ -67,22 +67,7 @@ of that. Two minutes of triage and one paragraph is the bar.
 
 ## Open Bugs
 
-## A `Values` self-joined to its own `.as(alias)` clone emits the WITH clause twice under the same name (invalid SQL)
-
-**Where**: the WITH-hoisting of a `Values` (constant-values view) when the same
-`Values` instance is both the FROM source and joined to via a `.as(alias)` clone —
-e.g. `ctx.conn.selectFrom(v).innerJoin(v.as('anc')).on(...)`.
-**Reproduction**: (no in-suite test — the emitted SQL is invalid on EVERY engine, so
-no green characterization test exists; surfaced during Round-44 VALVIEW U11.) A
-`Values` self-join emits `with treeNode(...) as (values ...), treeNode(...) as (values
-...) select …` — the CTE is hoisted TWICE under the same name, with the params
-duplicated (12 instead of 6). Postgres rejects it ("WITH query name specified more
-than once"), SQLite rejects it ("duplicate WITH table name"). The `.as(alias)` clone
-should reuse the single hoisted WITH and only add the aliased *reference* in the FROM/JOIN,
-not re-hoist the whole values body.
-**Current workaround in the suite**: U11 (Values self-join) was OMITTED from the
-VALVIEW U-uses backlog (the other 9 U-uses U1–U9 are live+green). No test wraps it —
-the SQL is unrunnable on all dialects. File-only report for the fixing agent.
+_None open._
 
 ## Common bug shapes (for the fixing agent)
 

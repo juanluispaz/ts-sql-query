@@ -213,10 +213,16 @@ class ValuesOf</*in|out*/ SOURCE extends NValues<any, any>> implements IValues<S
 
     // @ts-ignore
     private __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
-        if (this.__source) {
-            withs.push(this.__source as any)
-        } else {
-            withs.push(this as any)
+        // The single WITH is defined by the canonical source view: for a `.as(alias)` /
+        // `forUseInLeftJoinAs(alias)` clone that is `__source` (the original), for the
+        // original it is `this`. Guard against pushing it more than once, so a `Values`
+        // referenced multiple times in the same query (e.g. self-joined to its own clone)
+        // hoists the WITH clause a single time instead of once per reference. Mirrors
+        // `WithViewImpl.__addWiths`, whose `__originalWith` delegation + `!withs.includes`
+        // guard does the same for a regular `with(...)` view.
+        const target = (this.__source || this) as any
+        if (!withs.includes(target)) {
+            withs.push(target)
         }
         __addWiths(this.__template, sqlBuilder, withs)
     }

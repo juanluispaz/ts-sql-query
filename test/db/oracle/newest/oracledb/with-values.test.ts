@@ -133,6 +133,13 @@ describe(ctx.label, () => {
         projectId = this.column('int')
         tag       = this.column('string')
     }
+    // A tree-node list (id + parent pointer + name), self-joined to its own
+    // `.as(alias)` clone to resolve each node's parent name.
+    class VTreeNode extends Values<DBConnection, 'treeNode'> {
+        id       = this.column('int')
+        parentId = this.column('int')
+        name     = this.column('string')
+    }
 
     test('values-as-intersect-arm', async () => {
         // U1 — a `selectFrom(Values)` as the SEED arm of an INTERSECT. The
@@ -404,6 +411,45 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof result, Array<{ id: number; name: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('values-self-joined-to-its-own-clone-hoists-the-with-once', async () => {
+        // A `Values` used as BOTH the FROM source and the join side via its own
+        // `.as(alias)` clone. The clone reuses the single hoisted CTE (`treeNode`)
+        // and only adds an aliased reference (`treeNode as anc`); the WITH clause
+        // must be emitted ONCE, not once per reference (a duplicate WITH name is
+        // invalid SQL on every engine). Each node points at its parent; the
+        // self-join resolves the parent's name. Node 1↔2 point at each other, so
+        // both match: node 1's parent is 2 ('b'), node 2's parent is 1 ('a').
+        const expected = [
+            { id: 1, ancName: 'b' },
+            { id: 2, ancName: 'a' },
+        ]
+        ctx.mockNext(expected)
+        const nodes = Values.create(VTreeNode, 'treeNode', [
+            { id: 1, parentId: 2, name: 'a' },
+            { id: 2, parentId: 1, name: 'b' },
+        ])
+        const anc = nodes.as('anc')
+        const result = await ctx.conn.selectFrom(nodes)
+            .innerJoin(anc).on(anc.id.equals(nodes.parentId))
+            .select({ id: nodes.id, ancName: anc.name })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with treeNode(id, parentId, name) as (values (:0, :1, :2), (:3, :4, :5)) select treeNode.id as "id", anc.name as "ancName" from treeNode inner join treeNode anc on anc.id = treeNode.parentId order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+            "a",
+            2,
+            1,
+            "b",
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; ancName: string }>>>()
         expect(result).toEqual(expected)
     })
 })

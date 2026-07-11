@@ -1082,12 +1082,9 @@ describe(ctx.label, () => {
     test('inline-element-top-rule-2-multi-left-join-leaves-as-nullable-surface-null', async () => {
         // Rule-2 at the inline ELEMENT TOP with MULTIPLE originallyRequired leaves
         // (`id`, `title`) plus an optional `body`, all from the SAME left-joined table,
-        // under `projectingOptionalValuesAsNullable()`. The NON-DROPPING inline runtime
-        // keeps the join-miss element and writes every leaf present-as-null: the plain
-        // nullable projector types each originallyRequired leaf as `| null` (NOT non-null
-        // `T` — that would be the dropping `aggregateAsArray` shape), so the type matches
-        // the present-null runtime. Org 2 groups project 3 (joins issue 4) and project 4
-        // (left-join miss → all leaves null, element KEPT present-null, not dropped).
+        // under `projectingOptionalValuesAsNullable()`. The element is kept on a join
+        // miss and every leaf comes back present-as-null. Org 2 groups project 3 (joins
+        // issue 4) and project 4 (left-join miss → all leaves null, element kept).
         const tIssueLeft = tIssue.forUseInLeftJoin()
         ctx.mockNext({ orgId: 2, items: [
             { id: 4, title: 'Document /v2/users', body: 'See ADR-014' },
@@ -1119,18 +1116,16 @@ describe(ctx.label, () => {
             { id: null, title: null, body: null },
             { id: 4, title: 'Document /v2/users', body: 'See ADR-014' },
         ])
-        // The join-miss element is KEPT present-null (inline root is non-dropping —
-        // `aggregateAsArray` would DROP it, leaving one element).
+        // The join-miss element is kept with both leaves present-null (two elements).
         expect(row.items.length).toBe(2)
     })
 
     test('inline-element-top-rule-4-all-optional-default-keeps-empty-element', async () => {
         // Rule-4 at the inline ELEMENT TOP: every leaf (`body`, `assigneeId`) is
-        // genuinely-optional and from the same left join. Under the default projector the
-        // NON-DROPPING inline runtime keeps an all-null element as `{}` (both null leaves
-        // ABSENT) — contrast `aggregateAsArray`, which DROPS the all-null element. Org 2
-        // groups project 3 (joins issue 4 → element present) and project 4 (left-join miss
-        // → all leaves null → element kept as `{}`).
+        // genuinely-optional and from the same left join. Under the default projector an
+        // all-null element is kept as `{}` (both null leaves ABSENT). Org 2 groups
+        // project 3 (joins issue 4 → element present) and project 4 (left-join miss → all
+        // leaves null → element kept as `{}`).
         const tIssueLeft = tIssue.forUseInLeftJoin()
         ctx.mockNext({ orgId: 2, items: [
             { body: 'See ADR-014', assigneeId: 3 },
@@ -1158,8 +1153,7 @@ describe(ctx.label, () => {
         }>>()
         const sorted = [...row.items].sort((a, b) => (a.assigneeId ?? -1) - (b.assigneeId ?? -1))
         expect(sorted).toEqual([{}, { body: 'See ADR-014', assigneeId: 3 }])
-        // The all-null element is KEPT as `{}` (inline root is non-dropping) — the array
-        // has two elements, not one.
+        // The all-null element is kept as `{}` — the array has two elements, not one.
         expect(row.items.length).toBe(2)
         const empty = sorted[0]!
         expect('body' in empty).toBe(false)
@@ -1168,9 +1162,9 @@ describe(ctx.label, () => {
 
     test('inline-element-top-rule-4-all-optional-as-nullable-surfaces-null', async () => {
         // The same rule-4 all-optional element top under
-        // `projectingOptionalValuesAsNullable()`: the all-null element is KEPT and each
-        // leaf surfaces present-as-null (`{ body: null, assigneeId: null }`), matching the
-        // non-dropping inline runtime. Same org-2 grouping.
+        // `projectingOptionalValuesAsNullable()`: the all-null element is kept and each
+        // leaf surfaces present-as-null (`{ body: null, assigneeId: null }`). Same org-2
+        // grouping.
         const tIssueLeft = tIssue.forUseInLeftJoin()
         ctx.mockNext({ orgId: 2, items: [
             { body: 'See ADR-014', assigneeId: 3 },
@@ -1199,18 +1193,17 @@ describe(ctx.label, () => {
         }>>()
         const sorted = [...row.items].sort((a, b) => (a.assigneeId ?? -1) - (b.assigneeId ?? -1))
         expect(sorted).toEqual([{ body: null, assigneeId: null }, { body: 'See ADR-014', assigneeId: 3 }])
-        // The all-null element is KEPT present-null (not dropped) — two elements.
+        // The all-null element is kept present-null — two elements.
         expect(row.items.length).toBe(2)
     })
 
     test('inline-element-nested-rule-1-gate-object-default-drops-nested-on-null-gate', async () => {
         // A NESTED rule-1 object (`meta`) inside an inline element whose top `iid` is a
         // required own-table leaf. The nested `meta` is gated by a
-        // `requiredInOptionalObject` leaf (`gate` = issue.body): the nested object routes
-        // to the DROPPING runtime, so a null gate DROPS the whole `meta` object (key
-        // ABSENT) while the element itself (and its `iid`) is kept — proving the
-        // top-inert / nested-active split of the inline aggregate. Project 1: issue 1
-        // (body NULL → gate null → meta dropped) and issue 2 (body present → meta present).
+        // `requiredInOptionalObject` leaf (`gate` = issue.body): a null gate drops the
+        // whole `meta` object (key ABSENT) while the element itself (and its `iid`) is
+        // kept. Project 1: issue 1 (body NULL → gate null → meta dropped) and issue 2
+        // (body present → meta present).
         ctx.mockNext({ pid: 1, items: [
             { iid: 1, meta: { gate: null, assigneeId: 1 } },
             { iid: 2, meta: { gate: 'Use new tokens', assigneeId: 2 } },
@@ -1239,16 +1232,15 @@ describe(ctx.label, () => {
             { iid: 1 },
             { iid: 2, meta: { gate: 'Use new tokens', assigneeId: 2 } },
         ])
-        // The null-gate element is KEPT (its `iid` survives) but the nested `meta` is
-        // ABSENT — the nested object drops even though the inline root does not.
+        // The null-gate element is kept (its `iid` survives) but the nested `meta` is absent.
         expect('meta' in sorted[0]!).toBe(false)
     })
 
     test('inline-element-nested-rule-1-gate-object-as-nullable-surfaces-null-object', async () => {
         // The same nested rule-1 element under `projectingOptionalValuesAsNullable()`: the
-        // null-gate `meta` object surfaces present-as-`null` (nested drop → `{...} | null`),
-        // while `iid` stays required and the inner `gate` stays required inside a present
-        // `meta`. Same project-1 grouping.
+        // null-gate `meta` object surfaces present-as-`null`, while `iid` stays required
+        // and the inner `gate` stays required inside a present `meta`. Same project-1
+        // grouping.
         ctx.mockNext({ pid: 1, items: [
             { iid: 1, meta: { gate: null, assigneeId: 1 } },
             { iid: 2, meta: { gate: 'Use new tokens', assigneeId: 2 } },
@@ -1278,7 +1270,7 @@ describe(ctx.label, () => {
             { iid: 1, meta: null },
             { iid: 2, meta: { gate: 'Use new tokens', assigneeId: 2 } },
         ])
-        // The null-gate `meta` is PRESENT as null (not absent, not dropped-element).
+        // The null-gate `meta` is present as null, not absent.
         expect('meta' in sorted[0]!).toBe(true)
         expect(sorted[0]!.meta).toBe(null)
     })

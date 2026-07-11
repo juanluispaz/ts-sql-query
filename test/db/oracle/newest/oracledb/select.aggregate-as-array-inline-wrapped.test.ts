@@ -1025,8 +1025,8 @@ describe(ctx.label, () => {
                 { title: 'Update hero copy', body: null },
             ],
         })
-        // Issue 1's null body is PRESENT as null even though the marker was applied on the
-        // arms before the union (previously it was silently dropped at runtime).
+        // Issue 1's null body is present as null even though the marker was applied on the
+        // arms before the union.
         const issue1 = row.issues.find(i => i.title === 'Update hero copy')!
         expect('body' in issue1).toBe(true)
         expect(issue1.body).toBe(null)

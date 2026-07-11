@@ -32,7 +32,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssueWorklog, vProjectOverview, vReleaseOverview, type WorklogActivity } from '../../domain/connection.js'
+import { tIssueWorklog, tProjectRelease, vProjectOverview, vReleaseOverview, type ReleaseChannel, type WorklogActivity } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -297,4 +297,1059 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
         expect(row.cents).toBe(1100)
     })
+
+    // ---- COL §B: per-kind virtualColumnFromFragment fan-out (required + optional)
+    // on a Table (tIssueWorklog plain+customDouble, tProjectRelease custom+plain
+    // uuid/localDateTime) and on a View (vReleaseOverview). Each test observes the
+    // DISTINCT read-path leaf type of one kind for one factory (required
+    // `virtualColumnFromFragment` / optional `optionalVirtualColumnFromFragment`).
+    // The fragment references an existing same-source typed column, so the emitted
+    // SQL is a portable column ref (or a portable arithmetic expression) and the
+    // seed value flows through that kind's read marshaller. Worklog 1 / release 1
+    // are fully-populated rows, so every optional leaf resolves to a present value.
+
+    test('worklog-boolean-virtual-required', async () => {
+        const expected = { id: 1, v: true }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .select({ id: tIssueWorklog.id, v: tIssueWorklog.booleanVirtual })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, billable as "v" from issue_worklog where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v: boolean }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('worklog-boolean-virtual-optional', async () => {
+        const expected = { id: 1, v: true }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .select({ id: tIssueWorklog.id, v: tIssueWorklog.booleanVirtualOptional })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, billable as "v" from issue_worklog where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v?: boolean }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('worklog-bigint-virtual-required', async () => {
+        const expected = { id: 1, v: 1n }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .select({ id: tIssueWorklog.id, v: tIssueWorklog.bigintVirtual })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, id as "v" from issue_worklog where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v: bigint }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('worklog-bigint-virtual-optional', async () => {
+        const expected = { id: 1, v: 5400000n }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .select({ id: tIssueWorklog.id, v: tIssueWorklog.bigintVirtualOptional })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, duration_ms as "v" from issue_worklog where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v?: bigint }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('worklog-double-virtual-required', async () => {
+        const expected = { id: 1, v: 200 }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .select({ id: tIssueWorklog.id, v: tIssueWorklog.doubleVirtual })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, billed_amount as "v" from issue_worklog where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v: number }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('worklog-double-virtual-optional', async () => {
+        const expected = { id: 1, v: 5400000 }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .select({ id: tIssueWorklog.id, v: tIssueWorklog.doubleVirtualOptional })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, duration_ms as "v" from issue_worklog where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v?: number }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('worklog-local-date-virtual-required', async () => {
+        const expected = { id: 1, v: new Date(Date.UTC(2024, 2, 4, 10, 0, 0)) }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .select({ id: tIssueWorklog.id, v: tIssueWorklog.localDateVirtual })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, work_date as "v" from issue_worklog where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v: Date }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('worklog-local-date-virtual-optional', async () => {
+        const expected = { id: 1, v: new Date(Date.UTC(2024, 2, 4, 10, 0, 0)) }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .select({ id: tIssueWorklog.id, v: tIssueWorklog.localDateVirtualOptional })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, work_date as "v" from issue_worklog where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v?: Date }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('worklog-local-time-virtual-required', async () => {
+        const expected = { id: 1, v: new Date(Date.UTC(1970, 0, 1, 9, 15, 0)) }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .select({ id: tIssueWorklog.id, v: tIssueWorklog.localTimeVirtual })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, started_at as "v" from issue_worklog where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v: Date }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('worklog-local-time-virtual-optional', async () => {
+        const expected = { id: 1, v: new Date(Date.UTC(1970, 0, 1, 9, 15, 0)) }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .select({ id: tIssueWorklog.id, v: tIssueWorklog.localTimeVirtualOptional })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, started_at as "v" from issue_worklog where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v?: Date }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('worklog-int-virtual-required', async () => {
+        const expected = { id: 1, v: 2 }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .select({ id: tIssueWorklog.id, v: tIssueWorklog.intVirtual })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, id + 1 as "v" from issue_worklog where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v: number }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('worklog-int-virtual-optional', async () => {
+        const expected = { id: 1, v: 90 }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .select({ id: tIssueWorklog.id, v: tIssueWorklog.intVirtualOptional })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, minutes as "v" from issue_worklog where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v?: number }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('worklog-custom-double-virtual-required', async () => {
+        const expected = { id: 1, v: 200 }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .select({ id: tIssueWorklog.id, v: tIssueWorklog.customDoubleVirtual })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, billed_amount as "v" from issue_worklog where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v: number }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('worklog-custom-double-virtual-optional', async () => {
+        const expected = { id: 1, v: 200 }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .select({ id: tIssueWorklog.id, v: tIssueWorklog.customDoubleVirtualOptional })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, billed_amount as "v" from issue_worklog where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v?: number }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('release-custom-comparable-virtual-required', async () => {
+        const expected = { id: 1, v: '1.2.0' }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .select({ id: tProjectRelease.id, v: tProjectRelease.customComparableVirtual })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, version as "v" from project_release where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v: string }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('release-custom-comparable-virtual-optional', async () => {
+        const expected = { id: 1, v: '1.2.0' }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .select({ id: tProjectRelease.id, v: tProjectRelease.customComparableVirtualOptional })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, version as "v" from project_release where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v?: string }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('release-custom-virtual-required', async () => {
+        const expected = { id: 1, v: 'stable' }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .select({ id: tProjectRelease.id, v: tProjectRelease.customVirtual })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, channel as "v" from project_release where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v: ReleaseChannel }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('release-custom-virtual-optional', async () => {
+        const expected = { id: 1, v: 'stable' }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .select({ id: tProjectRelease.id, v: tProjectRelease.customVirtualOptional })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, channel as "v" from project_release where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v?: ReleaseChannel }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('release-custom-uuid-virtual-required', async () => {
+        const expected = { id: 1, v: '0a8f9c1e-1111-4222-8333-444455556666' }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .select({ id: tProjectRelease.id, v: tProjectRelease.customUuidVirtual })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, signing_key as "v" from project_release where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v: string }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('release-custom-uuid-virtual-optional', async () => {
+        const expected = { id: 1, v: '0a8f9c1e-1111-4222-8333-444455556666' }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .select({ id: tProjectRelease.id, v: tProjectRelease.customUuidVirtualOptional })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, signing_key as "v" from project_release where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v?: string }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('release-custom-local-date-virtual-required', async () => {
+        const expected = { id: 1, v: new Date(Date.UTC(2024, 0, 15, 10, 0, 0)) }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .select({ id: tProjectRelease.id, v: tProjectRelease.customLocalDateVirtual })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, released_on as "v" from project_release where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v: Date }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('release-custom-local-date-virtual-optional', async () => {
+        const expected = { id: 1, v: new Date(Date.UTC(2024, 0, 15, 10, 0, 0)) }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .select({ id: tProjectRelease.id, v: tProjectRelease.customLocalDateVirtualOptional })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, released_on as "v" from project_release where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v?: Date }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('release-custom-local-time-virtual-required', async () => {
+        const expected = { id: 1, v: new Date(Date.UTC(1970, 0, 1, 17, 0, 0)) }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .select({ id: tProjectRelease.id, v: tProjectRelease.customLocalTimeVirtual })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cutoff_time as "v" from project_release where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v: Date }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('release-custom-local-time-virtual-optional', async () => {
+        const expected = { id: 1, v: new Date(Date.UTC(1970, 0, 1, 17, 0, 0)) }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .select({ id: tProjectRelease.id, v: tProjectRelease.customLocalTimeVirtualOptional })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cutoff_time as "v" from project_release where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v?: Date }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('release-custom-local-date-time-virtual-required', async () => {
+        const expected = { id: 1, v: new Date(Date.UTC(2024, 0, 16, 9, 0, 0)) }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .select({ id: tProjectRelease.id, v: tProjectRelease.customLocalDateTimeVirtual })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, published_at as "v" from project_release where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v: Date }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('release-custom-local-date-time-virtual-optional', async () => {
+        const expected = { id: 1, v: new Date(Date.UTC(2024, 0, 14, 12, 30, 0)) }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .select({ id: tProjectRelease.id, v: tProjectRelease.customLocalDateTimeVirtualOptional })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, signed_off_at as "v" from project_release where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v?: Date }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('release-uuid-virtual-required', async () => {
+        const expected = { id: 1, v: '0a8f9c1e-1111-4222-8333-444455556666' }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .select({ id: tProjectRelease.id, v: tProjectRelease.uuidVirtual })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, signing_key as "v" from project_release where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v: string }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('release-uuid-virtual-optional', async () => {
+        const expected = { id: 1, v: '0a8f9c1e-1111-4222-8333-444455556666' }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .select({ id: tProjectRelease.id, v: tProjectRelease.uuidVirtualOptional })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, signing_key as "v" from project_release where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v?: string }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('release-local-date-time-virtual-required', async () => {
+        const expected = { id: 1, v: new Date(Date.UTC(2024, 0, 16, 9, 0, 0)) }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .select({ id: tProjectRelease.id, v: tProjectRelease.localDateTimeVirtual })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, published_at as "v" from project_release where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v: Date }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('release-local-date-time-virtual-optional', async () => {
+        const expected = { id: 1, v: new Date(Date.UTC(2024, 0, 14, 12, 30, 0)) }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .select({ id: tProjectRelease.id, v: tProjectRelease.localDateTimeVirtualOptional })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, signed_off_at as "v" from project_release where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v?: Date }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('view-boolean-virtual-required', async () => {
+        const expected = { id: 1, v: true }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(1))
+            .select({ id: vReleaseOverview.id, v: vReleaseOverview.booleanVirtual })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, is_signed as "v" from release_overview where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v: boolean }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('view-boolean-virtual-optional', async () => {
+        const expected = { id: 1, v: true }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(1))
+            .select({ id: vReleaseOverview.id, v: vReleaseOverview.booleanVirtualOptional })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, is_signed as "v" from release_overview where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v?: boolean }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('view-bigint-virtual-required', async () => {
+        const expected = { id: 1, v: 1n }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(1))
+            .select({ id: vReleaseOverview.id, v: vReleaseOverview.bigintVirtual })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, id as "v" from release_overview where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v: bigint }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('view-bigint-virtual-optional', async () => {
+        const expected = { id: 1, v: 4200000042n }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(1))
+            .select({ id: vReleaseOverview.id, v: vReleaseOverview.bigintVirtualOptional })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, download_count as "v" from release_overview where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v?: bigint }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('view-double-virtual-required', async () => {
+        const expected = { id: 1, v: 4.5 }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(1))
+            .select({ id: vReleaseOverview.id, v: vReleaseOverview.doubleVirtual })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, avg_rating as "v" from release_overview where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v: number }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('view-double-virtual-optional', async () => {
+        const expected = { id: 1, v: 4.5 }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(1))
+            .select({ id: vReleaseOverview.id, v: vReleaseOverview.doubleVirtualOptional })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, avg_rating as "v" from release_overview where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v?: number }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('view-uuid-virtual-required', async () => {
+        const expected = { id: 1, v: '0a8f9c1e-1111-4222-8333-444455556666' }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(1))
+            .select({ id: vReleaseOverview.id, v: vReleaseOverview.uuidVirtual })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, signing_uuid as "v" from release_overview where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v: string }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('view-uuid-virtual-optional', async () => {
+        const expected = { id: 1, v: '0a8f9c1e-1111-4222-8333-444455556666' }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(1))
+            .select({ id: vReleaseOverview.id, v: vReleaseOverview.uuidVirtualOptional })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, signing_uuid as "v" from release_overview where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v?: string }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('view-local-date-virtual-required', async () => {
+        const expected = { id: 1, v: new Date(Date.UTC(2024, 0, 15, 10, 0, 0)) }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(1))
+            .select({ id: vReleaseOverview.id, v: vReleaseOverview.localDateVirtual })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, release_day_plain as "v" from release_overview where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v: Date }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('view-local-date-virtual-optional', async () => {
+        const expected = { id: 1, v: new Date(Date.UTC(2024, 0, 15, 10, 0, 0)) }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(1))
+            .select({ id: vReleaseOverview.id, v: vReleaseOverview.localDateVirtualOptional })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, release_day_plain as "v" from release_overview where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v?: Date }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('view-local-time-virtual-required', async () => {
+        const expected = { id: 1, v: new Date(Date.UTC(1970, 0, 1, 17, 0, 0)) }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(1))
+            .select({ id: vReleaseOverview.id, v: vReleaseOverview.localTimeVirtual })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cutoff_plain as "v" from release_overview where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v: Date }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('view-local-time-virtual-optional', async () => {
+        const expected = { id: 1, v: new Date(Date.UTC(1970, 0, 1, 17, 0, 0)) }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(1))
+            .select({ id: vReleaseOverview.id, v: vReleaseOverview.localTimeVirtualOptional })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cutoff_plain as "v" from release_overview where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v?: Date }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('view-local-date-time-virtual-required', async () => {
+        const expected = { id: 1, v: new Date(Date.UTC(2024, 0, 16, 9, 0, 0)) }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(1))
+            .select({ id: vReleaseOverview.id, v: vReleaseOverview.localDateTimeVirtual })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, published_stamp_plain as "v" from release_overview where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v: Date }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('view-local-date-time-virtual-optional', async () => {
+        const expected = { id: 1, v: new Date(Date.UTC(2024, 0, 14, 12, 30, 0)) }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(1))
+            .select({ id: vReleaseOverview.id, v: vReleaseOverview.localDateTimeVirtualOptional })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, signed_off_at as "v" from release_overview where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v?: Date }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('view-int-virtual-required', async () => {
+        const expected = { id: 1, v: 2 }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(1))
+            .select({ id: vReleaseOverview.id, v: vReleaseOverview.intVirtual })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, id + 1 as "v" from release_overview where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v: number }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('view-int-virtual-optional', async () => {
+        const expected = { id: 1, v: 1 }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(1))
+            .select({ id: vReleaseOverview.id, v: vReleaseOverview.intVirtualOptional })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, id as "v" from release_overview where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v?: number }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('view-custom-comparable-virtual-required', async () => {
+        const expected = { id: 1, v: '1.2.0' }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(1))
+            .select({ id: vReleaseOverview.id, v: vReleaseOverview.customComparableVirtual })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, version as "v" from release_overview where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v: string }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('view-custom-comparable-virtual-optional', async () => {
+        const expected = { id: 1, v: '1.2.0' }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(1))
+            .select({ id: vReleaseOverview.id, v: vReleaseOverview.customComparableVirtualOptional })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, version as "v" from release_overview where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v?: string }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('view-custom-uuid-virtual-required', async () => {
+        const expected = { id: 1, v: '0a8f9c1e-1111-4222-8333-444455556666' }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(1))
+            .select({ id: vReleaseOverview.id, v: vReleaseOverview.customUuidVirtual })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, signing_uuid as "v" from release_overview where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v: string }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('view-custom-uuid-virtual-optional', async () => {
+        const expected = { id: 1, v: '0a8f9c1e-1111-4222-8333-444455556666' }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(1))
+            .select({ id: vReleaseOverview.id, v: vReleaseOverview.customUuidVirtualOptional })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, signing_uuid as "v" from release_overview where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v?: string }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('view-custom-local-date-virtual-required', async () => {
+        const expected = { id: 1, v: new Date(Date.UTC(2024, 0, 15, 10, 0, 0)) }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(1))
+            .select({ id: vReleaseOverview.id, v: vReleaseOverview.customLocalDateVirtual })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, release_day_plain as "v" from release_overview where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v: Date }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('view-custom-local-date-virtual-optional', async () => {
+        const expected = { id: 1, v: new Date(Date.UTC(2024, 0, 15, 10, 0, 0)) }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(1))
+            .select({ id: vReleaseOverview.id, v: vReleaseOverview.customLocalDateVirtualOptional })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, release_day_plain as "v" from release_overview where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v?: Date }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('view-custom-local-time-virtual-required', async () => {
+        const expected = { id: 1, v: new Date(Date.UTC(1970, 0, 1, 17, 0, 0)) }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(1))
+            .select({ id: vReleaseOverview.id, v: vReleaseOverview.customLocalTimeVirtual })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cutoff_plain as "v" from release_overview where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v: Date }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('view-custom-local-time-virtual-optional', async () => {
+        const expected = { id: 1, v: new Date(Date.UTC(1970, 0, 1, 17, 0, 0)) }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(1))
+            .select({ id: vReleaseOverview.id, v: vReleaseOverview.customLocalTimeVirtualOptional })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cutoff_plain as "v" from release_overview where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v?: Date }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('view-custom-local-date-time-virtual-required', async () => {
+        const expected = { id: 1, v: new Date(Date.UTC(2024, 0, 16, 9, 0, 0)) }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(1))
+            .select({ id: vReleaseOverview.id, v: vReleaseOverview.customLocalDateTimeVirtual })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, published_stamp_plain as "v" from release_overview where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v: Date }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('view-custom-local-date-time-virtual-optional', async () => {
+        const expected = { id: 1, v: new Date(Date.UTC(2024, 0, 14, 12, 30, 0)) }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(1))
+            .select({ id: vReleaseOverview.id, v: vReleaseOverview.customLocalDateTimeVirtualOptional })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, signed_off_at as "v" from release_overview where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v?: Date }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('view-custom-double-virtual-required', async () => {
+        const expected = { id: 1, v: 4.5 }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(1))
+            .select({ id: vReleaseOverview.id, v: vReleaseOverview.customDoubleVirtual })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, avg_rating as "v" from release_overview where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v: number }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('view-custom-double-virtual-optional', async () => {
+        const expected = { id: 1, v: 4.5 }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(1))
+            .select({ id: vReleaseOverview.id, v: vReleaseOverview.customDoubleVirtualOptional })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, avg_rating as "v" from release_overview where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; v?: number }>>()
+        expect(row).toEqual(expected)
+    })
+
 })

@@ -327,4 +327,143 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ vwn: number; nif?: number; rio?: number; own?: number; ign?: number }>>>()
         expect(rows).toEqual(expected)
     })
+    // The optionalConst receiver arm of the same const-cast getter surface.
+    // `optionalConst(..., kind)` is still a const value, so `isConstValue()` is
+    // true and each getter takes the same `forceTypeCast` arm (identical SQL to
+    // the required-const twin above). The only difference is the projected leaf:
+    // an optional temporal receiver yields an optional number leaf
+    // (`?: number | undefined`). The const values are non-null, so every getter
+    // realizes a concrete part and the value assertion stays deterministic.
+    // ------------------------------------------------------------------
+
+    test('optional-const-localdate-getters', async () => {
+        // getFullYear/getMonth/getDate/getDay on an `optionalConst(..., 'localDate')`.
+        // Same 2024-01-15 (Monday) const as const-localdate-getters -> year 2024,
+        // month 0, date 15, day-of-week 1; every leaf projects as `?: number`.
+        const d = ctx.conn.optionalConst(new Date(Date.UTC(2024, 0, 15)), 'localDate')
+        const expected = [{ y: 2024, mo: 0, d: 15, dow: 1 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFromNoTable()
+            .select({
+                y:   d.getFullYear(),
+                mo:  d.getMonth(),
+                d:   d.getDate(),
+                dow: d.getDay(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from :0) as "y", extract(month from :1) - 1 as "mo", extract(day from :2) as "d", mod(trunc(:3) - trunc(:4, 'IW') + 1, 7) as "dow" from dual"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2024-01-15T00:00:00.000Z,
+            2024-01-15T00:00:00.000Z,
+            2024-01-15T00:00:00.000Z,
+            2024-01-15T00:00:00.000Z,
+            2024-01-15T00:00:00.000Z,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ y?: number | undefined; mo?: number | undefined; d?: number | undefined; dow?: number | undefined }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('optional-const-localtime-getters', async () => {
+        // getHours/getMinutes/getSeconds/getMilliseconds on an
+        // `optionalConst(..., 'localTime')`. Same 12:34:56 const as
+        // const-localtime-getters -> hours 12, minutes 34, seconds 56,
+        // milliseconds 0; every leaf projects as `?: number`.
+        const t = ctx.conn.optionalConst(new Date('1970-01-01T12:34:56Z'), 'localTime')
+        const expected = [{ h: 12, m: 34, s: 56, ms: 0 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFromNoTable()
+            .select({
+                h:  t.getHours(),
+                m:  t.getMinutes(),
+                s:  t.getSeconds(),
+                ms: t.getMilliseconds(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(hour from :0) as "h", extract(minute from :1) as "m", trunc(extract(second from :2)) as "s", to_number(to_char(:3, 'FF3')) as "ms" from dual"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1970-01-01T12:34:56.000Z,
+            1970-01-01T12:34:56.000Z,
+            1970-01-01T12:34:56.000Z,
+            1970-01-01T12:34:56.000Z,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ h?: number | undefined; m?: number | undefined; s?: number | undefined; ms?: number | undefined }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('optional-const-localdatetime-getters', async () => {
+        // The full nine-getter set on an `optionalConst(..., 'localDateTime')`:
+        // getFullYear/getMonth/getDate/getDay/getHours/getMinutes/getSeconds/
+        // getMilliseconds/getTime. Same 2024-01-15 12:34:56 UTC const as the
+        // required twin -> year 2024, month 0, date 15, day-of-week 1, hours 12,
+        // minutes 34, seconds 56, milliseconds 0, epoch millis; every leaf
+        // projects as `?: number`.
+        const ts = ctx.conn.optionalConst(new Date('2024-01-15T12:34:56Z'), 'localDateTime')
+        const expected = [{
+            y: 2024, mo: 0, d: 15, dow: 1, h: 12, m: 34, s: 56, ms: 0,
+            t: Date.UTC(2024, 0, 15, 12, 34, 56),
+        }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFromNoTable()
+            .select({
+                y:   ts.getFullYear(),
+                mo:  ts.getMonth(),
+                d:   ts.getDate(),
+                dow: ts.getDay(),
+                h:   ts.getHours(),
+                m:   ts.getMinutes(),
+                s:   ts.getSeconds(),
+                ms:  ts.getMilliseconds(),
+                t:   ts.getTime(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from :0) as "y", extract(month from :1) - 1 as "mo", extract(day from :2) as "d", mod(trunc(:3) - trunc(:4, 'IW') + 1, 7) as "dow", extract(hour from :5) as "h", extract(minute from :6) as "m", trunc(extract(second from :7)) as "s", to_number(to_char(:8, 'FF3')) as "ms", extract(day from(sys_extract_utc(:9) - to_timestamp('1970-01-01', 'YYYY-MM-DD'))) * 86400000 + to_number(to_char(sys_extract_utc(:10), 'SSSSSFF3')) as "t" from dual"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2024-01-15T12:34:56.000Z,
+            2024-01-15T12:34:56.000Z,
+            2024-01-15T12:34:56.000Z,
+            2024-01-15T12:34:56.000Z,
+            2024-01-15T12:34:56.000Z,
+            2024-01-15T12:34:56.000Z,
+            2024-01-15T12:34:56.000Z,
+            2024-01-15T12:34:56.000Z,
+            2024-01-15T12:34:56.000Z,
+            2024-01-15T12:34:56.000Z,
+            2024-01-15T12:34:56.000Z,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            y?: number | undefined; mo?: number | undefined; d?: number | undefined; dow?: number | undefined; h?: number | undefined
+            m?: number | undefined; s?: number | undefined; ms?: number | undefined; t?: number | undefined
+        }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('custom-localdatetime-asoptional-projected', async () => {
+        // `tProjectRelease.publishedAt.asOptional()` projected directly — the
+        // required customLocalDateTime column re-marked optional by `asOptional()`,
+        // the required->optional overload projected on its own (no other modifier
+        // shapes it). published_at is non-null on release 1, so the leaf realizes a
+        // concrete Date and projects as `?: Date`.
+        const expected = [{ p: new Date('2024-01-16T09:00:00Z') }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .select({
+                p: tProjectRelease.publishedAt.asOptional(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select published_at as "p" from project_release where id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ p?: Date | undefined }>>>()
+        expect(rows).toEqual(expected)
+    })
 })

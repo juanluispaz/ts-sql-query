@@ -587,4 +587,200 @@ describe(ctx.label, () => {
         expect(nullRow.body).toBe(null)
     })
     */
+    // ---- SEL-SEAM Round-44: AFTER-op projectingOptionalValuesAsNullable() on the 7 non-union compound ops ----
+    // The existing union tests pin the modifier applied AFTER `.union(...)` (on the
+    // compound RESULT). These mirror that AFTER-op form to each remaining compound op:
+    // the modifier is applied once on the combined result (the arms carry no flag), and
+    // the compound builder still flips the optional `body` leaf to present-`null`. Arms
+    // reuse the same id predicates as the before-op siblings so each op yields a
+    // deterministic, non-empty result.
+
+    test('compound-after-op-unionAll-nullable-surfaces-null', async () => {
+        // `.projectingOptionalValuesAsNullable()` applied AFTER `.unionAll(...)`: the
+        // optional `body` leaf surfaces present-as-null on the merged result. Arm 1 =
+        // issue 1 (body NULL); arm 2 = issue 2 (body 'Use new tokens').
+        const expected = [
+            { iid: 1, body: null },
+            { iid: 2, body: 'Use new tokens' },
+        ]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(1)).select({ iid: tIssue.id, body: tIssue.body })
+            .unionAll(ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(2)).select({ iid: tIssue.id, body: tIssue.body }))
+            .projectingOptionalValuesAsNullable()
+            .orderBy('iid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as body from issue where id = @0 union all select id as iid, body as body from issue where id = @1 order by iid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ iid: number; body: string | null }>>>()
+        expect(rows).toEqual(expected)
+        // Issue 1's null body is PRESENT-null under the after-op nullable projector.
+        expect('body' in rows[0]!).toBe(true)
+        expect(rows[0]!.body).toBe(null)
+    })
+
+    test('compound-after-op-intersect-nullable-surfaces-null', async () => {
+        // `.projectingOptionalValuesAsNullable()` applied AFTER `.intersect(...)`: the
+        // optional `body` leaf surfaces present-as-null on the merged result. Arm 1 =
+        // issues 1,2; arm 2 = issue 1; the intersection is issue 1 (body NULL).
+        const expected = [
+            { iid: 1, body: null },
+        ]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssue).where(tIssue.id.in([1, 2])).select({ iid: tIssue.id, body: tIssue.body })
+            .intersect(ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(1)).select({ iid: tIssue.id, body: tIssue.body }))
+            .projectingOptionalValuesAsNullable()
+            .orderBy('iid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as body from issue where id in (@0, @1) intersect select id as iid, body as body from issue where id = @2 order by iid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ iid: number; body: string | null }>>>()
+        expect(rows).toEqual(expected)
+        expect('body' in rows[0]!).toBe(true)
+        expect(rows[0]!.body).toBe(null)
+    })
+
+    // NOT-APPLICABLE: This dialect does not support the INTERSECT ALL / EXCEPT ALL set operators, so intersectAll / exceptAll / minusAll are typed never here.
+    /*
+    test('compound-after-op-intersectAll-nullable-surfaces-null', async () => {
+        // `.projectingOptionalValuesAsNullable()` applied AFTER `.intersectAll(...)`: the
+        // optional `body` leaf surfaces present-as-null on the merged result. Arm 1 =
+        // issues 1,2; arm 2 = issue 1; the intersection is issue 1 (body NULL).
+        const expected = [
+            { iid: 1, body: null },
+        ]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssue).where(tIssue.id.in([1, 2])).select({ iid: tIssue.id, body: tIssue.body })
+            .intersectAll(ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(1)).select({ iid: tIssue.id, body: tIssue.body }))
+            .projectingOptionalValuesAsNullable()
+            .orderBy('iid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(ctx.lastParams).toMatchInlineSnapshot()
+        assertType<Exact<typeof rows, Array<{ iid: number; body: string | null }>>>()
+        expect(rows).toEqual(expected)
+        expect('body' in rows[0]!).toBe(true)
+        expect(rows[0]!.body).toBe(null)
+    })
+    */
+
+    test('compound-after-op-except-nullable-surfaces-null', async () => {
+        // `.projectingOptionalValuesAsNullable()` applied AFTER `.except(...)`: the
+        // optional `body` leaf surfaces present-as-null on the merged result. Arm 1 =
+        // issues 1,2; arm 2 = issue 2; the difference is issue 1 (body NULL).
+        const expected = [
+            { iid: 1, body: null },
+        ]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssue).where(tIssue.id.in([1, 2])).select({ iid: tIssue.id, body: tIssue.body })
+            .except(ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(2)).select({ iid: tIssue.id, body: tIssue.body }))
+            .projectingOptionalValuesAsNullable()
+            .orderBy('iid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as body from issue where id in (@0, @1) except select id as iid, body as body from issue where id = @2 order by iid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ iid: number; body: string | null }>>>()
+        expect(rows).toEqual(expected)
+        expect('body' in rows[0]!).toBe(true)
+        expect(rows[0]!.body).toBe(null)
+    })
+
+    // NOT-APPLICABLE: This dialect does not support the INTERSECT ALL / EXCEPT ALL set operators, so intersectAll / exceptAll / minusAll are typed never here.
+    /*
+    test('compound-after-op-exceptAll-nullable-surfaces-null', async () => {
+        // `.projectingOptionalValuesAsNullable()` applied AFTER `.exceptAll(...)`: the
+        // optional `body` leaf surfaces present-as-null on the merged result. Arm 1 =
+        // issues 1,2; arm 2 = issue 2; the difference is issue 1 (body NULL).
+        const expected = [
+            { iid: 1, body: null },
+        ]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssue).where(tIssue.id.in([1, 2])).select({ iid: tIssue.id, body: tIssue.body })
+            .exceptAll(ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(2)).select({ iid: tIssue.id, body: tIssue.body }))
+            .projectingOptionalValuesAsNullable()
+            .orderBy('iid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(ctx.lastParams).toMatchInlineSnapshot()
+        assertType<Exact<typeof rows, Array<{ iid: number; body: string | null }>>>()
+        expect(rows).toEqual(expected)
+        expect('body' in rows[0]!).toBe(true)
+        expect(rows[0]!.body).toBe(null)
+    })
+    */
+
+    test('compound-after-op-minus-nullable-surfaces-null', async () => {
+        // `.projectingOptionalValuesAsNullable()` applied AFTER `.minus(...)` (the
+        // `except` alias): the optional `body` leaf surfaces present-as-null on the
+        // merged result. Arm 1 = issues 1,2; arm 2 = issue 2; the difference is issue 1.
+        const expected = [
+            { iid: 1, body: null },
+        ]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssue).where(tIssue.id.in([1, 2])).select({ iid: tIssue.id, body: tIssue.body })
+            .minus(ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(2)).select({ iid: tIssue.id, body: tIssue.body }))
+            .projectingOptionalValuesAsNullable()
+            .orderBy('iid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as body from issue where id in (@0, @1) except select id as iid, body as body from issue where id = @2 order by iid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ iid: number; body: string | null }>>>()
+        expect(rows).toEqual(expected)
+        expect('body' in rows[0]!).toBe(true)
+        expect(rows[0]!.body).toBe(null)
+    })
+
+    // NOT-APPLICABLE: This dialect does not support the INTERSECT ALL / EXCEPT ALL set operators, so intersectAll / exceptAll / minusAll are typed never here.
+    /*
+    test('compound-after-op-minusAll-nullable-surfaces-null', async () => {
+        // `.projectingOptionalValuesAsNullable()` applied AFTER `.minusAll(...)` (the
+        // `except all` alias): the optional `body` leaf surfaces present-as-null on the
+        // merged result. Arm 1 = issues 1,2; arm 2 = issue 2; the difference is issue 1.
+        const expected = [
+            { iid: 1, body: null },
+        ]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssue).where(tIssue.id.in([1, 2])).select({ iid: tIssue.id, body: tIssue.body })
+            .minusAll(ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(2)).select({ iid: tIssue.id, body: tIssue.body }))
+            .projectingOptionalValuesAsNullable()
+            .orderBy('iid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(ctx.lastParams).toMatchInlineSnapshot()
+        assertType<Exact<typeof rows, Array<{ iid: number; body: string | null }>>>()
+        expect(rows).toEqual(expected)
+        expect('body' in rows[0]!).toBe(true)
+        expect(rows[0]!.body).toBe(null)
+    })
+    */
+
 })

@@ -1535,4 +1535,84 @@ describe(ctx.label, () => {
         expect(result[0]!.tree[0]!.parentId).toBe(null)
     })
 
+    // ---- SEL-SEAM Round-44: recursiveUnionAll(fn) full-form + projectingOptionalValuesAsNullable ----
+    // The dedup `recursiveUnion(fn)` / `recursiveUnionOn` variants above pair the nullable
+    // projection with the recursive build. These pin the same pairing on the UNION ALL
+    // full-form `recursiveUnionAll(fn)` (emitting `union all` between the anchor and
+    // recursive members): the flag reshapes only the type (`parentId` becomes required,
+    // nullable), and the traversal from the NULL-`parent_id` seed returns issue 1 with
+    // `parentId: null` present.
+
+    test('recursive-union-all-fn-projecting-optionals-as-nullable-exec', async () => {
+        // `.recursiveUnionAll(fn)` (full-form, `union all`) with
+        // `.projectingOptionalValuesAsNullable()` set on the anchor and the recursive arm.
+        // Issue 1 has a NULL parent_id, so `parentId` comes back as a present `null`.
+        const expected = [{ id: 1, title: 'Update hero copy', parentId: null }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        const result = await connection.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({ id: tIssue.id, title: tIssue.title, parentId: tIssue.parentId })
+            .projectingOptionalValuesAsNullable()
+            .recursiveUnionAll((child) => connection.selectFrom(tIssue)
+                .join(child).on(child.parentId.equals(tIssue.id))
+                .select({ id: tIssue.id, title: tIssue.title, parentId: tIssue.parentId })
+                .projectingOptionalValuesAsNullable())
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, title as title, parent_id as parentId from issue where id = $1 union all select issue.id as id, issue.title as title, issue.parent_id as parentId from issue join recursive_select_1 on recursive_select_1.parentId = issue.id) select id as id, title as title, parentId as "parentId" from recursive_select_1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number, title: string, parentId: number | null }>>>()
+        expect(result).toEqual(expected)
+        expect('parentId' in result[0]!).toBe(true)
+        expect(result[0]!.parentId).toBe(null)
+    })
+
+    test('recursive-union-all-fn-projecting-optionals-as-nullable-inline', async () => {
+        // The `.recursiveUnionAll(fn)` full-form carrying `.projectingOptionalValuesAsNullable()`,
+        // consumed as an inline aggregated array via `forUseAsInlineAggregatedArrayValue()`.
+        // The nullable projection propagates into each aggregated element: `parentId`
+        // becomes a required, nullable property on the tree element. Traversal from the
+        // NULL-`parent_id` seed (issue 1) yields a one-element array carrying
+        // `parentId: null` as a present property.
+        const expected = [{ id: 1, tree: [{ id: 1, title: 'Update hero copy', parentId: null }] }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        const tree = connection.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({ id: tIssue.id, title: tIssue.title, parentId: tIssue.parentId })
+            .projectingOptionalValuesAsNullable()
+            .recursiveUnionAll((child) => connection.selectFrom(tIssue)
+                .join(child).on(child.parentId.equals(tIssue.id))
+                .select({ id: tIssue.id, title: tIssue.title, parentId: tIssue.parentId })
+                .projectingOptionalValuesAsNullable())
+            .forUseAsInlineAggregatedArrayValue()
+
+        const result = await connection.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ id: tProject.id, tree })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, title as title, parent_id as parentId from issue where id = $1 union all select issue.id as id, issue.title as title, issue.parent_id as parentId from issue join recursive_select_1 on recursive_select_1.parentId = issue.id) select id as id, (select json_agg(json_build_object('id', id, 'title', title, 'parentId', parentId)) from recursive_select_1) as tree from project where id = $2"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{
+            id:   number
+            tree: Array<{ id: number, title: string, parentId: number | null }>
+        }>>>()
+        expect(result).toEqual(expected)
+        expect('parentId' in result[0]!.tree[0]!).toBe(true)
+        expect(result[0]!.tree[0]!.parentId).toBe(null)
+    })
+
 })

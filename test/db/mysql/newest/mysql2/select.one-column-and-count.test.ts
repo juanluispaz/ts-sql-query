@@ -415,4 +415,53 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<string | null>>>()
         expect(result).toEqual(['See ADR-014', 'Use new tokens', null, null])
     })
+    // ---- round-44 F3-SELECT: one-column .query()/.params() + plain row-shape noneOrOne present
+    test('select-one-column-query-and-params-accessors', async () => {
+        // `.query()` / `.params()` on a ONE-COLUMN `selectOneColumn(...)` builder
+        // return the built SQL string and params array WITHOUT executing (the same
+        // accessors covered for the row-shape builder in select.basic, exercised
+        // here on the one-column projection path). Executing the same builder emits
+        // the identical SQL + params.
+        const built = ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .selectOneColumn(tIssue.status)
+
+        const sql = built.query()
+        const params = built.params()
+        expect(sql).toMatchInlineSnapshot(`"select \`status\` as result from issue where id = ?"`)
+        expect(params).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+
+        ctx.mockNext('open')
+        const result = await built.executeSelectOne()
+        expect(ctx.lastSql).toBe(sql)
+        expect(ctx.lastParams).toEqual(params)
+        assertType<Exact<typeof result, string>>()
+        expect(result).toBe('open')
+    })
+
+    test('select-multi-column-execute-none-or-one-present-object', async () => {
+        // `executeSelectNoneOrOne()` over a plain ROW-shape projection returns the
+        // present object (not null) when the WHERE matches exactly one row — the
+        // non-null arm of the row-shape noneOrOne. Issue 1 exists, so the query
+        // matches one row and returns it; the type stays `{...} | null`.
+        const expected = { id: 1, status: 'open' }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({ id: tIssue.id, status: tIssue.status })
+            .executeSelectNoneOrOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`status\` as \`status\` from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; status: string } | null>>()
+        expect(row).toEqual(expected)
+    })
 })

@@ -273,4 +273,40 @@ describe(ctx.label, () => {
     })
     */
 
+    // ── Empty-on-conflict degrade on the from-select upsert ──────────────────
+// NOT-APPLICABLE: Oracle has no INSERT…ON CONFLICT (uses MERGE)
+    /*
+    test('from-select-empty-on-conflict-update-set-degrades-to-conflict-noop', async () => {
+        // MUT-EMPTY-2: on the from-select upsert, `doUpdateDynamicSet({archivedAt:null})`
+        // then `ignoreAnySetWithNoValue()` empties the update-set; rather than
+        // dropping the whole clause, the builder degrades to `… do nothing` (the
+        // distinct from-select builder path). The source re-selects project 1's
+        // (organization_id, slug), which collides with UNIQUE(organization_id, slug),
+        // so the conflict fires and nothing is inserted or updated.
+        ctx.mockNext(0)
+        await ctx.withRollback(async () => {
+            const source = ctx.conn.selectFrom(tProject)
+                .where(tProject.id.equals(1))
+                .select({
+                    organizationId: tProject.organizationId,
+                    slug:           tProject.slug,
+                    name:           tProject.name,
+                })
+
+            const affected = await ctx.conn.insertInto(tProject)
+                .from(source)
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doUpdateDynamicSet({ archivedAt: null })
+                .ignoreAnySetWithNoValue()
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof affected, number>>()
+            if (ctx.realDbEnabled) expect(typeof affected).toBe('number')
+            else expect(affected).toBe(0)
+        })
+    })
+    */
+
 })

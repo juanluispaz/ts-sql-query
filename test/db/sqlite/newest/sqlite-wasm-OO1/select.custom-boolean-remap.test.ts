@@ -12,6 +12,7 @@
 // stored as t/f). This file exercises the comparisons across that pair.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
+import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { tAppUser, tIssueWorklog, tOrganization, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 describe(ctx.label, () => {
@@ -789,6 +790,675 @@ describe(ctx.label, () => {
             0,
           ]
         `)
+        expect(rows).toEqual(expected)
+    })
+    // ==== Round-44 BOOLIF surface — required-string isNull/isNotNull remap,
+    // custom-boolean *IfValue receivers (fire + elide), the remaining elide
+    // branches, paren nesting, and double-remap and/or. ====
+
+    // ── Group 1: isNull / isNotNull on the REQUIRED-string custom-boolean
+    // adapters (verified 'Y'/'N', published 't'/'f'). The receiver remaps to the
+    // adapter predicate, then `is [not] null` wraps THAT — `(verified = 'Y') is
+    // null`. Neither column is ever NULL in the seed, so isNull matches nothing
+    // and isNotNull matches every row.
+
+    test('is-null-on-verified-required-custom-boolean-string-adapter', async () => {
+        // `verified.isNull()` → `(verified = 'Y') is null`. verified is required and
+        // never NULL, so no organization matches.
+        const expected: Array<{ id: number }> = []
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.verified.isNull())
+            .select({ id: tOrganization.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where (verified = 'Y') is null order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('is-not-null-on-verified-required-custom-boolean-string-adapter', async () => {
+        // `verified.isNotNull()` → `(verified = 'Y') is not null`. Every organization
+        // carries a value, so both rows match.
+        const expected = [{ id: 1 }, { id: 2 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.verified.isNotNull())
+            .select({ id: tOrganization.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where (verified = 'Y') is not null order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('is-null-on-published-required-custom-boolean-string-adapter', async () => {
+        // `published.isNull()` → `(published = 't') is null`. published is required and
+        // never NULL, so no project matches.
+        const expected: Array<{ id: number }> = []
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tProject)
+            .where(tProject.published.isNull())
+            .select({ id: tProject.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project where (published = 't') is null order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('is-not-null-on-published-required-custom-boolean-string-adapter', async () => {
+        // `published.isNotNull()` → `(published = 't') is not null`. Every project
+        // carries a value, so all four rows match.
+        const expected = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tProject)
+            .where(tProject.published.isNotNull())
+            .select({ id: tProject.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project where (published = 't') is not null order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    // ── Group 3: the *IfValue predicate family with a custom-boolean column as
+    // the receiver. When the value is present the receiver remaps to its adapter
+    // predicate inside the comparison (`(verified = 'Y') = $1`); when the value is
+    // undefined the whole predicate elides (short-circuits BEFORE the remap), so
+    // the sole WHERE disappears and every row returns. Each test pins BOTH arms.
+    // Seed: verified 1 'Y', 2 'N'; published 1 't', 2 'f', 3 't', 4 'f'; approved 1
+    // 'A', 2 'R', 3 NULL; invoiced 1 -> 1, 2 -> 0, 3 -> 1.
+
+    test('equals-if-value-on-verified-custom-boolean-fires-and-elides', async () => {
+        // `verified.equalsIfValue(true)` fires → `(verified = 'Y') = $1`; the verified
+        // organization (1, 'Y') matches. undefined elides → every organization.
+        const present: boolean | undefined = true
+        const fired = [{ id: 1 }]
+        ctx.mockNext(fired)
+        const firedRows = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.verified.equalsIfValue(present))
+            .select({ id: tOrganization.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where (verified = 'Y') = ? order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof firedRows, Array<{ id: number }>>>()
+        expect(firedRows).toEqual(fired)
+
+        const absent: boolean | undefined = undefined
+        const elided = [{ id: 1 }, { id: 2 }]
+        ctx.mockNext(elided)
+        const elidedRows = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.verified.equalsIfValue(absent))
+            .select({ id: tOrganization.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(elidedRows).toEqual(elided)
+    })
+
+    test('equals-if-value-on-approved-custom-boolean-fires-and-elides', async () => {
+        // `approved.equalsIfValue(true)` fires → `(approved = 'A') = $1`; worklog 1
+        // ('A') matches, worklog 2 ('R') fails, worklog 3 (NULL) is excluded. undefined
+        // elides → every worklog.
+        const present: boolean | undefined = true
+        const fired = [{ id: 1 }]
+        ctx.mockNext(fired)
+        const firedRows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.approved.equalsIfValue(present))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where (approved = 'A') = ? order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof firedRows, Array<{ id: number }>>>()
+        expect(firedRows).toEqual(fired)
+
+        const absent: boolean | undefined = undefined
+        const elided = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        ctx.mockNext(elided)
+        const elidedRows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.approved.equalsIfValue(absent))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(elidedRows).toEqual(elided)
+    })
+
+    test('is-if-value-on-published-custom-boolean-fires-and-elides', async () => {
+        // `published.isIfValue(true)` fires → the null-safe `(published = 't') is not
+        // distinct from $1`; the published-true projects (1, 3) match. undefined elides.
+        const present: boolean | undefined = true
+        const fired = [{ id: 1 }, { id: 3 }]
+        ctx.mockNext(fired)
+        const firedRows = await ctx.conn.selectFrom(tProject)
+            .where(tProject.published.isIfValue(present))
+            .select({ id: tProject.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project where (published = 't') is ? order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof firedRows, Array<{ id: number }>>>()
+        expect(firedRows).toEqual(fired)
+
+        const absent: boolean | undefined = undefined
+        const elided = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]
+        ctx.mockNext(elided)
+        const elidedRows = await ctx.conn.selectFrom(tProject)
+            .where(tProject.published.isIfValue(absent))
+            .select({ id: tProject.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(elidedRows).toEqual(elided)
+    })
+
+    test('is-if-value-on-verified-custom-boolean-fires-and-elides', async () => {
+        // `verified.isIfValue(true)` fires → `(verified = 'Y') is not distinct from $1`;
+        // the verified organization (1) matches. undefined elides.
+        const present: boolean | undefined = true
+        const fired = [{ id: 1 }]
+        ctx.mockNext(fired)
+        const firedRows = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.verified.isIfValue(present))
+            .select({ id: tOrganization.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where (verified = 'Y') is ? order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof firedRows, Array<{ id: number }>>>()
+        expect(firedRows).toEqual(fired)
+
+        const absent: boolean | undefined = undefined
+        const elided = [{ id: 1 }, { id: 2 }]
+        ctx.mockNext(elided)
+        const elidedRows = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.verified.isIfValue(absent))
+            .select({ id: tOrganization.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(elidedRows).toEqual(elided)
+    })
+
+    test('is-if-value-on-approved-custom-boolean-fires-and-elides', async () => {
+        // `approved.isIfValue(true)` fires → `(approved = 'A') is not distinct from $1`;
+        // worklog 1 ('A') matches; worklog 2 ('R') and worklog 3 (NULL, distinct from
+        // true) do not. undefined elides.
+        const present: boolean | undefined = true
+        const fired = [{ id: 1 }]
+        ctx.mockNext(fired)
+        const firedRows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.approved.isIfValue(present))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where (approved = 'A') is ? order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof firedRows, Array<{ id: number }>>>()
+        expect(firedRows).toEqual(fired)
+
+        const absent: boolean | undefined = undefined
+        const elided = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        ctx.mockNext(elided)
+        const elidedRows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.approved.isIfValue(absent))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(elidedRows).toEqual(elided)
+    })
+
+    test('not-equals-if-value-on-invoiced-custom-boolean-fires-and-elides', async () => {
+        // `invoiced.notEqualsIfValue(true)` fires → `(invoiced = 1) <> $1`; the
+        // un-invoiced worklog (2, invoiced 0) matches, the invoiced ones (1, 3) do not.
+        // undefined elides.
+        const present: boolean | undefined = true
+        const fired = [{ id: 2 }]
+        ctx.mockNext(fired)
+        const firedRows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.invoiced.notEqualsIfValue(present))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where (invoiced = 1) <> ? order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof firedRows, Array<{ id: number }>>>()
+        expect(firedRows).toEqual(fired)
+
+        const absent: boolean | undefined = undefined
+        const elided = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        ctx.mockNext(elided)
+        const elidedRows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.invoiced.notEqualsIfValue(absent))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(elidedRows).toEqual(elided)
+    })
+
+    test('not-equals-if-value-on-verified-custom-boolean-fires-and-elides', async () => {
+        // `verified.notEqualsIfValue(true)` fires → `(verified = 'Y') <> $1`; the
+        // unverified organization (2, 'N') matches. undefined elides.
+        const present: boolean | undefined = true
+        const fired = [{ id: 2 }]
+        ctx.mockNext(fired)
+        const firedRows = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.verified.notEqualsIfValue(present))
+            .select({ id: tOrganization.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where (verified = 'Y') <> ? order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof firedRows, Array<{ id: number }>>>()
+        expect(firedRows).toEqual(fired)
+
+        const absent: boolean | undefined = undefined
+        const elided = [{ id: 1 }, { id: 2 }]
+        ctx.mockNext(elided)
+        const elidedRows = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.verified.notEqualsIfValue(absent))
+            .select({ id: tOrganization.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(elidedRows).toEqual(elided)
+    })
+
+    test('not-equals-if-value-on-approved-custom-boolean-fires-and-elides', async () => {
+        // `approved.notEqualsIfValue(true)` fires → `(approved = 'A') <> $1`; worklog 2
+        // ('R') matches; worklog 1 ('A') fails; worklog 3 (NULL) is excluded. undefined
+        // elides.
+        const present: boolean | undefined = true
+        const fired = [{ id: 2 }]
+        ctx.mockNext(fired)
+        const firedRows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.approved.notEqualsIfValue(present))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where (approved = 'A') <> ? order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof firedRows, Array<{ id: number }>>>()
+        expect(firedRows).toEqual(fired)
+
+        const absent: boolean | undefined = undefined
+        const elided = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        ctx.mockNext(elided)
+        const elidedRows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.approved.notEqualsIfValue(absent))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(elidedRows).toEqual(elided)
+    })
+
+    test('is-not-if-value-on-published-custom-boolean-fires-and-elides', async () => {
+        // `published.isNotIfValue(true)` fires → `(published = 't') is distinct from $1`;
+        // the published-false projects (2, 4) match. undefined elides.
+        const present: boolean | undefined = true
+        const fired = [{ id: 2 }, { id: 4 }]
+        ctx.mockNext(fired)
+        const firedRows = await ctx.conn.selectFrom(tProject)
+            .where(tProject.published.isNotIfValue(present))
+            .select({ id: tProject.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project where (published = 't') is not ? order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof firedRows, Array<{ id: number }>>>()
+        expect(firedRows).toEqual(fired)
+
+        const absent: boolean | undefined = undefined
+        const elided = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]
+        ctx.mockNext(elided)
+        const elidedRows = await ctx.conn.selectFrom(tProject)
+            .where(tProject.published.isNotIfValue(absent))
+            .select({ id: tProject.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(elidedRows).toEqual(elided)
+    })
+
+    test('is-not-if-value-on-verified-custom-boolean-fires-and-elides', async () => {
+        // `verified.isNotIfValue(true)` fires → `(verified = 'Y') is distinct from $1`;
+        // the unverified organization (2, 'N') matches. undefined elides.
+        const present: boolean | undefined = true
+        const fired = [{ id: 2 }]
+        ctx.mockNext(fired)
+        const firedRows = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.verified.isNotIfValue(present))
+            .select({ id: tOrganization.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where (verified = 'Y') is not ? order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof firedRows, Array<{ id: number }>>>()
+        expect(firedRows).toEqual(fired)
+
+        const absent: boolean | undefined = undefined
+        const elided = [{ id: 1 }, { id: 2 }]
+        ctx.mockNext(elided)
+        const elidedRows = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.verified.isNotIfValue(absent))
+            .select({ id: tOrganization.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(elidedRows).toEqual(elided)
+    })
+
+    test('is-not-if-value-on-approved-custom-boolean-fires-and-elides', async () => {
+        // `approved.isNotIfValue(true)` fires → `(approved = 'A') is distinct from $1`;
+        // worklog 2 ('R') and worklog 3 (NULL, distinct from true) match; worklog 1
+        // ('A') does not. undefined elides.
+        const present: boolean | undefined = true
+        const fired = [{ id: 2 }, { id: 3 }]
+        ctx.mockNext(fired)
+        const firedRows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.approved.isNotIfValue(present))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where (approved = 'A') is not ? order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof firedRows, Array<{ id: number }>>>()
+        expect(firedRows).toEqual(fired)
+
+        const absent: boolean | undefined = undefined
+        const elided = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        ctx.mockNext(elided)
+        const elidedRows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.approved.isNotIfValue(absent))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(elidedRows).toEqual(elided)
+    })
+
+    test('is-not-if-value-on-invoiced-custom-boolean-fires-and-elides', async () => {
+        // `invoiced.isNotIfValue(true)` fires → `(invoiced = 1) is distinct from $1`;
+        // the un-invoiced worklog (2, invoiced 0) matches. undefined elides.
+        const present: boolean | undefined = true
+        const fired = [{ id: 2 }]
+        ctx.mockNext(fired)
+        const firedRows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.invoiced.isNotIfValue(present))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where (invoiced = 1) is not ? order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof firedRows, Array<{ id: number }>>>()
+        expect(firedRows).toEqual(fired)
+
+        const absent: boolean | undefined = undefined
+        const elided = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        ctx.mockNext(elided)
+        const elidedRows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.invoiced.isNotIfValue(absent))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(elidedRows).toEqual(elided)
+    })
+
+    // ── Group 5: the remaining custom-boolean ELIDE branches. `onlyWhen(false)` /
+    // `ignoreWhen(true)` drop the predicate entirely, so the sole WHERE disappears
+    // (the receiver's remap takes its elide arm — nothing is appended) and every
+    // row returns. (verified.onlyWhen(false) and invoiced.ignoreWhen(true) are
+    // covered above; these are the complementary adapter × direction cells.)
+
+    test('published-custom-boolean-elided-by-only-when-false', async () => {
+        // `published.onlyWhen(false)` elides — the sole WHERE disappears, so every
+        // project returns.
+        const expected = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tProject)
+            .where(tProject.published.onlyWhen(false))
+            .select({ id: tProject.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('published-custom-boolean-elided-by-ignore-when-true', async () => {
+        // `published.ignoreWhen(true)` elides — the sole WHERE disappears, so every
+        // project returns.
+        const expected = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tProject)
+            .where(tProject.published.ignoreWhen(true))
+            .select({ id: tProject.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('approved-custom-boolean-elided-by-only-when-false', async () => {
+        // `approved.onlyWhen(false)` elides — the sole WHERE disappears, so every
+        // worklog returns.
+        const expected = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.approved.onlyWhen(false))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('approved-custom-boolean-elided-by-ignore-when-true', async () => {
+        // `approved.ignoreWhen(true)` elides — the sole WHERE disappears, so every
+        // worklog returns.
+        const expected = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.approved.ignoreWhen(true))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('invoiced-custom-boolean-elided-by-only-when-false', async () => {
+        // `invoiced.onlyWhen(false)` elides — the sole WHERE disappears, so every
+        // worklog returns.
+        const expected = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.invoiced.onlyWhen(false))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('verified-custom-boolean-elided-by-ignore-when-true', async () => {
+        // `verified.ignoreWhen(true)` elides — the sole WHERE disappears, so every
+        // organization returns.
+        const expected = [{ id: 1 }, { id: 2 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.verified.ignoreWhen(true))
+            .select({ id: tOrganization.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    // ── Group 6: paren nesting around a remapping custom-boolean operand.
+
+    test('paren-and-with-or-right-operand-remaps-custom-boolean', async () => {
+        // `id.greaterThan(0).and(verified.or(plan.equals('pro')))` — the right operand
+        // is an `_or` whose left arm is a custom-boolean remap, so the whole `_or` is
+        // parenthesised as the RHS of the `and`. Org 1 (verified 'Y') matches via the
+        // remap; org 2 (verified 'N', plan 'free' ≠ 'pro') fails both `_or` arms.
+        const expected = [{ id: 1 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.id.greaterThan(0)
+                .and(tOrganization.verified.or(tOrganization.plan.equals('pro'))))
+            .select({ id: tOrganization.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where id > ? and (verified = 'Y' or "plan" = ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            0,
+            "pro",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('negate-and-with-remapping-custom-boolean', async () => {
+        // `verified.and(plan.equals('pro')).negate()` → `not (<verified remap> and plan
+        // = $1)`. Org 1 ('Y', 'pro') → not (true and true) = false; org 2 ('N', 'free')
+        // → not (false and false) = true → the unverified organization matches.
+        const expected = [{ id: 2 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.verified.and(tOrganization.plan.equals('pro')).negate())
+            .select({ id: tOrganization.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where not (verified = 'Y' and "plan" = ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "pro",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    // ── Group 7: double-remap — BOTH operands of `.and` / `.or` are custom-boolean
+    // columns, so each renders its own adapter predicate. approved ('A'/'R', string)
+    // and invoiced (1/0, numeric) remap independently.
+
+    test('double-remap-and-approved-and-invoiced', async () => {
+        // `approved.and(invoiced)` → `<approved remap> and <invoiced remap>`. worklog 1
+        // (approved 'A' → true, invoiced 1 → true) matches; worklog 2 (false and false)
+        // fails; worklog 3 (approved NULL, invoiced true) stays NULL and is excluded.
+        const expected = [{ id: 1 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.approved.and(tIssueWorklog.invoiced))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where approved = 'A' and invoiced = 1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('double-remap-or-approved-or-invoiced', async () => {
+        // `approved.or(invoiced)` → `<approved remap> or <invoiced remap>`. worklog 1
+        // (true or true) and worklog 3 (approved NULL or invoiced true = true) match;
+        // worklog 2 (false or false) is excluded.
+        const expected = [{ id: 1 }, { id: 3 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.approved.or(tIssueWorklog.invoiced))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where approved = 'A' or invoiced = 1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
         expect(rows).toEqual(expected)
     })
 })

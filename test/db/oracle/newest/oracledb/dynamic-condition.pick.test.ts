@@ -16,7 +16,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact, type Extends } from '../../../../lib/assertType.js'
 import { dynamicPick, dynamicPickPaths, expandTypeFromDynamicPickPaths, expandTypeProjectedAsNullableFromDynamicPickPaths } from '../../../../../src/dynamic/pick.js'
-import { tIssue } from '../../domain/connection.js'
+import { tIssue, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -351,5 +351,222 @@ describe(ctx.label, () => {
         // Runtime passthrough.
         expect(expanded).toBe(one)
         expect(expanded).toEqual({ id: 1, title: 'Update hero copy' })
+    })
+    // ---- F3-PROJ pocket 2: picking × aggregate / drop-rule leaves ----
+    // dynamicPick composed with an aggregate-as-array field and with drop-rule
+    // leaves (rule-1 requiredInOptionalObject gate, rule-2 left-join originally-
+    // required leaf) inside a picked object, plus an all-optional picked select
+    // under projectingOptionalValuesAsNullable(). `dynamicPick` returns a
+    // `PickWitOthersAsOptionals` projection: mandatory keys stay required, every
+    // other picked key is optional in the result type; each field's own value
+    // source keeps its element / optional semantics.
+
+    test('pick/aggregate-as-array-field-default', async () => {
+        // The availableFields carries an `aggregateAsArray` field. The picked
+        // projection keeps the aggregate column; its element drop rules still apply
+        // (a null optional `body` leaf is dropped under the default projector). `pid`
+        // is mandatory (required), `issues` is a picked-but-not-mandatory key so it
+        // is `issues?` in the result. Project 1 has issue 1 (body NULL → absent) and
+        // issue 2 ('Use new tokens').
+        ctx.mockNext([{ pid: 1, issues: [
+            { title: 'Update hero copy', body: null },
+            { title: 'Redesign navbar',  body: 'Use new tokens' },
+        ] }])
+        const availableFields = {
+            pid:    tProject.id,
+            issues: ctx.conn.aggregateAsArray({ title: tIssue.title, body: tIssue.body }),
+        }
+        const picked = dynamicPick(availableFields, { issues: true }, ['pid'])
+        const rows = await ctx.conn.selectFrom(tProject)
+            .innerJoin(tIssue).on(tIssue.projectId.equals(tProject.id))
+            .where(tProject.id.equals(1))
+            .select(picked)
+            .groupBy('pid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as "pid", json_arrayagg(json_object('title' value issue.title, 'body' value issue."body")) as "issues" from project inner join issue on issue.project_id = project.id where project.id = :0 group by project.id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            pid:     number
+            issues?: Array<{ title: string; body?: string }>
+        }>>>()
+        const sorted = rows.map(r => ({ ...r, issues: [...(r.issues ?? [])].sort((a, b) => a.title.localeCompare(b.title)) }))
+        expect(sorted).toEqual([{ pid: 1, issues: [
+            { title: 'Redesign navbar', body: 'Use new tokens' },
+            { title: 'Update hero copy' },
+        ] }])
+        // Issue 1's null body is ABSENT under the default projector.
+        const issue1 = rows[0]!.issues!.find(i => i.title === 'Update hero copy')!
+        expect('body' in issue1).toBe(false)
+    })
+
+    test('pick/aggregate-as-array-field-projecting-optional-values-as-nullable', async () => {
+        // The same picked aggregate, but the nullable flag is carried BY THE AGGREGATE
+        // (`aggregateAsArray(...).projectingOptionalValuesAsNullable()`): the element
+        // projection honours the aggregate's own flag (an outer-select
+        // `projectingOptionalValuesAsNullable()` does NOT reach aggregate elements, by
+        // design — the element transform reads only the aggregate's own flag). The
+        // optional `body` leaf surfaces present-as-null. `pid` mandatory, `issues?`
+        // picked-optional.
+        ctx.mockNext([{ pid: 1, issues: [
+            { title: 'Update hero copy', body: null },
+            { title: 'Redesign navbar',  body: 'Use new tokens' },
+        ] }])
+        const availableFields = {
+            pid:    tProject.id,
+            issues: ctx.conn.aggregateAsArray({ title: tIssue.title, body: tIssue.body })
+                .projectingOptionalValuesAsNullable(),
+        }
+        const picked = dynamicPick(availableFields, { issues: true }, ['pid'])
+        const rows = await ctx.conn.selectFrom(tProject)
+            .innerJoin(tIssue).on(tIssue.projectId.equals(tProject.id))
+            .where(tProject.id.equals(1))
+            .select(picked)
+            .groupBy('pid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as "pid", json_arrayagg(json_object('title' value issue.title, 'body' value issue."body")) as "issues" from project inner join issue on issue.project_id = project.id where project.id = :0 group by project.id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            pid:     number
+            issues?: Array<{ title: string; body: string | null }>
+        }>>>()
+        const sorted = rows.map(r => ({ ...r, issues: [...(r.issues ?? [])].sort((a, b) => a.title.localeCompare(b.title)) }))
+        expect(sorted).toEqual([{ pid: 1, issues: [
+            { title: 'Redesign navbar', body: 'Use new tokens' },
+            { title: 'Update hero copy', body: null },
+        ] }])
+        // Issue 1's null body is PRESENT-null under the nullable projector.
+        const issue1 = rows[0]!.issues!.find(i => i.title === 'Update hero copy')!
+        expect('body' in issue1).toBe(true)
+        expect(issue1.body).toBe(null)
+    })
+
+    test('pick/rule-1-gate-leaf-inside-picked-object-default', async () => {
+        // A rule-1 requiredInOptionalObject gate leaf (`gate` = issue.status) inside a
+        // picked nested `meta` object. `meta.gate` is a mandatory path (kept required),
+        // `meta.assigneeId` is the picked plain-optional sibling. `id` mandatory.
+        // Issues 1, 2 both carry a status. This is the plain-select projector path
+        // (no aggregate), so the reqInOptObj gate stays required inside `meta`.
+        const expected = [
+            { id: 1, meta: { gate: 'open', assigneeId: 1 } },
+            { id: 2, meta: { gate: 'in_progress', assigneeId: 2 } },
+        ]
+        ctx.mockNext([
+            { id: 1, 'meta.gate': 'open', 'meta.assigneeId': 1 },
+            { id: 2, 'meta.gate': 'in_progress', 'meta.assigneeId': 2 },
+        ])
+        const availableFields = {
+            id: tIssue.id,
+            meta: {
+                gate:       tIssue.status.asRequiredInOptionalObject(),
+                assigneeId: tIssue.assigneeId,
+            },
+        }
+        const picked = dynamicPick(availableFields, { meta: { assigneeId: true } }, ['id', 'meta.gate'])
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.in([1, 2]))
+            .select(picked)
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", status as "meta.gate", assignee_id as "meta.assigneeId" from issue where id in (:0, :1) order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            id:   number
+            meta?: { gate: string; assigneeId: number | undefined }
+        }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('pick/rule-2-left-join-leaf-inside-picked-object-default', async () => {
+        // A rule-2 originally-required left-join leaf (`name` from a left-joined
+        // project) inside a picked nested `proj` object, mixed with the optional
+        // `archivedAt`. `proj.id` / `proj.name` are mandatory paths (kept required),
+        // `proj.archivedAt` is the picked optional sibling (dropped when null under the
+        // default projector). `iid` mandatory. Issue 1 joins project 1 (archived_at
+        // NULL → archivedAt dropped).
+        const tProjLeft = tProject.forUseInLeftJoin()
+        ctx.mockNext([{ iid: 1, proj: { id: 1, name: 'Marketing site', archivedAt: null } }])
+        const availableFields = {
+            iid: tIssue.id,
+            proj: {
+                id:         tProjLeft.id,
+                name:       tProjLeft.name,
+                archivedAt: tProjLeft.archivedAt,
+            },
+        }
+        const picked = dynamicPick(availableFields, { proj: { archivedAt: true } }, ['iid', 'proj.id', 'proj.name'])
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .leftJoin(tProjLeft).on(tProjLeft.id.equals(tIssue.projectId))
+            .where(tIssue.id.equals(1))
+            .select(picked)
+            .orderBy('iid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as "iid", project.id as "proj.id", project.name as "proj.name", project.archived_at as "proj.archivedAt" from issue left join project on project.id = issue.project_id where issue.id = :0 order by "iid""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            iid:  number
+            proj?: { id: number; name: string; archivedAt: Date | undefined }
+        }>>>()
+        expect(rows).toEqual([{ iid: 1, proj: { id: 1, name: 'Marketing site' } }])
+        // Project 1's null archivedAt is dropped under the default projector.
+        expect('archivedAt' in rows[0]!.proj!).toBe(false)
+    })
+
+    test('pick/all-optional-select-picked-projecting-optional-values-as-nullable', async () => {
+        // PickWitOthersAsOptionals with NO mandatory keys → every picked key is
+        // optional in the result. Through a real `.select(picked)` under
+        // projectingOptionalValuesAsNullable(): `id` / `title` are picked-optional
+        // (`?: T`), and the picked optional-value column `body` — being optional both
+        // by the pick AND by nullability — surfaces present-as-null with the key
+        // absent-vs-present distinction probed at runtime. Issue 1 has body NULL.
+        const expected = [{ id: 1, title: 'Update hero copy', body: null }]
+        ctx.mockNext(expected)
+        const availableFields = {
+            id:    tIssue.id,
+            title: tIssue.title,
+            body:  tIssue.body,
+        }
+        const picked = dynamicPick(availableFields, { id: true, title: true, body: true }, [])
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select(picked)
+            .projectingOptionalValuesAsNullable()
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", title as "title", "body" as "body" from issue where id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            id?:    number
+            title?: string
+            body?:  string | null
+        }>>>()
+        expect(rows).toEqual(expected)
+        // Issue 1's null body is PRESENT-null under the nullable projector.
+        expect('body' in rows[0]!).toBe(true)
+        expect(rows[0]!.body).toBe(null)
     })
 })

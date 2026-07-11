@@ -30,7 +30,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tIssueWorklog, vReleaseOverview, type Money, type ReleaseTag } from '../../domain/connection.js'
+import { tIssue, tIssueWorklog, tReleaseDraft, vReleaseOverview, type Money, type ReleaseTag } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -1283,4 +1283,97 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ id: number; optSub?: ReleaseTag; reqMul: ReleaseTag }>>>()
         expect(result).toEqual(expected)
     })
+    // ---- CUSTOMNUM tail: customDouble number-literal overload + adapter ----
+
+    test('custom-numeric/customdouble-add-number-literal-overload', async () => {
+        // The `add(value: number)` overload on a customDouble receiver (distinct from
+        // the `add<VALUE extends CustomDoubleValueSource>` value-source overload). The
+        // column is declared `<number, 'Money'>`, so its value type is a plain number
+        // and the result leaf is `number` (not branded). `billed_amount` ('Money' ->
+        // double, marshalled, no per-column adapter) = 200 for worklog 1, so the literal
+        // binds raw and 200 + 2 = 202.
+        const expected = [{ id: 1, cd: 202 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .select({
+                id: tIssueWorklog.id,
+                cd: tIssueWorklog.billedAmount.add(2),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", billed_amount + :0 as "cd" from issue_worklog where id = :1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; cd: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('custom-numeric/customdouble-adapter-column-through-multiply', async () => {
+        // `shiftedAmount` is a customDouble ('Money') column carrying a per-column
+        // TypeAdapter (plusOffsetAdapter: read +1000 / write -1000) and reading its DB
+        // DEFAULT of 300. `.multiply(2)` takes the number-literal overload, so the
+        // result leaf is a plain `number`. The literal `2` is written THROUGH the
+        // column's adapter (2 - 1000 = -998), the DB multiplies against the raw stored
+        // 300 (300 * -998 = -299400), and the arithmetic result is then read back
+        // THROUGH the adapter (+1000): -299400 + 1000 = -298400. The mock supplies the
+        // raw pre-read value; the projector applies the +1000 read on both paths.
+        const expected = [{ id: 1, v: -298400 }]
+        ctx.mockNext([{ id: 1, v: -299400 }])
+        const result = await ctx.conn.selectFrom(tReleaseDraft)
+            .where(tReleaseDraft.id.equals(1))
+            .select({
+                id: tReleaseDraft.id,
+                v:  tReleaseDraft.shiftedAmount.multiply(2),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", shifted_amount * :0 as "v" from release_draft where id = :1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            -998,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; v: number }>>>()
+        if (ctx.realDbEnabled) {
+            expect(result[0]!.id).toBe(1)
+            expect(result[0]!.v).toBeCloseTo(-298400, 5)
+        } else {
+            expect(result).toEqual(expected)
+        }
+    })
+
+    test('custom-numeric/optional-customdouble-receiver-through-multiply', async () => {
+        // An OPTIONAL customDouble receiver (`budget`, 'Money', no per-column adapter)
+        // through the `multiply(number)` operator keeps the receiver's optionality:
+        // the result leaf is `?: number`. Draft 1 has budget = 1500.5 (present), so the
+        // literal binds raw and 1500.5 * 2 = 3001.
+        const expected = [{ id: 1, v: 3001 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tReleaseDraft)
+            .where(tReleaseDraft.id.equals(1))
+            .select({
+                id: tReleaseDraft.id,
+                v:  tReleaseDraft.budget.multiply(2),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", budget * :0 as "v" from release_draft where id = :1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; v?: number }>>>()
+        if (ctx.realDbEnabled) {
+            expect(result[0]!.id).toBe(1)
+            expect(result[0]!.v).toBeCloseTo(3001, 5)
+        } else {
+            expect(result).toEqual(expected)
+        }
+    })
+
 })

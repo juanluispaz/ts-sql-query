@@ -67,7 +67,50 @@ of that. Two minutes of triage and one paragraph is the bar.
 
 ## Open Bugs
 
-_None._
+## `unionAll` of `aggregateAsArray().projectingOptionalValuesAsNullable()` arms drops the null element leaf at runtime (type says present-null)
+
+**Where**: the compound-select projection path — a `CompoundSelectQueryBuilder`
+built from arms that each carry an `aggregateAsArray({...}).projectingOptionalValuesAsNullable()`
+column. Same family as the R40/R41 "flag survives in the TYPE but the compound
+builder doesn't copy the runtime element flag" fixes (R41 fixed it for INLINE
+aggregated arrays via `__combineSubSelectUsing`; this `aggregateAsArray`-element
+path through `unionAll` is not covered by that fix).
+**Reproduction**: `test/db/*/*/*/select.compound-nested-object.test.ts` →
+`union-all-of-aggregate-as-array-arms-projecting-optional-values-as-nullable`.
+Two `unionAll` arms each `select({ orgId, projects: aggregateAsArray({ id, name, archivedAt }).projectingOptionalValuesAsNullable() })`.
+The **type** resolves to `projects: Array<{ id; name; archivedAt: Date | null }>`
+(present-null — verified by tsgo). The **runtime** DROPS the null `archivedAt`
+(key ABSENT) — confirmed on the real SQLite engine, not just mock. A STANDALONE
+such aggregate keeps it present-`null` (see
+`select.aggregate-as-array.element-outer-join-rule.test.ts`); only the compound
+re-projection loses the aggregate's own element nullable flag. So reading
+`row.projects[i].archivedAt` (typed `Date | null`) yields `undefined` at runtime
+→ a type-vs-runtime soundness divergence.
+**Current workaround in the suite**: the test stays green — `assertType` holds
+the present-null type (ground truth per the type system), and the value assertion
++ two `'archivedAt' in proj === false` drop-probes assert the ACTUAL dropped
+runtime, with a `// TODO[BUG]` marker on both. Surfaced during Round-44 PROJ
+implementation (distinct from Round-44's PARITY-1). Needs coordinator/owner
+adjudication: fix the compound builder to propagate the aggregate element flag
+(making the runtime present-null, matching the type), OR — if the drop is
+intended — relax the type so it stops promising a present leaf.
+
+## A `Values` self-joined to its own `.as(alias)` clone emits the WITH clause twice under the same name (invalid SQL)
+
+**Where**: the WITH-hoisting of a `Values` (constant-values view) when the same
+`Values` instance is both the FROM source and joined to via a `.as(alias)` clone —
+e.g. `ctx.conn.selectFrom(v).innerJoin(v.as('anc')).on(...)`.
+**Reproduction**: (no in-suite test — the emitted SQL is invalid on EVERY engine, so
+no green characterization test exists; surfaced during Round-44 VALVIEW U11.) A
+`Values` self-join emits `with treeNode(...) as (values ...), treeNode(...) as (values
+...) select …` — the CTE is hoisted TWICE under the same name, with the params
+duplicated (12 instead of 6). Postgres rejects it ("WITH query name specified more
+than once"), SQLite rejects it ("duplicate WITH table name"). The `.as(alias)` clone
+should reuse the single hoisted WITH and only add the aliased *reference* in the FROM/JOIN,
+not re-hoist the whole values body.
+**Current workaround in the suite**: U11 (Values self-join) was OMITTED from the
+VALVIEW U-uses backlog (the other 9 U-uses U1–U9 are live+green). No test wraps it —
+the SQL is unrunnable on all dialects. File-only report for the fixing agent.
 
 ## Common bug shapes (for the fixing agent)
 

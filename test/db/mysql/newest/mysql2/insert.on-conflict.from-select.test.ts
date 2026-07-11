@@ -25,11 +25,6 @@ import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
-// Every test in this cell is NOT-APPLICABLE (see each block below); the imports are
-// kept identical to the live cells for cross-cell symmetry, and these sentinels satisfy
-// noUnusedLocals while the tests stay commented out.
-void expect; void test; void assertType; void tProject
-export type { Exact }
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -273,4 +268,40 @@ describe(ctx.label, () => {
     })
     */
 
+
+    // ── Empty-on-conflict degrade on the from-select upsert ──────────────────
+    test('from-select-empty-on-conflict-update-set-degrades-to-conflict-noop', async () => {
+        // MUT-EMPTY-2: on the from-select upsert, the bare no-target
+        // `onConflictDoUpdateDynamicSet({archivedAt:null})` then `ignoreAnySetWithNoValue()`
+        // empties the update-set; rather than dropping the whole clause, the builder
+        // degrades to the conflict-ignoring insert. The source re-selects project 1's
+        // (organization_id, slug), which collides with UNIQUE(organization_id, slug),
+        // so the conflict fires and nothing is inserted or updated.
+        ctx.mockNext(0)
+        await ctx.withRollback(async () => {
+            const source = ctx.conn.selectFrom(tProject)
+                .where(tProject.id.equals(1))
+                .select({
+                    organizationId: tProject.organizationId,
+                    slug:           tProject.slug,
+                    name:           tProject.name,
+                })
+
+            const affected = await ctx.conn.insertInto(tProject)
+                .from(source)
+                .onConflictDoUpdateDynamicSet({ archivedAt: null })
+                .ignoreAnySetWithNoValue()
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert ignore into project (organization_id, slug, \`name\`) select organization_id as organizationId, slug as slug, \`name\` as \`name\` from project where id = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            if (ctx.realDbEnabled) expect(typeof affected).toBe('number')
+            else expect(affected).toBe(0)
+        })
+    })
 })

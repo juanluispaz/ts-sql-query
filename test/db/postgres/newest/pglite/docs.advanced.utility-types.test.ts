@@ -344,7 +344,11 @@ describe(ctx.label, () => {
         // view column is non-writable, so its WritableColumnKeys is `never`).
         assertType<Exact<ColumnKeys<typeof tProjectRelease>,
             'id' | 'projectId' | 'version' | 'channel' | 'signingKey'
-            | 'releasedOn' | 'cutoffTime' | 'signedOffAt' | 'publishedAt' | 'notes' | 'versionTag'>>()
+            | 'releasedOn' | 'cutoffTime' | 'signedOffAt' | 'publishedAt' | 'notes' | 'versionTag'
+            | 'customComparableVirtual' | 'customComparableVirtualOptional' | 'customVirtual' | 'customVirtualOptional'
+            | 'customUuidVirtual' | 'customUuidVirtualOptional' | 'customLocalDateVirtual' | 'customLocalDateVirtualOptional'
+            | 'customLocalTimeVirtual' | 'customLocalTimeVirtualOptional' | 'customLocalDateTimeVirtual' | 'customLocalDateTimeVirtualOptional'
+            | 'uuidVirtual' | 'uuidVirtualOptional' | 'localDateTimeVirtual' | 'localDateTimeVirtualOptional'>>()
         assertType<Exact<WritableColumnKeys<typeof tProjectRelease>,
             'id' | 'projectId' | 'version' | 'channel' | 'signingKey'
             | 'releasedOn' | 'cutoffTime' | 'signedOffAt' | 'publishedAt'>>()
@@ -405,6 +409,22 @@ describe(ctx.label, () => {
             publishedAt: Date
             notes: string
             versionTag: string
+            customComparableVirtual: string
+            customComparableVirtualOptional?: string
+            customVirtual: ReleaseChannel
+            customVirtualOptional?: ReleaseChannel
+            customUuidVirtual: string
+            customUuidVirtualOptional?: string
+            customLocalDateVirtual: Date
+            customLocalDateVirtualOptional?: Date
+            customLocalTimeVirtual: Date
+            customLocalTimeVirtualOptional?: Date
+            customLocalDateTimeVirtual: Date
+            customLocalDateTimeVirtualOptional?: Date
+            uuidVirtual: string
+            uuidVirtualOptional?: string
+            localDateTimeVirtual: Date
+            localDateTimeVirtualOptional?: Date
         }>>()
     })
 })

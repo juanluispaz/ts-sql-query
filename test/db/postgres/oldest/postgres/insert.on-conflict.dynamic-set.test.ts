@@ -714,4 +714,128 @@ describe(ctx.label, () => {
             expect(affected).toBe(0)
         })
     })
+    // ── Empty-on-conflict degrade × RETURNING / constraint compositions ──────
+    // When the on-conflict update-set empties, the builder degrades to the
+    // conflict no-op (`… do nothing`) instead of dropping the whole clause; these
+    // pin that the trailing RETURNING / returningLastInsertedId clause and the
+    // CONSTRAINT-target opener survive the degrade.
+
+    test('empty-on-conflict-update-set-degrades-to-conflict-noop-preserving-returning-id', async () => {
+        // `doUpdateDynamicSet({archivedAt:null})` then `ignoreAnySetWithNoValue()`
+        // prunes the lone no-value entry, emptying the update-set; the builder
+        // degrades to `… do nothing` but the trailing `.returning({id})` SURVIVES
+        // the degrade. Seed (org 1, 'mktg-site') exists, so the conflict fires,
+        // nothing is inserted or updated, and the suppressed row makes
+        // `executeInsertNoneOrOne()` resolve to null.
+        ctx.mockNext(null)
+        await ctx.withRollback(async () => {
+            const row = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, slug: 'mktg-site', name: 'ignored' })
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doUpdateDynamicSet({ archivedAt: null })
+                .ignoreAnySetWithNoValue()
+                .returning({ id: tProject.id })
+                .executeInsertNoneOrOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values ($1, $2, $3) on conflict (organization_id, slug) do nothing returning id as id"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "mktg-site",
+                "ignored",
+              ]
+            `)
+            assertType<Exact<typeof row, { id: number } | null>>()
+            expect(row).toBeNull()
+        })
+    })
+
+    test('empty-on-conflict-update-set-degrades-to-conflict-noop-preserving-returning-object-many', async () => {
+        // The one-shot `doUpdateSetIfValue({archivedAt:undefined})` empties the
+        // update-set (the sole property fails the value gate); the builder degrades
+        // to `… do nothing` and the trailing multi-column `.returning({id, name,
+        // slug})` still renders after the no-op. Seed (org 1, 'mktg-site') exists,
+        // so the conflict fires, the row is suppressed, and `executeInsertMany()`
+        // resolves to an empty array.
+        const expected: Array<{ id: number, name: string, slug: string }> = []
+        ctx.mockNext(expected)
+        await ctx.withRollback(async () => {
+            const rows = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, slug: 'mktg-site', name: 'ignored' })
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doUpdateSetIfValue({ archivedAt: undefined })
+                .returning({ id: tProject.id, name: tProject.name, slug: tProject.slug })
+                .executeInsertMany()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values ($1, $2, $3) on conflict (organization_id, slug) do nothing returning id as id, name as name, slug as slug"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "mktg-site",
+                "ignored",
+              ]
+            `)
+            assertType<Exact<typeof rows, Array<{ id: number, name: string, slug: string }>>>()
+            expect(rows).toEqual(expected)
+        })
+    })
+
+    test('empty-on-conflict-update-set-degrades-to-conflict-noop-preserving-returning-last-inserted-id', async () => {
+        // Emptying the update-set degrades to `… do nothing`, and a trailing
+        // `.returningLastInsertedId()` still emits `returning id`. This row does NOT
+        // collide (fresh slug), so the insert proceeds and the new id comes back —
+        // proving the RETURNING id survives the degrade on the inserted path.
+        ctx.mockNext(1001)
+        await ctx.withRollback(async () => {
+            const id = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, slug: 'degrade-fresh-slug', name: 'Degrade fresh' })
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doUpdateDynamicSet({ archivedAt: null })
+                .ignoreAnySetWithNoValue()
+                .returningLastInsertedId()
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values ($1, $2, $3) on conflict (organization_id, slug) do nothing returning id"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "degrade-fresh-slug",
+                "Degrade fresh",
+              ]
+            `)
+            assertType<Exact<typeof id, number>>()
+            expect(typeof id).toBe('number')
+            if (!ctx.realDbEnabled) expect(id).toBe(1001)
+            else expect(id).toBeGreaterThan(4) // seed reserves project ids 1-4
+        })
+    })
+
+    test('empty-on-conflict-on-constraint-set-degrades-to-conflict-noop', async () => {
+        // The CONSTRAINT-target opener also degrades when its update-set empties.
+        // `onConflictOnConstraint(rawFragment).doUpdateSetIfValue({archivedAt:undefined})`
+        // drops the sole undefined property, leaving no column to assign; the
+        // builder degrades to `on conflict on constraint project_organization_id_slug_key
+        // do nothing`. That constraint is PostgreSQL's default name for the inline
+        // `UNIQUE (organization_id, slug)` declaration; (org 1, 'mktg-site') collides
+        // with the seed, so the conflict fires and nothing is inserted or updated → 0.
+        ctx.mockNext(0)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, slug: 'mktg-site', name: 'ignored' })
+                .onConflictOnConstraint(ctx.conn.rawFragment`project_organization_id_slug_key`)
+                .doUpdateSetIfValue({ archivedAt: undefined })
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values ($1, $2, $3) on conflict on constraint project_organization_id_slug_key do nothing"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "mktg-site",
+                "ignored",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(0)
+        })
+    })
 })

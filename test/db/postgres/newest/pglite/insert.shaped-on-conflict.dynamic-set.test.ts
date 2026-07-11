@@ -534,4 +534,35 @@ describe(ctx.label, () => {
         })
     })
 
+    // ── Empty-on-conflict degrade on the shaped upsert ───────────────────────
+    test('shaped-empty-on-conflict-update-set-degrades-to-conflict-noop', async () => {
+        // MUT-EMPTY-1: the SHAPED branch of the empty-on-conflict degrade. After the
+        // shaped opener, `doUpdateDynamicSet({archived:null})` stages the lone renamed
+        // key (→ archived_at); `ignoreAnySetWithNoValue()` prunes it (no value),
+        // emptying the update-set, so the builder degrades to `… do nothing` rather
+        // than dropping the clause. Seed (org 1, 'mktg-site') exists, so the conflict
+        // fires and nothing is inserted or updated → 0 affected.
+        ctx.mockNext(0)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.insertInto(tProject)
+                .shapedAs({ orgId: 'organizationId', projectName: 'name', projectSlug: 'slug', archived: 'archivedAt' })
+                .set({ orgId: 1, projectName: 'ignored', projectSlug: 'mktg-site' })
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doUpdateDynamicSet({ archived: null })
+                .ignoreAnySetWithNoValue()
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values ($1, $2, $3) on conflict (organization_id, slug) do nothing"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "ignored",
+                "mktg-site",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(0)
+        })
+    })
+
 })

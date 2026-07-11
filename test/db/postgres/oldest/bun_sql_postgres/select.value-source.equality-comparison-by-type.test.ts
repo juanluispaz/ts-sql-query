@@ -9,7 +9,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tIssueWorklog, tOrganization, tProjectRelease, tProjectReview, vReleaseOverview } from '../../domain/connection.js'
+import { tIssue, tIssueWorklog, tOrganization, tProjectRelease, tProjectReview, vReleaseOverview, tReleaseDraft } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -5450,4 +5450,3907 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
         expect(rows).toEqual(expected)
     })
+    // F1-EQCMP §V — bare-COLUMN operand overload per leaf. Each operator
+    // takes another COLUMN (here the receiver itself) as its operand, so the
+    // RHS renders as a bare column reference via `_appendSql` (`col <op> col`)
+    // rather than the bound-literal `$1` form or the subquery `(select ...)`
+    // form the sibling tests above cover. A self-comparison keeps the emitted
+    // SQL param-free and the row result deterministic from the column's NULL
+    // pattern alone: the reflexive operators (`=`, `<=`, `>=`, `between self
+    // and self`, `in (self)`) keep every non-null row, the null-safe `is`
+    // keeps all rows, and the negated / strict operators keep none.
+    // ==================================================================
+
+    test('bigint-column-operand-comparable-membership', async () => {
+        // duration_ms: worklog 1 -> 5400000, 2 -> NULL, 3 -> 1800000. Non-null
+        // rows {1,3} satisfy every reflexive comparison; the null row 2 only
+        // survives the null-safe `is`.
+        const nonNull = [{ id: 1 }, { id: 3 }]
+        const all = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        const none: Array<{ id: number }> = []
+        const c = tIssueWorklog.durationMs
+
+        ctx.mockNext(nonNull)
+        const eq = await ctx.conn.selectFrom(tIssueWorklog).where(c.equals(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where duration_ms = duration_ms order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof eq, Array<{ id: number }>>>()
+        expect(eq).toEqual(nonNull)
+
+        ctx.mockNext(none)
+        const ne = await ctx.conn.selectFrom(tIssueWorklog).where(c.notEquals(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where duration_ms <> duration_ms order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(ne).toEqual(none)
+
+        ctx.mockNext(all)
+        const is = await ctx.conn.selectFrom(tIssueWorklog).where(c.is(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where duration_ms is not distinct from duration_ms order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(is).toEqual(all)
+
+        ctx.mockNext(none)
+        const isNot = await ctx.conn.selectFrom(tIssueWorklog).where(c.isNot(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where duration_ms is distinct from duration_ms order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isNot).toEqual(none)
+
+        ctx.mockNext(none)
+        const lt = await ctx.conn.selectFrom(tIssueWorklog).where(c.lessThan(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where duration_ms < duration_ms order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(lt).toEqual(none)
+
+        ctx.mockNext(none)
+        const gt = await ctx.conn.selectFrom(tIssueWorklog).where(c.greaterThan(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where duration_ms > duration_ms order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(gt).toEqual(none)
+
+        ctx.mockNext(nonNull)
+        const le = await ctx.conn.selectFrom(tIssueWorklog).where(c.lessOrEqual(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where duration_ms <= duration_ms order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(le).toEqual(nonNull)
+
+        ctx.mockNext(nonNull)
+        const ge = await ctx.conn.selectFrom(tIssueWorklog).where(c.greaterOrEqual(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where duration_ms >= duration_ms order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(ge).toEqual(nonNull)
+
+        ctx.mockNext(nonNull)
+        const bt = await ctx.conn.selectFrom(tIssueWorklog).where(c.between(c, c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where duration_ms between duration_ms and duration_ms order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(bt).toEqual(nonNull)
+
+        ctx.mockNext(none)
+        const nbt = await ctx.conn.selectFrom(tIssueWorklog).where(c.notBetween(c, c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where duration_ms not between duration_ms and duration_ms order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(nbt).toEqual(none)
+
+        ctx.mockNext(nonNull)
+        const inC = await ctx.conn.selectFrom(tIssueWorklog).where(c.in(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where duration_ms in (duration_ms) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(inC).toEqual(nonNull)
+
+        ctx.mockNext(none)
+        const notInC = await ctx.conn.selectFrom(tIssueWorklog).where(c.notIn(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where duration_ms not in (duration_ms) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notInC).toEqual(none)
+
+        ctx.mockNext(nonNull)
+        const inN = await ctx.conn.selectFrom(tIssueWorklog).where(c.inN(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where duration_ms in (duration_ms) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(inN).toEqual(nonNull)
+
+        ctx.mockNext(none)
+        const notInN = await ctx.conn.selectFrom(tIssueWorklog).where(c.notInN(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where duration_ms not in (duration_ms) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notInN).toEqual(none)
+    })
+
+    test('customInt-column-operand-comparable-membership', async () => {
+        // cost_cents ('Cents' customInt): worklog 1 -> 100, 2 -> 100, 3 -> 400.
+        // Every row is non-null, so every reflexive comparison keeps all rows.
+        const all = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        const none: Array<{ id: number }> = []
+        const c = tIssueWorklog.costCents
+
+        ctx.mockNext(all)
+        const eq = await ctx.conn.selectFrom(tIssueWorklog).where(c.equals(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where cost_cents = cost_cents order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof eq, Array<{ id: number }>>>()
+        expect(eq).toEqual(all)
+
+        ctx.mockNext(none)
+        const ne = await ctx.conn.selectFrom(tIssueWorklog).where(c.notEquals(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where cost_cents <> cost_cents order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(ne).toEqual(none)
+
+        ctx.mockNext(all)
+        const is = await ctx.conn.selectFrom(tIssueWorklog).where(c.is(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where cost_cents is not distinct from cost_cents order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(is).toEqual(all)
+
+        ctx.mockNext(none)
+        const isNot = await ctx.conn.selectFrom(tIssueWorklog).where(c.isNot(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where cost_cents is distinct from cost_cents order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isNot).toEqual(none)
+
+        ctx.mockNext(none)
+        const lt = await ctx.conn.selectFrom(tIssueWorklog).where(c.lessThan(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where cost_cents < cost_cents order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(lt).toEqual(none)
+
+        ctx.mockNext(none)
+        const gt = await ctx.conn.selectFrom(tIssueWorklog).where(c.greaterThan(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where cost_cents > cost_cents order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(gt).toEqual(none)
+
+        ctx.mockNext(all)
+        const le = await ctx.conn.selectFrom(tIssueWorklog).where(c.lessOrEqual(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where cost_cents <= cost_cents order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(le).toEqual(all)
+
+        ctx.mockNext(all)
+        const ge = await ctx.conn.selectFrom(tIssueWorklog).where(c.greaterOrEqual(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where cost_cents >= cost_cents order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(ge).toEqual(all)
+
+        ctx.mockNext(all)
+        const bt = await ctx.conn.selectFrom(tIssueWorklog).where(c.between(c, c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where cost_cents between cost_cents and cost_cents order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(bt).toEqual(all)
+
+        ctx.mockNext(none)
+        const nbt = await ctx.conn.selectFrom(tIssueWorklog).where(c.notBetween(c, c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where cost_cents not between cost_cents and cost_cents order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(nbt).toEqual(none)
+
+        ctx.mockNext(all)
+        const inC = await ctx.conn.selectFrom(tIssueWorklog).where(c.in(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where cost_cents in (cost_cents) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(inC).toEqual(all)
+
+        ctx.mockNext(none)
+        const notInC = await ctx.conn.selectFrom(tIssueWorklog).where(c.notIn(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where cost_cents not in (cost_cents) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notInC).toEqual(none)
+
+        ctx.mockNext(all)
+        const inN = await ctx.conn.selectFrom(tIssueWorklog).where(c.inN(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where cost_cents in (cost_cents) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(inN).toEqual(all)
+
+        ctx.mockNext(none)
+        const notInN = await ctx.conn.selectFrom(tIssueWorklog).where(c.notInN(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where cost_cents not in (cost_cents) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notInN).toEqual(none)
+    })
+
+    // F1-EQCMP §V (continued) — bare-COLUMN operand overload, further
+    // leaves. Same self-comparison shape as the two tests above: the
+    // operand is a bare column ref (`col <op> col`), param-free, with the
+    // row result fixed by the column's NULL pattern.
+    // ==================================================================
+
+    test('customDouble-column-operand-comparable-membership', async () => {
+        // billed_amount ('Money' customDouble): worklog 1 -> 200, 2 -> 50, 3 -> 200.
+        // Every row is non-null, so every reflexive comparison keeps all rows.
+        const all = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        const nn = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        const none: Array<{ id: number }> = []
+        const c = tIssueWorklog.billedAmount
+
+        ctx.mockNext(nn)
+        const eq = await ctx.conn.selectFrom(tIssueWorklog).where(c.equals(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billed_amount = billed_amount order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof eq, Array<{ id: number }>>>()
+        expect(eq).toEqual(nn)
+
+        ctx.mockNext(none)
+        const ne = await ctx.conn.selectFrom(tIssueWorklog).where(c.notEquals(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billed_amount <> billed_amount order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(ne).toEqual(none)
+
+        ctx.mockNext(all)
+        const isv = await ctx.conn.selectFrom(tIssueWorklog).where(c.is(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billed_amount is not distinct from billed_amount order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isv).toEqual(all)
+
+        ctx.mockNext(none)
+        const isNot = await ctx.conn.selectFrom(tIssueWorklog).where(c.isNot(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billed_amount is distinct from billed_amount order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isNot).toEqual(none)
+
+        ctx.mockNext(none)
+        const lt = await ctx.conn.selectFrom(tIssueWorklog).where(c.lessThan(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billed_amount < billed_amount order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(lt).toEqual(none)
+
+        ctx.mockNext(none)
+        const gt = await ctx.conn.selectFrom(tIssueWorklog).where(c.greaterThan(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billed_amount > billed_amount order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(gt).toEqual(none)
+
+        ctx.mockNext(nn)
+        const le = await ctx.conn.selectFrom(tIssueWorklog).where(c.lessOrEqual(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billed_amount <= billed_amount order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(le).toEqual(nn)
+
+        ctx.mockNext(nn)
+        const ge = await ctx.conn.selectFrom(tIssueWorklog).where(c.greaterOrEqual(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billed_amount >= billed_amount order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(ge).toEqual(nn)
+
+        ctx.mockNext(nn)
+        const bt = await ctx.conn.selectFrom(tIssueWorklog).where(c.between(c, c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billed_amount between billed_amount and billed_amount order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(bt).toEqual(nn)
+
+        ctx.mockNext(none)
+        const nbt = await ctx.conn.selectFrom(tIssueWorklog).where(c.notBetween(c, c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billed_amount not between billed_amount and billed_amount order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(nbt).toEqual(none)
+
+        ctx.mockNext(nn)
+        const inC = await ctx.conn.selectFrom(tIssueWorklog).where(c.in(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billed_amount in (billed_amount) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(inC).toEqual(nn)
+
+        ctx.mockNext(none)
+        const notInC = await ctx.conn.selectFrom(tIssueWorklog).where(c.notIn(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billed_amount not in (billed_amount) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notInC).toEqual(none)
+
+        ctx.mockNext(nn)
+        const inNv = await ctx.conn.selectFrom(tIssueWorklog).where(c.inN(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billed_amount in (billed_amount) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(inNv).toEqual(nn)
+
+        ctx.mockNext(none)
+        const notInNv = await ctx.conn.selectFrom(tIssueWorklog).where(c.notInN(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billed_amount not in (billed_amount) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notInNv).toEqual(none)
+    })
+
+    test('localDate-column-operand-comparable-membership', async () => {
+        // work_date (localDate): worklog 1 -> 2024-03-04, 2 -> 2024-03-05, 3 -> 2024-03-06.
+        // All rows non-null, so every reflexive comparison keeps all rows.
+        const all = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        const nn = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        const none: Array<{ id: number }> = []
+        const c = tIssueWorklog.workDate
+
+        ctx.mockNext(nn)
+        const eq = await ctx.conn.selectFrom(tIssueWorklog).where(c.equals(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date = work_date order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof eq, Array<{ id: number }>>>()
+        expect(eq).toEqual(nn)
+
+        ctx.mockNext(none)
+        const ne = await ctx.conn.selectFrom(tIssueWorklog).where(c.notEquals(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date <> work_date order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(ne).toEqual(none)
+
+        ctx.mockNext(all)
+        const isv = await ctx.conn.selectFrom(tIssueWorklog).where(c.is(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date is not distinct from work_date order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isv).toEqual(all)
+
+        ctx.mockNext(none)
+        const isNot = await ctx.conn.selectFrom(tIssueWorklog).where(c.isNot(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date is distinct from work_date order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isNot).toEqual(none)
+
+        ctx.mockNext(none)
+        const lt = await ctx.conn.selectFrom(tIssueWorklog).where(c.lessThan(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date < work_date order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(lt).toEqual(none)
+
+        ctx.mockNext(none)
+        const gt = await ctx.conn.selectFrom(tIssueWorklog).where(c.greaterThan(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date > work_date order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(gt).toEqual(none)
+
+        ctx.mockNext(nn)
+        const le = await ctx.conn.selectFrom(tIssueWorklog).where(c.lessOrEqual(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date <= work_date order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(le).toEqual(nn)
+
+        ctx.mockNext(nn)
+        const ge = await ctx.conn.selectFrom(tIssueWorklog).where(c.greaterOrEqual(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date >= work_date order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(ge).toEqual(nn)
+
+        ctx.mockNext(nn)
+        const bt = await ctx.conn.selectFrom(tIssueWorklog).where(c.between(c, c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date between work_date and work_date order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(bt).toEqual(nn)
+
+        ctx.mockNext(none)
+        const nbt = await ctx.conn.selectFrom(tIssueWorklog).where(c.notBetween(c, c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date not between work_date and work_date order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(nbt).toEqual(none)
+
+        ctx.mockNext(nn)
+        const inC = await ctx.conn.selectFrom(tIssueWorklog).where(c.in(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date in (work_date) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(inC).toEqual(nn)
+
+        ctx.mockNext(none)
+        const notInC = await ctx.conn.selectFrom(tIssueWorklog).where(c.notIn(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date not in (work_date) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notInC).toEqual(none)
+
+        ctx.mockNext(nn)
+        const inNv = await ctx.conn.selectFrom(tIssueWorklog).where(c.inN(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date in (work_date) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(inNv).toEqual(nn)
+
+        ctx.mockNext(none)
+        const notInNv = await ctx.conn.selectFrom(tIssueWorklog).where(c.notInN(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date not in (work_date) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notInNv).toEqual(none)
+    })
+
+    test('localTime-column-operand-comparable-membership', async () => {
+        // started_at (localTime): worklog 1 -> 09:15, 2 -> 14:00, 3 -> 10:30.
+        // All rows non-null, so every reflexive comparison keeps all rows.
+        const all = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        const nn = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        const none: Array<{ id: number }> = []
+        const c = tIssueWorklog.startedAt
+
+        ctx.mockNext(nn)
+        const eq = await ctx.conn.selectFrom(tIssueWorklog).where(c.equals(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at = started_at order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof eq, Array<{ id: number }>>>()
+        expect(eq).toEqual(nn)
+
+        ctx.mockNext(none)
+        const ne = await ctx.conn.selectFrom(tIssueWorklog).where(c.notEquals(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at <> started_at order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(ne).toEqual(none)
+
+        ctx.mockNext(all)
+        const isv = await ctx.conn.selectFrom(tIssueWorklog).where(c.is(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at is not distinct from started_at order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isv).toEqual(all)
+
+        ctx.mockNext(none)
+        const isNot = await ctx.conn.selectFrom(tIssueWorklog).where(c.isNot(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at is distinct from started_at order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isNot).toEqual(none)
+
+        ctx.mockNext(none)
+        const lt = await ctx.conn.selectFrom(tIssueWorklog).where(c.lessThan(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at < started_at order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(lt).toEqual(none)
+
+        ctx.mockNext(none)
+        const gt = await ctx.conn.selectFrom(tIssueWorklog).where(c.greaterThan(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at > started_at order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(gt).toEqual(none)
+
+        ctx.mockNext(nn)
+        const le = await ctx.conn.selectFrom(tIssueWorklog).where(c.lessOrEqual(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at <= started_at order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(le).toEqual(nn)
+
+        ctx.mockNext(nn)
+        const ge = await ctx.conn.selectFrom(tIssueWorklog).where(c.greaterOrEqual(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at >= started_at order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(ge).toEqual(nn)
+
+        ctx.mockNext(nn)
+        const bt = await ctx.conn.selectFrom(tIssueWorklog).where(c.between(c, c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at between started_at and started_at order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(bt).toEqual(nn)
+
+        ctx.mockNext(none)
+        const nbt = await ctx.conn.selectFrom(tIssueWorklog).where(c.notBetween(c, c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at not between started_at and started_at order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(nbt).toEqual(none)
+
+        ctx.mockNext(nn)
+        const inC = await ctx.conn.selectFrom(tIssueWorklog).where(c.in(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at in (started_at) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(inC).toEqual(nn)
+
+        ctx.mockNext(none)
+        const notInC = await ctx.conn.selectFrom(tIssueWorklog).where(c.notIn(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at not in (started_at) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notInC).toEqual(none)
+
+        ctx.mockNext(nn)
+        const inNv = await ctx.conn.selectFrom(tIssueWorklog).where(c.inN(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at in (started_at) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(inNv).toEqual(nn)
+
+        ctx.mockNext(none)
+        const notInNv = await ctx.conn.selectFrom(tIssueWorklog).where(c.notInN(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at not in (started_at) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notInNv).toEqual(none)
+    })
+
+    test('customComparable-column-operand-comparable-membership', async () => {
+        // version ('Semver' customComparable): release 1 -> 1.2.0, 2 -> 1.3.0-beta.1, 3 -> 0.9.0.
+        // All rows non-null, so every reflexive comparison keeps all rows.
+        const all = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        const nn = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        const none: Array<{ id: number }> = []
+        const c = tProjectRelease.version
+
+        ctx.mockNext(nn)
+        const eq = await ctx.conn.selectFrom(tProjectRelease).where(c.equals(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where version = version order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof eq, Array<{ id: number }>>>()
+        expect(eq).toEqual(nn)
+
+        ctx.mockNext(none)
+        const ne = await ctx.conn.selectFrom(tProjectRelease).where(c.notEquals(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where version <> version order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(ne).toEqual(none)
+
+        ctx.mockNext(all)
+        const isv = await ctx.conn.selectFrom(tProjectRelease).where(c.is(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where version is not distinct from version order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isv).toEqual(all)
+
+        ctx.mockNext(none)
+        const isNot = await ctx.conn.selectFrom(tProjectRelease).where(c.isNot(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where version is distinct from version order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isNot).toEqual(none)
+
+        ctx.mockNext(none)
+        const lt = await ctx.conn.selectFrom(tProjectRelease).where(c.lessThan(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where version < version order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(lt).toEqual(none)
+
+        ctx.mockNext(none)
+        const gt = await ctx.conn.selectFrom(tProjectRelease).where(c.greaterThan(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where version > version order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(gt).toEqual(none)
+
+        ctx.mockNext(nn)
+        const le = await ctx.conn.selectFrom(tProjectRelease).where(c.lessOrEqual(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where version <= version order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(le).toEqual(nn)
+
+        ctx.mockNext(nn)
+        const ge = await ctx.conn.selectFrom(tProjectRelease).where(c.greaterOrEqual(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where version >= version order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(ge).toEqual(nn)
+
+        ctx.mockNext(nn)
+        const bt = await ctx.conn.selectFrom(tProjectRelease).where(c.between(c, c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where version between version and version order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(bt).toEqual(nn)
+
+        ctx.mockNext(none)
+        const nbt = await ctx.conn.selectFrom(tProjectRelease).where(c.notBetween(c, c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where version not between version and version order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(nbt).toEqual(none)
+
+        ctx.mockNext(nn)
+        const inC = await ctx.conn.selectFrom(tProjectRelease).where(c.in(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where version in (version) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(inC).toEqual(nn)
+
+        ctx.mockNext(none)
+        const notInC = await ctx.conn.selectFrom(tProjectRelease).where(c.notIn(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where version not in (version) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notInC).toEqual(none)
+
+        ctx.mockNext(nn)
+        const inNv = await ctx.conn.selectFrom(tProjectRelease).where(c.inN(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where version in (version) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(inNv).toEqual(nn)
+
+        ctx.mockNext(none)
+        const notInNv = await ctx.conn.selectFrom(tProjectRelease).where(c.notInN(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where version not in (version) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notInNv).toEqual(none)
+    })
+
+    test('customLocalTime-column-operand-comparable-membership', async () => {
+        // cutoff_time ('CutoffClock' customLocalTime): release 1 -> 17:00, 2 -> 18:30, 3 -> 16:00.
+        // All rows non-null, so every reflexive comparison keeps all rows.
+        const all = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        const nn = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        const none: Array<{ id: number }> = []
+        const c = tProjectRelease.cutoffTime
+
+        ctx.mockNext(nn)
+        const eq = await ctx.conn.selectFrom(tProjectRelease).where(c.equals(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where cutoff_time = cutoff_time order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof eq, Array<{ id: number }>>>()
+        expect(eq).toEqual(nn)
+
+        ctx.mockNext(none)
+        const ne = await ctx.conn.selectFrom(tProjectRelease).where(c.notEquals(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where cutoff_time <> cutoff_time order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(ne).toEqual(none)
+
+        ctx.mockNext(all)
+        const isv = await ctx.conn.selectFrom(tProjectRelease).where(c.is(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where cutoff_time is not distinct from cutoff_time order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isv).toEqual(all)
+
+        ctx.mockNext(none)
+        const isNot = await ctx.conn.selectFrom(tProjectRelease).where(c.isNot(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where cutoff_time is distinct from cutoff_time order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isNot).toEqual(none)
+
+        ctx.mockNext(none)
+        const lt = await ctx.conn.selectFrom(tProjectRelease).where(c.lessThan(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where cutoff_time < cutoff_time order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(lt).toEqual(none)
+
+        ctx.mockNext(none)
+        const gt = await ctx.conn.selectFrom(tProjectRelease).where(c.greaterThan(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where cutoff_time > cutoff_time order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(gt).toEqual(none)
+
+        ctx.mockNext(nn)
+        const le = await ctx.conn.selectFrom(tProjectRelease).where(c.lessOrEqual(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where cutoff_time <= cutoff_time order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(le).toEqual(nn)
+
+        ctx.mockNext(nn)
+        const ge = await ctx.conn.selectFrom(tProjectRelease).where(c.greaterOrEqual(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where cutoff_time >= cutoff_time order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(ge).toEqual(nn)
+
+        ctx.mockNext(nn)
+        const bt = await ctx.conn.selectFrom(tProjectRelease).where(c.between(c, c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where cutoff_time between cutoff_time and cutoff_time order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(bt).toEqual(nn)
+
+        ctx.mockNext(none)
+        const nbt = await ctx.conn.selectFrom(tProjectRelease).where(c.notBetween(c, c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where cutoff_time not between cutoff_time and cutoff_time order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(nbt).toEqual(none)
+
+        ctx.mockNext(nn)
+        const inC = await ctx.conn.selectFrom(tProjectRelease).where(c.in(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where cutoff_time in (cutoff_time) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(inC).toEqual(nn)
+
+        ctx.mockNext(none)
+        const notInC = await ctx.conn.selectFrom(tProjectRelease).where(c.notIn(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where cutoff_time not in (cutoff_time) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notInC).toEqual(none)
+
+        ctx.mockNext(nn)
+        const inNv = await ctx.conn.selectFrom(tProjectRelease).where(c.inN(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where cutoff_time in (cutoff_time) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(inNv).toEqual(nn)
+
+        ctx.mockNext(none)
+        const notInNv = await ctx.conn.selectFrom(tProjectRelease).where(c.notInN(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where cutoff_time not in (cutoff_time) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notInNv).toEqual(none)
+    })
+
+    test('customLocalDate-column-operand-comparable-membership', async () => {
+        // released_on ('ReleaseDay' customLocalDate): release 1 -> 2024-01-15, 2 -> 2024-02-20, 3 -> 2024-03-01.
+        // All rows non-null, so every reflexive comparison keeps all rows.
+        const all = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        const nn = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        const none: Array<{ id: number }> = []
+        const c = tProjectRelease.releasedOn
+
+        ctx.mockNext(nn)
+        const eq = await ctx.conn.selectFrom(tProjectRelease).where(c.equals(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where released_on = released_on order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof eq, Array<{ id: number }>>>()
+        expect(eq).toEqual(nn)
+
+        ctx.mockNext(none)
+        const ne = await ctx.conn.selectFrom(tProjectRelease).where(c.notEquals(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where released_on <> released_on order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(ne).toEqual(none)
+
+        ctx.mockNext(all)
+        const isv = await ctx.conn.selectFrom(tProjectRelease).where(c.is(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where released_on is not distinct from released_on order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isv).toEqual(all)
+
+        ctx.mockNext(none)
+        const isNot = await ctx.conn.selectFrom(tProjectRelease).where(c.isNot(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where released_on is distinct from released_on order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isNot).toEqual(none)
+
+        ctx.mockNext(none)
+        const lt = await ctx.conn.selectFrom(tProjectRelease).where(c.lessThan(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where released_on < released_on order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(lt).toEqual(none)
+
+        ctx.mockNext(none)
+        const gt = await ctx.conn.selectFrom(tProjectRelease).where(c.greaterThan(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where released_on > released_on order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(gt).toEqual(none)
+
+        ctx.mockNext(nn)
+        const le = await ctx.conn.selectFrom(tProjectRelease).where(c.lessOrEqual(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where released_on <= released_on order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(le).toEqual(nn)
+
+        ctx.mockNext(nn)
+        const ge = await ctx.conn.selectFrom(tProjectRelease).where(c.greaterOrEqual(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where released_on >= released_on order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(ge).toEqual(nn)
+
+        ctx.mockNext(nn)
+        const bt = await ctx.conn.selectFrom(tProjectRelease).where(c.between(c, c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where released_on between released_on and released_on order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(bt).toEqual(nn)
+
+        ctx.mockNext(none)
+        const nbt = await ctx.conn.selectFrom(tProjectRelease).where(c.notBetween(c, c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where released_on not between released_on and released_on order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(nbt).toEqual(none)
+
+        ctx.mockNext(nn)
+        const inC = await ctx.conn.selectFrom(tProjectRelease).where(c.in(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where released_on in (released_on) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(inC).toEqual(nn)
+
+        ctx.mockNext(none)
+        const notInC = await ctx.conn.selectFrom(tProjectRelease).where(c.notIn(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where released_on not in (released_on) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notInC).toEqual(none)
+
+        ctx.mockNext(nn)
+        const inNv = await ctx.conn.selectFrom(tProjectRelease).where(c.inN(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where released_on in (released_on) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(inNv).toEqual(nn)
+
+        ctx.mockNext(none)
+        const notInNv = await ctx.conn.selectFrom(tProjectRelease).where(c.notInN(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where released_on not in (released_on) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notInNv).toEqual(none)
+    })
+
+    test('customLocalDateTime-column-operand-comparable-membership', async () => {
+        // signed_off_at ('SignOffStamp' customLocalDateTime): release 1 -> 2024-01-14 12:30,
+        // 2 -> NULL, 3 -> 2024-02-28 09:00. Non-null rows {1,3} satisfy every reflexive
+        // comparison; the null row 2 only survives the null-safe `is`.
+        const all = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        const nn = [{ id: 1 }, { id: 3 }]
+        const none: Array<{ id: number }> = []
+        const c = tProjectRelease.signedOffAt
+
+        ctx.mockNext(nn)
+        const eq = await ctx.conn.selectFrom(tProjectRelease).where(c.equals(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signed_off_at = signed_off_at order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof eq, Array<{ id: number }>>>()
+        expect(eq).toEqual(nn)
+
+        ctx.mockNext(none)
+        const ne = await ctx.conn.selectFrom(tProjectRelease).where(c.notEquals(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signed_off_at <> signed_off_at order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(ne).toEqual(none)
+
+        ctx.mockNext(all)
+        const isv = await ctx.conn.selectFrom(tProjectRelease).where(c.is(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signed_off_at is not distinct from signed_off_at order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isv).toEqual(all)
+
+        ctx.mockNext(none)
+        const isNot = await ctx.conn.selectFrom(tProjectRelease).where(c.isNot(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signed_off_at is distinct from signed_off_at order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isNot).toEqual(none)
+
+        ctx.mockNext(none)
+        const lt = await ctx.conn.selectFrom(tProjectRelease).where(c.lessThan(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signed_off_at < signed_off_at order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(lt).toEqual(none)
+
+        ctx.mockNext(none)
+        const gt = await ctx.conn.selectFrom(tProjectRelease).where(c.greaterThan(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signed_off_at > signed_off_at order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(gt).toEqual(none)
+
+        ctx.mockNext(nn)
+        const le = await ctx.conn.selectFrom(tProjectRelease).where(c.lessOrEqual(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signed_off_at <= signed_off_at order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(le).toEqual(nn)
+
+        ctx.mockNext(nn)
+        const ge = await ctx.conn.selectFrom(tProjectRelease).where(c.greaterOrEqual(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signed_off_at >= signed_off_at order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(ge).toEqual(nn)
+
+        ctx.mockNext(nn)
+        const bt = await ctx.conn.selectFrom(tProjectRelease).where(c.between(c, c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signed_off_at between signed_off_at and signed_off_at order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(bt).toEqual(nn)
+
+        ctx.mockNext(none)
+        const nbt = await ctx.conn.selectFrom(tProjectRelease).where(c.notBetween(c, c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signed_off_at not between signed_off_at and signed_off_at order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(nbt).toEqual(none)
+
+        ctx.mockNext(nn)
+        const inC = await ctx.conn.selectFrom(tProjectRelease).where(c.in(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signed_off_at in (signed_off_at) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(inC).toEqual(nn)
+
+        ctx.mockNext(none)
+        const notInC = await ctx.conn.selectFrom(tProjectRelease).where(c.notIn(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signed_off_at not in (signed_off_at) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notInC).toEqual(none)
+
+        ctx.mockNext(nn)
+        const inNv = await ctx.conn.selectFrom(tProjectRelease).where(c.inN(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signed_off_at in (signed_off_at) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(inNv).toEqual(nn)
+
+        ctx.mockNext(none)
+        const notInNv = await ctx.conn.selectFrom(tProjectRelease).where(c.notInN(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signed_off_at not in (signed_off_at) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notInNv).toEqual(none)
+    })
+
+    test('localDateTime-column-operand-comparable-membership', async () => {
+        // created_at (localDateTime): organization 1 -> 2023-06-15 08:00, 2 -> 2023-09-20 14:30.
+        // Both rows non-null, so every reflexive comparison keeps both rows.
+        const all = [{ id: 1 }, { id: 2 }]
+        const nn = [{ id: 1 }, { id: 2 }]
+        const none: Array<{ id: number }> = []
+        const c = tOrganization.createdAt
+
+        ctx.mockNext(nn)
+        const eq = await ctx.conn.selectFrom(tOrganization).where(c.equals(c))
+            .select({ id: tOrganization.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where created_at = created_at order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof eq, Array<{ id: number }>>>()
+        expect(eq).toEqual(nn)
+
+        ctx.mockNext(none)
+        const ne = await ctx.conn.selectFrom(tOrganization).where(c.notEquals(c))
+            .select({ id: tOrganization.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where created_at <> created_at order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(ne).toEqual(none)
+
+        ctx.mockNext(all)
+        const isv = await ctx.conn.selectFrom(tOrganization).where(c.is(c))
+            .select({ id: tOrganization.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where created_at is not distinct from created_at order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isv).toEqual(all)
+
+        ctx.mockNext(none)
+        const isNot = await ctx.conn.selectFrom(tOrganization).where(c.isNot(c))
+            .select({ id: tOrganization.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where created_at is distinct from created_at order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isNot).toEqual(none)
+
+        ctx.mockNext(none)
+        const lt = await ctx.conn.selectFrom(tOrganization).where(c.lessThan(c))
+            .select({ id: tOrganization.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where created_at < created_at order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(lt).toEqual(none)
+
+        ctx.mockNext(none)
+        const gt = await ctx.conn.selectFrom(tOrganization).where(c.greaterThan(c))
+            .select({ id: tOrganization.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where created_at > created_at order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(gt).toEqual(none)
+
+        ctx.mockNext(nn)
+        const le = await ctx.conn.selectFrom(tOrganization).where(c.lessOrEqual(c))
+            .select({ id: tOrganization.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where created_at <= created_at order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(le).toEqual(nn)
+
+        ctx.mockNext(nn)
+        const ge = await ctx.conn.selectFrom(tOrganization).where(c.greaterOrEqual(c))
+            .select({ id: tOrganization.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where created_at >= created_at order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(ge).toEqual(nn)
+
+        ctx.mockNext(nn)
+        const bt = await ctx.conn.selectFrom(tOrganization).where(c.between(c, c))
+            .select({ id: tOrganization.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where created_at between created_at and created_at order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(bt).toEqual(nn)
+
+        ctx.mockNext(none)
+        const nbt = await ctx.conn.selectFrom(tOrganization).where(c.notBetween(c, c))
+            .select({ id: tOrganization.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where created_at not between created_at and created_at order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(nbt).toEqual(none)
+
+        ctx.mockNext(nn)
+        const inC = await ctx.conn.selectFrom(tOrganization).where(c.in(c))
+            .select({ id: tOrganization.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where created_at in (created_at) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(inC).toEqual(nn)
+
+        ctx.mockNext(none)
+        const notInC = await ctx.conn.selectFrom(tOrganization).where(c.notIn(c))
+            .select({ id: tOrganization.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where created_at not in (created_at) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notInC).toEqual(none)
+
+        ctx.mockNext(nn)
+        const inNv = await ctx.conn.selectFrom(tOrganization).where(c.inN(c))
+            .select({ id: tOrganization.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where created_at in (created_at) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(inNv).toEqual(nn)
+
+        ctx.mockNext(none)
+        const notInNv = await ctx.conn.selectFrom(tOrganization).where(c.notInN(c))
+            .select({ id: tOrganization.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where created_at not in (created_at) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notInNv).toEqual(none)
+    })
+
+    test('uuid-column-operand-comparable-membership', async () => {
+        // external_ref (uuid): issue 1,2 carry a uuid; issues 3,4 are NULL. Non-null rows
+        // {1,2} satisfy every reflexive comparison; the null rows only survive `is`.
+        const all = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]
+        const nn = [{ id: 1 }, { id: 2 }]
+        const none: Array<{ id: number }> = []
+        const c = tIssue.externalRef
+
+        ctx.mockNext(nn)
+        const eq = await ctx.conn.selectFrom(tIssue).where(c.equals(c))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref = external_ref order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof eq, Array<{ id: number }>>>()
+        expect(eq).toEqual(nn)
+
+        ctx.mockNext(none)
+        const ne = await ctx.conn.selectFrom(tIssue).where(c.notEquals(c))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref <> external_ref order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(ne).toEqual(none)
+
+        ctx.mockNext(all)
+        const isv = await ctx.conn.selectFrom(tIssue).where(c.is(c))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref is not distinct from external_ref order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isv).toEqual(all)
+
+        ctx.mockNext(none)
+        const isNot = await ctx.conn.selectFrom(tIssue).where(c.isNot(c))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref is distinct from external_ref order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isNot).toEqual(none)
+
+        ctx.mockNext(none)
+        const lt = await ctx.conn.selectFrom(tIssue).where(c.lessThan(c))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref < external_ref order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(lt).toEqual(none)
+
+        ctx.mockNext(none)
+        const gt = await ctx.conn.selectFrom(tIssue).where(c.greaterThan(c))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref > external_ref order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(gt).toEqual(none)
+
+        ctx.mockNext(nn)
+        const le = await ctx.conn.selectFrom(tIssue).where(c.lessOrEqual(c))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref <= external_ref order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(le).toEqual(nn)
+
+        ctx.mockNext(nn)
+        const ge = await ctx.conn.selectFrom(tIssue).where(c.greaterOrEqual(c))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref >= external_ref order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(ge).toEqual(nn)
+
+        ctx.mockNext(nn)
+        const bt = await ctx.conn.selectFrom(tIssue).where(c.between(c, c))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref between external_ref and external_ref order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(bt).toEqual(nn)
+
+        ctx.mockNext(none)
+        const nbt = await ctx.conn.selectFrom(tIssue).where(c.notBetween(c, c))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref not between external_ref and external_ref order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(nbt).toEqual(none)
+
+        ctx.mockNext(nn)
+        const inC = await ctx.conn.selectFrom(tIssue).where(c.in(c))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref in (external_ref) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(inC).toEqual(nn)
+
+        ctx.mockNext(none)
+        const notInC = await ctx.conn.selectFrom(tIssue).where(c.notIn(c))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref not in (external_ref) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notInC).toEqual(none)
+
+        ctx.mockNext(nn)
+        const inNv = await ctx.conn.selectFrom(tIssue).where(c.inN(c))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref in (external_ref) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(inNv).toEqual(nn)
+
+        ctx.mockNext(none)
+        const notInNv = await ctx.conn.selectFrom(tIssue).where(c.notInN(c))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref not in (external_ref) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notInNv).toEqual(none)
+    })
+
+    test('string-column-operand-comparable-membership', async () => {
+        // title (plain string): all four issues carry a distinct non-null title, so every
+        // reflexive comparison keeps all rows. (lessOrEqual has a column-operand test in
+        // select.value-source.column-vs-column.test.ts.)
+        const all = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]
+        const nn = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]
+        const none: Array<{ id: number }> = []
+        const c = tIssue.title
+
+        ctx.mockNext(nn)
+        const eq = await ctx.conn.selectFrom(tIssue).where(c.equals(c))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where title = title order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof eq, Array<{ id: number }>>>()
+        expect(eq).toEqual(nn)
+
+        ctx.mockNext(none)
+        const ne = await ctx.conn.selectFrom(tIssue).where(c.notEquals(c))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where title <> title order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(ne).toEqual(none)
+
+        ctx.mockNext(all)
+        const isv = await ctx.conn.selectFrom(tIssue).where(c.is(c))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where title is not distinct from title order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isv).toEqual(all)
+
+        ctx.mockNext(none)
+        const isNot = await ctx.conn.selectFrom(tIssue).where(c.isNot(c))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where title is distinct from title order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isNot).toEqual(none)
+
+        ctx.mockNext(none)
+        const lt = await ctx.conn.selectFrom(tIssue).where(c.lessThan(c))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where title < title order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(lt).toEqual(none)
+
+        ctx.mockNext(none)
+        const gt = await ctx.conn.selectFrom(tIssue).where(c.greaterThan(c))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where title > title order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(gt).toEqual(none)
+
+        ctx.mockNext(nn)
+        const ge = await ctx.conn.selectFrom(tIssue).where(c.greaterOrEqual(c))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where title >= title order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(ge).toEqual(nn)
+
+        ctx.mockNext(nn)
+        const bt = await ctx.conn.selectFrom(tIssue).where(c.between(c, c))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where title between title and title order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(bt).toEqual(nn)
+
+        ctx.mockNext(none)
+        const nbt = await ctx.conn.selectFrom(tIssue).where(c.notBetween(c, c))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where title not between title and title order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(nbt).toEqual(none)
+
+        ctx.mockNext(nn)
+        const inC = await ctx.conn.selectFrom(tIssue).where(c.in(c))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where title in (title) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(inC).toEqual(nn)
+
+        ctx.mockNext(none)
+        const notInC = await ctx.conn.selectFrom(tIssue).where(c.notIn(c))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where title not in (title) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notInC).toEqual(none)
+
+        ctx.mockNext(nn)
+        const inNv = await ctx.conn.selectFrom(tIssue).where(c.inN(c))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where title in (title) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(inNv).toEqual(nn)
+
+        ctx.mockNext(none)
+        const notInNv = await ctx.conn.selectFrom(tIssue).where(c.notInN(c))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where title not in (title) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notInNv).toEqual(none)
+    })
+
+    test('customUuid-column-operand-comparable-membership', async () => {
+        // signing_key ('SigningKey' customUuid): release 1,3 carry a uuid; release 2 is NULL.
+        // Non-null rows {1,3} satisfy every reflexive comparison. (`is` has a column-operand
+        // test in is-value-source-operand-enum-custom-customUuid.)
+        const nn = [{ id: 1 }, { id: 3 }]
+        const none: Array<{ id: number }> = []
+        const c = tProjectRelease.signingKey
+
+        ctx.mockNext(nn)
+        const eq = await ctx.conn.selectFrom(tProjectRelease).where(c.equals(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key = signing_key order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof eq, Array<{ id: number }>>>()
+        expect(eq).toEqual(nn)
+
+        ctx.mockNext(none)
+        const ne = await ctx.conn.selectFrom(tProjectRelease).where(c.notEquals(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key <> signing_key order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(ne).toEqual(none)
+
+        ctx.mockNext(none)
+        const isNot = await ctx.conn.selectFrom(tProjectRelease).where(c.isNot(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key is distinct from signing_key order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isNot).toEqual(none)
+
+        ctx.mockNext(none)
+        const lt = await ctx.conn.selectFrom(tProjectRelease).where(c.lessThan(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key < signing_key order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(lt).toEqual(none)
+
+        ctx.mockNext(none)
+        const gt = await ctx.conn.selectFrom(tProjectRelease).where(c.greaterThan(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key > signing_key order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(gt).toEqual(none)
+
+        ctx.mockNext(nn)
+        const le = await ctx.conn.selectFrom(tProjectRelease).where(c.lessOrEqual(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key <= signing_key order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(le).toEqual(nn)
+
+        ctx.mockNext(nn)
+        const ge = await ctx.conn.selectFrom(tProjectRelease).where(c.greaterOrEqual(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key >= signing_key order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(ge).toEqual(nn)
+
+        ctx.mockNext(nn)
+        const bt = await ctx.conn.selectFrom(tProjectRelease).where(c.between(c, c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key between signing_key and signing_key order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(bt).toEqual(nn)
+
+        ctx.mockNext(none)
+        const nbt = await ctx.conn.selectFrom(tProjectRelease).where(c.notBetween(c, c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key not between signing_key and signing_key order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(nbt).toEqual(none)
+
+        ctx.mockNext(nn)
+        const inC = await ctx.conn.selectFrom(tProjectRelease).where(c.in(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key in (signing_key) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(inC).toEqual(nn)
+
+        ctx.mockNext(none)
+        const notInC = await ctx.conn.selectFrom(tProjectRelease).where(c.notIn(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key not in (signing_key) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notInC).toEqual(none)
+
+        ctx.mockNext(nn)
+        const inNv = await ctx.conn.selectFrom(tProjectRelease).where(c.inN(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key in (signing_key) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(inNv).toEqual(nn)
+
+        ctx.mockNext(none)
+        const notInNv = await ctx.conn.selectFrom(tProjectRelease).where(c.notInN(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key not in (signing_key) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notInNv).toEqual(none)
+    })
+
+    test('custom-column-operand-equality-membership', async () => {
+        // channel ('ReleaseChannel' custom, equality-only): all rows non-null. `equals` / `is`
+        // have column-operand tests in equals-value-source-operand-enum-custom /
+        // is-value-source-operand-enum-custom-customUuid; this covers the negated / membership twins.
+        const nn = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        const none: Array<{ id: number }> = []
+        const c = tProjectRelease.channel
+
+        ctx.mockNext(none)
+        const ne = await ctx.conn.selectFrom(tProjectRelease).where(c.notEquals(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where channel <> channel order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof ne, Array<{ id: number }>>>()
+        expect(ne).toEqual(none)
+
+        ctx.mockNext(none)
+        const isNot = await ctx.conn.selectFrom(tProjectRelease).where(c.isNot(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where channel is distinct from channel order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isNot).toEqual(none)
+
+        ctx.mockNext(nn)
+        const inC = await ctx.conn.selectFrom(tProjectRelease).where(c.in(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where channel in (channel) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(inC).toEqual(nn)
+
+        ctx.mockNext(none)
+        const notInC = await ctx.conn.selectFrom(tProjectRelease).where(c.notIn(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where channel not in (channel) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notInC).toEqual(none)
+
+        ctx.mockNext(nn)
+        const inNv = await ctx.conn.selectFrom(tProjectRelease).where(c.inN(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where channel in (channel) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(inNv).toEqual(nn)
+
+        ctx.mockNext(none)
+        const notInNv = await ctx.conn.selectFrom(tProjectRelease).where(c.notInN(c))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where channel not in (channel) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notInNv).toEqual(none)
+    })
+
+    test('enum-column-operand-equality-membership', async () => {
+        // activity ('WorklogActivity' enum): all rows non-null. `equals` / `is` have
+        // column-operand tests elsewhere; this covers the negated / membership twins.
+        const nn = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        const none: Array<{ id: number }> = []
+        const c = tIssueWorklog.activity
+
+        ctx.mockNext(none)
+        const ne = await ctx.conn.selectFrom(tIssueWorklog).where(c.notEquals(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where activity <> activity order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof ne, Array<{ id: number }>>>()
+        expect(ne).toEqual(none)
+
+        ctx.mockNext(none)
+        const isNot = await ctx.conn.selectFrom(tIssueWorklog).where(c.isNot(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where activity is distinct from activity order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isNot).toEqual(none)
+
+        ctx.mockNext(nn)
+        const inC = await ctx.conn.selectFrom(tIssueWorklog).where(c.in(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where activity in (activity) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(inC).toEqual(nn)
+
+        ctx.mockNext(none)
+        const notInC = await ctx.conn.selectFrom(tIssueWorklog).where(c.notIn(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where activity not in (activity) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notInC).toEqual(none)
+
+        ctx.mockNext(nn)
+        const inNv = await ctx.conn.selectFrom(tIssueWorklog).where(c.inN(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where activity in (activity) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(inNv).toEqual(nn)
+
+        ctx.mockNext(none)
+        const notInNv = await ctx.conn.selectFrom(tIssueWorklog).where(c.notInN(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where activity not in (activity) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notInNv).toEqual(none)
+    })
+
+    test('boolean-column-operand-equality-membership', async () => {
+        // billable (plain boolean): worklog 1 -> TRUE, 2 -> FALSE, 3 -> NULL. Non-null rows
+        // {1,2} satisfy every reflexive comparison; the null row 3 only survives `is`.
+        // (SQL Server / Oracle wrap the boolean-column comparison in a CASE per cell.)
+        const all = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        const nn = [{ id: 1 }, { id: 2 }]
+        const none: Array<{ id: number }> = []
+        const c = tIssueWorklog.billable
+
+        ctx.mockNext(none)
+        const ne = await ctx.conn.selectFrom(tIssueWorklog).where(c.notEquals(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable <> billable order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof ne, Array<{ id: number }>>>()
+        expect(ne).toEqual(none)
+
+        ctx.mockNext(all)
+        const isv = await ctx.conn.selectFrom(tIssueWorklog).where(c.is(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable is not distinct from billable order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isv).toEqual(all)
+
+        ctx.mockNext(none)
+        const isNot = await ctx.conn.selectFrom(tIssueWorklog).where(c.isNot(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable is distinct from billable order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isNot).toEqual(none)
+
+        ctx.mockNext(nn)
+        const inC = await ctx.conn.selectFrom(tIssueWorklog).where(c.in(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable in (billable) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(inC).toEqual(nn)
+
+        ctx.mockNext(none)
+        const notInC = await ctx.conn.selectFrom(tIssueWorklog).where(c.notIn(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable not in (billable) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notInC).toEqual(none)
+
+        ctx.mockNext(nn)
+        const inNv = await ctx.conn.selectFrom(tIssueWorklog).where(c.inN(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable in (billable) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(inNv).toEqual(nn)
+
+        ctx.mockNext(none)
+        const notInNv = await ctx.conn.selectFrom(tIssueWorklog).where(c.notInN(c))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable not in (billable) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notInNv).toEqual(none)
+    })
+
+    // F1-EQCMP §V (continued) — int ordered column-operand pair, plus the
+    // coalesce / nullif (valueWhenNull / nullIfValue) IValueSource overload
+    // with a COLUMN argument. valueWhenNull / nullIfValue project a value
+    // rather than filter, so these assert the projected leaf's type + value.
+    // A self nullif is always NULL, so its optional leaf is dropped on every
+    // row; a self coalesce reproduces the receiver.
+    // ==================================================================
+
+    test('int-column-operand-less-than-less-or-equal', async () => {
+        // priority vs id: issue 1 (p2,i1), 2 (p1,i2), 3 (p3,i3), 4 (p2,i4).
+        // priority < id -> {2,4}; priority <= id -> {2,3,4}. (The other int
+        // column-operand comparisons live in column-vs-column.test.ts.)
+        const lt = [{ id: 2 }, { id: 4 }]
+        ctx.mockNext(lt)
+        const ltRows = await ctx.conn.selectFrom(tIssue).where(tIssue.priority.lessThan(tIssue.id))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where priority < id order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof ltRows, Array<{ id: number }>>>()
+        expect(ltRows).toEqual(lt)
+
+        const le = [{ id: 2 }, { id: 3 }, { id: 4 }]
+        ctx.mockNext(le)
+        const leRows = await ctx.conn.selectFrom(tIssue).where(tIssue.priority.lessOrEqual(tIssue.id))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where priority <= id order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(leRows).toEqual(le)
+    })
+
+    test('boolean-value-when-null-nullif-value-column-arg', async () => {
+        // billable: worklog 1 -> TRUE, 2 -> FALSE, 3 -> NULL. coalesce(billable,
+        // billable) reproduces billable (present for 1/2, NULL for 3 -> optional
+        // leaf dropped); nullif(billable, billable) is always NULL -> dropped on
+        // every row.
+        const vwn = [{ id: 1, b: true }, { id: 2, b: false }, { id: 3 }]
+        ctx.mockNext(vwn)
+        const vwnRows = await ctx.conn.selectFrom(tIssueWorklog)
+            .select({ id: tIssueWorklog.id, b: tIssueWorklog.billable.valueWhenNull(tIssueWorklog.billable) })
+            .orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce(billable, billable) as "b" from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof vwnRows, Array<{ id: number; b?: boolean }>>>()
+        expect(vwnRows).toEqual(vwn)
+
+        const niv = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        ctx.mockNext(niv)
+        const nivRows = await ctx.conn.selectFrom(tIssueWorklog)
+            .select({ id: tIssueWorklog.id, b: tIssueWorklog.billable.nullIfValue(tIssueWorklog.billable) })
+            .orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, nullif(billable, billable) as "b" from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof nivRows, Array<{ id: number; b?: boolean }>>>()
+        expect(nivRows).toEqual(niv)
+    })
+
+    test('uuid-nullif-value-column-arg', async () => {
+        // nullif(external_ref, external_ref) is always NULL -> the projected
+        // optional uuid leaf is dropped on every issue.
+        const niv = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]
+        ctx.mockNext(niv)
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .select({ id: tIssue.id, ref: tIssue.externalRef.nullIfValue(tIssue.externalRef) })
+            .orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, nullif(external_ref, external_ref) as ref from issue order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ id: number; ref?: string }>>>()
+        expect(rows).toEqual(niv)
+    })
+
+    test('localDateTime-nullif-value-column-arg', async () => {
+        // nullif(created_at, created_at) is always NULL -> the projected optional
+        // localDateTime leaf is dropped on every organization.
+        const niv = [{ id: 1 }, { id: 2 }]
+        ctx.mockNext(niv)
+        const rows = await ctx.conn.selectFrom(tOrganization)
+            .select({ id: tOrganization.id, ts: tOrganization.createdAt.nullIfValue(tOrganization.createdAt) })
+            .orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, nullif(created_at, created_at) as ts from organization order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ id: number; ts?: Date }>>>()
+        expect(rows).toEqual(niv)
+    })
+
+    test('customComparable-value-when-null-nullif-value-column-arg', async () => {
+        // coalesce(version, version) reproduces the required Semver (present on
+        // every release); nullif(version, version) is always NULL -> the
+        // projected optional Semver leaf is dropped on every release.
+        const vwn = [{ id: 1, v: '1.2.0' }, { id: 2, v: '1.3.0-beta.1' }, { id: 3, v: '0.9.0' }]
+        ctx.mockNext(vwn)
+        const vwnRows = await ctx.conn.selectFrom(tProjectRelease)
+            .select({ id: tProjectRelease.id, v: tProjectRelease.version.valueWhenNull(tProjectRelease.version) })
+            .orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce(version, version) as "v" from project_release order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof vwnRows, Array<{ id: number; v: string }>>>()
+        expect(vwnRows).toEqual(vwn)
+
+        const niv = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        ctx.mockNext(niv)
+        const nivRows = await ctx.conn.selectFrom(tProjectRelease)
+            .select({ id: tProjectRelease.id, v: tProjectRelease.version.nullIfValue(tProjectRelease.version) })
+            .orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, nullif(version, version) as "v" from project_release order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof nivRows, Array<{ id: number; v?: string }>>>()
+        expect(nivRows).toEqual(niv)
+    })
+
+    // F1-EQCMP §IfValue — the `*IfValue` twins missing per leaf. Each
+    // method is asserted in BOTH branches: FIRES (a present value emits the
+    // same predicate as its direct twin) and ELIDES (`undefined` drops the
+    // sole WHERE, reducing to the bare SELECT so every row is returned).
+    // ==================================================================
+
+    test('bigint-if-value-twins-fires-and-elides', async () => {
+        // duration_ms: worklog 1 -> 5400000, 2 -> NULL, 3 -> 1800000. Each `*IfValue`
+        // with a present value emits the same predicate as its direct twin; passing
+        // `undefined` elides the sole WHERE so every worklog is returned.
+        const all = [{ id: 1 }, { id: 2 }, { id: 3 }]
+
+        ctx.mockNext([{ id: 3 }])
+        const notEqualsF = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.durationMs.notEqualsIfValue(5400000n))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where duration_ms <> $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            5400000n,
+          ]
+        `)
+        assertType<Exact<typeof notEqualsF, Array<{ id: number }>>>()
+        expect(notEqualsF).toEqual([{ id: 3 }])
+
+        ctx.mockNext(all)
+        const notEqualsE = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.durationMs.notEqualsIfValue(undefined))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notEqualsE).toEqual(all)
+
+        ctx.mockNext([{ id: 1 }])
+        const isF = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.durationMs.isIfValue(5400000n))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where duration_ms is not distinct from $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            5400000n,
+          ]
+        `)
+        expect(isF).toEqual([{ id: 1 }])
+
+        ctx.mockNext(all)
+        const isE = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.durationMs.isIfValue(undefined))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isE).toEqual(all)
+
+        ctx.mockNext([{ id: 2 }, { id: 3 }])
+        const isNotF = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.durationMs.isNotIfValue(5400000n))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where duration_ms is distinct from $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            5400000n,
+          ]
+        `)
+        expect(isNotF).toEqual([{ id: 2 }, { id: 3 }])
+
+        ctx.mockNext(all)
+        const isNotE = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.durationMs.isNotIfValue(undefined))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isNotE).toEqual(all)
+
+        ctx.mockNext([{ id: 3 }])
+        const notInF = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.durationMs.notInIfValue([5400000n]))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where duration_ms not in ($1) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            5400000n,
+          ]
+        `)
+        expect(notInF).toEqual([{ id: 3 }])
+
+        ctx.mockNext(all)
+        const notInE = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.durationMs.notInIfValue(undefined))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notInE).toEqual(all)
+    })
+
+    test('double-if-value-twins-fires-and-elides', async () => {
+        // estimated_hours (optional double) is NULL on every issue, so only the
+        // null-safe `isNotIfValue` (NULL is distinct from 5) keeps rows; the rest keep
+        // none. Passing `undefined` elides to the bare SELECT.
+        const all = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]
+
+        ctx.mockNext([])
+        const equalsF = await ctx.conn.selectFrom(tIssue).where(tIssue.estimatedHours.equalsIfValue(5))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where estimated_hours = $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            5,
+          ]
+        `)
+        assertType<Exact<typeof equalsF, Array<{ id: number }>>>()
+        expect(equalsF).toEqual([])
+
+        ctx.mockNext(all)
+        const equalsE = await ctx.conn.selectFrom(tIssue).where(tIssue.estimatedHours.equalsIfValue(undefined))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(equalsE).toEqual(all)
+
+        ctx.mockNext([])
+        const notEqualsF = await ctx.conn.selectFrom(tIssue).where(tIssue.estimatedHours.notEqualsIfValue(5))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where estimated_hours <> $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            5,
+          ]
+        `)
+        expect(notEqualsF).toEqual([])
+
+        ctx.mockNext(all)
+        const notEqualsE = await ctx.conn.selectFrom(tIssue).where(tIssue.estimatedHours.notEqualsIfValue(undefined))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notEqualsE).toEqual(all)
+
+        ctx.mockNext([])
+        const isF = await ctx.conn.selectFrom(tIssue).where(tIssue.estimatedHours.isIfValue(5))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where estimated_hours is not distinct from $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            5,
+          ]
+        `)
+        expect(isF).toEqual([])
+
+        ctx.mockNext(all)
+        const isE = await ctx.conn.selectFrom(tIssue).where(tIssue.estimatedHours.isIfValue(undefined))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isE).toEqual(all)
+
+        ctx.mockNext([{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }])
+        const isNotF = await ctx.conn.selectFrom(tIssue).where(tIssue.estimatedHours.isNotIfValue(5))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where estimated_hours is distinct from $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            5,
+          ]
+        `)
+        expect(isNotF).toEqual([{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }])
+
+        ctx.mockNext(all)
+        const isNotE = await ctx.conn.selectFrom(tIssue).where(tIssue.estimatedHours.isNotIfValue(undefined))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isNotE).toEqual(all)
+
+        ctx.mockNext([])
+        const inF = await ctx.conn.selectFrom(tIssue).where(tIssue.estimatedHours.inIfValue([5]))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where estimated_hours in ($1) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            5,
+          ]
+        `)
+        expect(inF).toEqual([])
+
+        ctx.mockNext(all)
+        const inE = await ctx.conn.selectFrom(tIssue).where(tIssue.estimatedHours.inIfValue(undefined))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(inE).toEqual(all)
+
+        ctx.mockNext([])
+        const notInF = await ctx.conn.selectFrom(tIssue).where(tIssue.estimatedHours.notInIfValue([5]))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where estimated_hours not in ($1) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            5,
+          ]
+        `)
+        expect(notInF).toEqual([])
+
+        ctx.mockNext(all)
+        const notInE = await ctx.conn.selectFrom(tIssue).where(tIssue.estimatedHours.notInIfValue(undefined))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notInE).toEqual(all)
+    })
+
+    test('string-is-if-value-in-if-value-fires-and-elides', async () => {
+        // title (plain string): issue 1 -> 'Update hero copy'. `isIfValue`/`inIfValue`
+        // fire -> issue 1; `isNotIfValue` -> issues 2,3,4. `undefined` elides each.
+        const all = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]
+        const s = 'Update hero copy'
+
+        ctx.mockNext([{ id: 1 }])
+        const isF = await ctx.conn.selectFrom(tIssue).where(tIssue.title.isIfValue(s))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where title is not distinct from $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "Update hero copy",
+          ]
+        `)
+        assertType<Exact<typeof isF, Array<{ id: number }>>>()
+        expect(isF).toEqual([{ id: 1 }])
+
+        ctx.mockNext(all)
+        const isE = await ctx.conn.selectFrom(tIssue).where(tIssue.title.isIfValue(undefined))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isE).toEqual(all)
+
+        ctx.mockNext([{ id: 2 }, { id: 3 }, { id: 4 }])
+        const isNotF = await ctx.conn.selectFrom(tIssue).where(tIssue.title.isNotIfValue(s))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where title is distinct from $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "Update hero copy",
+          ]
+        `)
+        expect(isNotF).toEqual([{ id: 2 }, { id: 3 }, { id: 4 }])
+
+        ctx.mockNext(all)
+        const isNotE = await ctx.conn.selectFrom(tIssue).where(tIssue.title.isNotIfValue(undefined))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isNotE).toEqual(all)
+
+        ctx.mockNext([{ id: 1 }])
+        const inF = await ctx.conn.selectFrom(tIssue).where(tIssue.title.inIfValue([s]))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where title in ($1) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "Update hero copy",
+          ]
+        `)
+        expect(inF).toEqual([{ id: 1 }])
+
+        ctx.mockNext(all)
+        const inE = await ctx.conn.selectFrom(tIssue).where(tIssue.title.inIfValue(undefined))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(inE).toEqual(all)
+    })
+
+    test('boolean-is-not-if-value-in-if-value-fires-and-elides', async () => {
+        // billable: worklog 1 -> TRUE, 2 -> FALSE, 3 -> NULL. `isNotIfValue(true)` keeps
+        // the FALSE row and the NULL row (both distinct from TRUE); `inIfValue([true])`
+        // keeps the TRUE row; `notInIfValue([true])` keeps the FALSE row (NULL excluded).
+        // `undefined` elides each. (SQL Server / Oracle wrap the boolean predicate per cell.)
+        const all = [{ id: 1 }, { id: 2 }, { id: 3 }]
+
+        ctx.mockNext([{ id: 2 }, { id: 3 }])
+        const isNotF = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.billable.isNotIfValue(true))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable is distinct from $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            true,
+          ]
+        `)
+        assertType<Exact<typeof isNotF, Array<{ id: number }>>>()
+        expect(isNotF).toEqual([{ id: 2 }, { id: 3 }])
+
+        ctx.mockNext(all)
+        const isNotE = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.billable.isNotIfValue(undefined))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isNotE).toEqual(all)
+
+        ctx.mockNext([{ id: 1 }])
+        const inF = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.billable.inIfValue([true]))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable in ($1) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            true,
+          ]
+        `)
+        expect(inF).toEqual([{ id: 1 }])
+
+        ctx.mockNext(all)
+        const inE = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.billable.inIfValue(undefined))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(inE).toEqual(all)
+
+        ctx.mockNext([{ id: 2 }])
+        const notInF = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.billable.notInIfValue([true]))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable not in ($1) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            true,
+          ]
+        `)
+        expect(notInF).toEqual([{ id: 2 }])
+
+        ctx.mockNext(all)
+        const notInE = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.billable.notInIfValue(undefined))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notInE).toEqual(all)
+    })
+
+    test('uuid-if-value-ordered-is-in-fires-and-elides', async () => {
+        // external_ref: issue 1 -> 0a8f..., 2 -> 7b3e..., issues 3,4 -> NULL (0a8f < 7b3e).
+        // The ordered / is / in `*IfValue` twins fire against issue 1's uuid; `undefined`
+        // elides each. (uuid ordering is engine-defined; native sqlite compares the
+        // string form.)
+        const all = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]
+        const ref = '0a8f9c1e-1111-4222-8333-444455556666'
+
+        ctx.mockNext([])
+        const lessThanF = await ctx.conn.selectFrom(tIssue).where(tIssue.externalRef.lessThanIfValue(ref))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref < $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "0a8f9c1e-1111-4222-8333-444455556666",
+          ]
+        `)
+        assertType<Exact<typeof lessThanF, Array<{ id: number }>>>()
+        expect(lessThanF).toEqual([])
+
+        ctx.mockNext(all)
+        const lessThanE = await ctx.conn.selectFrom(tIssue).where(tIssue.externalRef.lessThanIfValue(undefined))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(lessThanE).toEqual(all)
+
+        ctx.mockNext([{ id: 2 }])
+        const greaterThanF = await ctx.conn.selectFrom(tIssue).where(tIssue.externalRef.greaterThanIfValue(ref))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref > $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "0a8f9c1e-1111-4222-8333-444455556666",
+          ]
+        `)
+        expect(greaterThanF).toEqual([{ id: 2 }])
+
+        ctx.mockNext(all)
+        const greaterThanE = await ctx.conn.selectFrom(tIssue).where(tIssue.externalRef.greaterThanIfValue(undefined))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(greaterThanE).toEqual(all)
+
+        ctx.mockNext([{ id: 1 }])
+        const lessOrEqualF = await ctx.conn.selectFrom(tIssue).where(tIssue.externalRef.lessOrEqualIfValue(ref))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref <= $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "0a8f9c1e-1111-4222-8333-444455556666",
+          ]
+        `)
+        expect(lessOrEqualF).toEqual([{ id: 1 }])
+
+        ctx.mockNext(all)
+        const lessOrEqualE = await ctx.conn.selectFrom(tIssue).where(tIssue.externalRef.lessOrEqualIfValue(undefined))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(lessOrEqualE).toEqual(all)
+
+        ctx.mockNext([{ id: 1 }, { id: 2 }])
+        const greaterOrEqualF = await ctx.conn.selectFrom(tIssue).where(tIssue.externalRef.greaterOrEqualIfValue(ref))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref >= $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "0a8f9c1e-1111-4222-8333-444455556666",
+          ]
+        `)
+        expect(greaterOrEqualF).toEqual([{ id: 1 }, { id: 2 }])
+
+        ctx.mockNext(all)
+        const greaterOrEqualE = await ctx.conn.selectFrom(tIssue).where(tIssue.externalRef.greaterOrEqualIfValue(undefined))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(greaterOrEqualE).toEqual(all)
+
+        ctx.mockNext([{ id: 1 }])
+        const isF = await ctx.conn.selectFrom(tIssue).where(tIssue.externalRef.isIfValue(ref))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref is not distinct from $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "0a8f9c1e-1111-4222-8333-444455556666",
+          ]
+        `)
+        expect(isF).toEqual([{ id: 1 }])
+
+        ctx.mockNext(all)
+        const isE = await ctx.conn.selectFrom(tIssue).where(tIssue.externalRef.isIfValue(undefined))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isE).toEqual(all)
+
+        ctx.mockNext([{ id: 2 }, { id: 3 }, { id: 4 }])
+        const isNotF = await ctx.conn.selectFrom(tIssue).where(tIssue.externalRef.isNotIfValue(ref))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref is distinct from $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "0a8f9c1e-1111-4222-8333-444455556666",
+          ]
+        `)
+        expect(isNotF).toEqual([{ id: 2 }, { id: 3 }, { id: 4 }])
+
+        ctx.mockNext(all)
+        const isNotE = await ctx.conn.selectFrom(tIssue).where(tIssue.externalRef.isNotIfValue(undefined))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isNotE).toEqual(all)
+
+        ctx.mockNext([{ id: 1 }])
+        const inF = await ctx.conn.selectFrom(tIssue).where(tIssue.externalRef.inIfValue([ref]))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref in ($1) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "0a8f9c1e-1111-4222-8333-444455556666",
+          ]
+        `)
+        expect(inF).toEqual([{ id: 1 }])
+
+        ctx.mockNext(all)
+        const inE = await ctx.conn.selectFrom(tIssue).where(tIssue.externalRef.inIfValue(undefined))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(inE).toEqual(all)
+    })
+
+    test('localDate-if-value-twins-fires-and-elides', async () => {
+        // work_date: worklog 1 -> 2024-03-04, 2 -> 2024-03-05, 3 -> 2024-03-06. Each
+        // `*IfValue` fires against 2024-03-05; `undefined` elides each.
+        const all = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        const d = new Date(Date.UTC(2024, 2, 5))
+
+        ctx.mockNext([{ id: 2 }])
+        const equalsF = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.workDate.equalsIfValue(d))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date = $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2024-03-05T00:00:00.000Z",
+          ]
+        `)
+        assertType<Exact<typeof equalsF, Array<{ id: number }>>>()
+        expect(equalsF).toEqual([{ id: 2 }])
+
+        ctx.mockNext(all)
+        const equalsE = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.workDate.equalsIfValue(undefined))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(equalsE).toEqual(all)
+
+        ctx.mockNext([{ id: 1 }, { id: 3 }])
+        const notEqualsF = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.workDate.notEqualsIfValue(d))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date <> $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2024-03-05T00:00:00.000Z",
+          ]
+        `)
+        expect(notEqualsF).toEqual([{ id: 1 }, { id: 3 }])
+
+        ctx.mockNext(all)
+        const notEqualsE = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.workDate.notEqualsIfValue(undefined))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notEqualsE).toEqual(all)
+
+        ctx.mockNext([{ id: 2 }])
+        const isF = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.workDate.isIfValue(d))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date is not distinct from $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2024-03-05T00:00:00.000Z",
+          ]
+        `)
+        expect(isF).toEqual([{ id: 2 }])
+
+        ctx.mockNext(all)
+        const isE = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.workDate.isIfValue(undefined))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isE).toEqual(all)
+
+        ctx.mockNext([{ id: 1 }, { id: 3 }])
+        const isNotF = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.workDate.isNotIfValue(d))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date is distinct from $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2024-03-05T00:00:00.000Z",
+          ]
+        `)
+        expect(isNotF).toEqual([{ id: 1 }, { id: 3 }])
+
+        ctx.mockNext(all)
+        const isNotE = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.workDate.isNotIfValue(undefined))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isNotE).toEqual(all)
+
+        ctx.mockNext([{ id: 1 }])
+        const lessThanF = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.workDate.lessThanIfValue(d))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date < $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2024-03-05T00:00:00.000Z",
+          ]
+        `)
+        expect(lessThanF).toEqual([{ id: 1 }])
+
+        ctx.mockNext(all)
+        const lessThanE = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.workDate.lessThanIfValue(undefined))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(lessThanE).toEqual(all)
+
+        ctx.mockNext([{ id: 3 }])
+        const greaterThanF = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.workDate.greaterThanIfValue(d))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date > $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2024-03-05T00:00:00.000Z",
+          ]
+        `)
+        expect(greaterThanF).toEqual([{ id: 3 }])
+
+        ctx.mockNext(all)
+        const greaterThanE = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.workDate.greaterThanIfValue(undefined))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(greaterThanE).toEqual(all)
+
+        ctx.mockNext([{ id: 1 }, { id: 2 }])
+        const lessOrEqualF = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.workDate.lessOrEqualIfValue(d))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date <= $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2024-03-05T00:00:00.000Z",
+          ]
+        `)
+        expect(lessOrEqualF).toEqual([{ id: 1 }, { id: 2 }])
+
+        ctx.mockNext(all)
+        const lessOrEqualE = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.workDate.lessOrEqualIfValue(undefined))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(lessOrEqualE).toEqual(all)
+
+        ctx.mockNext([{ id: 2 }, { id: 3 }])
+        const greaterOrEqualF = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.workDate.greaterOrEqualIfValue(d))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date >= $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2024-03-05T00:00:00.000Z",
+          ]
+        `)
+        expect(greaterOrEqualF).toEqual([{ id: 2 }, { id: 3 }])
+
+        ctx.mockNext(all)
+        const greaterOrEqualE = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.workDate.greaterOrEqualIfValue(undefined))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(greaterOrEqualE).toEqual(all)
+
+        ctx.mockNext([{ id: 2 }])
+        const inF = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.workDate.inIfValue([d]))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date in ($1) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2024-03-05T00:00:00.000Z",
+          ]
+        `)
+        expect(inF).toEqual([{ id: 2 }])
+
+        ctx.mockNext(all)
+        const inE = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.workDate.inIfValue(undefined))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(inE).toEqual(all)
+
+        ctx.mockNext([{ id: 1 }, { id: 3 }])
+        const notInF = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.workDate.notInIfValue([d]))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date not in ($1) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2024-03-05T00:00:00.000Z",
+          ]
+        `)
+        expect(notInF).toEqual([{ id: 1 }, { id: 3 }])
+
+        ctx.mockNext(all)
+        const notInE = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.workDate.notInIfValue(undefined))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notInE).toEqual(all)
+    })
+
+    test('localTime-if-value-twins-fires-and-elides', async () => {
+        // started_at: worklog 1 -> 09:15, 2 -> 14:00, 3 -> 10:30. Each `*IfValue` fires
+        // against 10:30; `undefined` elides each.
+        const all = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        const t = new Date(Date.UTC(1970, 0, 1, 10, 30, 0))
+
+        ctx.mockNext([{ id: 3 }])
+        const equalsF = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.startedAt.equalsIfValue(t))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at = $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "10:30:00",
+          ]
+        `)
+        assertType<Exact<typeof equalsF, Array<{ id: number }>>>()
+        expect(equalsF).toEqual([{ id: 3 }])
+
+        ctx.mockNext(all)
+        const equalsE = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.startedAt.equalsIfValue(undefined))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(equalsE).toEqual(all)
+
+        ctx.mockNext([{ id: 1 }, { id: 2 }])
+        const notEqualsF = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.startedAt.notEqualsIfValue(t))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at <> $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "10:30:00",
+          ]
+        `)
+        expect(notEqualsF).toEqual([{ id: 1 }, { id: 2 }])
+
+        ctx.mockNext(all)
+        const notEqualsE = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.startedAt.notEqualsIfValue(undefined))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notEqualsE).toEqual(all)
+
+        ctx.mockNext([{ id: 3 }])
+        const isF = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.startedAt.isIfValue(t))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at is not distinct from $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "10:30:00",
+          ]
+        `)
+        expect(isF).toEqual([{ id: 3 }])
+
+        ctx.mockNext(all)
+        const isE = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.startedAt.isIfValue(undefined))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isE).toEqual(all)
+
+        ctx.mockNext([{ id: 1 }, { id: 2 }])
+        const isNotF = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.startedAt.isNotIfValue(t))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at is distinct from $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "10:30:00",
+          ]
+        `)
+        expect(isNotF).toEqual([{ id: 1 }, { id: 2 }])
+
+        ctx.mockNext(all)
+        const isNotE = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.startedAt.isNotIfValue(undefined))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isNotE).toEqual(all)
+
+        ctx.mockNext([{ id: 1 }])
+        const lessThanF = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.startedAt.lessThanIfValue(t))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at < $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "10:30:00",
+          ]
+        `)
+        expect(lessThanF).toEqual([{ id: 1 }])
+
+        ctx.mockNext(all)
+        const lessThanE = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.startedAt.lessThanIfValue(undefined))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(lessThanE).toEqual(all)
+
+        ctx.mockNext([{ id: 2 }])
+        const greaterThanF = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.startedAt.greaterThanIfValue(t))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at > $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "10:30:00",
+          ]
+        `)
+        expect(greaterThanF).toEqual([{ id: 2 }])
+
+        ctx.mockNext(all)
+        const greaterThanE = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.startedAt.greaterThanIfValue(undefined))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(greaterThanE).toEqual(all)
+
+        ctx.mockNext([{ id: 1 }, { id: 3 }])
+        const lessOrEqualF = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.startedAt.lessOrEqualIfValue(t))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at <= $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "10:30:00",
+          ]
+        `)
+        expect(lessOrEqualF).toEqual([{ id: 1 }, { id: 3 }])
+
+        ctx.mockNext(all)
+        const lessOrEqualE = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.startedAt.lessOrEqualIfValue(undefined))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(lessOrEqualE).toEqual(all)
+
+        ctx.mockNext([{ id: 2 }, { id: 3 }])
+        const greaterOrEqualF = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.startedAt.greaterOrEqualIfValue(t))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at >= $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "10:30:00",
+          ]
+        `)
+        expect(greaterOrEqualF).toEqual([{ id: 2 }, { id: 3 }])
+
+        ctx.mockNext(all)
+        const greaterOrEqualE = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.startedAt.greaterOrEqualIfValue(undefined))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(greaterOrEqualE).toEqual(all)
+
+        ctx.mockNext([{ id: 3 }])
+        const inF = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.startedAt.inIfValue([t]))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at in ($1) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "10:30:00",
+          ]
+        `)
+        expect(inF).toEqual([{ id: 3 }])
+
+        ctx.mockNext(all)
+        const inE = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.startedAt.inIfValue(undefined))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(inE).toEqual(all)
+
+        ctx.mockNext([{ id: 1 }, { id: 2 }])
+        const notInF = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.startedAt.notInIfValue([t]))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at not in ($1) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "10:30:00",
+          ]
+        `)
+        expect(notInF).toEqual([{ id: 1 }, { id: 2 }])
+
+        ctx.mockNext(all)
+        const notInE = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.startedAt.notInIfValue(undefined))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notInE).toEqual(all)
+    })
+
+    test('localDateTime-if-value-twins-fires-and-elides', async () => {
+        // created_at: organization 1 -> 2023-06-15 08:00, 2 -> 2023-09-20 14:30. Each
+        // `*IfValue` fires against organization 1's timestamp; `undefined` elides each.
+        const all = [{ id: 1 }, { id: 2 }]
+        const ts = new Date(Date.UTC(2023, 5, 15, 8, 0, 0))
+
+        ctx.mockNext([{ id: 1 }])
+        const equalsF = await ctx.conn.selectFrom(tOrganization).where(tOrganization.createdAt.equalsIfValue(ts))
+            .select({ id: tOrganization.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where created_at = $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2023-06-15T08:00:00.000Z",
+          ]
+        `)
+        assertType<Exact<typeof equalsF, Array<{ id: number }>>>()
+        expect(equalsF).toEqual([{ id: 1 }])
+
+        ctx.mockNext(all)
+        const equalsE = await ctx.conn.selectFrom(tOrganization).where(tOrganization.createdAt.equalsIfValue(undefined))
+            .select({ id: tOrganization.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(equalsE).toEqual(all)
+
+        ctx.mockNext([{ id: 2 }])
+        const notEqualsF = await ctx.conn.selectFrom(tOrganization).where(tOrganization.createdAt.notEqualsIfValue(ts))
+            .select({ id: tOrganization.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where created_at <> $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2023-06-15T08:00:00.000Z",
+          ]
+        `)
+        expect(notEqualsF).toEqual([{ id: 2 }])
+
+        ctx.mockNext(all)
+        const notEqualsE = await ctx.conn.selectFrom(tOrganization).where(tOrganization.createdAt.notEqualsIfValue(undefined))
+            .select({ id: tOrganization.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notEqualsE).toEqual(all)
+
+        ctx.mockNext([{ id: 1 }])
+        const isF = await ctx.conn.selectFrom(tOrganization).where(tOrganization.createdAt.isIfValue(ts))
+            .select({ id: tOrganization.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where created_at is not distinct from $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2023-06-15T08:00:00.000Z",
+          ]
+        `)
+        expect(isF).toEqual([{ id: 1 }])
+
+        ctx.mockNext(all)
+        const isE = await ctx.conn.selectFrom(tOrganization).where(tOrganization.createdAt.isIfValue(undefined))
+            .select({ id: tOrganization.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isE).toEqual(all)
+
+        ctx.mockNext([{ id: 2 }])
+        const isNotF = await ctx.conn.selectFrom(tOrganization).where(tOrganization.createdAt.isNotIfValue(ts))
+            .select({ id: tOrganization.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where created_at is distinct from $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2023-06-15T08:00:00.000Z",
+          ]
+        `)
+        expect(isNotF).toEqual([{ id: 2 }])
+
+        ctx.mockNext(all)
+        const isNotE = await ctx.conn.selectFrom(tOrganization).where(tOrganization.createdAt.isNotIfValue(undefined))
+            .select({ id: tOrganization.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isNotE).toEqual(all)
+
+        ctx.mockNext([])
+        const lessThanF = await ctx.conn.selectFrom(tOrganization).where(tOrganization.createdAt.lessThanIfValue(ts))
+            .select({ id: tOrganization.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where created_at < $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2023-06-15T08:00:00.000Z",
+          ]
+        `)
+        expect(lessThanF).toEqual([])
+
+        ctx.mockNext(all)
+        const lessThanE = await ctx.conn.selectFrom(tOrganization).where(tOrganization.createdAt.lessThanIfValue(undefined))
+            .select({ id: tOrganization.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(lessThanE).toEqual(all)
+
+        ctx.mockNext([{ id: 2 }])
+        const greaterThanF = await ctx.conn.selectFrom(tOrganization).where(tOrganization.createdAt.greaterThanIfValue(ts))
+            .select({ id: tOrganization.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where created_at > $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2023-06-15T08:00:00.000Z",
+          ]
+        `)
+        expect(greaterThanF).toEqual([{ id: 2 }])
+
+        ctx.mockNext(all)
+        const greaterThanE = await ctx.conn.selectFrom(tOrganization).where(tOrganization.createdAt.greaterThanIfValue(undefined))
+            .select({ id: tOrganization.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(greaterThanE).toEqual(all)
+
+        ctx.mockNext([{ id: 1 }])
+        const lessOrEqualF = await ctx.conn.selectFrom(tOrganization).where(tOrganization.createdAt.lessOrEqualIfValue(ts))
+            .select({ id: tOrganization.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where created_at <= $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2023-06-15T08:00:00.000Z",
+          ]
+        `)
+        expect(lessOrEqualF).toEqual([{ id: 1 }])
+
+        ctx.mockNext(all)
+        const lessOrEqualE = await ctx.conn.selectFrom(tOrganization).where(tOrganization.createdAt.lessOrEqualIfValue(undefined))
+            .select({ id: tOrganization.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(lessOrEqualE).toEqual(all)
+
+        ctx.mockNext([{ id: 1 }, { id: 2 }])
+        const greaterOrEqualF = await ctx.conn.selectFrom(tOrganization).where(tOrganization.createdAt.greaterOrEqualIfValue(ts))
+            .select({ id: tOrganization.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where created_at >= $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2023-06-15T08:00:00.000Z",
+          ]
+        `)
+        expect(greaterOrEqualF).toEqual([{ id: 1 }, { id: 2 }])
+
+        ctx.mockNext(all)
+        const greaterOrEqualE = await ctx.conn.selectFrom(tOrganization).where(tOrganization.createdAt.greaterOrEqualIfValue(undefined))
+            .select({ id: tOrganization.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(greaterOrEqualE).toEqual(all)
+
+        ctx.mockNext([{ id: 1 }])
+        const inF = await ctx.conn.selectFrom(tOrganization).where(tOrganization.createdAt.inIfValue([ts]))
+            .select({ id: tOrganization.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where created_at in ($1) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2023-06-15T08:00:00.000Z",
+          ]
+        `)
+        expect(inF).toEqual([{ id: 1 }])
+
+        ctx.mockNext(all)
+        const inE = await ctx.conn.selectFrom(tOrganization).where(tOrganization.createdAt.inIfValue(undefined))
+            .select({ id: tOrganization.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(inE).toEqual(all)
+
+        ctx.mockNext([{ id: 2 }])
+        const notInF = await ctx.conn.selectFrom(tOrganization).where(tOrganization.createdAt.notInIfValue([ts]))
+            .select({ id: tOrganization.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where created_at not in ($1) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2023-06-15T08:00:00.000Z",
+          ]
+        `)
+        expect(notInF).toEqual([{ id: 2 }])
+
+        ctx.mockNext(all)
+        const notInE = await ctx.conn.selectFrom(tOrganization).where(tOrganization.createdAt.notInIfValue(undefined))
+            .select({ id: tOrganization.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notInE).toEqual(all)
+    })
+
+    test('customInt-if-value-twins-fires-and-elides', async () => {
+        // cost_cents ('Cents' customInt): worklog 1 -> 100, 2 -> 100, 3 -> 400. Each
+        // `*IfValue` (all but the covered `equalsIfValue`) fires against 100; `undefined`
+        // elides each.
+        const all = [{ id: 1 }, { id: 2 }, { id: 3 }]
+
+        ctx.mockNext([{ id: 3 }])
+        const notEqualsF = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.costCents.notEqualsIfValue(100))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where cost_cents <> $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            100,
+          ]
+        `)
+        assertType<Exact<typeof notEqualsF, Array<{ id: number }>>>()
+        expect(notEqualsF).toEqual([{ id: 3 }])
+
+        ctx.mockNext(all)
+        const notEqualsE = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.costCents.notEqualsIfValue(undefined))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notEqualsE).toEqual(all)
+
+        ctx.mockNext([{ id: 1 }, { id: 2 }])
+        const isF = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.costCents.isIfValue(100))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where cost_cents is not distinct from $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            100,
+          ]
+        `)
+        expect(isF).toEqual([{ id: 1 }, { id: 2 }])
+
+        ctx.mockNext(all)
+        const isE = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.costCents.isIfValue(undefined))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isE).toEqual(all)
+
+        ctx.mockNext([{ id: 3 }])
+        const isNotF = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.costCents.isNotIfValue(100))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where cost_cents is distinct from $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            100,
+          ]
+        `)
+        expect(isNotF).toEqual([{ id: 3 }])
+
+        ctx.mockNext(all)
+        const isNotE = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.costCents.isNotIfValue(undefined))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isNotE).toEqual(all)
+
+        ctx.mockNext([])
+        const lessThanF = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.costCents.lessThanIfValue(100))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where cost_cents < $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            100,
+          ]
+        `)
+        expect(lessThanF).toEqual([])
+
+        ctx.mockNext(all)
+        const lessThanE = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.costCents.lessThanIfValue(undefined))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(lessThanE).toEqual(all)
+
+        ctx.mockNext([{ id: 3 }])
+        const greaterThanF = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.costCents.greaterThanIfValue(100))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where cost_cents > $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            100,
+          ]
+        `)
+        expect(greaterThanF).toEqual([{ id: 3 }])
+
+        ctx.mockNext(all)
+        const greaterThanE = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.costCents.greaterThanIfValue(undefined))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(greaterThanE).toEqual(all)
+
+        ctx.mockNext([{ id: 1 }, { id: 2 }])
+        const lessOrEqualF = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.costCents.lessOrEqualIfValue(100))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where cost_cents <= $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            100,
+          ]
+        `)
+        expect(lessOrEqualF).toEqual([{ id: 1 }, { id: 2 }])
+
+        ctx.mockNext(all)
+        const lessOrEqualE = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.costCents.lessOrEqualIfValue(undefined))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(lessOrEqualE).toEqual(all)
+
+        ctx.mockNext([{ id: 1 }, { id: 2 }, { id: 3 }])
+        const greaterOrEqualF = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.costCents.greaterOrEqualIfValue(100))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where cost_cents >= $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            100,
+          ]
+        `)
+        expect(greaterOrEqualF).toEqual([{ id: 1 }, { id: 2 }, { id: 3 }])
+
+        ctx.mockNext(all)
+        const greaterOrEqualE = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.costCents.greaterOrEqualIfValue(undefined))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(greaterOrEqualE).toEqual(all)
+
+        ctx.mockNext([{ id: 1 }, { id: 2 }])
+        const inF = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.costCents.inIfValue([100]))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where cost_cents in ($1) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            100,
+          ]
+        `)
+        expect(inF).toEqual([{ id: 1 }, { id: 2 }])
+
+        ctx.mockNext(all)
+        const inE = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.costCents.inIfValue(undefined))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(inE).toEqual(all)
+
+        ctx.mockNext([{ id: 3 }])
+        const notInF = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.costCents.notInIfValue([100]))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where cost_cents not in ($1) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            100,
+          ]
+        `)
+        expect(notInF).toEqual([{ id: 3 }])
+
+        ctx.mockNext(all)
+        const notInE = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.costCents.notInIfValue(undefined))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notInE).toEqual(all)
+    })
+
+    test('customDouble-if-value-twins-fires-and-elides', async () => {
+        // billed_amount ('Money' customDouble): worklog 1 -> 200, 2 -> 50, 3 -> 200. Each
+        // `*IfValue` (all but the covered `equalsIfValue`) fires against 200; `undefined`
+        // elides each.
+        const all = [{ id: 1 }, { id: 2 }, { id: 3 }]
+
+        ctx.mockNext([{ id: 2 }])
+        const notEqualsF = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.billedAmount.notEqualsIfValue(200))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billed_amount <> $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            200,
+          ]
+        `)
+        assertType<Exact<typeof notEqualsF, Array<{ id: number }>>>()
+        expect(notEqualsF).toEqual([{ id: 2 }])
+
+        ctx.mockNext(all)
+        const notEqualsE = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.billedAmount.notEqualsIfValue(undefined))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notEqualsE).toEqual(all)
+
+        ctx.mockNext([{ id: 1 }, { id: 3 }])
+        const isF = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.billedAmount.isIfValue(200))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billed_amount is not distinct from $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            200,
+          ]
+        `)
+        expect(isF).toEqual([{ id: 1 }, { id: 3 }])
+
+        ctx.mockNext(all)
+        const isE = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.billedAmount.isIfValue(undefined))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isE).toEqual(all)
+
+        ctx.mockNext([{ id: 2 }])
+        const isNotF = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.billedAmount.isNotIfValue(200))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billed_amount is distinct from $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            200,
+          ]
+        `)
+        expect(isNotF).toEqual([{ id: 2 }])
+
+        ctx.mockNext(all)
+        const isNotE = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.billedAmount.isNotIfValue(undefined))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isNotE).toEqual(all)
+
+        ctx.mockNext([{ id: 2 }])
+        const lessThanF = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.billedAmount.lessThanIfValue(200))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billed_amount < $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            200,
+          ]
+        `)
+        expect(lessThanF).toEqual([{ id: 2 }])
+
+        ctx.mockNext(all)
+        const lessThanE = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.billedAmount.lessThanIfValue(undefined))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(lessThanE).toEqual(all)
+
+        ctx.mockNext([])
+        const greaterThanF = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.billedAmount.greaterThanIfValue(200))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billed_amount > $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            200,
+          ]
+        `)
+        expect(greaterThanF).toEqual([])
+
+        ctx.mockNext(all)
+        const greaterThanE = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.billedAmount.greaterThanIfValue(undefined))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(greaterThanE).toEqual(all)
+
+        ctx.mockNext([{ id: 1 }, { id: 2 }, { id: 3 }])
+        const lessOrEqualF = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.billedAmount.lessOrEqualIfValue(200))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billed_amount <= $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            200,
+          ]
+        `)
+        expect(lessOrEqualF).toEqual([{ id: 1 }, { id: 2 }, { id: 3 }])
+
+        ctx.mockNext(all)
+        const lessOrEqualE = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.billedAmount.lessOrEqualIfValue(undefined))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(lessOrEqualE).toEqual(all)
+
+        ctx.mockNext([{ id: 1 }, { id: 3 }])
+        const greaterOrEqualF = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.billedAmount.greaterOrEqualIfValue(200))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billed_amount >= $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            200,
+          ]
+        `)
+        expect(greaterOrEqualF).toEqual([{ id: 1 }, { id: 3 }])
+
+        ctx.mockNext(all)
+        const greaterOrEqualE = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.billedAmount.greaterOrEqualIfValue(undefined))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(greaterOrEqualE).toEqual(all)
+
+        ctx.mockNext([{ id: 1 }, { id: 3 }])
+        const inF = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.billedAmount.inIfValue([200]))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billed_amount in ($1) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            200,
+          ]
+        `)
+        expect(inF).toEqual([{ id: 1 }, { id: 3 }])
+
+        ctx.mockNext(all)
+        const inE = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.billedAmount.inIfValue(undefined))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(inE).toEqual(all)
+
+        ctx.mockNext([{ id: 2 }])
+        const notInF = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.billedAmount.notInIfValue([200]))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billed_amount not in ($1) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            200,
+          ]
+        `)
+        expect(notInF).toEqual([{ id: 2 }])
+
+        ctx.mockNext(all)
+        const notInE = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.billedAmount.notInIfValue(undefined))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notInE).toEqual(all)
+    })
+
+    test('customComparable-if-value-twins-fires-and-elides', async () => {
+        // version ('Semver' customComparable): release 1 -> 1.2.0, 2 -> 1.3.0-beta.1, 3 -> 0.9.0.
+        // Each `*IfValue` fires against '1.2.0'; `undefined` elides each.
+        const all = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        const sv = '1.2.0'
+
+        ctx.mockNext([{ id: 1 }])
+        const equalsF = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.version.equalsIfValue(sv))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where version = $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "1.2.0",
+          ]
+        `)
+        assertType<Exact<typeof equalsF, Array<{ id: number }>>>()
+        expect(equalsF).toEqual([{ id: 1 }])
+
+        ctx.mockNext(all)
+        const equalsE = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.version.equalsIfValue(undefined))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(equalsE).toEqual(all)
+
+        ctx.mockNext([{ id: 2 }, { id: 3 }])
+        const notEqualsF = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.version.notEqualsIfValue(sv))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where version <> $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "1.2.0",
+          ]
+        `)
+        expect(notEqualsF).toEqual([{ id: 2 }, { id: 3 }])
+
+        ctx.mockNext(all)
+        const notEqualsE = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.version.notEqualsIfValue(undefined))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notEqualsE).toEqual(all)
+
+        ctx.mockNext([{ id: 1 }])
+        const isF = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.version.isIfValue(sv))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where version is not distinct from $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "1.2.0",
+          ]
+        `)
+        expect(isF).toEqual([{ id: 1 }])
+
+        ctx.mockNext(all)
+        const isE = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.version.isIfValue(undefined))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isE).toEqual(all)
+
+        ctx.mockNext([{ id: 2 }, { id: 3 }])
+        const isNotF = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.version.isNotIfValue(sv))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where version is distinct from $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "1.2.0",
+          ]
+        `)
+        expect(isNotF).toEqual([{ id: 2 }, { id: 3 }])
+
+        ctx.mockNext(all)
+        const isNotE = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.version.isNotIfValue(undefined))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isNotE).toEqual(all)
+
+        ctx.mockNext([{ id: 2 }, { id: 3 }])
+        const notInF = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.version.notInIfValue([sv]))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where version not in ($1) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "1.2.0",
+          ]
+        `)
+        expect(notInF).toEqual([{ id: 2 }, { id: 3 }])
+
+        ctx.mockNext(all)
+        const notInE = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.version.notInIfValue(undefined))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notInE).toEqual(all)
+    })
+
+    test('custom-is-if-value-is-not-if-value-fires-and-elides', async () => {
+        // channel ('ReleaseChannel' custom): release 1 -> stable. `isIfValue`/`isNotIfValue`
+        // fire against 'stable'; `undefined` elides each.
+        const all = [{ id: 1 }, { id: 2 }, { id: 3 }]
+
+        ctx.mockNext([{ id: 1 }])
+        const isF = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.channel.isIfValue('stable'))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where channel is not distinct from $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "stable",
+          ]
+        `)
+        assertType<Exact<typeof isF, Array<{ id: number }>>>()
+        expect(isF).toEqual([{ id: 1 }])
+
+        ctx.mockNext(all)
+        const isE = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.channel.isIfValue(undefined))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isE).toEqual(all)
+
+        ctx.mockNext([{ id: 2 }, { id: 3 }])
+        const isNotF = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.channel.isNotIfValue('stable'))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where channel is distinct from $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "stable",
+          ]
+        `)
+        expect(isNotF).toEqual([{ id: 2 }, { id: 3 }])
+
+        ctx.mockNext(all)
+        const isNotE = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.channel.isNotIfValue(undefined))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isNotE).toEqual(all)
+    })
+
+    test('enum-is-if-value-is-not-if-value-fires-and-elides', async () => {
+        // activity ('WorklogActivity' enum): worklog 1 -> coding. `isIfValue`/`isNotIfValue`
+        // fire against 'coding'; `undefined` elides each.
+        const all = [{ id: 1 }, { id: 2 }, { id: 3 }]
+
+        ctx.mockNext([{ id: 1 }])
+        const isF = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.activity.isIfValue('coding'))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where activity is not distinct from $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "coding",
+          ]
+        `)
+        assertType<Exact<typeof isF, Array<{ id: number }>>>()
+        expect(isF).toEqual([{ id: 1 }])
+
+        ctx.mockNext(all)
+        const isE = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.activity.isIfValue(undefined))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isE).toEqual(all)
+
+        ctx.mockNext([{ id: 2 }, { id: 3 }])
+        const isNotF = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.activity.isNotIfValue('coding'))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where activity is distinct from $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "coding",
+          ]
+        `)
+        expect(isNotF).toEqual([{ id: 2 }, { id: 3 }])
+
+        ctx.mockNext(all)
+        const isNotE = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.activity.isNotIfValue(undefined))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isNotE).toEqual(all)
+    })
+
+    test('customUuid-if-value-twins-fires-and-elides', async () => {
+        // signing_key ('SigningKey' customUuid): release 1 -> 0a8f..., 2 -> NULL, 3 -> 7b3e...
+        // Each `*IfValue` (all but the covered `equalsIfValue`) fires against 0a8f...;
+        // `undefined` elides each.
+        const all = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        const key = '0a8f9c1e-1111-4222-8333-444455556666'
+
+        ctx.mockNext([{ id: 3 }])
+        const notEqualsF = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.signingKey.notEqualsIfValue(key))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key <> $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "0a8f9c1e-1111-4222-8333-444455556666",
+          ]
+        `)
+        assertType<Exact<typeof notEqualsF, Array<{ id: number }>>>()
+        expect(notEqualsF).toEqual([{ id: 3 }])
+
+        ctx.mockNext(all)
+        const notEqualsE = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.signingKey.notEqualsIfValue(undefined))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notEqualsE).toEqual(all)
+
+        ctx.mockNext([{ id: 1 }])
+        const isF = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.signingKey.isIfValue(key))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key is not distinct from $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "0a8f9c1e-1111-4222-8333-444455556666",
+          ]
+        `)
+        expect(isF).toEqual([{ id: 1 }])
+
+        ctx.mockNext(all)
+        const isE = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.signingKey.isIfValue(undefined))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isE).toEqual(all)
+
+        ctx.mockNext([{ id: 2 }, { id: 3 }])
+        const isNotF = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.signingKey.isNotIfValue(key))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key is distinct from $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "0a8f9c1e-1111-4222-8333-444455556666",
+          ]
+        `)
+        expect(isNotF).toEqual([{ id: 2 }, { id: 3 }])
+
+        ctx.mockNext(all)
+        const isNotE = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.signingKey.isNotIfValue(undefined))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isNotE).toEqual(all)
+
+        ctx.mockNext([])
+        const lessThanF = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.signingKey.lessThanIfValue(key))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key < $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "0a8f9c1e-1111-4222-8333-444455556666",
+          ]
+        `)
+        expect(lessThanF).toEqual([])
+
+        ctx.mockNext(all)
+        const lessThanE = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.signingKey.lessThanIfValue(undefined))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(lessThanE).toEqual(all)
+
+        ctx.mockNext([{ id: 3 }])
+        const greaterThanF = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.signingKey.greaterThanIfValue(key))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key > $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "0a8f9c1e-1111-4222-8333-444455556666",
+          ]
+        `)
+        expect(greaterThanF).toEqual([{ id: 3 }])
+
+        ctx.mockNext(all)
+        const greaterThanE = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.signingKey.greaterThanIfValue(undefined))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(greaterThanE).toEqual(all)
+
+        ctx.mockNext([{ id: 1 }])
+        const lessOrEqualF = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.signingKey.lessOrEqualIfValue(key))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key <= $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "0a8f9c1e-1111-4222-8333-444455556666",
+          ]
+        `)
+        expect(lessOrEqualF).toEqual([{ id: 1 }])
+
+        ctx.mockNext(all)
+        const lessOrEqualE = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.signingKey.lessOrEqualIfValue(undefined))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(lessOrEqualE).toEqual(all)
+
+        ctx.mockNext([{ id: 1 }, { id: 3 }])
+        const greaterOrEqualF = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.signingKey.greaterOrEqualIfValue(key))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key >= $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "0a8f9c1e-1111-4222-8333-444455556666",
+          ]
+        `)
+        expect(greaterOrEqualF).toEqual([{ id: 1 }, { id: 3 }])
+
+        ctx.mockNext(all)
+        const greaterOrEqualE = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.signingKey.greaterOrEqualIfValue(undefined))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(greaterOrEqualE).toEqual(all)
+
+        ctx.mockNext([{ id: 1 }])
+        const inF = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.signingKey.inIfValue([key]))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key in ($1) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "0a8f9c1e-1111-4222-8333-444455556666",
+          ]
+        `)
+        expect(inF).toEqual([{ id: 1 }])
+
+        ctx.mockNext(all)
+        const inE = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.signingKey.inIfValue(undefined))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(inE).toEqual(all)
+
+        ctx.mockNext([{ id: 3 }])
+        const notInF = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.signingKey.notInIfValue([key]))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key not in ($1) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "0a8f9c1e-1111-4222-8333-444455556666",
+          ]
+        `)
+        expect(notInF).toEqual([{ id: 3 }])
+
+        ctx.mockNext(all)
+        const notInE = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.signingKey.notInIfValue(undefined))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notInE).toEqual(all)
+    })
+
+    test('customLocalDate-is-if-value-is-not-if-value-fires-and-elides', async () => {
+        // released_on ('ReleaseDay' customLocalDate): release 1 -> 2024-01-15.
+        // `isIfValue`/`isNotIfValue` fire against it; `undefined` elides each.
+        const all = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        const rd = new Date(Date.UTC(2024, 0, 15))
+
+        ctx.mockNext([{ id: 1 }])
+        const isF = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.releasedOn.isIfValue(rd))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where released_on is not distinct from $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2024-01-15T00:00:00.000Z",
+          ]
+        `)
+        assertType<Exact<typeof isF, Array<{ id: number }>>>()
+        expect(isF).toEqual([{ id: 1 }])
+
+        ctx.mockNext(all)
+        const isE = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.releasedOn.isIfValue(undefined))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isE).toEqual(all)
+
+        ctx.mockNext([{ id: 2 }, { id: 3 }])
+        const isNotF = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.releasedOn.isNotIfValue(rd))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where released_on is distinct from $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2024-01-15T00:00:00.000Z",
+          ]
+        `)
+        expect(isNotF).toEqual([{ id: 2 }, { id: 3 }])
+
+        ctx.mockNext(all)
+        const isNotE = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.releasedOn.isNotIfValue(undefined))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isNotE).toEqual(all)
+    })
+
+    test('customLocalTime-is-if-value-is-not-if-value-fires-and-elides', async () => {
+        // cutoff_time ('CutoffClock' customLocalTime): release 1 -> 17:00.
+        // `isIfValue`/`isNotIfValue` fire against it; `undefined` elides each.
+        const all = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        const ct = new Date(Date.UTC(1970, 0, 1, 17, 0, 0))
+
+        ctx.mockNext([{ id: 1 }])
+        const isF = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.cutoffTime.isIfValue(ct))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where cutoff_time is not distinct from $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "17:00:00",
+          ]
+        `)
+        assertType<Exact<typeof isF, Array<{ id: number }>>>()
+        expect(isF).toEqual([{ id: 1 }])
+
+        ctx.mockNext(all)
+        const isE = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.cutoffTime.isIfValue(undefined))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isE).toEqual(all)
+
+        ctx.mockNext([{ id: 2 }, { id: 3 }])
+        const isNotF = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.cutoffTime.isNotIfValue(ct))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where cutoff_time is distinct from $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "17:00:00",
+          ]
+        `)
+        expect(isNotF).toEqual([{ id: 2 }, { id: 3 }])
+
+        ctx.mockNext(all)
+        const isNotE = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.cutoffTime.isNotIfValue(undefined))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isNotE).toEqual(all)
+    })
+
+    test('customLocalDateTime-if-value-twins-fires-and-elides', async () => {
+        // signed_off_at ('SignOffStamp' customLocalDateTime): release 1 -> 2024-01-14 12:30,
+        // 2 -> NULL, 3 -> 2024-02-28 09:00. Each `*IfValue` fires against release 1's stamp;
+        // `undefined` elides each.
+        const all = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        const st = new Date(Date.UTC(2024, 0, 14, 12, 30, 0))
+
+        ctx.mockNext([{ id: 1 }])
+        const equalsF = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.signedOffAt.equalsIfValue(st))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signed_off_at = $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2024-01-14T12:30:00.000Z",
+          ]
+        `)
+        assertType<Exact<typeof equalsF, Array<{ id: number }>>>()
+        expect(equalsF).toEqual([{ id: 1 }])
+
+        ctx.mockNext(all)
+        const equalsE = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.signedOffAt.equalsIfValue(undefined))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(equalsE).toEqual(all)
+
+        ctx.mockNext([{ id: 3 }])
+        const notEqualsF = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.signedOffAt.notEqualsIfValue(st))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signed_off_at <> $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2024-01-14T12:30:00.000Z",
+          ]
+        `)
+        expect(notEqualsF).toEqual([{ id: 3 }])
+
+        ctx.mockNext(all)
+        const notEqualsE = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.signedOffAt.notEqualsIfValue(undefined))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notEqualsE).toEqual(all)
+
+        ctx.mockNext([])
+        const lessThanF = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.signedOffAt.lessThanIfValue(st))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signed_off_at < $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2024-01-14T12:30:00.000Z",
+          ]
+        `)
+        expect(lessThanF).toEqual([])
+
+        ctx.mockNext(all)
+        const lessThanE = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.signedOffAt.lessThanIfValue(undefined))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(lessThanE).toEqual(all)
+
+        ctx.mockNext([{ id: 3 }])
+        const greaterThanF = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.signedOffAt.greaterThanIfValue(st))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signed_off_at > $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2024-01-14T12:30:00.000Z",
+          ]
+        `)
+        expect(greaterThanF).toEqual([{ id: 3 }])
+
+        ctx.mockNext(all)
+        const greaterThanE = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.signedOffAt.greaterThanIfValue(undefined))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(greaterThanE).toEqual(all)
+
+        ctx.mockNext([{ id: 1 }])
+        const lessOrEqualF = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.signedOffAt.lessOrEqualIfValue(st))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signed_off_at <= $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2024-01-14T12:30:00.000Z",
+          ]
+        `)
+        expect(lessOrEqualF).toEqual([{ id: 1 }])
+
+        ctx.mockNext(all)
+        const lessOrEqualE = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.signedOffAt.lessOrEqualIfValue(undefined))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(lessOrEqualE).toEqual(all)
+
+        ctx.mockNext([{ id: 1 }, { id: 3 }])
+        const greaterOrEqualF = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.signedOffAt.greaterOrEqualIfValue(st))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signed_off_at >= $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2024-01-14T12:30:00.000Z",
+          ]
+        `)
+        expect(greaterOrEqualF).toEqual([{ id: 1 }, { id: 3 }])
+
+        ctx.mockNext(all)
+        const greaterOrEqualE = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.signedOffAt.greaterOrEqualIfValue(undefined))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(greaterOrEqualE).toEqual(all)
+
+        ctx.mockNext([{ id: 1 }])
+        const inF = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.signedOffAt.inIfValue([st]))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signed_off_at in ($1) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2024-01-14T12:30:00.000Z",
+          ]
+        `)
+        expect(inF).toEqual([{ id: 1 }])
+
+        ctx.mockNext(all)
+        const inE = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.signedOffAt.inIfValue(undefined))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(inE).toEqual(all)
+
+        ctx.mockNext([{ id: 3 }])
+        const notInF = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.signedOffAt.notInIfValue([st]))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signed_off_at not in ($1) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2024-01-14T12:30:00.000Z",
+          ]
+        `)
+        expect(notInF).toEqual([{ id: 3 }])
+
+        ctx.mockNext(all)
+        const notInE = await ctx.conn.selectFrom(tProjectRelease).where(tProjectRelease.signedOffAt.notInIfValue(undefined))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notInE).toEqual(all)
+    })
+
+    // F1-EQCMP §Q / §micro — the IN/NOT-IN subquery overload on the string
+    // and boolean leaves (never fed a subquery elsewhere), and a multi-const
+    // `inN` on a localTime column.
+    // ==================================================================
+
+    test('string-in-subquery-not-in-subquery', async () => {
+        // title in / not in (select title from issue where id in (1,2)). The
+        // inner set is {issue 1, issue 2}'s titles, so `in` keeps issues 1,2 and
+        // `notIn` keeps issues 3,4.
+        const titlesSub = ctx.conn.selectFrom(tIssue).where(tIssue.id.in([1, 2])).selectOneColumn(tIssue.title)
+        const inRes = [{ id: 1 }, { id: 2 }]
+        ctx.mockNext(inRes)
+        const inRows = await ctx.conn.selectFrom(tIssue).where(tIssue.title.in(titlesSub))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where title in (select title as result from issue where id in ($1, $2)) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof inRows, Array<{ id: number }>>>()
+        expect(inRows).toEqual(inRes)
+
+        const notRes = [{ id: 3 }, { id: 4 }]
+        ctx.mockNext(notRes)
+        const notRows = await ctx.conn.selectFrom(tIssue).where(tIssue.title.notIn(titlesSub))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where title not in (select title as result from issue where id in ($1, $2)) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+          ]
+        `)
+        expect(notRows).toEqual(notRes)
+    })
+
+    test('boolean-in-subquery-not-in-subquery', async () => {
+        // billable in / not in (select billable from issue_worklog where id = 1).
+        // The inner set is {TRUE} (worklog 1), so `in` keeps worklog 1 and `notIn`
+        // keeps worklog 2 (FALSE); worklog 3 (NULL) is excluded from both.
+        const billableSub = ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.id.equals(1)).selectOneColumn(tIssueWorklog.billable)
+        const inRes = [{ id: 1 }]
+        ctx.mockNext(inRes)
+        const inRows = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.billable.in(billableSub))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable in (select billable as result from issue_worklog where id = $1) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof inRows, Array<{ id: number }>>>()
+        expect(inRows).toEqual(inRes)
+
+        const notRes = [{ id: 2 }]
+        ctx.mockNext(notRes)
+        const notRows = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.billable.notIn(billableSub))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable not in (select billable as result from issue_worklog where id = $1) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        expect(notRows).toEqual(notRes)
+    })
+
+    test('localTime-in-n-multi-const', async () => {
+        // started_at in (09:15, 10:30) -> worklogs 1 and 3 (worklog 2 is 14:00).
+        // The multi-argument const `inN` overload on a localTime column.
+        const t1 = new Date(Date.UTC(1970, 0, 1, 9, 15, 0))
+        const t3 = new Date(Date.UTC(1970, 0, 1, 10, 30, 0))
+        const expected = [{ id: 1 }, { id: 3 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssueWorklog).where(tIssueWorklog.startedAt.inN(t1, t3))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at in ($1, $2) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "09:15:00",
+            "10:30:00",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('customComparable-optional-is-not-null-is-null', async () => {
+        // min_version ('Semver' customComparable, nullable) on tReleaseDraft:
+        // draft 1 -> 1.0.0, draft 2 -> NULL. The Nullable family on a bare-base
+        // customComparable leaf: `isNotNull` keeps draft 1, `isNull` keeps draft 2.
+        const notNull = [{ id: 1 }]
+        ctx.mockNext(notNull)
+        const nn = await ctx.conn.selectFrom(tReleaseDraft).where(tReleaseDraft.minVersion.isNotNull())
+            .select({ id: tReleaseDraft.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from release_draft where min_version is not null order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof nn, Array<{ id: number }>>>()
+        expect(nn).toEqual(notNull)
+
+        const isNullRes = [{ id: 2 }]
+        ctx.mockNext(isNullRes)
+        const inl = await ctx.conn.selectFrom(tReleaseDraft).where(tReleaseDraft.minVersion.isNull())
+            .select({ id: tReleaseDraft.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from release_draft where min_version is null order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(inl).toEqual(isNullRes)
+    })
+
+    test('double-column-operand-comparable-membership', async () => {
+        // estimated_hours (optional double) is NULL on every issue, so a
+        // self-comparison keeps rows only for the null-safe `is` (NULL is not
+        // distinct from NULL); every strict / equality / membership operator
+        // yields NULL and keeps no row. Still emits the bare-column operand form.
+        const all = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]
+        const none: Array<{ id: number }> = []
+        const c = tIssue.estimatedHours
+
+        ctx.mockNext(none)
+        const eq = await ctx.conn.selectFrom(tIssue).where(c.equals(c))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where estimated_hours = estimated_hours order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof eq, Array<{ id: number }>>>()
+        expect(eq).toEqual(none)
+
+        ctx.mockNext(none)
+        const ne = await ctx.conn.selectFrom(tIssue).where(c.notEquals(c))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where estimated_hours <> estimated_hours order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(ne).toEqual(none)
+
+        ctx.mockNext(all)
+        const is = await ctx.conn.selectFrom(tIssue).where(c.is(c))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where estimated_hours is not distinct from estimated_hours order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(is).toEqual(all)
+
+        ctx.mockNext(none)
+        const isNot = await ctx.conn.selectFrom(tIssue).where(c.isNot(c))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where estimated_hours is distinct from estimated_hours order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(isNot).toEqual(none)
+
+        ctx.mockNext(none)
+        const lt = await ctx.conn.selectFrom(tIssue).where(c.lessThan(c))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where estimated_hours < estimated_hours order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(lt).toEqual(none)
+
+        ctx.mockNext(none)
+        const gt = await ctx.conn.selectFrom(tIssue).where(c.greaterThan(c))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where estimated_hours > estimated_hours order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(gt).toEqual(none)
+
+        ctx.mockNext(none)
+        const le = await ctx.conn.selectFrom(tIssue).where(c.lessOrEqual(c))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where estimated_hours <= estimated_hours order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(le).toEqual(none)
+
+        ctx.mockNext(none)
+        const ge = await ctx.conn.selectFrom(tIssue).where(c.greaterOrEqual(c))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where estimated_hours >= estimated_hours order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(ge).toEqual(none)
+
+        ctx.mockNext(none)
+        const bt = await ctx.conn.selectFrom(tIssue).where(c.between(c, c))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where estimated_hours between estimated_hours and estimated_hours order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(bt).toEqual(none)
+
+        ctx.mockNext(none)
+        const nbt = await ctx.conn.selectFrom(tIssue).where(c.notBetween(c, c))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where estimated_hours not between estimated_hours and estimated_hours order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(nbt).toEqual(none)
+
+        ctx.mockNext(none)
+        const inC = await ctx.conn.selectFrom(tIssue).where(c.in(c))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where estimated_hours in (estimated_hours) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(inC).toEqual(none)
+
+        ctx.mockNext(none)
+        const notInC = await ctx.conn.selectFrom(tIssue).where(c.notIn(c))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where estimated_hours not in (estimated_hours) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notInC).toEqual(none)
+
+        ctx.mockNext(none)
+        const inN = await ctx.conn.selectFrom(tIssue).where(c.inN(c))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where estimated_hours in (estimated_hours) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(inN).toEqual(none)
+
+        ctx.mockNext(none)
+        const notInN = await ctx.conn.selectFrom(tIssue).where(c.notInN(c))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where estimated_hours not in (estimated_hours) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(notInN).toEqual(none)
+    })
+
+    test('double-value-when-null-nullif-value-column-arg', async () => {
+        // estimated_hours is NULL on every issue, so coalesce(estimated_hours,
+        // estimated_hours) and nullif(estimated_hours, estimated_hours) are both
+        // NULL -> the projected optional double leaf is dropped on every issue.
+        const allDropped = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]
+        ctx.mockNext(allDropped)
+        const vwnRows = await ctx.conn.selectFrom(tIssue)
+            .select({ id: tIssue.id, h: tIssue.estimatedHours.valueWhenNull(tIssue.estimatedHours) })
+            .orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce(estimated_hours, estimated_hours) as "h" from issue order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof vwnRows, Array<{ id: number; h?: number }>>>()
+        expect(vwnRows).toEqual(allDropped)
+
+        ctx.mockNext(allDropped)
+        const nivRows = await ctx.conn.selectFrom(tIssue)
+            .select({ id: tIssue.id, h: tIssue.estimatedHours.nullIfValue(tIssue.estimatedHours) })
+            .orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, nullif(estimated_hours, estimated_hours) as "h" from issue order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof nivRows, Array<{ id: number; h?: number }>>>()
+        expect(nivRows).toEqual(allDropped)
+    })
+
+    test('customUuid-nullif-value-column-arg', async () => {
+        // nullif(signing_key, signing_key) is always NULL -> the projected
+        // optional customUuid leaf is dropped on every release (no uuid value
+        // materialises, so no uuid-string decoding runs).
+        const allDropped = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        ctx.mockNext(allDropped)
+        const rows = await ctx.conn.selectFrom(tProjectRelease)
+            .select({ id: tProjectRelease.id, k: tProjectRelease.signingKey.nullIfValue(tProjectRelease.signingKey) })
+            .orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, nullif(signing_key, signing_key) as "k" from project_release order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ id: number; k?: string }>>>()
+        expect(rows).toEqual(allDropped)
+    })
+
 })

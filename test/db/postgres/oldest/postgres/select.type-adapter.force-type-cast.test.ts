@@ -71,4 +71,39 @@ describe(ctx.label, () => {
         `)
         expect(rows).toEqual([{ id: 1 }])
     })
+    // ---- round-44 F7-EXTRAS: ForceTypeCast in INSERT-VALUES / UPDATE-SET position
+    test('force-type-cast-adapter-in-insert-values-position', async () => {
+        // A ForceTypeCast-wrapped column forces the dialect's placeholder cast in
+        // the INSERT VALUES position too (a no-op where the engine infers types).
+        // `.query()` / `.params()` capture the emitted SQL without executing, so
+        // the assertion is independent of the physical table's other NOT NULL
+        // columns (which this partial mapping doesn't set).
+        const built = ctx.conn.insertInto(tProjectForcedCast)
+            .set({ id: 1, name: 'Marketing site' })
+
+        expect(built.query()).toMatchInlineSnapshot(`"insert into project (id, name) values ($1::int4, $2::text)"`)
+        expect(built.params()).toMatchInlineSnapshot(`
+          [
+            1,
+            "Marketing site",
+          ]
+        `)
+    })
+
+    test('force-type-cast-adapter-in-update-set-position', async () => {
+        // The same forced placeholder cast lands in the UPDATE SET position (on the
+        // set value) and the WHERE position (on the id), captured via `.query()` /
+        // `.params()` without executing.
+        const built = ctx.conn.update(tProjectForcedCast)
+            .set({ name: 'Renamed' })
+            .where(tProjectForcedCast.id.equals(1))
+
+        expect(built.query()).toMatchInlineSnapshot(`"update project set name = $1::text where id = $2::int4"`)
+        expect(built.params()).toMatchInlineSnapshot(`
+          [
+            "Renamed",
+            1,
+          ]
+        `)
+    })
 })

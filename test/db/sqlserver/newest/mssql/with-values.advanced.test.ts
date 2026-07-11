@@ -25,9 +25,9 @@
 //     throws `TsSqlProcessingError` with reason
 //     `CONSTANT_VALUES_VIEW_CANNOT_BE_EMPTY`.
 //
-// `Values` is only typed on the dialects that support this surface; the
-// cells whose dialect types it `never` comment out the file body with a
-// "not supported" note to keep the symmetry audit happy.
+// `Values` is typed on every dialect under test (the `Values.create(...)`
+// class form is constrained to all six SQL dialects), so the Values tests
+// run live on every cell.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'

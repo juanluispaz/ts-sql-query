@@ -179,4 +179,63 @@ describe(ctx.label, () => {
         expect(page.count).toBe(2)
         expect(page.data).toEqual(dataRows)
     })
+    // ---- round-44 F3-SELECT: compound executeSelectPage extras {data} / {count,data}
+    test('union-execute-select-page-with-extras-data-skips-data-query', async () => {
+        // When the EXTRAS argument supplies `data`, the compound data query is NOT
+        // executed — the supplied array is returned and only the wrapper count
+        // query runs (the `__buildSelectCount` CTE over the compound). The mock
+        // primes the count; on a real engine the count query still runs and yields
+        // the actual compound count.
+        ctx.mockNext(8)
+        const cached = [{ label: 'Cached label' }]
+
+        const a = ctx.conn.selectFrom(tIssue).select({ label: tIssue.title })
+        const b = ctx.conn.selectFrom(tProject).select({ label: tProject.name })
+
+        const page = await a
+            .unionAll(b)
+            .orderBy('label')
+            .executeSelectPage({ data: cached })
+
+        // Only the count query was fired (the data query was skipped).
+        expect(ctx.history.length).toBe(1)
+        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"with result_for_count as (select title as label from issue union all select name as label from project order by label) select count(*) from result_for_count"`)
+        expect(ctx.history[0]!.params).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof page, {
+            data:  Array<{ label: string }>
+            count: number
+        }>>()
+        expect(page.data).toBe(cached)
+        // Mock path returns 8; real path returns the actual compound count (8).
+        if (ctx.realDbEnabled) {
+            expect(typeof page.count).toBe('number')
+        } else {
+            expect(page.count).toBe(8)
+        }
+    })
+
+    test('union-execute-select-page-with-extras-count-and-data-fires-no-query', async () => {
+        // When EXTRAS supplies BOTH `count` and `data`, NEITHER query runs — the
+        // page is assembled from the supplied values alone (the zero-query arm of
+        // the compound page). No mockNext is primed because the runner is never
+        // touched.
+        const cached = [{ label: 'Cached label' }]
+
+        const a = ctx.conn.selectFrom(tIssue).select({ label: tIssue.title })
+        const b = ctx.conn.selectFrom(tProject).select({ label: tProject.name })
+
+        const page = await a
+            .unionAll(b)
+            .orderBy('label')
+            .executeSelectPage({ count: 7, data: cached })
+
+        // No query was fired at all.
+        expect(ctx.history.length).toBe(0)
+        assertType<Exact<typeof page, {
+            data:  Array<{ label: string }>
+            count: number
+        }>>()
+        expect(page.data).toBe(cached)
+        expect(page.count).toBe(7)
+    })
 })

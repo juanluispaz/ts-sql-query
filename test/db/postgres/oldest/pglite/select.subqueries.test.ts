@@ -262,4 +262,85 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ worklogId: number; issueId: number; orgName: string; assignee: string; reviewCount: number }>>>()
         expect(rows).toEqual(expected)
     })
+    // ---- round-44 F3-SELECT: subSelectUsing / subSelectDistinctUsing with a ForUseInLeftJoin arg
+    test('sub-select-using-for-use-in-left-join', async () => {
+        // `subSelectUsing(t.forUseInLeftJoin())` correlates the inline subquery to
+        // a LEFT-JOINED outer table: the outer query left-joins project onto the
+        // organization, and the scalar subquery counts issues whose project_id
+        // matches the (nullable) left-joined project's id. org 1 has projects 1 and
+        // 2, so the left join yields two rows; project 1 has 2 issues, project 2
+        // has 1. The left-joined `projectId` projects as an optional leaf.
+        const expected = [
+            { orgId: 1, projectId: 1, issueCount: 2 },
+            { orgId: 1, projectId: 2, issueCount: 1 },
+        ]
+        ctx.mockNext(expected)
+        const tProjectLeftJoin = tProject.forUseInLeftJoin()
+        const rows = await ctx.conn.selectFrom(tOrganization)
+            .leftJoin(tProjectLeftJoin).on(tProjectLeftJoin.organizationId.equals(tOrganization.id))
+            .where(tOrganization.id.equals(1))
+            .select({
+                orgId:      tOrganization.id,
+                projectId:  tProjectLeftJoin.id,
+                issueCount: ctx.conn.subSelectUsing(tProjectLeftJoin).from(tIssue)
+                    .where(tIssue.projectId.equals(tProjectLeftJoin.id))
+                    .selectCountAll()
+                    .forUseAsInlineQueryValue(),
+            })
+            .orderBy('projectId')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization.id as "orgId", project.id as "projectId", (select count(*) as result from issue where project_id = project.id) as "issueCount" from organization left join project on project.organization_id = organization.id where organization.id = $1 order by "projectId""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            orgId:       number
+            projectId?:  number
+            issueCount:  number
+        }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('sub-select-distinct-using-for-use-in-left-join', async () => {
+        // `subSelectDistinctUsing(t.forUseInLeftJoin())` — the DISTINCT sibling of
+        // the above, correlated to a LEFT-JOINED outer table. The count aggregate
+        // yields a single row regardless of the DISTINCT quantifier, so the value
+        // matches the plain correlated count. org 2 has projects 3 and 4; project 3
+        // has 1 issue, project 4 has none (count 0).
+        const expected = [
+            { orgId: 2, projectId: 3, issueCount: 1 },
+            { orgId: 2, projectId: 4, issueCount: 0 },
+        ]
+        ctx.mockNext(expected)
+        const tProjectLeftJoin = tProject.forUseInLeftJoin()
+        const rows = await ctx.conn.selectFrom(tOrganization)
+            .leftJoin(tProjectLeftJoin).on(tProjectLeftJoin.organizationId.equals(tOrganization.id))
+            .where(tOrganization.id.equals(2))
+            .select({
+                orgId:      tOrganization.id,
+                projectId:  tProjectLeftJoin.id,
+                issueCount: ctx.conn.subSelectDistinctUsing(tProjectLeftJoin).from(tIssue)
+                    .where(tIssue.projectId.equals(tProjectLeftJoin.id))
+                    .selectCountAll()
+                    .forUseAsInlineQueryValue(),
+            })
+            .orderBy('projectId')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization.id as "orgId", project.id as "projectId", (select distinct count(*) as result from issue where project_id = project.id) as "issueCount" from organization left join project on project.organization_id = organization.id where organization.id = $1 order by "projectId""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            orgId:       number
+            projectId?:  number
+            issueCount:  number
+        }>>>()
+        expect(rows).toEqual(expected)
+    })
 })

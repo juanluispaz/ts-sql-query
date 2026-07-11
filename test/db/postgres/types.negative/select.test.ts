@@ -366,6 +366,29 @@ function _typeNegatives() {
     void tIssue.viewCount.roundn(2)
     // @ts-expect-error sin is not a BigintValueSource method
     void tIssue.viewCount.sin()
+    // The remaining trigonometric methods are equally absent on BigintValueSource
+    // (only `sin` stood in for the whole family before). Each must stay absent.
+    // @ts-expect-error cos is not a BigintValueSource method
+    void tIssue.viewCount.cos()
+    // @ts-expect-error tan is not a BigintValueSource method
+    void tIssue.viewCount.tan()
+    // @ts-expect-error acos is not a BigintValueSource method
+    void tIssue.viewCount.acos()
+    // @ts-expect-error asin is not a BigintValueSource method
+    void tIssue.viewCount.asin()
+    // @ts-expect-error atan is not a BigintValueSource method
+    void tIssue.viewCount.atan()
+    // @ts-expect-error cot is not a BigintValueSource method
+    void tIssue.viewCount.cot()
+    // Rule: the numeric-cast methods asInt / asDouble / asBigint are
+    // NumberValueSource-only — a bigint keeps its own brand and does not offer
+    // them (mirrors the customDouble cast locks above). viewCount is a bigint.
+    // @ts-expect-error asInt is not a BigintValueSource method
+    void tIssue.viewCount.asInt()
+    // @ts-expect-error asDouble is not a BigintValueSource method
+    void tIssue.viewCount.asDouble()
+    // @ts-expect-error asBigint is not a BigintValueSource method
+    void tIssue.viewCount.asBigint()
 
     // Rule: CustomIntValueSource — like BigintValueSource — OMITS the float-only
     // math methods so a custom INT stays exact: exp / ln / log10 / sqrt / cbrt, the

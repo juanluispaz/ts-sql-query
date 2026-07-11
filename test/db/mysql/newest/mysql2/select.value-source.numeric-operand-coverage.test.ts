@@ -18,7 +18,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tIssueWorklog } from '../../domain/connection.js'
+import { tIssue, tIssueWorklog, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -729,5 +729,273 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof result, Array<{ id: number; ni?: number }>>>()
         expect(result).toEqual(expected)
+    })
+    // ── 9. Scalar-subquery OPERAND on a numeric receiver ──────────────────
+    // A scalar subquery built with `.selectOneColumn(<agg>).forUseAsInlineQueryValue()`
+    // fed as the RIGHT operand of a numeric operator, emitting `col OP (select …)`.
+    // The inline query value is always OPTIONAL (a scalar subquery may return zero
+    // rows), so every result leaf widens to optional. Each operand subquery draws
+    // from a DIFFERENT table than the receiver, so the emitted subquery is
+    // non-correlated and its value is deterministic: max(project.id) = 4 (4 seeded
+    // projects) for the int/double operand, max(issue_worklog.duration_ms) = 5400000
+    // (worklog 1) for the bigint operand. Receivers are on issue 1: priority = 2,
+    // view_count = 0 (default). A fresh subquery builder is used per key (a value
+    // source is single-use).
+
+    test('subquery-operand/int-req-add-scalar-subquery', async () => {
+        // int-required receiver + int scalar subquery → `priority + (select max(id) …)`.
+        // priority(issue 1) = 2, max(project.id) = 4 → 2 + 4 = 6. Optional inline
+        // value widens the leaf to `?: number`.
+        const expected = [{ id: 1, v: 6 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                v:  tIssue.priority.add(
+                    ctx.conn.selectFrom(tProject).selectOneColumn(ctx.conn.max(tProject.id)).forUseAsInlineQueryValue()
+                ),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority + (select max(id) as result from project) as \`v\` from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; v?: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('subquery-operand/bigint-req-add-scalar-subquery', async () => {
+        // bigint-required receiver + bigint scalar subquery →
+        // `view_count + (select max(duration_ms) …)`. view_count(issue 1) = 0,
+        // max(issue_worklog.duration_ms) = 5400000 → 0 + 5400000 = 5400000n. A bigint
+        // sum can come back as a string on some drivers, so the real-DB branch coerces
+        // through BigInt(...); the mock keeps the exact bigint shape.
+        const expected = [{ id: 1, v: 5400000n }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                v:  tIssue.viewCount.add(
+                    ctx.conn.selectFrom(tIssueWorklog).selectOneColumn(ctx.conn.max(tIssueWorklog.durationMs)).forUseAsInlineQueryValue()
+                ),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, view_count + (select max(duration_ms) as result from issue_worklog) as \`v\` from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; v?: bigint }>>>()
+        if (ctx.realDbEnabled) {
+            expect(result[0]!.id).toBe(1)
+            expect(BigInt(result[0]!.v!)).toBe(5400000n)
+        } else {
+            expect(result).toEqual(expected)
+        }
+    })
+
+    test('subquery-operand/double-req-add-scalar-subquery', async () => {
+        // double-required receiver (`priority.asDouble()`) + double scalar subquery
+        // (`max(id).asDouble()`) → `priority::float + (select max(id)::float …)`.
+        // priority(issue 1) = 2.0, max(project.id) = 4.0 → 2.0 + 4.0 = 6.0.
+        const expected = [{ id: 1, v: 6 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                v:  tIssue.priority.asDouble().add(
+                    ctx.conn.selectFrom(tProject).selectOneColumn(ctx.conn.max(tProject.id).asDouble()).forUseAsInlineQueryValue()
+                ),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (priority * 1.0) + (select max(id) * 1.0 as result from project) as \`v\` from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; v?: number }>>>()
+        if (ctx.realDbEnabled) {
+            expect(result[0]!.id).toBe(1)
+            expect(result[0]!.v).toBeCloseTo(6, 5)
+        } else {
+            expect(result).toEqual(expected)
+        }
+    })
+
+    test('subquery-operand/int-receiver-exact-operators', async () => {
+        // int receiver (priority = 2) with the int scalar subquery (= 4) across the
+        // integer-exact operators: subtract / multiply / modulo / power / minValue /
+        // maxValue. subtract = -2, multiply = 8, modulo = 2, power = 16,
+        // minValue = greatest(2,4) = 4, maxValue = least(2,4) = 2. Every leaf is
+        // optional (the inline value is optional) and comes back as a clean number.
+        const sub = () => ctx.conn.selectFrom(tProject).selectOneColumn(ctx.conn.max(tProject.id)).forUseAsInlineQueryValue()
+        const expected = [{ id: 1, s: -2, mu: 8, mo: 2, pw: 16, mn: 4, mx: 2 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                s:  tIssue.priority.subtract(sub()),
+                mu: tIssue.priority.multiply(sub()),
+                mo: tIssue.priority.modulo(sub()),
+                pw: tIssue.priority.power(sub()),
+                mn: tIssue.priority.minValue(sub()),
+                mx: tIssue.priority.maxValue(sub()),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority - (select max(id) as result from project) as \`s\`, priority * (select max(id) as result from project) as mu, priority % (select max(id) as result from project) as mo, power(priority, (select max(id) as result from project)) as pw, greatest(priority, (select max(id) as result from project)) as mn, least(priority, (select max(id) as result from project)) as mx from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{
+            id: number; s?: number; mu?: number; mo?: number; pw?: number; mn?: number; mx?: number
+        }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('subquery-operand/int-receiver-float-operators', async () => {
+        // int receiver (priority = 2) with the int scalar subquery (= 4) across the
+        // float-result operators: divide / logn / roundn / atan2. divide = 2/4 = 0.5,
+        // logn = log_4(2) = 0.5, roundn = round(2, 4 decimals) = 2, atan2(2, 4) ≈ 0.4636.
+        // The real results are floats (and a numeric-cast round can leak the driver's
+        // raw string), so the real-DB branch asserts with toBeCloseTo via Number(...).
+        const sub = () => ctx.conn.selectFrom(tProject).selectOneColumn(ctx.conn.max(tProject.id)).forUseAsInlineQueryValue()
+        const expected = [{ id: 1, di: 0.5, ln: 0.5, rn: 2, at: Math.atan2(2, 4) }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                di: tIssue.priority.divide(sub()),
+                ln: tIssue.priority.logn(sub()),
+                rn: tIssue.priority.roundn(sub()),
+                at: tIssue.priority.atan2(sub()),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority / (select max(id) as result from project) as di, log((select max(id) as result from project), priority) as ln, round(priority, (select max(id) as result from project)) as rn, atan2(priority, (select max(id) as result from project)) as \`at\` from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{
+            id: number; di?: number; ln?: number; rn?: number; at?: number
+        }>>>()
+        if (ctx.realDbEnabled) {
+            expect(result[0]!.id).toBe(1)
+            expect(Number(result[0]!.di)).toBeCloseTo(0.5, 5)
+            expect(Number(result[0]!.ln)).toBeCloseTo(0.5, 5)
+            expect(Number(result[0]!.rn)).toBeCloseTo(2, 5)
+            expect(Number(result[0]!.at)).toBeCloseTo(Math.atan2(2, 4), 5)
+        } else {
+            expect(result).toEqual(expected)
+        }
+    })
+
+    test('subquery-operand/double-receiver-operators', async () => {
+        // double receiver (`priority.asDouble()` = 2.0) with the double scalar subquery
+        // (`max(id).asDouble()` = 4.0) across the full operator set: subtract / multiply /
+        // divide / modulo / power / logn / roundn / atan2 / minValue / maxValue.
+        // subtract = -2, multiply = 8, divide = 0.5, modulo = 2, power = 16,
+        // logn = log_4(2) = 0.5, roundn = round(2.0, 2) = 2 (roundn's decimal-place
+        // operand must be an integer — a double places emits round(numeric, double)
+        // which PostgreSQL rejects, so this cell uses an int-literal places while the
+        // other operators take the double scalar subquery), atan2(2,4) ≈ 0.4636,
+        // minValue = greatest(2,4) = 4, maxValue = least(2,4) = 2. All floats, so the
+        // real-DB branch asserts with toBeCloseTo via Number(...).
+        const sub = () => ctx.conn.selectFrom(tProject).selectOneColumn(ctx.conn.max(tProject.id).asDouble()).forUseAsInlineQueryValue()
+        const base = () => tIssue.priority.asDouble()
+        const expected = [{ id: 1, s: -2, mu: 8, di: 0.5, mo: 2, pw: 16, ln: 0.5, rn: 2, at: Math.atan2(2, 4), mn: 4, mx: 2 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                s:  base().subtract(sub()),
+                mu: base().multiply(sub()),
+                di: base().divide(sub()),
+                mo: base().modulo(sub()),
+                pw: base().power(sub()),
+                ln: base().logn(sub()),
+                rn: base().roundn(2),
+                at: base().atan2(sub()),
+                mn: base().minValue(sub()),
+                mx: base().maxValue(sub()),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (priority * 1.0) - (select max(id) * 1.0 as result from project) as \`s\`, (priority * 1.0) * (select max(id) * 1.0 as result from project) as mu, (priority * 1.0) / (select max(id) * 1.0 as result from project) as di, (priority * 1.0) % (select max(id) * 1.0 as result from project) as mo, power(priority * 1.0, (select max(id) * 1.0 as result from project)) as pw, log((select max(id) * 1.0 as result from project), priority * 1.0) as ln, round(priority * 1.0, ?) as rn, atan2(priority * 1.0, (select max(id) * 1.0 as result from project)) as \`at\`, greatest(priority * 1.0, (select max(id) * 1.0 as result from project)) as mn, least(priority * 1.0, (select max(id) * 1.0 as result from project)) as mx from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{
+            id: number; s?: number; mu?: number; di?: number; mo?: number; pw?: number
+            ln?: number; rn: number; at?: number; mn?: number; mx?: number
+        }>>>()
+        if (ctx.realDbEnabled) {
+            expect(result[0]!.id).toBe(1)
+            expect(Number(result[0]!.s)).toBeCloseTo(-2, 5)
+            expect(Number(result[0]!.mu)).toBeCloseTo(8, 5)
+            expect(Number(result[0]!.di)).toBeCloseTo(0.5, 5)
+            expect(Number(result[0]!.mo)).toBeCloseTo(2, 5)
+            expect(Number(result[0]!.pw)).toBeCloseTo(16, 5)
+            expect(Number(result[0]!.ln)).toBeCloseTo(0.5, 5)
+            expect(Number(result[0]!.rn)).toBeCloseTo(2, 5)
+            expect(Number(result[0]!.at)).toBeCloseTo(Math.atan2(2, 4), 5)
+            expect(Number(result[0]!.mn)).toBeCloseTo(4, 5)
+            expect(Number(result[0]!.mx)).toBeCloseTo(2, 5)
+        } else {
+            expect(result).toEqual(expected)
+        }
+    })
+
+    test('subquery-operand/bigint-receiver-operators', async () => {
+        // bigint receiver (view_count = 0) with the bigint scalar subquery
+        // (`max(duration_ms)` = 5400000) across subtract / modulo / minValue / maxValue.
+        // subtract = -5400000, modulo = 0 % 5400000 = 0, minValue = greatest(0, 5400000)
+        // = 5400000, maxValue = least(0, 5400000) = 0. A bigint result can come back as a
+        // string on some drivers, so the real-DB branch coerces through BigInt(...).
+        const sub = () => ctx.conn.selectFrom(tIssueWorklog).selectOneColumn(ctx.conn.max(tIssueWorklog.durationMs)).forUseAsInlineQueryValue()
+        const expected = [{ id: 1, s: -5400000n, mo: 0n, mn: 5400000n, mx: 0n }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                s:  tIssue.viewCount.subtract(sub()),
+                mo: tIssue.viewCount.modulo(sub()),
+                mn: tIssue.viewCount.minValue(sub()),
+                mx: tIssue.viewCount.maxValue(sub()),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, view_count - (select max(duration_ms) as result from issue_worklog) as \`s\`, view_count % (select max(duration_ms) as result from issue_worklog) as mo, greatest(view_count, (select max(duration_ms) as result from issue_worklog)) as mn, least(view_count, (select max(duration_ms) as result from issue_worklog)) as mx from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{
+            id: number; s?: bigint; mo?: bigint; mn?: bigint; mx?: bigint
+        }>>>()
+        if (ctx.realDbEnabled) {
+            expect(result[0]!.id).toBe(1)
+            expect(BigInt(result[0]!.s!)).toBe(-5400000n)
+            expect(BigInt(result[0]!.mo!)).toBe(0n)
+            expect(BigInt(result[0]!.mn!)).toBe(5400000n)
+            expect(BigInt(result[0]!.mx!)).toBe(0n)
+        } else {
+            expect(result).toEqual(expected)
+        }
     })
 })

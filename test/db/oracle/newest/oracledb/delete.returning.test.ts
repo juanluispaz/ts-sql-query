@@ -449,4 +449,36 @@ describe(ctx.label, () => {
             expect(row.meta).toBe(null)
         })
     })
+    // ---- round-44 F4-UPDDEL: one-column-many undefined→null per-element coercion
+    test('delete-returning-one-column-many-coerces-undefined-to-null', async () => {
+        // `returningOneColumn(<optional col>)` consumed by `executeDeleteMany()`
+        // maps each returned scalar, coercing a driver-returned `undefined` element
+        // to `null` (the per-element coercion line a single-row path never hits).
+        // The mock primes `[undefined, 'x']` to force that path; on a real engine
+        // the actual bodies come back (issues 1 and 2 of project 1: NULL and
+        // 'Use new tokens'). Deleting project 1's issues cascades to their worklogs
+        // (ON DELETE CASCADE), so it is referential-integrity-safe. The element type
+        // stays `string | null`.
+        await ctx.withRollback(async () => {
+            ctx.mockNext([undefined, 'Use new tokens'])
+            const bodies = await ctx.conn.deleteFrom(tIssue)
+                .where(tIssue.projectId.equals(1))
+                .returningOneColumn(tIssue.body)
+                .executeDeleteMany()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where project_id = :0 returning "body" into :1"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                {
+                  "as": "result",
+                  "dir": 3003,
+                },
+              ]
+            `)
+            assertType<Exact<typeof bodies, Array<string | null>>>()
+            const sortedBodies = [...bodies].sort((a, b) => (a === null ? -1 : b === null ? 1 : a.localeCompare(b)))
+            expect(sortedBodies).toEqual([null, 'Use new tokens'])
+        })
+    })
 })

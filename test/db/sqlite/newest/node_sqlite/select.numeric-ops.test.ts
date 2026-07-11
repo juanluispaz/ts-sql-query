@@ -807,4 +807,280 @@ describe(ctx.label, () => {
             expect(result).toEqual(expected)
         }
     })
+    // ── Receiver fan-out: the unary / SqlFunction1 / cast methods on the
+    // double-optional, double-required (via .asDouble()) and bigint-optional
+    // receivers, mirroring the plain-int-receiver coverage above onto the
+    // other numeric leaves (the wrapper SQL and result type match; only the
+    // receiver leaf and its optionality/brand differ).
+
+    test('optional-double-receiver-unary-f1-fan-out', async () => {
+        // The unary math (abs/ceil/floor/sign/cbrt/exp/ln/log10), SqlFunction1
+        // (logn/roundn/atan2) and cast (asInt/asBigint/asDouble) methods on an
+        // OPTIONAL double receiver (`estimatedHours`). Every leaf threads the
+        // `optional` marker (`?: number`, and asBigint `?: bigint`). estimated_hours
+        // is NULL in the seed, so it is set to 8 inside the rollback: abs/ceil/floor=8,
+        // sign=1, cbrt(8)=2, logn base-2=3, roundn(2)=8, asInt/asDouble=8, asBigint=8n;
+        // exp/ln/log10/atan2 are irrational floats (toBeCloseTo).
+        await ctx.withRollback(async () => {
+            ctx.mockNext(1)
+            await ctx.conn.update(tIssue).set({ estimatedHours: 8 }).where(tIssue.id.equals(1)).executeUpdate()
+
+            const expected = {
+                id: 1, ab: 8, ce: 8, fl: 8, sg: 1, cb: 2,
+                ex: Math.exp(8), ln: Math.log(8), l10: Math.log10(8),
+                lgn: 3, rn: 8, at: Math.atan2(8, 2),
+                ai: 8, abi: 8n, ad: 8,
+            }
+            ctx.mockNext(expected)
+            const row = await ctx.conn.selectFrom(tIssue)
+                .where(tIssue.id.equals(1))
+                .select({
+                    id:  tIssue.id,
+                    ab:  tIssue.estimatedHours.abs(),
+                    ce:  tIssue.estimatedHours.ceil(),
+                    fl:  tIssue.estimatedHours.floor(),
+                    sg:  tIssue.estimatedHours.sign(),
+                    cb:  tIssue.estimatedHours.cbrt(),
+                    ex:  tIssue.estimatedHours.exp(),
+                    ln:  tIssue.estimatedHours.ln(),
+                    l10: tIssue.estimatedHours.log10(),
+                    lgn: tIssue.estimatedHours.logn(2),
+                    rn:  tIssue.estimatedHours.roundn(2),
+                    at:  tIssue.estimatedHours.atan2(2),
+                    ai:  tIssue.estimatedHours.asInt(),
+                    abi: tIssue.estimatedHours.asBigint(),
+                    ad:  tIssue.estimatedHours.asDouble(),
+                })
+                .executeSelectOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs(estimated_hours) as ab, ceil(estimated_hours) as ce, floor(estimated_hours) as fl, sign(estimated_hours) as sg, sign(estimated_hours) * power(abs(estimated_hours), 1.0 / 3.0) as cb, exp(estimated_hours) as ex, ln(estimated_hours) as ln, log10(estimated_hours) as l10, log(?, estimated_hours) as lgn, round(estimated_hours, ?) as rn, atan2(estimated_hours, ?) as at, round(estimated_hours) as ai, round(estimated_hours) as abi, cast(estimated_hours as real) as ad from issue where id = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                2,
+                2,
+                2,
+                1,
+              ]
+            `)
+            assertType<Exact<typeof row, {
+                id: number
+                ab?: number; ce?: number; fl?: number; sg?: number; cb?: number
+                ex?: number; ln?: number; l10?: number
+                lgn?: number; rn?: number; at?: number
+                ai?: number; abi?: bigint; ad?: number
+            }>>()
+            if (ctx.realDbEnabled) {
+                expect(row.id).toBe(1)
+                expect(row.ab).toBe(8); expect(row.ce).toBe(8); expect(row.fl).toBe(8)
+                expect(row.sg).toBe(1); expect(Number(row.cb)).toBeCloseTo(2, 5)
+                expect(row.ex).toBeCloseTo(Math.exp(8), 3)
+                expect(row.ln).toBeCloseTo(Math.log(8), 5)
+                expect(row.l10).toBeCloseTo(Math.log10(8), 5)
+                expect(Number(row.lgn)).toBeCloseTo(3, 5)
+                expect(Number(row.rn)).toBeCloseTo(8, 5)
+                expect(row.at).toBeCloseTo(Math.atan2(8, 2), 5)
+                expect(Number(row.ai)).toBe(8); expect(BigInt(row.abi!)).toBe(8n)
+                expect(Number(row.ad)).toBeCloseTo(8, 5)
+            } else {
+                expect(row).toEqual(expected)
+            }
+        })
+    })
+
+    test('double-required-receiver-unary-f1-fan-out', async () => {
+        // The unary math, SqlFunction1 (power/logn/roundn/atan2) and
+        // minValue/maxValue methods on a REQUIRED double receiver
+        // (`priority.asDouble()` = 2.0 for issue 1). Every leaf stays REQUIRED
+        // (`number`). abs/ceil/floor=2, sign=1, power(2)=4, logn base-2=1,
+        // roundn(2)=2, minValue(1)=greatest(2,1)=2, maxValue(3)=least(2,3)=2;
+        // cbrt/exp/ln/log10/atan2 are irrational floats (toBeCloseTo).
+        const base = () => tIssue.priority.asDouble()
+        const expected = {
+            id: 1, ab: 2, ce: 2, fl: 2, sg: 1,
+            cb: Math.cbrt(2), ex: Math.exp(2), ln: Math.log(2), l10: Math.log10(2),
+            pw: 4, lgn: 1, rn: 2, at: Math.PI / 4, mn: 2, mx: 2,
+        }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id:  tIssue.id,
+                ab:  base().abs(),
+                ce:  base().ceil(),
+                fl:  base().floor(),
+                sg:  base().sign(),
+                cb:  base().cbrt(),
+                ex:  base().exp(),
+                ln:  base().ln(),
+                l10: base().log10(),
+                pw:  base().power(2),
+                lgn: base().logn(2),
+                rn:  base().roundn(2),
+                at:  base().atan2(2),
+                mn:  base().minValue(1),
+                mx:  base().maxValue(3),
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs(cast(priority as real)) as ab, ceil(cast(priority as real)) as ce, floor(cast(priority as real)) as fl, sign(cast(priority as real)) as sg, sign(cast(priority as real)) * power(abs(cast(priority as real)), 1.0 / 3.0) as cb, exp(cast(priority as real)) as ex, ln(cast(priority as real)) as ln, log10(cast(priority as real)) as l10, power(cast(priority as real), ?) as pw, log(?, cast(priority as real)) as lgn, round(cast(priority as real), ?) as rn, atan2(cast(priority as real), ?) as at, max(cast(priority as real), ?) as mn, min(cast(priority as real), ?) as mx from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+            2,
+            2,
+            2,
+            1,
+            3,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            id: number
+            ab: number; ce: number; fl: number; sg: number
+            cb: number; ex: number; ln: number; l10: number
+            pw: number; lgn: number; rn: number; at: number; mn: number; mx: number
+        }>>()
+        if (ctx.realDbEnabled) {
+            expect(row.id).toBe(1)
+            expect(row.ab).toBe(2); expect(row.ce).toBe(2); expect(row.fl).toBe(2); expect(row.sg).toBe(1)
+            expect(row.cb).toBeCloseTo(Math.cbrt(2), 4)
+            expect(row.ex).toBeCloseTo(Math.exp(2), 5)
+            expect(row.ln).toBeCloseTo(Math.log(2), 5)
+            expect(row.l10).toBeCloseTo(Math.log10(2), 5)
+            expect(row.pw).toBeCloseTo(4, 5)
+            expect(Number(row.lgn)).toBeCloseTo(1, 5)
+            expect(Number(row.rn)).toBeCloseTo(2, 5)
+            expect(row.at).toBeCloseTo(Math.PI / 4, 5)
+            expect(row.mn).toBeCloseTo(2, 5); expect(row.mx).toBeCloseTo(2, 5)
+        } else {
+            expect(row).toEqual(expected)
+        }
+    })
+
+    test('optional-bigint-receiver-rounding-arithmetic-fan-out', async () => {
+        // ceil/floor/round and the const-operand arithmetic (subtract/modulo/
+        // minValue/maxValue) on an OPTIONAL bigint receiver (`durationMs` =
+        // 5400000 for worklog 1). Every leaf keeps the bigint type and threads the
+        // `optional` marker (`?: bigint`). ceil/floor/round=5400000n,
+        // subtract(400000n)=5000000n, modulo(1000000n)=400000n,
+        // minValue(6000000n)=greatest=6000000n, maxValue(6000000n)=least=5400000n.
+        // A bigint result can come back as a string on some drivers, so the real-DB
+        // branch coerces through BigInt(...).
+        const expected = {
+            id: 1, ce: 5400000n, fl: 5400000n, ro: 5400000n,
+            s: 5000000n, mo: 400000n, mn: 6000000n, mx: 5400000n,
+        }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .select({
+                id: tIssueWorklog.id,
+                ce: tIssueWorklog.durationMs.ceil(),
+                fl: tIssueWorklog.durationMs.floor(),
+                ro: tIssueWorklog.durationMs.round(),
+                s:  tIssueWorklog.durationMs.subtract(400000n),
+                mo: tIssueWorklog.durationMs.modulo(1000000n),
+                mn: tIssueWorklog.durationMs.minValue(6000000n),
+                mx: tIssueWorklog.durationMs.maxValue(6000000n),
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ceil(duration_ms) as ce, floor(duration_ms) as fl, round(duration_ms) as ro, duration_ms - ? as "s", duration_ms % ? as mo, max(duration_ms, ?) as mn, min(duration_ms, ?) as mx from issue_worklog where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            400000n,
+            1000000n,
+            6000000n,
+            6000000n,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            id: number; ce?: bigint; fl?: bigint; ro?: bigint
+            s?: bigint; mo?: bigint; mn?: bigint; mx?: bigint
+        }>>()
+        if (ctx.realDbEnabled) {
+            expect(row.id).toBe(1)
+            expect(BigInt(row.ce!)).toBe(5400000n)
+            expect(BigInt(row.fl!)).toBe(5400000n)
+            expect(BigInt(row.ro!)).toBe(5400000n)
+            expect(BigInt(row.s!)).toBe(5000000n)
+            expect(BigInt(row.mo!)).toBe(400000n)
+            expect(BigInt(row.mn!)).toBe(6000000n)
+            expect(BigInt(row.mx!)).toBe(5400000n)
+        } else {
+            expect(row).toEqual(expected)
+        }
+    })
+    test('optional-int-receiver-unary-f1-fan-out', async () => {
+        // The unary math (abs/ceil/floor/sign/sqrt/cbrt/exp/ln/log10), SqlFunction1
+        // (power/logn/roundn/atan2) and cast (asDouble/asBigint) methods on an OPTIONAL
+        // int receiver (`assigneeId`). Every leaf threads the `optional` marker
+        // (`?: number`, and asBigint `?: bigint`). Issue 4 has assignee_id = 3 (present):
+        // abs/ceil/floor=3, sign=1, power(2)=9, logn base-3=1, roundn(2)=3, asDouble=3,
+        // asBigint=3n; sqrt/cbrt/exp/ln/log10/atan2 are irrational floats (toBeCloseTo).
+        const expected = {
+            id: 4, ab: 3, ce: 3, fl: 3, sg: 1,
+            sq: Math.sqrt(3), cb: Math.cbrt(3), ex: Math.exp(3), ln: Math.log(3), l10: Math.log10(3),
+            pw: 9, lgn: 1, rn: 3, at: Math.atan2(3, 2),
+            ad: 3, abi: 3n,
+        }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(4))
+            .select({
+                id:  tIssue.id,
+                ab:  tIssue.assigneeId.abs(),
+                ce:  tIssue.assigneeId.ceil(),
+                fl:  tIssue.assigneeId.floor(),
+                sg:  tIssue.assigneeId.sign(),
+                sq:  tIssue.assigneeId.sqrt(),
+                cb:  tIssue.assigneeId.cbrt(),
+                ex:  tIssue.assigneeId.exp(),
+                ln:  tIssue.assigneeId.ln(),
+                l10: tIssue.assigneeId.log10(),
+                pw:  tIssue.assigneeId.power(2),
+                lgn: tIssue.assigneeId.logn(3),
+                rn:  tIssue.assigneeId.roundn(2),
+                at:  tIssue.assigneeId.atan2(2),
+                ad:  tIssue.assigneeId.asDouble(),
+                abi: tIssue.assigneeId.asBigint(),
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs(assignee_id) as ab, ceil(assignee_id) as ce, floor(assignee_id) as fl, sign(assignee_id) as sg, sqrt(assignee_id) as sq, sign(assignee_id) * power(abs(assignee_id), 1.0 / 3.0) as cb, exp(assignee_id) as ex, ln(assignee_id) as ln, log10(assignee_id) as l10, power(assignee_id, ?) as pw, log(?, assignee_id) as lgn, round(assignee_id, ?) as rn, atan2(assignee_id, ?) as at, cast(assignee_id as real) as ad, assignee_id as abi from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+            3,
+            2,
+            2,
+            4,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            id: number
+            ab?: number; ce?: number; fl?: number; sg?: number
+            sq?: number; cb?: number; ex?: number; ln?: number; l10?: number
+            pw?: number; lgn?: number; rn?: number; at?: number
+            ad?: number; abi?: bigint
+        }>>()
+        if (ctx.realDbEnabled) {
+            expect(row.id).toBe(4)
+            expect(row.ab).toBe(3); expect(row.ce).toBe(3); expect(row.fl).toBe(3); expect(row.sg).toBe(1)
+            expect(row.sq).toBeCloseTo(Math.sqrt(3), 5)
+            expect(row.cb).toBeCloseTo(Math.cbrt(3), 4)
+            expect(row.ex).toBeCloseTo(Math.exp(3), 5)
+            expect(row.ln).toBeCloseTo(Math.log(3), 5)
+            expect(row.l10).toBeCloseTo(Math.log10(3), 5)
+            expect(row.pw).toBeCloseTo(9, 5)
+            expect(Number(row.lgn)).toBeCloseTo(1, 5)
+            expect(Number(row.rn)).toBeCloseTo(3, 5)
+            expect(row.at).toBeCloseTo(Math.atan2(3, 2), 5)
+            expect(Number(row.ad)).toBeCloseTo(3, 5)
+            expect(BigInt(row.abi!)).toBe(3n)
+        } else {
+            expect(row).toEqual(expected)
+        }
+    })
 })

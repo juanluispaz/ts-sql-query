@@ -1589,4 +1589,192 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row2, { id: number; c?: Date }>>()
         expect(row2).toEqual(expected2)
     })
+    // ==== Round-44 BOOLIF surface — custom-boolean receiver × Nullable family.
+    // valueWhenNull / nullIfValue with a literal boolean arg on the REQUIRED
+    // custom-boolean adapters (verified 'Y'/'N', published 't'/'f', invoiced 1/0),
+    // and the modifier trio (asRequiredInOptionalObject / onlyWhenOrNull /
+    // ignoreWhenAsNull) on the remaining adapters (verified / approved / invoiced).
+    // The receiver remaps to its adapter predicate inside coalesce / nullif. Seed:
+    // verified 1 'Y', 2 'N'; published 1 't', 2 'f', 3 't', 4 'f'; approved 1 'A',
+    // 2 'R', 3 NULL; invoiced 1 -> 1, 2 -> 0, 3 -> 1. ====
+
+    test('null-modifiers-on-verified-required-custom-boolean-string-adapter', async () => {
+        // `verified.valueWhenNull(false)` → `coalesce((verified = 'Y'), $1)` (required
+        // boolean; verified is never NULL so the coalesce always yields the remapped
+        // value). `verified.nullIfValue(false)` → `nullif((verified = 'Y'), $2)`
+        // (optional; org 2 'N' → false, nullif(false,false) is NULL → absent).
+        ctx.mockNext([
+            { id: 1, wn: true,  ni: true },
+            { id: 2, wn: false, ni: null },
+        ])
+        const expected = [
+            { id: 1, wn: true,  ni: true },
+            { id: 2, wn: false },
+        ]
+        const rows = await ctx.conn.selectFrom(tOrganization)
+            .select({
+                id: tOrganization.id,
+                wn: tOrganization.verified.valueWhenNull(false),
+                ni: tOrganization.verified.nullIfValue(false),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull((verified = 'Y'), ?) as wn, nullif((verified = 'Y'), ?) as ni from organization order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            false,
+            false,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; wn: boolean; ni?: boolean }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('null-modifiers-on-published-required-custom-boolean-string-adapter', async () => {
+        // `published.valueWhenNull(false)` → `coalesce((published = 't'), $1)`;
+        // `published.nullIfValue(false)` → `nullif((published = 't'), $2)`. Projects 1,
+        // 3 ('t' → true) keep `ni`; projects 2, 4 ('f' → false) collapse `ni` to absent.
+        ctx.mockNext([
+            { id: 1, wn: true,  ni: true },
+            { id: 2, wn: false, ni: null },
+            { id: 3, wn: true,  ni: true },
+            { id: 4, wn: false, ni: null },
+        ])
+        const expected = [
+            { id: 1, wn: true,  ni: true },
+            { id: 2, wn: false },
+            { id: 3, wn: true,  ni: true },
+            { id: 4, wn: false },
+        ]
+        const rows = await ctx.conn.selectFrom(tProject)
+            .select({
+                id: tProject.id,
+                wn: tProject.published.valueWhenNull(false),
+                ni: tProject.published.nullIfValue(false),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull((published = 't'), ?) as wn, nullif((published = 't'), ?) as ni from project order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            false,
+            false,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; wn: boolean; ni?: boolean }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('null-modifiers-on-invoiced-required-numeric-custom-boolean-adapter', async () => {
+        // The NUMERIC custom-boolean overload (1/0): `invoiced.valueWhenNull(false)` →
+        // `coalesce((invoiced = 1), $1)`; `invoiced.nullIfValue(false)` →
+        // `nullif((invoiced = 1), $2)`. Worklogs 1, 3 (invoiced 1 → true) keep `ni`;
+        // worklog 2 (invoiced 0 → false) collapses `ni` to absent.
+        ctx.mockNext([
+            { id: 1, wn: true,  ni: true },
+            { id: 2, wn: false, ni: null },
+            { id: 3, wn: true,  ni: true },
+        ])
+        const expected = [
+            { id: 1, wn: true,  ni: true },
+            { id: 2, wn: false },
+            { id: 3, wn: true,  ni: true },
+        ]
+        const rows = await ctx.conn.selectFrom(tIssueWorklog)
+            .select({
+                id: tIssueWorklog.id,
+                wn: tIssueWorklog.invoiced.valueWhenNull(false),
+                ni: tIssueWorklog.invoiced.nullIfValue(false),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull((invoiced = 1), ?) as wn, nullif((invoiced = 1), ?) as ni from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            false,
+            false,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; wn: boolean; ni?: boolean }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('modifier-trio-on-verified-required-custom-boolean-leaf', async () => {
+        // The modifier trio on the REQUIRED string custom-boolean `verified` ('Y'/'N').
+        // `asRequiredInOptionalObject()` passes the column through — the adapter remaps
+        // it, so `req` keeps the boolean type (`req?: boolean`); `onlyWhenOrNull(false)`
+        // / `ignoreWhenAsNull(true)` replace the value source with a typed NULL, so
+        // `own` / `ign` are absent under optional-as-undefined. Org 1 verified 'Y' → true.
+        const expected = { id: 1, req: true }
+        ctx.mockNext({ id: 1, req: true })
+        const row = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.id.equals(1))
+            .select({
+                id:  tOrganization.id,
+                req: tOrganization.verified.asRequiredInOptionalObject(),
+                own: tOrganization.verified.onlyWhenOrNull(false),
+                ign: tOrganization.verified.ignoreWhenAsNull(true),
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (verified = 'Y') as req, null as own, null as ign from organization where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; req?: boolean; own?: boolean; ign?: boolean }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('modifier-trio-on-approved-nullable-custom-boolean-leaf', async () => {
+        // The modifier trio on the NULLABLE string custom-boolean `approved` ('A'/'R').
+        // `asRequiredInOptionalObject()` keeps the remapped boolean (`req?: boolean`);
+        // the two NULL-substitution modifiers drop `own` / `ign` to absent. Worklog 1
+        // approved 'A' → true.
+        const expected = { id: 1, req: true }
+        ctx.mockNext({ id: 1, req: true })
+        const row = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .select({
+                id:  tIssueWorklog.id,
+                req: tIssueWorklog.approved.asRequiredInOptionalObject(),
+                own: tIssueWorklog.approved.onlyWhenOrNull(false),
+                ign: tIssueWorklog.approved.ignoreWhenAsNull(true),
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (approved = 'A') as req, null as own, null as ign from issue_worklog where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; req?: boolean; own?: boolean; ign?: boolean }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('modifier-trio-on-invoiced-required-numeric-custom-boolean-leaf', async () => {
+        // The modifier trio on the REQUIRED numeric custom-boolean `invoiced` (1/0).
+        // `asRequiredInOptionalObject()` keeps the remapped boolean (`req?: boolean`);
+        // the two NULL-substitution modifiers drop `own` / `ign` to absent. Worklog 1
+        // invoiced 1 → true.
+        const expected = { id: 1, req: true }
+        ctx.mockNext({ id: 1, req: true })
+        const row = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .select({
+                id:  tIssueWorklog.id,
+                req: tIssueWorklog.invoiced.asRequiredInOptionalObject(),
+                own: tIssueWorklog.invoiced.onlyWhenOrNull(false),
+                ign: tIssueWorklog.invoiced.ignoreWhenAsNull(true),
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (invoiced = 1) as req, null as own, null as ign from issue_worklog where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; req?: boolean; own?: boolean; ign?: boolean }>>()
+        expect(row).toEqual(expected)
+    })
 })

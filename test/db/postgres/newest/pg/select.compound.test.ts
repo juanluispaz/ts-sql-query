@@ -3,6 +3,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
+import { TsSqlError } from '../../../../../src/TsSqlError.js'
 import { tIssue, tOrganization, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
@@ -1219,5 +1220,345 @@ describe(ctx.label, () => {
                 { id: 2, count: 1 },
             ],
         })
+    })
+
+    // ---- round-44 F3-SELECT: compound execute-select-one / none-or-one guards
+    test('compound-execute-select-one-empty-result-throws-no-result', async () => {
+        // `executeSelectOne()` over a COMPOUND select whose arms together match no
+        // row throws NO_RESULT — routed through the same runner the plain-select
+        // executeSelectOne uses. Both arms filter on a non-existing id, so the
+        // union is empty on a real engine too; the mock returns the "no row"
+        // sentinel. The compound SQL is captured before the throw fires.
+        ctx.mockNext(undefined)
+        let caught: unknown
+        try {
+            await ctx.conn.selectFrom(tProject)
+                .where(tProject.id.equals(-1))
+                .select({ label: tProject.name })
+                .union(
+                    ctx.conn.selectFrom(tIssue)
+                        .where(tIssue.id.equals(-1))
+                        .select({ label: tIssue.title }),
+                )
+                .orderBy('label')
+                .executeSelectOne()
+        } catch (e) {
+            caught = e
+        }
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project where id = $1 union select title as label from issue where id = $2 order by label"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            -1,
+            -1,
+          ]
+        `)
+        expect(String(caught)).toMatch(/NO_RESULT|No result returned/)
+        expect(caught instanceof TsSqlError ? caught.errorReason.reason : undefined).toBe('NO_RESULT')
+    })
+
+    test('compound-execute-select-one-multiple-rows-throws-more-than-one-row', async () => {
+        // `executeSelectOne()` over a COMPOUND select whose arms together yield TWO
+        // rows throws MORE_THAN_ONE_ROW on a real engine (project 1 ∪ project 2 =
+        // two distinct labels). The mock returns a single queued object and cannot
+        // produce two rows, so on mock the single object returns without a throw.
+        // The compound SQL is captured in both modes.
+        const single = { label: 'Internal tools' }
+        ctx.mockNext(single)
+        let caught: unknown
+        let result: { label: string } | undefined
+        try {
+            result = await ctx.conn.selectFrom(tProject)
+                .where(tProject.id.equals(1))
+                .select({ label: tProject.name })
+                .union(
+                    ctx.conn.selectFrom(tProject)
+                        .where(tProject.id.equals(2))
+                        .select({ label: tProject.name }),
+                )
+                .orderBy('label')
+                .executeSelectOne()
+        } catch (e) {
+            caught = e
+        }
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project where id = $1 union select name as label from project where id = $2 order by label"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+          ]
+        `)
+        if (ctx.realDbEnabled) {
+            expect(String(caught)).toMatch(/MORE_THAN_ONE_ROW|Too many rows/)
+            expect(caught instanceof TsSqlError ? caught.errorReason.reason : undefined).toBe('MORE_THAN_ONE_ROW')
+        } else {
+            expect(caught).toBeUndefined()
+            expect(result).toEqual(single)
+        }
+    })
+
+    test('compound-execute-select-none-or-one-multiple-rows-throws-more-than-one-row', async () => {
+        // `executeSelectNoneOrOne()` over a COMPOUND select widens the null (None)
+        // arm, but MORE-than-one row is still a hard error routed through the same
+        // runner as executeSelectOne. project 1 ∪ project 2 = two rows → throws
+        // MORE_THAN_ONE_ROW on a real engine. The mock returns a single queued
+        // object, so on mock it returns without a throw. SQL captured in both modes.
+        const single = { label: 'Internal tools' }
+        ctx.mockNext(single)
+        let caught: unknown
+        let result: { label: string } | null | undefined
+        try {
+            result = await ctx.conn.selectFrom(tProject)
+                .where(tProject.id.equals(1))
+                .select({ label: tProject.name })
+                .union(
+                    ctx.conn.selectFrom(tProject)
+                        .where(tProject.id.equals(2))
+                        .select({ label: tProject.name }),
+                )
+                .orderBy('label')
+                .executeSelectNoneOrOne()
+        } catch (e) {
+            caught = e
+        }
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project where id = $1 union select name as label from project where id = $2 order by label"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+          ]
+        `)
+        if (ctx.realDbEnabled) {
+            expect(String(caught)).toMatch(/MORE_THAN_ONE_ROW|Too many rows/)
+            expect(caught instanceof TsSqlError ? caught.errorReason.reason : undefined).toBe('MORE_THAN_ONE_ROW')
+        } else {
+            expect(caught).toBeUndefined()
+            expect(result).toEqual(single)
+        }
+    })
+
+    // ---- SEL-SEAM Round-44: C1 compound-orderBy rawFragment-embedding-value-source wrap on the 7 non-union ops ----
+    // The existing `compound-order-by-raw-fragment-embedding-value-source` pins the wrap
+    // on `union`. A rawFragment whose fragment embeds a no-table value source
+    // (`const(1, 'int')`) renders as a bound parameter, forcing the same
+    // compound-order-by handling as a bare value source: the compound is wrapped in a
+    // derived table (`select * from (…) as o_1_ order by <col>, <fragment>`) on dialects
+    // that wrap. The wrap is op-independent, so these mirror it across the remaining
+    // compound ops. Each uses `orderBy('iid')` as a deterministic primary key and the
+    // rawFragment as a benign constant secondary key.
+
+    test('compound-unionAll-order-by-raw-fragment-embedding-value-source', async () => {
+        const expected = [{ iid: 1 }, { iid: 2 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(1)).select({ iid: tIssue.id })
+            .unionAll(ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(2)).select({ iid: tIssue.id }))
+            .orderBy('iid')
+            .orderBy(ctx.conn.rawFragment`${ctx.conn.const(1, 'int')}`)
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select id as iid from issue where id = $1 union all select id as iid from issue where id = $2) as o_1_ order by iid, $3"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ iid: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('compound-intersect-order-by-raw-fragment-embedding-value-source', async () => {
+        const expected = [{ iid: 1 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue).where(tIssue.id.in([1, 2])).select({ iid: tIssue.id })
+            .intersect(ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(1)).select({ iid: tIssue.id }))
+            .orderBy('iid')
+            .orderBy(ctx.conn.rawFragment`${ctx.conn.const(1, 'int')}`)
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select id as iid from issue where id in ($1, $2) intersect select id as iid from issue where id = $3) as o_1_ order by iid, $4"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+            1,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ iid: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('compound-intersectAll-order-by-raw-fragment-embedding-value-source', async () => {
+        const expected = [{ iid: 1 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue).where(tIssue.id.in([1, 2])).select({ iid: tIssue.id })
+            .intersectAll(ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(1)).select({ iid: tIssue.id }))
+            .orderBy('iid')
+            .orderBy(ctx.conn.rawFragment`${ctx.conn.const(1, 'int')}`)
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select id as iid from issue where id in ($1, $2) intersect all select id as iid from issue where id = $3) as o_1_ order by iid, $4"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+            1,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ iid: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('compound-except-order-by-raw-fragment-embedding-value-source', async () => {
+        const expected = [{ iid: 1 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue).where(tIssue.id.in([1, 2])).select({ iid: tIssue.id })
+            .except(ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(2)).select({ iid: tIssue.id }))
+            .orderBy('iid')
+            .orderBy(ctx.conn.rawFragment`${ctx.conn.const(1, 'int')}`)
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select id as iid from issue where id in ($1, $2) except select id as iid from issue where id = $3) as o_1_ order by iid, $4"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+            2,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ iid: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('compound-exceptAll-order-by-raw-fragment-embedding-value-source', async () => {
+        const expected = [{ iid: 1 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue).where(tIssue.id.in([1, 2])).select({ iid: tIssue.id })
+            .exceptAll(ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(2)).select({ iid: tIssue.id }))
+            .orderBy('iid')
+            .orderBy(ctx.conn.rawFragment`${ctx.conn.const(1, 'int')}`)
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select id as iid from issue where id in ($1, $2) except all select id as iid from issue where id = $3) as o_1_ order by iid, $4"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+            2,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ iid: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('compound-minus-order-by-raw-fragment-embedding-value-source', async () => {
+        const expected = [{ iid: 1 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue).where(tIssue.id.in([1, 2])).select({ iid: tIssue.id })
+            .minus(ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(2)).select({ iid: tIssue.id }))
+            .orderBy('iid')
+            .orderBy(ctx.conn.rawFragment`${ctx.conn.const(1, 'int')}`)
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select id as iid from issue where id in ($1, $2) except select id as iid from issue where id = $3) as o_1_ order by iid, $4"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+            2,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ iid: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('compound-minusAll-order-by-raw-fragment-embedding-value-source', async () => {
+        const expected = [{ iid: 1 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue).where(tIssue.id.in([1, 2])).select({ iid: tIssue.id })
+            .minusAll(ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(2)).select({ iid: tIssue.id }))
+            .orderBy('iid')
+            .orderBy(ctx.conn.rawFragment`${ctx.conn.const(1, 'int')}`)
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select id as iid from issue where id in ($1, $2) except all select id as iid from issue where id = $3) as o_1_ order by iid, $4"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+            2,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ iid: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    // ---- SEL-SEAM Round-44: C1 reaching-forms (rawFragment carrying MULTIPLE / expression-embedded params) ----
+    // Two more ways a value-source-embedding rawFragment reaches the compound-orderBy
+    // wrap. Both render the value source(s) inside a larger SQL expression (not a bare
+    // `$n`), so the ORDER BY term is a computed expression — which dialects that reject a
+    // bare bind parameter as an ORDER BY term (SQL Server, error 1008) may still accept.
+
+    test('compound-order-by-raw-fragment-embedding-multiple-value-sources', async () => {
+        // A rawFragment embedding TWO no-table value sources (`const(1) + const(2)`):
+        // the fragment carries both params, the compound wraps, and the ORDER BY term is
+        // the expression `<p1> + <p2>` (a benign constant secondary key after `label`).
+        const expected = [
+            { label: 'Document /v2/users' },
+            { label: 'Internal tools' },
+            { label: 'Legacy app' },
+            { label: 'Marketing site' },
+            { label: 'Migrate to ESM' },
+            { label: 'Public API' },
+            { label: 'Redesign navbar' },
+            { label: 'Update hero copy' },
+        ]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tProject)
+            .select({ label: tProject.name })
+            .union(ctx.conn.selectFrom(tIssue).select({ label: tIssue.title }))
+            .orderBy('label')
+            .orderBy(ctx.conn.rawFragment`${ctx.conn.const(1, 'int')} + ${ctx.conn.const(2, 'int')}`)
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select name as label from project union select title as label from issue) as o_1_ order by label, $1 + $2"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ label: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('compound-order-by-raw-fragment-embedding-value-source-in-expression', async () => {
+        // A rawFragment embedding a single no-table value source inside a surrounding SQL
+        // expression (`coalesce(<p1>, 0)`): the value source still forces the compound
+        // wrap, and the ORDER BY term is the computed `coalesce(...)` expression (a benign
+        // constant secondary key after `label`).
+        const expected = [
+            { label: 'Document /v2/users' },
+            { label: 'Internal tools' },
+            { label: 'Legacy app' },
+            { label: 'Marketing site' },
+            { label: 'Migrate to ESM' },
+            { label: 'Public API' },
+            { label: 'Redesign navbar' },
+            { label: 'Update hero copy' },
+        ]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tProject)
+            .select({ label: tProject.name })
+            .union(ctx.conn.selectFrom(tIssue).select({ label: tIssue.title }))
+            .orderBy('label')
+            .orderBy(ctx.conn.rawFragment`coalesce(${ctx.conn.const(1, 'int')}, 0)`)
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select name as label from project union select title as label from issue) as o_1_ order by label, coalesce($1, 0)"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ label: string }>>>()
+        expect(result).toEqual(expected)
     })
 })

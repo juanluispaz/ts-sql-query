@@ -97,4 +97,131 @@ describe(ctx.label, () => {
             { id: 2, header: { num: 2, title: 'Redesign navbar' } },
         ] }])
     })
+    // ---- F3-PROJ pocket 3a: aggregate element nested-object twins ----
+    // Missing default/nullable twins of the aggregate-element nested-object paths:
+    // a rule-3 REQUIRED inner object (kept required by a required leaf) carrying an
+    // OPTIONAL leaf under the nullable projector, and a DEEP (depth-3) nested object
+    // inside the aggregate element under both projectors.
+
+    test('aggregate-element-with-required-nested-object-optional-leaf-as-nullable', async () => {
+        // The inner `header` object has a REQUIRED leaf (`title`) so it stays required
+        // on every element (rule 3), plus an OPTIONAL `body` leaf. Under
+        // projectingOptionalValuesAsNullable() the object stays required and `body`
+        // flips to `string | null` (present-null). Project 1: issue 1 (body NULL →
+        // null), issue 2 (body 'Use new tokens').
+        ctx.mockNext([{ pid: 1, issues: [
+            { id: 1, header: { title: 'Update hero copy', body: null } },
+            { id: 2, header: { title: 'Redesign navbar',  body: 'Use new tokens' } },
+        ] }])
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.projectId.equals(1))
+            .select({
+                pid:    tIssue.projectId,
+                issues: ctx.conn.aggregateAsArray({
+                    id:     tIssue.id,
+                    header: { title: tIssue.title, body: tIssue.body },
+                }).projectingOptionalValuesAsNullable(),
+            })
+            .groupBy('pid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "pid", json_arrayagg(json_object('id' value id, 'header.title' value title, 'header.body' value "body")) as "issues" from issue where project_id = :0 group by project_id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            pid:    number
+            issues: Array<{ id: number; header: { title: string; body: string | null } }>
+        }>>>()
+        const sorted = rows.map(r => ({ ...r, issues: [...r.issues].sort((a, b) => a.id - b.id) }))
+        expect(sorted).toEqual([{ pid: 1, issues: [
+            { id: 1, header: { title: 'Update hero copy', body: null } },
+            { id: 2, header: { title: 'Redesign navbar',  body: 'Use new tokens' } },
+        ] }])
+        // Issue 1's null body is PRESENT-null inside the required `header`.
+        const issue1 = rows[0]!.issues.find(i => i.id === 1)!
+        expect('body' in issue1.header).toBe(true)
+        expect(issue1.header.body).toBe(null)
+    })
+
+    test('aggregate-element-with-depth-3-nested-object-default', async () => {
+        // The aggregate element carries a DEPTH-3 nested object
+        // `outer.mid.{title,num}` of all-required leaves. The element projector
+        // descends three levels; every level stays required. Project 1 has issues 1, 2.
+        ctx.mockNext([{ pid: 1, issues: [
+            { iid: 1, outer: { mid: { title: 'Update hero copy', num: 1 } } },
+            { iid: 2, outer: { mid: { title: 'Redesign navbar',  num: 2 } } },
+        ] }])
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.projectId.equals(1))
+            .select({
+                pid:    tIssue.projectId,
+                issues: ctx.conn.aggregateAsArray({
+                    iid:   tIssue.id,
+                    outer: { mid: { title: tIssue.title, num: tIssue.number } },
+                }),
+            })
+            .groupBy('pid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "pid", json_arrayagg(json_object('iid' value id, 'outer.mid.title' value title, 'outer.mid.num' value "number")) as "issues" from issue where project_id = :0 group by project_id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            pid:    number
+            issues: Array<{ iid: number; outer: { mid: { title: string; num: number } } }>
+        }>>>()
+        const sorted = rows.map(r => ({ ...r, issues: [...r.issues].sort((a, b) => a.iid - b.iid) }))
+        expect(sorted).toEqual([{ pid: 1, issues: [
+            { iid: 1, outer: { mid: { title: 'Update hero copy', num: 1 } } },
+            { iid: 2, outer: { mid: { title: 'Redesign navbar',  num: 2 } } },
+        ] }])
+    })
+
+    test('aggregate-element-with-depth-3-nested-object-as-nullable', async () => {
+        // The same DEPTH-3 nested object under projectingOptionalValuesAsNullable(),
+        // mixing a required leaf (`num`) with an optional leaf (`body`) at the bottom.
+        // The required leaf keeps every level required; the optional `body` flips to
+        // `string | null`. Issue 1: body NULL → null; issue 2: body 'Use new tokens'.
+        ctx.mockNext([{ pid: 1, issues: [
+            { iid: 1, outer: { mid: { num: 1, body: null } } },
+            { iid: 2, outer: { mid: { num: 2, body: 'Use new tokens' } } },
+        ] }])
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.projectId.equals(1))
+            .select({
+                pid:    tIssue.projectId,
+                issues: ctx.conn.aggregateAsArray({
+                    iid:   tIssue.id,
+                    outer: { mid: { num: tIssue.number, body: tIssue.body } },
+                }).projectingOptionalValuesAsNullable(),
+            })
+            .groupBy('pid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "pid", json_arrayagg(json_object('iid' value id, 'outer.mid.num' value "number", 'outer.mid.body' value "body")) as "issues" from issue where project_id = :0 group by project_id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            pid:    number
+            issues: Array<{ iid: number; outer: { mid: { num: number; body: string | null } } }>
+        }>>>()
+        const sorted = rows.map(r => ({ ...r, issues: [...r.issues].sort((a, b) => a.iid - b.iid) }))
+        expect(sorted).toEqual([{ pid: 1, issues: [
+            { iid: 1, outer: { mid: { num: 1, body: null } } },
+            { iid: 2, outer: { mid: { num: 2, body: 'Use new tokens' } } },
+        ] }])
+        // Issue 1's null body is PRESENT-null at the bottom of the depth-3 object.
+        const issue1 = rows[0]!.issues.find(i => i.iid === 1)!
+        expect('body' in issue1.outer.mid).toBe(true)
+        expect(issue1.outer.mid.body).toBe(null)
+    })
 })

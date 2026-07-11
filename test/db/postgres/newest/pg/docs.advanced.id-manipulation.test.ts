@@ -157,4 +157,27 @@ describe(ctx.label, () => {
         expect(isValidEncryptedID(encrypted)).toBe(true)
         expect(() => encB.decrypt(encrypted)).toThrow(/Invalid id/)
     })
+
+    // ---- round-44 F7-EXTRAS: full unsigned-64-bit range round-trip
+    test('docs-extra:id-manipulation/encrypter-unsigned-64-bit-range-round-trip', () => {
+        // 2^64 - 1 (the largest uint64) fits in exactly 16 hex digits, so it still
+        // encrypts to the standard 16-char body (values ≥ 2^64 spill past 16 hex
+        // digits and produce a longer string). isValidEncryptedID accepts it and
+        // decrypt returns it unchanged — both bare and with a table prefix. The
+        // prior large-bigint test stopped at ~2^53.
+        const enc = new IDEncrypter('3zTvzr3p67VC61jm', '60iP0h6vJoEaJo8c')
+        const maxUint64 = 18446744073709551615n  // 2^64 - 1
+
+        const encrypted = enc.encrypt(maxUint64)
+        expect(encrypted.length).toBe(16)
+        expect(isValidEncryptedID(encrypted)).toBe(true)
+        expect(enc.decrypt(encrypted)).toBe(maxUint64)
+
+        // Prefixed variant: the 'co' prefix rides in front of the 16-char body.
+        const prefixed = enc.encrypt(maxUint64, 'co')
+        expect(prefixed.startsWith('co')).toBe(true)
+        expect(prefixed.length).toBe(18)
+        expect(isValidEncryptedID(prefixed, 'co')).toBe(true)
+        expect(enc.decrypt(prefixed, 'co')).toBe(maxUint64)
+    })
 })

@@ -775,6 +775,25 @@ export const tIssueWorklog = new class TIssueWorklog extends Table<DBConnection,
     // the same nullable expression as activity_label.
     tagLabel         = this.computedColumn('tag_label', 'string', bracketAdapter)
     tagLabelOptional = this.optionalComputedColumn('tag_label_optional', 'string', bracketAdapter)
+    // COL §B — per-kind virtualColumnFromFragment fan-out (required + optional)
+    // on a Table: each observes the DISTINCT read-path leaf type of its kind. The
+    // fragment references an existing same-table typed column so the emitted SQL
+    // is portable (a bare column ref or a portable expression). No DB column —
+    // computed inline at query time.
+    booleanVirtual           = this.virtualColumnFromFragment('boolean', (fragment) => fragment.sql`${this.billable}`)
+    booleanVirtualOptional   = this.optionalVirtualColumnFromFragment('boolean', (fragment) => fragment.sql`${this.billable}`)
+    bigintVirtual            = this.virtualColumnFromFragment('bigint', (fragment) => fragment.sql`${this.id}`)
+    bigintVirtualOptional    = this.optionalVirtualColumnFromFragment('bigint', (fragment) => fragment.sql`${this.durationMs}`)
+    doubleVirtual            = this.virtualColumnFromFragment('double', (fragment) => fragment.sql`${this.billedAmount}`)
+    doubleVirtualOptional    = this.optionalVirtualColumnFromFragment('double', (fragment) => fragment.sql`${this.durationMs}`)
+    localDateVirtual         = this.virtualColumnFromFragment('localDate', (fragment) => fragment.sql`${this.workDate}`)
+    localDateVirtualOptional = this.optionalVirtualColumnFromFragment('localDate', (fragment) => fragment.sql`${this.workDate}`)
+    localTimeVirtual         = this.virtualColumnFromFragment('localTime', (fragment) => fragment.sql`${this.startedAt}`)
+    localTimeVirtualOptional = this.optionalVirtualColumnFromFragment('localTime', (fragment) => fragment.sql`${this.startedAt}`)
+    intVirtual               = this.virtualColumnFromFragment('int', (fragment) => fragment.sql`${this.id} + 1`)
+    intVirtualOptional       = this.optionalVirtualColumnFromFragment('int', (fragment) => fragment.sql`${this.minutes}`)
+    customDoubleVirtual         = this.virtualColumnFromFragment<number, 'Money'>('customDouble', 'Money', (fragment) => fragment.sql`${this.billedAmount}`)
+    customDoubleVirtualOptional = this.optionalVirtualColumnFromFragment<number, 'Money'>('customDouble', 'Money', (fragment) => fragment.sql`${this.billedAmount}`)
     constructor() { super('issue_worklog') }
 }()
 
@@ -803,6 +822,27 @@ export const tProjectRelease = new class TProjectRelease extends Table<DBConnect
     // so it stays optional on INSERT — existing tProjectRelease INSERT tests that
     // don't enumerate it keep working. Added last to keep existing snapshots stable.
     publishedAt = this.columnWithDefaultValue<Date, 'PublishStamp'>('published_at', 'customLocalDateTime', 'PublishStamp')
+    // COL §B — per-kind virtualColumnFromFragment fan-out on a writable Table
+    // carrying custom-typed columns: the custom string/uuid/temporal kinds (and
+    // the plain uuid / localDateTime kinds this table can source) that the
+    // worklog fixture can't. required + optional; each references an existing
+    // same-table typed column so the fragment SQL is portable.
+    customComparableVirtual         = this.virtualColumnFromFragment<string, 'Semver'>('customComparable', 'Semver', (fragment) => fragment.sql`${this.version}`)
+    customComparableVirtualOptional = this.optionalVirtualColumnFromFragment<string, 'Semver'>('customComparable', 'Semver', (fragment) => fragment.sql`${this.version}`)
+    customVirtual                   = this.virtualColumnFromFragment<ReleaseChannel, 'ReleaseChannel'>('custom', 'ReleaseChannel', (fragment) => fragment.sql`${this.channel}`)
+    customVirtualOptional           = this.optionalVirtualColumnFromFragment<ReleaseChannel, 'ReleaseChannel'>('custom', 'ReleaseChannel', (fragment) => fragment.sql`${this.channel}`)
+    customUuidVirtual               = this.virtualColumnFromFragment<string, 'SigningKey'>('customUuid', 'SigningKey', (fragment) => fragment.sql`${this.signingKey}`)
+    customUuidVirtualOptional       = this.optionalVirtualColumnFromFragment<string, 'SigningKey'>('customUuid', 'SigningKey', (fragment) => fragment.sql`${this.signingKey}`)
+    customLocalDateVirtual          = this.virtualColumnFromFragment<Date, 'ReleaseDay'>('customLocalDate', 'ReleaseDay', (fragment) => fragment.sql`${this.releasedOn}`)
+    customLocalDateVirtualOptional  = this.optionalVirtualColumnFromFragment<Date, 'ReleaseDay'>('customLocalDate', 'ReleaseDay', (fragment) => fragment.sql`${this.releasedOn}`)
+    customLocalTimeVirtual          = this.virtualColumnFromFragment<Date, 'CutoffClock'>('customLocalTime', 'CutoffClock', (fragment) => fragment.sql`${this.cutoffTime}`)
+    customLocalTimeVirtualOptional  = this.optionalVirtualColumnFromFragment<Date, 'CutoffClock'>('customLocalTime', 'CutoffClock', (fragment) => fragment.sql`${this.cutoffTime}`)
+    customLocalDateTimeVirtual         = this.virtualColumnFromFragment<Date, 'PublishStamp'>('customLocalDateTime', 'PublishStamp', (fragment) => fragment.sql`${this.publishedAt}`)
+    customLocalDateTimeVirtualOptional = this.optionalVirtualColumnFromFragment<Date, 'SignOffStamp'>('customLocalDateTime', 'SignOffStamp', (fragment) => fragment.sql`${this.signedOffAt}`)
+    uuidVirtual                     = this.virtualColumnFromFragment('uuid', (fragment) => fragment.sql`${this.signingKey}`)
+    uuidVirtualOptional             = this.optionalVirtualColumnFromFragment('uuid', (fragment) => fragment.sql`${this.signingKey}`)
+    localDateTimeVirtual            = this.virtualColumnFromFragment('localDateTime', (fragment) => fragment.sql`${this.publishedAt}`)
+    localDateTimeVirtualOptional    = this.optionalVirtualColumnFromFragment('localDateTime', (fragment) => fragment.sql`${this.signedOffAt}`)
     constructor() { super('project_release') }
 }()
 
@@ -880,6 +920,38 @@ export const vReleaseOverview = new class VReleaseOverview extends View<DBConnec
     // and the Table-side publishedAt are the other sides).
     publishStampPlain = this.column('published_stamp_plain', 'localDateTime')
     publishStamp      = this.column<Date, 'PublishStamp'>('published_stamp', 'customLocalDateTime', 'PublishStamp')
+    // COL §B — per-kind virtualColumnFromFragment fan-out on a View source
+    // (required + optional). The View exposes typed columns of every kind, so
+    // each virtual column references a same-view column of the matching kind and
+    // observes the distinct read-path leaf type on a View instead of a Table.
+    booleanVirtual           = this.virtualColumnFromFragment('boolean', (fragment) => fragment.sql`${this.isSigned}`)
+    booleanVirtualOptional   = this.optionalVirtualColumnFromFragment('boolean', (fragment) => fragment.sql`${this.isSigned}`)
+    bigintVirtual            = this.virtualColumnFromFragment('bigint', (fragment) => fragment.sql`${this.id}`)
+    bigintVirtualOptional    = this.optionalVirtualColumnFromFragment('bigint', (fragment) => fragment.sql`${this.downloadCount}`)
+    doubleVirtual            = this.virtualColumnFromFragment('double', (fragment) => fragment.sql`${this.avgRating}`)
+    doubleVirtualOptional    = this.optionalVirtualColumnFromFragment('double', (fragment) => fragment.sql`${this.avgRating}`)
+    uuidVirtual              = this.virtualColumnFromFragment('uuid', (fragment) => fragment.sql`${this.signingUuid}`)
+    uuidVirtualOptional      = this.optionalVirtualColumnFromFragment('uuid', (fragment) => fragment.sql`${this.signingUuid}`)
+    localDateVirtual         = this.virtualColumnFromFragment('localDate', (fragment) => fragment.sql`${this.releaseDayPlain}`)
+    localDateVirtualOptional = this.optionalVirtualColumnFromFragment('localDate', (fragment) => fragment.sql`${this.releaseDayPlain}`)
+    localTimeVirtual         = this.virtualColumnFromFragment('localTime', (fragment) => fragment.sql`${this.cutoffPlain}`)
+    localTimeVirtualOptional = this.optionalVirtualColumnFromFragment('localTime', (fragment) => fragment.sql`${this.cutoffPlain}`)
+    localDateTimeVirtual         = this.virtualColumnFromFragment('localDateTime', (fragment) => fragment.sql`${this.publishStampPlain}`)
+    localDateTimeVirtualOptional = this.optionalVirtualColumnFromFragment('localDateTime', (fragment) => fragment.sql`${this.signedOffAt}`)
+    intVirtual               = this.virtualColumnFromFragment('int', (fragment) => fragment.sql`${this.id} + 1`)
+    intVirtualOptional       = this.optionalVirtualColumnFromFragment('int', (fragment) => fragment.sql`${this.id}`)
+    customComparableVirtual         = this.virtualColumnFromFragment<string, 'Semver'>('customComparable', 'Semver', (fragment) => fragment.sql`${this.version}`)
+    customComparableVirtualOptional = this.optionalVirtualColumnFromFragment<string, 'Semver'>('customComparable', 'Semver', (fragment) => fragment.sql`${this.version}`)
+    customUuidVirtual               = this.virtualColumnFromFragment<string, 'SigningKey'>('customUuid', 'SigningKey', (fragment) => fragment.sql`${this.signingUuid}`)
+    customUuidVirtualOptional       = this.optionalVirtualColumnFromFragment<string, 'SigningKey'>('customUuid', 'SigningKey', (fragment) => fragment.sql`${this.signingUuid}`)
+    customLocalDateVirtual          = this.virtualColumnFromFragment<Date, 'ReleaseDay'>('customLocalDate', 'ReleaseDay', (fragment) => fragment.sql`${this.releaseDayPlain}`)
+    customLocalDateVirtualOptional  = this.optionalVirtualColumnFromFragment<Date, 'ReleaseDay'>('customLocalDate', 'ReleaseDay', (fragment) => fragment.sql`${this.releaseDayPlain}`)
+    customLocalTimeVirtual          = this.virtualColumnFromFragment<Date, 'CutoffClock'>('customLocalTime', 'CutoffClock', (fragment) => fragment.sql`${this.cutoffPlain}`)
+    customLocalTimeVirtualOptional  = this.optionalVirtualColumnFromFragment<Date, 'CutoffClock'>('customLocalTime', 'CutoffClock', (fragment) => fragment.sql`${this.cutoffPlain}`)
+    customLocalDateTimeVirtual         = this.virtualColumnFromFragment<Date, 'PublishStamp'>('customLocalDateTime', 'PublishStamp', (fragment) => fragment.sql`${this.publishStampPlain}`)
+    customLocalDateTimeVirtualOptional = this.optionalVirtualColumnFromFragment<Date, 'SignOffStamp'>('customLocalDateTime', 'SignOffStamp', (fragment) => fragment.sql`${this.signedOffAt}`)
+    customDoubleVirtual         = this.virtualColumnFromFragment<number, 'Money'>('customDouble', 'Money', (fragment) => fragment.sql`${this.avgRating}`)
+    customDoubleVirtualOptional = this.optionalVirtualColumnFromFragment<number, 'Money'>('customDouble', 'Money', (fragment) => fragment.sql`${this.avgRating}`)
     constructor() { super('release_overview') }
 }()
 

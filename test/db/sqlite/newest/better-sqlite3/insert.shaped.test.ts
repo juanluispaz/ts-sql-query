@@ -89,6 +89,44 @@ describe(ctx.label, () => {
         })
     })
 
+    test('shaped-set-if-value-gates-defaulted-non-nullable-shaped-key', async () => {
+        // `.shapedAs({...}).setIfValue({...})` where the optional renamed key
+        // `pub` maps to `published` — a defaulted, NON-nullable column. Passing
+        // `null` skips it (the value-gate) so it takes its DB default, exactly
+        // like the non-shaped `setIfValue` does. The value type of a non-nullable
+        // defaulted column carries no `undefined`, so only an explicit `null`
+        // exercises the skip here (an `undefined` would be caught by the shape's
+        // key type) — this is what distinguishes it from the nullable case above.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const inserted = await ctx.conn.insertInto(tProject)
+                .shapedAs({
+                    orgId:       'organizationId',
+                    projectName: 'name',
+                    projectSlug: 'slug',
+                    pub:         'published',
+                })
+                .setIfValue({
+                    orgId:       1,
+                    projectName: 'Shaped skip defaulted',
+                    projectSlug: 'shaped-skip-defaulted',
+                    pub:         null,
+                })
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?, ?, ?)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "Shaped skip defaulted",
+                "shaped-skip-defaulted",
+              ]
+            `)
+            assertType<Exact<typeof inserted, number>>()
+            expect(inserted).toBe(1)
+        })
+    })
+
     test('shaped-dynamic-set-one-shot', async () => {
         // `.shapedAs({...}).dynamicSet({...})` — the one-shot dynamic-set entry:
         // it seeds the insert set in a single call using the renamed keys.

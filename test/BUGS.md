@@ -67,54 +67,7 @@ of that. Two minutes of triage and one paragraph is the bar.
 
 ## Open Bugs
 
-## Shaped `setIfValue` rejects `null`/`undefined` values that non-shaped `setIfValue` accepts
-
-**Where**: `src/expressions/insert.ts:627` — `ShapedInsertExpression.setIfValue`
-types its `columns` param as `MandatoryInsertSets<TABLE, USING, SHAPE>`
-(identical to `.set` on line 626), instead of the optional twin
-`MandatoryOptionalInsertSets<TABLE, USING, SHAPE>` that its non-shaped
-sibling `InsertExpression.setIfValue` (line 613) uses. So the shaped
-`setIfValue`'s value positions don't include `| null | undefined`.
-
-Corroboration that this is an unintended copy from line 626: the type
-`MandatoryOptionalInsertSets` is referenced at **exactly one** site
-(line 613), always with `SHAPE = undefined`, so the
-`SHAPE extends ResolvedShape<any>` branch of
-`MandatoryOptionalInsertSetsContent` (`insert.ts:1116-1123`) is
-**provably dead** — that branch exists precisely to type a *shaped*
-`setIfValue` with optional value positions, but nothing reaches it
-because line 627 calls the wrong type.
-
-**Reproduction** (tsgo / `validate:tests`): with a defaulted,
-non-nullable, optional-on-insert column (e.g. `tOrganization.verified`,
-a `columnWithDefaultValue('verified','boolean',adapter)`):
-
-```ts
-// compiles — non-shaped setIfValue accepts the null value (skips the column):
-conn.insertInto(tOrganization).setIfValue({ name:'x', plan:'y', verified: null })
-// errors TS2322 on `v: null` — shaped value type is
-// `boolean | Default | IBooleanValueSource<…>`, no null/undefined:
-conn.insertInto(tOrganization)
-    .shapedAs({ v:'verified', n:'name', p:'plan' })
-    .setIfValue({ n:'x', p:'y', v: null })
-```
-
-The divergence defeats `setIfValue`'s null-skip purpose for shaped
-inserts: it only bites a column that is insert-optional because it has a
-DEFAULT and is **non-nullable** (a nullable column's value type already
-carries `undefined`, which masks the bug — why
-`insert.shaped.test.ts:71` passing `archived: undefined` compiles). The
-fix (line 627 → `MandatoryOptionalInsertSets<TABLE, USING, SHAPE>`) is
-sound: `setIfValue` with a null value keeps the column unset in
-`MISSING_KEYS`, so no unsound insert becomes executable — the non-shaped
-twin already behaves exactly this way.
-
-**Current workaround in the suite**: none — no test exercises shaped
-`setIfValue({k: null})` on a defaulted-non-nullable-in-shape column
-(the existing shaped-setIfValue test only hits the masked nullable
-case). The characterization/regression test to add once fixed is
-enumerated as **PARITY-1** in `MISSING_TESTS_AUDIT_44.md`; mark it
-`// TODO[BUG]` until the one-token `src/` fix lands.
+_None._
 
 ## Common bug shapes (for the fixing agent)
 

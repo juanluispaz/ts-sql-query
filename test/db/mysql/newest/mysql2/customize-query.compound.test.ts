@@ -399,4 +399,88 @@ describe(ctx.label, () => {
         const sorted = rows.map((r) => ({ ...r, names: [...r.names].sort() }))
         expect(sorted).toEqual(expected)
     })
+
+    test('customize-compound-arm-custom-window-lands-on-un-parenthesized-first-arm', async () => {
+        // A `customWindow` hook on a compound ARM: the first select is customized BEFORE
+        // `.union()`, so its `window …` clause rides on the un-parenthesized first arm,
+        // ahead of the set operator. `customizeQuery` on a plain select returns a
+        // CompoundableExecutableSelectExpression, which still exposes `.union()`. The
+        // named window is unreferenced (nothing selects over it).
+        const expected = [{ label: 'Internal tools' }, { label: 'Marketing site' }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+        const arm1 = connection.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ label: tProject.name })
+            .customizeQuery({ customWindow: connection.rawFragment`w1 as (partition by ${tProject.organizationId})` })
+        const arm2 = connection.selectFrom(tProject)
+            .where(tProject.id.equals(2))
+            .select({ label: tProject.name })
+        const result = await arm1.union(arm2).orderBy('label').executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`name\` as label from project where id = ? window w1 as (partition by organization_id) union select \`name\` as label from project where id = ? order by label"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ label: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('customize-compound-arm-after-select-keyword-lands-on-first-arm', async () => {
+        // `afterSelectKeyword` on a compound ARM: the fragment splices in right after
+        // the first arm's `select` keyword (a comment fragment, valid on every
+        // engine). The hook survives the arm's promotion into the compound.
+        const expected = [{ label: 'Internal tools' }, { label: 'Marketing site' }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+        const arm1 = connection.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ label: tProject.name })
+            .customizeQuery({ afterSelectKeyword: connection.rawFragment`/* hint */` })
+        const arm2 = connection.selectFrom(tProject)
+            .where(tProject.id.equals(2))
+            .select({ label: tProject.name })
+        const result = await arm1.union(arm2).orderBy('label').executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select /* hint */ \`name\` as label from project where id = ? union select \`name\` as label from project where id = ? order by label"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ label: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('customize-compound-arm-before-columns-lands-on-first-arm', async () => {
+        // `beforeColumns` on a compound ARM: the fragment splices in between the first
+        // arm's `select` keyword (and its afterSelectKeyword slot) and the column list
+        // (a comment fragment, valid on every engine). The hook survives the arm's
+        // promotion into the compound.
+        const expected = [{ label: 'Internal tools' }, { label: 'Marketing site' }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+        const arm1 = connection.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ label: tProject.name })
+            .customizeQuery({ beforeColumns: connection.rawFragment`/* cols */ ` })
+        const arm2 = connection.selectFrom(tProject)
+            .where(tProject.id.equals(2))
+            .select({ label: tProject.name })
+        const result = await arm1.union(arm2).orderBy('label').executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select /* cols */  \`name\` as label from project where id = ? union select \`name\` as label from project where id = ? order by label"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ label: string }>>>()
+        expect(result).toEqual(expected)
+    })
 })

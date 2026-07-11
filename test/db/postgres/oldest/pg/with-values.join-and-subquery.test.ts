@@ -283,4 +283,78 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ x: Date }>>>()
         expect(rows).toEqual(expected)
     })
+
+    test('values-in-where-in-subquery-hoists-with-to-outer', async () => {
+        // A `Values` feeding a WHERE `in (select …)` predicate. The code list hoists as
+        // `with projectCode(...) as (values ...)` above the outer query and the outer
+        // filter reads `id in (select projectId from projectCode)`. Codes cover projects
+        // 1 & 2, so both survive.
+        const expected = [
+            { id: 1, name: 'Marketing site' },
+            { id: 2, name: 'Internal tools' },
+        ]
+        ctx.mockNext(expected)
+        const codes = Values.create(VProjectCode, 'projectCode', [
+            { projectId: 1, code: 'MKTG' },
+            { projectId: 2, code: 'TOOLS' },
+        ])
+
+        const rows = await ctx.conn.selectFrom(tProject)
+            .where(tProject.id.in(
+                ctx.conn.selectFrom(codes).selectOneColumn(codes.projectId)
+            ))
+            .select({ id: tProject.id, name: tProject.name })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectCode(projectId, code) as (values ($1::int4, $2::text), ($3::int4, $4::text)) select id as id, name as name from project where id in (select projectId as result from projectCode) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            "MKTG",
+            2,
+            "TOOLS",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; name: string }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('values-in-where-exists-hoists-with-to-outer', async () => {
+        // A `Values` inside a correlated WHERE `exists(...)` predicate. The code list
+        // hoists as `with projectCode(...) as (values ...)` above the outer query; the
+        // correlated subquery (`subSelectUsing(tProject)`) matches a project that has a
+        // code. Codes cover projects 1 & 2, so those two survive.
+        const expected = [
+            { id: 1, name: 'Marketing site' },
+            { id: 2, name: 'Internal tools' },
+        ]
+        ctx.mockNext(expected)
+        const codes = Values.create(VProjectCode, 'projectCode', [
+            { projectId: 1, code: 'MKTG' },
+            { projectId: 2, code: 'TOOLS' },
+        ])
+
+        const rows = await ctx.conn.selectFrom(tProject)
+            .where(ctx.conn.exists(
+                ctx.conn.subSelectUsing(tProject).from(codes)
+                    .where(codes.projectId.equals(tProject.id))
+                    .selectOneColumn(codes.projectId)
+            ))
+            .select({ id: tProject.id, name: tProject.name })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectCode(projectId, code) as (values ($1::int4, $2::text), ($3::int4, $4::text)) select id as id, name as name from project where exists(select projectId as result from projectCode where projectId = project.id) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            "MKTG",
+            2,
+            "TOOLS",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; name: string }>>>()
+        expect(rows).toEqual(expected)
+    })
 })

@@ -207,4 +207,27 @@ describe(ctx.label, () => {
             expect(row).toEqual(expected)
         })
     })
+
+    // TODO[LIMITATION]: see LIMITATIONS.md — a fractional numeric literal on an int receiver emits an untyped `priority + $n`; PostgreSQL infers $n as int4 (from `int4 + $n`) and rejects the bound 2.5 with 22P02 at bind time (the outer ::numeric casts the sum's result, too late to re-type $n).
+    /*
+    test('int-receiver-chained-fractional-literal-add-then-modulo', async () => {
+        // `priority.add(2.5).modulo(2)` — an int receiver with a fractional LITERAL
+        // operand chained into modulo. Issue 1 has priority 2, so (2 + 2.5) mod 2 = 0.5.
+        // The modulo dialect override casts the operands so the fractional remainder
+        // survives.
+        await ctx.withRollback(async () => {
+            const expected = { id: 1, rest: 0.5 }
+            ctx.mockNext({ id: 1, rest: 0.5 })
+            const row = await ctx.conn.selectFrom(tIssue)
+                .where(tIssue.id.equals(1))
+                .select({ id: tIssue.id, rest: tIssue.priority.add(2.5).modulo(2) })
+                .executeSelectOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof row, { id: number; rest: number }>>()
+            expect(row).toEqual(expected)
+        })
+    })
+    */
 })

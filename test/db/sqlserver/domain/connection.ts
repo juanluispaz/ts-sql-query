@@ -775,6 +775,11 @@ export const tIssueWorklog = new class TIssueWorklog extends Table<DBConnection,
     centsFromIdOptional = this.optionalVirtualColumnFromFragment<number, 'Cents'>('customInt', 'Cents', (fragment) => fragment.sql`${this.id} * 100`)
     activityCustomKind  = this.virtualColumnFromFragment<WorklogActivity, 'WorklogActivity'>('enum', 'WorklogActivity', (fragment) => fragment.sql`lower(${this.activity})`)
     centsFromIdTagged   = this.virtualColumnFromFragment<number, 'Cents'>('customInt', 'Cents', (fragment) => fragment.sql`${this.id} * 100`, plusOffsetAdapter)
+    // The optional × custom-kind × trailing-adapter triple: an OPTIONAL branded
+    // customInt ('Cents', marshalled to int) virtual column (`id * 100`) carrying a
+    // trailing TypeAdapter (plusOffsetAdapter, read +1000) — the optional sibling of
+    // centsFromIdTagged and the adapter-bearing sibling of centsFromIdOptional.
+    centsFromIdOptionalTagged = this.optionalVirtualColumnFromFragment<number, 'Cents'>('customInt', 'Cents', (fragment) => fragment.sql`${this.id} * 100`, plusOffsetAdapter)
     // optionalComputedColumn — a NULLABLE DB-computed column,
     // excluded from the writable shape (the required sibling is
     // project_release.notes). The DB computes it from minutes + activity.

@@ -683,4 +683,32 @@ describe(ctx.label, () => {
         })
     })
     */
+
+    test('one-shot-do-update-set-if-value-emptying-the-on-conflict-update-set-degrades-to-conflict-noop', async () => {
+        // The one-shot `doUpdateSetIfValue({archivedAt: undefined})` form: its only property
+        // fails the value gate and is dropped, leaving no column to assign. Rather than
+        // dropping the whole clause — which would turn the upsert back into a plain
+        // insert that throws on conflict — the builder degrades to the conflict-ignoring
+        // no-op. Seed (org 1, 'mktg-site') exists, so the conflict fires and nothing is
+        // inserted or updated → 0 affected.
+        ctx.mockNext(0)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, slug: 'mktg-site', name: 'ignored' })
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doUpdateSetIfValue({ archivedAt: undefined })
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) do nothing"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "mktg-site",
+                "ignored",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(0)
+        })
+    })
 })

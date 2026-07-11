@@ -255,4 +255,31 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
         expect(row.cents).toBe(20)
     })
+
+    test('table-custom-int-virtual-column-optional-with-adapter', async () => {
+        // `centsFromIdOptionalTagged` is the OPTIONAL branded customInt custom-kind
+        // virtual column (`id * 100`) carrying a trailing TypeAdapter
+        // (`plusOffsetAdapter`, read +1000). The DB yields the RAW value id*100 = 100;
+        // the adapter shifts it on read → 1100. An optional branded customInt projects
+        // as `cents?: number`.
+        ctx.mockNext({ id: 1, cents: 100 })
+        const expected = { id: 1, cents: 1100 }
+        const row = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .select({
+                id:    tIssueWorklog.id,
+                cents: tIssueWorklog.centsFromIdOptionalTagged,
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, id * 100 as cents from issue_worklog where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; cents?: number }>>()
+        expect(row).toEqual(expected)
+        expect(row.cents).toBe(1100)
+    })
 })

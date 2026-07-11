@@ -207,4 +207,30 @@ describe(ctx.label, () => {
             expect(row).toEqual(expected)
         })
     })
+
+    test('int-receiver-chained-fractional-literal-add-then-modulo', async () => {
+        // `priority.add(2.5).modulo(2)` — an int receiver with a fractional LITERAL
+        // operand chained into modulo. Issue 1 has priority 2, so (2 + 2.5) mod 2 = 0.5.
+        // The modulo dialect override casts the operands so the fractional remainder
+        // survives.
+        await ctx.withRollback(async () => {
+            const expected = { id: 1, rest: 0.5 }
+            ctx.mockNext({ id: 1, rest: 0.5 })
+            const row = await ctx.conn.selectFrom(tIssue)
+                .where(tIssue.id.equals(1))
+                .select({ id: tIssue.id, rest: tIssue.priority.add(2.5).modulo(2) })
+                .executeSelectOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (priority + ?) % ? as rest from issue where id = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                2.5,
+                2,
+                1,
+              ]
+            `)
+            assertType<Exact<typeof row, { id: number; rest: number }>>()
+            expect(row).toEqual(expected)
+        })
+    })
 })

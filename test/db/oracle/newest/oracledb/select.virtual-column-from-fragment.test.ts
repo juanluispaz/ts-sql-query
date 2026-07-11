@@ -17,7 +17,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssueWorklog, vReleaseOverview } from '../../domain/connection.js'
+import { tIssueWorklog, vProjectOverview, vReleaseOverview } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -71,6 +71,35 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof row, { id: number; versionUpperOptional?: string }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('aliased-view-virtual-column-re-qualifies-sibling-reference-under-alias', async () => {
+        // `nameUpper` is a `virtualColumnFromFragment` whose fragment references
+        // a SIBLING column of the same view (`upper(this.name)`). When the view
+        // is rendered through a user-supplied alias (`vProjectOverview.as('po')`),
+        // that sibling reference must RE-QUALIFY under the alias: the emitted SQL
+        // is `upper(po.name)` and the source is `from project_overview as po`.
+        // Locking this guards that the alias re-qualification reaches inside the
+        // virtual column's fragment — the sibling is not left qualified by the
+        // bare table name. Project 1's name is 'Marketing site', so the required
+        // `string` virtual column resolves to 'MARKETING SITE'.
+        const vpo = vProjectOverview.as('po')
+        const expected = { nameUpper: 'MARKETING SITE' }
+        ctx.mockNext(expected)
+
+        const row = await ctx.conn.selectFrom(vpo)
+            .where(vpo.id.equals(1))
+            .select({ nameUpper: vpo.nameUpper })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select upper(po.name) as "nameUpper" from project_overview po where po.id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { nameUpper: string }>>()
         expect(row).toEqual(expected)
     })
 })

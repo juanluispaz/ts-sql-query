@@ -219,4 +219,249 @@ describe(ctx.label, () => {
             expect(emails).toEqual(['w_qz'])
         })
     })
+
+    test('contains-column-operand-backslash-literal-matches-only-the-backslash-row', async () => {
+        // `contains(<column>)` uses a COLUMN as the needle. Both rows share the same
+        // `full_name` (`a\c`, holding a literal backslash); only Row A's email actually
+        // contains that literal backslash, so a match proves the backslash reaches the
+        // engine literally rather than being over-escaped away. Row B's email `zabcz@x`
+        // does not contain `a\c`.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['za\\cz@x'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'za\\cz@x', fullName: 'a\\c' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'zabcz@x', fullName: 'a\\c' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.email.contains(tAppUser.fullName))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['za\\cz@x'])
+        })
+    })
+
+    test('starts-with-backslash-literal-matches-only-the-literal-row', async () => {
+        // `startsWith` fed a `a\a` needle holding a literal backslash. Row A's email
+        // begins with the literal `a\a`; the decoy begins with `axa`, which has no
+        // backslash. A match proves the backslash reaches the engine literally rather
+        // than being over-escaped away.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['a\\a@probe.test'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'a\\a@probe.test', fullName: 'bs starts' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'axa@probe.test', fullName: 'bs starts decoy' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.email.startsWith('a\\a'))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['a\\a@probe.test'])
+        })
+    })
+
+    test('ends-with-backslash-literal-matches-only-the-literal-row', async () => {
+        // `endsWith` fed a `\x` needle holding a literal backslash. Row A's email ends
+        // with the literal `\x`; the decoy ends with `ax`, which has no backslash. A
+        // match proves the backslash reaches the engine literally rather than being
+        // over-escaped away.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['end\\x'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'end\\x', fullName: 'bs ends' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'endax', fullName: 'bs ends decoy' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.email.endsWith('\\x'))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['end\\x'])
+        })
+    })
+
+    test('not-contains-backslash-literal-keeps-only-the-non-literal-row', async () => {
+        // `notContains` with a `a\b` needle holding a literal backslash, scoped to the
+        // two `ncb-`-prefixed rows. Row A's email holds the literal `a\b` and is
+        // EXCLUDED; the decoy `ncb-axb@t` has no backslash so it does NOT contain `a\b`
+        // and is KEPT. The surviving row proves the backslash reaches the engine
+        // literally rather than being over-escaped away.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['ncb-axb@t'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'ncb-a\\b@t', fullName: 'ncb literal' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'ncb-axb@t', fullName: 'ncb decoy' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.email.startsWith('ncb-').and(tAppUser.email.notContains('a\\b')))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['ncb-axb@t'])
+        })
+    })
+
+    test('contains-insensitive-backslash-literal-matches-case-folded-literal-row', async () => {
+        // `containsInsensitive` with a `z\q` needle holding a literal backslash. The
+        // needle (lower) matches Row A `ZZ\QX` (upper, literal backslash) case-
+        // insensitively but not the decoy `ZZAQX`, which has no backslash. A match
+        // proves the backslash reaches the engine literally rather than being
+        // over-escaped away.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['ZZ\\QX'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'ZZ\\QX', fullName: 'bs insens literal' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'ZZAQX', fullName: 'bs insens decoy' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.email.containsInsensitive('z\\q'))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['ZZ\\QX'])
+        })
+    })
+
+    test('starts-with-insensitive-backslash-literal-matches-case-folded-literal-row', async () => {
+        // `startsWithInsensitive` with a `a\z` needle holding a literal backslash. The
+        // needle (lower) matches Row A `A\zzz@t` (upper, literal backslash) case-
+        // insensitively but not the decoy `Axzz@t`, which has no backslash. A match
+        // proves the backslash reaches the engine literally rather than being
+        // over-escaped away.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['A\\zzz@t'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'A\\zzz@t', fullName: 'bs starts insens' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'Axzz@t', fullName: 'bs starts insens decoy' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.email.startsWithInsensitive('a\\z'))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['A\\zzz@t'])
+        })
+    })
+
+    test('ends-with-insensitive-backslash-literal-matches-case-folded-literal-row', async () => {
+        // `endsWithInsensitive` with a `\x` needle holding a literal backslash. The
+        // needle (lower) matches Row A `qq\X` (upper, literal backslash) case-
+        // insensitively but not the decoy `qqaX`, which has no backslash. A match
+        // proves the backslash reaches the engine literally rather than being
+        // over-escaped away.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['qq\\X'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'qq\\X', fullName: 'bs ends insens' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'qqaX', fullName: 'bs ends insens decoy' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.email.endsWithInsensitive('\\x'))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['qq\\X'])
+        })
+    })
+
+    test('contains-if-value-backslash-literal-matches-only-the-literal-row', async () => {
+        // `containsIfValue` with a present `w\q` needle holding a literal backslash. Row
+        // A `w\qz2` holds the literal backslash; the decoy `wxqz2` has no backslash. A
+        // match proves the backslash reaches the engine literally rather than being
+        // over-escaped away.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['w\\qz2'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'w\\qz2', fullName: 'bs ifvalue' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'wxqz2', fullName: 'bs ifvalue decoy' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.email.containsIfValue('w\\q'))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['w\\qz2'])
+        })
+    })
+
+    test('starts-with-if-value-backslash-literal-matches-only-the-literal-row', async () => {
+        // `startsWithIfValue` with a present `a\i` needle holding a literal backslash.
+        // Row A `a\ifv@t` begins with the literal backslash; the decoy `axifv@t` has no
+        // backslash. A match proves the backslash reaches the engine literally rather
+        // than being over-escaped away.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['a\\ifv@t'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'a\\ifv@t', fullName: 'bs starts ifvalue' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'axifv@t', fullName: 'bs starts ifvalue decoy' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.email.startsWithIfValue('a\\i'))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['a\\ifv@t'])
+        })
+    })
+
+    test('ends-with-if-value-backslash-literal-matches-only-the-literal-row', async () => {
+        // `endsWithIfValue` with a present `\z` needle holding a literal backslash. Row
+        // A `ifvq\z` ends with the literal backslash; the decoy `ifvqxz` has no
+        // backslash. A match proves the backslash reaches the engine literally rather
+        // than being over-escaped away.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['ifvq\\z'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'ifvq\\z', fullName: 'bs ends ifvalue' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'ifvqxz', fullName: 'bs ends ifvalue decoy' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.email.endsWithIfValue('\\z'))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['ifvq\\z'])
+        })
+    })
 })

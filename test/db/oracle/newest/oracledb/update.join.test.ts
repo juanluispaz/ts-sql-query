@@ -211,6 +211,56 @@ describe(ctx.label, () => {
         })
     })
 
+    test('update-from-table-then-left-join-returning-left-join-optional-column-as-nullable-surfaces-present-null', async () => {
+        // The same from-then-left-join UPDATE returning the LEFT-joined
+        // `app_user.full_name`, but read back under
+        // `.projectingOptionalValuesAsNullable()`. That marker retypes the
+        // outer-join-optional leaf as `assignee: string | null`
+        // (present-nullable) instead of the optional `assignee?: string`.
+        // Issue 3 is unassigned (assignee_id NULL), so the left join misses;
+        // the projected column then surfaces as a PRESENT `null` key rather
+        // than an absent one. Update project 2 (owns issue 3).
+        const expected = { id: 2, assignee: null }
+        ctx.mockNext({ id: 2, assignee: null })
+        await ctx.withRollback(async () => {
+            const tAssignee = tAppUser.forUseInLeftJoin()
+            const row = await ctx.conn.update(tProject)
+                .from(tIssue)
+                .leftJoin(tAssignee).on(tAssignee.id.equals(tIssue.assigneeId))
+                .set({ name: tIssue.title })
+                .where(tProject.id.equals(tIssue.projectId))
+                    .and(tIssue.id.equals(3))
+                .returning({
+                    id:       tProject.id,
+                    assignee: tAssignee.fullName,
+                })
+                .projectingOptionalValuesAsNullable()
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set project.name = issue.title from issue left join app_user on app_user.id = issue.assignee_id where project.id = issue.project_id and issue.id = :0 returning project.id, app_user.full_name into :1, :2"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                3,
+                {
+                  "as": "id",
+                  "dir": 3003,
+                },
+                {
+                  "as": "assignee",
+                  "dir": 3003,
+                },
+              ]
+            `)
+            assertType<Exact<typeof row, {
+                id:       number
+                assignee: string | null
+            }>>()
+            expect('assignee' in row).toBe(true)
+            expect(row.assignee).toBe(null)
+            expect(row).toEqual(expected)
+        })
+    })
+
     test('update-from-table-then-inner-join-on-and-compound-join-condition', async () => {
         // `.on(c).and(c2)` on the from-then-join limb — the `.and()` chained after
         // `.on()` accumulates into the JOIN predicate (`__lastJoin.__on`), NOT the

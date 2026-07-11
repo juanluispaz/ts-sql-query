@@ -143,6 +143,30 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
+    test('table-customization: two-param customization threads two bound params', async () => {
+        // `withTwoParams` is the P2 overload of createTableOrViewCustomization
+        // (withSqlHint is P0, withMinIdFilter is P1). Its factory takes two
+        // runtime ints and threads each into the derived-table predicate as a
+        // real bound placeholder (`<pN> >= 0`, constant-true, keeping every row),
+        // so both params ride ahead of any outer WHERE param.
+        const expected = [{ id: 1 }, { id: 2 }]
+        ctx.mockNext(expected)
+        const tOrgFiltered = ctx.conn.withTwoParams(tOrganization.as('o'), 'tOrgFiltered', 0, 0)
+        const rows = await ctx.conn.selectFrom(tOrgFiltered)
+            .select({ id: tOrgFiltered.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select "o".id as id from (select * from organization where $1 >= 0 and $2 >= 0) as "o" order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            0,
+            0,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
     test('table-customization: three-param customization threads three bound params', async () => {
         // `withThreeParams` is the P3 overload of createTableOrViewCustomization
         // (withSqlHint is P0, withMinIdFilter is P1). Its factory takes three

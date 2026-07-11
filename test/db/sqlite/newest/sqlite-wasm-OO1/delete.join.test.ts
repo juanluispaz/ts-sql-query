@@ -186,6 +186,52 @@ describe(ctx.label, () => {
 
     // NOT-APPLICABLE: SQLite does not support DELETE … USING; the library type-excludes it for sqlite connections.
     /*
+    test('delete-using-table-then-left-join-returning-left-join-optional-column-as-nullable-surfaces-present-null', async () => {
+        // A using-then-left-join DELETE returning a LEFT-joined
+        // `project_release` column, read back under
+        // `.projectingOptionalValuesAsNullable()`. That marker retypes the
+        // outer-join-optional leaf as `version: string | null`
+        // (present-nullable) instead of the optional `version?: string`.
+        // Project 3 has no release, so the left join on
+        // `project_release.project_id = project.id` misses; the projected
+        // column then surfaces as a PRESENT `null` key rather than an absent
+        // one. Delete project 3's only issue (issue 4).
+        const expected = { id: 4, version: null }
+        ctx.mockNext({ id: 4, version: null })
+        await ctx.withRollback(async () => {
+            const tRelease = tProjectRelease.forUseInLeftJoin()
+            const row = await ctx.conn.deleteFrom(tIssue)
+                .using(tProject)
+                .leftJoin(tRelease).on(tRelease.projectId.equals(tProject.id))
+                .where(tIssue.projectId.equals(tProject.id))
+                    .and(tIssue.id.equals(4))
+                .returning({
+                    id:      tIssue.id,
+                    version: tRelease.version,
+                })
+                .projectingOptionalValuesAsNullable()
+                .executeDeleteOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using project left join project_release on project_release.project_id = project.id where issue.project_id = project.id and issue.id = $1 returning issue.id as id, project_release.version as version"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                4,
+              ]
+            `)
+            assertType<Exact<typeof row, {
+                id:      number
+                version: string | null
+            }>>()
+            expect('version' in row).toBe(true)
+            expect(row.version).toBe(null)
+            expect(row).toEqual(expected)
+        })
+    })
+    */
+
+    // NOT-APPLICABLE: SQLite does not support DELETE … USING; the library type-excludes it for sqlite connections.
+    /*
+
     test('delete-using-table-then-inner-join-on-and-compound-join-condition', async () => {
         // `.on(c).and(c2)` on the using-then-join limb — the `.and()` chained after
         // `.on()` accumulates into the JOIN predicate (`__lastJoin.__on`), NOT the

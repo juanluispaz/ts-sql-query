@@ -790,4 +790,245 @@ describe(ctx.label, () => {
             ],
         })
     })
+
+    test('inline-aggregate-with-group-by-projecting-optionals-as-nullable', async () => {
+        // The `projectingOptionalValuesAsNullable()` marker coexists with a `group by`
+        // wrap: it is applied right after `select(...)`, before `group by`, and survives
+        // into the aggregate-over-derived-table wrap. The optional group key `assigneeId`
+        // (a nullable column) surfaces present-as-null for the unassigned group instead of
+        // being dropped. Org 1 owns issues 1 (assignee 1), 2 (assignee 2), 3 (assignee
+        // NULL) → three groups each of count 1; the inner aggregate is unordered, so sort
+        // before comparing.
+        ctx.mockNext({
+            id: 1, name: 'Acme Corp',
+            byAssignee: JSON.stringify([
+                { assigneeId: 1, count: 1 },
+                { assigneeId: 2, count: 1 },
+                { assigneeId: null, count: 1 },
+            ]),
+        })
+        const byAssignee = ctx.conn.subSelectUsing(tOrganization).from(tProject)
+            .innerJoin(tIssue).on(tIssue.projectId.equals(tProject.id))
+            .where(tProject.organizationId.equals(tOrganization.id))
+            .select({ assigneeId: tIssue.assigneeId, count: ctx.conn.count(tIssue.id) })
+            .projectingOptionalValuesAsNullable()
+            .groupBy('assigneeId')
+            .forUseAsInlineAggregatedArrayValue()
+
+        const row = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.id.equals(1))
+            .select({ id: tOrganization.id, name: tOrganization.name, byAssignee })
+            .executeSelectOne()
+        assertType<Exact<typeof row, {
+            id:         number
+            name:       string
+            byAssignee: Array<{ assigneeId: number | null; count: number }>
+        }>>()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, (select json_agg(json_build_object('assigneeId', a_1_.assigneeId, 'count', a_1_.count)) from (select issue.assignee_id as assigneeId, count(issue.id) as count from project inner join issue on issue.project_id = project.id where project.organization_id = organization.id group by issue.assignee_id) as a_1_) as "byAssignee" from organization where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        expect({ ...row, byAssignee: [...row.byAssignee].sort((a, b) => (a.assigneeId ?? -1) - (b.assigneeId ?? -1)) }).toEqual({
+            id: 1, name: 'Acme Corp',
+            byAssignee: [
+                { assigneeId: null, count: 1 },
+                { assigneeId: 1, count: 1 },
+                { assigneeId: 2, count: 1 },
+            ],
+        })
+        // The unassigned group's `assigneeId` is PRESENT as null (not absent).
+        const nullGroup = row.byAssignee.find(g => g.assigneeId === null)!
+        expect('assigneeId' in nullGroup).toBe(true)
+    })
+
+    test('inline-aggregate-with-having-projecting-optionals-as-nullable', async () => {
+        // The nullable marker coexisting with a `having` wrap (a `group by` is required
+        // before `having`). `having count(...) > 0` keeps every group, and the optional
+        // group key `assigneeId` still surfaces present-as-null for the unassigned group
+        // through the wrap. Same org-1 grouping; the inner aggregate is unordered.
+        ctx.mockNext({
+            id: 1, name: 'Acme Corp',
+            byAssignee: JSON.stringify([
+                { assigneeId: 1, count: 1 },
+                { assigneeId: 2, count: 1 },
+                { assigneeId: null, count: 1 },
+            ]),
+        })
+        const byAssignee = ctx.conn.subSelectUsing(tOrganization).from(tProject)
+            .innerJoin(tIssue).on(tIssue.projectId.equals(tProject.id))
+            .where(tProject.organizationId.equals(tOrganization.id))
+            .select({ assigneeId: tIssue.assigneeId, count: ctx.conn.count(tIssue.id) })
+            .projectingOptionalValuesAsNullable()
+            .groupBy('assigneeId')
+            .having(ctx.conn.count(tIssue.id).greaterThan(0))
+            .forUseAsInlineAggregatedArrayValue()
+
+        const row = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.id.equals(1))
+            .select({ id: tOrganization.id, name: tOrganization.name, byAssignee })
+            .executeSelectOne()
+        assertType<Exact<typeof row, {
+            id:         number
+            name:       string
+            byAssignee: Array<{ assigneeId: number | null; count: number }>
+        }>>()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, (select json_agg(json_build_object('assigneeId', a_1_.assigneeId, 'count', a_1_.count)) from (select issue.assignee_id as assigneeId, count(issue.id) as count from project inner join issue on issue.project_id = project.id where project.organization_id = organization.id group by issue.assignee_id having count(issue.id) > $1) as a_1_) as "byAssignee" from organization where id = $2"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            0,
+            1,
+          ]
+        `)
+        expect({ ...row, byAssignee: [...row.byAssignee].sort((a, b) => (a.assigneeId ?? -1) - (b.assigneeId ?? -1)) }).toEqual({
+            id: 1, name: 'Acme Corp',
+            byAssignee: [
+                { assigneeId: null, count: 1 },
+                { assigneeId: 1, count: 1 },
+                { assigneeId: 2, count: 1 },
+            ],
+        })
+    })
+
+    test('inline-aggregate-of-distinct-object-projecting-optionals-as-nullable', async () => {
+        // The nullable marker coexisting with a `select distinct` wrap. The distinct
+        // (status, body) pairs of project 1's issues surface the optional `body` leaf
+        // present-as-null for the null-body row. Issues 1 (open, body NULL) and 2
+        // (in_progress, 'Use new tokens') give two distinct pairs; the inner aggregate is
+        // unordered, so sort before comparing.
+        ctx.mockNext({
+            id: 1,
+            kinds: JSON.stringify([
+                { status: 'open', body: null },
+                { status: 'in_progress', body: 'Use new tokens' },
+            ]),
+        })
+        const kinds = ctx.conn.subSelectDistinctUsing(tProject).from(tIssue)
+            .where(tIssue.projectId.equals(tProject.id))
+            .select({ status: tIssue.status, body: tIssue.body })
+            .projectingOptionalValuesAsNullable()
+            .forUseAsInlineAggregatedArrayValue()
+
+        const row = await ctx.conn.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ id: tProject.id, kinds })
+            .executeSelectOne()
+
+        assertType<Exact<typeof row, {
+            id:    number
+            kinds: Array<{ status: string; body: string | null }>
+        }>>()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select json_agg(json_build_object('status', a_1_.status, 'body', a_1_.body)) from (select distinct status as status, body as body from issue where project_id = project.id) as a_1_) as kinds from project where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        expect({ ...row, kinds: [...row.kinds].sort((a, b) => a.status.localeCompare(b.status)) }).toEqual({
+            id: 1,
+            kinds: [
+                { status: 'in_progress', body: 'Use new tokens' },
+                { status: 'open', body: null },
+            ],
+        })
+        // The null-body distinct row surfaces `body` present-as-null (not absent).
+        const openRow = row.kinds.find(k => k.status === 'open')!
+        expect('body' in openRow).toBe(true)
+        expect(openRow.body).toBe(null)
+    })
+
+    test('inline-aggregate-of-recursive-union-projecting-optionals-as-nullable', async () => {
+        // The nullable marker coexisting with a recursive-union wrap: the marker is applied
+        // on the anchor select (before `recursiveUnionAllOn`) and is copied onto the
+        // recursive builder, so the optional `body` leaf surfaces present-as-null through
+        // the recursive CTE consumed as an inline aggregate. Every seeded issue has a NULL
+        // parent_id, so the traversal from issue 1 yields a one-element array; issue 1's
+        // body is NULL → present as null.
+        const expected = { id: 1, tree: [{ id: 1, title: 'Update hero copy', body: null }] }
+        ctx.mockNext(expected)
+        const tree = ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({ id: tIssue.id, title: tIssue.title, body: tIssue.body })
+            .projectingOptionalValuesAsNullable()
+            .recursiveUnionAllOn((child) => tIssue.parentId.equals(child.id))
+            .forUseAsInlineAggregatedArrayValue()
+
+        const row = await ctx.conn.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ id: tProject.id, tree })
+            .executeSelectOne()
+
+        assertType<Exact<typeof row, {
+            id:   number
+            tree: Array<{ id: number; title: string; body: string | null }>
+        }>>()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, title as title, body as body from issue where id = $1 union all select issue.id as id, issue.title as title, issue.body as body from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id) select id as id, (select json_agg(json_build_object('id', id, 'title', title, 'body', body)) from recursive_select_1) as tree from project where id = $2"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            1,
+          ]
+        `)
+        expect(row).toEqual(expected)
+        // Issue 1's null body is PRESENT as null through the recursive wrap.
+        expect('body' in row.tree[0]!).toBe(true)
+        expect(row.tree[0]!.body).toBe(null)
+    })
+
+    test('inline-aggregate-of-compound-union-projecting-optionals-as-nullable', async () => {
+        // The nullable marker applied on BOTH arms BEFORE `.union(...)`, consumed as an
+        // inline aggregated array. The compound builder inherits the arms' nullable-
+        // projection flag, so an optional `body` leaf surfaces present-as-null (rather than
+        // being dropped) through the union wrap. Arm 1 = project 1's issue 1 (body NULL);
+        // arm 2 = its issue 2 (body 'Use new tokens'). The inner aggregate is unordered, so
+        // sort before comparing.
+        ctx.mockNext({
+            pid: 1,
+            issues: JSON.stringify([
+                { title: 'Update hero copy', body: null },
+                { title: 'Redesign navbar', body: 'Use new tokens' },
+            ]),
+        })
+        const issues = ctx.conn.subSelectUsing(tProject).from(tIssue)
+            .where(tIssue.projectId.equals(tProject.id)).and(tIssue.id.equals(1))
+            .select({ title: tIssue.title, body: tIssue.body })
+            .projectingOptionalValuesAsNullable()
+            .union(
+                ctx.conn.subSelectUsing(tProject).from(tIssue)
+                    .where(tIssue.projectId.equals(tProject.id)).and(tIssue.id.equals(2))
+                    .select({ title: tIssue.title, body: tIssue.body })
+                    .projectingOptionalValuesAsNullable(),
+            )
+            .forUseAsInlineAggregatedArrayValue()
+
+        const row = await ctx.conn.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ pid: tProject.id, issues })
+            .executeSelectOne()
+        assertType<Exact<typeof row, {
+            pid:    number
+            issues: Array<{ title: string; body: string | null }>
+        }>>()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, (select json_agg(json_build_object('title', a_1_.title, 'body', a_1_.body)) from (select title as title, body as body from issue where project_id = project.id and id = $1 union select title as title, body as body from issue where project_id = project.id and id = $2) as a_1_) as issues from project where id = $3"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+            1,
+          ]
+        `)
+        expect({ ...row, issues: [...row.issues].sort((a, b) => a.title.localeCompare(b.title)) }).toEqual({
+            pid: 1,
+            issues: [
+                { title: 'Redesign navbar', body: 'Use new tokens' },
+                { title: 'Update hero copy', body: null },
+            ],
+        })
+        // Issue 1's null body is PRESENT as null even though the marker was applied on the
+        // arms before the union (previously it was silently dropped at runtime).
+        const issue1 = row.issues.find(i => i.title === 'Update hero copy')!
+        expect('body' in issue1).toBe(true)
+        expect(issue1.body).toBe(null)
+    })
 })

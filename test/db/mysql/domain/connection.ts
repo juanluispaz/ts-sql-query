@@ -595,11 +595,14 @@ export class DBConnection extends MySqlConnection<'DBConnection'> {
         return this.rawFragment`(select * from ${table} where ${min} >= 0) ${alias}`
     })
 
-    // Higher-arity siblings of withMinIdFilter — the P3/P4/P5 overloads of
+    // Higher-arity siblings of withMinIdFilter — the P2/P3/P4/P5 overloads of
     // createTableOrViewCustomization (withSqlHint is P0, withMinIdFilter is P1).
     // Each threads N runtime int params into the derived-table predicate as real
     // bound placeholders (`<pN> >= 0`, all constant-true so every row is kept),
     // so the extra params ride ahead of any outer WHERE param.
+    withTwoParams = this.createTableOrViewCustomization<number, number>((table, alias, a, b) => {
+        return this.rawFragment`(select * from ${table} where ${this.const(a, 'int')} >= 0 and ${this.const(b, 'int')} >= 0) ${alias}`
+    })
     withThreeParams = this.createTableOrViewCustomization<number, number, number>((table, alias, a, b, c) => {
         return this.rawFragment`(select * from ${table} where ${this.const(a, 'int')} >= 0 and ${this.const(b, 'int')} >= 0 and ${this.const(c, 'int')} >= 0) ${alias}`
     })

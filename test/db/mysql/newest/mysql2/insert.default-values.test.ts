@@ -50,4 +50,44 @@ describe(ctx.label, () => {
         }
     })
     */
+
+    // NOT-APPLICABLE: MySQL has no RETURNING clause, so `.defaultValues().returning(...)` types as `never` (like the disabled `insert default values` test above).
+    /*
+    test('default values returning an object', async () => {
+        // `insert into <t> default values returning <cols>` — the object-projection
+        // returning path on a DEFAULT VALUES insert (distinct from the
+        // returningLastInsertedId path above).
+        ctx.mockNext([{ amount: 100 }])
+        await ctx.withRollback(async () => {
+            const rows = await ctx.conn.insertInto(tLedgerEntry)
+                .defaultValues()
+                .returning({ amount: tLedgerEntry.amount })
+                .executeInsertMany()
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof rows, Array<{ amount: number }>>>()
+            expect(rows).toEqual([{ amount: 10 }])
+        })
+    })
+    */
+
+    // NOT-APPLICABLE: MySQL has no RETURNING clause, so `.defaultValues().returningOneColumn(...)` types as `never` (like the disabled `insert default values` test above).
+    /*
+    test('default values returning one column', async () => {
+        // `insert into <t> default values returning <col>` — the single-column
+        // returning path on a DEFAULT VALUES insert; the result is a bare array of
+        // the column's type.
+        ctx.mockNext([100])
+        await ctx.withRollback(async () => {
+            const rows = await ctx.conn.insertInto(tLedgerEntry)
+                .defaultValues()
+                .returningOneColumn(tLedgerEntry.amount)
+                .executeInsertMany()
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof rows, number[]>>()
+            expect(rows).toEqual([10])
+        })
+    })
+    */
 })

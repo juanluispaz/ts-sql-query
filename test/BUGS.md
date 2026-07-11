@@ -67,65 +67,7 @@ of that. Two minutes of triage and one paragraph is the bar.
 
 ## Open Bugs
 
-## `forUseAsInlineAggregatedArrayValue().projectingOptionalValuesAsNullable()` types a rule-1/rule-2 element-top leaf as non-null `T`, but the runtime yields present-`null`
-
-**Where**: `src/expressions/select.ts` — `ForUseAsInlineAggregatedArrayValueFn`'s
-`'projectingOptionalValuesAsNullable' extends FEATURES` branch uses
-`ResultObjectValuesProjectedAsNullableForAggregatedArray<COLUMNS>`. That type
-(see `src/complexProjections/resultWithOptionalsAsNull.ts:63-90`) applies the
-projection rules at the ELEMENT TOP — a rule-1 `requiredInOptionalObject` gate or
-a rule-2 `AllFromSameLeftJoinWithOriginallyRequired` leaf is typed non-null `T`
-("the result for aggregateAsArray must not be nullable"). That is sound only for
-the *dropping* runtime of `connection.aggregateAsArray(...)` (mode
-`InnerResultObject` → `__transformProjectedObject`, which DROPS the element when
-the gate/join is null). But the **inline** `forUseAsInlineAggregatedArrayValue`
-runtime uses mode `ResultObject` → `__transformRootObject`
-(`src/queryBuilders/AbstractQueryBuilder.ts:69-95,159-167`), which is
-**non-dropping**: it keeps the element and writes the null leaf **present-`null`**
-under the nullable flag. So the type says `T`, the runtime yields `null`.
-
-Root of the mismatch: the inline **default** branch of
-`ForUseAsInlineAggregatedArrayValueFn` uses the *plain* `ResultObjectValues`
-(not a `...ForAggregatedArray` variant), matching the non-dropping runtime; the
-nullable branch should symmetrically use the plain
-`ResultObjectValuesProjectedAsNullable<COLUMNS>` (rule-1/rule-2 top leaf →
-`T | null`), not `...ForAggregatedArray`. This is a residual of the round-40
-BUG-3 fix (commit `2a756870`), which corrected the rule-3/rule-4 case (where the
-two nullable types coincide) but over-corrected rule-1/rule-2.
-
-**Reproduction**: `subSelectUsing(tOrganization).from(tIssue).leftJoin(tProject.forUseInLeftJoin()).on(...).select({ projName: tProjLeft.name }).projectingOptionalValuesAsNullable().forUseAsInlineAggregatedArrayValue()` — declared element `Array<{ projName: string }>` (verified via tsgo `assertType<Exact>`), but on a join-miss row (`ctx.mockNext({ items: [{ projName: null }, ...] })`) the runtime resolves `[{ projName: null }, ...]` (verified on the mock — a client-side transform, no `--docker` needed). Same for a rule-1 `asRequiredInOptionalObject()` gate leaf at the element top.
-
-**Current workaround in the suite**: none yet — the boundary tests for the
-uncovered inline rule-1/rule-2 nullable shapes are listed in
-`MISSING_TESTS_AUDIT_41.md` (surface SEL/PROJ-INLINE) and must carry a
-`// TODO[BUG]` on the `assertType` until this is fixed (the `assertType` encodes
-the buggy non-null `T`, contradicting the `=== null` runtime value — the
-"expected contradicts its own assertType = documents a bug" fingerprint).
-
-## `projectingOptionalValuesAsNullable()` called BEFORE `.union(...)` then `forUseAsInlineAggregatedArrayValue()`: type promises present-`null`, runtime drops the leaf
-
-**Where**: `src/queryBuilders/SelectQueryBuilder.ts` — `union` / `unionAll` /
-`intersect*` / `except*` / `minus*` (lines ~409-448) build a fresh
-`CompoundSelectQueryBuilder` but never copy the anchor's
-`__projectOptionalValuesAsNullable` runtime flag onto it. Contrast
-`__buildRecursive` (line ~670, and ~742 for the `*On` form), which DOES copy the
-flag so a pre-`recursiveUnion` projection survives. At the type level the
-`'projectingOptionalValuesAsNullable'` FEATURES marker (added by the round-40
-BUG-3 fix, commit `2a756870`) **survives** `.union()`
-(`CompoundedExecutableSelectExpressionProjectableAsNullable` preserves `FEATURES`),
-so `forUseAsInlineAggregatedArrayValue` sees the marker and types the element
-present-`null`; but the runtime flag is gone, so `forUseAsInlineAggregatedArrayValue`
-(`SelectQueryBuilder.ts:641`, reading `this.__projectOptionalValuesAsNullable` on
-the compound builder) takes the default projector and DROPS the null leaf.
-
-**Reproduction**: `subSelectUsing(tOrganization).from(tIssue).where(...).select({ title, body }).projectingOptionalValuesAsNullable().union(arm2).forUseAsInlineAggregatedArrayValue()` (both arms projected-as-nullable so the union type-checks) — declared element `Array<{ title: string; body: string | null }>` (verified via tsgo `assertType<Exact>`), but on a null-`body` row the runtime resolves `[{ title: 'A' }, ...]` with `body` ABSENT (verified on the mock: `expected [{title:'A',body:null},...]` → `received [{title:'A'},...]`). Fix is either propagate `__projectOptionalValuesAsNullable` in the compound methods (mirroring `__buildRecursive`) so the runtime honors it, or drop the marker on union so the type stops promising it.
-
-**Current workaround in the suite**: none yet — the boundary test is listed in
-`MISSING_TESTS_AUDIT_41.md` (surface SEL) and must carry a `// TODO[BUG]` until
-fixed. (Note the existing `select.compound-optional-as-nullable.test.ts` sidesteps
-this by applying the modifier AFTER `.union()`, with a comment acknowledging "a
-call on the first arm before `.union(...)` is silently ignored at runtime" — that
-comment predates the BUG-3 fix, which made the TYPE start over-promising.)
+_None currently open._
 
 ## Common bug shapes (for the fixing agent)
 

@@ -10,7 +10,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tProject } from '../../domain/connection.js'
+import { tAppUser, tIssue, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -922,5 +922,156 @@ describe(ctx.label, () => {
         const issue1 = row.issues.find(i => i.title === 'Update hero copy')!
         expect('body' in issue1).toBe(true)
         expect(issue1.body).toBe(null)
+    })
+    test('inline-element-rule-1-gate-leaf-at-top-default-keeps-element-drops-gate', async () => {
+        // Rule-1 at the inline ELEMENT TOP: `ref` is a requiredInOptionalObject gate
+        // (issue.body), `assigneeId` an optional leaf. The inline aggregate runtime is
+        // NON-DROPPING (`__transformRootObject`): unlike `aggregateAsArray` — which
+        // drops the whole element when the rule-1 gate is null — the element is KEPT
+        // and the null `ref` is ABSENT under the default projector. Project 1: issue 1
+        // (body NULL → gate miss, element kept, ref absent) and issue 2 (body present).
+        ctx.mockNext({ pid: 1, issues: [
+            { ref: null, assigneeId: 1 },
+            { ref: 'Use new tokens', assigneeId: 2 },
+        ] })
+        const issues = ctx.conn.subSelectUsing(tProject).from(tIssue)
+            .where(tIssue.projectId.equals(tProject.id))
+            .select({ ref: tIssue.body.asRequiredInOptionalObject(), assigneeId: tIssue.assigneeId })
+            .forUseAsInlineAggregatedArrayValue()
+        const row = await ctx.conn.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ pid: tProject.id, issues })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, (select json_arrayagg(json_object('ref', \`body\`, 'assigneeId', assignee_id)) from issue where project_id = project.id) as issues from project where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            pid:    number
+            issues: Array<{ ref?: string | undefined; assigneeId?: number | undefined }>
+        }>>()
+        const sorted = [...row.issues].sort((a, b) => a.assigneeId! - b.assigneeId!)
+        expect(sorted).toEqual([
+            { assigneeId: 1 },
+            { ref: 'Use new tokens', assigneeId: 2 },
+        ])
+        // The rule-1 gate-null element is KEPT (inline root is non-dropping), `ref` ABSENT.
+        expect('ref' in sorted[0]!).toBe(false)
+    })
+
+    test('inline-element-rule-1-gate-leaf-at-top-as-nullable-surfaces-null', async () => {
+        // Same rule-1 element top under `projectingOptionalValuesAsNullable()`: the
+        // non-dropping inline runtime keeps the gate-null element and writes the gate
+        // present-as-null. The plain nullable projector types the requiredInOptionalObject
+        // `ref` leaf as `string | null` (NOT non-null `T` — that would be the dropping
+        // `aggregateAsArray` shape), so the type matches the present-null runtime.
+        ctx.mockNext({ pid: 1, issues: [
+            { ref: null, assigneeId: 1 },
+            { ref: 'Use new tokens', assigneeId: 2 },
+        ] })
+        const issues = ctx.conn.subSelectUsing(tProject).from(tIssue)
+            .where(tIssue.projectId.equals(tProject.id))
+            .select({ ref: tIssue.body.asRequiredInOptionalObject(), assigneeId: tIssue.assigneeId })
+            .projectingOptionalValuesAsNullable()
+            .forUseAsInlineAggregatedArrayValue()
+        const row = await ctx.conn.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ pid: tProject.id, issues })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, (select json_arrayagg(json_object('ref', \`body\`, 'assigneeId', assignee_id)) from issue where project_id = project.id) as issues from project where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            pid:    number
+            issues: Array<{ ref: string | null; assigneeId: number | null }>
+        }>>()
+        const sorted = [...row.issues].sort((a, b) => a.assigneeId! - b.assigneeId!)
+        expect(sorted).toEqual([
+            { ref: null, assigneeId: 1 },
+            { ref: 'Use new tokens', assigneeId: 2 },
+        ])
+        // The gate-null element is PRESENT with `ref === null` (not dropped, not absent).
+        expect('ref' in sorted[0]!).toBe(true)
+        expect(sorted[0]!.ref).toBe(null)
+    })
+
+    test('inline-element-rule-2-left-join-leaf-at-top-default-keeps-element-drops-leaf', async () => {
+        // Rule-2 at the inline ELEMENT TOP: the sole leaf `name` is an
+        // originallyRequired leaf of a LEFT-JOINED table (app_user), so the element is
+        // optional. On a join miss the NON-DROPPING inline runtime keeps the element
+        // and OMITS `name` under the default projector (contrast `aggregateAsArray`,
+        // which drops the whole element). Project 2's issue 3 has no assignee → miss.
+        const tAssignee = tAppUser.forUseInLeftJoin()
+        ctx.mockNext({ pid: 2, assignees: [
+            { name: null },
+        ] })
+        const assignees = ctx.conn.subSelectUsing(tProject).from(tIssue)
+            .leftJoin(tAssignee).on(tAssignee.id.equals(tIssue.assigneeId))
+            .where(tIssue.projectId.equals(tProject.id))
+            .select({ name: tAssignee.fullName })
+            .forUseAsInlineAggregatedArrayValue()
+        const row = await ctx.conn.selectFrom(tProject)
+            .where(tProject.id.equals(2))
+            .select({ pid: tProject.id, assignees })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, (select json_arrayagg(json_object('name', app_user.full_name)) from issue left join app_user on app_user.id = issue.assignee_id where issue.project_id = project.id) as assignees from project where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            pid:       number
+            assignees: Array<{ name?: string | undefined }>
+        }>>()
+        // The join-miss element is KEPT as `{}` with `name` ABSENT (inline root is
+        // non-dropping — `aggregateAsArray` would have dropped it, yielding `[]`).
+        expect(row.assignees).toEqual([{}])
+        expect('name' in row.assignees[0]!).toBe(false)
+    })
+
+    test('inline-element-rule-2-left-join-leaf-at-top-as-nullable-surfaces-null', async () => {
+        // Same rule-2 element top under `projectingOptionalValuesAsNullable()`: the
+        // non-dropping inline runtime keeps the join-miss element and writes `name`
+        // present-as-null. The plain nullable projector types the originallyRequired
+        // `name` leaf as `string | null` (NOT non-null `T` — the dropping
+        // `aggregateAsArray` shape), so the type matches the present-null runtime.
+        const tAssignee = tAppUser.forUseInLeftJoin()
+        ctx.mockNext({ pid: 2, assignees: [
+            { name: null },
+        ] })
+        const assignees = ctx.conn.subSelectUsing(tProject).from(tIssue)
+            .leftJoin(tAssignee).on(tAssignee.id.equals(tIssue.assigneeId))
+            .where(tIssue.projectId.equals(tProject.id))
+            .select({ name: tAssignee.fullName })
+            .projectingOptionalValuesAsNullable()
+            .forUseAsInlineAggregatedArrayValue()
+        const row = await ctx.conn.selectFrom(tProject)
+            .where(tProject.id.equals(2))
+            .select({ pid: tProject.id, assignees })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, (select json_arrayagg(json_object('name', app_user.full_name)) from issue left join app_user on app_user.id = issue.assignee_id where issue.project_id = project.id) as assignees from project where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            pid:       number
+            assignees: Array<{ name: string | null }>
+        }>>()
+        // The join-miss element is PRESENT with `name === null` (not dropped, not absent).
+        expect(row.assignees).toEqual([{ name: null }])
+        expect('name' in row.assignees[0]!).toBe(true)
+        expect(row.assignees[0]!.name).toBe(null)
     })
 })

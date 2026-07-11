@@ -4,7 +4,7 @@ import type { WithView } from '../utils/tableOrViewUtils.js'
 import type { resultType, compoundableColumns, valueType, from, using, source, selectColumnsType } from '../utils/symbols.js'
 import type { NAnyNoTableOrViewRequired, NDbType, NNoTableOrViewRequiredFrom, NRecursiveFrom, NSource, NSourceAllowingAggregate, NWithFrom } from '../utils/sourceName.js'
 import type { DataToProject, RequiredColumnNames } from '../complexProjections/dataToProject.js'
-import type { ResultObjectValuesProjectedAsNullable, ResultObjectValuesProjectedAsNullableForAggregatedArray } from '../complexProjections/resultWithOptionalsAsNull.js'
+import type { ResultObjectValuesProjectedAsNullable } from '../complexProjections/resultWithOptionalsAsNull.js'
 import type { ResultObjectValues } from '../complexProjections/resultWithOptionalsAsUndefined.js'
 import type { ColumnsForCompound } from '../complexProjections/compound.js'
 import type { ColumnsForWithView } from '../complexProjections/asWithView.js'
@@ -501,9 +501,14 @@ type ForUseAsInlineAggregatedArrayValueFn<_FROM extends HasSource<any>, REQUIRED
     ? () => AggregatedArrayValueSource<REQUIRED[typeof source], Array<COLUMNS[typeof valueType]>, 'required'>
     // When `projectingOptionalValuesAsNullable()` was called on the select, the runtime honours the flag
     // for the inline aggregated array too (SelectQueryBuilder.forUseAsInlineAggregatedArrayValue) and emits
-    // each optional leaf present-as-null, exactly like `connection.aggregateAsArray(...).projectingOptionalValuesAsNullable()`.
+    // each optional leaf present-as-null. Unlike `connection.aggregateAsArray(...)` — whose runtime DROPS a
+    // whole element when a rule-1 gate / rule-2 left-join leaf is null — the inline runtime is NON-DROPPING
+    // (`__transformRootObject`, AbstractQueryBuilder): it keeps the element and writes the null leaf present-as-null.
+    // So it uses the plain `ResultObjectValuesProjectedAsNullable` (a rule-1/rule-2 element-top leaf → `T | null`),
+    // mirroring the default branch's plain `ResultObjectValues`, NOT the `...ForAggregatedArray` variant (which
+    // types those leaves non-null and is correct only for the dropping `aggregateAsArray` runtime).
     : 'projectingOptionalValuesAsNullable' extends FEATURES
-    ? () => AggregatedArrayValueSource<REQUIRED[typeof source], Array<{ [P in keyof ResultObjectValuesProjectedAsNullableForAggregatedArray<COLUMNS>]: ResultObjectValuesProjectedAsNullableForAggregatedArray<COLUMNS>[P] }>, 'required'>
+    ? () => AggregatedArrayValueSource<REQUIRED[typeof source], Array<{ [P in keyof ResultObjectValuesProjectedAsNullable<COLUMNS>]: ResultObjectValuesProjectedAsNullable<COLUMNS>[P] }>, 'required'>
     : () => AggregatedArrayValueSource<REQUIRED[typeof source], Array<{ [P in keyof ResultObjectValues<COLUMNS>]: ResultObjectValues<COLUMNS>[P] }>, 'required'>
 
 type CompoundFunction<SUPPORTED_DB extends NDbType, FROM extends HasSource<any>, REQUIRED extends HasSource<any>, COLUMNS, RESULT, FEATURES> =

@@ -394,6 +394,14 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
     }
 
     __combineSubSelectUsing(select: ICompoundableSelect<any, any, any>, result: CompoundSelectQueryBuilder) {
+        // Propagate the `projectingOptionalValuesAsNullable()` runtime flag onto the compound builder
+        // (mirroring `__buildRecursive`, which copies it to the recursive select). A call on the first
+        // arm before `.union(...)`/`.intersect(...)`/etc. survives in the TYPE — `union` preserves both
+        // the projected `RESULT` and the `'projectingOptionalValuesAsNullable'` FEATURES marker — so the
+        // compound's result rows and its `forUseAsInlineAggregatedArrayValue()` element are both typed
+        // present-as-null. Without this the runtime would default-drop those null leaves, contradicting
+        // the type. Both arms must share the same projection to type-check, so the first arm is authoritative.
+        result.__projectOptionalValuesAsNullable = this.__projectOptionalValuesAsNullable
         const selectPrivate = select as any as AbstractSelect
         if (this.__subSelectUsing) {
             if (selectPrivate.__subSelectUsing) {

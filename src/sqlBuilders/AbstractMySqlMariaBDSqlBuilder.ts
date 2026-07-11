@@ -272,7 +272,14 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         return ''
     }
     override _buildInsertOnConflictBeforeInto(query: InsertData, _params: any[]): string {
-        if (query.__onConflictDoNothing) {
+        // `insert ignore` covers both an explicit `onConflictDoNothing()` and an
+        // on-conflict `do update` whose assignment list resolved to no columns:
+        // MariaDB/MySQL have no empty `on duplicate key update`, and `insert
+        // ignore` is the same conflict-skipping no-op. The matching
+        // `on duplicate key update` clause is then omitted (see
+        // `_buildInsertOnConflictBeforeReturning` below, which returns '' when
+        // the assignment list is empty).
+        if (query.__onConflictDoNothing || this._isInsertOnConflictUpdateSetEmpty(query)) {
             return 'ignore '
         }
 

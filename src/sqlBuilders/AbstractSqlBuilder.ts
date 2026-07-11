@@ -11,6 +11,7 @@ import type { DefaultTypeAdapter, TypeAdapter } from '../TypeAdapter.js'
 import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 import type { ConnectionConfiguration } from '../utils/ConnectionConfiguration.js'
 import { SequenceValueSource } from '../internal/ValueSourceImpl.js'
+import { RawFragmentImpl } from '../internal/RawFragmentImpl.js'
 import { hasToSql, operationOf } from './SqlBuilder.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import { __getColumnOfObject, __getColumnPrivate } from '../utils/Column.js'
@@ -1338,8 +1339,12 @@ export class AbstractSqlBuilder implements SqlBuilder {
      * the compound must be wrapped as `select * from (<compound>)` so the
      * expression becomes a legal ORDER BY term on the plain wrapper. MySQL /
      * MariaDB accept expressions inline (`_supportFunctionInCompoundOrderBy`),
-     * so they render it without the wrapper. Ordinal raw fragments (`order by 1`)
-     * are not value sources and stay inline untouched.
+     * so they render it without the wrapper. A raw fragment that embeds an
+     * interpolated value source / subquery renders as an expression or bound
+     * parameter (e.g. `` rawFragment`${const(1, 'int')}` `` → `$1`) and slips
+     * past the `isValueSource` gate, so it is treated the same way. A raw
+     * fragment with no interpolations is a literal the caller owns (an ordinal
+     * `order by 1`, an output-column name) and stays inline untouched.
      */
     _needsCompoundExpressionOrderByWrap(query: SelectData): boolean {
         if (query.__type !== 'compound') {
@@ -1353,7 +1358,14 @@ export class AbstractSqlBuilder implements SqlBuilder {
             return false // the lenient engines accept the expression inline, no wrapper needed
         }
         for (const entry of orderBy) {
-            if (isValueSource(entry.expression)) {
+            const expression = entry.expression
+            if (isValueSource(expression)) {
+                return true
+            }
+            if (expression instanceof RawFragmentImpl && expression.__params.length > 0) {
+                // A raw fragment embedding a value source / subquery renders as
+                // an expression or bound parameter, illegal inline here on the
+                // strict engines just like a bare value source.
                 return true
             }
         }
@@ -2056,63 +2068,88 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return ''
     }
     /*
+     * Resolves the on-conflict update-set into the list of `{ column, value }`
+     * pairs that will be assigned, honouring shape-renamed keys and skipping
+     * properties that don't map to a real table column (the value object is
+     * allowed to carry extra properties for more complex usages). Does not touch
+     * `params`, so it can be called to inspect the assignment list — e.g. to
+     * detect that it resolves to zero columns — before emitting any SQL.
+     */
+    _resolveInsertOnConflictUpdateSetColumns(query: InsertData): Array<{ column: DBColumn, value: any }> {
+        const result: Array<{ column: DBColumn, value: any }> = []
+        const table = query.__table
+        const shape = query.__onConflictUpdateShape
+        const sets = query.__onConflictUpdateSets
+        if (!sets) {
+            return result
+        }
+        if (shape) { // Follow shape order
+            const properties = Object.getOwnPropertyNames(shape)
+            for (let i = 0, length = properties.length; i < length; i++) {
+                const property = properties[i]!
+                const columnName = shape[property]!
+                const column = __getColumnOfObject(table, columnName)
+                if (!column) {
+                    // Additional property provided in the value object
+                    // Skipped because it is not part of the table
+                    // This allows to have more complex objects used in the query
+                    continue
+                }
+                if (!(property in sets)) {
+                    // No value set for that property in the shape
+                    continue
+                }
+                result.push({ column, value: sets[property] })
+            }
+        } else { // No shape, follow set order
+            const properties = Object.getOwnPropertyNames(sets)
+            for (let i = 0, length = properties.length; i < length; i++) {
+                const property = properties[i]!
+                const column = __getColumnOfObject(table, property)
+                if (!column) {
+                    // Additional property provided in the value object
+                    // Skipped because it is not part of the table
+                    // This allows to have more complex objects used in the query
+                    continue
+                }
+                result.push({ column, value: sets[property] })
+            }
+        }
+        return result
+    }
+    /*
+     * True when an on-conflict `do update set` was requested but resolves to no
+     * columns to assign — e.g. every staged value was dropped by
+     * `ignoreAnySetWithNoValue()` / `doUpdateSetIfValue({ x: undefined })`, or
+     * the value object carried only properties that don't map to a table column.
+     * The caller degrades the clause to a conflict-ignoring no-op (`do nothing`
+     * on PostgreSQL/SQLite, `insert ignore` on MariaDB/MySQL) instead of dropping
+     * the whole on-conflict clause. Returns `false` when no update-set was
+     * requested at all.
+     */
+    _isInsertOnConflictUpdateSetEmpty(query: InsertData): boolean {
+        if (!query.__onConflictUpdateSets) {
+            return false
+        }
+        return this._resolveInsertOnConflictUpdateSetColumns(query).length <= 0
+    }
+    /*
      * Builds the `<col> = <value>, ...` assignment list shared by the
      * `do update set` (PostgreSQL/SQLite) and `on duplicate key update`
      * (MariaDB/MySQL) clauses. Resolves shape-renamed keys back to their real
      * column when an on-conflict shape is present, so every dialect honours it.
      */
     _buildInsertOnConflictUpdateSetColumns(query: InsertData, params: any[]): string {
+        const resolved = this._resolveInsertOnConflictUpdateSetColumns(query)
         let columns = ''
-        const table = query.__table
-        const shape = query.__onConflictUpdateShape
-        const sets = query.__onConflictUpdateSets
-        if (sets) {
-            if (shape) { // Follow shape order
-                const properties = Object.getOwnPropertyNames(shape)
-                for (let i = 0, length = properties.length; i < length; i++) {
-                    const property = properties[i]!
-                    const columnName = shape[property]!
-                    const column = __getColumnOfObject(table, columnName)
-                    if (!column) {
-                        // Additional property provided in the value object
-                        // Skipped because it is not part of the table
-                        // This allows to have more complex objects used in the query
-                        continue
-                    }
-                    if (!(property in sets)) {
-                        // No value set for that property in the shape
-                        continue
-                    }
-
-                    if (columns) {
-                        columns += ', '
-                    }
-                    const value = sets[property]
-                    columns += this._appendColumnNameForUpdate(column, params)
-                    columns += ' = '
-                    columns += this._appendValueForColumn(column, value, params, false)
-                }
-            } else { // No shape, follow set order
-                const properties = Object.getOwnPropertyNames(sets)
-                for (let i = 0, length = properties.length; i < length; i++) {
-                    const property = properties[i]!
-                    const column = __getColumnOfObject(table, property)
-                    if (!column) {
-                        // Additional property provided in the value object
-                        // Skipped because it is not part of the table
-                        // This allows to have more complex objects used in the query
-                        continue
-                    }
-
-                    if (columns) {
-                        columns += ', '
-                    }
-                    const value = sets[property]
-                    columns += this._appendColumnNameForUpdate(column, params)
-                    columns += ' = '
-                    columns += this._appendValueForColumn(column, value, params, false)
-                }
+        for (let i = 0, length = resolved.length; i < length; i++) {
+            const { column, value } = resolved[i]!
+            if (columns) {
+                columns += ', '
             }
+            columns += this._appendColumnNameForUpdate(column, params)
+            columns += ' = '
+            columns += this._appendValueForColumn(column, value, params, false)
         }
         return columns
     }
@@ -2162,14 +2199,22 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const columns = this._buildInsertOnConflictUpdateSetColumns(query, params)
         if (query.__onConflictUpdateSets) {
             if (!columns) {
-                return ''
-            }
-
-            result += ' do update set ' + columns
-            const where = query.__onConflictUpdateWhere
-            if (where) {
-                result += ' where '
-                result += this._appendCondition(where, params)
+                // The `do update set` resolved to no columns (every staged value
+                // was dropped by `ignoreAnySetWithNoValue()` /
+                // `doUpdateSetIfValue({ x: undefined })`). An empty assignment
+                // list is a syntax error, and dropping the whole clause would
+                // turn the upsert back into a plain insert that throws on
+                // conflict. Degrade to the conflict-ignoring no-op, keeping the
+                // requested conflict target; the update `where` is irrelevant
+                // when nothing is updated, so it is omitted.
+                result += ' do nothing'
+            } else {
+                result += ' do update set ' + columns
+                const where = query.__onConflictUpdateWhere
+                if (where) {
+                    result += ' where '
+                    result += this._appendCondition(where, params)
+                }
             }
         }
 

@@ -536,6 +536,40 @@ describe(ctx.label, () => {
     })
     */
 
+    // TODO[LIMITATION]: see LIMITATIONS.md — SQL Server rejects a bare bind parameter as an ORDER BY term (error 1008: it reads a lone variable/literal there as an ordinal column position). A `rawFragment` embedding a `<no-table value source>` renders it as a bare `@param`, so the compound wrapper's `order by [label], @0` is rejected — the same limitation as the `compound-order-by-value-source-secondary` sibling. The compound wrapping itself (now applied to the fragment too) is correct; only the bare-parameter ORDER BY term is unsupported here.
+    /*
+    test('compound-order-by-raw-fragment-embedding-value-source', async () => {
+        // `orderBy(rawFragment)` whose fragment *embeds* a value source (here a
+        // no-table `const(1, 'int')`). Unlike the bare `rawFragment`1`` ordinal,
+        // it renders as a bound parameter, so — like a bare value source — it must
+        // trigger the same compound-order-by handling as `orderBy(const(1, 'int'))`
+        // rather than staying inline as an opaque literal. Exercised as a benign
+        // constant secondary key after `orderBy('label')`, so the result stays
+        // deterministic (label asc) while the fragment pins the emission.
+        const expected = [
+            { label: 'Document /v2/users' },
+            { label: 'Internal tools' },
+            { label: 'Legacy app' },
+            { label: 'Marketing site' },
+            { label: 'Migrate to ESM' },
+            { label: 'Public API' },
+            { label: 'Redesign navbar' },
+            { label: 'Update hero copy' },
+        ]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tProject)
+            .select({ label: tProject.name })
+            .union(ctx.conn.selectFrom(tIssue).select({ label: tIssue.title }))
+            .orderBy('label')
+            .orderBy(ctx.conn.rawFragment`${ctx.conn.const(1, 'int')}`)
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(ctx.lastParams).toMatchInlineSnapshot()
+        assertType<Exact<typeof result, Array<{ label: string }>>>()
+        expect(result).toEqual(expected)
+    })
+    */
+
     test('compound-with-limit-and-offset', async () => {
         // `.limit(...).offset(...)` chained after a compound. Union of project
         // names + issue titles, ordered by label; offset 3 + limit 2 picks rows

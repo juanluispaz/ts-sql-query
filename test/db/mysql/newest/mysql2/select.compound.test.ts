@@ -533,6 +533,41 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
+    test('compound-order-by-raw-fragment-embedding-value-source', async () => {
+        // `orderBy(rawFragment)` whose fragment *embeds* a value source (here a
+        // no-table `const(1, 'int')`). Unlike the bare `rawFragment`1`` ordinal,
+        // it renders as a bound parameter, so — like a bare value source — it must
+        // trigger the same compound-order-by handling as `orderBy(const(1, 'int'))`
+        // rather than staying inline as an opaque literal. Exercised as a benign
+        // constant secondary key after `orderBy('label')`, so the result stays
+        // deterministic (label asc) while the fragment pins the emission.
+        const expected = [
+            { label: 'Document /v2/users' },
+            { label: 'Internal tools' },
+            { label: 'Legacy app' },
+            { label: 'Marketing site' },
+            { label: 'Migrate to ESM' },
+            { label: 'Public API' },
+            { label: 'Redesign navbar' },
+            { label: 'Update hero copy' },
+        ]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tProject)
+            .select({ label: tProject.name })
+            .union(ctx.conn.selectFrom(tIssue).select({ label: tIssue.title }))
+            .orderBy('label')
+            .orderBy(ctx.conn.rawFragment`${ctx.conn.const(1, 'int')}`)
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`name\` as label from project union select title as label from issue order by label, ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ label: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
     test('compound-with-limit-and-offset', async () => {
         // `.limit(...).offset(...)` chained after a compound. Union of project
         // names + issue titles, ordered by label; offset 3 + limit 2 picks rows

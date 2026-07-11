@@ -67,62 +67,7 @@ of that. Two minutes of triage and one paragraph is the bar.
 
 ## Open Bugs
 
-## Empty on-conflict update-set silently drops the entire `ON CONFLICT` clause (→ plain INSERT that throws on conflict)
-
-**Where**: `AbstractSqlBuilder._buildInsertOnConflictBeforeReturning`
-(`src/sqlBuilders/AbstractSqlBuilder.ts`, the `if (!columns) return ''`
-branch, ~line 2164). When `__onConflictUpdateSets` is present (truthy)
-but resolves to **zero** columns, the method returns `''`, so the whole
-`on conflict (cols) do update set …` clause — target included — is
-dropped and a bare `insert … values …` is emitted.
-
-**Reproduction**: publicly reachable, undocumented, mock-invisible.
-`insertInto(tProject).values({ organizationId: 1, slug: 'mktg-site', name: 'x' })
-.onConflictOn(tProject.organizationId, tProject.slug)
-.doUpdateDynamicSet({ archivedAt: null }).ignoreAnySetWithNoValue()
-.executeInsert()` (equivalently `.doUpdateSetIfValue({ name: undefined })`)
-emits `insert into project (organization_id, slug, name) values ($1, $2, $3)`
-— **no `on conflict`**. The control that keeps one column emits
-`… on conflict (organization_id, slug) do update set name = $4`. On a real
-`--docker postgres/newest/pg` conflict the dropped-clause insert throws
-`23505` (unique_violation), so the composition silently flips runtime
-semantics from *never-throw-on-conflict* to *throws-on-conflict*. (A plain
-UPDATE whose dynamic set empties throws `NO_COLUMN_SETS`; the on-conflict
-do-update instead drops — an asymmetry. Intent-preserving alternatives: emit
-`on conflict (cols) do nothing`, or throw at build time.)
-
-**Current workaround in the suite**: none yet — no test currently drives an
-on-conflict update-set to empty (every `doUpdateSetIfValue`/`doUpdateDynamicSet`
-test keeps ≥1 column). The characterization test to add is enumerated as
-A1-T1 / A1-T1b in `MISSING_TESTS_AUDIT_43.md` (Surface MUT); mark it
-`// TODO[BUG]` when written.
-
-## Compound `orderBy(rawFragment` embedding a value source`)` skips the compound-order-by wrap → engine-rejected SQL
-
-**Where**: `AbstractSqlBuilder._needsCompoundExpressionOrderByWrap`
-(`src/sqlBuilders/AbstractSqlBuilder.ts`, ~line 1344). On strict engines a
-compound `orderBy` term is wrapped in `select * from (<compound>) as o_1_`
-only when `isValueSource(entry.expression)` is true. A `rawFragment` is not a
-value source, so it is never wrapped — even when the fragment **embeds** a
-no-table value source, which slips past the `isValueSource` gate.
-
-**Reproduction**: `selectFrom(tProject).select({ label: tProject.name })
-.union(selectFrom(tIssue).select({ label: tIssue.title }))
-.orderBy(conn.rawFragment\`${conn.const(1, 'int')}\`).executeSelectMany()`
-emits `select name as label from project union select title as label from
-issue order by $1` (**un-wrapped**, bare param). Real
-`--docker postgres/newest/pg` rejects it with `0A000` (feature_not_supported:
-*ORDER BY on a UNION/INTERSECT/EXCEPT result must be on one of the result
-columns*); the `orderBy(const(1, 'int'))` sibling wraps
-`select * from (…) as o_1_ order by $1` and is accepted. Same rejection on
-Oracle / SQL Server (this is the compound analogue that already fixed
-`orderBy(valueSource)` — the rawFragment arm was left un-wrapped). Distinct
-from the SQL-Server-1008 `LIMITATIONS.md` note, which fails only on SQL Server.
-
-**Current workaround in the suite**: none yet — no compound `orderBy(rawFragment…)`
-test embeds a value source (only bare ordinals `rawFragment\`1\``). The
-characterization test to add is enumerated as C1-T1 in
-`MISSING_TESTS_AUDIT_43.md` (Surface SEL); mark it `// TODO[BUG]` when written.
+_None currently open._
 
 ## Common bug shapes (for the fixing agent)
 

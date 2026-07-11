@@ -1323,4 +1323,150 @@ describe(ctx.label, () => {
         expect(page.count).toBe(3)
         expect(page.data).toEqual(dataRows)
     })
+
+    // NOT-APPLICABLE: This dialect does not accept UNION (deduplicating) in the recursive member of a recursive CTE, so recursiveUnion / recursiveUnionOn are typed never here.
+    /*
+    test('recursive-union-dedup-projecting-optionals-as-nullable-exec', async () => {
+        // The dedup `.recursiveUnion(fn)` (full-form, emitting `union` between the
+        // anchor and recursive members) combined with
+        // `.projectingOptionalValuesAsNullable()`. The flag sits immediately after
+        // `.select(...)` and before `.recursiveUnion(...)` — its only valid position
+        // on a recursive select. It reshapes only the TypeScript type (the emitted
+        // SQL is identical to the plain projection): the optional `parentId` becomes
+        // a required, nullable property. Every seeded issue has a NULL parent_id, so
+        // the traversal from issue 1 yields exactly issue 1, whose parent_id comes
+        // back as a present `null` rather than an absent property.
+        const expected = [{ id: 1, title: 'Update hero copy', parentId: null }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        const result = await connection.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({ id: tIssue.id, title: tIssue.title, parentId: tIssue.parentId })
+            .projectingOptionalValuesAsNullable()
+            .recursiveUnion((child) => connection.selectFrom(tIssue)
+                .join(child).on(child.parentId.equals(tIssue.id))
+                .select({ id: tIssue.id, title: tIssue.title, parentId: tIssue.parentId })
+                .projectingOptionalValuesAsNullable())
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(ctx.lastParams).toMatchInlineSnapshot()
+        assertType<Exact<typeof result, Array<{ id: number, title: string, parentId: number | null }>>>()
+        expect(result).toEqual(expected)
+        expect('parentId' in result[0]!).toBe(true)
+        expect(result[0]!.parentId).toBe(null)
+    })
+    */
+
+    // NOT-APPLICABLE: This dialect does not accept UNION (deduplicating) in the recursive member of a recursive CTE, so recursiveUnion / recursiveUnionOn are typed never here.
+    /*
+    test('recursive-union-dedup-projecting-optionals-as-nullable-inline', async () => {
+        // The dedup `.recursiveUnion(fn)` carrying `.projectingOptionalValuesAsNullable()`,
+        // consumed as an inline aggregated array via `forUseAsInlineAggregatedArrayValue()`.
+        // The nullable projection propagates through the recursive build into each
+        // aggregated element: the optional `parentId` becomes a required, nullable
+        // property on the tree element. Every seeded issue has a NULL parent_id, so the
+        // traversal from issue 1 yields a one-element array whose single element carries
+        // `parentId: null` as a present property.
+        const expected = [{ id: 1, tree: [{ id: 1, title: 'Update hero copy', parentId: null }] }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        const tree = connection.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({ id: tIssue.id, title: tIssue.title, parentId: tIssue.parentId })
+            .projectingOptionalValuesAsNullable()
+            .recursiveUnion((child) => connection.selectFrom(tIssue)
+                .join(child).on(child.parentId.equals(tIssue.id))
+                .select({ id: tIssue.id, title: tIssue.title, parentId: tIssue.parentId })
+                .projectingOptionalValuesAsNullable())
+            .forUseAsInlineAggregatedArrayValue()
+
+        const result = await connection.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ id: tProject.id, tree })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(ctx.lastParams).toMatchInlineSnapshot()
+        assertType<Exact<typeof result, Array<{
+            id:   number
+            tree: Array<{ id: number, title: string, parentId: number | null }>
+        }>>>()
+        expect(result).toEqual(expected)
+        expect('parentId' in result[0]!.tree[0]!).toBe(true)
+        expect(result[0]!.tree[0]!.parentId).toBe(null)
+    })
+    */
+
+    // NOT-APPLICABLE: This dialect does not accept UNION (deduplicating) in the recursive member of a recursive CTE, so recursiveUnion / recursiveUnionOn are typed never here.
+    /*
+    test('recursive-union-on-dedup-projecting-optionals-as-nullable-exec', async () => {
+        // The `.recursiveUnionOn(fn)` shortcut (dedup `union` variant) combined with
+        // `.projectingOptionalValuesAsNullable()`. The shortcut synthesises the
+        // recursive arm against the anchor table from the join-on predicate; the
+        // nullable-projection flag set on the anchor drives the final result shape.
+        // Only the TypeScript type changes (emitted SQL matches the plain projection):
+        // the optional `parentId` becomes a required, nullable property. Every seeded
+        // issue has a NULL parent_id, so the traversal from issue 1 yields exactly
+        // issue 1, whose parent_id comes back as a present `null`.
+        const expected = [{ id: 1, title: 'Update hero copy', parentId: null }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        const result = await connection.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({ id: tIssue.id, title: tIssue.title, parentId: tIssue.parentId })
+            .projectingOptionalValuesAsNullable()
+            .recursiveUnionOn((parent) => tIssue.id.equals(parent.parentId))
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(ctx.lastParams).toMatchInlineSnapshot()
+        assertType<Exact<typeof result, Array<{ id: number, title: string, parentId: number | null }>>>()
+        expect(result).toEqual(expected)
+        expect('parentId' in result[0]!).toBe(true)
+        expect(result[0]!.parentId).toBe(null)
+    })
+    */
+
+    // NOT-APPLICABLE: This dialect does not accept UNION (deduplicating) in the recursive member of a recursive CTE, so recursiveUnion / recursiveUnionOn are typed never here.
+    /*
+    test('recursive-union-on-dedup-projecting-optionals-as-nullable-inline', async () => {
+        // The `.recursiveUnionOn(fn)` shortcut (dedup `union` variant) carrying
+        // `.projectingOptionalValuesAsNullable()`, consumed as an inline aggregated
+        // array via `forUseAsInlineAggregatedArrayValue()`. The nullable projection
+        // propagates through the recursive build into each aggregated element: the
+        // optional `parentId` becomes a required, nullable property on the tree
+        // element. Every seeded issue has a NULL parent_id, so the traversal from
+        // issue 1 yields a one-element array whose single element carries
+        // `parentId: null` as a present property.
+        const expected = [{ id: 1, tree: [{ id: 1, title: 'Update hero copy', parentId: null }] }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        const tree = connection.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({ id: tIssue.id, title: tIssue.title, parentId: tIssue.parentId })
+            .projectingOptionalValuesAsNullable()
+            .recursiveUnionOn((parent) => tIssue.id.equals(parent.parentId))
+            .forUseAsInlineAggregatedArrayValue()
+
+        const result = await connection.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ id: tProject.id, tree })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(ctx.lastParams).toMatchInlineSnapshot()
+        assertType<Exact<typeof result, Array<{
+            id:   number
+            tree: Array<{ id: number, title: string, parentId: number | null }>
+        }>>>()
+        expect(result).toEqual(expected)
+        expect('parentId' in result[0]!.tree[0]!).toBe(true)
+        expect(result[0]!.tree[0]!.parentId).toBe(null)
+    })
+    */
 })

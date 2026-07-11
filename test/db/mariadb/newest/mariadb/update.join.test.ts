@@ -693,4 +693,74 @@ describe(ctx.label, () => {
             else expect(affected).toBe(1)
         })
     })
+
+    // NOT-APPLICABLE: This dialect does not support UPDATE ... FROM/JOIN ... RETURNING, so the from-join returning() form is not available here.
+    /*
+    test('update-from-left-join-returning-rule2-object-miss-drops-default', async () => {
+        // `update(t).from(j).leftJoin(a).on(...)` RETURNING a RULE-2 nested `obj` whose
+        // leaves MIX an originally-required LEFT-JOINED leaf (`x` = app_user.full_name)
+        // with a no-table CONST leaf (`k` = const(1)). On a join MISS the whole `obj`
+        // DROPS (rule-2) even though the const leaf carries a value. Update project 2
+        // (owns issue 3, whose assignee_id is NULL → left-join miss), so `obj` is absent
+        // under the default projector.
+        const expected = { pid: 2 }
+        // Mock primed with the FLAT db row (joined leaf null, const present); the
+        // projector drops `obj` because its originally-required left-join leaf is null.
+        ctx.mockNext({ pid: 2, 'obj.x': null, 'obj.k': 1 })
+        await ctx.withRollback(async () => {
+            const tAssignee = tAppUser.forUseInLeftJoin()
+            const row = await ctx.conn.update(tProject)
+                .from(tIssue)
+                .leftJoin(tAssignee).on(tAssignee.id.equals(tIssue.assigneeId))
+                .set({ name: tIssue.title })
+                .where(tProject.id.equals(tIssue.projectId))
+                    .and(tIssue.id.equals(3))
+                .returning({
+                    pid: tProject.id,
+                    obj: { x: tAssignee.fullName, k: ctx.conn.const(1, 'int') },
+                })
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof row, { pid: number; obj?: { x: string; k: number } }>>()
+            expect(row).toEqual(expected)
+            expect('obj' in row).toBe(false)
+        })
+    })
+    */
+
+    // NOT-APPLICABLE: This dialect does not support UPDATE ... FROM/JOIN ... RETURNING, so the from-join returning() form is not available here.
+    /*
+    test('update-from-left-join-returning-rule2-object-miss-drops-as-nullable', async () => {
+        // The same rule-2 mixed object under `projectingOptionalValuesAsNullable()`:
+        // the whole `obj` becomes `{...} | null` and the join miss surfaces it as
+        // `obj: null` (not `{ x: null, k: 1 }`). Issue 3's null assignee → `obj` is
+        // present-null.
+        const expected = { pid: 2, obj: null }
+        ctx.mockNext({ pid: 2, 'obj.x': null, 'obj.k': 1 })
+        await ctx.withRollback(async () => {
+            const tAssignee = tAppUser.forUseInLeftJoin()
+            const row = await ctx.conn.update(tProject)
+                .from(tIssue)
+                .leftJoin(tAssignee).on(tAssignee.id.equals(tIssue.assigneeId))
+                .set({ name: tIssue.title })
+                .where(tProject.id.equals(tIssue.projectId))
+                    .and(tIssue.id.equals(3))
+                .returning({
+                    pid: tProject.id,
+                    obj: { x: tAssignee.fullName, k: ctx.conn.const(1, 'int') },
+                })
+                .projectingOptionalValuesAsNullable()
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof row, { pid: number; obj: { x: string; k: number } | null }>>()
+            expect(row).toEqual(expected)
+            expect('obj' in row).toBe(true)
+            expect(row.obj).toBe(null)
+        })
+    })
+    */
 })

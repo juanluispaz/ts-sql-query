@@ -745,4 +745,102 @@ describe(ctx.label, () => {
             else expect(affected).toBe(1)
         })
     })
+
+    test('update-from-left-join-returning-rule2-object-miss-drops-default', async () => {
+        // `update(t).from(j).leftJoin(a).on(...)` RETURNING a RULE-2 nested `obj` whose
+        // leaves MIX an originally-required LEFT-JOINED leaf (`x` = app_user.full_name)
+        // with a no-table CONST leaf (`k` = const(1)). On a join MISS the whole `obj`
+        // DROPS (rule-2) even though the const leaf carries a value. Update project 2
+        // (owns issue 3, whose assignee_id is NULL → left-join miss), so `obj` is absent
+        // under the default projector.
+        const expected = { pid: 2 }
+        // Mock primed with the FLAT db row (joined leaf null, const present); the
+        // projector drops `obj` because its originally-required left-join leaf is null.
+        ctx.mockNext({ pid: 2, 'obj.x': null, 'obj.k': 1 })
+        await ctx.withRollback(async () => {
+            const tAssignee = tAppUser.forUseInLeftJoin()
+            const row = await ctx.conn.update(tProject)
+                .from(tIssue)
+                .leftJoin(tAssignee).on(tAssignee.id.equals(tIssue.assigneeId))
+                .set({ name: tIssue.title })
+                .where(tProject.id.equals(tIssue.projectId))
+                    .and(tIssue.id.equals(3))
+                .returning({
+                    pid: tProject.id,
+                    obj: { x: tAssignee.fullName, k: ctx.conn.const(1, 'int') },
+                })
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set project.name = issue.title from issue left join app_user on app_user.id = issue.assignee_id where project.id = issue.project_id and issue.id = :0 returning project.id, app_user.full_name, :1 into :2, :3, :4"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                3,
+                1,
+                {
+                  "as": "pid",
+                  "dir": 3003,
+                },
+                {
+                  "as": "obj.x",
+                  "dir": 3003,
+                },
+                {
+                  "as": "obj.k",
+                  "dir": 3003,
+                },
+              ]
+            `)
+            assertType<Exact<typeof row, { pid: number; obj?: { x: string; k: number } }>>()
+            expect(row).toEqual(expected)
+            expect('obj' in row).toBe(false)
+        })
+    })
+
+    test('update-from-left-join-returning-rule2-object-miss-drops-as-nullable', async () => {
+        // The same rule-2 mixed object under `projectingOptionalValuesAsNullable()`:
+        // the whole `obj` becomes `{...} | null` and the join miss surfaces it as
+        // `obj: null` (not `{ x: null, k: 1 }`). Issue 3's null assignee → `obj` is
+        // present-null.
+        const expected = { pid: 2, obj: null }
+        ctx.mockNext({ pid: 2, 'obj.x': null, 'obj.k': 1 })
+        await ctx.withRollback(async () => {
+            const tAssignee = tAppUser.forUseInLeftJoin()
+            const row = await ctx.conn.update(tProject)
+                .from(tIssue)
+                .leftJoin(tAssignee).on(tAssignee.id.equals(tIssue.assigneeId))
+                .set({ name: tIssue.title })
+                .where(tProject.id.equals(tIssue.projectId))
+                    .and(tIssue.id.equals(3))
+                .returning({
+                    pid: tProject.id,
+                    obj: { x: tAssignee.fullName, k: ctx.conn.const(1, 'int') },
+                })
+                .projectingOptionalValuesAsNullable()
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set project.name = issue.title from issue left join app_user on app_user.id = issue.assignee_id where project.id = issue.project_id and issue.id = :0 returning project.id, app_user.full_name, :1 into :2, :3, :4"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                3,
+                1,
+                {
+                  "as": "pid",
+                  "dir": 3003,
+                },
+                {
+                  "as": "obj.x",
+                  "dir": 3003,
+                },
+                {
+                  "as": "obj.k",
+                  "dir": 3003,
+                },
+              ]
+            `)
+            assertType<Exact<typeof row, { pid: number; obj: { x: string; k: number } | null }>>()
+            expect(row).toEqual(expected)
+            expect('obj' in row).toBe(true)
+            expect(row.obj).toBe(null)
+        })
+    })
 })

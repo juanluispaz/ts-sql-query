@@ -45,7 +45,8 @@ describe(ctx.label, () => {
             | 'billable' | 'approved' | 'activity'
             | 'billedAmount' | 'invoiced' | 'costCents'
             | 'activityUpper' | 'activityTagged' | 'activityLabel'
-            | 'tagLabel' | 'tagLabelOptional'>>()
+            | 'tagLabel' | 'tagLabelOptional'
+            | 'centsFromId' | 'centsFromIdOptional' | 'activityCustomKind' | 'centsFromIdTagged'>>()
         // …but NOT in WritableColumnKeys (computed/virtual columns are excluded
         // from the writable surface, which is otherwise non-empty).
         assertType<Exact<WritableColumnKeys<typeof tIssueWorklog>,

@@ -344,4 +344,67 @@ describe(ctx.label, () => {
             expect(archivedAt).toBeNull()
         })
     })
+
+    test('insert-returning-rule1-gate-null-drops-object-default', async () => {
+        // Object-form RETURNING with a RULE-1 gate on INSERT: `meta.gate` is
+        // `tProject.archivedAt.asRequiredInOptionalObject()` and `meta.sibling` a
+        // value-bearing `tProject.slug`. `archivedAt` is left unset on the inserted
+        // row, so the gate is NULL and the whole `meta` object DROPS (rule-1) even
+        // though the sibling has a value — the INSERT-returning entry applies rule-1.
+        // Under the default projector `meta` is absent.
+        ctx.mockNext({ id: 100, 'meta.sibling': 'rule1-insert-default', 'meta.gate': null })
+        await ctx.withRollback(async () => {
+            const row = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, name: 'Rule1 insert default', slug: 'rule1-insert-default' })
+                .returning({
+                    id:   tProject.id,
+                    meta: { sibling: tProject.slug, gate: tProject.archivedAt.asRequiredInOptionalObject() },
+                })
+                .executeInsertOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) output inserted.id as id, inserted.slug as [meta.sibling], inserted.archived_at as [meta.gate] values (@0, @1, @2)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "Rule1 insert default",
+                "rule1-insert-default",
+              ]
+            `)
+            assertType<Exact<typeof row, { id: number; meta?: { sibling: string; gate: Date } }>>()
+            expect('meta' in row).toBe(false)
+            if (!ctx.realDbEnabled) expect(row.id).toBe(100)
+            else expect(row.id).toBeGreaterThan(4)
+        })
+    })
+
+    test('insert-returning-rule1-gate-null-drops-object-as-nullable', async () => {
+        // The same INSERT rule-1 gate under `projectingOptionalValuesAsNullable()`: the
+        // `meta` object becomes `{...} | null` and the null gate surfaces it as
+        // `meta: null`. `archivedAt` is left unset, so `meta` comes back present-null.
+        ctx.mockNext({ id: 100, 'meta.sibling': 'rule1-insert-nullable', 'meta.gate': null })
+        await ctx.withRollback(async () => {
+            const row = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, name: 'Rule1 insert nullable', slug: 'rule1-insert-nullable' })
+                .returning({
+                    id:   tProject.id,
+                    meta: { sibling: tProject.slug, gate: tProject.archivedAt.asRequiredInOptionalObject() },
+                })
+                .projectingOptionalValuesAsNullable()
+                .executeInsertOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) output inserted.id as id, inserted.slug as [meta.sibling], inserted.archived_at as [meta.gate] values (@0, @1, @2)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "Rule1 insert nullable",
+                "rule1-insert-nullable",
+              ]
+            `)
+            assertType<Exact<typeof row, { id: number; meta: { sibling: string; gate: Date } | null }>>()
+            expect('meta' in row).toBe(true)
+            expect(row.meta).toBe(null)
+            if (!ctx.realDbEnabled) expect(row.id).toBe(100)
+            else expect(row.id).toBeGreaterThan(4)
+        })
+    })
 })

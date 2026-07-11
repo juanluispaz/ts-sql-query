@@ -287,4 +287,76 @@ describe(ctx.label, () => {
             else expect(row).toBeNull()
         })
     })
+
+    test('delete-using-left-join-returning-rule2-object-miss-drops-default', async () => {
+        // `deleteFrom(t).using(j).leftJoin(a).on(...)` RETURNING a RULE-2 nested `obj`
+        // whose leaves MIX an originally-required LEFT-JOINED leaf (`x` =
+        // project_review.reviewer_code) with a no-table CONST leaf (`k` = const(1)).
+        // The left join is between the USING-side tables (`project` LEFT JOIN
+        // `project_review` on the project id — the delete target `issue` cannot be
+        // referenced from the USING join), so on a join MISS the whole `obj` DROPS
+        // (rule-2) even though the const leaf carries a value. Deleting issue 4 (project
+        // 3, which has no review → left-join miss) drops `obj` under the default projector.
+        const expected = { pid: 4 }
+        ctx.mockNext({ pid: 4, 'obj.x': null, 'obj.k': 1 })
+        await ctx.withRollback(async () => {
+            const tReview = tProjectReview.forUseInLeftJoin()
+            const row = await ctx.conn.deleteFrom(tIssue)
+                .using(tProject)
+                .leftJoin(tReview).on(tReview.projectId.equals(tProject.id))
+                .where(tIssue.projectId.equals(tProject.id))
+                    .and(tIssue.id.equals(4))
+                .returning({
+                    pid: tIssue.id,
+                    obj: { x: tReview.reviewerCode, k: ctx.conn.const(1, 'int') },
+                })
+                .executeDeleteOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using project left join project_review on project_review.project_id = project.id where issue.project_id = project.id and issue.id = $1 returning issue.id as pid, project_review.reviewer_code as "obj.x", $2::int4 as "obj.k""`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                4,
+                1,
+              ]
+            `)
+            assertType<Exact<typeof row, { pid: number; obj?: { x: string; k: number } }>>()
+            expect(row).toEqual(expected)
+            expect('obj' in row).toBe(false)
+        })
+    })
+
+    test('delete-using-left-join-returning-rule2-object-miss-drops-as-nullable', async () => {
+        // The same DELETE-using rule-2 mixed object under
+        // `projectingOptionalValuesAsNullable()`: the whole `obj` becomes `{...} | null`
+        // and the join miss surfaces it as `obj: null`. Deleting issue 4 (project 3 has
+        // no review → miss) → `obj` is present-null.
+        const expected = { pid: 4, obj: null }
+        ctx.mockNext({ pid: 4, 'obj.x': null, 'obj.k': 1 })
+        await ctx.withRollback(async () => {
+            const tReview = tProjectReview.forUseInLeftJoin()
+            const row = await ctx.conn.deleteFrom(tIssue)
+                .using(tProject)
+                .leftJoin(tReview).on(tReview.projectId.equals(tProject.id))
+                .where(tIssue.projectId.equals(tProject.id))
+                    .and(tIssue.id.equals(4))
+                .returning({
+                    pid: tIssue.id,
+                    obj: { x: tReview.reviewerCode, k: ctx.conn.const(1, 'int') },
+                })
+                .projectingOptionalValuesAsNullable()
+                .executeDeleteOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using project left join project_review on project_review.project_id = project.id where issue.project_id = project.id and issue.id = $1 returning issue.id as pid, project_review.reviewer_code as "obj.x", $2::int4 as "obj.k""`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                4,
+                1,
+              ]
+            `)
+            assertType<Exact<typeof row, { pid: number; obj: { x: string; k: number } | null }>>()
+            expect(row).toEqual(expected)
+            expect('obj' in row).toBe(true)
+            expect(row.obj).toBe(null)
+        })
+    })
 })

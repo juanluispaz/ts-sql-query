@@ -136,4 +136,473 @@ describe(ctx.label, () => {
         // before the union (previously it was silently dropped at runtime).
         expect('body' in rows[0]!).toBe(true)
     })
+
+    test('compound-three-arm-projecting-optionals-as-nullable-exec', async () => {
+        // Three-arm compound `a.union(b).union(c)` with `.projectingOptionalValuesAsNullable()`
+        // on every arm. The second `.union(...)` chains onto the already-combined
+        // first two arms, so the nullable projection must survive both unions for the
+        // optional `body` leaf to stay `string | null` and surface present-as-null.
+        // Arm 1 = issue 1 (body NULL);
+        // arm 2 = issue 2 (body 'Use new tokens'); arm 3 = issue 4 (body 'See ADR-014').
+        const expected = [
+            { iid: 1, body: null },
+            { iid: 2, body: 'Use new tokens' },
+            { iid: 4, body: 'See ADR-014' },
+        ]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(1)).select({ iid: tIssue.id, body: tIssue.body }).projectingOptionalValuesAsNullable()
+            .union(ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(2)).select({ iid: tIssue.id, body: tIssue.body }).projectingOptionalValuesAsNullable())
+            .union(ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(4)).select({ iid: tIssue.id, body: tIssue.body }).projectingOptionalValuesAsNullable())
+            .orderBy('iid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as body from issue where id = $1 union select id as iid, body as body from issue where id = $2 union select id as iid, body as body from issue where id = $3 order by iid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+            4,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ iid: number; body: string | null }>>>()
+        expect(rows).toEqual(expected)
+        // Issue 1's null body is PRESENT-null across both unions.
+        expect('body' in rows[0]!).toBe(true)
+        expect(rows[0]!.body).toBe(null)
+    })
+
+    test('compound-three-arm-projecting-optionals-as-nullable-inline', async () => {
+        // The three-arm compound (flag on every arm) consumed as an inline aggregated
+        // array: the optional `body` leaf surfaces present-as-null in each element,
+        // so the nullable projection survives both unions and the inline-aggregate
+        // consumption. Arms = issues 1 (body NULL), 2, 4.
+        ctx.mockNext({ arr: JSON.stringify([
+            { iid: 1, body: null },
+            { iid: 2, body: 'Use new tokens' },
+            { iid: 4, body: 'See ADR-014' },
+        ]) })
+        const arr = ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(1)).select({ iid: tIssue.id, body: tIssue.body }).projectingOptionalValuesAsNullable()
+            .union(ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(2)).select({ iid: tIssue.id, body: tIssue.body }).projectingOptionalValuesAsNullable())
+            .union(ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(4)).select({ iid: tIssue.id, body: tIssue.body }).projectingOptionalValuesAsNullable())
+            .forUseAsInlineAggregatedArrayValue()
+        const row = await ctx.conn.selectFromNoTable().select({ arr }).executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select json_agg(json_build_object('iid', a_1_.iid, 'body', a_1_.body)) from (select id as iid, body as body from issue where id = $1 union select id as iid, body as body from issue where id = $2 union select id as iid, body as body from issue where id = $3) as a_1_) as arr"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+            4,
+          ]
+        `)
+        assertType<Exact<typeof row, { arr: Array<{ iid: number; body: string | null }> }>>()
+        expect({ arr: [...row.arr].sort((a, b) => a.iid - b.iid) }).toEqual({ arr: [
+            { iid: 1, body: null },
+            { iid: 2, body: 'Use new tokens' },
+            { iid: 4, body: 'See ADR-014' },
+        ] })
+        const nullRow = row.arr.find(r => r.iid === 1)!
+        expect('body' in nullRow).toBe(true)
+        expect(nullRow.body).toBe(null)
+    })
+
+    test('compound-before-op-unionAll-nullable-exec', async () => {
+        // `.projectingOptionalValuesAsNullable()` on the arms BEFORE `.unionAll(...)`:
+        // the compound builder inherits the nullable-projection flag, so the optional
+        // `body` leaf surfaces present-as-null through the `union all` compound (execute-rows path).
+        const expected = [
+            { iid: 1, body: null },
+            { iid: 2, body: 'Use new tokens' },
+        ]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(1)).select({ iid: tIssue.id, body: tIssue.body }).projectingOptionalValuesAsNullable()
+            .unionAll(ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(2)).select({ iid: tIssue.id, body: tIssue.body }).projectingOptionalValuesAsNullable())
+            .orderBy('iid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as body from issue where id = $1 union all select id as iid, body as body from issue where id = $2 order by iid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ iid: number; body: string | null }>>>()
+        expect(rows).toEqual(expected)
+        // Issue 1's null body is PRESENT-null (the before-op flag survives the compound).
+        expect('body' in rows[0]!).toBe(true)
+        expect(rows[0]!.body).toBe(null)
+    })
+
+    test('compound-before-op-unionAll-nullable-inline', async () => {
+        // Same `union all` compound with the before-op nullable flag, consumed as an inline
+        // aggregated array: the optional `body` leaf surfaces present-as-null in the
+        // aggregated element.
+        ctx.mockNext({ arr: JSON.stringify([
+            { iid: 1, body: null },
+            { iid: 2, body: 'Use new tokens' },
+        ]) })
+        const arr = ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(1)).select({ iid: tIssue.id, body: tIssue.body }).projectingOptionalValuesAsNullable()
+            .unionAll(ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(2)).select({ iid: tIssue.id, body: tIssue.body }).projectingOptionalValuesAsNullable())
+            .forUseAsInlineAggregatedArrayValue()
+        const row = await ctx.conn.selectFromNoTable().select({ arr }).executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select json_agg(json_build_object('iid', a_1_.iid, 'body', a_1_.body)) from (select id as iid, body as body from issue where id = $1 union all select id as iid, body as body from issue where id = $2) as a_1_) as arr"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof row, { arr: Array<{ iid: number; body: string | null }> }>>()
+        expect({ arr: [...row.arr].sort((a, b) => a.iid - b.iid) }).toEqual({ arr: [
+            { iid: 1, body: null },
+            { iid: 2, body: 'Use new tokens' },
+        ] })
+        const nullRow = row.arr.find(r => r.iid === 1)!
+        expect('body' in nullRow).toBe(true)
+        expect(nullRow.body).toBe(null)
+    })
+
+    test('compound-before-op-intersect-nullable-exec', async () => {
+        // `.projectingOptionalValuesAsNullable()` on the arms BEFORE `.intersect(...)`:
+        // the compound builder inherits the nullable-projection flag, so the optional
+        // `body` leaf surfaces present-as-null through the `intersect` compound (execute-rows path).
+        const expected = [
+            { iid: 1, body: null },
+        ]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssue).where(tIssue.id.in([1, 2])).select({ iid: tIssue.id, body: tIssue.body }).projectingOptionalValuesAsNullable()
+            .intersect(ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(1)).select({ iid: tIssue.id, body: tIssue.body }).projectingOptionalValuesAsNullable())
+            .orderBy('iid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as body from issue where id in ($1, $2) intersect select id as iid, body as body from issue where id = $3 order by iid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ iid: number; body: string | null }>>>()
+        expect(rows).toEqual(expected)
+        // Issue 1's null body is PRESENT-null (the before-op flag survives the compound).
+        expect('body' in rows[0]!).toBe(true)
+        expect(rows[0]!.body).toBe(null)
+    })
+
+    test('compound-before-op-intersect-nullable-inline', async () => {
+        // Same `intersect` compound with the before-op nullable flag, consumed as an inline
+        // aggregated array: the optional `body` leaf surfaces present-as-null in the
+        // aggregated element.
+        ctx.mockNext({ arr: JSON.stringify([
+            { iid: 1, body: null },
+        ]) })
+        const arr = ctx.conn.selectFrom(tIssue).where(tIssue.id.in([1, 2])).select({ iid: tIssue.id, body: tIssue.body }).projectingOptionalValuesAsNullable()
+            .intersect(ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(1)).select({ iid: tIssue.id, body: tIssue.body }).projectingOptionalValuesAsNullable())
+            .forUseAsInlineAggregatedArrayValue()
+        const row = await ctx.conn.selectFromNoTable().select({ arr }).executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select json_agg(json_build_object('iid', a_1_.iid, 'body', a_1_.body)) from (select id as iid, body as body from issue where id in ($1, $2) intersect select id as iid, body as body from issue where id = $3) as a_1_) as arr"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { arr: Array<{ iid: number; body: string | null }> }>>()
+        expect({ arr: [...row.arr].sort((a, b) => a.iid - b.iid) }).toEqual({ arr: [
+            { iid: 1, body: null },
+        ] })
+        const nullRow = row.arr.find(r => r.iid === 1)!
+        expect('body' in nullRow).toBe(true)
+        expect(nullRow.body).toBe(null)
+    })
+
+    test('compound-before-op-intersectAll-nullable-exec', async () => {
+        // `.projectingOptionalValuesAsNullable()` on the arms BEFORE `.intersectAll(...)`:
+        // the compound builder inherits the nullable-projection flag, so the optional
+        // `body` leaf surfaces present-as-null through the `intersect all` compound (execute-rows path).
+        const expected = [
+            { iid: 1, body: null },
+        ]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssue).where(tIssue.id.in([1, 2])).select({ iid: tIssue.id, body: tIssue.body }).projectingOptionalValuesAsNullable()
+            .intersectAll(ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(1)).select({ iid: tIssue.id, body: tIssue.body }).projectingOptionalValuesAsNullable())
+            .orderBy('iid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as body from issue where id in ($1, $2) intersect all select id as iid, body as body from issue where id = $3 order by iid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ iid: number; body: string | null }>>>()
+        expect(rows).toEqual(expected)
+        // Issue 1's null body is PRESENT-null (the before-op flag survives the compound).
+        expect('body' in rows[0]!).toBe(true)
+        expect(rows[0]!.body).toBe(null)
+    })
+
+    test('compound-before-op-intersectAll-nullable-inline', async () => {
+        // Same `intersect all` compound with the before-op nullable flag, consumed as an inline
+        // aggregated array: the optional `body` leaf surfaces present-as-null in the
+        // aggregated element.
+        ctx.mockNext({ arr: JSON.stringify([
+            { iid: 1, body: null },
+        ]) })
+        const arr = ctx.conn.selectFrom(tIssue).where(tIssue.id.in([1, 2])).select({ iid: tIssue.id, body: tIssue.body }).projectingOptionalValuesAsNullable()
+            .intersectAll(ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(1)).select({ iid: tIssue.id, body: tIssue.body }).projectingOptionalValuesAsNullable())
+            .forUseAsInlineAggregatedArrayValue()
+        const row = await ctx.conn.selectFromNoTable().select({ arr }).executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select json_agg(json_build_object('iid', a_1_.iid, 'body', a_1_.body)) from (select id as iid, body as body from issue where id in ($1, $2) intersect all select id as iid, body as body from issue where id = $3) as a_1_) as arr"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { arr: Array<{ iid: number; body: string | null }> }>>()
+        expect({ arr: [...row.arr].sort((a, b) => a.iid - b.iid) }).toEqual({ arr: [
+            { iid: 1, body: null },
+        ] })
+        const nullRow = row.arr.find(r => r.iid === 1)!
+        expect('body' in nullRow).toBe(true)
+        expect(nullRow.body).toBe(null)
+    })
+
+    test('compound-before-op-except-nullable-exec', async () => {
+        // `.projectingOptionalValuesAsNullable()` on the arms BEFORE `.except(...)`:
+        // the compound builder inherits the nullable-projection flag, so the optional
+        // `body` leaf surfaces present-as-null through the `except` compound (execute-rows path).
+        const expected = [
+            { iid: 1, body: null },
+        ]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssue).where(tIssue.id.in([1, 2])).select({ iid: tIssue.id, body: tIssue.body }).projectingOptionalValuesAsNullable()
+            .except(ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(2)).select({ iid: tIssue.id, body: tIssue.body }).projectingOptionalValuesAsNullable())
+            .orderBy('iid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as body from issue where id in ($1, $2) except select id as iid, body as body from issue where id = $3 order by iid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ iid: number; body: string | null }>>>()
+        expect(rows).toEqual(expected)
+        // Issue 1's null body is PRESENT-null (the before-op flag survives the compound).
+        expect('body' in rows[0]!).toBe(true)
+        expect(rows[0]!.body).toBe(null)
+    })
+
+    test('compound-before-op-except-nullable-inline', async () => {
+        // Same `except` compound with the before-op nullable flag, consumed as an inline
+        // aggregated array: the optional `body` leaf surfaces present-as-null in the
+        // aggregated element.
+        ctx.mockNext({ arr: JSON.stringify([
+            { iid: 1, body: null },
+        ]) })
+        const arr = ctx.conn.selectFrom(tIssue).where(tIssue.id.in([1, 2])).select({ iid: tIssue.id, body: tIssue.body }).projectingOptionalValuesAsNullable()
+            .except(ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(2)).select({ iid: tIssue.id, body: tIssue.body }).projectingOptionalValuesAsNullable())
+            .forUseAsInlineAggregatedArrayValue()
+        const row = await ctx.conn.selectFromNoTable().select({ arr }).executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select json_agg(json_build_object('iid', a_1_.iid, 'body', a_1_.body)) from (select id as iid, body as body from issue where id in ($1, $2) except select id as iid, body as body from issue where id = $3) as a_1_) as arr"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof row, { arr: Array<{ iid: number; body: string | null }> }>>()
+        expect({ arr: [...row.arr].sort((a, b) => a.iid - b.iid) }).toEqual({ arr: [
+            { iid: 1, body: null },
+        ] })
+        const nullRow = row.arr.find(r => r.iid === 1)!
+        expect('body' in nullRow).toBe(true)
+        expect(nullRow.body).toBe(null)
+    })
+
+    test('compound-before-op-exceptAll-nullable-exec', async () => {
+        // `.projectingOptionalValuesAsNullable()` on the arms BEFORE `.exceptAll(...)`:
+        // the compound builder inherits the nullable-projection flag, so the optional
+        // `body` leaf surfaces present-as-null through the `except all` compound (execute-rows path).
+        const expected = [
+            { iid: 1, body: null },
+        ]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssue).where(tIssue.id.in([1, 2])).select({ iid: tIssue.id, body: tIssue.body }).projectingOptionalValuesAsNullable()
+            .exceptAll(ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(2)).select({ iid: tIssue.id, body: tIssue.body }).projectingOptionalValuesAsNullable())
+            .orderBy('iid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as body from issue where id in ($1, $2) except all select id as iid, body as body from issue where id = $3 order by iid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ iid: number; body: string | null }>>>()
+        expect(rows).toEqual(expected)
+        // Issue 1's null body is PRESENT-null (the before-op flag survives the compound).
+        expect('body' in rows[0]!).toBe(true)
+        expect(rows[0]!.body).toBe(null)
+    })
+
+    test('compound-before-op-exceptAll-nullable-inline', async () => {
+        // Same `except all` compound with the before-op nullable flag, consumed as an inline
+        // aggregated array: the optional `body` leaf surfaces present-as-null in the
+        // aggregated element.
+        ctx.mockNext({ arr: JSON.stringify([
+            { iid: 1, body: null },
+        ]) })
+        const arr = ctx.conn.selectFrom(tIssue).where(tIssue.id.in([1, 2])).select({ iid: tIssue.id, body: tIssue.body }).projectingOptionalValuesAsNullable()
+            .exceptAll(ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(2)).select({ iid: tIssue.id, body: tIssue.body }).projectingOptionalValuesAsNullable())
+            .forUseAsInlineAggregatedArrayValue()
+        const row = await ctx.conn.selectFromNoTable().select({ arr }).executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select json_agg(json_build_object('iid', a_1_.iid, 'body', a_1_.body)) from (select id as iid, body as body from issue where id in ($1, $2) except all select id as iid, body as body from issue where id = $3) as a_1_) as arr"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof row, { arr: Array<{ iid: number; body: string | null }> }>>()
+        expect({ arr: [...row.arr].sort((a, b) => a.iid - b.iid) }).toEqual({ arr: [
+            { iid: 1, body: null },
+        ] })
+        const nullRow = row.arr.find(r => r.iid === 1)!
+        expect('body' in nullRow).toBe(true)
+        expect(nullRow.body).toBe(null)
+    })
+
+    test('compound-before-op-minus-nullable-exec', async () => {
+        // `.projectingOptionalValuesAsNullable()` on the arms BEFORE `.minus(...)`:
+        // the compound builder inherits the nullable-projection flag, so the optional
+        // `body` leaf surfaces present-as-null through the `except (minus alias)` compound (execute-rows path).
+        const expected = [
+            { iid: 1, body: null },
+        ]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssue).where(tIssue.id.in([1, 2])).select({ iid: tIssue.id, body: tIssue.body }).projectingOptionalValuesAsNullable()
+            .minus(ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(2)).select({ iid: tIssue.id, body: tIssue.body }).projectingOptionalValuesAsNullable())
+            .orderBy('iid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as body from issue where id in ($1, $2) except select id as iid, body as body from issue where id = $3 order by iid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ iid: number; body: string | null }>>>()
+        expect(rows).toEqual(expected)
+        // Issue 1's null body is PRESENT-null (the before-op flag survives the compound).
+        expect('body' in rows[0]!).toBe(true)
+        expect(rows[0]!.body).toBe(null)
+    })
+
+    test('compound-before-op-minus-nullable-inline', async () => {
+        // Same `except (minus alias)` compound with the before-op nullable flag, consumed as an inline
+        // aggregated array: the optional `body` leaf surfaces present-as-null in the
+        // aggregated element.
+        ctx.mockNext({ arr: JSON.stringify([
+            { iid: 1, body: null },
+        ]) })
+        const arr = ctx.conn.selectFrom(tIssue).where(tIssue.id.in([1, 2])).select({ iid: tIssue.id, body: tIssue.body }).projectingOptionalValuesAsNullable()
+            .minus(ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(2)).select({ iid: tIssue.id, body: tIssue.body }).projectingOptionalValuesAsNullable())
+            .forUseAsInlineAggregatedArrayValue()
+        const row = await ctx.conn.selectFromNoTable().select({ arr }).executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select json_agg(json_build_object('iid', a_1_.iid, 'body', a_1_.body)) from (select id as iid, body as body from issue where id in ($1, $2) except select id as iid, body as body from issue where id = $3) as a_1_) as arr"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof row, { arr: Array<{ iid: number; body: string | null }> }>>()
+        expect({ arr: [...row.arr].sort((a, b) => a.iid - b.iid) }).toEqual({ arr: [
+            { iid: 1, body: null },
+        ] })
+        const nullRow = row.arr.find(r => r.iid === 1)!
+        expect('body' in nullRow).toBe(true)
+        expect(nullRow.body).toBe(null)
+    })
+
+    test('compound-before-op-minusAll-nullable-exec', async () => {
+        // `.projectingOptionalValuesAsNullable()` on the arms BEFORE `.minusAll(...)`:
+        // the compound builder inherits the nullable-projection flag, so the optional
+        // `body` leaf surfaces present-as-null through the `except all (minus alias)` compound (execute-rows path).
+        const expected = [
+            { iid: 1, body: null },
+        ]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssue).where(tIssue.id.in([1, 2])).select({ iid: tIssue.id, body: tIssue.body }).projectingOptionalValuesAsNullable()
+            .minusAll(ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(2)).select({ iid: tIssue.id, body: tIssue.body }).projectingOptionalValuesAsNullable())
+            .orderBy('iid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as iid, body as body from issue where id in ($1, $2) except all select id as iid, body as body from issue where id = $3 order by iid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ iid: number; body: string | null }>>>()
+        expect(rows).toEqual(expected)
+        // Issue 1's null body is PRESENT-null (the before-op flag survives the compound).
+        expect('body' in rows[0]!).toBe(true)
+        expect(rows[0]!.body).toBe(null)
+    })
+
+    test('compound-before-op-minusAll-nullable-inline', async () => {
+        // Same `except all (minus alias)` compound with the before-op nullable flag, consumed as an inline
+        // aggregated array: the optional `body` leaf surfaces present-as-null in the
+        // aggregated element.
+        ctx.mockNext({ arr: JSON.stringify([
+            { iid: 1, body: null },
+        ]) })
+        const arr = ctx.conn.selectFrom(tIssue).where(tIssue.id.in([1, 2])).select({ iid: tIssue.id, body: tIssue.body }).projectingOptionalValuesAsNullable()
+            .minusAll(ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(2)).select({ iid: tIssue.id, body: tIssue.body }).projectingOptionalValuesAsNullable())
+            .forUseAsInlineAggregatedArrayValue()
+        const row = await ctx.conn.selectFromNoTable().select({ arr }).executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select json_agg(json_build_object('iid', a_1_.iid, 'body', a_1_.body)) from (select id as iid, body as body from issue where id in ($1, $2) except all select id as iid, body as body from issue where id = $3) as a_1_) as arr"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof row, { arr: Array<{ iid: number; body: string | null }> }>>()
+        expect({ arr: [...row.arr].sort((a, b) => a.iid - b.iid) }).toEqual({ arr: [
+            { iid: 1, body: null },
+        ] })
+        const nullRow = row.arr.find(r => r.iid === 1)!
+        expect('body' in nullRow).toBe(true)
+        expect(nullRow.body).toBe(null)
+    })
 })

@@ -765,6 +765,16 @@ export const tIssueWorklog = new class TIssueWorklog extends Table<DBConnection,
     activityUpper  = this.optionalVirtualColumnFromFragment('string', (fragment) => fragment.sql`upper(${this.activity})`)
     // virtualColumnFromFragment with an explicit trailing TypeAdapter.
     activityTagged = this.virtualColumnFromFragment('string', (fragment) => fragment.sql`upper(${this.activity})`, bracketAdapter)
+    // Custom-kind virtualColumnFromFragment columns (the `(type, typeName, fn,
+    // adapter?)` form that produces a branded value source). Computed inline (no DB
+    // column). `centsFromId` is a REQUIRED branded customInt ('Cents', marshalled to
+    // int): worklog id * 100. `centsFromIdOptional` is its optional sibling.
+    // `activityCustomKind` is a string-backed custom kind (enum 'WorklogActivity').
+    // `centsFromIdTagged` carries a trailing TypeAdapter (plusOffsetAdapter, read +1000).
+    centsFromId         = this.virtualColumnFromFragment<number, 'Cents'>('customInt', 'Cents', (fragment) => fragment.sql`${this.id} * 100`)
+    centsFromIdOptional = this.optionalVirtualColumnFromFragment<number, 'Cents'>('customInt', 'Cents', (fragment) => fragment.sql`${this.id} * 100`)
+    activityCustomKind  = this.virtualColumnFromFragment<WorklogActivity, 'WorklogActivity'>('enum', 'WorklogActivity', (fragment) => fragment.sql`lower(${this.activity})`)
+    centsFromIdTagged   = this.virtualColumnFromFragment<number, 'Cents'>('customInt', 'Cents', (fragment) => fragment.sql`${this.id} * 100`, plusOffsetAdapter)
     // optionalComputedColumn — a NULLABLE DB-computed column,
     // excluded from the writable shape (the required sibling is
     // project_release.notes). The DB computes it from minutes + activity.
@@ -856,6 +866,10 @@ export const vReleaseOverview = new class VReleaseOverview extends View<DBConnec
     // optionalVirtualColumnFromFragment on a View carrying a trailing TypeAdapter
     // (bracketAdapter, read wraps in [...]).
     versionUpperTagged = this.optionalVirtualColumnFromFragment('string', (fragment) => fragment.sql`upper(${this.version})`, bracketAdapter)
+    // Custom-kind virtualColumnFromFragment / optional on a VIEW: required + optional
+    // branded customInt ('Cents', marshalled to int), computed as release id * 10.
+    centsFromId         = this.virtualColumnFromFragment<number, 'Cents'>('customInt', 'Cents', (fragment) => fragment.sql`${this.id} * 10`)
+    centsFromIdOptional = this.optionalVirtualColumnFromFragment<number, 'Cents'>('customInt', 'Cents', (fragment) => fragment.sql`${this.id} * 10`)
     // Per-kind PLAIN read marshalling on a View: boolean/bigint/double are backed by
     // project_release base columns; uuid reuses signing_key; localDate/localTime reuse
     // released_on/cutoff_time (also mapped as their custom-branded twins above); the

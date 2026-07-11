@@ -28,7 +28,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tProject, tOrganization } from '../../domain/connection.js'
+import { tIssue, tProject, tOrganization, tIssueWorklog} from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -333,5 +333,83 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ statuses: string[] }>>>()
         const sorted = rows.map((r) => ({ ...r, statuses: [...r.statuses].sort() }))
         expect(sorted).toEqual(expected)
+    })
+
+    test('inline-query-value-null-inhabitant-default-projector', async () => {
+        // A correlated scalar subquery consumed via `forUseAsInlineQueryValue()`
+        // realizes its optional-leaf NULL inhabitant: the leaf is typed `m?: number`
+        // (optional because a scalar subquery may return zero rows), and here the
+        // empty-subquery rows realize that NULL. `m` = the minutes of the issue's
+        // 'coding' worklog. Only issue 1 has a 'coding' worklog (worklog 1, minutes
+        // 90); issues 2/3/4 have none, so the subquery returns zero rows → the leaf
+        // is NULL. Under the DEFAULT projector a null optional leaf is DROPPED
+        // (`'m' in row === false`), not surfaced as present-null.
+        const raw = [
+            { id: 1, m: 90 },
+            { id: 2, m: null },
+            { id: 3, m: null },
+            { id: 4, m: null },
+        ]
+        const expected = [{ id: 1, m: 90 }, { id: 2 }, { id: 3 }, { id: 4 }]
+        ctx.mockNext(raw)
+        const codingMinutes = ctx.conn.subSelectUsing(tIssue).from(tIssueWorklog)
+            .where(tIssueWorklog.issueId.equals(tIssue.id)
+                .and(tIssueWorklog.activity.equals('coding')))
+            .selectOneColumn(tIssueWorklog.minutes)
+            .forUseAsInlineQueryValue()
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .select({ id: tIssue.id, m: codingMinutes })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select minutes as [result] from issue_worklog where issue_id = issue.id and activity = @0) as [m] from issue order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "coding",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; m?: number }>>>()
+        expect(rows).toEqual(expected)
+        // The empty-subquery rows drop the leaf entirely under the default projector.
+        expect('m' in rows[1]!).toBe(false)
+        expect('m' in rows[0]!).toBe(true)
+    })
+
+    test('inline-query-value-null-inhabitant-projecting-optionals-as-nullable', async () => {
+        // Same correlated inline-query-value scalar subquery, but the OUTER select
+        // carries `.projectingOptionalValuesAsNullable()`. Now the optional leaf is
+        // typed `m: number | null` and the empty-subquery NULL is surfaced as
+        // PRESENT-null (`'m' in row === true`, `row.m === null`) rather than dropped.
+        // The emitted SQL is identical to the default projector — the flag only
+        // reshapes the TypeScript type and the null-handling at result time.
+        const expected = [
+            { id: 1, m: 90 },
+            { id: 2, m: null },
+            { id: 3, m: null },
+            { id: 4, m: null },
+        ]
+        ctx.mockNext(expected)
+        const codingMinutes = ctx.conn.subSelectUsing(tIssue).from(tIssueWorklog)
+            .where(tIssueWorklog.issueId.equals(tIssue.id)
+                .and(tIssueWorklog.activity.equals('coding')))
+            .selectOneColumn(tIssueWorklog.minutes)
+            .forUseAsInlineQueryValue()
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .select({ id: tIssue.id, m: codingMinutes })
+            .projectingOptionalValuesAsNullable()
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select minutes as [result] from issue_worklog where issue_id = issue.id and activity = @0) as [m] from issue order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "coding",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; m: number | null }>>>()
+        expect(rows).toEqual(expected)
+        // The empty-subquery NULL is present-null under the nullable projector.
+        expect('m' in rows[1]!).toBe(true)
+        expect(rows[1]!.m).toBe(null)
     })
 })

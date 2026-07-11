@@ -332,4 +332,70 @@ describe(ctx.label, () => {
             expect(row).toEqual(expected)
         })
     })
+
+    test('update-returning-rule1-gate-null-drops-object-default', async () => {
+        // Object-form RETURNING with a RULE-1 gate: `meta.gate` is
+        // `tReleaseDraft.stage.asRequiredInOptionalObject()` (a requiredInOptionalObject
+        // leaf) and `meta.sibling` is a value-bearing `tReleaseDraft.title`. When the
+        // gate column is NULL the whole `meta` object DROPS from the row (rule-1) even
+        // though the sibling carries a value — the UPDATE-returning entry applies rule-1.
+        // Draft 2's stage is NULL, so under the default projector `meta` is absent.
+        const expected = { id: 2 }
+        // Mock primed with the FLAT db row (gate null, sibling present); the projector
+        // drops `meta` because its gate leaf is null.
+        ctx.mockNext({ id: 2, 'meta.sibling': 'Nightly build v2', 'meta.gate': null })
+        await ctx.withRollback(async () => {
+            const row = await ctx.conn.update(tReleaseDraft)
+                .set({ title: 'Nightly build v2' })
+                .where(tReleaseDraft.id.equals(2))
+                .returning({
+                    id:   tReleaseDraft.id,
+                    meta: { sibling: tReleaseDraft.title, gate: tReleaseDraft.stage.asRequiredInOptionalObject() },
+                })
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update release_draft set title = $1 where id = $2 returning id as id, title as "meta.sibling", stage as "meta.gate""`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Nightly build v2",
+                2,
+              ]
+            `)
+            assertType<Exact<typeof row, { id: number; meta?: { sibling: string; gate: ReleaseStage } }>>()
+            expect(row).toEqual(expected)
+            expect('meta' in row).toBe(false)
+        })
+    })
+
+    test('update-returning-rule1-gate-null-drops-object-as-nullable', async () => {
+        // The same rule-1 gate under `projectingOptionalValuesAsNullable()`: the whole
+        // `meta` object becomes `{...} | null`, and a null gate still surfaces it as
+        // `meta: null` (the object is dropped/nulled, not surfaced with the sibling).
+        // Draft 2's stage is NULL, so `meta` comes back present-null.
+        const expected = { id: 2, meta: null }
+        ctx.mockNext({ id: 2, 'meta.sibling': 'Nightly build v2', 'meta.gate': null })
+        await ctx.withRollback(async () => {
+            const row = await ctx.conn.update(tReleaseDraft)
+                .set({ title: 'Nightly build v2' })
+                .where(tReleaseDraft.id.equals(2))
+                .returning({
+                    id:   tReleaseDraft.id,
+                    meta: { sibling: tReleaseDraft.title, gate: tReleaseDraft.stage.asRequiredInOptionalObject() },
+                })
+                .projectingOptionalValuesAsNullable()
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update release_draft set title = $1 where id = $2 returning id as id, title as "meta.sibling", stage as "meta.gate""`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Nightly build v2",
+                2,
+              ]
+            `)
+            assertType<Exact<typeof row, { id: number; meta: { sibling: string; gate: ReleaseStage } | null }>>()
+            expect(row).toEqual(expected)
+            expect('meta' in row).toBe(true)
+            expect(row.meta).toBe(null)
+        })
+    })
 })

@@ -189,4 +189,64 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
     */
+
+    // NOT-APPLICABLE: This dialect does not support a DISTINCT object-array aggregate, so aggregateAsArrayDistinct on an object shape is typed never here.
+    /*
+    test('aggregateAsArrayDistinct-projecting-optionals-as-nullable', async () => {
+        // Distinct object-array combined with projectingOptionalValuesAsNullable().
+        // Project 1 has issue 1 (status 'open', body NULL) and issue 2
+        // (status 'in_progress', body 'Use new tokens'). The distinct aggregate
+        // collects the two distinct {status, body} objects. `body` is an
+        // optional (nullable) leaf: by default a null `body` would be dropped
+        // from the element, but under projectingOptionalValuesAsNullable() it
+        // surfaces as PRESENT-null (`body: string | null`) — so issue 1's
+        // element carries `body: null` rather than omitting the key.
+        //
+        // The `distinct` quantifier is preserved in the emitted aggregate and
+        // pinned by the snapshot below.
+        const expected = {
+            id: 1, name: 'Marketing site',
+            issues: [
+                { status: 'in_progress', body: 'Use new tokens' },
+                { status: 'open',        body: null },
+            ],
+        }
+        ctx.mockNext({
+            id: 1, name: 'Marketing site',
+            issues: JSON.stringify([
+                { status: 'open',        body: null },
+                { status: 'in_progress', body: 'Use new tokens' },
+            ]),
+        })
+        const connection = ctx.conn
+        const tIssueLeftJoin = tIssue.forUseInLeftJoin()
+        const row = await connection.selectFrom(tProject)
+            .leftJoin(tIssueLeftJoin).on(tIssueLeftJoin.projectId.equals(tProject.id))
+            .where(tProject.id.equals(1))
+            .select({
+                id:     tProject.id,
+                name:   tProject.name,
+                issues: connection.aggregateAsArrayDistinct({
+                    status: tIssueLeftJoin.status,
+                    body:   tIssueLeftJoin.body,
+                }).projectingOptionalValuesAsNullable(),
+            })
+            .groupBy('id', 'name')
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(ctx.lastParams).toMatchInlineSnapshot()
+        assertType<Exact<typeof row, {
+            id:     number
+            name:   string
+            issues: Array<{ status: string; body: string | null }>
+        }>>()
+        const issuesSorted = [...(row?.issues ?? [])].sort((a, b) => a.status.localeCompare(b.status))
+        expect({ id: row?.id, name: row?.name, issues: issuesSorted }).toEqual(expected)
+        // Issue 1's null body is PRESENT-null under the nullable projector.
+        const openIssue = row!.issues.find(i => i.status === 'open')!
+        expect('body' in openIssue).toBe(true)
+        expect(openIssue.body).toBe(null)
+    })
+    */
 })

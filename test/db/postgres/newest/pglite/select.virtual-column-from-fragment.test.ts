@@ -17,7 +17,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssueWorklog, vProjectOverview, vReleaseOverview } from '../../domain/connection.js'
+import { tIssueWorklog, vProjectOverview, vReleaseOverview, type WorklogActivity} from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -101,5 +101,158 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof row, { nameUpper: string }>>()
         expect(row).toEqual(expected)
+    })
+
+    test('table-custom-int-virtual-column-required', async () => {
+        // `centsFromId` is a REQUIRED custom-kind virtual column: a branded
+        // customInt ('Cents') computed as `id * 100`. Worklog 1 → 100. The
+        // fragment renders as a real expression (no bound param), and a required
+        // branded customInt projects as a plain `number`.
+        const expected = { id: 1, cents: 100 }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .select({
+                id:    tIssueWorklog.id,
+                cents: tIssueWorklog.centsFromId,
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, id * 100 as cents from issue_worklog where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; cents: number }>>()
+        expect(row).toEqual(expected)
+        expect(row.cents).toBe(100)
+    })
+
+    test('table-custom-int-virtual-column-optional', async () => {
+        // `centsFromIdOptional` is the OPTIONAL sibling of the branded customInt
+        // custom-kind virtual column (`id * 100`). Worklog 1 → 100 present. An
+        // optional branded customInt projects as `cents?: number`.
+        const expected = { id: 1, cents: 100 }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .select({
+                id:    tIssueWorklog.id,
+                cents: tIssueWorklog.centsFromIdOptional,
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, id * 100 as cents from issue_worklog where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; cents?: number }>>()
+        expect(row).toEqual(expected)
+        expect(row.cents).toBe(100)
+    })
+
+    test('table-custom-enum-virtual-column-required', async () => {
+        // `activityCustomKind` is a string-backed custom-kind virtual column (enum
+        // 'WorklogActivity') computed as `lower(activity)`. Worklog 1's activity is
+        // 'coding', so `lower('coding')` = 'coding'. The column projects as the
+        // string-literal union `WorklogActivity`.
+        const expected = { id: 1, act: 'coding' as WorklogActivity }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .select({
+                id:  tIssueWorklog.id,
+                act: tIssueWorklog.activityCustomKind,
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, lower(activity) as act from issue_worklog where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; act: WorklogActivity }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('table-custom-int-virtual-column-with-adapter', async () => {
+        // `centsFromIdTagged` is the branded customInt custom-kind virtual column
+        // (`id * 100`) carrying a trailing TypeAdapter (`plusOffsetAdapter`, read
+        // +1000). The DB yields the RAW value id*100 = 100; the adapter shifts it
+        // on the way out → 1100. The emitted SQL is identical to the no-adapter
+        // form — the adapter only transforms the value on read.
+        ctx.mockNext({ id: 1, cents: 100 })
+        const expected = { id: 1, cents: 1100 }
+        const row = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .select({
+                id:    tIssueWorklog.id,
+                cents: tIssueWorklog.centsFromIdTagged,
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, id * 100 as cents from issue_worklog where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; cents: number }>>()
+        expect(row).toEqual(expected)
+        expect(row.cents).toBe(1100)
+    })
+
+    test('view-custom-int-virtual-column-required', async () => {
+        // The same branded customInt custom-kind arm on a View: `centsFromId` is a
+        // REQUIRED virtual column computed as `id * 10`. Release 2 → 20. Projects
+        // as a plain `number`.
+        const expected = { id: 2, cents: 20 }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(2))
+            .select({
+                id:    vReleaseOverview.id,
+                cents: vReleaseOverview.centsFromId,
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, id * 10 as cents from release_overview where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; cents: number }>>()
+        expect(row).toEqual(expected)
+        expect(row.cents).toBe(20)
+    })
+
+    test('view-custom-int-virtual-column-optional', async () => {
+        // `centsFromIdOptional` is the OPTIONAL sibling of the View's branded
+        // customInt custom-kind virtual column (`id * 10`). Release 2 → 20 present.
+        // Projects as `cents?: number`.
+        const expected = { id: 2, cents: 20 }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(2))
+            .select({
+                id:    vReleaseOverview.id,
+                cents: vReleaseOverview.centsFromIdOptional,
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, id * 10 as cents from release_overview where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; cents?: number }>>()
+        expect(row).toEqual(expected)
+        expect(row.cents).toBe(20)
     })
 })

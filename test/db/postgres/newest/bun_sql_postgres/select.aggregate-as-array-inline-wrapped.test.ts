@@ -6,7 +6,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tOrganization, tProject, tProjectRelease, type ReleaseChannel } from '../../domain/connection.js'
+import { tIssue, tOrganization, tProject, tProjectRelease, type ReleaseChannel, tAppUser} from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -1030,5 +1030,156 @@ describe(ctx.label, () => {
         const issue1 = row.issues.find(i => i.title === 'Update hero copy')!
         expect('body' in issue1).toBe(true)
         expect(issue1.body).toBe(null)
+    })
+
+    test('inline-aggregate-of-compound-union-rule2-left-join-leaf-projecting-optionals-as-nullable', async () => {
+        // A compound (union) consumed as an inline aggregated array whose element-top
+        // leaf is a RULE-2 leaf from a LEFT-JOINED table (`name` = the issue's assignee
+        // full name), tagged `.projectingOptionalValuesAsNullable()` on BOTH arms before
+        // the union. The compound preserves the arms' nullable projection, so on a join
+        // miss the inline aggregate keeps the element and surfaces `name` PRESENT-null
+        // rather than dropping the element. Arm 1 = issue 2 (assignee Grace Hopper →
+        // present); arm 2 = issue 3 (assignee NULL → left-join miss → null). The inner
+        // aggregate is unordered, so sort before comparing.
+        ctx.mockNext({ names: JSON.stringify([
+            { name: 'Grace Hopper' },
+            { name: null },
+        ]) })
+        const tAssignee = tAppUser.forUseInLeftJoin()
+        const names = ctx.conn.selectFrom(tIssue)
+            .leftJoin(tAssignee).on(tAssignee.id.equals(tIssue.assigneeId))
+            .where(tIssue.id.equals(2))
+            .select({ name: tAssignee.fullName })
+            .projectingOptionalValuesAsNullable()
+            .union(
+                ctx.conn.selectFrom(tIssue)
+                    .leftJoin(tAssignee).on(tAssignee.id.equals(tIssue.assigneeId))
+                    .where(tIssue.id.equals(3))
+                    .select({ name: tAssignee.fullName })
+                    .projectingOptionalValuesAsNullable(),
+            )
+            .forUseAsInlineAggregatedArrayValue()
+        const row = await ctx.conn.selectFromNoTable()
+            .select({ names })
+            .executeSelectOne()
+
+        assertType<Exact<typeof row, {
+            names: Array<{ name: string | null }>
+        }>>()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select json_agg(json_build_object('name', a_1_.name)) from (select app_user.full_name as name from issue left join app_user on app_user.id = issue.assignee_id where issue.id = $1 union select app_user.full_name as name from issue left join app_user on app_user.id = issue.assignee_id where issue.id = $2) as a_1_) as names"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+            3,
+          ]
+        `)
+        expect({ names: [...row.names].sort((a, b) => (a.name ?? '').localeCompare(b.name ?? '')) }).toEqual({
+            names: [{ name: null }, { name: 'Grace Hopper' }],
+        })
+        // The join-miss element is PRESENT with `name === null` through the union wrap.
+        const missRow = row.names.find(n => n.name === null)!
+        expect('name' in missRow).toBe(true)
+        expect(missRow.name).toBe(null)
+    })
+
+    test('inline-aggregate-of-compound-union-rule1-gate-leaf-projecting-optionals-as-nullable', async () => {
+        // A compound (union) consumed as an inline aggregated array with a RULE-1 gate
+        // leaf: both arms project `ref = tIssue.body.asRequiredInOptionalObject()` (a
+        // requiredInOptionalObject gate) plus an optional `assigneeId` sibling, tagged
+        // `.projectingOptionalValuesAsNullable()` before the union. The inline aggregate
+        // keeps the gate-null element and, under the nullable projector, surfaces the
+        // gate `ref` PRESENT-null (typed `string | null`, not the dropping
+        // `aggregateAsArray` non-null shape). Arm 1 = issue 1 (body NULL → gate miss);
+        // arm 2 = issue 2 (body 'Use new tokens'). Unordered inner aggregate → sort
+        // before comparing.
+        ctx.mockNext({ items: JSON.stringify([
+            { ref: null, assigneeId: 1 },
+            { ref: 'Use new tokens', assigneeId: 2 },
+        ]) })
+        const items = ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({ ref: tIssue.body.asRequiredInOptionalObject(), assigneeId: tIssue.assigneeId })
+            .projectingOptionalValuesAsNullable()
+            .union(
+                ctx.conn.selectFrom(tIssue)
+                    .where(tIssue.id.equals(2))
+                    .select({ ref: tIssue.body.asRequiredInOptionalObject(), assigneeId: tIssue.assigneeId })
+                    .projectingOptionalValuesAsNullable(),
+            )
+            .forUseAsInlineAggregatedArrayValue()
+        const row = await ctx.conn.selectFromNoTable()
+            .select({ items })
+            .executeSelectOne()
+
+        assertType<Exact<typeof row, {
+            items: Array<{ ref: string | null; assigneeId: number | null }>
+        }>>()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select json_agg(json_build_object('ref', a_1_.ref, 'assigneeId', a_1_.assigneeId)) from (select body as ref, assignee_id as assigneeId from issue where id = $1 union select body as ref, assignee_id as assigneeId from issue where id = $2) as a_1_) as items"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+          ]
+        `)
+        expect({ items: [...row.items].sort((a, b) => a.assigneeId! - b.assigneeId!) }).toEqual({
+            items: [
+                { ref: null, assigneeId: 1 },
+                { ref: 'Use new tokens', assigneeId: 2 },
+            ],
+        })
+        // The gate-null element is KEPT with `ref === null` present (non-dropping inline
+        // runtime), through the union wrap.
+        const gateNull = row.items.find(i => i.assigneeId === 1)!
+        expect('ref' in gateNull).toBe(true)
+        expect(gateNull.ref).toBe(null)
+    })
+
+    test('inline-aggregate-nested-inside-inline-aggregate-element', async () => {
+        // A nested aggregate-of-aggregate: an inline aggregated-array element (`projects`,
+        // one per project of the org) that ITSELF contains a nested inline aggregated
+        // array leaf (`issues`, one per issue of that project). The runtime recursion
+        // over the nested `forUseAsInlineAggregatedArrayValue()` builds a nested
+        // `json_agg(... json_agg(...) ...)` scalar subquery. Org 1 owns project 1
+        // (issues 1, 2) and project 2 (issue 3); json_agg order is engine-defined, so
+        // both array levels are sorted before comparing.
+        ctx.mockNext({ orgId: 1, projects: JSON.stringify([
+            { pid: 1, issues: [{ iid: 1 }, { iid: 2 }] },
+            { pid: 2, issues: [{ iid: 3 }] },
+        ]) })
+        const projects = ctx.conn.subSelectUsing(tOrganization).from(tProject)
+            .where(tProject.organizationId.equals(tOrganization.id))
+            .select({
+                pid: tProject.id,
+                issues: ctx.conn.subSelectUsing(tProject).from(tIssue)
+                    .where(tIssue.projectId.equals(tProject.id))
+                    .select({ iid: tIssue.id })
+                    .forUseAsInlineAggregatedArrayValue(),
+            })
+            .forUseAsInlineAggregatedArrayValue()
+        const row = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.id.equals(1))
+            .select({ orgId: tOrganization.id, projects })
+            .executeSelectOne()
+
+        assertType<Exact<typeof row, {
+            orgId:    number
+            projects: Array<{ pid: number; issues: Array<{ iid: number }> }>
+        }>>()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "orgId", (select json_agg(json_build_object('pid', id, 'issues', (select json_agg(json_build_object('iid', id)) from issue where project_id = project.id))) from project where organization_id = organization.id) as projects from organization where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        const sorted = {
+            ...row,
+            projects: [...row.projects]
+                .map(p => ({ ...p, issues: [...p.issues].sort((a, b) => a.iid - b.iid) }))
+                .sort((a, b) => a.pid - b.pid),
+        }
+        expect(sorted).toEqual({ orgId: 1, projects: [
+            { pid: 1, issues: [{ iid: 1 }, { iid: 2 }] },
+            { pid: 2, issues: [{ iid: 3 }] },
+        ] })
     })
 })

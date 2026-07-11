@@ -316,4 +316,89 @@ describe(ctx.label, () => {
         })
     })
 
+
+    test('insert-from-select-bare-on-conflict-do-update-dynamic-set', async () => {
+        // Bare `from(select).onConflictDoUpdateDynamicSet({...})` — the no-target
+        // dynamic-set upsert arm (same emission as the plain no-target
+        // onConflictDoUpdateSet, just the dynamic-set builder). Re-selecting project
+        // 1's (organization_id, slug) collides with the UNIQUE (organization_id, slug);
+        // the targetless DO UPDATE refreshes `name`. Typed only on the dialects that
+        // tolerate an upsert with no conflict target.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const source = ctx.conn.selectFrom(tProject)
+                .where(tProject.id.equals(1))
+                .select({
+                    organizationId: tProject.organizationId,
+                    slug:           tProject.slug,
+                    name:           tProject.name,
+                })
+
+            const affected = await ctx.conn.insertInto(tProject)
+                .from(source)
+                .onConflictDoUpdateDynamicSet({ name: 'Marketing site v2' })
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, \`name\`) select organization_id as organizationId, slug as slug, \`name\` as \`name\` from project where id = ? on duplicate key update \`name\` = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "Marketing site v2",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            if (ctx.realDbEnabled) {
+                expect(typeof affected).toBe('number')
+                const name = await ctx.conn.selectFrom(tProject)
+                    .where(tProject.id.equals(1))
+                    .selectOneColumn(tProject.name)
+                    .executeSelectOne()
+                expect(name).toBe('Marketing site v2')
+            } else {
+                expect(affected).toBe(1)
+            }
+        })
+    })
+
+    test('insert-from-select-bare-on-conflict-do-update-set-if-value', async () => {
+        // Bare `from(select).onConflictDoUpdateSetIfValue({...})` — the no-target
+        // if-value upsert arm (present values apply; a null/undefined value would be
+        // skipped). Re-selecting project 1's (organization_id, slug) collides with the
+        // UNIQUE (organization_id, slug); the targetless DO UPDATE refreshes `name`.
+        // Typed only on the dialects that tolerate an upsert with no conflict target.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const source = ctx.conn.selectFrom(tProject)
+                .where(tProject.id.equals(1))
+                .select({
+                    organizationId: tProject.organizationId,
+                    slug:           tProject.slug,
+                    name:           tProject.name,
+                })
+
+            const affected = await ctx.conn.insertInto(tProject)
+                .from(source)
+                .onConflictDoUpdateSetIfValue({ name: 'Marketing site v2' })
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, \`name\`) select organization_id as organizationId, slug as slug, \`name\` as \`name\` from project where id = ? on duplicate key update \`name\` = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "Marketing site v2",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            if (ctx.realDbEnabled) {
+                expect(typeof affected).toBe('number')
+                const name = await ctx.conn.selectFrom(tProject)
+                    .where(tProject.id.equals(1))
+                    .selectOneColumn(tProject.name)
+                    .executeSelectOne()
+                expect(name).toBe('Marketing site v2')
+            } else {
+                expect(affected).toBe(1)
+            }
+        })
+    })
 })

@@ -145,6 +145,7 @@ export function createColumnsFrom(sqlBuilder: HasIsValue, columns: QueryColumns,
             if (columnPrivate.__aggregatedArrayColumns) {
                 withColumn.__aggregatedArrayColumns = columnPrivate.__aggregatedArrayColumns
                 withColumn.__aggregatedArrayMode = columnPrivate.__aggregatedArrayMode
+                withColumn.__aggreagtedProjectingOptionalValuesAsNullable = columnPrivate.__aggreagtedProjectingOptionalValuesAsNullable
             }
             if (columnPrivate.__uuidString) {
                 withColumn.__uuidString = columnPrivate.__uuidString
@@ -200,6 +201,7 @@ export function createColumnsFromInnerObject(sqlBuilder: HasIsValue, columns: Qu
             if (columnPrivate.__aggregatedArrayColumns) {
                 withColumn.__aggregatedArrayColumns = columnPrivate.__aggregatedArrayColumns
                 withColumn.__aggregatedArrayMode = columnPrivate.__aggregatedArrayMode
+                withColumn.__aggreagtedProjectingOptionalValuesAsNullable = columnPrivate.__aggreagtedProjectingOptionalValuesAsNullable
             }
             if (columnPrivate.__uuidString) {
                 withColumn.__uuidString = columnPrivate.__uuidString

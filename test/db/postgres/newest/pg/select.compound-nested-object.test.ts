@@ -613,39 +613,26 @@ describe(ctx.label, () => {
     })
 
     test('union-all-of-aggregate-as-array-arms-projecting-optional-values-as-nullable', async () => {
-        // The R40/R41-sensitive case: each UNION ALL arm carries an aggregate-as-array
-        // column whose element has an OPTIONAL leaf (`archivedAt`), and the aggregate
-        // carries its own projectingOptionalValuesAsNullable() flag. A STANDALONE such
-        // aggregate surfaces a null `archivedAt` as PRESENT-null (see
-        // select.aggregate-as-array.element-outer-join-rule.test.ts). Through a UNION
-        // ALL, however, the runtime DROPS the null `archivedAt` (key absent) instead of
-        // keeping it present-null — the compound builder does not propagate the
-        // aggregate's own element nullable flag into the merged result. The TYPE still
-        // claims the leaf is present (`archivedAt: Date | null`), so this is a
-        // TYPE-vs-RUNTIME soundness divergence.
-        //
-        // TODO[BUG]: assertType (ground truth) says `archivedAt: Date | null` (present),
-        // but the runtime drops the null `archivedAt` under UNION ALL — the mock/expected
-        // + drop probe below assert the ACTUAL (dropped) runtime so the suite stays green.
-        // A standalone nullable aggregate keeps it present-null; the compound re-projection
-        // loses the aggregate's element nullable flag. Reported for coordinator — do NOT
-        // fix src from this test.
+        // Each UNION ALL arm carries an aggregate-as-array column whose element has an
+        // OPTIONAL leaf (`archivedAt`) and its own projectingOptionalValuesAsNullable()
+        // flag. The flag rides through the compound: a null `archivedAt` surfaces as
+        // PRESENT-null (`archivedAt: Date | null`), exactly as a standalone such aggregate
+        // does — the compound re-projection carries the aggregate's own element nullable
+        // flag into the merged result, so the type and the runtime agree.
         //
         // Arm 1 = org 1 (projects 1, 2 — archived_at NULL), arm 2 = org 2 (projects 3
         // NULL, 4 archived). The mock is primed with the RAW aggregated arrays (each
-        // element already carrying archivedAt: null / a Date); the projection then drops
-        // the null leaves.
+        // element carrying archivedAt: null / a Date); the projection keeps the null
+        // leaves present-null.
         const tProjectLeft = tProject.forUseInLeftJoin()
         const archivedDate = new Date('2024-02-01T00:00:00.000Z')
-        // ACTUAL runtime: the null `archivedAt` leaves are DROPPED (bug above); only the
-        // non-null project-4 archivedAt survives.
         const expected = [
             { orgId: 1, projects: [
-                { id: 1, name: 'Marketing site' },
-                { id: 2, name: 'Internal tools' },
+                { id: 1, name: 'Marketing site', archivedAt: null },
+                { id: 2, name: 'Internal tools', archivedAt: null },
             ] },
             { orgId: 2, projects: [
-                { id: 3, name: 'Public API' },
+                { id: 3, name: 'Public API', archivedAt: null },
                 { id: 4, name: 'Legacy app', archivedAt: archivedDate },
             ] },
         ]
@@ -698,24 +685,22 @@ describe(ctx.label, () => {
         if (!ctx.realDbEnabled) {
             expect(sorted).toEqual(expected)
         } else {
-            // Real DB: the null `archivedAt` leaves are dropped (the bug); project 4's
+            // Real DB: the null `archivedAt` leaves stay PRESENT-null; project 4's
             // archived_at is a seed-set timestamp (dynamic value) so only its presence
             // and Date type are asserted.
             expect(sorted[0]!.projects).toEqual([
-                { id: 1, name: 'Marketing site' },
-                { id: 2, name: 'Internal tools' },
+                { id: 1, name: 'Marketing site', archivedAt: null },
+                { id: 2, name: 'Internal tools', archivedAt: null },
             ])
-            expect(sorted[1]!.projects.find(p => p.id === 3)).toEqual({ id: 3, name: 'Public API' })
+            expect(sorted[1]!.projects.find(p => p.id === 3)).toEqual({ id: 3, name: 'Public API', archivedAt: null })
             expect(sorted[1]!.projects.find(p => p.id === 4)!.archivedAt instanceof Date).toBe(true)
         }
-        // TODO[BUG]: the RUNTIME drops the null `archivedAt` (contradicting the type
-        // above, which claims present-null) — confirmed on the real engine too. A
-        // standalone nullable aggregate keeps it present-null; the UNION ALL
-        // re-projection loses the aggregate's element flag.
+        // The null `archivedAt` leaf stays PRESENT-null under UNION ALL, matching the
+        // type and a standalone nullable aggregate.
         const proj1 = sorted[0]!.projects.find(p => p.id === 1)!
-        expect('archivedAt' in proj1).toBe(false)
+        expect('archivedAt' in proj1).toBe(true)
         const proj3 = sorted[1]!.projects.find(p => p.id === 3)!
-        expect('archivedAt' in proj3).toBe(false)
+        expect('archivedAt' in proj3).toBe(true)
     })
 
     // ---- SEL-SEAM Round-44 (PROJ-deferred): compound-of-rule-3-nested-object DEFAULT projector through the non-union/non-unionAll ops ----

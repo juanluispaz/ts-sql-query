@@ -50,6 +50,7 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
     __isAggregate?: boolean | undefined
     __aggregatedArrayColumns?: __AggregatedArrayColumns | AnyValueSource | undefined
     __aggregatedArrayMode?: __AggregatedArrayMode | undefined
+    __aggreagtedProjectingOptionalValuesAsNullable?: boolean | undefined
     __uuidString?: boolean | undefined
 
     constructor(valueType: ValueType, valueTypeName: string, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined, aggregatedArrayColumns?: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode?: __AggregatedArrayMode, uuidString?: boolean) {

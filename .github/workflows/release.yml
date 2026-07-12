@@ -88,7 +88,7 @@ jobs:
       # single tsc program now exhausts V8's heap. src's tsc-compat
       # obligation is still covered by the `Bun build (tsc)` step above.
       - name: Bun validate tests (tsgo, authoritative)
-        run: bun run validate:tests
+        run: bun run validate:tests:per-db
 
       # Symmetry audit (DESIGN §4) — structural check of test/db/.
       - name: Bun audit test symmetry
@@ -145,7 +145,7 @@ jobs:
       # Type-check the test/ tree against the published library types (tsgo,
       # authoritative — same gate as the bun job and ci.yml).
       - name: Validate tests (tsgo, authoritative)
-        run: npm run validate:tests
+        run: npm run validate:tests:per-db
 
       # Symmetry audit (DESIGN §4) — structural check of test/db/.
       - name: Audit test symmetry

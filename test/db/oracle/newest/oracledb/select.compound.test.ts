@@ -1495,9 +1495,12 @@ describe(ctx.label, () => {
     // bare bind parameter as an ORDER BY term (SQL Server, error 1008) may still accept.
 
     test('compound-order-by-raw-fragment-embedding-multiple-value-sources', async () => {
-        // A rawFragment embedding TWO no-table value sources (`const(1) + const(2)`):
-        // the fragment carries both params, the compound wraps, and the ORDER BY term is
-        // the expression `<p1> + <p2>` (a benign constant secondary key after `label`).
+        // A rawFragment embedding TWO no-table value sources in an arithmetic expression
+        // (`0 + const(1) + const(2)`): the fragment carries both params, the compound
+        // wraps, and the ORDER BY term is the computed sum (a benign constant secondary
+        // key after `label`). The leading `0` types the chain so each bind param resolves
+        // to a number; two bare params alone (`$1 + $2`) are an ambiguous `unknown +
+        // unknown` that PostgreSQL rejects.
         const expected = [
             { label: 'Document /v2/users' },
             { label: 'Internal tools' },
@@ -1513,9 +1516,9 @@ describe(ctx.label, () => {
             .select({ label: tProject.name })
             .union(ctx.conn.selectFrom(tIssue).select({ label: tIssue.title }))
             .orderBy('label')
-            .orderBy(ctx.conn.rawFragment`${ctx.conn.const(1, 'int')} + ${ctx.conn.const(2, 'int')}`)
+            .orderBy(ctx.conn.rawFragment`0 + ${ctx.conn.const(1, 'int')} + ${ctx.conn.const(2, 'int')}`)
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select name as "label" from project union select title as "label" from issue) o_1_ order by "label", :0 + :1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select name as "label" from project union select title as "label" from issue) o_1_ order by "label", 0 + :0 + :1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

@@ -1005,4 +1005,251 @@ describe(ctx.label, () => {
             expect(result).toEqual(expected)
         }
     })
+
+    // ---- NUM tail fan-out (round-44 T4)
+
+    test('num-tail/int-receiver-double-column-promotes', async () => {
+        // int receiver (issue_id, required int = 1 for worklog 1) with a plain-DOUBLE
+        // COLUMN operand (doubleVirtual, a required virtual double = billed_amount = 200):
+        // power / logn / atan2 take the value-source overload and PROMOTE to a double
+        // result. power(1, 200) = 1, logn(base 200 of 1) = 0, atan2(1, 200) is a small
+        // float. Both operands required → required `number` leaves. A `::numeric`-cast
+        // result can leak the driver's raw string, so the real-DB branch coerces through
+        // Number(...).
+        const expected = [{ id: 1, pw: 1, ln: 0, at: Math.atan2(1, 200) }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .select({
+                id: tIssueWorklog.id,
+                pw: tIssueWorklog.issueId.power(tIssueWorklog.doubleVirtual),
+                ln: tIssueWorklog.issueId.logn(tIssueWorklog.doubleVirtual),
+                at: tIssueWorklog.issueId.atan2(tIssueWorklog.doubleVirtual),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, power(issue_id, billed_amount) as pw, log((billed_amount)::numeric, (issue_id)::numeric) as ln, atan2(issue_id, billed_amount) as at from issue_worklog where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; pw: number; ln: number; at: number }>>>()
+        if (ctx.realDbEnabled) {
+            expect(result[0]!.id).toBe(1)
+            expect(Number(result[0]!.pw)).toBeCloseTo(1, 5)
+            expect(Number(result[0]!.ln)).toBeCloseTo(0, 5)
+            expect(Number(result[0]!.at)).toBeCloseTo(Math.atan2(1, 200), 5)
+        } else {
+            expect(result).toEqual(expected)
+        }
+    })
+
+    test('num-tail/double-opt-receiver-unary-f1-and-casts', async () => {
+        // Optional-double receiver (estimated_hours, NULL in seed → set to 8 inside the
+        // rollback so every result is present). The unary family (abs/ceil/floor/sign),
+        // the SqlFunction0 math (exp/ln/log10/cbrt), and the cast arm
+        // (asInt/asBigint/asDouble) all keep the receiver's OPTIONAL marker, so every
+        // leaf is `?: number` (asBigint `?: bigint`). Over 8: abs/ceil/floor = 8, sign = 1,
+        // exp/ln/log10/cbrt are floats (toBeCloseTo), asInt/asDouble = 8, asBigint = 8n. A
+        // `::numeric`-cast result can leak the driver's raw string, so the real-DB branch
+        // coerces through Number(...) / BigInt(...).
+        await ctx.withRollback(async () => {
+            ctx.mockNext(1)
+            await ctx.conn.update(tIssue).set({ estimatedHours: 8 }).where(tIssue.id.equals(1)).executeUpdate()
+
+            const expected = {
+                id: 1, ab: 8, ce: 8, fl: 8, sg: 1,
+                ex: Math.exp(8), l: Math.log(8), l10: Math.log10(8), cb: Math.cbrt(8),
+                ai: 8, abi: 8n, ad: 8,
+            }
+            ctx.mockNext(expected)
+            const row = await ctx.conn.selectFrom(tIssue)
+                .where(tIssue.id.equals(1))
+                .select({
+                    id:  tIssue.id,
+                    ab:  tIssue.estimatedHours.abs(),
+                    ce:  tIssue.estimatedHours.ceil(),
+                    fl:  tIssue.estimatedHours.floor(),
+                    sg:  tIssue.estimatedHours.sign(),
+                    ex:  tIssue.estimatedHours.exp(),
+                    l:   tIssue.estimatedHours.ln(),
+                    l10: tIssue.estimatedHours.log10(),
+                    cb:  tIssue.estimatedHours.cbrt(),
+                    ai:  tIssue.estimatedHours.asInt(),
+                    abi: tIssue.estimatedHours.asBigint(),
+                    ad:  tIssue.estimatedHours.asDouble(),
+                })
+                .executeSelectOne()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs(estimated_hours) as ab, ceil(estimated_hours) as ce, floor(estimated_hours) as fl, sign(estimated_hours) as sg, exp(estimated_hours) as ex, ln(estimated_hours) as "l", log(estimated_hours) as l10, cbrt(estimated_hours) as cb, round((estimated_hours)::numeric) as ai, round((estimated_hours)::numeric) as abi, estimated_hours::float as ad from issue where id = $1"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof row, {
+                id: number; ab?: number; ce?: number; fl?: number; sg?: number
+                ex?: number; l?: number; l10?: number; cb?: number
+                ai?: number; abi?: bigint; ad?: number
+            }>>()
+            if (ctx.realDbEnabled) {
+                expect(row.id).toBe(1)
+                expect(Number(row.ab)).toBeCloseTo(8, 5)
+                expect(Number(row.ce)).toBeCloseTo(8, 5)
+                expect(Number(row.fl)).toBeCloseTo(8, 5)
+                expect(Number(row.sg)).toBeCloseTo(1, 5)
+                expect(Number(row.ex)).toBeCloseTo(Math.exp(8), 5)
+                expect(Number(row.l)).toBeCloseTo(Math.log(8), 5)
+                expect(Number(row.l10)).toBeCloseTo(Math.log10(8), 5)
+                expect(Number(row.cb)).toBeCloseTo(Math.cbrt(8), 4)
+                expect(Number(row.ai)).toBeCloseTo(8, 5)
+                expect(BigInt(row.abi!)).toBe(8n)
+                expect(Number(row.ad)).toBeCloseTo(8, 5)
+            } else {
+                expect(row).toEqual(expected)
+            }
+        })
+    })
+
+    test('num-tail/int-opt-receiver-unary-and-arithmetic', async () => {
+        // Optional-int receiver (minutes, = 90 for worklog 1, present). The unary family
+        // (abs/ceil/floor/sign), the cast arm (asDouble/asBigint), and const-operand
+        // arithmetic (subtract/modulo/minValue/maxValue) all keep the OPTIONAL marker, so
+        // every leaf is `?: number` (asBigint `?: bigint`). Over 90: abs/ceil/floor = 90,
+        // sign = 1, asDouble = 90, asBigint = 90n, subtract(1) = 89, modulo(4) = 2,
+        // minValue(50) = greatest(90,50) = 90, maxValue(50) = least(90,50) = 50. A bigint
+        // result can come back as a string on some drivers → coerce through BigInt(...).
+        const expected = {
+            id: 1, ab: 90, ce: 90, fl: 90, sg: 1, ad: 90, abi: 90n,
+            s: 89, mo: 2, mn: 90, mx: 50,
+        }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .select({
+                id:  tIssueWorklog.id,
+                ab:  tIssueWorklog.minutes.abs(),
+                ce:  tIssueWorklog.minutes.ceil(),
+                fl:  tIssueWorklog.minutes.floor(),
+                sg:  tIssueWorklog.minutes.sign(),
+                ad:  tIssueWorklog.minutes.asDouble(),
+                abi: tIssueWorklog.minutes.asBigint(),
+                s:   tIssueWorklog.minutes.subtract(1),
+                mo:  tIssueWorklog.minutes.modulo(4),
+                mn:  tIssueWorklog.minutes.minValue(50),
+                mx:  tIssueWorklog.minutes.maxValue(50),
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs(minutes) as ab, ceil(minutes) as ce, floor(minutes) as fl, sign(minutes) as sg, minutes::float as ad, minutes as abi, minutes - $1 as "s", minutes % $2 as mo, greatest(minutes, $3) as mn, least(minutes, $4) as mx from issue_worklog where id = $5"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            4,
+            50,
+            50,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            id: number; ab?: number; ce?: number; fl?: number; sg?: number
+            ad?: number; abi?: bigint; s?: number; mo?: number; mn?: number; mx?: number
+        }>>()
+        if (ctx.realDbEnabled) {
+            expect(row.id).toBe(1)
+            expect(Number(row.ab)).toBe(90)
+            expect(Number(row.ce)).toBe(90)
+            expect(Number(row.fl)).toBe(90)
+            expect(Number(row.sg)).toBe(1)
+            expect(Number(row.ad)).toBe(90)
+            expect(BigInt(row.abi!)).toBe(90n)
+            expect(Number(row.s)).toBe(89)
+            expect(Number(row.mo)).toBe(2)
+            expect(Number(row.mn)).toBe(90)
+            expect(Number(row.mx)).toBe(50)
+        } else {
+            expect(row).toEqual(expected)
+        }
+    })
+
+    test('num-tail/bigint-opt-receiver-rounding-and-arithmetic', async () => {
+        // Optional-bigint receiver (duration_ms, = 5400000 for worklog 1, present).
+        // rounding (ceil/floor/round) + const-operand arithmetic
+        // (subtract/modulo/minValue/maxValue) keep the OPTIONAL marker → every leaf
+        // `?: bigint`. Over 5400000n: ceil/floor/round = 5400000n, subtract(1n) = 5399999n,
+        // modulo(1000000n) = 400000n, minValue(1n) = greatest(5400000,1) = 5400000n,
+        // maxValue(1n) = least(5400000,1) = 1n. A bigint result can come back as a string
+        // on some drivers → coerce through BigInt(...).
+        const expected = {
+            id: 1, c: 5400000n, f: 5400000n, r: 5400000n,
+            s: 5399999n, mo: 400000n, mn: 5400000n, mx: 1n,
+        }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .select({
+                id: tIssueWorklog.id,
+                c:  tIssueWorklog.durationMs.ceil(),
+                f:  tIssueWorklog.durationMs.floor(),
+                r:  tIssueWorklog.durationMs.round(),
+                s:  tIssueWorklog.durationMs.subtract(1n),
+                mo: tIssueWorklog.durationMs.modulo(1000000n),
+                mn: tIssueWorklog.durationMs.minValue(1n),
+                mx: tIssueWorklog.durationMs.maxValue(1n),
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ceil(duration_ms) as "c", floor(duration_ms) as "f", round((duration_ms)::numeric) as "r", duration_ms - $1 as "s", duration_ms % $2 as mo, greatest(duration_ms, $3) as mn, least(duration_ms, $4) as mx from issue_worklog where id = $5"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1n,
+            1000000n,
+            1n,
+            1n,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            id: number; c?: bigint; f?: bigint; r?: bigint
+            s?: bigint; mo?: bigint; mn?: bigint; mx?: bigint
+        }>>()
+        if (ctx.realDbEnabled) {
+            expect(row.id).toBe(1)
+            expect(BigInt(row.c!)).toBe(5400000n)
+            expect(BigInt(row.f!)).toBe(5400000n)
+            expect(BigInt(row.r!)).toBe(5400000n)
+            expect(BigInt(row.s!)).toBe(5399999n)
+            expect(BigInt(row.mo!)).toBe(400000n)
+            expect(BigInt(row.mn!)).toBe(5400000n)
+            expect(BigInt(row.mx!)).toBe(1n)
+        } else {
+            expect(row).toEqual(expected)
+        }
+    })
+
+    test('num-tail/direct-divide-value-projection', async () => {
+        // A bare `divide` projected directly (never fed into another operator). Both
+        // operands are required columns on issue 1 (priority = 2, id = 1), so the result
+        // is a required `number`: 2 / 1 = 2. divide always yields a double, so the real-DB
+        // branch coerces through Number(...).
+        const expected = [{ id: 1, dv: 2 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                dv: tIssue.priority.divide(tIssue.id),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority::float / id::float as dv from issue where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; dv: number }>>>()
+        if (ctx.realDbEnabled) {
+            expect(result[0]!.id).toBe(1)
+            expect(Number(result[0]!.dv)).toBeCloseTo(2, 5)
+        } else {
+            expect(result).toEqual(expected)
+        }
+    })
 })

@@ -464,4 +464,1769 @@ describe(ctx.label, () => {
             expect(emails).toEqual(['ifvq\\z'])
         })
     })
+    // ---- STR block-4 real-DB match fan-out (round-44 T4)
+    // Row-selection proof of `_escapeLikeWildcard` across the affix grid: each
+    // test inserts a probe holding a LITERAL metachar and a decoy where that
+    // metachar is replaced by a char a wildcard would match, then asserts which
+    // rows come back. On native-sqlite/docker the LIKE + ESCAPE actually run, so
+    // a broken escape would leak the decoy. Positive predicates keep the literal
+    // row; negative predicates (`not*`) keep the decoy and are scoped by a
+    // full_name marker so seed rows don't leak in. `[` carries real row-selection
+    // signal only on SqlServer (elsewhere it is an ordinary char) but the test is
+    // valid on every dialect. These assertions are dialect-independent (the
+    // per-dialect escaped param is pinned in `like-escape-literal`), so there are
+    // no SQL snapshots here.
+
+    test('starts-with-percent', async () => {
+        // startsWith with a literal percent: correct escaping matches only the literal-percent row, not the decoy.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['q%k-z'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'q%k-z', fullName: 'str probe' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'qwk-z', fullName: 'str decoy' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.email.startsWith('q%k'))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['q%k-z'])
+        })
+    })
+
+    test('starts-with-bracket', async () => {
+        // startsWith with a literal bracket: correct escaping matches only the literal-bracket row, not the decoy.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['q[bk]-z'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'q[bk]-z', fullName: 'str probe' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'qb-z', fullName: 'str decoy' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.email.startsWith('q[bk]'))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['q[bk]-z'])
+        })
+    })
+
+    test('starts-with-if-value-percent', async () => {
+        // startsWithIfValue with a literal percent: correct escaping matches only the literal-percent row, not the decoy.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['q%k-z'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'q%k-z', fullName: 'str probe' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'qwk-z', fullName: 'str decoy' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.email.startsWithIfValue('q%k'))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['q%k-z'])
+        })
+    })
+
+    test('starts-with-if-value-underscore', async () => {
+        // startsWithIfValue with a literal underscore: correct escaping matches only the literal-underscore row, not the decoy.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['q_k-z'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'q_k-z', fullName: 'str probe' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'qwk-z', fullName: 'str decoy' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.email.startsWithIfValue('q_k'))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['q_k-z'])
+        })
+    })
+
+    test('starts-with-if-value-bracket', async () => {
+        // startsWithIfValue with a literal bracket: correct escaping matches only the literal-bracket row, not the decoy.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['q[bk]-z'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'q[bk]-z', fullName: 'str probe' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'qb-z', fullName: 'str decoy' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.email.startsWithIfValue('q[bk]'))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['q[bk]-z'])
+        })
+    })
+
+    test('starts-with-insensitive-percent', async () => {
+        // startsWithInsensitive with a literal percent: correct escaping matches only the literal-percent row, not the decoy.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['Q%K-z'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'Q%K-z', fullName: 'str probe' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'QWK-z', fullName: 'str decoy' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.email.startsWithInsensitive('q%k'))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['Q%K-z'])
+        })
+    })
+
+    test('starts-with-insensitive-underscore', async () => {
+        // startsWithInsensitive with a literal underscore: correct escaping matches only the literal-underscore row, not the decoy.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['Q_K-z'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'Q_K-z', fullName: 'str probe' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'QWK-z', fullName: 'str decoy' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.email.startsWithInsensitive('q_k'))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['Q_K-z'])
+        })
+    })
+
+    test('starts-with-insensitive-bracket', async () => {
+        // startsWithInsensitive with a literal bracket: correct escaping matches only the literal-bracket row, not the decoy.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['Q[BK]-z'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'Q[BK]-z', fullName: 'str probe' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'QB-z', fullName: 'str decoy' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.email.startsWithInsensitive('q[bk]'))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['Q[BK]-z'])
+        })
+    })
+
+    test('starts-with-insensitive-if-value-percent', async () => {
+        // startsWithInsensitiveIfValue with a literal percent: correct escaping matches only the literal-percent row, not the decoy.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['Q%K-z'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'Q%K-z', fullName: 'str probe' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'QWK-z', fullName: 'str decoy' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.email.startsWithInsensitiveIfValue('q%k'))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['Q%K-z'])
+        })
+    })
+
+    test('starts-with-insensitive-if-value-underscore', async () => {
+        // startsWithInsensitiveIfValue with a literal underscore: correct escaping matches only the literal-underscore row, not the decoy.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['Q_K-z'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'Q_K-z', fullName: 'str probe' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'QWK-z', fullName: 'str decoy' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.email.startsWithInsensitiveIfValue('q_k'))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['Q_K-z'])
+        })
+    })
+
+    test('starts-with-insensitive-if-value-backslash', async () => {
+        // startsWithInsensitiveIfValue with a literal backslash: correct escaping matches only the literal-backslash row, not the decoy.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['Q\\K-z'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'Q\\K-z', fullName: 'str probe' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'QK-z', fullName: 'str decoy' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.email.startsWithInsensitiveIfValue('q\\k'))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['Q\\K-z'])
+        })
+    })
+
+    test('starts-with-insensitive-if-value-bracket', async () => {
+        // startsWithInsensitiveIfValue with a literal bracket: correct escaping matches only the literal-bracket row, not the decoy.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['Q[BK]-z'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'Q[BK]-z', fullName: 'str probe' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'QB-z', fullName: 'str decoy' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.email.startsWithInsensitiveIfValue('q[bk]'))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['Q[BK]-z'])
+        })
+    })
+
+    test('not-starts-with-percent', async () => {
+        // notStartsWith with a literal percent: the literal-percent row is excluded, the decoy survives (scoped by full_name marker).
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['qwk-z'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'q%k-z', fullName: 'neg-marker' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'qwk-z', fullName: 'neg-marker' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.fullName.equals('neg-marker').and(tAppUser.email.notStartsWith('q%k')))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['qwk-z'])
+        })
+    })
+
+    test('not-starts-with-underscore', async () => {
+        // notStartsWith with a literal underscore: the literal-underscore row is excluded, the decoy survives (scoped by full_name marker).
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['qwk-z'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'q_k-z', fullName: 'neg-marker' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'qwk-z', fullName: 'neg-marker' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.fullName.equals('neg-marker').and(tAppUser.email.notStartsWith('q_k')))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['qwk-z'])
+        })
+    })
+
+    test('not-starts-with-backslash', async () => {
+        // notStartsWith with a literal backslash: the literal-backslash row is excluded, the decoy survives (scoped by full_name marker).
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['qk-z'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'q\\k-z', fullName: 'neg-marker' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'qk-z', fullName: 'neg-marker' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.fullName.equals('neg-marker').and(tAppUser.email.notStartsWith('q\\k')))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['qk-z'])
+        })
+    })
+
+    test('not-starts-with-bracket', async () => {
+        // notStartsWith with a literal bracket: the literal-bracket row is excluded, the decoy survives (scoped by full_name marker).
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['qb-z'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'q[bk]-z', fullName: 'neg-marker' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'qb-z', fullName: 'neg-marker' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.fullName.equals('neg-marker').and(tAppUser.email.notStartsWith('q[bk]')))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['qb-z'])
+        })
+    })
+
+    test('not-starts-with-if-value-percent', async () => {
+        // notStartsWithIfValue with a literal percent: the literal-percent row is excluded, the decoy survives (scoped by full_name marker).
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['qwk-z'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'q%k-z', fullName: 'neg-marker' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'qwk-z', fullName: 'neg-marker' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.fullName.equals('neg-marker').and(tAppUser.email.notStartsWithIfValue('q%k')))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['qwk-z'])
+        })
+    })
+
+    test('not-starts-with-if-value-underscore', async () => {
+        // notStartsWithIfValue with a literal underscore: the literal-underscore row is excluded, the decoy survives (scoped by full_name marker).
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['qwk-z'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'q_k-z', fullName: 'neg-marker' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'qwk-z', fullName: 'neg-marker' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.fullName.equals('neg-marker').and(tAppUser.email.notStartsWithIfValue('q_k')))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['qwk-z'])
+        })
+    })
+
+    test('not-starts-with-if-value-backslash', async () => {
+        // notStartsWithIfValue with a literal backslash: the literal-backslash row is excluded, the decoy survives (scoped by full_name marker).
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['qk-z'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'q\\k-z', fullName: 'neg-marker' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'qk-z', fullName: 'neg-marker' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.fullName.equals('neg-marker').and(tAppUser.email.notStartsWithIfValue('q\\k')))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['qk-z'])
+        })
+    })
+
+    test('not-starts-with-if-value-bracket', async () => {
+        // notStartsWithIfValue with a literal bracket: the literal-bracket row is excluded, the decoy survives (scoped by full_name marker).
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['qb-z'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'q[bk]-z', fullName: 'neg-marker' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'qb-z', fullName: 'neg-marker' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.fullName.equals('neg-marker').and(tAppUser.email.notStartsWithIfValue('q[bk]')))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['qb-z'])
+        })
+    })
+
+    test('not-starts-with-insensitive-percent', async () => {
+        // notStartsWithInsensitive with a literal percent: the literal-percent row is excluded, the decoy survives (scoped by full_name marker).
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['QWK-z'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'Q%K-z', fullName: 'neg-marker' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'QWK-z', fullName: 'neg-marker' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.fullName.equals('neg-marker').and(tAppUser.email.notStartsWithInsensitive('q%k')))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['QWK-z'])
+        })
+    })
+
+    test('not-starts-with-insensitive-underscore', async () => {
+        // notStartsWithInsensitive with a literal underscore: the literal-underscore row is excluded, the decoy survives (scoped by full_name marker).
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['QWK-z'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'Q_K-z', fullName: 'neg-marker' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'QWK-z', fullName: 'neg-marker' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.fullName.equals('neg-marker').and(tAppUser.email.notStartsWithInsensitive('q_k')))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['QWK-z'])
+        })
+    })
+
+    test('not-starts-with-insensitive-backslash', async () => {
+        // notStartsWithInsensitive with a literal backslash: the literal-backslash row is excluded, the decoy survives (scoped by full_name marker).
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['QK-z'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'Q\\K-z', fullName: 'neg-marker' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'QK-z', fullName: 'neg-marker' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.fullName.equals('neg-marker').and(tAppUser.email.notStartsWithInsensitive('q\\k')))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['QK-z'])
+        })
+    })
+
+    test('not-starts-with-insensitive-bracket', async () => {
+        // notStartsWithInsensitive with a literal bracket: the literal-bracket row is excluded, the decoy survives (scoped by full_name marker).
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['QB-z'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'Q[BK]-z', fullName: 'neg-marker' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'QB-z', fullName: 'neg-marker' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.fullName.equals('neg-marker').and(tAppUser.email.notStartsWithInsensitive('q[bk]')))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['QB-z'])
+        })
+    })
+
+    test('not-starts-with-insensitive-if-value-percent', async () => {
+        // notStartsWithInsensitiveIfValue with a literal percent: the literal-percent row is excluded, the decoy survives (scoped by full_name marker).
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['QWK-z'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'Q%K-z', fullName: 'neg-marker' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'QWK-z', fullName: 'neg-marker' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.fullName.equals('neg-marker').and(tAppUser.email.notStartsWithInsensitiveIfValue('q%k')))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['QWK-z'])
+        })
+    })
+
+    test('not-starts-with-insensitive-if-value-underscore', async () => {
+        // notStartsWithInsensitiveIfValue with a literal underscore: the literal-underscore row is excluded, the decoy survives (scoped by full_name marker).
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['QWK-z'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'Q_K-z', fullName: 'neg-marker' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'QWK-z', fullName: 'neg-marker' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.fullName.equals('neg-marker').and(tAppUser.email.notStartsWithInsensitiveIfValue('q_k')))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['QWK-z'])
+        })
+    })
+
+    test('not-starts-with-insensitive-if-value-backslash', async () => {
+        // notStartsWithInsensitiveIfValue with a literal backslash: the literal-backslash row is excluded, the decoy survives (scoped by full_name marker).
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['QK-z'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'Q\\K-z', fullName: 'neg-marker' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'QK-z', fullName: 'neg-marker' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.fullName.equals('neg-marker').and(tAppUser.email.notStartsWithInsensitiveIfValue('q\\k')))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['QK-z'])
+        })
+    })
+
+    test('not-starts-with-insensitive-if-value-bracket', async () => {
+        // notStartsWithInsensitiveIfValue with a literal bracket: the literal-bracket row is excluded, the decoy survives (scoped by full_name marker).
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['QB-z'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'Q[BK]-z', fullName: 'neg-marker' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'QB-z', fullName: 'neg-marker' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.fullName.equals('neg-marker').and(tAppUser.email.notStartsWithInsensitiveIfValue('q[bk]')))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['QB-z'])
+        })
+    })
+
+    test('ends-with-percent', async () => {
+        // endsWith with a literal percent: correct escaping matches only the literal-percent row, not the decoy.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['z-q%k'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-q%k', fullName: 'str probe' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-qwk', fullName: 'str decoy' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.email.endsWith('q%k'))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['z-q%k'])
+        })
+    })
+
+    test('ends-with-bracket', async () => {
+        // endsWith with a literal bracket: correct escaping matches only the literal-bracket row, not the decoy.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['z-q[bk]'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-q[bk]', fullName: 'str probe' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-qb', fullName: 'str decoy' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.email.endsWith('q[bk]'))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['z-q[bk]'])
+        })
+    })
+
+    test('ends-with-if-value-percent', async () => {
+        // endsWithIfValue with a literal percent: correct escaping matches only the literal-percent row, not the decoy.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['z-q%k'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-q%k', fullName: 'str probe' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-qwk', fullName: 'str decoy' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.email.endsWithIfValue('q%k'))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['z-q%k'])
+        })
+    })
+
+    test('ends-with-if-value-underscore', async () => {
+        // endsWithIfValue with a literal underscore: correct escaping matches only the literal-underscore row, not the decoy.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['z-q_k'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-q_k', fullName: 'str probe' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-qwk', fullName: 'str decoy' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.email.endsWithIfValue('q_k'))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['z-q_k'])
+        })
+    })
+
+    test('ends-with-if-value-bracket', async () => {
+        // endsWithIfValue with a literal bracket: correct escaping matches only the literal-bracket row, not the decoy.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['z-q[bk]'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-q[bk]', fullName: 'str probe' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-qb', fullName: 'str decoy' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.email.endsWithIfValue('q[bk]'))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['z-q[bk]'])
+        })
+    })
+
+    test('ends-with-insensitive-percent', async () => {
+        // endsWithInsensitive with a literal percent: correct escaping matches only the literal-percent row, not the decoy.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['z-Q%K'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-Q%K', fullName: 'str probe' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-QWK', fullName: 'str decoy' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.email.endsWithInsensitive('q%k'))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['z-Q%K'])
+        })
+    })
+
+    test('ends-with-insensitive-underscore', async () => {
+        // endsWithInsensitive with a literal underscore: correct escaping matches only the literal-underscore row, not the decoy.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['z-Q_K'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-Q_K', fullName: 'str probe' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-QWK', fullName: 'str decoy' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.email.endsWithInsensitive('q_k'))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['z-Q_K'])
+        })
+    })
+
+    test('ends-with-insensitive-bracket', async () => {
+        // endsWithInsensitive with a literal bracket: correct escaping matches only the literal-bracket row, not the decoy.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['z-Q[BK]'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-Q[BK]', fullName: 'str probe' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-QB', fullName: 'str decoy' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.email.endsWithInsensitive('q[bk]'))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['z-Q[BK]'])
+        })
+    })
+
+    test('ends-with-insensitive-if-value-percent', async () => {
+        // endsWithInsensitiveIfValue with a literal percent: correct escaping matches only the literal-percent row, not the decoy.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['z-Q%K'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-Q%K', fullName: 'str probe' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-QWK', fullName: 'str decoy' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.email.endsWithInsensitiveIfValue('q%k'))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['z-Q%K'])
+        })
+    })
+
+    test('ends-with-insensitive-if-value-underscore', async () => {
+        // endsWithInsensitiveIfValue with a literal underscore: correct escaping matches only the literal-underscore row, not the decoy.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['z-Q_K'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-Q_K', fullName: 'str probe' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-QWK', fullName: 'str decoy' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.email.endsWithInsensitiveIfValue('q_k'))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['z-Q_K'])
+        })
+    })
+
+    test('ends-with-insensitive-if-value-backslash', async () => {
+        // endsWithInsensitiveIfValue with a literal backslash: correct escaping matches only the literal-backslash row, not the decoy.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['z-Q\\K'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-Q\\K', fullName: 'str probe' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-QK', fullName: 'str decoy' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.email.endsWithInsensitiveIfValue('q\\k'))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['z-Q\\K'])
+        })
+    })
+
+    test('ends-with-insensitive-if-value-bracket', async () => {
+        // endsWithInsensitiveIfValue with a literal bracket: correct escaping matches only the literal-bracket row, not the decoy.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['z-Q[BK]'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-Q[BK]', fullName: 'str probe' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-QB', fullName: 'str decoy' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.email.endsWithInsensitiveIfValue('q[bk]'))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['z-Q[BK]'])
+        })
+    })
+
+    test('not-ends-with-percent', async () => {
+        // notEndsWith with a literal percent: the literal-percent row is excluded, the decoy survives (scoped by full_name marker).
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['z-qwk'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-q%k', fullName: 'neg-marker' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-qwk', fullName: 'neg-marker' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.fullName.equals('neg-marker').and(tAppUser.email.notEndsWith('q%k')))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['z-qwk'])
+        })
+    })
+
+    test('not-ends-with-underscore', async () => {
+        // notEndsWith with a literal underscore: the literal-underscore row is excluded, the decoy survives (scoped by full_name marker).
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['z-qwk'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-q_k', fullName: 'neg-marker' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-qwk', fullName: 'neg-marker' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.fullName.equals('neg-marker').and(tAppUser.email.notEndsWith('q_k')))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['z-qwk'])
+        })
+    })
+
+    test('not-ends-with-backslash', async () => {
+        // notEndsWith with a literal backslash: the literal-backslash row is excluded, the decoy survives (scoped by full_name marker).
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['z-qk'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-q\\k', fullName: 'neg-marker' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-qk', fullName: 'neg-marker' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.fullName.equals('neg-marker').and(tAppUser.email.notEndsWith('q\\k')))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['z-qk'])
+        })
+    })
+
+    test('not-ends-with-bracket', async () => {
+        // notEndsWith with a literal bracket: the literal-bracket row is excluded, the decoy survives (scoped by full_name marker).
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['z-qb'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-q[bk]', fullName: 'neg-marker' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-qb', fullName: 'neg-marker' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.fullName.equals('neg-marker').and(tAppUser.email.notEndsWith('q[bk]')))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['z-qb'])
+        })
+    })
+
+    test('not-ends-with-if-value-percent', async () => {
+        // notEndsWithIfValue with a literal percent: the literal-percent row is excluded, the decoy survives (scoped by full_name marker).
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['z-qwk'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-q%k', fullName: 'neg-marker' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-qwk', fullName: 'neg-marker' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.fullName.equals('neg-marker').and(tAppUser.email.notEndsWithIfValue('q%k')))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['z-qwk'])
+        })
+    })
+
+    test('not-ends-with-if-value-underscore', async () => {
+        // notEndsWithIfValue with a literal underscore: the literal-underscore row is excluded, the decoy survives (scoped by full_name marker).
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['z-qwk'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-q_k', fullName: 'neg-marker' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-qwk', fullName: 'neg-marker' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.fullName.equals('neg-marker').and(tAppUser.email.notEndsWithIfValue('q_k')))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['z-qwk'])
+        })
+    })
+
+    test('not-ends-with-if-value-backslash', async () => {
+        // notEndsWithIfValue with a literal backslash: the literal-backslash row is excluded, the decoy survives (scoped by full_name marker).
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['z-qk'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-q\\k', fullName: 'neg-marker' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-qk', fullName: 'neg-marker' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.fullName.equals('neg-marker').and(tAppUser.email.notEndsWithIfValue('q\\k')))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['z-qk'])
+        })
+    })
+
+    test('not-ends-with-if-value-bracket', async () => {
+        // notEndsWithIfValue with a literal bracket: the literal-bracket row is excluded, the decoy survives (scoped by full_name marker).
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['z-qb'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-q[bk]', fullName: 'neg-marker' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-qb', fullName: 'neg-marker' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.fullName.equals('neg-marker').and(tAppUser.email.notEndsWithIfValue('q[bk]')))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['z-qb'])
+        })
+    })
+
+    test('not-ends-with-insensitive-percent', async () => {
+        // notEndsWithInsensitive with a literal percent: the literal-percent row is excluded, the decoy survives (scoped by full_name marker).
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['z-QWK'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-Q%K', fullName: 'neg-marker' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-QWK', fullName: 'neg-marker' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.fullName.equals('neg-marker').and(tAppUser.email.notEndsWithInsensitive('q%k')))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['z-QWK'])
+        })
+    })
+
+    test('not-ends-with-insensitive-underscore', async () => {
+        // notEndsWithInsensitive with a literal underscore: the literal-underscore row is excluded, the decoy survives (scoped by full_name marker).
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['z-QWK'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-Q_K', fullName: 'neg-marker' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-QWK', fullName: 'neg-marker' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.fullName.equals('neg-marker').and(tAppUser.email.notEndsWithInsensitive('q_k')))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['z-QWK'])
+        })
+    })
+
+    test('not-ends-with-insensitive-backslash', async () => {
+        // notEndsWithInsensitive with a literal backslash: the literal-backslash row is excluded, the decoy survives (scoped by full_name marker).
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['z-QK'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-Q\\K', fullName: 'neg-marker' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-QK', fullName: 'neg-marker' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.fullName.equals('neg-marker').and(tAppUser.email.notEndsWithInsensitive('q\\k')))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['z-QK'])
+        })
+    })
+
+    test('not-ends-with-insensitive-bracket', async () => {
+        // notEndsWithInsensitive with a literal bracket: the literal-bracket row is excluded, the decoy survives (scoped by full_name marker).
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['z-QB'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-Q[BK]', fullName: 'neg-marker' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-QB', fullName: 'neg-marker' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.fullName.equals('neg-marker').and(tAppUser.email.notEndsWithInsensitive('q[bk]')))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['z-QB'])
+        })
+    })
+
+    test('not-ends-with-insensitive-if-value-percent', async () => {
+        // notEndsWithInsensitiveIfValue with a literal percent: the literal-percent row is excluded, the decoy survives (scoped by full_name marker).
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['z-QWK'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-Q%K', fullName: 'neg-marker' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-QWK', fullName: 'neg-marker' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.fullName.equals('neg-marker').and(tAppUser.email.notEndsWithInsensitiveIfValue('q%k')))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['z-QWK'])
+        })
+    })
+
+    test('not-ends-with-insensitive-if-value-underscore', async () => {
+        // notEndsWithInsensitiveIfValue with a literal underscore: the literal-underscore row is excluded, the decoy survives (scoped by full_name marker).
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['z-QWK'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-Q_K', fullName: 'neg-marker' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-QWK', fullName: 'neg-marker' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.fullName.equals('neg-marker').and(tAppUser.email.notEndsWithInsensitiveIfValue('q_k')))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['z-QWK'])
+        })
+    })
+
+    test('not-ends-with-insensitive-if-value-backslash', async () => {
+        // notEndsWithInsensitiveIfValue with a literal backslash: the literal-backslash row is excluded, the decoy survives (scoped by full_name marker).
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['z-QK'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-Q\\K', fullName: 'neg-marker' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-QK', fullName: 'neg-marker' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.fullName.equals('neg-marker').and(tAppUser.email.notEndsWithInsensitiveIfValue('q\\k')))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['z-QK'])
+        })
+    })
+
+    test('not-ends-with-insensitive-if-value-bracket', async () => {
+        // notEndsWithInsensitiveIfValue with a literal bracket: the literal-bracket row is excluded, the decoy survives (scoped by full_name marker).
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['z-QB'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-Q[BK]', fullName: 'neg-marker' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-QB', fullName: 'neg-marker' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.fullName.equals('neg-marker').and(tAppUser.email.notEndsWithInsensitiveIfValue('q[bk]')))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['z-QB'])
+        })
+    })
+
+    test('contains-underscore', async () => {
+        // contains with a literal underscore: correct escaping matches only the literal-underscore row, not the decoy.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['c-q_k-z'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'c-q_k-z', fullName: 'str probe' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'c-qwk-z', fullName: 'str decoy' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.email.contains('q_k'))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['c-q_k-z'])
+        })
+    })
+
+    test('contains-if-value-percent', async () => {
+        // containsIfValue with a literal percent: correct escaping matches only the literal-percent row, not the decoy.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['c-q%k-z'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'c-q%k-z', fullName: 'str probe' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'c-qwk-z', fullName: 'str decoy' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.email.containsIfValue('q%k'))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['c-q%k-z'])
+        })
+    })
+
+    test('contains-if-value-bracket', async () => {
+        // containsIfValue with a literal bracket: correct escaping matches only the literal-bracket row, not the decoy.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['c-q[bk]-z'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'c-q[bk]-z', fullName: 'str probe' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'c-qb-z', fullName: 'str decoy' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.email.containsIfValue('q[bk]'))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['c-q[bk]-z'])
+        })
+    })
+
+    test('contains-insensitive-percent', async () => {
+        // containsInsensitive with a literal percent: correct escaping matches only the literal-percent row, not the decoy.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['c-Q%K-z'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'c-Q%K-z', fullName: 'str probe' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'c-QWK-z', fullName: 'str decoy' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.email.containsInsensitive('q%k'))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['c-Q%K-z'])
+        })
+    })
+
+    test('contains-insensitive-bracket', async () => {
+        // containsInsensitive with a literal bracket: correct escaping matches only the literal-bracket row, not the decoy.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['c-Q[BK]-z'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'c-Q[BK]-z', fullName: 'str probe' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'c-QB-z', fullName: 'str decoy' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.email.containsInsensitive('q[bk]'))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['c-Q[BK]-z'])
+        })
+    })
+
+    test('contains-insensitive-if-value-percent', async () => {
+        // containsInsensitiveIfValue with a literal percent: correct escaping matches only the literal-percent row, not the decoy.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['c-Q%K-z'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'c-Q%K-z', fullName: 'str probe' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'c-QWK-z', fullName: 'str decoy' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.email.containsInsensitiveIfValue('q%k'))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['c-Q%K-z'])
+        })
+    })
+
+    test('contains-insensitive-if-value-underscore', async () => {
+        // containsInsensitiveIfValue with a literal underscore: correct escaping matches only the literal-underscore row, not the decoy.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['c-Q_K-z'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'c-Q_K-z', fullName: 'str probe' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'c-QWK-z', fullName: 'str decoy' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.email.containsInsensitiveIfValue('q_k'))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['c-Q_K-z'])
+        })
+    })
+
+    test('contains-insensitive-if-value-backslash', async () => {
+        // containsInsensitiveIfValue with a literal backslash: correct escaping matches only the literal-backslash row, not the decoy.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['c-Q\\K-z'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'c-Q\\K-z', fullName: 'str probe' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'c-QK-z', fullName: 'str decoy' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.email.containsInsensitiveIfValue('q\\k'))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['c-Q\\K-z'])
+        })
+    })
+
+    test('contains-insensitive-if-value-bracket', async () => {
+        // containsInsensitiveIfValue with a literal bracket: correct escaping matches only the literal-bracket row, not the decoy.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['c-Q[BK]-z'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'c-Q[BK]-z', fullName: 'str probe' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'c-QB-z', fullName: 'str decoy' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.email.containsInsensitiveIfValue('q[bk]'))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['c-Q[BK]-z'])
+        })
+    })
+
+    test('not-contains-percent', async () => {
+        // notContains with a literal percent: the literal-percent row is excluded, the decoy survives (scoped by full_name marker).
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['c-qwk-z'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'c-q%k-z', fullName: 'neg-marker' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'c-qwk-z', fullName: 'neg-marker' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.fullName.equals('neg-marker').and(tAppUser.email.notContains('q%k')))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['c-qwk-z'])
+        })
+    })
+
+    test('not-contains-bracket', async () => {
+        // notContains with a literal bracket: the literal-bracket row is excluded, the decoy survives (scoped by full_name marker).
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['c-qb-z'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'c-q[bk]-z', fullName: 'neg-marker' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'c-qb-z', fullName: 'neg-marker' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.fullName.equals('neg-marker').and(tAppUser.email.notContains('q[bk]')))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['c-qb-z'])
+        })
+    })
+
+    test('not-contains-if-value-percent', async () => {
+        // notContainsIfValue with a literal percent: the literal-percent row is excluded, the decoy survives (scoped by full_name marker).
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['c-qwk-z'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'c-q%k-z', fullName: 'neg-marker' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'c-qwk-z', fullName: 'neg-marker' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.fullName.equals('neg-marker').and(tAppUser.email.notContainsIfValue('q%k')))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['c-qwk-z'])
+        })
+    })
+
+    test('not-contains-if-value-underscore', async () => {
+        // notContainsIfValue with a literal underscore: the literal-underscore row is excluded, the decoy survives (scoped by full_name marker).
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['c-qwk-z'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'c-q_k-z', fullName: 'neg-marker' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'c-qwk-z', fullName: 'neg-marker' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.fullName.equals('neg-marker').and(tAppUser.email.notContainsIfValue('q_k')))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['c-qwk-z'])
+        })
+    })
+
+    test('not-contains-if-value-backslash', async () => {
+        // notContainsIfValue with a literal backslash: the literal-backslash row is excluded, the decoy survives (scoped by full_name marker).
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['c-qk-z'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'c-q\\k-z', fullName: 'neg-marker' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'c-qk-z', fullName: 'neg-marker' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.fullName.equals('neg-marker').and(tAppUser.email.notContainsIfValue('q\\k')))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['c-qk-z'])
+        })
+    })
+
+    test('not-contains-if-value-bracket', async () => {
+        // notContainsIfValue with a literal bracket: the literal-bracket row is excluded, the decoy survives (scoped by full_name marker).
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['c-qb-z'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'c-q[bk]-z', fullName: 'neg-marker' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'c-qb-z', fullName: 'neg-marker' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.fullName.equals('neg-marker').and(tAppUser.email.notContainsIfValue('q[bk]')))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['c-qb-z'])
+        })
+    })
+
+    test('not-contains-insensitive-percent', async () => {
+        // notContainsInsensitive with a literal percent: the literal-percent row is excluded, the decoy survives (scoped by full_name marker).
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['c-QWK-z'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'c-Q%K-z', fullName: 'neg-marker' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'c-QWK-z', fullName: 'neg-marker' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.fullName.equals('neg-marker').and(tAppUser.email.notContainsInsensitive('q%k')))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['c-QWK-z'])
+        })
+    })
+
+    test('not-contains-insensitive-underscore', async () => {
+        // notContainsInsensitive with a literal underscore: the literal-underscore row is excluded, the decoy survives (scoped by full_name marker).
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['c-QWK-z'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'c-Q_K-z', fullName: 'neg-marker' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'c-QWK-z', fullName: 'neg-marker' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.fullName.equals('neg-marker').and(tAppUser.email.notContainsInsensitive('q_k')))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['c-QWK-z'])
+        })
+    })
+
+    test('not-contains-insensitive-backslash', async () => {
+        // notContainsInsensitive with a literal backslash: the literal-backslash row is excluded, the decoy survives (scoped by full_name marker).
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['c-QK-z'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'c-Q\\K-z', fullName: 'neg-marker' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'c-QK-z', fullName: 'neg-marker' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.fullName.equals('neg-marker').and(tAppUser.email.notContainsInsensitive('q\\k')))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['c-QK-z'])
+        })
+    })
+
+    test('not-contains-insensitive-bracket', async () => {
+        // notContainsInsensitive with a literal bracket: the literal-bracket row is excluded, the decoy survives (scoped by full_name marker).
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['c-QB-z'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'c-Q[BK]-z', fullName: 'neg-marker' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'c-QB-z', fullName: 'neg-marker' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.fullName.equals('neg-marker').and(tAppUser.email.notContainsInsensitive('q[bk]')))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['c-QB-z'])
+        })
+    })
+
+    test('not-contains-insensitive-if-value-percent', async () => {
+        // notContainsInsensitiveIfValue with a literal percent: the literal-percent row is excluded, the decoy survives (scoped by full_name marker).
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['c-QWK-z'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'c-Q%K-z', fullName: 'neg-marker' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'c-QWK-z', fullName: 'neg-marker' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.fullName.equals('neg-marker').and(tAppUser.email.notContainsInsensitiveIfValue('q%k')))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['c-QWK-z'])
+        })
+    })
+
+    test('not-contains-insensitive-if-value-underscore', async () => {
+        // notContainsInsensitiveIfValue with a literal underscore: the literal-underscore row is excluded, the decoy survives (scoped by full_name marker).
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['c-QWK-z'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'c-Q_K-z', fullName: 'neg-marker' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'c-QWK-z', fullName: 'neg-marker' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.fullName.equals('neg-marker').and(tAppUser.email.notContainsInsensitiveIfValue('q_k')))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['c-QWK-z'])
+        })
+    })
+
+    test('not-contains-insensitive-if-value-backslash', async () => {
+        // notContainsInsensitiveIfValue with a literal backslash: the literal-backslash row is excluded, the decoy survives (scoped by full_name marker).
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['c-QK-z'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'c-Q\\K-z', fullName: 'neg-marker' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'c-QK-z', fullName: 'neg-marker' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.fullName.equals('neg-marker').and(tAppUser.email.notContainsInsensitiveIfValue('q\\k')))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['c-QK-z'])
+        })
+    })
+
+    test('not-contains-insensitive-if-value-bracket', async () => {
+        // notContainsInsensitiveIfValue with a literal bracket: the literal-bracket row is excluded, the decoy survives (scoped by full_name marker).
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['c-QB-z'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'c-Q[BK]-z', fullName: 'neg-marker' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'c-QB-z', fullName: 'neg-marker' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.fullName.equals('neg-marker').and(tAppUser.email.notContainsInsensitiveIfValue('q[bk]')))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['c-QB-z'])
+        })
+    })
+
+    test('starts-with-column-operand-underscore-literal', async () => {
+        // startsWith(<column>) uses full_name as the needle, so its metachar is escaped at
+        // the SQL level. Both rows share full_name 'q_k' (literal underscore); only Row A's
+        // email begins with that literal, so correct escaping matches only Row A. Row B would
+        // leak if the `_` reached the engine as a single-char wildcard.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['q_k-z'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'q_k-z', fullName: 'q_k' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'qwk-z', fullName: 'q_k' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.email.startsWith(tAppUser.fullName))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['q_k-z'])
+        })
+    })
+
+    test('ends-with-column-operand-underscore-literal', async () => {
+        // endsWith(<column>) uses full_name 'q_k' (literal underscore) as the needle. Only
+        // Row A's email ends with that literal; Row B would leak if the `_` reached the engine
+        // as a single-char wildcard.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['z-q_k'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-q_k', fullName: 'q_k' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'z-qwk', fullName: 'q_k' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.email.endsWith(tAppUser.fullName))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['z-q_k'])
+        })
+    })
+
+    test('contains-column-operand-percent-literal', async () => {
+        // contains(<column>) uses full_name 'q%k' (literal percent) as the needle. Only Row A's
+        // email holds that literal; Row B would leak if the `%` reached the engine as a
+        // multi-char wildcard (matching q<any>k).
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['c-q%k-z'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'c-q%k-z', fullName: 'q%k' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'c-qwk-z', fullName: 'q%k' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.email.contains(tAppUser.fullName))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['c-q%k-z'])
+        })
+    })
+
+    test('not-contains-column-operand-underscore-literal', async () => {
+        // notContains(<column>) uses full_name 'q_k' (literal underscore) as the needle, scoped
+        // to the two `nc-`-prefixed rows. Row A's email holds the literal `q_k` and is EXCLUDED;
+        // Row B (`nc-qwk@t`) — which only matches `q_k` as the wildcard `q<any>k` — is KEPT.
+        // Without escaping both would be excluded, so the surviving row proves the escape.
+        ctx.mockNext(1)
+        ctx.mockNext(1)
+        ctx.mockNext(['nc-qwk@t'])
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'nc-q_k@t', fullName: 'q_k' })
+                .executeInsert()
+            await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'nc-qwk@t', fullName: 'q_k' })
+                .executeInsert()
+            const emails = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.email.startsWith('nc-').and(tAppUser.email.notContains(tAppUser.fullName)))
+                .selectOneColumn(tAppUser.email)
+                .orderBy('result')
+                .executeSelectMany()
+            expect(emails).toEqual(['nc-qwk@t'])
+        })
+    })
 })

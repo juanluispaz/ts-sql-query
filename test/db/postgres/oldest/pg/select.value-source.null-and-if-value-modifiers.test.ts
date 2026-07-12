@@ -1777,4 +1777,32 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { id: number; req?: boolean; own?: boolean; ign?: boolean }>>()
         expect(row).toEqual(expected)
     })
+    // ---- EQCMP double-modifier micro (round-44 T4)
+    // The projection modifier trio on a PLAIN double receiver (`priority.asDouble()`) —
+    // the Number(double) §micro gap. `asRequiredInOptionalObject()` passes the double
+    // through (`req?: number`); `onlyWhenOrNull(false)` / `ignoreWhenAsNull(true)`
+    // replace the value source with a typed NULL, so `own` / `ign` are absent under
+    // optional-as-undefined and the bake reveals the double NULL cast (`null::float8`
+    // on postgres). priority(issue 1) = 2 -> 2.0.
+    test('modifier-trio-on-plain-double-leaf', async () => {
+        const expected = { id: 1, req: 2 }
+        ctx.mockNext({ id: 1, req: 2 })
+        const row = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id:  tIssue.id,
+                req: tIssue.priority.asDouble().asRequiredInOptionalObject(),
+                own: tIssue.priority.asDouble().onlyWhenOrNull(false),
+                ign: tIssue.priority.asDouble().ignoreWhenAsNull(true),
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority::float as req, null::float8 as own, null::float8 as ign from issue where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; req?: number; own?: number; ign?: number }>>()
+        expect(row).toEqual(expected)
+    })
 })

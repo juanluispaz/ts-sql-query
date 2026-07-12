@@ -27,6 +27,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../.
 import { assertType, type Exact } from '../../../../lib/assertType.js'
 import type { TypeAdapter } from '../../../../../src/TypeAdapter.js'
 import { tIssue } from '../../domain/connection.js'
+import type { WorklogActivity, ReleaseChannel } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 const UUID_LOWER = '0a8f9c1e-1111-4222-8333-444455556666'
@@ -103,6 +104,21 @@ const shiftHourFromDb: TypeAdapter = {
     transformValueFromDB(value, type, next) {
         const v = next.transformValueFromDB(value, type)
         return v instanceof Date ? new Date(v.getTime() + 3600000) : v
+    },
+    transformValueToDB(value, type, next) {
+        return next.transformValueToDB(value, type)
+    },
+}
+
+// The string marshaller family (`string` / `enum` / `custom` / `customComparable`
+// and — through the string base — `customUuid`) yields a `string`; wrap it in
+// `[...]` on read so the adapter's effect on a string const/fragment is
+// observable. `transformValueToDB` delegates to `next`, so the value is sent
+// verbatim and the emitted placeholder/cast is unchanged.
+const stringBracket: TypeAdapter = {
+    transformValueFromDB(value, type, next) {
+        const v = next.transformValueFromDB(value, type)
+        return typeof v === 'string' ? '[' + v + ']' : v
     },
     transformValueToDB(value, type, next) {
         return next.transformValueToDB(value, type)
@@ -575,4 +591,516 @@ describe(ctx.label, () => {
         assertType<Exact<typeof v, Date | null>>()
         expect(v).toEqual(new Date(Date.UTC(2024, 0, 14, 13, 30, 0)))
     })
+    // ---- CONN B1/B3 adapter-slot fan-out (round-44 T4) ----------------------
+    // The trailing-adapter slot on the remaining const/optionalConst kinds and
+    // on both fragmentWithType / aggregateFragmentWithType kinds. Each adapter's
+    // transformValueFromDB does an observable transform (numeric ×10, string /
+    // uuid bracket, boolean negate, Date +1h); the mock queues the RAW value and
+    // the test asserts the TRANSFORMED value.
+
+    // ── B1: const(value, 'localDate' | 'enum', adapter) ─────────────────
+    // localDate through the trailing adapter — a Date marshaller shifted +1h on
+    // read. A non-null localDate const echoed back is not round-trippable on
+    // every driver (some return a non-ISO format the marshaller rejects — see
+    // select.value-source.required-const.test.ts), so the shifted value is
+    // asserted mock-only and the presence-as-Date structurally on the real DB.
+    // ── B1: const/optionalConst(value, 'customX', typeName, adapter2) ────
+    // The custom-kind overloads park the trailing TypeAdapter in the `adapter2`
+    // slot (4th positional, after the typeName). One const + optionalConst per
+    // remaining custom kind, each routing its base marshaller through the adapter.
+
+    test('const/custom-int-adapter-transforms-read-value', async () => {
+        ctx.mockNext(5)
+        const v = await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.const<number, 'Cents'>(5, 'customInt', 'Cents', intTimesTen))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            5,
+          ]
+        `)
+        assertType<Exact<typeof v, number>>()
+        expect(v).toBe(50)
+    })
+
+    test('optional-const/custom-int-adapter-transforms-read-value', async () => {
+        ctx.mockNext(5)
+        const v = await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.optionalConst<number, 'Cents'>(5, 'customInt', 'Cents', intTimesTen))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            5,
+          ]
+        `)
+        assertType<Exact<typeof v, number | null>>()
+        expect(v).toBe(50)
+    })
+
+    test('const/custom-uuid-adapter-transforms-read-value', async () => {
+        ctx.mockNext(UUID_LOWER)
+        const v = await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.const<string, 'SigningKey'>(UUID_LOWER, 'customUuid', 'SigningKey', uuidBracket))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "0a8f9c1e-1111-4222-8333-444455556666",
+          ]
+        `)
+        assertType<Exact<typeof v, string>>()
+        expect(v).toBe('[' + UUID_LOWER + ']')
+    })
+
+    test('optional-const/custom-uuid-adapter-transforms-read-value', async () => {
+        ctx.mockNext(UUID_LOWER)
+        const v = await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.optionalConst<string, 'SigningKey'>(UUID_LOWER, 'customUuid', 'SigningKey', uuidBracket))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "0a8f9c1e-1111-4222-8333-444455556666",
+          ]
+        `)
+        assertType<Exact<typeof v, string | null>>()
+        expect(v).toBe('[' + UUID_LOWER + ']')
+    })
+
+    // ── B3: fragmentWithType(kind, required, adapter) — remaining kinds ──
+    // A typed fragment carrying the adapter, interpolating a same-kind const so
+    // the projected value is deterministic and table-free. required + optional
+    // per kind; the optional flag only widens the leaf type (same SQL).
+
+    test('fragment-with-type/string-adapter-transforms-read-value', async () => {
+        ctx.mockNext('hi')
+        const v = await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.fragmentWithType('string', 'required', stringBracket).sql`${ctx.conn.const('hi', 'string')}`)
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "hi",
+          ]
+        `)
+        assertType<Exact<typeof v, string>>()
+        expect(v).toBe('[hi]')
+    })
+
+    test('fragment-with-type/string-optional-adapter-transforms-read-value', async () => {
+        ctx.mockNext('hi')
+        const v = await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.fragmentWithType('string', 'optional', stringBracket).sql`${ctx.conn.const('hi', 'string')}`)
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "hi",
+          ]
+        `)
+        assertType<Exact<typeof v, string | null>>()
+        expect(v).toBe('[hi]')
+    })
+
+    test('fragment-with-type/local-time-adapter-transforms-read-value', async () => {
+        const lt = new Date(Date.UTC(1970, 0, 1, 17, 0, 0))
+        ctx.mockNext(lt)
+        const v = await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.fragmentWithType('localTime', 'required', shiftHourFromDb).sql`${ctx.conn.const(lt, 'localTime')}`)
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "17:00:00",
+          ]
+        `)
+        assertType<Exact<typeof v, Date>>()
+        expect(v).toEqual(new Date(Date.UTC(1970, 0, 1, 18, 0, 0)))
+    })
+
+    test('fragment-with-type/local-time-optional-adapter-transforms-read-value', async () => {
+        const lt = new Date(Date.UTC(1970, 0, 1, 17, 0, 0))
+        ctx.mockNext(lt)
+        const v = await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.fragmentWithType('localTime', 'optional', shiftHourFromDb).sql`${ctx.conn.const(lt, 'localTime')}`)
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "17:00:00",
+          ]
+        `)
+        assertType<Exact<typeof v, Date | null>>()
+        expect(v).toEqual(new Date(Date.UTC(1970, 0, 1, 18, 0, 0)))
+    })
+
+    test('fragment-with-type/local-date-time-adapter-transforms-read-value', async () => {
+        const ldt = new Date(Date.UTC(2024, 0, 14, 12, 30, 0))
+        ctx.mockNext(ldt)
+        const v = await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.fragmentWithType('localDateTime', 'required', shiftHourFromDb).sql`${ctx.conn.const(ldt, 'localDateTime')}`)
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2024-01-14 12:30:00",
+          ]
+        `)
+        assertType<Exact<typeof v, Date>>()
+        expect(v).toEqual(new Date(Date.UTC(2024, 0, 14, 13, 30, 0)))
+    })
+
+    test('fragment-with-type/local-date-time-optional-adapter-transforms-read-value', async () => {
+        const ldt = new Date(Date.UTC(2024, 0, 14, 12, 30, 0))
+        ctx.mockNext(ldt)
+        const v = await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.fragmentWithType('localDateTime', 'optional', shiftHourFromDb).sql`${ctx.conn.const(ldt, 'localDateTime')}`)
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2024-01-14 12:30:00",
+          ]
+        `)
+        assertType<Exact<typeof v, Date | null>>()
+        expect(v).toEqual(new Date(Date.UTC(2024, 0, 14, 13, 30, 0)))
+    })
+
+    test('fragment-with-type/enum-adapter-transforms-read-value', async () => {
+        ctx.mockNext('coding')
+        const v = await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.fragmentWithType<WorklogActivity, 'WorklogActivity'>('enum', 'WorklogActivity', 'required', stringBracket).sql`${ctx.conn.const<WorklogActivity, 'WorklogActivity'>('coding', 'enum', 'WorklogActivity')}`)
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "coding",
+          ]
+        `)
+        assertType<Exact<typeof v, WorklogActivity>>()
+        expect(v).toBe('[coding]')
+    })
+
+    test('fragment-with-type/enum-optional-adapter-transforms-read-value', async () => {
+        ctx.mockNext('coding')
+        const v = await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.fragmentWithType<WorklogActivity, 'WorklogActivity'>('enum', 'WorklogActivity', 'optional', stringBracket).sql`${ctx.conn.const<WorklogActivity, 'WorklogActivity'>('coding', 'enum', 'WorklogActivity')}`)
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "coding",
+          ]
+        `)
+        assertType<Exact<typeof v, WorklogActivity | null>>()
+        expect(v).toBe('[coding]')
+    })
+
+    test('fragment-with-type/custom-int-adapter-transforms-read-value', async () => {
+        ctx.mockNext(5)
+        const v = await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.fragmentWithType<number, 'Cents'>('customInt', 'Cents', 'required', intTimesTen).sql`${ctx.conn.const<number, 'Cents'>(5, 'customInt', 'Cents')}`)
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            5,
+          ]
+        `)
+        assertType<Exact<typeof v, number>>()
+        expect(v).toBe(50)
+    })
+
+    test('fragment-with-type/custom-int-optional-adapter-transforms-read-value', async () => {
+        ctx.mockNext(5)
+        const v = await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.fragmentWithType<number, 'Cents'>('customInt', 'Cents', 'optional', intTimesTen).sql`${ctx.conn.const<number, 'Cents'>(5, 'customInt', 'Cents')}`)
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            5,
+          ]
+        `)
+        assertType<Exact<typeof v, number | null>>()
+        expect(v).toBe(50)
+    })
+
+    test('fragment-with-type/custom-double-adapter-transforms-read-value', async () => {
+        ctx.mockNext(2.5)
+        const v = await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.fragmentWithType<number, 'Money'>('customDouble', 'Money', 'required', doubleTimesTen).sql`${ctx.conn.const<number, 'Money'>(2.5, 'customDouble', 'Money')}`)
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2.5,
+          ]
+        `)
+        assertType<Exact<typeof v, number>>()
+        expect(v).toBe(25)
+    })
+
+    test('fragment-with-type/custom-double-optional-adapter-transforms-read-value', async () => {
+        ctx.mockNext(2.5)
+        const v = await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.fragmentWithType<number, 'Money'>('customDouble', 'Money', 'optional', doubleTimesTen).sql`${ctx.conn.const<number, 'Money'>(2.5, 'customDouble', 'Money')}`)
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2.5,
+          ]
+        `)
+        assertType<Exact<typeof v, number | null>>()
+        expect(v).toBe(25)
+    })
+
+    test('fragment-with-type/custom-comparable-adapter-transforms-read-value', async () => {
+        ctx.mockNext('1.0.0')
+        const v = await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.fragmentWithType<string, 'Semver'>('customComparable', 'Semver', 'required', stringBracket).sql`${ctx.conn.const<string, 'Semver'>('1.0.0', 'customComparable', 'Semver')}`)
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "1.0.0",
+          ]
+        `)
+        assertType<Exact<typeof v, string>>()
+        expect(v).toBe('[1.0.0]')
+    })
+
+    test('fragment-with-type/custom-comparable-optional-adapter-transforms-read-value', async () => {
+        ctx.mockNext('1.0.0')
+        const v = await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.fragmentWithType<string, 'Semver'>('customComparable', 'Semver', 'optional', stringBracket).sql`${ctx.conn.const<string, 'Semver'>('1.0.0', 'customComparable', 'Semver')}`)
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "1.0.0",
+          ]
+        `)
+        assertType<Exact<typeof v, string | null>>()
+        expect(v).toBe('[1.0.0]')
+    })
+
+    test('fragment-with-type/custom-adapter-transforms-read-value', async () => {
+        ctx.mockNext('stable')
+        const v = await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.fragmentWithType<ReleaseChannel, 'ReleaseChannel'>('custom', 'ReleaseChannel', 'required', stringBracket).sql`${ctx.conn.const<ReleaseChannel, 'ReleaseChannel'>('stable', 'custom', 'ReleaseChannel')}`)
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "stable",
+          ]
+        `)
+        assertType<Exact<typeof v, ReleaseChannel>>()
+        expect(v).toBe('[stable]')
+    })
+
+    test('fragment-with-type/custom-optional-adapter-transforms-read-value', async () => {
+        ctx.mockNext('stable')
+        const v = await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.fragmentWithType<ReleaseChannel, 'ReleaseChannel'>('custom', 'ReleaseChannel', 'optional', stringBracket).sql`${ctx.conn.const<ReleaseChannel, 'ReleaseChannel'>('stable', 'custom', 'ReleaseChannel')}`)
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "stable",
+          ]
+        `)
+        assertType<Exact<typeof v, ReleaseChannel | null>>()
+        expect(v).toBe('[stable]')
+    })
+
+    test('fragment-with-type/custom-uuid-adapter-transforms-read-value', async () => {
+        ctx.mockNext(UUID_LOWER)
+        const v = await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.fragmentWithType<string, 'SigningKey'>('customUuid', 'SigningKey', 'required', uuidBracket).sql`${ctx.conn.const<string, 'SigningKey'>(UUID_LOWER, 'customUuid', 'SigningKey')}`)
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "0a8f9c1e-1111-4222-8333-444455556666",
+          ]
+        `)
+        assertType<Exact<typeof v, string>>()
+        expect(v).toBe('[' + UUID_LOWER + ']')
+    })
+
+    test('fragment-with-type/custom-uuid-optional-adapter-transforms-read-value', async () => {
+        ctx.mockNext(UUID_LOWER)
+        const v = await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.fragmentWithType<string, 'SigningKey'>('customUuid', 'SigningKey', 'optional', uuidBracket).sql`${ctx.conn.const<string, 'SigningKey'>(UUID_LOWER, 'customUuid', 'SigningKey')}`)
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "0a8f9c1e-1111-4222-8333-444455556666",
+          ]
+        `)
+        assertType<Exact<typeof v, string | null>>()
+        expect(v).toBe('[' + UUID_LOWER + ']')
+    })
+
+    test('fragment-with-type/custom-local-time-adapter-transforms-read-value', async () => {
+        const lt = new Date(Date.UTC(1970, 0, 1, 17, 0, 0))
+        ctx.mockNext(lt)
+        const v = await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.fragmentWithType<Date, 'CutoffClock'>('customLocalTime', 'CutoffClock', 'required', shiftHourFromDb).sql`${ctx.conn.const<Date, 'CutoffClock'>(lt, 'customLocalTime', 'CutoffClock')}`)
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "17:00:00",
+          ]
+        `)
+        assertType<Exact<typeof v, Date>>()
+        expect(v).toEqual(new Date(Date.UTC(1970, 0, 1, 18, 0, 0)))
+    })
+
+    test('fragment-with-type/custom-local-time-optional-adapter-transforms-read-value', async () => {
+        const lt = new Date(Date.UTC(1970, 0, 1, 17, 0, 0))
+        ctx.mockNext(lt)
+        const v = await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.fragmentWithType<Date, 'CutoffClock'>('customLocalTime', 'CutoffClock', 'optional', shiftHourFromDb).sql`${ctx.conn.const<Date, 'CutoffClock'>(lt, 'customLocalTime', 'CutoffClock')}`)
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "17:00:00",
+          ]
+        `)
+        assertType<Exact<typeof v, Date | null>>()
+        expect(v).toEqual(new Date(Date.UTC(1970, 0, 1, 18, 0, 0)))
+    })
+
+    test('fragment-with-type/custom-local-date-time-adapter-transforms-read-value', async () => {
+        const ldt = new Date(Date.UTC(2024, 0, 14, 12, 30, 0))
+        ctx.mockNext(ldt)
+        const v = await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.fragmentWithType<Date, 'SignOffStamp'>('customLocalDateTime', 'SignOffStamp', 'required', shiftHourFromDb).sql`${ctx.conn.const<Date, 'SignOffStamp'>(ldt, 'customLocalDateTime', 'SignOffStamp')}`)
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2024-01-14 12:30:00",
+          ]
+        `)
+        assertType<Exact<typeof v, Date>>()
+        expect(v).toEqual(new Date(Date.UTC(2024, 0, 14, 13, 30, 0)))
+    })
+
+    test('fragment-with-type/custom-local-date-time-optional-adapter-transforms-read-value', async () => {
+        const ldt = new Date(Date.UTC(2024, 0, 14, 12, 30, 0))
+        ctx.mockNext(ldt)
+        const v = await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.fragmentWithType<Date, 'SignOffStamp'>('customLocalDateTime', 'SignOffStamp', 'optional', shiftHourFromDb).sql`${ctx.conn.const<Date, 'SignOffStamp'>(ldt, 'customLocalDateTime', 'SignOffStamp')}`)
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2024-01-14 12:30:00",
+          ]
+        `)
+        assertType<Exact<typeof v, Date | null>>()
+        expect(v).toEqual(new Date(Date.UTC(2024, 0, 14, 13, 30, 0)))
+    })
+
+    // ── B3: aggregateFragmentWithType(kind, required, adapter) — kinds ───
+    // The aggregate dispatcher parks the adapter in the `adapter2` slot after the
+    // positional shift (a different runtime branch than fragmentWithType). Each
+    // aggregates a real seed column of a compatible base type. The number kinds
+    // use max(priority) (=3, deterministic → ×10 = 30); the string / temporal
+    // kinds aggregate a non-deterministic seed column, so the transformed value
+    // is asserted mock-only and structurally on the real DB.
+    // NOTE: boolean / uuid / customUuid have no portable max() aggregate across
+    // dialects, so their aggregate arm is omitted (see the coordinator report).
+
+    test('aggregate-fragment-with-type/double-adapter-transforms-read-value', async () => {
+        ctx.mockNext(3)
+        const v = await ctx.conn.selectFrom(tIssue)
+            .selectOneColumn(ctx.conn.aggregateFragmentWithType('double', 'required', doubleTimesTen).sql`max(${tIssue.priority})`)
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(priority) as result from issue"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof v, number>>()
+        expect(v).toBe(30)
+    })
+
+    test('aggregate-fragment-with-type/custom-int-adapter-transforms-read-value', async () => {
+        ctx.mockNext(3)
+        const v = await ctx.conn.selectFrom(tIssue)
+            .selectOneColumn(ctx.conn.aggregateFragmentWithType<number, 'Cents'>('customInt', 'Cents', 'required', intTimesTen).sql`max(${tIssue.priority})`)
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(priority) as result from issue"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof v, number>>()
+        expect(v).toBe(30)
+    })
+
+    test('aggregate-fragment-with-type/custom-double-adapter-transforms-read-value', async () => {
+        ctx.mockNext(3)
+        const v = await ctx.conn.selectFrom(tIssue)
+            .selectOneColumn(ctx.conn.aggregateFragmentWithType<number, 'Money'>('customDouble', 'Money', 'required', doubleTimesTen).sql`max(${tIssue.priority})`)
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(priority) as result from issue"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof v, number>>()
+        expect(v).toBe(30)
+    })
+
+    test('aggregate-fragment-with-type/string-adapter-transforms-read-value', async () => {
+        ctx.mockNext('zzz')
+        const v = await ctx.conn.selectFrom(tIssue)
+            .selectOneColumn(ctx.conn.aggregateFragmentWithType('string', 'required', stringBracket).sql`max(${tIssue.title})`)
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(title) as result from issue"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof v, string>>()
+        if (!ctx.realDbEnabled) expect(v).toBe('[zzz]')
+        else expect(typeof v).toBe('string')
+    })
+
+    test('aggregate-fragment-with-type/enum-adapter-transforms-read-value', async () => {
+        ctx.mockNext('coding')
+        const v = await ctx.conn.selectFrom(tIssue)
+            .selectOneColumn(ctx.conn.aggregateFragmentWithType<WorklogActivity, 'WorklogActivity'>('enum', 'WorklogActivity', 'required', stringBracket).sql`max(${tIssue.title})`)
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(title) as result from issue"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof v, WorklogActivity>>()
+        if (!ctx.realDbEnabled) expect(v).toBe('[coding]')
+        else expect(typeof v).toBe('string')
+    })
+
+    test('aggregate-fragment-with-type/custom-adapter-transforms-read-value', async () => {
+        ctx.mockNext('stable')
+        const v = await ctx.conn.selectFrom(tIssue)
+            .selectOneColumn(ctx.conn.aggregateFragmentWithType<ReleaseChannel, 'ReleaseChannel'>('custom', 'ReleaseChannel', 'required', stringBracket).sql`max(${tIssue.title})`)
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(title) as result from issue"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof v, ReleaseChannel>>()
+        if (!ctx.realDbEnabled) expect(v).toBe('[stable]')
+        else expect(typeof v).toBe('string')
+    })
+
+    test('aggregate-fragment-with-type/custom-comparable-adapter-transforms-read-value', async () => {
+        ctx.mockNext('1.0.0')
+        const v = await ctx.conn.selectFrom(tIssue)
+            .selectOneColumn(ctx.conn.aggregateFragmentWithType<string, 'Semver'>('customComparable', 'Semver', 'required', stringBracket).sql`max(${tIssue.title})`)
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(title) as result from issue"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof v, string>>()
+        if (!ctx.realDbEnabled) expect(v).toBe('[1.0.0]')
+        else expect(typeof v).toBe('string')
+    })
+
 })

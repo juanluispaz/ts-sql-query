@@ -388,4 +388,86 @@ describe(ctx.label, () => {
         }
     })
     */
+    // ---- NUM trig tail fan-out (round-44 T4)
+    // The 1-arg trig family on an OPTIONAL-INT receiver (`assigneeId`, = 1 for issue 1,
+    // present). `divide(2)` lands the operand at 0.5 so acos/asin stay in-domain, and
+    // carries the optional marker through, so every leaf is `?: number`. `cot` is a
+    // SEPARATE test so it can be NOT-APPLICABLE-wrapped on the SQLite cells (that build
+    // lacks `cot`). Real results are floats (toBeCloseTo).
+
+    test('trig-domain-safe/optional-int-receiver', async () => {
+        const expected = {
+            id: 1,
+            ac: Math.acos(0.5), as: Math.asin(0.5), at: Math.atan(0.5),
+            co: Math.cos(0.5), si: Math.sin(0.5), ta: Math.tan(0.5),
+        }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                ac: tIssue.assigneeId.divide(2).acos(),
+                as: tIssue.assigneeId.divide(2).asin(),
+                at: tIssue.assigneeId.divide(2).atan(),
+                co: tIssue.assigneeId.divide(2).cos(),
+                si: tIssue.assigneeId.divide(2).sin(),
+                ta: tIssue.assigneeId.divide(2).tan(),
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, acos(cast(assignee_id as real) / cast(? as real)) as ac, asin(cast(assignee_id as real) / cast(? as real)) as "as", atan(cast(assignee_id as real) / cast(? as real)) as at, cos(cast(assignee_id as real) / cast(? as real)) as co, sin(cast(assignee_id as real) / cast(? as real)) as si, tan(cast(assignee_id as real) / cast(? as real)) as ta from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            id: number; ac?: number; as?: number; at?: number; co?: number; si?: number; ta?: number
+        }>>()
+        if (ctx.realDbEnabled) {
+            expect(row.id).toBe(1)
+            expect(row.ac).toBeCloseTo(Math.acos(0.5), 5)
+            expect(row.as).toBeCloseTo(Math.asin(0.5), 5)
+            expect(row.at).toBeCloseTo(Math.atan(0.5), 5)
+            expect(row.co).toBeCloseTo(Math.cos(0.5), 5)
+            expect(row.si).toBeCloseTo(Math.sin(0.5), 5)
+            expect(row.ta).toBeCloseTo(Math.tan(0.5), 5)
+        } else {
+            expect(row).toEqual(expected)
+        }
+    })
+
+    // NOT-APPLICABLE: this SQLite build has no `cot` math function
+    // (`no such function: cot`), unlike acos/asin/atan/cos/sin/tan which it
+    // exposes natively. Kept commented for cross-cell symmetry.
+    /*
+    test('trig-cot/optional-int-receiver', async () => {
+        // `cot` on the optional-int receiver (SQLite lacks it → NOT-APPLICABLE there).
+        // assigneeId(issue 1) = 1; divide(2) = 0.5; cot(0.5) = 1/tan(0.5). Optional leaf
+        // `?: number`.
+        const expected = { id: 1, ct: 1 / Math.tan(0.5) }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                ct: tIssue.assigneeId.divide(2).cot(),
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(ctx.lastParams).toMatchInlineSnapshot()
+        assertType<Exact<typeof row, { id: number; ct?: number }>>()
+        if (ctx.realDbEnabled) {
+            expect(row.id).toBe(1)
+            expect(row.ct).toBeCloseTo(1 / Math.tan(0.5), 5)
+        } else {
+            expect(row).toEqual(expected)
+        }
+    })
+    */
 })

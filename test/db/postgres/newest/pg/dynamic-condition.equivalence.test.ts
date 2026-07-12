@@ -1739,4 +1739,3510 @@ describe(ctx.label, () => {
           ]
         `)
     })
+
+    // ---- DYN numeric/boolean/enum per-op fan-out (round-44 T4)
+    // Per-operator × type × path fan-out for the numeric / boolean / enum
+    // dynamic-condition filter surface. Each op is proven to reach the same
+    // builder method its direct-API twin does (identical SQL + params), and is
+    // covered on BOTH dispatch paths: the `FilterTypeOf<descriptor>` path (the
+    // filter is annotated `DynamicCondition<{ col: '<descriptor>' }>`) and the
+    // inline `MapValueSourceToFilter` path (the filter object is passed to
+    // `withValues({...})` un-annotated, inferred from the value source). Both
+    // paths emit identical SQL at runtime; the annotation only changes which
+    // type alias validates the filter shape.
+
+    // -- B1 bigint (tIssueWorklog.durationMs, a nullable bigint) --------------
+    test('dyn/bigint-descriptor-equalable-ops', async () => {
+        type Filter = DynamicCondition<{ id: 'int', durationMs: 'bigint' }>
+        const filter: Filter = { durationMs: { equals: 10n, notEquals: 20n, is: 30n, isNot: 40n, in: [1n, 2n], notIn: [9n] } }
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.durationMs.equals(10n)
+                .and(tIssueWorklog.durationMs.notEquals(20n))
+                .and(tIssueWorklog.durationMs.is(30n))
+                .and(tIssueWorklog.durationMs.isNot(40n))
+                .and(tIssueWorklog.durationMs.in([1n, 2n]))
+                .and(tIssueWorklog.durationMs.notIn([9n])))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssueWorklog.id, durationMs: tIssueWorklog.durationMs }).withValues(filter))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where duration_ms = $1 and duration_ms <> $2 and duration_ms is not distinct from $3 and duration_ms is distinct from $4 and duration_ms in ($5, $6) and duration_ms not in ($7) order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            10n,
+            20n,
+            30n,
+            40n,
+            1n,
+            2n,
+            9n,
+          ]
+        `)
+    })
+
+    test('dyn/bigint-inline-equalable-ops', async () => {
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.durationMs.equals(10n)
+                .and(tIssueWorklog.durationMs.notEquals(20n))
+                .and(tIssueWorklog.durationMs.is(30n))
+                .and(tIssueWorklog.durationMs.isNot(40n))
+                .and(tIssueWorklog.durationMs.in([1n, 2n]))
+                .and(tIssueWorklog.durationMs.notIn([9n])))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssueWorklog.id, durationMs: tIssueWorklog.durationMs })
+                .withValues({ durationMs: { equals: 10n, notEquals: 20n, is: 30n, isNot: 40n, in: [1n, 2n], notIn: [9n] } }))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where duration_ms = $1 and duration_ms <> $2 and duration_ms is not distinct from $3 and duration_ms is distinct from $4 and duration_ms in ($5, $6) and duration_ms not in ($7) order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            10n,
+            20n,
+            30n,
+            40n,
+            1n,
+            2n,
+            9n,
+          ]
+        `)
+    })
+
+    test('dyn/bigint-descriptor-comparable-nullable-ops', async () => {
+        type Filter = DynamicCondition<{ id: 'int', durationMs: 'bigint' }>
+        const filter: Filter = { durationMs: { lessThan: 100n, greaterOrEqual: 5n, isNull: true, isNotNull: true } }
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.durationMs.lessThan(100n)
+                .and(tIssueWorklog.durationMs.greaterOrEqual(5n))
+                .and(tIssueWorklog.durationMs.isNull())
+                .and(tIssueWorklog.durationMs.isNotNull()))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssueWorklog.id, durationMs: tIssueWorklog.durationMs }).withValues(filter))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where duration_ms < $1 and duration_ms >= $2 and duration_ms is null and duration_ms is not null order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            100n,
+            5n,
+          ]
+        `)
+    })
+
+    test('dyn/bigint-inline-comparable-nullable-ops', async () => {
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.durationMs.lessThan(100n)
+                .and(tIssueWorklog.durationMs.greaterOrEqual(5n))
+                .and(tIssueWorklog.durationMs.isNull())
+                .and(tIssueWorklog.durationMs.isNotNull()))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssueWorklog.id, durationMs: tIssueWorklog.durationMs })
+                .withValues({ durationMs: { lessThan: 100n, greaterOrEqual: 5n, isNull: true, isNotNull: true } }))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where duration_ms < $1 and duration_ms >= $2 and duration_ms is null and duration_ms is not null order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            100n,
+            5n,
+          ]
+        `)
+    })
+
+    test('dyn/bigint-descriptor-ifvalue-fire', async () => {
+        type Filter = DynamicCondition<{ id: 'int', durationMs: 'bigint' }>
+        const filter: Filter = { durationMs: {
+            equalsIfValue: 10n, notEqualsIfValue: 20n, isIfValue: 30n, isNotIfValue: 40n,
+            inIfValue: [1n, 2n], notInIfValue: [9n], lessThanIfValue: 100n, greaterOrEqualIfValue: 5n,
+        } }
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.durationMs.equalsIfValue(10n)
+                .and(tIssueWorklog.durationMs.notEqualsIfValue(20n))
+                .and(tIssueWorklog.durationMs.isIfValue(30n))
+                .and(tIssueWorklog.durationMs.isNotIfValue(40n))
+                .and(tIssueWorklog.durationMs.inIfValue([1n, 2n]))
+                .and(tIssueWorklog.durationMs.notInIfValue([9n]))
+                .and(tIssueWorklog.durationMs.lessThanIfValue(100n))
+                .and(tIssueWorklog.durationMs.greaterOrEqualIfValue(5n)))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssueWorklog.id, durationMs: tIssueWorklog.durationMs }).withValues(filter))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where duration_ms = $1 and duration_ms <> $2 and duration_ms is not distinct from $3 and duration_ms is distinct from $4 and duration_ms in ($5, $6) and duration_ms not in ($7) and duration_ms < $8 and duration_ms >= $9 order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            10n,
+            20n,
+            30n,
+            40n,
+            1n,
+            2n,
+            9n,
+            100n,
+            5n,
+          ]
+        `)
+    })
+
+    test('dyn/bigint-inline-ifvalue-fire', async () => {
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.durationMs.equalsIfValue(10n)
+                .and(tIssueWorklog.durationMs.notEqualsIfValue(20n))
+                .and(tIssueWorklog.durationMs.isIfValue(30n))
+                .and(tIssueWorklog.durationMs.isNotIfValue(40n))
+                .and(tIssueWorklog.durationMs.inIfValue([1n, 2n]))
+                .and(tIssueWorklog.durationMs.notInIfValue([9n]))
+                .and(tIssueWorklog.durationMs.lessThanIfValue(100n))
+                .and(tIssueWorklog.durationMs.greaterOrEqualIfValue(5n)))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssueWorklog.id, durationMs: tIssueWorklog.durationMs })
+                .withValues({ durationMs: {
+                    equalsIfValue: 10n, notEqualsIfValue: 20n, isIfValue: 30n, isNotIfValue: 40n,
+                    inIfValue: [1n, 2n], notInIfValue: [9n], lessThanIfValue: 100n, greaterOrEqualIfValue: 5n,
+                } }))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where duration_ms = $1 and duration_ms <> $2 and duration_ms is not distinct from $3 and duration_ms is distinct from $4 and duration_ms in ($5, $6) and duration_ms not in ($7) and duration_ms < $8 and duration_ms >= $9 order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            10n,
+            20n,
+            30n,
+            40n,
+            1n,
+            2n,
+            9n,
+            100n,
+            5n,
+          ]
+        `)
+    })
+
+    test('dyn/bigint-ifvalue-elide', async () => {
+        // Every `*IfValue` twin fed a null/undefined value short-circuits, so
+        // the whole WHERE collapses to empty (the elide half of the fire test
+        // above). Path-agnostic — the skip happens in the value-source method.
+        const maybeN: bigint | undefined = undefined
+        const maybeNull: bigint | null = null
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssueWorklog.id, durationMs: tIssueWorklog.durationMs })
+                .withValues({ durationMs: {
+                    equalsIfValue: maybeN, notEqualsIfValue: maybeNull, isIfValue: maybeN, isNotIfValue: maybeNull,
+                    inIfValue: undefined, notInIfValue: undefined, lessThanIfValue: maybeN, greaterOrEqualIfValue: maybeNull,
+                } }))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+    })
+
+    // -- B2 double (tIssue.estimatedHours, a nullable double) -----------------
+    test('dyn/double-descriptor-equalable-ops', async () => {
+        type Filter = DynamicCondition<{ id: 'int', estimatedHours: 'double' }>
+        const filter: Filter = { estimatedHours: { equals: 2.5, notEquals: 3.5, is: 4.5, in: [1.5, 2.5], notIn: [9.5] } }
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.estimatedHours.equals(2.5)
+                .and(tIssue.estimatedHours.notEquals(3.5))
+                .and(tIssue.estimatedHours.is(4.5))
+                .and(tIssue.estimatedHours.in([1.5, 2.5]))
+                .and(tIssue.estimatedHours.notIn([9.5])))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssue.id, estimatedHours: tIssue.estimatedHours }).withValues(filter))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where estimated_hours = $1 and estimated_hours <> $2 and estimated_hours is not distinct from $3 and estimated_hours in ($4, $5) and estimated_hours not in ($6) order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            2.5,
+            3.5,
+            4.5,
+            1.5,
+            2.5,
+            9.5,
+          ]
+        `)
+    })
+
+    test('dyn/double-inline-equalable-ops', async () => {
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.estimatedHours.equals(2.5)
+                .and(tIssue.estimatedHours.notEquals(3.5))
+                .and(tIssue.estimatedHours.is(4.5))
+                .and(tIssue.estimatedHours.in([1.5, 2.5]))
+                .and(tIssue.estimatedHours.notIn([9.5])))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssue.id, estimatedHours: tIssue.estimatedHours })
+                .withValues({ estimatedHours: { equals: 2.5, notEquals: 3.5, is: 4.5, in: [1.5, 2.5], notIn: [9.5] } }))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where estimated_hours = $1 and estimated_hours <> $2 and estimated_hours is not distinct from $3 and estimated_hours in ($4, $5) and estimated_hours not in ($6) order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            2.5,
+            3.5,
+            4.5,
+            1.5,
+            2.5,
+            9.5,
+          ]
+        `)
+    })
+
+    test('dyn/double-descriptor-comparable-nullable-ops', async () => {
+        type Filter = DynamicCondition<{ id: 'int', estimatedHours: 'double' }>
+        const filter: Filter = { estimatedHours: { lessThan: 9.5, lessOrEqual: 8.5, greaterOrEqual: 1.5, isNull: true, isNotNull: true } }
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.estimatedHours.lessThan(9.5)
+                .and(tIssue.estimatedHours.lessOrEqual(8.5))
+                .and(tIssue.estimatedHours.greaterOrEqual(1.5))
+                .and(tIssue.estimatedHours.isNull())
+                .and(tIssue.estimatedHours.isNotNull()))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssue.id, estimatedHours: tIssue.estimatedHours }).withValues(filter))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where estimated_hours < $1 and estimated_hours <= $2 and estimated_hours >= $3 and estimated_hours is null and estimated_hours is not null order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            9.5,
+            8.5,
+            1.5,
+          ]
+        `)
+    })
+
+    test('dyn/double-inline-comparable-nullable-ops', async () => {
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.estimatedHours.lessThan(9.5)
+                .and(tIssue.estimatedHours.lessOrEqual(8.5))
+                .and(tIssue.estimatedHours.greaterOrEqual(1.5))
+                .and(tIssue.estimatedHours.isNull())
+                .and(tIssue.estimatedHours.isNotNull()))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssue.id, estimatedHours: tIssue.estimatedHours })
+                .withValues({ estimatedHours: { lessThan: 9.5, lessOrEqual: 8.5, greaterOrEqual: 1.5, isNull: true, isNotNull: true } }))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where estimated_hours < $1 and estimated_hours <= $2 and estimated_hours >= $3 and estimated_hours is null and estimated_hours is not null order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            9.5,
+            8.5,
+            1.5,
+          ]
+        `)
+    })
+
+    test('dyn/double-descriptor-ifvalue-fire', async () => {
+        type Filter = DynamicCondition<{ id: 'int', estimatedHours: 'double' }>
+        const filter: Filter = { estimatedHours: {
+            equalsIfValue: 2.5, notEqualsIfValue: 3.5, isIfValue: 4.5, inIfValue: [1.5, 2.5],
+            notInIfValue: [9.5], lessThanIfValue: 9.5, lessOrEqualIfValue: 8.5, greaterOrEqualIfValue: 1.5,
+        } }
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.estimatedHours.equalsIfValue(2.5)
+                .and(tIssue.estimatedHours.notEqualsIfValue(3.5))
+                .and(tIssue.estimatedHours.isIfValue(4.5))
+                .and(tIssue.estimatedHours.inIfValue([1.5, 2.5]))
+                .and(tIssue.estimatedHours.notInIfValue([9.5]))
+                .and(tIssue.estimatedHours.lessThanIfValue(9.5))
+                .and(tIssue.estimatedHours.lessOrEqualIfValue(8.5))
+                .and(tIssue.estimatedHours.greaterOrEqualIfValue(1.5)))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssue.id, estimatedHours: tIssue.estimatedHours }).withValues(filter))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where estimated_hours = $1 and estimated_hours <> $2 and estimated_hours is not distinct from $3 and estimated_hours in ($4, $5) and estimated_hours not in ($6) and estimated_hours < $7 and estimated_hours <= $8 and estimated_hours >= $9 order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            2.5,
+            3.5,
+            4.5,
+            1.5,
+            2.5,
+            9.5,
+            9.5,
+            8.5,
+            1.5,
+          ]
+        `)
+    })
+
+    test('dyn/double-inline-ifvalue-fire', async () => {
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.estimatedHours.equalsIfValue(2.5)
+                .and(tIssue.estimatedHours.notEqualsIfValue(3.5))
+                .and(tIssue.estimatedHours.isIfValue(4.5))
+                .and(tIssue.estimatedHours.inIfValue([1.5, 2.5]))
+                .and(tIssue.estimatedHours.notInIfValue([9.5]))
+                .and(tIssue.estimatedHours.lessThanIfValue(9.5))
+                .and(tIssue.estimatedHours.lessOrEqualIfValue(8.5))
+                .and(tIssue.estimatedHours.greaterOrEqualIfValue(1.5)))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssue.id, estimatedHours: tIssue.estimatedHours })
+                .withValues({ estimatedHours: {
+                    equalsIfValue: 2.5, notEqualsIfValue: 3.5, isIfValue: 4.5, inIfValue: [1.5, 2.5],
+                    notInIfValue: [9.5], lessThanIfValue: 9.5, lessOrEqualIfValue: 8.5, greaterOrEqualIfValue: 1.5,
+                } }))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where estimated_hours = $1 and estimated_hours <> $2 and estimated_hours is not distinct from $3 and estimated_hours in ($4, $5) and estimated_hours not in ($6) and estimated_hours < $7 and estimated_hours <= $8 and estimated_hours >= $9 order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            2.5,
+            3.5,
+            4.5,
+            1.5,
+            2.5,
+            9.5,
+            9.5,
+            8.5,
+            1.5,
+          ]
+        `)
+    })
+
+    test('dyn/double-ifvalue-elide', async () => {
+        const maybeN: number | undefined = undefined
+        const maybeNull: number | null = null
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssue.id, estimatedHours: tIssue.estimatedHours })
+                .withValues({ estimatedHours: {
+                    equalsIfValue: maybeN, notEqualsIfValue: maybeNull, isIfValue: maybeN, inIfValue: undefined,
+                    notInIfValue: undefined, lessThanIfValue: maybeN, lessOrEqualIfValue: maybeNull, greaterOrEqualIfValue: maybeN,
+                } }))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+    })
+
+    // -- B16 boolean (tIssueWorklog.billable, a nullable plain boolean) -------
+    test('dyn/boolean-descriptor-isnot-notin-isnotnull', async () => {
+        type Filter = DynamicCondition<{ id: 'int', billable: 'boolean' }>
+        const filter: Filter = { billable: { isNot: true, notIn: [true, false], isNotNull: true } }
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.billable.isNot(true)
+                .and(tIssueWorklog.billable.notIn([true, false]))
+                .and(tIssueWorklog.billable.isNotNull()))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssueWorklog.id, billable: tIssueWorklog.billable }).withValues(filter))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable is distinct from $1 and billable not in ($2, $3) and billable is not null order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            true,
+            true,
+            false,
+          ]
+        `)
+    })
+
+    test('dyn/boolean-inline-isnot-notin-isnotnull', async () => {
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.billable.isNot(true)
+                .and(tIssueWorklog.billable.notIn([true, false]))
+                .and(tIssueWorklog.billable.isNotNull()))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssueWorklog.id, billable: tIssueWorklog.billable })
+                .withValues({ billable: { isNot: true, notIn: [true, false], isNotNull: true } }))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable is distinct from $1 and billable not in ($2, $3) and billable is not null order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            true,
+            true,
+            false,
+          ]
+        `)
+    })
+
+    test('dyn/boolean-descriptor-ifvalue-fire', async () => {
+        type Filter = DynamicCondition<{ id: 'int', billable: 'boolean' }>
+        const filter: Filter = { billable: {
+            equalsIfValue: true, notEqualsIfValue: false, isIfValue: true,
+            isNotIfValue: false, inIfValue: [true, false], notInIfValue: [false],
+        } }
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.billable.equalsIfValue(true)
+                .and(tIssueWorklog.billable.notEqualsIfValue(false))
+                .and(tIssueWorklog.billable.isIfValue(true))
+                .and(tIssueWorklog.billable.isNotIfValue(false))
+                .and(tIssueWorklog.billable.inIfValue([true, false]))
+                .and(tIssueWorklog.billable.notInIfValue([false])))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssueWorklog.id, billable: tIssueWorklog.billable }).withValues(filter))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable = $1 and billable <> $2 and billable is not distinct from $3 and billable is distinct from $4 and billable in ($5, $6) and billable not in ($7) order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            true,
+            false,
+            true,
+            false,
+            true,
+            false,
+            false,
+          ]
+        `)
+    })
+
+    test('dyn/boolean-inline-ifvalue-fire', async () => {
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.billable.equalsIfValue(true)
+                .and(tIssueWorklog.billable.notEqualsIfValue(false))
+                .and(tIssueWorklog.billable.isIfValue(true))
+                .and(tIssueWorklog.billable.isNotIfValue(false))
+                .and(tIssueWorklog.billable.inIfValue([true, false]))
+                .and(tIssueWorklog.billable.notInIfValue([false])))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssueWorklog.id, billable: tIssueWorklog.billable })
+                .withValues({ billable: {
+                    equalsIfValue: true, notEqualsIfValue: false, isIfValue: true,
+                    isNotIfValue: false, inIfValue: [true, false], notInIfValue: [false],
+                } }))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable = $1 and billable <> $2 and billable is not distinct from $3 and billable is distinct from $4 and billable in ($5, $6) and billable not in ($7) order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            true,
+            false,
+            true,
+            false,
+            true,
+            false,
+            false,
+          ]
+        `)
+    })
+
+    test('dyn/boolean-ifvalue-elide', async () => {
+        const maybeB: boolean | undefined = undefined
+        const maybeNull: boolean | null = null
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssueWorklog.id, billable: tIssueWorklog.billable })
+                .withValues({ billable: {
+                    equalsIfValue: maybeB, notEqualsIfValue: maybeNull, isIfValue: maybeB,
+                    isNotIfValue: maybeNull, inIfValue: undefined, notInIfValue: undefined,
+                } }))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+    })
+
+    // -- B17 enum (tIssueWorklog.activity, a required WorklogActivity enum) ---
+    test('dyn/enum-descriptor-is-isnot-notin-nullable', async () => {
+        type Filter = DynamicCondition<{ id: 'int', activity: ['enum', 'coding' | 'review' | 'meeting'] }>
+        const filter: Filter = { activity: { is: 'coding', isNot: 'review', notIn: ['meeting'], isNull: true, isNotNull: true } }
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.activity.is('coding')
+                .and(tIssueWorklog.activity.isNot('review'))
+                .and(tIssueWorklog.activity.notIn(['meeting']))
+                .and(tIssueWorklog.activity.isNull())
+                .and(tIssueWorklog.activity.isNotNull()))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssueWorklog.id, activity: tIssueWorklog.activity }).withValues(filter))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where activity is not distinct from $1 and activity is distinct from $2 and activity not in ($3) and activity is null and activity is not null order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            "coding",
+            "review",
+            "meeting",
+          ]
+        `)
+    })
+
+    test('dyn/enum-inline-is-isnot-notin-nullable', async () => {
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.activity.is('coding')
+                .and(tIssueWorklog.activity.isNot('review'))
+                .and(tIssueWorklog.activity.notIn(['meeting']))
+                .and(tIssueWorklog.activity.isNull())
+                .and(tIssueWorklog.activity.isNotNull()))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssueWorklog.id, activity: tIssueWorklog.activity })
+                .withValues({ activity: { is: 'coding', isNot: 'review', notIn: ['meeting'], isNull: true, isNotNull: true } }))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where activity is not distinct from $1 and activity is distinct from $2 and activity not in ($3) and activity is null and activity is not null order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            "coding",
+            "review",
+            "meeting",
+          ]
+        `)
+    })
+
+    test('dyn/enum-descriptor-ifvalue-fire', async () => {
+        type Filter = DynamicCondition<{ id: 'int', activity: ['enum', 'coding' | 'review' | 'meeting'] }>
+        const filter: Filter = { activity: {
+            equalsIfValue: 'coding', notEqualsIfValue: 'review', isIfValue: 'meeting',
+            isNotIfValue: 'coding', inIfValue: ['coding', 'review'], notInIfValue: ['meeting'],
+        } }
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.activity.equalsIfValue('coding')
+                .and(tIssueWorklog.activity.notEqualsIfValue('review'))
+                .and(tIssueWorklog.activity.isIfValue('meeting'))
+                .and(tIssueWorklog.activity.isNotIfValue('coding'))
+                .and(tIssueWorklog.activity.inIfValue(['coding', 'review']))
+                .and(tIssueWorklog.activity.notInIfValue(['meeting'])))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssueWorklog.id, activity: tIssueWorklog.activity }).withValues(filter))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where activity = $1 and activity <> $2 and activity is not distinct from $3 and activity is distinct from $4 and activity in ($5, $6) and activity not in ($7) order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            "coding",
+            "review",
+            "meeting",
+            "coding",
+            "coding",
+            "review",
+            "meeting",
+          ]
+        `)
+    })
+
+    test('dyn/enum-inline-ifvalue-fire', async () => {
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.activity.equalsIfValue('coding')
+                .and(tIssueWorklog.activity.notEqualsIfValue('review'))
+                .and(tIssueWorklog.activity.isIfValue('meeting'))
+                .and(tIssueWorklog.activity.isNotIfValue('coding'))
+                .and(tIssueWorklog.activity.inIfValue(['coding', 'review']))
+                .and(tIssueWorklog.activity.notInIfValue(['meeting'])))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssueWorklog.id, activity: tIssueWorklog.activity })
+                .withValues({ activity: {
+                    equalsIfValue: 'coding', notEqualsIfValue: 'review', isIfValue: 'meeting',
+                    isNotIfValue: 'coding', inIfValue: ['coding', 'review'], notInIfValue: ['meeting'],
+                } }))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where activity = $1 and activity <> $2 and activity is not distinct from $3 and activity is distinct from $4 and activity in ($5, $6) and activity not in ($7) order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            "coding",
+            "review",
+            "meeting",
+            "coding",
+            "coding",
+            "review",
+            "meeting",
+          ]
+        `)
+    })
+
+    test('dyn/enum-ifvalue-elide', async () => {
+        const maybeA: ('coding' | 'review' | 'meeting') | undefined = undefined
+        const maybeNull: ('coding' | 'review' | 'meeting') | null = null
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssueWorklog.id, activity: tIssueWorklog.activity })
+                .withValues({ activity: {
+                    equalsIfValue: maybeA, notEqualsIfValue: maybeNull, isIfValue: maybeA,
+                    isNotIfValue: maybeNull, inIfValue: undefined, notInIfValue: undefined,
+                } }))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+    })
+
+    // -- B18 int residue (tIssue.priority, a required int) --------------------
+    test('dyn/int-descriptor-nullable-ops', async () => {
+        type Filter = DynamicCondition<{ id: 'int', priority: 'int' }>
+        const filter: Filter = { priority: { isNull: true, isNotNull: true } }
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.priority.isNull().and(tIssue.priority.isNotNull()))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssue.id, priority: tIssue.priority }).withValues(filter))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where priority is null and priority is not null order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`[]`)
+    })
+
+    test('dyn/int-inline-nullable-ops', async () => {
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.priority.isNull().and(tIssue.priority.isNotNull()))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssue.id, priority: tIssue.priority })
+                .withValues({ priority: { isNull: true, isNotNull: true } }))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where priority is null and priority is not null order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`[]`)
+    })
+
+    test('dyn/int-notin-empty-array', async () => {
+        // `notIn: []` — an empty array fails `_isValue`, so the operator is
+        // skipped entirely (the whole WHERE collapses to empty), mirroring the
+        // documented `in: []` collapse. Dynamic-only: the direct `.notIn([])`
+        // path is not gated by `_isValue`, so only the dynamic dispatcher
+        // exhibits the skip.
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssue.id, priority: tIssue.priority })
+                .withValues({ priority: { notIn: [] } }))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+    })
+
+    // ---- DYN string/uuid/temporal/custom per-op fan-out (round-44 T4)
+    // Per-operator × type × path fan-out for the string / uuid / temporal /
+    // custom dynamic-condition filter surface (sibling of the numeric/boolean/
+    // enum block above). Each op is proven to reach the same builder method its
+    // direct-API twin does (identical SQL + params), on BOTH dispatch paths: the
+    // `FilterTypeOf<descriptor>` path (annotated `DynamicCondition<{...}>`) and
+    // the inline `MapValueSourceToFilter` path (`withValues({...})` un-annotated).
+    // The uuid / customUuid like/affix/insensitive family routes through the
+    // `asString()` rewrite (useAsStringInUuid) on the direct side, exactly as the
+    // dynamic dispatcher does.
+
+    // -- B3 string raw-comparable (tIssue.title) ------------------------------
+    test('dyn/string-descriptor-comparable-notin', async () => {
+        type Filter = DynamicCondition<{ id: 'int', title: 'string' }>
+        const filter: Filter = { title: { lessThan: 'm', greaterThan: 'a', lessOrEqual: 'z', greaterOrEqual: 'b', notIn: ['zzz', 'yyy'] } }
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.title.lessThan('m')
+                .and(tIssue.title.greaterThan('a'))
+                .and(tIssue.title.lessOrEqual('z'))
+                .and(tIssue.title.greaterOrEqual('b'))
+                .and(tIssue.title.notIn(['zzz', 'yyy'])))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssue.id, title: tIssue.title }).withValues(filter))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where title < $1 and title > $2 and title <= $3 and title >= $4 and title not in ($5, $6) order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            "m",
+            "a",
+            "z",
+            "b",
+            "zzz",
+            "yyy",
+          ]
+        `)
+    })
+
+    test('dyn/string-inline-comparable-notin', async () => {
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.title.lessThan('m')
+                .and(tIssue.title.greaterThan('a'))
+                .and(tIssue.title.lessOrEqual('z'))
+                .and(tIssue.title.greaterOrEqual('b'))
+                .and(tIssue.title.notIn(['zzz', 'yyy'])))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssue.id, title: tIssue.title })
+                .withValues({ title: { lessThan: 'm', greaterThan: 'a', lessOrEqual: 'z', greaterOrEqual: 'b', notIn: ['zzz', 'yyy'] } }))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where title < $1 and title > $2 and title <= $3 and title >= $4 and title not in ($5, $6) order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            "m",
+            "a",
+            "z",
+            "b",
+            "zzz",
+            "yyy",
+          ]
+        `)
+    })
+
+    test('dyn/string-descriptor-ifvalue-fire', async () => {
+        type Filter = DynamicCondition<{ id: 'int', title: 'string' }>
+        const filter: Filter = { title: {
+            equalsIfValue: 'a', notEqualsIfValue: 'b', lessThanIfValue: 'm', greaterThanIfValue: 'a',
+            lessOrEqualIfValue: 'z', greaterOrEqualIfValue: 'b',
+        } }
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.title.equalsIfValue('a')
+                .and(tIssue.title.notEqualsIfValue('b'))
+                .and(tIssue.title.lessThanIfValue('m'))
+                .and(tIssue.title.greaterThanIfValue('a'))
+                .and(tIssue.title.lessOrEqualIfValue('z'))
+                .and(tIssue.title.greaterOrEqualIfValue('b')))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssue.id, title: tIssue.title }).withValues(filter))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where title = $1 and title <> $2 and title < $3 and title > $4 and title <= $5 and title >= $6 order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            "a",
+            "b",
+            "m",
+            "a",
+            "z",
+            "b",
+          ]
+        `)
+    })
+
+    test('dyn/string-inline-ifvalue-fire', async () => {
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.title.equalsIfValue('a')
+                .and(tIssue.title.notEqualsIfValue('b'))
+                .and(tIssue.title.lessThanIfValue('m'))
+                .and(tIssue.title.greaterThanIfValue('a'))
+                .and(tIssue.title.lessOrEqualIfValue('z'))
+                .and(tIssue.title.greaterOrEqualIfValue('b')))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssue.id, title: tIssue.title })
+                .withValues({ title: {
+                    equalsIfValue: 'a', notEqualsIfValue: 'b', lessThanIfValue: 'm', greaterThanIfValue: 'a',
+                    lessOrEqualIfValue: 'z', greaterOrEqualIfValue: 'b',
+                } }))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where title = $1 and title <> $2 and title < $3 and title > $4 and title <= $5 and title >= $6 order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            "a",
+            "b",
+            "m",
+            "a",
+            "z",
+            "b",
+          ]
+        `)
+    })
+
+    test('dyn/string-ifvalue-elide', async () => {
+        const maybeS: string | undefined = undefined
+        const maybeNull: string | null = null
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssue.id, title: tIssue.title })
+                .withValues({ title: {
+                    equalsIfValue: maybeS, notEqualsIfValue: maybeNull, lessThanIfValue: maybeS,
+                    greaterThanIfValue: maybeNull, lessOrEqualIfValue: maybeS, greaterOrEqualIfValue: maybeNull,
+                } }))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+    })
+
+    // -- B6 localDate (tIssueWorklog.workDate) --------------------------------
+    test('dyn/localdate-descriptor-ops', async () => {
+        type Filter = DynamicCondition<{ id: 'int', workDate: 'localDate' }>
+        const d1 = new Date(Date.UTC(2024, 0, 1)), d2 = new Date(Date.UTC(2024, 3, 1)), d3 = new Date(Date.UTC(2024, 6, 1))
+        const filter: Filter = { workDate: { equals: d1, notEquals: d2, is: d3, isNot: d1, in: [d1, d2], notIn: [d3], lessOrEqual: d2, greaterThan: d1, isNull: true, isNotNull: true } }
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.workDate.equals(d1)
+                .and(tIssueWorklog.workDate.notEquals(d2))
+                .and(tIssueWorklog.workDate.is(d3))
+                .and(tIssueWorklog.workDate.isNot(d1))
+                .and(tIssueWorklog.workDate.in([d1, d2]))
+                .and(tIssueWorklog.workDate.notIn([d3]))
+                .and(tIssueWorklog.workDate.lessOrEqual(d2))
+                .and(tIssueWorklog.workDate.greaterThan(d1))
+                .and(tIssueWorklog.workDate.isNull())
+                .and(tIssueWorklog.workDate.isNotNull()))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssueWorklog.id, workDate: tIssueWorklog.workDate }).withValues(filter))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date = $1 and work_date <> $2 and work_date is not distinct from $3 and work_date is distinct from $4 and work_date in ($5, $6) and work_date not in ($7) and work_date <= $8 and work_date > $9 and work_date is null and work_date is not null order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            2024-01-01T00:00:00.000Z,
+            2024-04-01T00:00:00.000Z,
+            2024-07-01T00:00:00.000Z,
+            2024-01-01T00:00:00.000Z,
+            2024-01-01T00:00:00.000Z,
+            2024-04-01T00:00:00.000Z,
+            2024-07-01T00:00:00.000Z,
+            2024-04-01T00:00:00.000Z,
+            2024-01-01T00:00:00.000Z,
+          ]
+        `)
+    })
+
+    test('dyn/localdate-inline-ops', async () => {
+        const d1 = new Date(Date.UTC(2024, 0, 1)), d2 = new Date(Date.UTC(2024, 3, 1)), d3 = new Date(Date.UTC(2024, 6, 1))
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.workDate.equals(d1)
+                .and(tIssueWorklog.workDate.notEquals(d2))
+                .and(tIssueWorklog.workDate.is(d3))
+                .and(tIssueWorklog.workDate.isNot(d1))
+                .and(tIssueWorklog.workDate.in([d1, d2]))
+                .and(tIssueWorklog.workDate.notIn([d3]))
+                .and(tIssueWorklog.workDate.lessOrEqual(d2))
+                .and(tIssueWorklog.workDate.greaterThan(d1))
+                .and(tIssueWorklog.workDate.isNull())
+                .and(tIssueWorklog.workDate.isNotNull()))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssueWorklog.id, workDate: tIssueWorklog.workDate })
+                .withValues({ workDate: { equals: d1, notEquals: d2, is: d3, isNot: d1, in: [d1, d2], notIn: [d3], lessOrEqual: d2, greaterThan: d1, isNull: true, isNotNull: true } }))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date = $1 and work_date <> $2 and work_date is not distinct from $3 and work_date is distinct from $4 and work_date in ($5, $6) and work_date not in ($7) and work_date <= $8 and work_date > $9 and work_date is null and work_date is not null order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            2024-01-01T00:00:00.000Z,
+            2024-04-01T00:00:00.000Z,
+            2024-07-01T00:00:00.000Z,
+            2024-01-01T00:00:00.000Z,
+            2024-01-01T00:00:00.000Z,
+            2024-04-01T00:00:00.000Z,
+            2024-07-01T00:00:00.000Z,
+            2024-04-01T00:00:00.000Z,
+            2024-01-01T00:00:00.000Z,
+          ]
+        `)
+    })
+
+    test('dyn/localdate-descriptor-ifvalue-fire', async () => {
+        type Filter = DynamicCondition<{ id: 'int', workDate: 'localDate' }>
+        const d1 = new Date(Date.UTC(2024, 0, 1)), d2 = new Date(Date.UTC(2024, 3, 1)), d3 = new Date(Date.UTC(2024, 6, 1))
+        const filter: Filter = { workDate: {
+            equalsIfValue: d1, notEqualsIfValue: d2, isIfValue: d3, isNotIfValue: d1, inIfValue: [d1, d2],
+            notInIfValue: [d3], lessOrEqualIfValue: d2, greaterThanIfValue: d1,
+        } }
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.workDate.equalsIfValue(d1)
+                .and(tIssueWorklog.workDate.notEqualsIfValue(d2))
+                .and(tIssueWorklog.workDate.isIfValue(d3))
+                .and(tIssueWorklog.workDate.isNotIfValue(d1))
+                .and(tIssueWorklog.workDate.inIfValue([d1, d2]))
+                .and(tIssueWorklog.workDate.notInIfValue([d3]))
+                .and(tIssueWorklog.workDate.lessOrEqualIfValue(d2))
+                .and(tIssueWorklog.workDate.greaterThanIfValue(d1)))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssueWorklog.id, workDate: tIssueWorklog.workDate }).withValues(filter))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date = $1 and work_date <> $2 and work_date is not distinct from $3 and work_date is distinct from $4 and work_date in ($5, $6) and work_date not in ($7) and work_date <= $8 and work_date > $9 order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            2024-01-01T00:00:00.000Z,
+            2024-04-01T00:00:00.000Z,
+            2024-07-01T00:00:00.000Z,
+            2024-01-01T00:00:00.000Z,
+            2024-01-01T00:00:00.000Z,
+            2024-04-01T00:00:00.000Z,
+            2024-07-01T00:00:00.000Z,
+            2024-04-01T00:00:00.000Z,
+            2024-01-01T00:00:00.000Z,
+          ]
+        `)
+    })
+
+    test('dyn/localdate-inline-ifvalue-fire', async () => {
+        const d1 = new Date(Date.UTC(2024, 0, 1)), d2 = new Date(Date.UTC(2024, 3, 1)), d3 = new Date(Date.UTC(2024, 6, 1))
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.workDate.equalsIfValue(d1)
+                .and(tIssueWorklog.workDate.notEqualsIfValue(d2))
+                .and(tIssueWorklog.workDate.isIfValue(d3))
+                .and(tIssueWorklog.workDate.isNotIfValue(d1))
+                .and(tIssueWorklog.workDate.inIfValue([d1, d2]))
+                .and(tIssueWorklog.workDate.notInIfValue([d3]))
+                .and(tIssueWorklog.workDate.lessOrEqualIfValue(d2))
+                .and(tIssueWorklog.workDate.greaterThanIfValue(d1)))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssueWorklog.id, workDate: tIssueWorklog.workDate })
+                .withValues({ workDate: {
+                    equalsIfValue: d1, notEqualsIfValue: d2, isIfValue: d3, isNotIfValue: d1, inIfValue: [d1, d2],
+                    notInIfValue: [d3], lessOrEqualIfValue: d2, greaterThanIfValue: d1,
+                } }))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date = $1 and work_date <> $2 and work_date is not distinct from $3 and work_date is distinct from $4 and work_date in ($5, $6) and work_date not in ($7) and work_date <= $8 and work_date > $9 order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            2024-01-01T00:00:00.000Z,
+            2024-04-01T00:00:00.000Z,
+            2024-07-01T00:00:00.000Z,
+            2024-01-01T00:00:00.000Z,
+            2024-01-01T00:00:00.000Z,
+            2024-04-01T00:00:00.000Z,
+            2024-07-01T00:00:00.000Z,
+            2024-04-01T00:00:00.000Z,
+            2024-01-01T00:00:00.000Z,
+          ]
+        `)
+    })
+
+    test('dyn/localdate-ifvalue-elide', async () => {
+        const maybeD: Date | undefined = undefined
+        const maybeNull: Date | null = null
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssueWorklog.id, workDate: tIssueWorklog.workDate })
+                .withValues({ workDate: {
+                    equalsIfValue: maybeD, notEqualsIfValue: maybeNull, isIfValue: maybeD, isNotIfValue: maybeNull,
+                    inIfValue: undefined, notInIfValue: undefined, lessOrEqualIfValue: maybeD, greaterThanIfValue: maybeNull,
+                } }))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+    })
+
+    // -- B7 localTime (tIssueWorklog.startedAt) -------------------------------
+    test('dyn/localtime-descriptor-ops', async () => {
+        type Filter = DynamicCondition<{ id: 'int', startedAt: 'localTime' }>
+        const t1 = new Date(Date.UTC(1970, 0, 1, 8, 0, 0)), t2 = new Date(Date.UTC(1970, 0, 1, 12, 0, 0)), t3 = new Date(Date.UTC(1970, 0, 1, 17, 0, 0))
+        const filter: Filter = { startedAt: { equals: t1, notEquals: t2, is: t3, isNot: t1, in: [t1, t2], notIn: [t3], lessOrEqual: t2, greaterThan: t1, isNull: true, isNotNull: true } }
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.startedAt.equals(t1)
+                .and(tIssueWorklog.startedAt.notEquals(t2))
+                .and(tIssueWorklog.startedAt.is(t3))
+                .and(tIssueWorklog.startedAt.isNot(t1))
+                .and(tIssueWorklog.startedAt.in([t1, t2]))
+                .and(tIssueWorklog.startedAt.notIn([t3]))
+                .and(tIssueWorklog.startedAt.lessOrEqual(t2))
+                .and(tIssueWorklog.startedAt.greaterThan(t1))
+                .and(tIssueWorklog.startedAt.isNull())
+                .and(tIssueWorklog.startedAt.isNotNull()))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssueWorklog.id, startedAt: tIssueWorklog.startedAt }).withValues(filter))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at = $1 and started_at <> $2 and started_at is not distinct from $3 and started_at is distinct from $4 and started_at in ($5, $6) and started_at not in ($7) and started_at <= $8 and started_at > $9 and started_at is null and started_at is not null order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            "08:00:00",
+            "12:00:00",
+            "17:00:00",
+            "08:00:00",
+            "08:00:00",
+            "12:00:00",
+            "17:00:00",
+            "12:00:00",
+            "08:00:00",
+          ]
+        `)
+    })
+
+    test('dyn/localtime-inline-ops', async () => {
+        const t1 = new Date(Date.UTC(1970, 0, 1, 8, 0, 0)), t2 = new Date(Date.UTC(1970, 0, 1, 12, 0, 0)), t3 = new Date(Date.UTC(1970, 0, 1, 17, 0, 0))
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.startedAt.equals(t1)
+                .and(tIssueWorklog.startedAt.notEquals(t2))
+                .and(tIssueWorklog.startedAt.is(t3))
+                .and(tIssueWorklog.startedAt.isNot(t1))
+                .and(tIssueWorklog.startedAt.in([t1, t2]))
+                .and(tIssueWorklog.startedAt.notIn([t3]))
+                .and(tIssueWorklog.startedAt.lessOrEqual(t2))
+                .and(tIssueWorklog.startedAt.greaterThan(t1))
+                .and(tIssueWorklog.startedAt.isNull())
+                .and(tIssueWorklog.startedAt.isNotNull()))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssueWorklog.id, startedAt: tIssueWorklog.startedAt })
+                .withValues({ startedAt: { equals: t1, notEquals: t2, is: t3, isNot: t1, in: [t1, t2], notIn: [t3], lessOrEqual: t2, greaterThan: t1, isNull: true, isNotNull: true } }))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at = $1 and started_at <> $2 and started_at is not distinct from $3 and started_at is distinct from $4 and started_at in ($5, $6) and started_at not in ($7) and started_at <= $8 and started_at > $9 and started_at is null and started_at is not null order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            "08:00:00",
+            "12:00:00",
+            "17:00:00",
+            "08:00:00",
+            "08:00:00",
+            "12:00:00",
+            "17:00:00",
+            "12:00:00",
+            "08:00:00",
+          ]
+        `)
+    })
+
+    test('dyn/localtime-descriptor-ifvalue-fire', async () => {
+        type Filter = DynamicCondition<{ id: 'int', startedAt: 'localTime' }>
+        const t1 = new Date(Date.UTC(1970, 0, 1, 8, 0, 0)), t2 = new Date(Date.UTC(1970, 0, 1, 12, 0, 0)), t3 = new Date(Date.UTC(1970, 0, 1, 17, 0, 0))
+        const filter: Filter = { startedAt: {
+            equalsIfValue: t1, notEqualsIfValue: t2, isIfValue: t3, isNotIfValue: t1, inIfValue: [t1, t2],
+            notInIfValue: [t3], lessOrEqualIfValue: t2, greaterThanIfValue: t1,
+        } }
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.startedAt.equalsIfValue(t1)
+                .and(tIssueWorklog.startedAt.notEqualsIfValue(t2))
+                .and(tIssueWorklog.startedAt.isIfValue(t3))
+                .and(tIssueWorklog.startedAt.isNotIfValue(t1))
+                .and(tIssueWorklog.startedAt.inIfValue([t1, t2]))
+                .and(tIssueWorklog.startedAt.notInIfValue([t3]))
+                .and(tIssueWorklog.startedAt.lessOrEqualIfValue(t2))
+                .and(tIssueWorklog.startedAt.greaterThanIfValue(t1)))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssueWorklog.id, startedAt: tIssueWorklog.startedAt }).withValues(filter))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at = $1 and started_at <> $2 and started_at is not distinct from $3 and started_at is distinct from $4 and started_at in ($5, $6) and started_at not in ($7) and started_at <= $8 and started_at > $9 order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            "08:00:00",
+            "12:00:00",
+            "17:00:00",
+            "08:00:00",
+            "08:00:00",
+            "12:00:00",
+            "17:00:00",
+            "12:00:00",
+            "08:00:00",
+          ]
+        `)
+    })
+
+    test('dyn/localtime-inline-ifvalue-fire', async () => {
+        const t1 = new Date(Date.UTC(1970, 0, 1, 8, 0, 0)), t2 = new Date(Date.UTC(1970, 0, 1, 12, 0, 0)), t3 = new Date(Date.UTC(1970, 0, 1, 17, 0, 0))
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.startedAt.equalsIfValue(t1)
+                .and(tIssueWorklog.startedAt.notEqualsIfValue(t2))
+                .and(tIssueWorklog.startedAt.isIfValue(t3))
+                .and(tIssueWorklog.startedAt.isNotIfValue(t1))
+                .and(tIssueWorklog.startedAt.inIfValue([t1, t2]))
+                .and(tIssueWorklog.startedAt.notInIfValue([t3]))
+                .and(tIssueWorklog.startedAt.lessOrEqualIfValue(t2))
+                .and(tIssueWorklog.startedAt.greaterThanIfValue(t1)))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssueWorklog.id, startedAt: tIssueWorklog.startedAt })
+                .withValues({ startedAt: {
+                    equalsIfValue: t1, notEqualsIfValue: t2, isIfValue: t3, isNotIfValue: t1, inIfValue: [t1, t2],
+                    notInIfValue: [t3], lessOrEqualIfValue: t2, greaterThanIfValue: t1,
+                } }))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at = $1 and started_at <> $2 and started_at is not distinct from $3 and started_at is distinct from $4 and started_at in ($5, $6) and started_at not in ($7) and started_at <= $8 and started_at > $9 order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            "08:00:00",
+            "12:00:00",
+            "17:00:00",
+            "08:00:00",
+            "08:00:00",
+            "12:00:00",
+            "17:00:00",
+            "12:00:00",
+            "08:00:00",
+          ]
+        `)
+    })
+
+    test('dyn/localtime-ifvalue-elide', async () => {
+        const maybeT: Date | undefined = undefined
+        const maybeNull: Date | null = null
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssueWorklog.id, startedAt: tIssueWorklog.startedAt })
+                .withValues({ startedAt: {
+                    equalsIfValue: maybeT, notEqualsIfValue: maybeNull, isIfValue: maybeT, isNotIfValue: maybeNull,
+                    inIfValue: undefined, notInIfValue: undefined, lessOrEqualIfValue: maybeT, greaterThanIfValue: maybeNull,
+                } }))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+    })
+
+    // -- B8 localDateTime (tIssue.createdAt) ----------------------------------
+    test('dyn/localdatetime-descriptor-ops', async () => {
+        type Filter = DynamicCondition<{ id: 'int', createdAt: 'localDateTime' }>
+        const s1 = new Date('2020-01-01T00:00:00.000Z'), s2 = new Date('2021-06-15T12:00:00.000Z'), s3 = new Date('2022-12-31T23:00:00.000Z')
+        const filter: Filter = { createdAt: { equals: s1, notEquals: s2, is: s3, isNot: s1, in: [s1, s2], notIn: [s3], lessThan: s3, lessOrEqual: s2, greaterThan: s1, isNull: true, isNotNull: true } }
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.createdAt.equals(s1)
+                .and(tIssue.createdAt.notEquals(s2))
+                .and(tIssue.createdAt.is(s3))
+                .and(tIssue.createdAt.isNot(s1))
+                .and(tIssue.createdAt.in([s1, s2]))
+                .and(tIssue.createdAt.notIn([s3]))
+                .and(tIssue.createdAt.lessThan(s3))
+                .and(tIssue.createdAt.lessOrEqual(s2))
+                .and(tIssue.createdAt.greaterThan(s1))
+                .and(tIssue.createdAt.isNull())
+                .and(tIssue.createdAt.isNotNull()))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssue.id, createdAt: tIssue.createdAt }).withValues(filter))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where created_at = $1 and created_at <> $2 and created_at is not distinct from $3 and created_at is distinct from $4 and created_at in ($5, $6) and created_at not in ($7) and created_at < $8 and created_at <= $9 and created_at > $10 and created_at is null and created_at is not null order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            2020-01-01T00:00:00.000Z,
+            2021-06-15T12:00:00.000Z,
+            2022-12-31T23:00:00.000Z,
+            2020-01-01T00:00:00.000Z,
+            2020-01-01T00:00:00.000Z,
+            2021-06-15T12:00:00.000Z,
+            2022-12-31T23:00:00.000Z,
+            2022-12-31T23:00:00.000Z,
+            2021-06-15T12:00:00.000Z,
+            2020-01-01T00:00:00.000Z,
+          ]
+        `)
+    })
+
+    test('dyn/localdatetime-inline-ops', async () => {
+        const s1 = new Date('2020-01-01T00:00:00.000Z'), s2 = new Date('2021-06-15T12:00:00.000Z'), s3 = new Date('2022-12-31T23:00:00.000Z')
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.createdAt.equals(s1)
+                .and(tIssue.createdAt.notEquals(s2))
+                .and(tIssue.createdAt.is(s3))
+                .and(tIssue.createdAt.isNot(s1))
+                .and(tIssue.createdAt.in([s1, s2]))
+                .and(tIssue.createdAt.notIn([s3]))
+                .and(tIssue.createdAt.lessThan(s3))
+                .and(tIssue.createdAt.lessOrEqual(s2))
+                .and(tIssue.createdAt.greaterThan(s1))
+                .and(tIssue.createdAt.isNull())
+                .and(tIssue.createdAt.isNotNull()))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssue.id, createdAt: tIssue.createdAt })
+                .withValues({ createdAt: { equals: s1, notEquals: s2, is: s3, isNot: s1, in: [s1, s2], notIn: [s3], lessThan: s3, lessOrEqual: s2, greaterThan: s1, isNull: true, isNotNull: true } }))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where created_at = $1 and created_at <> $2 and created_at is not distinct from $3 and created_at is distinct from $4 and created_at in ($5, $6) and created_at not in ($7) and created_at < $8 and created_at <= $9 and created_at > $10 and created_at is null and created_at is not null order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            2020-01-01T00:00:00.000Z,
+            2021-06-15T12:00:00.000Z,
+            2022-12-31T23:00:00.000Z,
+            2020-01-01T00:00:00.000Z,
+            2020-01-01T00:00:00.000Z,
+            2021-06-15T12:00:00.000Z,
+            2022-12-31T23:00:00.000Z,
+            2022-12-31T23:00:00.000Z,
+            2021-06-15T12:00:00.000Z,
+            2020-01-01T00:00:00.000Z,
+          ]
+        `)
+    })
+
+    test('dyn/localdatetime-descriptor-ifvalue-fire', async () => {
+        type Filter = DynamicCondition<{ id: 'int', createdAt: 'localDateTime' }>
+        const s1 = new Date('2020-01-01T00:00:00.000Z'), s2 = new Date('2021-06-15T12:00:00.000Z'), s3 = new Date('2022-12-31T23:00:00.000Z')
+        const filter: Filter = { createdAt: {
+            equalsIfValue: s1, notEqualsIfValue: s2, isIfValue: s3, isNotIfValue: s1, inIfValue: [s1, s2],
+            notInIfValue: [s3], lessThanIfValue: s3, lessOrEqualIfValue: s2, greaterThanIfValue: s1,
+        } }
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.createdAt.equalsIfValue(s1)
+                .and(tIssue.createdAt.notEqualsIfValue(s2))
+                .and(tIssue.createdAt.isIfValue(s3))
+                .and(tIssue.createdAt.isNotIfValue(s1))
+                .and(tIssue.createdAt.inIfValue([s1, s2]))
+                .and(tIssue.createdAt.notInIfValue([s3]))
+                .and(tIssue.createdAt.lessThanIfValue(s3))
+                .and(tIssue.createdAt.lessOrEqualIfValue(s2))
+                .and(tIssue.createdAt.greaterThanIfValue(s1)))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssue.id, createdAt: tIssue.createdAt }).withValues(filter))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where created_at = $1 and created_at <> $2 and created_at is not distinct from $3 and created_at is distinct from $4 and created_at in ($5, $6) and created_at not in ($7) and created_at < $8 and created_at <= $9 and created_at > $10 order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            2020-01-01T00:00:00.000Z,
+            2021-06-15T12:00:00.000Z,
+            2022-12-31T23:00:00.000Z,
+            2020-01-01T00:00:00.000Z,
+            2020-01-01T00:00:00.000Z,
+            2021-06-15T12:00:00.000Z,
+            2022-12-31T23:00:00.000Z,
+            2022-12-31T23:00:00.000Z,
+            2021-06-15T12:00:00.000Z,
+            2020-01-01T00:00:00.000Z,
+          ]
+        `)
+    })
+
+    test('dyn/localdatetime-inline-ifvalue-fire', async () => {
+        const s1 = new Date('2020-01-01T00:00:00.000Z'), s2 = new Date('2021-06-15T12:00:00.000Z'), s3 = new Date('2022-12-31T23:00:00.000Z')
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.createdAt.equalsIfValue(s1)
+                .and(tIssue.createdAt.notEqualsIfValue(s2))
+                .and(tIssue.createdAt.isIfValue(s3))
+                .and(tIssue.createdAt.isNotIfValue(s1))
+                .and(tIssue.createdAt.inIfValue([s1, s2]))
+                .and(tIssue.createdAt.notInIfValue([s3]))
+                .and(tIssue.createdAt.lessThanIfValue(s3))
+                .and(tIssue.createdAt.lessOrEqualIfValue(s2))
+                .and(tIssue.createdAt.greaterThanIfValue(s1)))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssue.id, createdAt: tIssue.createdAt })
+                .withValues({ createdAt: {
+                    equalsIfValue: s1, notEqualsIfValue: s2, isIfValue: s3, isNotIfValue: s1, inIfValue: [s1, s2],
+                    notInIfValue: [s3], lessThanIfValue: s3, lessOrEqualIfValue: s2, greaterThanIfValue: s1,
+                } }))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where created_at = $1 and created_at <> $2 and created_at is not distinct from $3 and created_at is distinct from $4 and created_at in ($5, $6) and created_at not in ($7) and created_at < $8 and created_at <= $9 and created_at > $10 order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            2020-01-01T00:00:00.000Z,
+            2021-06-15T12:00:00.000Z,
+            2022-12-31T23:00:00.000Z,
+            2020-01-01T00:00:00.000Z,
+            2020-01-01T00:00:00.000Z,
+            2021-06-15T12:00:00.000Z,
+            2022-12-31T23:00:00.000Z,
+            2022-12-31T23:00:00.000Z,
+            2021-06-15T12:00:00.000Z,
+            2020-01-01T00:00:00.000Z,
+          ]
+        `)
+    })
+
+    test('dyn/localdatetime-ifvalue-elide', async () => {
+        const maybeS: Date | undefined = undefined
+        const maybeNull: Date | null = null
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssue.id, createdAt: tIssue.createdAt })
+                .withValues({ createdAt: {
+                    equalsIfValue: maybeS, notEqualsIfValue: maybeNull, isIfValue: maybeS, isNotIfValue: maybeNull,
+                    inIfValue: undefined, notInIfValue: undefined, lessThanIfValue: maybeS, greaterThanIfValue: maybeNull,
+                } }))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+    })
+
+    // -- B9 customInt (tIssueWorklog.costCents, branded 'Cents') --------------
+    test('dyn/customint-descriptor-ops', async () => {
+        type Filter = DynamicCondition<{ id: 'int', costCents: ['customInt', number] }>
+        const filter: Filter = { costCents: { equals: 10, notEquals: 20, is: 30, isNot: 40, in: [1, 2], notIn: [9], lessOrEqual: 100, greaterOrEqual: 5, isNull: true, isNotNull: true } }
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.costCents.equals(10)
+                .and(tIssueWorklog.costCents.notEquals(20))
+                .and(tIssueWorklog.costCents.is(30))
+                .and(tIssueWorklog.costCents.isNot(40))
+                .and(tIssueWorklog.costCents.in([1, 2]))
+                .and(tIssueWorklog.costCents.notIn([9]))
+                .and(tIssueWorklog.costCents.lessOrEqual(100))
+                .and(tIssueWorklog.costCents.greaterOrEqual(5))
+                .and(tIssueWorklog.costCents.isNull())
+                .and(tIssueWorklog.costCents.isNotNull()))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssueWorklog.id, costCents: tIssueWorklog.costCents }).withValues(filter))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where cost_cents = $1 and cost_cents <> $2 and cost_cents is not distinct from $3 and cost_cents is distinct from $4 and cost_cents in ($5, $6) and cost_cents not in ($7) and cost_cents <= $8 and cost_cents >= $9 and cost_cents is null and cost_cents is not null order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            10,
+            20,
+            30,
+            40,
+            1,
+            2,
+            9,
+            100,
+            5,
+          ]
+        `)
+    })
+
+    test('dyn/customint-inline-ops', async () => {
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.costCents.equals(10)
+                .and(tIssueWorklog.costCents.notEquals(20))
+                .and(tIssueWorklog.costCents.is(30))
+                .and(tIssueWorklog.costCents.isNot(40))
+                .and(tIssueWorklog.costCents.in([1, 2]))
+                .and(tIssueWorklog.costCents.notIn([9]))
+                .and(tIssueWorklog.costCents.lessOrEqual(100))
+                .and(tIssueWorklog.costCents.greaterOrEqual(5))
+                .and(tIssueWorklog.costCents.isNull())
+                .and(tIssueWorklog.costCents.isNotNull()))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssueWorklog.id, costCents: tIssueWorklog.costCents })
+                .withValues({ costCents: { equals: 10, notEquals: 20, is: 30, isNot: 40, in: [1, 2], notIn: [9], lessOrEqual: 100, greaterOrEqual: 5, isNull: true, isNotNull: true } }))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where cost_cents = $1 and cost_cents <> $2 and cost_cents is not distinct from $3 and cost_cents is distinct from $4 and cost_cents in ($5, $6) and cost_cents not in ($7) and cost_cents <= $8 and cost_cents >= $9 and cost_cents is null and cost_cents is not null order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            10,
+            20,
+            30,
+            40,
+            1,
+            2,
+            9,
+            100,
+            5,
+          ]
+        `)
+    })
+
+    test('dyn/customint-descriptor-ifvalue-fire', async () => {
+        type Filter = DynamicCondition<{ id: 'int', costCents: ['customInt', number] }>
+        const filter: Filter = { costCents: {
+            equalsIfValue: 10, notEqualsIfValue: 20, isIfValue: 30, isNotIfValue: 40, inIfValue: [1, 2],
+            notInIfValue: [9], lessOrEqualIfValue: 100, greaterOrEqualIfValue: 5,
+        } }
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.costCents.equalsIfValue(10)
+                .and(tIssueWorklog.costCents.notEqualsIfValue(20))
+                .and(tIssueWorklog.costCents.isIfValue(30))
+                .and(tIssueWorklog.costCents.isNotIfValue(40))
+                .and(tIssueWorklog.costCents.inIfValue([1, 2]))
+                .and(tIssueWorklog.costCents.notInIfValue([9]))
+                .and(tIssueWorklog.costCents.lessOrEqualIfValue(100))
+                .and(tIssueWorklog.costCents.greaterOrEqualIfValue(5)))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssueWorklog.id, costCents: tIssueWorklog.costCents }).withValues(filter))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where cost_cents = $1 and cost_cents <> $2 and cost_cents is not distinct from $3 and cost_cents is distinct from $4 and cost_cents in ($5, $6) and cost_cents not in ($7) and cost_cents <= $8 and cost_cents >= $9 order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            10,
+            20,
+            30,
+            40,
+            1,
+            2,
+            9,
+            100,
+            5,
+          ]
+        `)
+    })
+
+    test('dyn/customint-inline-ifvalue-fire', async () => {
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.costCents.equalsIfValue(10)
+                .and(tIssueWorklog.costCents.notEqualsIfValue(20))
+                .and(tIssueWorklog.costCents.isIfValue(30))
+                .and(tIssueWorklog.costCents.isNotIfValue(40))
+                .and(tIssueWorklog.costCents.inIfValue([1, 2]))
+                .and(tIssueWorklog.costCents.notInIfValue([9]))
+                .and(tIssueWorklog.costCents.lessOrEqualIfValue(100))
+                .and(tIssueWorklog.costCents.greaterOrEqualIfValue(5)))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssueWorklog.id, costCents: tIssueWorklog.costCents })
+                .withValues({ costCents: {
+                    equalsIfValue: 10, notEqualsIfValue: 20, isIfValue: 30, isNotIfValue: 40, inIfValue: [1, 2],
+                    notInIfValue: [9], lessOrEqualIfValue: 100, greaterOrEqualIfValue: 5,
+                } }))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where cost_cents = $1 and cost_cents <> $2 and cost_cents is not distinct from $3 and cost_cents is distinct from $4 and cost_cents in ($5, $6) and cost_cents not in ($7) and cost_cents <= $8 and cost_cents >= $9 order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            10,
+            20,
+            30,
+            40,
+            1,
+            2,
+            9,
+            100,
+            5,
+          ]
+        `)
+    })
+
+    test('dyn/customint-ifvalue-elide', async () => {
+        const maybeN: number | undefined = undefined
+        const maybeNull: number | null = null
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssueWorklog.id, costCents: tIssueWorklog.costCents })
+                .withValues({ costCents: {
+                    equalsIfValue: maybeN, notEqualsIfValue: maybeNull, isIfValue: maybeN, isNotIfValue: maybeNull,
+                    inIfValue: undefined, notInIfValue: undefined, lessOrEqualIfValue: maybeN, greaterOrEqualIfValue: maybeNull,
+                } }))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+    })
+
+    // -- B10 customDouble (tIssueWorklog.billedAmount, branded 'Money') -------
+    test('dyn/customdouble-descriptor-ops', async () => {
+        type Filter = DynamicCondition<{ id: 'int', billedAmount: ['customDouble', number] }>
+        const filter: Filter = { billedAmount: { equals: 10.5, notEquals: 20.5, is: 30.5, isNot: 40.5, in: [1.5, 2.5], notIn: [9.5], lessOrEqual: 100.5, greaterOrEqual: 5.5, isNull: true, isNotNull: true } }
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.billedAmount.equals(10.5)
+                .and(tIssueWorklog.billedAmount.notEquals(20.5))
+                .and(tIssueWorklog.billedAmount.is(30.5))
+                .and(tIssueWorklog.billedAmount.isNot(40.5))
+                .and(tIssueWorklog.billedAmount.in([1.5, 2.5]))
+                .and(tIssueWorklog.billedAmount.notIn([9.5]))
+                .and(tIssueWorklog.billedAmount.lessOrEqual(100.5))
+                .and(tIssueWorklog.billedAmount.greaterOrEqual(5.5))
+                .and(tIssueWorklog.billedAmount.isNull())
+                .and(tIssueWorklog.billedAmount.isNotNull()))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssueWorklog.id, billedAmount: tIssueWorklog.billedAmount }).withValues(filter))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billed_amount = $1 and billed_amount <> $2 and billed_amount is not distinct from $3 and billed_amount is distinct from $4 and billed_amount in ($5, $6) and billed_amount not in ($7) and billed_amount <= $8 and billed_amount >= $9 and billed_amount is null and billed_amount is not null order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            10.5,
+            20.5,
+            30.5,
+            40.5,
+            1.5,
+            2.5,
+            9.5,
+            100.5,
+            5.5,
+          ]
+        `)
+    })
+
+    test('dyn/customdouble-inline-ops', async () => {
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.billedAmount.equals(10.5)
+                .and(tIssueWorklog.billedAmount.notEquals(20.5))
+                .and(tIssueWorklog.billedAmount.is(30.5))
+                .and(tIssueWorklog.billedAmount.isNot(40.5))
+                .and(tIssueWorklog.billedAmount.in([1.5, 2.5]))
+                .and(tIssueWorklog.billedAmount.notIn([9.5]))
+                .and(tIssueWorklog.billedAmount.lessOrEqual(100.5))
+                .and(tIssueWorklog.billedAmount.greaterOrEqual(5.5))
+                .and(tIssueWorklog.billedAmount.isNull())
+                .and(tIssueWorklog.billedAmount.isNotNull()))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssueWorklog.id, billedAmount: tIssueWorklog.billedAmount })
+                .withValues({ billedAmount: { equals: 10.5, notEquals: 20.5, is: 30.5, isNot: 40.5, in: [1.5, 2.5], notIn: [9.5], lessOrEqual: 100.5, greaterOrEqual: 5.5, isNull: true, isNotNull: true } }))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billed_amount = $1 and billed_amount <> $2 and billed_amount is not distinct from $3 and billed_amount is distinct from $4 and billed_amount in ($5, $6) and billed_amount not in ($7) and billed_amount <= $8 and billed_amount >= $9 and billed_amount is null and billed_amount is not null order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            10.5,
+            20.5,
+            30.5,
+            40.5,
+            1.5,
+            2.5,
+            9.5,
+            100.5,
+            5.5,
+          ]
+        `)
+    })
+
+    test('dyn/customdouble-descriptor-ifvalue-fire', async () => {
+        type Filter = DynamicCondition<{ id: 'int', billedAmount: ['customDouble', number] }>
+        const filter: Filter = { billedAmount: {
+            equalsIfValue: 10.5, notEqualsIfValue: 20.5, isIfValue: 30.5, isNotIfValue: 40.5, inIfValue: [1.5, 2.5],
+            notInIfValue: [9.5], lessOrEqualIfValue: 100.5, greaterOrEqualIfValue: 5.5,
+        } }
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.billedAmount.equalsIfValue(10.5)
+                .and(tIssueWorklog.billedAmount.notEqualsIfValue(20.5))
+                .and(tIssueWorklog.billedAmount.isIfValue(30.5))
+                .and(tIssueWorklog.billedAmount.isNotIfValue(40.5))
+                .and(tIssueWorklog.billedAmount.inIfValue([1.5, 2.5]))
+                .and(tIssueWorklog.billedAmount.notInIfValue([9.5]))
+                .and(tIssueWorklog.billedAmount.lessOrEqualIfValue(100.5))
+                .and(tIssueWorklog.billedAmount.greaterOrEqualIfValue(5.5)))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssueWorklog.id, billedAmount: tIssueWorklog.billedAmount }).withValues(filter))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billed_amount = $1 and billed_amount <> $2 and billed_amount is not distinct from $3 and billed_amount is distinct from $4 and billed_amount in ($5, $6) and billed_amount not in ($7) and billed_amount <= $8 and billed_amount >= $9 order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            10.5,
+            20.5,
+            30.5,
+            40.5,
+            1.5,
+            2.5,
+            9.5,
+            100.5,
+            5.5,
+          ]
+        `)
+    })
+
+    test('dyn/customdouble-inline-ifvalue-fire', async () => {
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.billedAmount.equalsIfValue(10.5)
+                .and(tIssueWorklog.billedAmount.notEqualsIfValue(20.5))
+                .and(tIssueWorklog.billedAmount.isIfValue(30.5))
+                .and(tIssueWorklog.billedAmount.isNotIfValue(40.5))
+                .and(tIssueWorklog.billedAmount.inIfValue([1.5, 2.5]))
+                .and(tIssueWorklog.billedAmount.notInIfValue([9.5]))
+                .and(tIssueWorklog.billedAmount.lessOrEqualIfValue(100.5))
+                .and(tIssueWorklog.billedAmount.greaterOrEqualIfValue(5.5)))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssueWorklog.id, billedAmount: tIssueWorklog.billedAmount })
+                .withValues({ billedAmount: {
+                    equalsIfValue: 10.5, notEqualsIfValue: 20.5, isIfValue: 30.5, isNotIfValue: 40.5, inIfValue: [1.5, 2.5],
+                    notInIfValue: [9.5], lessOrEqualIfValue: 100.5, greaterOrEqualIfValue: 5.5,
+                } }))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billed_amount = $1 and billed_amount <> $2 and billed_amount is not distinct from $3 and billed_amount is distinct from $4 and billed_amount in ($5, $6) and billed_amount not in ($7) and billed_amount <= $8 and billed_amount >= $9 order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            10.5,
+            20.5,
+            30.5,
+            40.5,
+            1.5,
+            2.5,
+            9.5,
+            100.5,
+            5.5,
+          ]
+        `)
+    })
+
+    test('dyn/customdouble-ifvalue-elide', async () => {
+        const maybeN: number | undefined = undefined
+        const maybeNull: number | null = null
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssueWorklog.id, billedAmount: tIssueWorklog.billedAmount })
+                .withValues({ billedAmount: {
+                    equalsIfValue: maybeN, notEqualsIfValue: maybeNull, isIfValue: maybeN, isNotIfValue: maybeNull,
+                    inIfValue: undefined, notInIfValue: undefined, lessOrEqualIfValue: maybeN, greaterOrEqualIfValue: maybeNull,
+                } }))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+    })
+
+    // -- B11 customComparable (tProjectRelease.version, branded 'Semver') -----
+    test('dyn/customcomparable-descriptor-ops', async () => {
+        type Filter = DynamicCondition<{ id: 'int', version: ['customComparable', string] }>
+        const filter: Filter = { version: { notEquals: '2.0.0', is: '1.5.0', isNot: '0.9.0', in: ['1.0.0', '1.2.0'], notIn: ['3.0.0'], lessOrEqual: '2.0.0', greaterOrEqual: '1.0.0', isNull: true, isNotNull: true } }
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.version.notEquals('2.0.0')
+                .and(tProjectRelease.version.is('1.5.0'))
+                .and(tProjectRelease.version.isNot('0.9.0'))
+                .and(tProjectRelease.version.in(['1.0.0', '1.2.0']))
+                .and(tProjectRelease.version.notIn(['3.0.0']))
+                .and(tProjectRelease.version.lessOrEqual('2.0.0'))
+                .and(tProjectRelease.version.greaterOrEqual('1.0.0'))
+                .and(tProjectRelease.version.isNull())
+                .and(tProjectRelease.version.isNotNull()))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(ctx.conn.dynamicConditionFor({ id: tProjectRelease.id, version: tProjectRelease.version }).withValues(filter))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where version <> $1 and version is not distinct from $2 and version is distinct from $3 and version in ($4, $5) and version not in ($6) and version <= $7 and version >= $8 and version is null and version is not null order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            "2.0.0",
+            "1.5.0",
+            "0.9.0",
+            "1.0.0",
+            "1.2.0",
+            "3.0.0",
+            "2.0.0",
+            "1.0.0",
+          ]
+        `)
+    })
+
+    test('dyn/customcomparable-inline-ops', async () => {
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.version.notEquals('2.0.0')
+                .and(tProjectRelease.version.is('1.5.0'))
+                .and(tProjectRelease.version.isNot('0.9.0'))
+                .and(tProjectRelease.version.in(['1.0.0', '1.2.0']))
+                .and(tProjectRelease.version.notIn(['3.0.0']))
+                .and(tProjectRelease.version.lessOrEqual('2.0.0'))
+                .and(tProjectRelease.version.greaterOrEqual('1.0.0'))
+                .and(tProjectRelease.version.isNull())
+                .and(tProjectRelease.version.isNotNull()))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(ctx.conn.dynamicConditionFor({ id: tProjectRelease.id, version: tProjectRelease.version })
+                .withValues({ version: { notEquals: '2.0.0', is: '1.5.0', isNot: '0.9.0', in: ['1.0.0', '1.2.0'], notIn: ['3.0.0'], lessOrEqual: '2.0.0', greaterOrEqual: '1.0.0', isNull: true, isNotNull: true } }))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where version <> $1 and version is not distinct from $2 and version is distinct from $3 and version in ($4, $5) and version not in ($6) and version <= $7 and version >= $8 and version is null and version is not null order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            "2.0.0",
+            "1.5.0",
+            "0.9.0",
+            "1.0.0",
+            "1.2.0",
+            "3.0.0",
+            "2.0.0",
+            "1.0.0",
+          ]
+        `)
+    })
+
+    test('dyn/customcomparable-descriptor-ifvalue-fire', async () => {
+        type Filter = DynamicCondition<{ id: 'int', version: ['customComparable', string] }>
+        const filter: Filter = { version: {
+            equalsIfValue: '1.2.0', notEqualsIfValue: '2.0.0', isIfValue: '1.5.0', isNotIfValue: '0.9.0',
+            notInIfValue: ['3.0.0'], lessThanIfValue: '2.0.0', greaterThanIfValue: '0.5.0', greaterOrEqualIfValue: '1.0.0',
+        } }
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.version.equalsIfValue('1.2.0')
+                .and(tProjectRelease.version.notEqualsIfValue('2.0.0'))
+                .and(tProjectRelease.version.isIfValue('1.5.0'))
+                .and(tProjectRelease.version.isNotIfValue('0.9.0'))
+                .and(tProjectRelease.version.notInIfValue(['3.0.0']))
+                .and(tProjectRelease.version.lessThanIfValue('2.0.0'))
+                .and(tProjectRelease.version.greaterThanIfValue('0.5.0'))
+                .and(tProjectRelease.version.greaterOrEqualIfValue('1.0.0')))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(ctx.conn.dynamicConditionFor({ id: tProjectRelease.id, version: tProjectRelease.version }).withValues(filter))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where version = $1 and version <> $2 and version is not distinct from $3 and version is distinct from $4 and version not in ($5) and version < $6 and version > $7 and version >= $8 order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            "1.2.0",
+            "2.0.0",
+            "1.5.0",
+            "0.9.0",
+            "3.0.0",
+            "2.0.0",
+            "0.5.0",
+            "1.0.0",
+          ]
+        `)
+    })
+
+    test('dyn/customcomparable-inline-ifvalue-fire', async () => {
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.version.equalsIfValue('1.2.0')
+                .and(tProjectRelease.version.notEqualsIfValue('2.0.0'))
+                .and(tProjectRelease.version.isIfValue('1.5.0'))
+                .and(tProjectRelease.version.isNotIfValue('0.9.0'))
+                .and(tProjectRelease.version.notInIfValue(['3.0.0']))
+                .and(tProjectRelease.version.lessThanIfValue('2.0.0'))
+                .and(tProjectRelease.version.greaterThanIfValue('0.5.0'))
+                .and(tProjectRelease.version.greaterOrEqualIfValue('1.0.0')))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(ctx.conn.dynamicConditionFor({ id: tProjectRelease.id, version: tProjectRelease.version })
+                .withValues({ version: {
+                    equalsIfValue: '1.2.0', notEqualsIfValue: '2.0.0', isIfValue: '1.5.0', isNotIfValue: '0.9.0',
+                    notInIfValue: ['3.0.0'], lessThanIfValue: '2.0.0', greaterThanIfValue: '0.5.0', greaterOrEqualIfValue: '1.0.0',
+                } }))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where version = $1 and version <> $2 and version is not distinct from $3 and version is distinct from $4 and version not in ($5) and version < $6 and version > $7 and version >= $8 order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            "1.2.0",
+            "2.0.0",
+            "1.5.0",
+            "0.9.0",
+            "3.0.0",
+            "2.0.0",
+            "0.5.0",
+            "1.0.0",
+          ]
+        `)
+    })
+
+    test('dyn/customcomparable-ifvalue-elide', async () => {
+        const maybeV: string | undefined = undefined
+        const maybeNull: string | null = null
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(ctx.conn.dynamicConditionFor({ id: tProjectRelease.id, version: tProjectRelease.version })
+                .withValues({ version: {
+                    equalsIfValue: maybeV, notEqualsIfValue: maybeNull, isIfValue: maybeV, isNotIfValue: maybeNull,
+                    notInIfValue: undefined, lessThanIfValue: maybeV, greaterThanIfValue: maybeNull, greaterOrEqualIfValue: maybeV,
+                } }))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+    })
+
+    // -- B12 custom eq-only (tProjectRelease.channel, 'ReleaseChannel') -------
+    test('dyn/custom-descriptor-equalable-nullable', async () => {
+        type Filter = DynamicCondition<{ id: 'int', channel: ['custom', 'stable' | 'beta' | 'canary'] }>
+        const filter: Filter = { channel: { equals: 'stable', is: 'beta', isNot: 'canary', notIn: ['canary'], isNull: true, isNotNull: true } }
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.channel.equals('stable')
+                .and(tProjectRelease.channel.is('beta'))
+                .and(tProjectRelease.channel.isNot('canary'))
+                .and(tProjectRelease.channel.notIn(['canary']))
+                .and(tProjectRelease.channel.isNull())
+                .and(tProjectRelease.channel.isNotNull()))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(ctx.conn.dynamicConditionFor({ id: tProjectRelease.id, channel: tProjectRelease.channel }).withValues(filter))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where channel = $1 and channel is not distinct from $2 and channel is distinct from $3 and channel not in ($4) and channel is null and channel is not null order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            "stable",
+            "beta",
+            "canary",
+            "canary",
+          ]
+        `)
+    })
+
+    test('dyn/custom-inline-equalable-nullable', async () => {
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.channel.equals('stable')
+                .and(tProjectRelease.channel.is('beta'))
+                .and(tProjectRelease.channel.isNot('canary'))
+                .and(tProjectRelease.channel.notIn(['canary']))
+                .and(tProjectRelease.channel.isNull())
+                .and(tProjectRelease.channel.isNotNull()))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(ctx.conn.dynamicConditionFor({ id: tProjectRelease.id, channel: tProjectRelease.channel })
+                .withValues({ channel: { equals: 'stable', is: 'beta', isNot: 'canary', notIn: ['canary'], isNull: true, isNotNull: true } }))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where channel = $1 and channel is not distinct from $2 and channel is distinct from $3 and channel not in ($4) and channel is null and channel is not null order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            "stable",
+            "beta",
+            "canary",
+            "canary",
+          ]
+        `)
+    })
+
+    test('dyn/custom-descriptor-ifvalue-fire', async () => {
+        type Filter = DynamicCondition<{ id: 'int', channel: ['custom', 'stable' | 'beta' | 'canary'] }>
+        const filter: Filter = { channel: { equalsIfValue: 'stable', isIfValue: 'beta', isNotIfValue: 'canary', notInIfValue: ['canary'] } }
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.channel.equalsIfValue('stable')
+                .and(tProjectRelease.channel.isIfValue('beta'))
+                .and(tProjectRelease.channel.isNotIfValue('canary'))
+                .and(tProjectRelease.channel.notInIfValue(['canary'])))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(ctx.conn.dynamicConditionFor({ id: tProjectRelease.id, channel: tProjectRelease.channel }).withValues(filter))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where channel = $1 and channel is not distinct from $2 and channel is distinct from $3 and channel not in ($4) order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            "stable",
+            "beta",
+            "canary",
+            "canary",
+          ]
+        `)
+    })
+
+    test('dyn/custom-inline-ifvalue-fire', async () => {
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.channel.equalsIfValue('stable')
+                .and(tProjectRelease.channel.isIfValue('beta'))
+                .and(tProjectRelease.channel.isNotIfValue('canary'))
+                .and(tProjectRelease.channel.notInIfValue(['canary'])))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(ctx.conn.dynamicConditionFor({ id: tProjectRelease.id, channel: tProjectRelease.channel })
+                .withValues({ channel: { equalsIfValue: 'stable', isIfValue: 'beta', isNotIfValue: 'canary', notInIfValue: ['canary'] } }))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where channel = $1 and channel is not distinct from $2 and channel is distinct from $3 and channel not in ($4) order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            "stable",
+            "beta",
+            "canary",
+            "canary",
+          ]
+        `)
+    })
+
+    test('dyn/custom-ifvalue-elide', async () => {
+        const maybeC: ('stable' | 'beta' | 'canary') | undefined = undefined
+        const maybeNull: ('stable' | 'beta' | 'canary') | null = null
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(ctx.conn.dynamicConditionFor({ id: tProjectRelease.id, channel: tProjectRelease.channel })
+                .withValues({ channel: { equalsIfValue: maybeC, isIfValue: maybeNull, isNotIfValue: maybeC, notInIfValue: undefined } }))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+    })
+
+    // -- B13 customLocalDate (tProjectRelease.releasedOn, 'ReleaseDay') -------
+    test('dyn/customlocaldate-descriptor-ops', async () => {
+        type Filter = DynamicCondition<{ id: 'int', releasedOn: ['customLocalDate', Date] }>
+        const d1 = new Date(Date.UTC(2024, 0, 1, 10, 0, 0)), d2 = new Date(Date.UTC(2024, 5, 1, 10, 0, 0)), d3 = new Date(Date.UTC(2024, 11, 1, 10, 0, 0))
+        const filter: Filter = { releasedOn: { equals: d1, notEquals: d2, is: d3, isNot: d1, in: [d1, d2], notIn: [d3], lessOrEqual: d2, greaterThan: d1, isNull: true, isNotNull: true } }
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.releasedOn.equals(d1)
+                .and(tProjectRelease.releasedOn.notEquals(d2))
+                .and(tProjectRelease.releasedOn.is(d3))
+                .and(tProjectRelease.releasedOn.isNot(d1))
+                .and(tProjectRelease.releasedOn.in([d1, d2]))
+                .and(tProjectRelease.releasedOn.notIn([d3]))
+                .and(tProjectRelease.releasedOn.lessOrEqual(d2))
+                .and(tProjectRelease.releasedOn.greaterThan(d1))
+                .and(tProjectRelease.releasedOn.isNull())
+                .and(tProjectRelease.releasedOn.isNotNull()))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(ctx.conn.dynamicConditionFor({ id: tProjectRelease.id, releasedOn: tProjectRelease.releasedOn }).withValues(filter))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where released_on = $1 and released_on <> $2 and released_on is not distinct from $3 and released_on is distinct from $4 and released_on in ($5, $6) and released_on not in ($7) and released_on <= $8 and released_on > $9 and released_on is null and released_on is not null order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            2024-01-01T10:00:00.000Z,
+            2024-06-01T10:00:00.000Z,
+            2024-12-01T10:00:00.000Z,
+            2024-01-01T10:00:00.000Z,
+            2024-01-01T10:00:00.000Z,
+            2024-06-01T10:00:00.000Z,
+            2024-12-01T10:00:00.000Z,
+            2024-06-01T10:00:00.000Z,
+            2024-01-01T10:00:00.000Z,
+          ]
+        `)
+    })
+
+    test('dyn/customlocaldate-inline-ops', async () => {
+        const d1 = new Date(Date.UTC(2024, 0, 1, 10, 0, 0)), d2 = new Date(Date.UTC(2024, 5, 1, 10, 0, 0)), d3 = new Date(Date.UTC(2024, 11, 1, 10, 0, 0))
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.releasedOn.equals(d1)
+                .and(tProjectRelease.releasedOn.notEquals(d2))
+                .and(tProjectRelease.releasedOn.is(d3))
+                .and(tProjectRelease.releasedOn.isNot(d1))
+                .and(tProjectRelease.releasedOn.in([d1, d2]))
+                .and(tProjectRelease.releasedOn.notIn([d3]))
+                .and(tProjectRelease.releasedOn.lessOrEqual(d2))
+                .and(tProjectRelease.releasedOn.greaterThan(d1))
+                .and(tProjectRelease.releasedOn.isNull())
+                .and(tProjectRelease.releasedOn.isNotNull()))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(ctx.conn.dynamicConditionFor({ id: tProjectRelease.id, releasedOn: tProjectRelease.releasedOn })
+                .withValues({ releasedOn: { equals: d1, notEquals: d2, is: d3, isNot: d1, in: [d1, d2], notIn: [d3], lessOrEqual: d2, greaterThan: d1, isNull: true, isNotNull: true } }))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where released_on = $1 and released_on <> $2 and released_on is not distinct from $3 and released_on is distinct from $4 and released_on in ($5, $6) and released_on not in ($7) and released_on <= $8 and released_on > $9 and released_on is null and released_on is not null order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            2024-01-01T10:00:00.000Z,
+            2024-06-01T10:00:00.000Z,
+            2024-12-01T10:00:00.000Z,
+            2024-01-01T10:00:00.000Z,
+            2024-01-01T10:00:00.000Z,
+            2024-06-01T10:00:00.000Z,
+            2024-12-01T10:00:00.000Z,
+            2024-06-01T10:00:00.000Z,
+            2024-01-01T10:00:00.000Z,
+          ]
+        `)
+    })
+
+    test('dyn/customlocaldate-descriptor-ifvalue-fire', async () => {
+        type Filter = DynamicCondition<{ id: 'int', releasedOn: ['customLocalDate', Date] }>
+        const d1 = new Date(Date.UTC(2024, 0, 1, 10, 0, 0)), d2 = new Date(Date.UTC(2024, 5, 1, 10, 0, 0)), d3 = new Date(Date.UTC(2024, 11, 1, 10, 0, 0))
+        const filter: Filter = { releasedOn: {
+            equalsIfValue: d1, notEqualsIfValue: d2, isIfValue: d3, isNotIfValue: d1, inIfValue: [d1, d2],
+            notInIfValue: [d3], lessOrEqualIfValue: d2, greaterThanIfValue: d1,
+        } }
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.releasedOn.equalsIfValue(d1)
+                .and(tProjectRelease.releasedOn.notEqualsIfValue(d2))
+                .and(tProjectRelease.releasedOn.isIfValue(d3))
+                .and(tProjectRelease.releasedOn.isNotIfValue(d1))
+                .and(tProjectRelease.releasedOn.inIfValue([d1, d2]))
+                .and(tProjectRelease.releasedOn.notInIfValue([d3]))
+                .and(tProjectRelease.releasedOn.lessOrEqualIfValue(d2))
+                .and(tProjectRelease.releasedOn.greaterThanIfValue(d1)))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(ctx.conn.dynamicConditionFor({ id: tProjectRelease.id, releasedOn: tProjectRelease.releasedOn }).withValues(filter))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where released_on = $1 and released_on <> $2 and released_on is not distinct from $3 and released_on is distinct from $4 and released_on in ($5, $6) and released_on not in ($7) and released_on <= $8 and released_on > $9 order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            2024-01-01T10:00:00.000Z,
+            2024-06-01T10:00:00.000Z,
+            2024-12-01T10:00:00.000Z,
+            2024-01-01T10:00:00.000Z,
+            2024-01-01T10:00:00.000Z,
+            2024-06-01T10:00:00.000Z,
+            2024-12-01T10:00:00.000Z,
+            2024-06-01T10:00:00.000Z,
+            2024-01-01T10:00:00.000Z,
+          ]
+        `)
+    })
+
+    test('dyn/customlocaldate-inline-ifvalue-fire', async () => {
+        const d1 = new Date(Date.UTC(2024, 0, 1, 10, 0, 0)), d2 = new Date(Date.UTC(2024, 5, 1, 10, 0, 0)), d3 = new Date(Date.UTC(2024, 11, 1, 10, 0, 0))
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.releasedOn.equalsIfValue(d1)
+                .and(tProjectRelease.releasedOn.notEqualsIfValue(d2))
+                .and(tProjectRelease.releasedOn.isIfValue(d3))
+                .and(tProjectRelease.releasedOn.isNotIfValue(d1))
+                .and(tProjectRelease.releasedOn.inIfValue([d1, d2]))
+                .and(tProjectRelease.releasedOn.notInIfValue([d3]))
+                .and(tProjectRelease.releasedOn.lessOrEqualIfValue(d2))
+                .and(tProjectRelease.releasedOn.greaterThanIfValue(d1)))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(ctx.conn.dynamicConditionFor({ id: tProjectRelease.id, releasedOn: tProjectRelease.releasedOn })
+                .withValues({ releasedOn: {
+                    equalsIfValue: d1, notEqualsIfValue: d2, isIfValue: d3, isNotIfValue: d1, inIfValue: [d1, d2],
+                    notInIfValue: [d3], lessOrEqualIfValue: d2, greaterThanIfValue: d1,
+                } }))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where released_on = $1 and released_on <> $2 and released_on is not distinct from $3 and released_on is distinct from $4 and released_on in ($5, $6) and released_on not in ($7) and released_on <= $8 and released_on > $9 order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            2024-01-01T10:00:00.000Z,
+            2024-06-01T10:00:00.000Z,
+            2024-12-01T10:00:00.000Z,
+            2024-01-01T10:00:00.000Z,
+            2024-01-01T10:00:00.000Z,
+            2024-06-01T10:00:00.000Z,
+            2024-12-01T10:00:00.000Z,
+            2024-06-01T10:00:00.000Z,
+            2024-01-01T10:00:00.000Z,
+          ]
+        `)
+    })
+
+    test('dyn/customlocaldate-ifvalue-elide', async () => {
+        const maybeD: Date | undefined = undefined
+        const maybeNull: Date | null = null
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(ctx.conn.dynamicConditionFor({ id: tProjectRelease.id, releasedOn: tProjectRelease.releasedOn })
+                .withValues({ releasedOn: {
+                    equalsIfValue: maybeD, notEqualsIfValue: maybeNull, isIfValue: maybeD, isNotIfValue: maybeNull,
+                    inIfValue: undefined, notInIfValue: undefined, lessOrEqualIfValue: maybeD, greaterThanIfValue: maybeNull,
+                } }))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+    })
+
+    // -- B14 customLocalTime (tProjectRelease.cutoffTime, 'CutoffClock') ------
+    test('dyn/customlocaltime-descriptor-ops', async () => {
+        type Filter = DynamicCondition<{ id: 'int', cutoffTime: ['customLocalTime', Date] }>
+        const t1 = new Date(Date.UTC(1970, 0, 1, 8, 0, 0)), t2 = new Date(Date.UTC(1970, 0, 1, 12, 0, 0)), t3 = new Date(Date.UTC(1970, 0, 1, 20, 0, 0))
+        const filter: Filter = { cutoffTime: { equals: t1, notEquals: t2, is: t3, isNot: t1, in: [t1, t2], notIn: [t3], lessOrEqual: t2, greaterThan: t1, isNull: true, isNotNull: true } }
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.cutoffTime.equals(t1)
+                .and(tProjectRelease.cutoffTime.notEquals(t2))
+                .and(tProjectRelease.cutoffTime.is(t3))
+                .and(tProjectRelease.cutoffTime.isNot(t1))
+                .and(tProjectRelease.cutoffTime.in([t1, t2]))
+                .and(tProjectRelease.cutoffTime.notIn([t3]))
+                .and(tProjectRelease.cutoffTime.lessOrEqual(t2))
+                .and(tProjectRelease.cutoffTime.greaterThan(t1))
+                .and(tProjectRelease.cutoffTime.isNull())
+                .and(tProjectRelease.cutoffTime.isNotNull()))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(ctx.conn.dynamicConditionFor({ id: tProjectRelease.id, cutoffTime: tProjectRelease.cutoffTime }).withValues(filter))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where cutoff_time = $1 and cutoff_time <> $2 and cutoff_time is not distinct from $3 and cutoff_time is distinct from $4 and cutoff_time in ($5, $6) and cutoff_time not in ($7) and cutoff_time <= $8 and cutoff_time > $9 and cutoff_time is null and cutoff_time is not null order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            "08:00:00",
+            "12:00:00",
+            "20:00:00",
+            "08:00:00",
+            "08:00:00",
+            "12:00:00",
+            "20:00:00",
+            "12:00:00",
+            "08:00:00",
+          ]
+        `)
+    })
+
+    test('dyn/customlocaltime-inline-ops', async () => {
+        const t1 = new Date(Date.UTC(1970, 0, 1, 8, 0, 0)), t2 = new Date(Date.UTC(1970, 0, 1, 12, 0, 0)), t3 = new Date(Date.UTC(1970, 0, 1, 20, 0, 0))
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.cutoffTime.equals(t1)
+                .and(tProjectRelease.cutoffTime.notEquals(t2))
+                .and(tProjectRelease.cutoffTime.is(t3))
+                .and(tProjectRelease.cutoffTime.isNot(t1))
+                .and(tProjectRelease.cutoffTime.in([t1, t2]))
+                .and(tProjectRelease.cutoffTime.notIn([t3]))
+                .and(tProjectRelease.cutoffTime.lessOrEqual(t2))
+                .and(tProjectRelease.cutoffTime.greaterThan(t1))
+                .and(tProjectRelease.cutoffTime.isNull())
+                .and(tProjectRelease.cutoffTime.isNotNull()))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(ctx.conn.dynamicConditionFor({ id: tProjectRelease.id, cutoffTime: tProjectRelease.cutoffTime })
+                .withValues({ cutoffTime: { equals: t1, notEquals: t2, is: t3, isNot: t1, in: [t1, t2], notIn: [t3], lessOrEqual: t2, greaterThan: t1, isNull: true, isNotNull: true } }))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where cutoff_time = $1 and cutoff_time <> $2 and cutoff_time is not distinct from $3 and cutoff_time is distinct from $4 and cutoff_time in ($5, $6) and cutoff_time not in ($7) and cutoff_time <= $8 and cutoff_time > $9 and cutoff_time is null and cutoff_time is not null order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            "08:00:00",
+            "12:00:00",
+            "20:00:00",
+            "08:00:00",
+            "08:00:00",
+            "12:00:00",
+            "20:00:00",
+            "12:00:00",
+            "08:00:00",
+          ]
+        `)
+    })
+
+    test('dyn/customlocaltime-descriptor-ifvalue-fire', async () => {
+        type Filter = DynamicCondition<{ id: 'int', cutoffTime: ['customLocalTime', Date] }>
+        const t1 = new Date(Date.UTC(1970, 0, 1, 8, 0, 0)), t2 = new Date(Date.UTC(1970, 0, 1, 12, 0, 0)), t3 = new Date(Date.UTC(1970, 0, 1, 20, 0, 0))
+        const filter: Filter = { cutoffTime: {
+            equalsIfValue: t1, notEqualsIfValue: t2, isIfValue: t3, isNotIfValue: t1, inIfValue: [t1, t2],
+            notInIfValue: [t3], lessOrEqualIfValue: t2, greaterThanIfValue: t1,
+        } }
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.cutoffTime.equalsIfValue(t1)
+                .and(tProjectRelease.cutoffTime.notEqualsIfValue(t2))
+                .and(tProjectRelease.cutoffTime.isIfValue(t3))
+                .and(tProjectRelease.cutoffTime.isNotIfValue(t1))
+                .and(tProjectRelease.cutoffTime.inIfValue([t1, t2]))
+                .and(tProjectRelease.cutoffTime.notInIfValue([t3]))
+                .and(tProjectRelease.cutoffTime.lessOrEqualIfValue(t2))
+                .and(tProjectRelease.cutoffTime.greaterThanIfValue(t1)))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(ctx.conn.dynamicConditionFor({ id: tProjectRelease.id, cutoffTime: tProjectRelease.cutoffTime }).withValues(filter))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where cutoff_time = $1 and cutoff_time <> $2 and cutoff_time is not distinct from $3 and cutoff_time is distinct from $4 and cutoff_time in ($5, $6) and cutoff_time not in ($7) and cutoff_time <= $8 and cutoff_time > $9 order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            "08:00:00",
+            "12:00:00",
+            "20:00:00",
+            "08:00:00",
+            "08:00:00",
+            "12:00:00",
+            "20:00:00",
+            "12:00:00",
+            "08:00:00",
+          ]
+        `)
+    })
+
+    test('dyn/customlocaltime-inline-ifvalue-fire', async () => {
+        const t1 = new Date(Date.UTC(1970, 0, 1, 8, 0, 0)), t2 = new Date(Date.UTC(1970, 0, 1, 12, 0, 0)), t3 = new Date(Date.UTC(1970, 0, 1, 20, 0, 0))
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.cutoffTime.equalsIfValue(t1)
+                .and(tProjectRelease.cutoffTime.notEqualsIfValue(t2))
+                .and(tProjectRelease.cutoffTime.isIfValue(t3))
+                .and(tProjectRelease.cutoffTime.isNotIfValue(t1))
+                .and(tProjectRelease.cutoffTime.inIfValue([t1, t2]))
+                .and(tProjectRelease.cutoffTime.notInIfValue([t3]))
+                .and(tProjectRelease.cutoffTime.lessOrEqualIfValue(t2))
+                .and(tProjectRelease.cutoffTime.greaterThanIfValue(t1)))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(ctx.conn.dynamicConditionFor({ id: tProjectRelease.id, cutoffTime: tProjectRelease.cutoffTime })
+                .withValues({ cutoffTime: {
+                    equalsIfValue: t1, notEqualsIfValue: t2, isIfValue: t3, isNotIfValue: t1, inIfValue: [t1, t2],
+                    notInIfValue: [t3], lessOrEqualIfValue: t2, greaterThanIfValue: t1,
+                } }))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where cutoff_time = $1 and cutoff_time <> $2 and cutoff_time is not distinct from $3 and cutoff_time is distinct from $4 and cutoff_time in ($5, $6) and cutoff_time not in ($7) and cutoff_time <= $8 and cutoff_time > $9 order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            "08:00:00",
+            "12:00:00",
+            "20:00:00",
+            "08:00:00",
+            "08:00:00",
+            "12:00:00",
+            "20:00:00",
+            "12:00:00",
+            "08:00:00",
+          ]
+        `)
+    })
+
+    test('dyn/customlocaltime-ifvalue-elide', async () => {
+        const maybeT: Date | undefined = undefined
+        const maybeNull: Date | null = null
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(ctx.conn.dynamicConditionFor({ id: tProjectRelease.id, cutoffTime: tProjectRelease.cutoffTime })
+                .withValues({ cutoffTime: {
+                    equalsIfValue: maybeT, notEqualsIfValue: maybeNull, isIfValue: maybeT, isNotIfValue: maybeNull,
+                    inIfValue: undefined, notInIfValue: undefined, lessOrEqualIfValue: maybeT, greaterThanIfValue: maybeNull,
+                } }))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+    })
+
+    // -- B15 customLocalDateTime (tProjectRelease.signedOffAt, 'SignOffStamp') --
+    test('dyn/customlocaldatetime-descriptor-ops', async () => {
+        type Filter = DynamicCondition<{ id: 'int', signedOffAt: ['customLocalDateTime', Date] }>
+        const s1 = new Date('2024-01-01T00:00:00.000Z'), s2 = new Date('2024-06-15T12:00:00.000Z'), s3 = new Date('2024-12-31T00:00:00.000Z')
+        const filter: Filter = { signedOffAt: { equals: s1, notEquals: s2, is: s3, isNot: s1, in: [s1, s2], notIn: [s3], lessOrEqual: s2, greaterThan: s1, isNull: true, isNotNull: true } }
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.signedOffAt.equals(s1)
+                .and(tProjectRelease.signedOffAt.notEquals(s2))
+                .and(tProjectRelease.signedOffAt.is(s3))
+                .and(tProjectRelease.signedOffAt.isNot(s1))
+                .and(tProjectRelease.signedOffAt.in([s1, s2]))
+                .and(tProjectRelease.signedOffAt.notIn([s3]))
+                .and(tProjectRelease.signedOffAt.lessOrEqual(s2))
+                .and(tProjectRelease.signedOffAt.greaterThan(s1))
+                .and(tProjectRelease.signedOffAt.isNull())
+                .and(tProjectRelease.signedOffAt.isNotNull()))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(ctx.conn.dynamicConditionFor({ id: tProjectRelease.id, signedOffAt: tProjectRelease.signedOffAt }).withValues(filter))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signed_off_at = $1 and signed_off_at <> $2 and signed_off_at is not distinct from $3 and signed_off_at is distinct from $4 and signed_off_at in ($5, $6) and signed_off_at not in ($7) and signed_off_at <= $8 and signed_off_at > $9 and signed_off_at is null and signed_off_at is not null order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            2024-01-01T00:00:00.000Z,
+            2024-06-15T12:00:00.000Z,
+            2024-12-31T00:00:00.000Z,
+            2024-01-01T00:00:00.000Z,
+            2024-01-01T00:00:00.000Z,
+            2024-06-15T12:00:00.000Z,
+            2024-12-31T00:00:00.000Z,
+            2024-06-15T12:00:00.000Z,
+            2024-01-01T00:00:00.000Z,
+          ]
+        `)
+    })
+
+    test('dyn/customlocaldatetime-inline-ops', async () => {
+        const s1 = new Date('2024-01-01T00:00:00.000Z'), s2 = new Date('2024-06-15T12:00:00.000Z'), s3 = new Date('2024-12-31T00:00:00.000Z')
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.signedOffAt.equals(s1)
+                .and(tProjectRelease.signedOffAt.notEquals(s2))
+                .and(tProjectRelease.signedOffAt.is(s3))
+                .and(tProjectRelease.signedOffAt.isNot(s1))
+                .and(tProjectRelease.signedOffAt.in([s1, s2]))
+                .and(tProjectRelease.signedOffAt.notIn([s3]))
+                .and(tProjectRelease.signedOffAt.lessOrEqual(s2))
+                .and(tProjectRelease.signedOffAt.greaterThan(s1))
+                .and(tProjectRelease.signedOffAt.isNull())
+                .and(tProjectRelease.signedOffAt.isNotNull()))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(ctx.conn.dynamicConditionFor({ id: tProjectRelease.id, signedOffAt: tProjectRelease.signedOffAt })
+                .withValues({ signedOffAt: { equals: s1, notEquals: s2, is: s3, isNot: s1, in: [s1, s2], notIn: [s3], lessOrEqual: s2, greaterThan: s1, isNull: true, isNotNull: true } }))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signed_off_at = $1 and signed_off_at <> $2 and signed_off_at is not distinct from $3 and signed_off_at is distinct from $4 and signed_off_at in ($5, $6) and signed_off_at not in ($7) and signed_off_at <= $8 and signed_off_at > $9 and signed_off_at is null and signed_off_at is not null order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            2024-01-01T00:00:00.000Z,
+            2024-06-15T12:00:00.000Z,
+            2024-12-31T00:00:00.000Z,
+            2024-01-01T00:00:00.000Z,
+            2024-01-01T00:00:00.000Z,
+            2024-06-15T12:00:00.000Z,
+            2024-12-31T00:00:00.000Z,
+            2024-06-15T12:00:00.000Z,
+            2024-01-01T00:00:00.000Z,
+          ]
+        `)
+    })
+
+    test('dyn/customlocaldatetime-descriptor-ifvalue-fire', async () => {
+        type Filter = DynamicCondition<{ id: 'int', signedOffAt: ['customLocalDateTime', Date] }>
+        const s1 = new Date('2024-01-01T00:00:00.000Z'), s2 = new Date('2024-06-15T12:00:00.000Z'), s3 = new Date('2024-12-31T00:00:00.000Z')
+        const filter: Filter = { signedOffAt: {
+            equalsIfValue: s1, notEqualsIfValue: s2, isIfValue: s3, isNotIfValue: s1, inIfValue: [s1, s2],
+            notInIfValue: [s3], lessOrEqualIfValue: s2, greaterThanIfValue: s1,
+        } }
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.signedOffAt.equalsIfValue(s1)
+                .and(tProjectRelease.signedOffAt.notEqualsIfValue(s2))
+                .and(tProjectRelease.signedOffAt.isIfValue(s3))
+                .and(tProjectRelease.signedOffAt.isNotIfValue(s1))
+                .and(tProjectRelease.signedOffAt.inIfValue([s1, s2]))
+                .and(tProjectRelease.signedOffAt.notInIfValue([s3]))
+                .and(tProjectRelease.signedOffAt.lessOrEqualIfValue(s2))
+                .and(tProjectRelease.signedOffAt.greaterThanIfValue(s1)))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(ctx.conn.dynamicConditionFor({ id: tProjectRelease.id, signedOffAt: tProjectRelease.signedOffAt }).withValues(filter))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signed_off_at = $1 and signed_off_at <> $2 and signed_off_at is not distinct from $3 and signed_off_at is distinct from $4 and signed_off_at in ($5, $6) and signed_off_at not in ($7) and signed_off_at <= $8 and signed_off_at > $9 order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            2024-01-01T00:00:00.000Z,
+            2024-06-15T12:00:00.000Z,
+            2024-12-31T00:00:00.000Z,
+            2024-01-01T00:00:00.000Z,
+            2024-01-01T00:00:00.000Z,
+            2024-06-15T12:00:00.000Z,
+            2024-12-31T00:00:00.000Z,
+            2024-06-15T12:00:00.000Z,
+            2024-01-01T00:00:00.000Z,
+          ]
+        `)
+    })
+
+    test('dyn/customlocaldatetime-inline-ifvalue-fire', async () => {
+        const s1 = new Date('2024-01-01T00:00:00.000Z'), s2 = new Date('2024-06-15T12:00:00.000Z'), s3 = new Date('2024-12-31T00:00:00.000Z')
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.signedOffAt.equalsIfValue(s1)
+                .and(tProjectRelease.signedOffAt.notEqualsIfValue(s2))
+                .and(tProjectRelease.signedOffAt.isIfValue(s3))
+                .and(tProjectRelease.signedOffAt.isNotIfValue(s1))
+                .and(tProjectRelease.signedOffAt.inIfValue([s1, s2]))
+                .and(tProjectRelease.signedOffAt.notInIfValue([s3]))
+                .and(tProjectRelease.signedOffAt.lessOrEqualIfValue(s2))
+                .and(tProjectRelease.signedOffAt.greaterThanIfValue(s1)))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(ctx.conn.dynamicConditionFor({ id: tProjectRelease.id, signedOffAt: tProjectRelease.signedOffAt })
+                .withValues({ signedOffAt: {
+                    equalsIfValue: s1, notEqualsIfValue: s2, isIfValue: s3, isNotIfValue: s1, inIfValue: [s1, s2],
+                    notInIfValue: [s3], lessOrEqualIfValue: s2, greaterThanIfValue: s1,
+                } }))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signed_off_at = $1 and signed_off_at <> $2 and signed_off_at is not distinct from $3 and signed_off_at is distinct from $4 and signed_off_at in ($5, $6) and signed_off_at not in ($7) and signed_off_at <= $8 and signed_off_at > $9 order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            2024-01-01T00:00:00.000Z,
+            2024-06-15T12:00:00.000Z,
+            2024-12-31T00:00:00.000Z,
+            2024-01-01T00:00:00.000Z,
+            2024-01-01T00:00:00.000Z,
+            2024-06-15T12:00:00.000Z,
+            2024-12-31T00:00:00.000Z,
+            2024-06-15T12:00:00.000Z,
+            2024-01-01T00:00:00.000Z,
+          ]
+        `)
+    })
+
+    test('dyn/customlocaldatetime-ifvalue-elide', async () => {
+        const maybeS: Date | undefined = undefined
+        const maybeNull: Date | null = null
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(ctx.conn.dynamicConditionFor({ id: tProjectRelease.id, signedOffAt: tProjectRelease.signedOffAt })
+                .withValues({ signedOffAt: {
+                    equalsIfValue: maybeS, notEqualsIfValue: maybeNull, isIfValue: maybeS, isNotIfValue: maybeNull,
+                    inIfValue: undefined, notInIfValue: undefined, lessOrEqualIfValue: maybeS, greaterThanIfValue: maybeNull,
+                } }))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+    })
+
+    // -- B4 uuid (tIssue.externalRef) -----------------------------------------
+    // Core ops (equals/comparable/nullable) dispatch directly on the uuid value
+    // source; the like/affix/insensitive family routes through the `asString()`
+    // text rewrite (useAsStringInUuid), matched on the direct side.
+    test('dyn/uuid-descriptor-core-ops', async () => {
+        type Filter = DynamicCondition<{ id: 'int', externalRef: 'uuid' }>
+        const u1 = '0a8f9c1e-1111-4222-8333-444455556661', u2 = '0a8f9c1e-1111-4222-8333-444455556662', u3 = '0a8f9c1e-1111-4222-8333-444455556663'
+        const filter: Filter = { externalRef: { equals: u1, notEquals: u2, is: u3, isNot: u1, in: [u1, u2], notIn: [u3], lessThan: u3, lessOrEqual: u2, greaterThan: u1, greaterOrEqual: u1, isNull: true, isNotNull: true } }
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.externalRef.equals(u1)
+                .and(tIssue.externalRef.notEquals(u2))
+                .and(tIssue.externalRef.is(u3))
+                .and(tIssue.externalRef.isNot(u1))
+                .and(tIssue.externalRef.in([u1, u2]))
+                .and(tIssue.externalRef.notIn([u3]))
+                .and(tIssue.externalRef.lessThan(u3))
+                .and(tIssue.externalRef.lessOrEqual(u2))
+                .and(tIssue.externalRef.greaterThan(u1))
+                .and(tIssue.externalRef.greaterOrEqual(u1))
+                .and(tIssue.externalRef.isNull())
+                .and(tIssue.externalRef.isNotNull()))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssue.id, externalRef: tIssue.externalRef }).withValues(filter))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref = $1 and external_ref <> $2 and external_ref is not distinct from $3 and external_ref is distinct from $4 and external_ref in ($5, $6) and external_ref not in ($7) and external_ref < $8 and external_ref <= $9 and external_ref > $10 and external_ref >= $11 and external_ref is null and external_ref is not null order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            "0a8f9c1e-1111-4222-8333-444455556661",
+            "0a8f9c1e-1111-4222-8333-444455556662",
+            "0a8f9c1e-1111-4222-8333-444455556663",
+            "0a8f9c1e-1111-4222-8333-444455556661",
+            "0a8f9c1e-1111-4222-8333-444455556661",
+            "0a8f9c1e-1111-4222-8333-444455556662",
+            "0a8f9c1e-1111-4222-8333-444455556663",
+            "0a8f9c1e-1111-4222-8333-444455556663",
+            "0a8f9c1e-1111-4222-8333-444455556662",
+            "0a8f9c1e-1111-4222-8333-444455556661",
+            "0a8f9c1e-1111-4222-8333-444455556661",
+          ]
+        `)
+    })
+
+    test('dyn/uuid-inline-core-ops', async () => {
+        const u1 = '0a8f9c1e-1111-4222-8333-444455556661', u2 = '0a8f9c1e-1111-4222-8333-444455556662', u3 = '0a8f9c1e-1111-4222-8333-444455556663'
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.externalRef.equals(u1)
+                .and(tIssue.externalRef.notEquals(u2))
+                .and(tIssue.externalRef.is(u3))
+                .and(tIssue.externalRef.isNot(u1))
+                .and(tIssue.externalRef.in([u1, u2]))
+                .and(tIssue.externalRef.notIn([u3]))
+                .and(tIssue.externalRef.lessThan(u3))
+                .and(tIssue.externalRef.lessOrEqual(u2))
+                .and(tIssue.externalRef.greaterThan(u1))
+                .and(tIssue.externalRef.greaterOrEqual(u1))
+                .and(tIssue.externalRef.isNull())
+                .and(tIssue.externalRef.isNotNull()))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssue.id, externalRef: tIssue.externalRef })
+                .withValues({ externalRef: { equals: u1, notEquals: u2, is: u3, isNot: u1, in: [u1, u2], notIn: [u3], lessThan: u3, lessOrEqual: u2, greaterThan: u1, greaterOrEqual: u1, isNull: true, isNotNull: true } }))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref = $1 and external_ref <> $2 and external_ref is not distinct from $3 and external_ref is distinct from $4 and external_ref in ($5, $6) and external_ref not in ($7) and external_ref < $8 and external_ref <= $9 and external_ref > $10 and external_ref >= $11 and external_ref is null and external_ref is not null order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            "0a8f9c1e-1111-4222-8333-444455556661",
+            "0a8f9c1e-1111-4222-8333-444455556662",
+            "0a8f9c1e-1111-4222-8333-444455556663",
+            "0a8f9c1e-1111-4222-8333-444455556661",
+            "0a8f9c1e-1111-4222-8333-444455556661",
+            "0a8f9c1e-1111-4222-8333-444455556662",
+            "0a8f9c1e-1111-4222-8333-444455556663",
+            "0a8f9c1e-1111-4222-8333-444455556663",
+            "0a8f9c1e-1111-4222-8333-444455556662",
+            "0a8f9c1e-1111-4222-8333-444455556661",
+            "0a8f9c1e-1111-4222-8333-444455556661",
+          ]
+        `)
+    })
+
+    test('dyn/uuid-descriptor-string-family', async () => {
+        type Filter = DynamicCondition<{ id: 'int', externalRef: 'uuid' }>
+        const filter: Filter = { externalRef: {
+            equalsInsensitive: '0A8F', notEqualsInsensitive: 'FFFF', like: '%1111%', notLike: '%9999%',
+            likeInsensitive: '%1111%', notLikeInsensitive: '%9999%', startsWith: '0a8f', notStartsWith: 'ffff',
+            endsWith: '6666', notEndsWith: '0000', contains: '4222', notContains: '9999',
+            startsWithInsensitive: '0A8F', notStartsWithInsensitive: 'FFFF', endsWithInsensitive: '6666',
+            notEndsWithInsensitive: '0000', containsInsensitive: '4222', notContainsInsensitive: '9999',
+        } }
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.externalRef.asString().equalsInsensitive('0A8F')
+                .and(tIssue.externalRef.asString().notEqualsInsensitive('FFFF'))
+                .and(tIssue.externalRef.asString().like('%1111%'))
+                .and(tIssue.externalRef.asString().notLike('%9999%'))
+                .and(tIssue.externalRef.asString().likeInsensitive('%1111%'))
+                .and(tIssue.externalRef.asString().notLikeInsensitive('%9999%'))
+                .and(tIssue.externalRef.asString().startsWith('0a8f'))
+                .and(tIssue.externalRef.asString().notStartsWith('ffff'))
+                .and(tIssue.externalRef.asString().endsWith('6666'))
+                .and(tIssue.externalRef.asString().notEndsWith('0000'))
+                .and(tIssue.externalRef.asString().contains('4222'))
+                .and(tIssue.externalRef.asString().notContains('9999'))
+                .and(tIssue.externalRef.asString().startsWithInsensitive('0A8F'))
+                .and(tIssue.externalRef.asString().notStartsWithInsensitive('FFFF'))
+                .and(tIssue.externalRef.asString().endsWithInsensitive('6666'))
+                .and(tIssue.externalRef.asString().notEndsWithInsensitive('0000'))
+                .and(tIssue.externalRef.asString().containsInsensitive('4222'))
+                .and(tIssue.externalRef.asString().notContainsInsensitive('9999')))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssue.id, externalRef: tIssue.externalRef }).withValues(filter))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where lower(external_ref::text) = lower($1) and lower(external_ref::text) <> lower($2) and external_ref::text like $3 and external_ref::text not like $4 and external_ref::text ilike $5 and external_ref::text not ilike $6 and external_ref::text like ($7 || '%') and external_ref::text not like ($8 || '%') and external_ref::text like ('%' || $9) and external_ref::text not like ('%' || $10) and external_ref::text like ('%' || $11 || '%') and external_ref::text not like ('%' || $12 || '%') and external_ref::text ilike ($13 || '%') and external_ref::text not ilike ($14 || '%') and external_ref::text ilike ('%' || $15) and external_ref::text not ilike ('%' || $16) and external_ref::text ilike ('%' || $17 || '%') and external_ref::text not ilike ('%' || $18 || '%') order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            "0A8F",
+            "FFFF",
+            "%1111%",
+            "%9999%",
+            "%1111%",
+            "%9999%",
+            "0a8f",
+            "ffff",
+            "6666",
+            "0000",
+            "4222",
+            "9999",
+            "0A8F",
+            "FFFF",
+            "6666",
+            "0000",
+            "4222",
+            "9999",
+          ]
+        `)
+    })
+
+    test('dyn/uuid-inline-string-family', async () => {
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.externalRef.asString().equalsInsensitive('0A8F')
+                .and(tIssue.externalRef.asString().notEqualsInsensitive('FFFF'))
+                .and(tIssue.externalRef.asString().like('%1111%'))
+                .and(tIssue.externalRef.asString().notLike('%9999%'))
+                .and(tIssue.externalRef.asString().likeInsensitive('%1111%'))
+                .and(tIssue.externalRef.asString().notLikeInsensitive('%9999%'))
+                .and(tIssue.externalRef.asString().startsWith('0a8f'))
+                .and(tIssue.externalRef.asString().notStartsWith('ffff'))
+                .and(tIssue.externalRef.asString().endsWith('6666'))
+                .and(tIssue.externalRef.asString().notEndsWith('0000'))
+                .and(tIssue.externalRef.asString().contains('4222'))
+                .and(tIssue.externalRef.asString().notContains('9999'))
+                .and(tIssue.externalRef.asString().startsWithInsensitive('0A8F'))
+                .and(tIssue.externalRef.asString().notStartsWithInsensitive('FFFF'))
+                .and(tIssue.externalRef.asString().endsWithInsensitive('6666'))
+                .and(tIssue.externalRef.asString().notEndsWithInsensitive('0000'))
+                .and(tIssue.externalRef.asString().containsInsensitive('4222'))
+                .and(tIssue.externalRef.asString().notContainsInsensitive('9999')))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssue.id, externalRef: tIssue.externalRef })
+                .withValues({ externalRef: {
+                    equalsInsensitive: '0A8F', notEqualsInsensitive: 'FFFF', like: '%1111%', notLike: '%9999%',
+                    likeInsensitive: '%1111%', notLikeInsensitive: '%9999%', startsWith: '0a8f', notStartsWith: 'ffff',
+                    endsWith: '6666', notEndsWith: '0000', contains: '4222', notContains: '9999',
+                    startsWithInsensitive: '0A8F', notStartsWithInsensitive: 'FFFF', endsWithInsensitive: '6666',
+                    notEndsWithInsensitive: '0000', containsInsensitive: '4222', notContainsInsensitive: '9999',
+                } }))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where lower(external_ref::text) = lower($1) and lower(external_ref::text) <> lower($2) and external_ref::text like $3 and external_ref::text not like $4 and external_ref::text ilike $5 and external_ref::text not ilike $6 and external_ref::text like ($7 || '%') and external_ref::text not like ($8 || '%') and external_ref::text like ('%' || $9) and external_ref::text not like ('%' || $10) and external_ref::text like ('%' || $11 || '%') and external_ref::text not like ('%' || $12 || '%') and external_ref::text ilike ($13 || '%') and external_ref::text not ilike ($14 || '%') and external_ref::text ilike ('%' || $15) and external_ref::text not ilike ('%' || $16) and external_ref::text ilike ('%' || $17 || '%') and external_ref::text not ilike ('%' || $18 || '%') order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            "0A8F",
+            "FFFF",
+            "%1111%",
+            "%9999%",
+            "%1111%",
+            "%9999%",
+            "0a8f",
+            "ffff",
+            "6666",
+            "0000",
+            "4222",
+            "9999",
+            "0A8F",
+            "FFFF",
+            "6666",
+            "0000",
+            "4222",
+            "9999",
+          ]
+        `)
+    })
+
+    test('dyn/uuid-descriptor-ifvalue-fire', async () => {
+        type Filter = DynamicCondition<{ id: 'int', externalRef: 'uuid' }>
+        const u1 = '0a8f9c1e-1111-4222-8333-444455556661', u2 = '0a8f9c1e-1111-4222-8333-444455556662', u3 = '0a8f9c1e-1111-4222-8333-444455556663'
+        const filter: Filter = { externalRef: {
+            equalsIfValue: u1, notEqualsIfValue: u2, isIfValue: u3, isNotIfValue: u1, inIfValue: [u1, u2],
+            notInIfValue: [u3], lessThanIfValue: u3, lessOrEqualIfValue: u2, greaterThanIfValue: u1, greaterOrEqualIfValue: u1,
+            likeIfValue: '%1111%', containsIfValue: '4222', startsWithIfValue: '0a8f', equalsInsensitiveIfValue: '0A8F',
+        } }
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.externalRef.equalsIfValue(u1)
+                .and(tIssue.externalRef.notEqualsIfValue(u2))
+                .and(tIssue.externalRef.isIfValue(u3))
+                .and(tIssue.externalRef.isNotIfValue(u1))
+                .and(tIssue.externalRef.inIfValue([u1, u2]))
+                .and(tIssue.externalRef.notInIfValue([u3]))
+                .and(tIssue.externalRef.lessThanIfValue(u3))
+                .and(tIssue.externalRef.lessOrEqualIfValue(u2))
+                .and(tIssue.externalRef.greaterThanIfValue(u1))
+                .and(tIssue.externalRef.greaterOrEqualIfValue(u1))
+                .and(tIssue.externalRef.asString().likeIfValue('%1111%'))
+                .and(tIssue.externalRef.asString().containsIfValue('4222'))
+                .and(tIssue.externalRef.asString().startsWithIfValue('0a8f'))
+                .and(tIssue.externalRef.asString().equalsInsensitiveIfValue('0A8F')))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssue.id, externalRef: tIssue.externalRef }).withValues(filter))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref = $1 and external_ref <> $2 and external_ref is not distinct from $3 and external_ref is distinct from $4 and external_ref in ($5, $6) and external_ref not in ($7) and external_ref < $8 and external_ref <= $9 and external_ref > $10 and external_ref >= $11 and external_ref::text like $12 and external_ref::text like ('%' || $13 || '%') and external_ref::text like ($14 || '%') and lower(external_ref::text) = lower($15) order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            "0a8f9c1e-1111-4222-8333-444455556661",
+            "0a8f9c1e-1111-4222-8333-444455556662",
+            "0a8f9c1e-1111-4222-8333-444455556663",
+            "0a8f9c1e-1111-4222-8333-444455556661",
+            "0a8f9c1e-1111-4222-8333-444455556661",
+            "0a8f9c1e-1111-4222-8333-444455556662",
+            "0a8f9c1e-1111-4222-8333-444455556663",
+            "0a8f9c1e-1111-4222-8333-444455556663",
+            "0a8f9c1e-1111-4222-8333-444455556662",
+            "0a8f9c1e-1111-4222-8333-444455556661",
+            "0a8f9c1e-1111-4222-8333-444455556661",
+            "%1111%",
+            "4222",
+            "0a8f",
+            "0A8F",
+          ]
+        `)
+    })
+
+    test('dyn/uuid-inline-ifvalue-fire', async () => {
+        const u1 = '0a8f9c1e-1111-4222-8333-444455556661', u2 = '0a8f9c1e-1111-4222-8333-444455556662', u3 = '0a8f9c1e-1111-4222-8333-444455556663'
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.externalRef.equalsIfValue(u1)
+                .and(tIssue.externalRef.notEqualsIfValue(u2))
+                .and(tIssue.externalRef.isIfValue(u3))
+                .and(tIssue.externalRef.isNotIfValue(u1))
+                .and(tIssue.externalRef.inIfValue([u1, u2]))
+                .and(tIssue.externalRef.notInIfValue([u3]))
+                .and(tIssue.externalRef.lessThanIfValue(u3))
+                .and(tIssue.externalRef.lessOrEqualIfValue(u2))
+                .and(tIssue.externalRef.greaterThanIfValue(u1))
+                .and(tIssue.externalRef.greaterOrEqualIfValue(u1))
+                .and(tIssue.externalRef.asString().likeIfValue('%1111%'))
+                .and(tIssue.externalRef.asString().containsIfValue('4222'))
+                .and(tIssue.externalRef.asString().startsWithIfValue('0a8f'))
+                .and(tIssue.externalRef.asString().equalsInsensitiveIfValue('0A8F')))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssue.id, externalRef: tIssue.externalRef })
+                .withValues({ externalRef: {
+                    equalsIfValue: u1, notEqualsIfValue: u2, isIfValue: u3, isNotIfValue: u1, inIfValue: [u1, u2],
+                    notInIfValue: [u3], lessThanIfValue: u3, lessOrEqualIfValue: u2, greaterThanIfValue: u1, greaterOrEqualIfValue: u1,
+                    likeIfValue: '%1111%', containsIfValue: '4222', startsWithIfValue: '0a8f', equalsInsensitiveIfValue: '0A8F',
+                } }))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref = $1 and external_ref <> $2 and external_ref is not distinct from $3 and external_ref is distinct from $4 and external_ref in ($5, $6) and external_ref not in ($7) and external_ref < $8 and external_ref <= $9 and external_ref > $10 and external_ref >= $11 and external_ref::text like $12 and external_ref::text like ('%' || $13 || '%') and external_ref::text like ($14 || '%') and lower(external_ref::text) = lower($15) order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            "0a8f9c1e-1111-4222-8333-444455556661",
+            "0a8f9c1e-1111-4222-8333-444455556662",
+            "0a8f9c1e-1111-4222-8333-444455556663",
+            "0a8f9c1e-1111-4222-8333-444455556661",
+            "0a8f9c1e-1111-4222-8333-444455556661",
+            "0a8f9c1e-1111-4222-8333-444455556662",
+            "0a8f9c1e-1111-4222-8333-444455556663",
+            "0a8f9c1e-1111-4222-8333-444455556663",
+            "0a8f9c1e-1111-4222-8333-444455556662",
+            "0a8f9c1e-1111-4222-8333-444455556661",
+            "0a8f9c1e-1111-4222-8333-444455556661",
+            "%1111%",
+            "4222",
+            "0a8f",
+            "0A8F",
+          ]
+        `)
+    })
+
+    test('dyn/uuid-ifvalue-elide', async () => {
+        const maybeU: string | undefined = undefined
+        const maybeNull: string | null = null
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor({ id: tIssue.id, externalRef: tIssue.externalRef })
+                .withValues({ externalRef: {
+                    equalsIfValue: maybeU, lessThanIfValue: maybeNull, likeIfValue: maybeU,
+                    containsIfValue: maybeNull, startsWithIfValue: undefined, equalsInsensitiveIfValue: undefined,
+                } }))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+    })
+
+    // -- B5 customUuid (tProjectRelease.signingKey, branded 'SigningKey') -----
+    test('dyn/customuuid-descriptor-core-ops', async () => {
+        type Filter = DynamicCondition<{ id: 'int', signingKey: ['customUuid', string] }>
+        const u1 = '0a8f9c1e-1111-4222-8333-444455556661', u2 = '0a8f9c1e-1111-4222-8333-444455556662', u3 = '0a8f9c1e-1111-4222-8333-444455556663'
+        const filter: Filter = { signingKey: { notEquals: u2, is: u3, isNot: u1, in: [u1, u2], notIn: [u3], lessThan: u3, greaterThan: u1, lessOrEqual: u2, greaterOrEqual: u1, isNull: true, isNotNull: true } }
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.signingKey.notEquals(u2)
+                .and(tProjectRelease.signingKey.is(u3))
+                .and(tProjectRelease.signingKey.isNot(u1))
+                .and(tProjectRelease.signingKey.in([u1, u2]))
+                .and(tProjectRelease.signingKey.notIn([u3]))
+                .and(tProjectRelease.signingKey.lessThan(u3))
+                .and(tProjectRelease.signingKey.greaterThan(u1))
+                .and(tProjectRelease.signingKey.lessOrEqual(u2))
+                .and(tProjectRelease.signingKey.greaterOrEqual(u1))
+                .and(tProjectRelease.signingKey.isNull())
+                .and(tProjectRelease.signingKey.isNotNull()))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(ctx.conn.dynamicConditionFor({ id: tProjectRelease.id, signingKey: tProjectRelease.signingKey }).withValues(filter))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key <> $1 and signing_key is not distinct from $2 and signing_key is distinct from $3 and signing_key in ($4, $5) and signing_key not in ($6) and signing_key < $7 and signing_key > $8 and signing_key <= $9 and signing_key >= $10 and signing_key is null and signing_key is not null order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            "0a8f9c1e-1111-4222-8333-444455556662",
+            "0a8f9c1e-1111-4222-8333-444455556663",
+            "0a8f9c1e-1111-4222-8333-444455556661",
+            "0a8f9c1e-1111-4222-8333-444455556661",
+            "0a8f9c1e-1111-4222-8333-444455556662",
+            "0a8f9c1e-1111-4222-8333-444455556663",
+            "0a8f9c1e-1111-4222-8333-444455556663",
+            "0a8f9c1e-1111-4222-8333-444455556661",
+            "0a8f9c1e-1111-4222-8333-444455556662",
+            "0a8f9c1e-1111-4222-8333-444455556661",
+          ]
+        `)
+    })
+
+    test('dyn/customuuid-inline-core-ops', async () => {
+        const u1 = '0a8f9c1e-1111-4222-8333-444455556661', u2 = '0a8f9c1e-1111-4222-8333-444455556662', u3 = '0a8f9c1e-1111-4222-8333-444455556663'
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.signingKey.notEquals(u2)
+                .and(tProjectRelease.signingKey.is(u3))
+                .and(tProjectRelease.signingKey.isNot(u1))
+                .and(tProjectRelease.signingKey.in([u1, u2]))
+                .and(tProjectRelease.signingKey.notIn([u3]))
+                .and(tProjectRelease.signingKey.lessThan(u3))
+                .and(tProjectRelease.signingKey.greaterThan(u1))
+                .and(tProjectRelease.signingKey.lessOrEqual(u2))
+                .and(tProjectRelease.signingKey.greaterOrEqual(u1))
+                .and(tProjectRelease.signingKey.isNull())
+                .and(tProjectRelease.signingKey.isNotNull()))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(ctx.conn.dynamicConditionFor({ id: tProjectRelease.id, signingKey: tProjectRelease.signingKey })
+                .withValues({ signingKey: { notEquals: u2, is: u3, isNot: u1, in: [u1, u2], notIn: [u3], lessThan: u3, greaterThan: u1, lessOrEqual: u2, greaterOrEqual: u1, isNull: true, isNotNull: true } }))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key <> $1 and signing_key is not distinct from $2 and signing_key is distinct from $3 and signing_key in ($4, $5) and signing_key not in ($6) and signing_key < $7 and signing_key > $8 and signing_key <= $9 and signing_key >= $10 and signing_key is null and signing_key is not null order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            "0a8f9c1e-1111-4222-8333-444455556662",
+            "0a8f9c1e-1111-4222-8333-444455556663",
+            "0a8f9c1e-1111-4222-8333-444455556661",
+            "0a8f9c1e-1111-4222-8333-444455556661",
+            "0a8f9c1e-1111-4222-8333-444455556662",
+            "0a8f9c1e-1111-4222-8333-444455556663",
+            "0a8f9c1e-1111-4222-8333-444455556663",
+            "0a8f9c1e-1111-4222-8333-444455556661",
+            "0a8f9c1e-1111-4222-8333-444455556662",
+            "0a8f9c1e-1111-4222-8333-444455556661",
+          ]
+        `)
+    })
+
+    test('dyn/customuuid-descriptor-string-family', async () => {
+        type Filter = DynamicCondition<{ id: 'int', signingKey: ['customUuid', string] }>
+        const filter: Filter = { signingKey: {
+            like: '%1111%', notLike: '%9999%', likeInsensitive: '%1111%', notLikeInsensitive: '%9999%',
+            notStartsWith: 'ffff', endsWith: '6666', notEndsWith: '0000', notContains: '9999',
+            startsWithInsensitive: '0A8F', notStartsWithInsensitive: 'FFFF', endsWithInsensitive: '6666',
+            notEndsWithInsensitive: '0000', containsInsensitive: '4222', notContainsInsensitive: '9999',
+        } }
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.signingKey.asString().like('%1111%')
+                .and(tProjectRelease.signingKey.asString().notLike('%9999%'))
+                .and(tProjectRelease.signingKey.asString().likeInsensitive('%1111%'))
+                .and(tProjectRelease.signingKey.asString().notLikeInsensitive('%9999%'))
+                .and(tProjectRelease.signingKey.asString().notStartsWith('ffff'))
+                .and(tProjectRelease.signingKey.asString().endsWith('6666'))
+                .and(tProjectRelease.signingKey.asString().notEndsWith('0000'))
+                .and(tProjectRelease.signingKey.asString().notContains('9999'))
+                .and(tProjectRelease.signingKey.asString().startsWithInsensitive('0A8F'))
+                .and(tProjectRelease.signingKey.asString().notStartsWithInsensitive('FFFF'))
+                .and(tProjectRelease.signingKey.asString().endsWithInsensitive('6666'))
+                .and(tProjectRelease.signingKey.asString().notEndsWithInsensitive('0000'))
+                .and(tProjectRelease.signingKey.asString().containsInsensitive('4222'))
+                .and(tProjectRelease.signingKey.asString().notContainsInsensitive('9999')))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(ctx.conn.dynamicConditionFor({ id: tProjectRelease.id, signingKey: tProjectRelease.signingKey }).withValues(filter))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key::text like $1 and signing_key::text not like $2 and signing_key::text ilike $3 and signing_key::text not ilike $4 and signing_key::text not like ($5 || '%') and signing_key::text like ('%' || $6) and signing_key::text not like ('%' || $7) and signing_key::text not like ('%' || $8 || '%') and signing_key::text ilike ($9 || '%') and signing_key::text not ilike ($10 || '%') and signing_key::text ilike ('%' || $11) and signing_key::text not ilike ('%' || $12) and signing_key::text ilike ('%' || $13 || '%') and signing_key::text not ilike ('%' || $14 || '%') order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            "%1111%",
+            "%9999%",
+            "%1111%",
+            "%9999%",
+            "ffff",
+            "6666",
+            "0000",
+            "9999",
+            "0A8F",
+            "FFFF",
+            "6666",
+            "0000",
+            "4222",
+            "9999",
+          ]
+        `)
+    })
+
+    test('dyn/customuuid-inline-string-family', async () => {
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.signingKey.asString().like('%1111%')
+                .and(tProjectRelease.signingKey.asString().notLike('%9999%'))
+                .and(tProjectRelease.signingKey.asString().likeInsensitive('%1111%'))
+                .and(tProjectRelease.signingKey.asString().notLikeInsensitive('%9999%'))
+                .and(tProjectRelease.signingKey.asString().notStartsWith('ffff'))
+                .and(tProjectRelease.signingKey.asString().endsWith('6666'))
+                .and(tProjectRelease.signingKey.asString().notEndsWith('0000'))
+                .and(tProjectRelease.signingKey.asString().notContains('9999'))
+                .and(tProjectRelease.signingKey.asString().startsWithInsensitive('0A8F'))
+                .and(tProjectRelease.signingKey.asString().notStartsWithInsensitive('FFFF'))
+                .and(tProjectRelease.signingKey.asString().endsWithInsensitive('6666'))
+                .and(tProjectRelease.signingKey.asString().notEndsWithInsensitive('0000'))
+                .and(tProjectRelease.signingKey.asString().containsInsensitive('4222'))
+                .and(tProjectRelease.signingKey.asString().notContainsInsensitive('9999')))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(ctx.conn.dynamicConditionFor({ id: tProjectRelease.id, signingKey: tProjectRelease.signingKey })
+                .withValues({ signingKey: {
+                    like: '%1111%', notLike: '%9999%', likeInsensitive: '%1111%', notLikeInsensitive: '%9999%',
+                    notStartsWith: 'ffff', endsWith: '6666', notEndsWith: '0000', notContains: '9999',
+                    startsWithInsensitive: '0A8F', notStartsWithInsensitive: 'FFFF', endsWithInsensitive: '6666',
+                    notEndsWithInsensitive: '0000', containsInsensitive: '4222', notContainsInsensitive: '9999',
+                } }))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key::text like $1 and signing_key::text not like $2 and signing_key::text ilike $3 and signing_key::text not ilike $4 and signing_key::text not like ($5 || '%') and signing_key::text like ('%' || $6) and signing_key::text not like ('%' || $7) and signing_key::text not like ('%' || $8 || '%') and signing_key::text ilike ($9 || '%') and signing_key::text not ilike ($10 || '%') and signing_key::text ilike ('%' || $11) and signing_key::text not ilike ('%' || $12) and signing_key::text ilike ('%' || $13 || '%') and signing_key::text not ilike ('%' || $14 || '%') order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            "%1111%",
+            "%9999%",
+            "%1111%",
+            "%9999%",
+            "ffff",
+            "6666",
+            "0000",
+            "9999",
+            "0A8F",
+            "FFFF",
+            "6666",
+            "0000",
+            "4222",
+            "9999",
+          ]
+        `)
+    })
+
+    test('dyn/customuuid-descriptor-ifvalue-fire', async () => {
+        type Filter = DynamicCondition<{ id: 'int', signingKey: ['customUuid', string] }>
+        const u1 = '0a8f9c1e-1111-4222-8333-444455556661', u2 = '0a8f9c1e-1111-4222-8333-444455556662', u3 = '0a8f9c1e-1111-4222-8333-444455556663'
+        const filter: Filter = { signingKey: {
+            equalsIfValue: u1, notEqualsIfValue: u2, isIfValue: u3, isNotIfValue: u1, inIfValue: [u1, u2],
+            notInIfValue: [u3], lessThanIfValue: u3, lessOrEqualIfValue: u2, greaterThanIfValue: u1, greaterOrEqualIfValue: u1,
+            likeIfValue: '%1111%', containsInsensitiveIfValue: '4222', notStartsWithIfValue: 'ffff', notEqualsInsensitiveIfValue: 'FFFF',
+        } }
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.signingKey.equalsIfValue(u1)
+                .and(tProjectRelease.signingKey.notEqualsIfValue(u2))
+                .and(tProjectRelease.signingKey.isIfValue(u3))
+                .and(tProjectRelease.signingKey.isNotIfValue(u1))
+                .and(tProjectRelease.signingKey.inIfValue([u1, u2]))
+                .and(tProjectRelease.signingKey.notInIfValue([u3]))
+                .and(tProjectRelease.signingKey.lessThanIfValue(u3))
+                .and(tProjectRelease.signingKey.lessOrEqualIfValue(u2))
+                .and(tProjectRelease.signingKey.greaterThanIfValue(u1))
+                .and(tProjectRelease.signingKey.greaterOrEqualIfValue(u1))
+                .and(tProjectRelease.signingKey.asString().likeIfValue('%1111%'))
+                .and(tProjectRelease.signingKey.asString().containsInsensitiveIfValue('4222'))
+                .and(tProjectRelease.signingKey.asString().notStartsWithIfValue('ffff'))
+                .and(tProjectRelease.signingKey.asString().notEqualsInsensitiveIfValue('FFFF')))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(ctx.conn.dynamicConditionFor({ id: tProjectRelease.id, signingKey: tProjectRelease.signingKey }).withValues(filter))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key = $1 and signing_key <> $2 and signing_key is not distinct from $3 and signing_key is distinct from $4 and signing_key in ($5, $6) and signing_key not in ($7) and signing_key < $8 and signing_key <= $9 and signing_key > $10 and signing_key >= $11 and signing_key::text like $12 and signing_key::text ilike ('%' || $13 || '%') and signing_key::text not like ($14 || '%') and lower(signing_key::text) <> lower($15) order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            "0a8f9c1e-1111-4222-8333-444455556661",
+            "0a8f9c1e-1111-4222-8333-444455556662",
+            "0a8f9c1e-1111-4222-8333-444455556663",
+            "0a8f9c1e-1111-4222-8333-444455556661",
+            "0a8f9c1e-1111-4222-8333-444455556661",
+            "0a8f9c1e-1111-4222-8333-444455556662",
+            "0a8f9c1e-1111-4222-8333-444455556663",
+            "0a8f9c1e-1111-4222-8333-444455556663",
+            "0a8f9c1e-1111-4222-8333-444455556662",
+            "0a8f9c1e-1111-4222-8333-444455556661",
+            "0a8f9c1e-1111-4222-8333-444455556661",
+            "%1111%",
+            "4222",
+            "ffff",
+            "FFFF",
+          ]
+        `)
+    })
+
+    test('dyn/customuuid-inline-ifvalue-fire', async () => {
+        const u1 = '0a8f9c1e-1111-4222-8333-444455556661', u2 = '0a8f9c1e-1111-4222-8333-444455556662', u3 = '0a8f9c1e-1111-4222-8333-444455556663'
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.signingKey.equalsIfValue(u1)
+                .and(tProjectRelease.signingKey.notEqualsIfValue(u2))
+                .and(tProjectRelease.signingKey.isIfValue(u3))
+                .and(tProjectRelease.signingKey.isNotIfValue(u1))
+                .and(tProjectRelease.signingKey.inIfValue([u1, u2]))
+                .and(tProjectRelease.signingKey.notInIfValue([u3]))
+                .and(tProjectRelease.signingKey.lessThanIfValue(u3))
+                .and(tProjectRelease.signingKey.lessOrEqualIfValue(u2))
+                .and(tProjectRelease.signingKey.greaterThanIfValue(u1))
+                .and(tProjectRelease.signingKey.greaterOrEqualIfValue(u1))
+                .and(tProjectRelease.signingKey.asString().likeIfValue('%1111%'))
+                .and(tProjectRelease.signingKey.asString().containsInsensitiveIfValue('4222'))
+                .and(tProjectRelease.signingKey.asString().notStartsWithIfValue('ffff'))
+                .and(tProjectRelease.signingKey.asString().notEqualsInsensitiveIfValue('FFFF')))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(ctx.conn.dynamicConditionFor({ id: tProjectRelease.id, signingKey: tProjectRelease.signingKey })
+                .withValues({ signingKey: {
+                    equalsIfValue: u1, notEqualsIfValue: u2, isIfValue: u3, isNotIfValue: u1, inIfValue: [u1, u2],
+                    notInIfValue: [u3], lessThanIfValue: u3, lessOrEqualIfValue: u2, greaterThanIfValue: u1, greaterOrEqualIfValue: u1,
+                    likeIfValue: '%1111%', containsInsensitiveIfValue: '4222', notStartsWithIfValue: 'ffff', notEqualsInsensitiveIfValue: 'FFFF',
+                } }))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key = $1 and signing_key <> $2 and signing_key is not distinct from $3 and signing_key is distinct from $4 and signing_key in ($5, $6) and signing_key not in ($7) and signing_key < $8 and signing_key <= $9 and signing_key > $10 and signing_key >= $11 and signing_key::text like $12 and signing_key::text ilike ('%' || $13 || '%') and signing_key::text not like ($14 || '%') and lower(signing_key::text) <> lower($15) order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            "0a8f9c1e-1111-4222-8333-444455556661",
+            "0a8f9c1e-1111-4222-8333-444455556662",
+            "0a8f9c1e-1111-4222-8333-444455556663",
+            "0a8f9c1e-1111-4222-8333-444455556661",
+            "0a8f9c1e-1111-4222-8333-444455556661",
+            "0a8f9c1e-1111-4222-8333-444455556662",
+            "0a8f9c1e-1111-4222-8333-444455556663",
+            "0a8f9c1e-1111-4222-8333-444455556663",
+            "0a8f9c1e-1111-4222-8333-444455556662",
+            "0a8f9c1e-1111-4222-8333-444455556661",
+            "0a8f9c1e-1111-4222-8333-444455556661",
+            "%1111%",
+            "4222",
+            "ffff",
+            "FFFF",
+          ]
+        `)
+    })
+
+    test('dyn/customuuid-ifvalue-elide', async () => {
+        const maybeU: string | undefined = undefined
+        const maybeNull: string | null = null
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(ctx.conn.dynamicConditionFor({ id: tProjectRelease.id, signingKey: tProjectRelease.signingKey })
+                .withValues({ signingKey: {
+                    equalsIfValue: maybeU, lessThanIfValue: maybeNull, likeIfValue: maybeU,
+                    containsInsensitiveIfValue: maybeNull, notStartsWithIfValue: undefined, notEqualsInsensitiveIfValue: undefined,
+                } }))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+    })
 })

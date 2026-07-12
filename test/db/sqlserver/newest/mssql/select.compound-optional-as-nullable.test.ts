@@ -783,4 +783,94 @@ describe(ctx.label, () => {
     })
     */
 
+    // ---- PROJ pocket-3 inline compound-union DEFAULT-projector rule-1/rule-2 leaf twins (round-44 T4) ----
+    // The DEFAULT-projector twins of the inline compound cases above. Each is a UNION
+    // consumed as an inline aggregated array (`forUseAsInlineAggregatedArrayValue()`)
+    // whose element carries a rule-1 (requiredInOptionalObject gate) leaf or a rule-2
+    // (left-join originallyRequired) leaf. The inline aggregate runtime is NON-DROPPING,
+    // so each element is KEPT; under the default projector a null gate / left-join leaf
+    // is ABSENT (dropped) rather than surfacing present-null. This is the R40/R41-sensitive
+    // seam: the compound re-projection must carry the inline element's DEFAULT projection
+    // (optionals-as-undefined) into the merged array — matching a standalone inline
+    // aggregate over the same rule-1/rule-2 leaf.
+
+    test('inline-compound-union-rule-1-gate-leaf-default-drops-gate', async () => {
+        // A UNION consumed inline, DEFAULT projector. Each arm projects `{ ref, assigneeId }`
+        // where `ref` is a requiredInOptionalObject gate (issue.body) and `assigneeId` an
+        // optional leaf. Both leaves are optional in the (all-optional) element; a null
+        // `ref`/`assigneeId` is ABSENT under the default projector. Arm 1 = issue 1 (body
+        // NULL → ref absent, assignee 1); arm 2 = issue 2 (body present, assignee 2).
+        ctx.mockNext({ arr: JSON.stringify([
+            { ref: null, assigneeId: 1 },
+            { ref: 'Use new tokens', assigneeId: 2 },
+        ]) })
+        const arr = ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(1))
+            .select({ ref: tIssue.body.asRequiredInOptionalObject(), assigneeId: tIssue.assigneeId })
+            .union(
+                ctx.conn.selectFrom(tIssue).where(tIssue.id.equals(2))
+                    .select({ ref: tIssue.body.asRequiredInOptionalObject(), assigneeId: tIssue.assigneeId }),
+            )
+            .forUseAsInlineAggregatedArrayValue()
+        const row = await ctx.conn.selectFromNoTable().select({ arr }).executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select a_1_.[ref] as [ref], a_1_.assigneeId as assigneeId from (select body as [ref], assignee_id as assigneeId from issue where id = @0 union select body as [ref], assignee_id as assigneeId from issue where id = @1) as a_1_ for json path) as arr"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            arr: Array<{ ref?: string | undefined; assigneeId?: number | undefined }>
+        }>>()
+        const sorted = [...row.arr].sort((a, b) => a.assigneeId! - b.assigneeId!)
+        expect(sorted).toEqual([
+            { assigneeId: 1 },
+            { ref: 'Use new tokens', assigneeId: 2 },
+        ])
+        // Arm 1's null gate `ref` is ABSENT (dropped) under the default projector.
+        expect('ref' in sorted[0]!).toBe(false)
+    })
+
+    test('inline-compound-union-rule-2-left-join-leaf-default-drops-on-miss', async () => {
+        // A UNION consumed inline, DEFAULT projector. Each arm left-joins app_user and
+        // projects the sole originallyRequired left-join leaf `name` (rule-2). On a join
+        // miss the non-dropping inline runtime keeps the element and OMITS `name` under
+        // the default projector. Arm 1 = issue 1 (assignee 1 → name present); arm 2 =
+        // issue 3 (assignee NULL → name dropped, element kept as `{}`).
+        ctx.mockNext({ arr: JSON.stringify([
+            { name: 'Ada Lovelace' },
+            { name: null },
+        ]) })
+        const tAssignee = tAppUser.forUseInLeftJoin()
+        const arr = ctx.conn.selectFrom(tIssue)
+            .leftJoin(tAssignee).on(tAssignee.id.equals(tIssue.assigneeId))
+            .where(tIssue.id.equals(1))
+            .select({ name: tAssignee.fullName })
+            .union(
+                ctx.conn.selectFrom(tIssue)
+                    .leftJoin(tAssignee).on(tAssignee.id.equals(tIssue.assigneeId))
+                    .where(tIssue.id.equals(3))
+                    .select({ name: tAssignee.fullName }),
+            )
+            .forUseAsInlineAggregatedArrayValue()
+        const row = await ctx.conn.selectFromNoTable().select({ arr }).executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select a_1_.name as name from (select app_user.full_name as name from issue left join app_user on app_user.id = issue.assignee_id where issue.id = @0 union select app_user.full_name as name from issue left join app_user on app_user.id = issue.assignee_id where issue.id = @1) as a_1_ for json path) as arr"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            3,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            arr: Array<{ name?: string | undefined }>
+        }>>()
+        // The join-miss element is KEPT as `{}` with `name` ABSENT under default.
+        const sorted = [...row.arr].sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''))
+        expect(sorted).toEqual([{}, { name: 'Ada Lovelace' }])
+        const missElement = row.arr.find(e => !('name' in e))!
+        expect('name' in missElement).toBe(false)
+    })
+
 })

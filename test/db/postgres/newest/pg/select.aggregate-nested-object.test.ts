@@ -225,4 +225,90 @@ describe(ctx.label, () => {
         expect('body' in issue1.outer.mid).toBe(true)
         expect(issue1.outer.mid.body).toBe(null)
     })
+
+    // ---- PROJ pocket-3 aggregate-element depth-4 twins (round-44 T4) ----
+    // Residual of the depth-3 pair above, one level deeper: a DEPTH-4 nested object
+    // `outer.mid.inner.{...}` inside the aggregate element, under both projectors. The
+    // element projector must descend four levels; the required-leaf spine keeps every
+    // level required and the optional leaf under the nullable projector still surfaces
+    // present-null at the bottom.
+
+    test('aggregate-element-with-depth-4-nested-object-default', async () => {
+        // The aggregate element carries a DEPTH-4 nested object
+        // `outer.mid.inner.{title,num}` of all-required leaves. Every level stays
+        // required. Project 1 has issues 1, 2.
+        ctx.mockNext([{ pid: 1, issues: [
+            { iid: 1, outer: { mid: { inner: { title: 'Update hero copy', num: 1 } } } },
+            { iid: 2, outer: { mid: { inner: { title: 'Redesign navbar',  num: 2 } } } },
+        ] }])
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.projectId.equals(1))
+            .select({
+                pid:    tIssue.projectId,
+                issues: ctx.conn.aggregateAsArray({
+                    iid:   tIssue.id,
+                    outer: { mid: { inner: { title: tIssue.title, num: tIssue.number } } },
+                }),
+            })
+            .groupBy('pid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as pid, json_agg(json_build_object('iid', id, 'outer.mid.inner.title', title, 'outer.mid.inner.num', number)) as issues from issue where project_id = $1 group by project_id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            pid:    number
+            issues: Array<{ iid: number; outer: { mid: { inner: { title: string; num: number } } } }>
+        }>>>()
+        const sorted = rows.map(r => ({ ...r, issues: [...r.issues].sort((a, b) => a.iid - b.iid) }))
+        expect(sorted).toEqual([{ pid: 1, issues: [
+            { iid: 1, outer: { mid: { inner: { title: 'Update hero copy', num: 1 } } } },
+            { iid: 2, outer: { mid: { inner: { title: 'Redesign navbar',  num: 2 } } } },
+        ] }])
+    })
+
+    test('aggregate-element-with-depth-4-nested-object-as-nullable', async () => {
+        // The same DEPTH-4 nested object under projectingOptionalValuesAsNullable(),
+        // mixing a required leaf (`num`, keeps every level required) with an optional
+        // `body` leaf at the bottom. The optional `body` flips to `string | null`.
+        // Issue 1: body NULL → null; issue 2: body 'Use new tokens'.
+        ctx.mockNext([{ pid: 1, issues: [
+            { iid: 1, outer: { mid: { inner: { num: 1, body: null } } } },
+            { iid: 2, outer: { mid: { inner: { num: 2, body: 'Use new tokens' } } } },
+        ] }])
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.projectId.equals(1))
+            .select({
+                pid:    tIssue.projectId,
+                issues: ctx.conn.aggregateAsArray({
+                    iid:   tIssue.id,
+                    outer: { mid: { inner: { num: tIssue.number, body: tIssue.body } } },
+                }).projectingOptionalValuesAsNullable(),
+            })
+            .groupBy('pid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as pid, json_agg(json_build_object('iid', id, 'outer.mid.inner.num', number, 'outer.mid.inner.body', body)) as issues from issue where project_id = $1 group by project_id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            pid:    number
+            issues: Array<{ iid: number; outer: { mid: { inner: { num: number; body: string | null } } } }>
+        }>>>()
+        const sorted = rows.map(r => ({ ...r, issues: [...r.issues].sort((a, b) => a.iid - b.iid) }))
+        expect(sorted).toEqual([{ pid: 1, issues: [
+            { iid: 1, outer: { mid: { inner: { num: 1, body: null } } } },
+            { iid: 2, outer: { mid: { inner: { num: 2, body: 'Use new tokens' } } } },
+        ] }])
+        // Issue 1's null body is PRESENT-null at the bottom of the depth-4 object.
+        const issue1 = rows[0]!.issues.find(i => i.iid === 1)!
+        expect('body' in issue1.outer.mid.inner).toBe(true)
+        expect(issue1.outer.mid.inner.body).toBe(null)
+    })
 })

@@ -433,4 +433,561 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
+    // ---- VALVIEW per-kind dispatch fan-out (round-44 T4)
+    // A no-op TypeAdapter: read and write both delegate straight to `next`. It
+    // fires each kind's trailing-adapter overload without altering the bound
+    // param or the read value. The observable-transform adapter arms are already
+    // pinned above (scaledTenth / customBoolean / plusOffset / bracket), so these
+    // fan-out cells isolate the per-kind overload + adapter dispatch path alone.
+    const passthroughAdapter: TypeAdapter = {
+        transformValueFromDB(value, type, next) {
+            return next.transformValueFromDB(value, type)
+        },
+        transformValueToDB(value, type, next) {
+            return next.transformValueToDB(value, type)
+        },
+    }
+
+    test('values-tuple-required-column-per-remaining-kind-no-adapter', async () => {
+        // Required `column(kind)` (no adapter) for the base/custom kinds not yet a
+        // Values-tuple member: plain `string`, `customInt` ('Cents' -> int) and
+        // `customDouble` ('Money' -> double). Each emits its own cast in the tuple
+        // and round-trips unchanged.
+        class VReqSampler extends Values<DBConnection, 'reqSampler'> {
+            str   = this.column('string')
+            cents = this.column<number, 'Cents'>('customInt', 'Cents')
+            money = this.column<number, 'Money'>('customDouble', 'Money')
+        }
+        const row = { str: 'abc', cents: 12, money: 3.5 }
+        const expected = [row]
+        ctx.mockNext(expected)
+        const v = Values.create(VReqSampler, 'reqSampler', [row])
+        const rows = await ctx.conn.selectFrom(v)
+            .select({ str: v.str, cents: v.cents, money: v.money })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with reqSampler(str, cents, money) as (values (:0, :1, :2)) select str as "str", cents as "cents", money as "money" from reqSampler"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "abc",
+            12,
+            3.5,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ str: string; cents: number; money: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('values-tuple-required-column-per-kind-with-passthrough-adapter', async () => {
+        // The trailing-adapter arm `column(kind, adapter)` per required kind not yet
+        // exercised with an adapter — bigint/double/string plus custom kinds
+        // customDouble/customComparable/custom/enum. passthroughAdapter is inert, so
+        // the tuple casts + bound params match the no-adapter arm; this pins that
+        // each kind's adapter overload compiles and its adapter dispatch fires.
+        class VReqAdapterSampler extends Values<DBConnection, 'reqAdapterSampler'> {
+            big   = this.column('bigint', passthroughAdapter)
+            dbl   = this.column('double', passthroughAdapter)
+            str   = this.column('string', passthroughAdapter)
+            money = this.column<number, 'Money'>('customDouble', 'Money', passthroughAdapter)
+            ver   = this.column<string, 'Semver'>('customComparable', 'Semver', passthroughAdapter)
+            chan  = this.column<ReleaseChannel, 'ReleaseChannel'>('custom', 'ReleaseChannel', passthroughAdapter)
+            act   = this.column<WorklogActivity, 'WorklogActivity'>('enum', 'WorklogActivity', passthroughAdapter)
+        }
+        const row = { big: 100n, dbl: 2.5, str: 'abc', money: 3.5, ver: '1.2.0', chan: 'stable' as ReleaseChannel, act: 'coding' as WorklogActivity }
+        const expected = [row]
+        ctx.mockNext(expected)
+        const v = Values.create(VReqAdapterSampler, 'reqAdapterSampler', [row])
+        const rows = await ctx.conn.selectFrom(v)
+            .select({ big: v.big, dbl: v.dbl, str: v.str, money: v.money, ver: v.ver, chan: v.chan, act: v.act })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with reqAdapterSampler(big, dbl, str, money, ver, chan, act) as (values (:0, :1, :2, :3, :4, :5, :6)) select big as "big", dbl as "dbl", str as "str", money as "money", ver as "ver", chan as "chan", act as "act" from reqAdapterSampler"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            100n,
+            2.5,
+            "abc",
+            3.5,
+            "1.2.0",
+            "stable",
+            "coding",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ big: bigint; dbl: number; str: string; money: number; ver: string; chan: ReleaseChannel; act: WorklogActivity }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('values-tuple-required-uuid-and-custom-uuid-column-with-passthrough-adapter', async () => {
+        // The trailing-adapter arm of `column('uuid' | 'customUuid', …, adapter)`.
+        // passthroughAdapter is inert; uuids are compared case-insensitively because
+        // some engines normalise the case on read.
+        class VReqAdapterUuidSampler extends Values<DBConnection, 'reqAdapterUuidSampler'> {
+            ref     = this.column('uuid', passthroughAdapter)
+            signing = this.column<string, 'SigningKey'>('customUuid', 'SigningKey', passthroughAdapter)
+        }
+        const ref     = '0a8f9c1e-1111-4222-8333-444455556666'
+        const signing = '11111111-2222-4333-8444-555566667777'
+        ctx.mockNext([{ ref, signing }])
+        const v = Values.create(VReqAdapterUuidSampler, 'reqAdapterUuidSampler', [{ ref, signing }])
+        const rows = await ctx.conn.selectFrom(v)
+            .select({ ref: v.ref, signing: v.signing })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with reqAdapterUuidSampler("ref", signing) as (values (uuid_to_raw(:0), uuid_to_raw(:1))) select raw_to_uuid("ref") as "ref", raw_to_uuid(signing) as "signing" from reqAdapterUuidSampler"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "0a8f9c1e-1111-4222-8333-444455556666",
+            "11111111-2222-4333-8444-555566667777",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ ref: string; signing: string }>>>()
+        expect(rows.map((r) => ({ ref: r.ref.toLowerCase(), signing: r.signing.toLowerCase() })))
+            .toEqual([{ ref, signing }])
+    })
+
+    test('values-tuple-optional-column-per-kind-no-adapter', async () => {
+        // `optionalColumn(kind)` (no adapter) per kind not yet an optional
+        // Values-tuple member: boolean/int/bigint/double/string plus custom kinds
+        // customInt/customDouble/customComparable/custom/enum. Every leaf is
+        // optional, so the projected object is all-optional (`?: T | undefined`);
+        // present values round-trip.
+        class VOptSampler extends Values<DBConnection, 'optSampler'> {
+            flag  = this.optionalColumn('boolean')
+            n     = this.optionalColumn('int')
+            big   = this.optionalColumn('bigint')
+            dbl   = this.optionalColumn('double')
+            str   = this.optionalColumn('string')
+            cents = this.optionalColumn<number, 'Cents'>('customInt', 'Cents')
+            money = this.optionalColumn<number, 'Money'>('customDouble', 'Money')
+            ver   = this.optionalColumn<string, 'Semver'>('customComparable', 'Semver')
+            chan  = this.optionalColumn<ReleaseChannel, 'ReleaseChannel'>('custom', 'ReleaseChannel')
+            act   = this.optionalColumn<WorklogActivity, 'WorklogActivity'>('enum', 'WorklogActivity')
+        }
+        const row = { flag: true, n: 7, big: 100n, dbl: 2.5, str: 'abc', cents: 12, money: 3.5, ver: '1.2.0', chan: 'stable' as ReleaseChannel, act: 'coding' as WorklogActivity }
+        const expected = [row]
+        ctx.mockNext(expected)
+        const v = Values.create(VOptSampler, 'optSampler', [row])
+        const rows = await ctx.conn.selectFrom(v)
+            .select({ flag: v.flag, n: v.n, big: v.big, dbl: v.dbl, str: v.str, cents: v.cents, money: v.money, ver: v.ver, chan: v.chan, act: v.act })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with optSampler(flag, "n", big, dbl, str, cents, money, ver, chan, act) as (values (:0, :1, :2, :3, :4, :5, :6, :7, :8, :9)) select flag as "flag", "n" as "n", big as "big", dbl as "dbl", str as "str", cents as "cents", money as "money", ver as "ver", chan as "chan", act as "act" from optSampler"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            7,
+            100n,
+            2.5,
+            "abc",
+            12,
+            3.5,
+            "1.2.0",
+            "stable",
+            "coding",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ flag?: boolean | undefined; n?: number | undefined; big?: bigint | undefined; dbl?: number | undefined; str?: string | undefined; cents?: number | undefined; money?: number | undefined; ver?: string | undefined; chan?: ReleaseChannel | undefined; act?: WorklogActivity | undefined }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('values-tuple-optional-uuid-and-custom-uuid-column-no-adapter', async () => {
+        // `optionalColumn('uuid')` / `optionalColumn('customUuid', 'SigningKey')`.
+        // All-optional object (`?: T | undefined`); present values round-trip,
+        // compared case-insensitively.
+        class VOptUuidSampler extends Values<DBConnection, 'optUuidSampler'> {
+            ref     = this.optionalColumn('uuid')
+            signing = this.optionalColumn<string, 'SigningKey'>('customUuid', 'SigningKey')
+        }
+        const ref     = '0a8f9c1e-1111-4222-8333-444455556666'
+        const signing = '11111111-2222-4333-8444-555566667777'
+        ctx.mockNext([{ ref, signing }])
+        const v = Values.create(VOptUuidSampler, 'optUuidSampler', [{ ref, signing }])
+        const rows = await ctx.conn.selectFrom(v)
+            .select({ ref: v.ref, signing: v.signing })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with optUuidSampler("ref", signing) as (values (uuid_to_raw(:0), uuid_to_raw(:1))) select raw_to_uuid("ref") as "ref", raw_to_uuid(signing) as "signing" from optUuidSampler"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "0a8f9c1e-1111-4222-8333-444455556666",
+            "11111111-2222-4333-8444-555566667777",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ ref?: string | undefined; signing?: string | undefined }>>>()
+        expect(rows.map((r) => ({ ref: r.ref?.toLowerCase(), signing: r.signing?.toLowerCase() })))
+            .toEqual([{ ref, signing }])
+    })
+
+    test('values-tuple-optional-column-per-kind-with-passthrough-adapter', async () => {
+        // The optional trailing-adapter arm `optionalColumn(kind, adapter)` per kind
+        // — boolean/bigint/double/string + customDouble/customComparable/custom/enum.
+        // passthroughAdapter is inert; all-optional object; present values round-trip.
+        class VOptAdapterSampler extends Values<DBConnection, 'optAdapterSampler'> {
+            flag  = this.optionalColumn('boolean', passthroughAdapter)
+            big   = this.optionalColumn('bigint', passthroughAdapter)
+            dbl   = this.optionalColumn('double', passthroughAdapter)
+            str   = this.optionalColumn('string', passthroughAdapter)
+            money = this.optionalColumn<number, 'Money'>('customDouble', 'Money', passthroughAdapter)
+            ver   = this.optionalColumn<string, 'Semver'>('customComparable', 'Semver', passthroughAdapter)
+            chan  = this.optionalColumn<ReleaseChannel, 'ReleaseChannel'>('custom', 'ReleaseChannel', passthroughAdapter)
+            act   = this.optionalColumn<WorklogActivity, 'WorklogActivity'>('enum', 'WorklogActivity', passthroughAdapter)
+        }
+        const row = { flag: true, big: 100n, dbl: 2.5, str: 'abc', money: 3.5, ver: '1.2.0', chan: 'stable' as ReleaseChannel, act: 'coding' as WorklogActivity }
+        const expected = [row]
+        ctx.mockNext(expected)
+        const v = Values.create(VOptAdapterSampler, 'optAdapterSampler', [row])
+        const rows = await ctx.conn.selectFrom(v)
+            .select({ flag: v.flag, big: v.big, dbl: v.dbl, str: v.str, money: v.money, ver: v.ver, chan: v.chan, act: v.act })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with optAdapterSampler(flag, big, dbl, str, money, ver, chan, act) as (values (:0, :1, :2, :3, :4, :5, :6, :7)) select flag as "flag", big as "big", dbl as "dbl", str as "str", money as "money", ver as "ver", chan as "chan", act as "act" from optAdapterSampler"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            100n,
+            2.5,
+            "abc",
+            3.5,
+            "1.2.0",
+            "stable",
+            "coding",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ flag?: boolean | undefined; big?: bigint | undefined; dbl?: number | undefined; str?: string | undefined; money?: number | undefined; ver?: string | undefined; chan?: ReleaseChannel | undefined; act?: WorklogActivity | undefined }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('values-tuple-optional-uuid-and-custom-uuid-column-with-passthrough-adapter', async () => {
+        // The optional uuid / customUuid trailing-adapter arm. passthroughAdapter is
+        // inert; all-optional object; present values round-trip case-insensitively.
+        class VOptAdapterUuidSampler extends Values<DBConnection, 'optAdapterUuidSampler'> {
+            ref     = this.optionalColumn('uuid', passthroughAdapter)
+            signing = this.optionalColumn<string, 'SigningKey'>('customUuid', 'SigningKey', passthroughAdapter)
+        }
+        const ref     = '0a8f9c1e-1111-4222-8333-444455556666'
+        const signing = '11111111-2222-4333-8444-555566667777'
+        ctx.mockNext([{ ref, signing }])
+        const v = Values.create(VOptAdapterUuidSampler, 'optAdapterUuidSampler', [{ ref, signing }])
+        const rows = await ctx.conn.selectFrom(v)
+            .select({ ref: v.ref, signing: v.signing })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with optAdapterUuidSampler("ref", signing) as (values (uuid_to_raw(:0), uuid_to_raw(:1))) select raw_to_uuid("ref") as "ref", raw_to_uuid(signing) as "signing" from optAdapterUuidSampler"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "0a8f9c1e-1111-4222-8333-444455556666",
+            "11111111-2222-4333-8444-555566667777",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ ref?: string | undefined; signing?: string | undefined }>>>()
+        expect(rows.map((r) => ({ ref: r.ref?.toLowerCase(), signing: r.signing?.toLowerCase() })))
+            .toEqual([{ ref, signing }])
+    })
+
+    test('values-tuple-required-virtual-column-from-fragment-per-kind', async () => {
+        // Required `virtualColumnFromFragment(kind, fn)` per kind not yet a
+        // Values-view virtual column — boolean/int + custom kinds customInt/
+        // customDouble/customComparable/custom/enum. Each computes a const fragment
+        // in the outer SELECT (not a tuple member); the anchor `n` keeps the object
+        // non-empty. Pins the projected type + value per kind.
+        class VVReqSampler extends Values<DBConnection, 'vvReqSampler'> {
+            n      = this.column('int')
+            vint   = this.virtualColumnFromFragment('int', (f) => f.sql`${ctx.conn.const(42, 'int')}`)
+            vcents = this.virtualColumnFromFragment<number, 'Cents'>('customInt', 'Cents', (f) => f.sql`${ctx.conn.const<number, 'Cents'>(12, 'customInt', 'Cents')}`)
+            vmoney = this.virtualColumnFromFragment<number, 'Money'>('customDouble', 'Money', (f) => f.sql`${ctx.conn.const<number, 'Money'>(3.5, 'customDouble', 'Money')}`)
+            vver   = this.virtualColumnFromFragment<string, 'Semver'>('customComparable', 'Semver', (f) => f.sql`${ctx.conn.const<string, 'Semver'>('1.2.0', 'customComparable', 'Semver')}`)
+            vchan  = this.virtualColumnFromFragment<ReleaseChannel, 'ReleaseChannel'>('custom', 'ReleaseChannel', (f) => f.sql`${ctx.conn.const<ReleaseChannel, 'ReleaseChannel'>('stable', 'custom', 'ReleaseChannel')}`)
+            vact   = this.virtualColumnFromFragment<WorklogActivity, 'WorklogActivity'>('enum', 'WorklogActivity', (f) => f.sql`${ctx.conn.const<WorklogActivity, 'WorklogActivity'>('coding', 'enum', 'WorklogActivity')}`)
+        }
+        const expected = [{ n: 7, vint: 42, vcents: 12, vmoney: 3.5, vver: '1.2.0', vchan: 'stable' as ReleaseChannel, vact: 'coding' as WorklogActivity }]
+        ctx.mockNext(expected)
+        const v = Values.create(VVReqSampler, 'vvReqSampler', [{ n: 7 }])
+        const rows = await ctx.conn.selectFrom(v)
+            .select({ n: v.n, vint: v.vint, vcents: v.vcents, vmoney: v.vmoney, vver: v.vver, vchan: v.vchan, vact: v.vact })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with vvReqSampler("n") as (values (:0)) select "n" as "n", :1 as "vint", :2 as "vcents", :3 as "vmoney", :4 as "vver", :5 as "vchan", :6 as "vact" from vvReqSampler"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            7,
+            42,
+            12,
+            3.5,
+            "1.2.0",
+            "stable",
+            "coding",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ n: number; vint: number; vcents: number; vmoney: number; vver: string; vchan: ReleaseChannel; vact: WorklogActivity }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('values-tuple-required-virtual-uuid-and-custom-uuid-column-from-fragment', async () => {
+        // Required uuid / customUuid virtual columns computed from a const fragment.
+        // Compared case-insensitively.
+        const uuidRef  = '0a8f9c1e-1111-4222-8333-444455556666'
+        const uuidSign = '11111111-2222-4333-8444-555566667777'
+        class VVReqUuidSampler extends Values<DBConnection, 'vvReqUuidSampler'> {
+            n        = this.column('int')
+            vref     = this.virtualColumnFromFragment('uuid', (f) => f.sql`${ctx.conn.const(uuidRef, 'uuid')}`)
+            vsigning = this.virtualColumnFromFragment<string, 'SigningKey'>('customUuid', 'SigningKey', (f) => f.sql`${ctx.conn.const<string, 'SigningKey'>(uuidSign, 'customUuid', 'SigningKey')}`)
+        }
+        ctx.mockNext([{ n: 7, vref: uuidRef, vsigning: uuidSign }])
+        const v = Values.create(VVReqUuidSampler, 'vvReqUuidSampler', [{ n: 7 }])
+        const rows = await ctx.conn.selectFrom(v)
+            .select({ n: v.n, vref: v.vref, vsigning: v.vsigning })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with vvReqUuidSampler("n") as (values (:0)) select "n" as "n", raw_to_uuid(uuid_to_raw(:1)) as "vref", raw_to_uuid(uuid_to_raw(:2)) as "vsigning" from vvReqUuidSampler"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            7,
+            "0a8f9c1e-1111-4222-8333-444455556666",
+            "11111111-2222-4333-8444-555566667777",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ n: number; vref: string; vsigning: string }>>>()
+        expect(rows.map((r) => ({ n: r.n, vref: r.vref.toLowerCase(), vsigning: r.vsigning.toLowerCase() })))
+            .toEqual([{ n: 7, vref: uuidRef, vsigning: uuidSign }])
+    })
+
+    test('values-tuple-optional-virtual-column-from-fragment-per-kind', async () => {
+        // Optional `optionalVirtualColumnFromFragment(kind, fn)` per kind —
+        // boolean/int/bigint + custom kinds customInt/customDouble/customComparable/
+        // custom/enum. The anchor `n` is required, so optional leaves project as
+        // `?: T` (no `| undefined`); present const values round-trip.
+        class VVOptSampler extends Values<DBConnection, 'vvOptSampler'> {
+            n      = this.column('int')
+            vint   = this.optionalVirtualColumnFromFragment('int', (f) => f.sql`${ctx.conn.optionalConst(42, 'int')}`)
+            vbig   = this.optionalVirtualColumnFromFragment('bigint', (f) => f.sql`${ctx.conn.optionalConst(100n, 'bigint')}`)
+            vcents = this.optionalVirtualColumnFromFragment<number, 'Cents'>('customInt', 'Cents', (f) => f.sql`${ctx.conn.optionalConst<number, 'Cents'>(12, 'customInt', 'Cents')}`)
+            vmoney = this.optionalVirtualColumnFromFragment<number, 'Money'>('customDouble', 'Money', (f) => f.sql`${ctx.conn.optionalConst<number, 'Money'>(3.5, 'customDouble', 'Money')}`)
+            vver   = this.optionalVirtualColumnFromFragment<string, 'Semver'>('customComparable', 'Semver', (f) => f.sql`${ctx.conn.optionalConst<string, 'Semver'>('1.2.0', 'customComparable', 'Semver')}`)
+            vchan  = this.optionalVirtualColumnFromFragment<ReleaseChannel, 'ReleaseChannel'>('custom', 'ReleaseChannel', (f) => f.sql`${ctx.conn.optionalConst<ReleaseChannel, 'ReleaseChannel'>('stable', 'custom', 'ReleaseChannel')}`)
+            vact   = this.optionalVirtualColumnFromFragment<WorklogActivity, 'WorklogActivity'>('enum', 'WorklogActivity', (f) => f.sql`${ctx.conn.optionalConst<WorklogActivity, 'WorklogActivity'>('coding', 'enum', 'WorklogActivity')}`)
+        }
+        const expected = [{ n: 7, vint: 42, vbig: 100n, vcents: 12, vmoney: 3.5, vver: '1.2.0', vchan: 'stable' as ReleaseChannel, vact: 'coding' as WorklogActivity }]
+        ctx.mockNext(expected)
+        const v = Values.create(VVOptSampler, 'vvOptSampler', [{ n: 7 }])
+        const rows = await ctx.conn.selectFrom(v)
+            .select({ n: v.n, vint: v.vint, vbig: v.vbig, vcents: v.vcents, vmoney: v.vmoney, vver: v.vver, vchan: v.vchan, vact: v.vact })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with vvOptSampler("n") as (values (:0)) select "n" as "n", :1 as "vint", :2 as "vbig", :3 as "vcents", :4 as "vmoney", :5 as "vver", :6 as "vchan", :7 as "vact" from vvOptSampler"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            7,
+            42,
+            100n,
+            12,
+            3.5,
+            "1.2.0",
+            "stable",
+            "coding",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ n: number; vint?: number; vbig?: bigint; vcents?: number; vmoney?: number; vver?: string; vchan?: ReleaseChannel; vact?: WorklogActivity }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('values-tuple-optional-virtual-uuid-and-custom-uuid-column-from-fragment', async () => {
+        // Optional uuid / customUuid virtual columns computed from a const fragment.
+        // Anchor `n` required, so leaves project `?: string`. Compared case-insensitively.
+        const uuidRef  = '0a8f9c1e-1111-4222-8333-444455556666'
+        const uuidSign = '11111111-2222-4333-8444-555566667777'
+        class VVOptUuidSampler extends Values<DBConnection, 'vvOptUuidSampler'> {
+            n        = this.column('int')
+            vref     = this.optionalVirtualColumnFromFragment('uuid', (f) => f.sql`${ctx.conn.optionalConst(uuidRef, 'uuid')}`)
+            vsigning = this.optionalVirtualColumnFromFragment<string, 'SigningKey'>('customUuid', 'SigningKey', (f) => f.sql`${ctx.conn.optionalConst<string, 'SigningKey'>(uuidSign, 'customUuid', 'SigningKey')}`)
+        }
+        ctx.mockNext([{ n: 7, vref: uuidRef, vsigning: uuidSign }])
+        const v = Values.create(VVOptUuidSampler, 'vvOptUuidSampler', [{ n: 7 }])
+        const rows = await ctx.conn.selectFrom(v)
+            .select({ n: v.n, vref: v.vref, vsigning: v.vsigning })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with vvOptUuidSampler("n") as (values (:0)) select "n" as "n", raw_to_uuid(uuid_to_raw(:1)) as "vref", raw_to_uuid(uuid_to_raw(:2)) as "vsigning" from vvOptUuidSampler"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            7,
+            "0a8f9c1e-1111-4222-8333-444455556666",
+            "11111111-2222-4333-8444-555566667777",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ n: number; vref?: string; vsigning?: string }>>>()
+        expect(rows.map((r) => ({ n: r.n, vref: r.vref?.toLowerCase(), vsigning: r.vsigning?.toLowerCase() })))
+            .toEqual([{ n: 7, vref: uuidRef, vsigning: uuidSign }])
+    })
+
+    test('values-tuple-optional-virtual-temporal-column-from-fragment-via-null-value', async () => {
+        // Optional virtual temporal columns (localDate / localTime / localDateTime)
+        // computed from a null optionalConst: a Date does not round-trip identically
+        // through the per-dialect cast, so each is supplied null and reads back
+        // absent. Required-temporal and custom-temporal virtual columns are omitted
+        // for the same round-trip reason (see the tuple temporal tests above).
+        class VVTemporalSampler extends Values<DBConnection, 'vvTemporalSampler'> {
+            n   = this.column('int')
+            vd  = this.optionalVirtualColumnFromFragment('localDate', (f) => f.sql`${ctx.conn.optionalConst(null, 'localDate')}`)
+            vt  = this.optionalVirtualColumnFromFragment('localTime', (f) => f.sql`${ctx.conn.optionalConst(null, 'localTime')}`)
+            vts = this.optionalVirtualColumnFromFragment('localDateTime', (f) => f.sql`${ctx.conn.optionalConst(null, 'localDateTime')}`)
+        }
+        ctx.mockNext([{ n: 7, vd: null, vt: null, vts: null }])
+        const v = Values.create(VVTemporalSampler, 'vvTemporalSampler', [{ n: 7 }])
+        const rows = await ctx.conn.selectFrom(v)
+            .select({ n: v.n, vd: v.vd, vt: v.vt, vts: v.vts })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with vvTemporalSampler("n") as (values (:0)) select "n" as "n", :1 as "vd", :2 as "vt", :3 as "vts" from vvTemporalSampler"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            7,
+            null,
+            null,
+            null,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ n: number; vd?: Date; vt?: Date; vts?: Date }>>>()
+        expect(rows).toEqual([{ n: 7 }])
+    })
+
+    test('values-tuple-required-virtual-column-from-fragment-per-kind-with-passthrough-adapter', async () => {
+        // The required virtual-column trailing-adapter arm per kind (mirror of the
+        // no-adapter required-virtual test with an inert passthroughAdapter): fires
+        // each kind's `virtualColumnFromFragment(…, adapter)` overload. SQL/params/
+        // values match the no-adapter arm.
+        class VVReqAdapterSampler extends Values<DBConnection, 'vvReqAdapterSampler'> {
+            n      = this.column('int')
+            vint   = this.virtualColumnFromFragment('int', (f) => f.sql`${ctx.conn.const(42, 'int')}`, passthroughAdapter)
+            vcents = this.virtualColumnFromFragment<number, 'Cents'>('customInt', 'Cents', (f) => f.sql`${ctx.conn.const<number, 'Cents'>(12, 'customInt', 'Cents')}`, passthroughAdapter)
+            vmoney = this.virtualColumnFromFragment<number, 'Money'>('customDouble', 'Money', (f) => f.sql`${ctx.conn.const<number, 'Money'>(3.5, 'customDouble', 'Money')}`, passthroughAdapter)
+            vver   = this.virtualColumnFromFragment<string, 'Semver'>('customComparable', 'Semver', (f) => f.sql`${ctx.conn.const<string, 'Semver'>('1.2.0', 'customComparable', 'Semver')}`, passthroughAdapter)
+            vchan  = this.virtualColumnFromFragment<ReleaseChannel, 'ReleaseChannel'>('custom', 'ReleaseChannel', (f) => f.sql`${ctx.conn.const<ReleaseChannel, 'ReleaseChannel'>('stable', 'custom', 'ReleaseChannel')}`, passthroughAdapter)
+            vact   = this.virtualColumnFromFragment<WorklogActivity, 'WorklogActivity'>('enum', 'WorklogActivity', (f) => f.sql`${ctx.conn.const<WorklogActivity, 'WorklogActivity'>('coding', 'enum', 'WorklogActivity')}`, passthroughAdapter)
+        }
+        const expected = [{ n: 7, vint: 42, vcents: 12, vmoney: 3.5, vver: '1.2.0', vchan: 'stable' as ReleaseChannel, vact: 'coding' as WorklogActivity }]
+        ctx.mockNext(expected)
+        const v = Values.create(VVReqAdapterSampler, 'vvReqAdapterSampler', [{ n: 7 }])
+        const rows = await ctx.conn.selectFrom(v)
+            .select({ n: v.n, vint: v.vint, vcents: v.vcents, vmoney: v.vmoney, vver: v.vver, vchan: v.vchan, vact: v.vact })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with vvReqAdapterSampler("n") as (values (:0)) select "n" as "n", :1 as "vint", :2 as "vcents", :3 as "vmoney", :4 as "vver", :5 as "vchan", :6 as "vact" from vvReqAdapterSampler"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            7,
+            42,
+            12,
+            3.5,
+            "1.2.0",
+            "stable",
+            "coding",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ n: number; vint: number; vcents: number; vmoney: number; vver: string; vchan: ReleaseChannel; vact: WorklogActivity }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('values-tuple-required-virtual-uuid-and-custom-uuid-column-from-fragment-with-passthrough-adapter', async () => {
+        // Required uuid / customUuid virtual columns with an inert passthroughAdapter.
+        const uuidRef  = '0a8f9c1e-1111-4222-8333-444455556666'
+        const uuidSign = '11111111-2222-4333-8444-555566667777'
+        class VVReqAdapterUuidSampler extends Values<DBConnection, 'vvReqAdapterUuidSampler'> {
+            n        = this.column('int')
+            vref     = this.virtualColumnFromFragment('uuid', (f) => f.sql`${ctx.conn.const(uuidRef, 'uuid')}`, passthroughAdapter)
+            vsigning = this.virtualColumnFromFragment<string, 'SigningKey'>('customUuid', 'SigningKey', (f) => f.sql`${ctx.conn.const<string, 'SigningKey'>(uuidSign, 'customUuid', 'SigningKey')}`, passthroughAdapter)
+        }
+        ctx.mockNext([{ n: 7, vref: uuidRef, vsigning: uuidSign }])
+        const v = Values.create(VVReqAdapterUuidSampler, 'vvReqAdapterUuidSampler', [{ n: 7 }])
+        const rows = await ctx.conn.selectFrom(v)
+            .select({ n: v.n, vref: v.vref, vsigning: v.vsigning })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with vvReqAdapterUuidSampler("n") as (values (:0)) select "n" as "n", raw_to_uuid(uuid_to_raw(:1)) as "vref", raw_to_uuid(uuid_to_raw(:2)) as "vsigning" from vvReqAdapterUuidSampler"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            7,
+            "0a8f9c1e-1111-4222-8333-444455556666",
+            "11111111-2222-4333-8444-555566667777",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ n: number; vref: string; vsigning: string }>>>()
+        expect(rows.map((r) => ({ n: r.n, vref: r.vref.toLowerCase(), vsigning: r.vsigning.toLowerCase() })))
+            .toEqual([{ n: 7, vref: uuidRef, vsigning: uuidSign }])
+    })
+
+    test('values-tuple-optional-virtual-column-from-fragment-per-kind-with-passthrough-adapter', async () => {
+        // The optional virtual-column trailing-adapter arm per kind (mirror of the
+        // no-adapter optional-virtual test with an inert passthroughAdapter).
+        class VVOptAdapterSampler extends Values<DBConnection, 'vvOptAdapterSampler'> {
+            n      = this.column('int')
+            vint   = this.optionalVirtualColumnFromFragment('int', (f) => f.sql`${ctx.conn.optionalConst(42, 'int')}`, passthroughAdapter)
+            vbig   = this.optionalVirtualColumnFromFragment('bigint', (f) => f.sql`${ctx.conn.optionalConst(100n, 'bigint')}`, passthroughAdapter)
+            vcents = this.optionalVirtualColumnFromFragment<number, 'Cents'>('customInt', 'Cents', (f) => f.sql`${ctx.conn.optionalConst<number, 'Cents'>(12, 'customInt', 'Cents')}`, passthroughAdapter)
+            vmoney = this.optionalVirtualColumnFromFragment<number, 'Money'>('customDouble', 'Money', (f) => f.sql`${ctx.conn.optionalConst<number, 'Money'>(3.5, 'customDouble', 'Money')}`, passthroughAdapter)
+            vver   = this.optionalVirtualColumnFromFragment<string, 'Semver'>('customComparable', 'Semver', (f) => f.sql`${ctx.conn.optionalConst<string, 'Semver'>('1.2.0', 'customComparable', 'Semver')}`, passthroughAdapter)
+            vchan  = this.optionalVirtualColumnFromFragment<ReleaseChannel, 'ReleaseChannel'>('custom', 'ReleaseChannel', (f) => f.sql`${ctx.conn.optionalConst<ReleaseChannel, 'ReleaseChannel'>('stable', 'custom', 'ReleaseChannel')}`, passthroughAdapter)
+            vact   = this.optionalVirtualColumnFromFragment<WorklogActivity, 'WorklogActivity'>('enum', 'WorklogActivity', (f) => f.sql`${ctx.conn.optionalConst<WorklogActivity, 'WorklogActivity'>('coding', 'enum', 'WorklogActivity')}`, passthroughAdapter)
+        }
+        const expected = [{ n: 7, vint: 42, vbig: 100n, vcents: 12, vmoney: 3.5, vver: '1.2.0', vchan: 'stable' as ReleaseChannel, vact: 'coding' as WorklogActivity }]
+        ctx.mockNext(expected)
+        const v = Values.create(VVOptAdapterSampler, 'vvOptAdapterSampler', [{ n: 7 }])
+        const rows = await ctx.conn.selectFrom(v)
+            .select({ n: v.n, vint: v.vint, vbig: v.vbig, vcents: v.vcents, vmoney: v.vmoney, vver: v.vver, vchan: v.vchan, vact: v.vact })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with vvOptAdapterSampler("n") as (values (:0)) select "n" as "n", :1 as "vint", :2 as "vbig", :3 as "vcents", :4 as "vmoney", :5 as "vver", :6 as "vchan", :7 as "vact" from vvOptAdapterSampler"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            7,
+            42,
+            100n,
+            12,
+            3.5,
+            "1.2.0",
+            "stable",
+            "coding",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ n: number; vint?: number; vbig?: bigint; vcents?: number; vmoney?: number; vver?: string; vchan?: ReleaseChannel; vact?: WorklogActivity }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('values-tuple-optional-virtual-uuid-and-custom-uuid-column-from-fragment-with-passthrough-adapter', async () => {
+        // Optional uuid / customUuid virtual columns with an inert passthroughAdapter.
+        const uuidRef  = '0a8f9c1e-1111-4222-8333-444455556666'
+        const uuidSign = '11111111-2222-4333-8444-555566667777'
+        class VVOptAdapterUuidSampler extends Values<DBConnection, 'vvOptAdapterUuidSampler'> {
+            n        = this.column('int')
+            vref     = this.optionalVirtualColumnFromFragment('uuid', (f) => f.sql`${ctx.conn.optionalConst(uuidRef, 'uuid')}`, passthroughAdapter)
+            vsigning = this.optionalVirtualColumnFromFragment<string, 'SigningKey'>('customUuid', 'SigningKey', (f) => f.sql`${ctx.conn.optionalConst<string, 'SigningKey'>(uuidSign, 'customUuid', 'SigningKey')}`, passthroughAdapter)
+        }
+        ctx.mockNext([{ n: 7, vref: uuidRef, vsigning: uuidSign }])
+        const v = Values.create(VVOptAdapterUuidSampler, 'vvOptAdapterUuidSampler', [{ n: 7 }])
+        const rows = await ctx.conn.selectFrom(v)
+            .select({ n: v.n, vref: v.vref, vsigning: v.vsigning })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with vvOptAdapterUuidSampler("n") as (values (:0)) select "n" as "n", raw_to_uuid(uuid_to_raw(:1)) as "vref", raw_to_uuid(uuid_to_raw(:2)) as "vsigning" from vvOptAdapterUuidSampler"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            7,
+            "0a8f9c1e-1111-4222-8333-444455556666",
+            "11111111-2222-4333-8444-555566667777",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ n: number; vref?: string; vsigning?: string }>>>()
+        expect(rows.map((r) => ({ n: r.n, vref: r.vref?.toLowerCase(), vsigning: r.vsigning?.toLowerCase() })))
+            .toEqual([{ n: 7, vref: uuidRef, vsigning: uuidSign }])
+    })
+
+    test('values-tuple-optional-virtual-temporal-column-from-fragment-with-passthrough-adapter-via-null-value', async () => {
+        // Optional virtual temporal columns with an inert passthroughAdapter, each
+        // supplied null (Date round-trip caveat as above); reads back absent.
+        class VVTemporalAdapterSampler extends Values<DBConnection, 'vvTemporalAdapterSampler'> {
+            n   = this.column('int')
+            vd  = this.optionalVirtualColumnFromFragment('localDate', (f) => f.sql`${ctx.conn.optionalConst(null, 'localDate')}`, passthroughAdapter)
+            vt  = this.optionalVirtualColumnFromFragment('localTime', (f) => f.sql`${ctx.conn.optionalConst(null, 'localTime')}`, passthroughAdapter)
+            vts = this.optionalVirtualColumnFromFragment('localDateTime', (f) => f.sql`${ctx.conn.optionalConst(null, 'localDateTime')}`, passthroughAdapter)
+        }
+        ctx.mockNext([{ n: 7, vd: null, vt: null, vts: null }])
+        const v = Values.create(VVTemporalAdapterSampler, 'vvTemporalAdapterSampler', [{ n: 7 }])
+        const rows = await ctx.conn.selectFrom(v)
+            .select({ n: v.n, vd: v.vd, vt: v.vt, vts: v.vts })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with vvTemporalAdapterSampler("n") as (values (:0)) select "n" as "n", :1 as "vd", :2 as "vt", :3 as "vts" from vvTemporalAdapterSampler"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            7,
+            null,
+            null,
+            null,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ n: number; vd?: Date; vt?: Date; vts?: Date }>>>()
+        expect(rows).toEqual([{ n: 7 }])
+    })
 })

@@ -313,4 +313,128 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ id: number }>>>()
         expect(result).toEqual([{ id: 1 }])
     })
+
+    // ---- CONN B6 rawFragment plain-value-source interpolation arity (round-44 T4)
+    // The embedded-SELECT tests above exercise the `__params` forwarder over
+    // `IExecutableSelectQuery` entries. These drive the SAME forwarder loop over
+    // PLAIN value-source (`const`) entries — a distinct `__params` element type —
+    // at interpolation arities 1/2/3/4/6, each spliced as extra projections via a
+    // `beforeColumns` hook so the bound placeholders sit in real SQL and the real
+    // DB cell executes them. The extra raw projections are not part of the typed
+    // result — the mapper picks only `id`.
+    test('rawfragment-plain-const-interpolation-arity-1', async () => {
+        ctx.mockNext([{ id: 1 }])
+        const connection = ctx.conn
+        const result = await connection.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ id: tProject.id })
+            .customizeQuery({
+                beforeColumns: connection.rawFragment`(${connection.const(10, 'int')}) as "a1", `,
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ($1) as "a1",  id as id from project where id = $2"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            10,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+        expect(result).toEqual([{ id: 1 }])
+    })
+
+    test('rawfragment-plain-const-interpolation-arity-2', async () => {
+        ctx.mockNext([{ id: 1 }])
+        const connection = ctx.conn
+        const result = await connection.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ id: tProject.id })
+            .customizeQuery({
+                beforeColumns: connection.rawFragment`(${connection.const(10, 'int')}) as "a1", (${connection.const(20, 'int')}) as "a2", `,
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ($1) as "a1", ($2) as "a2",  id as id from project where id = $3"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            10,
+            20,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+        expect(result).toEqual([{ id: 1 }])
+    })
+
+    test('rawfragment-plain-const-interpolation-arity-3', async () => {
+        ctx.mockNext([{ id: 1 }])
+        const connection = ctx.conn
+        const result = await connection.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ id: tProject.id })
+            .customizeQuery({
+                beforeColumns: connection.rawFragment`(${connection.const(10, 'int')}) as "a1", (${connection.const(20, 'int')}) as "a2", (${connection.const(30, 'int')}) as "a3", `,
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ($1) as "a1", ($2) as "a2", ($3) as "a3",  id as id from project where id = $4"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            10,
+            20,
+            30,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+        expect(result).toEqual([{ id: 1 }])
+    })
+
+    test('rawfragment-plain-const-interpolation-arity-4', async () => {
+        ctx.mockNext([{ id: 1 }])
+        const connection = ctx.conn
+        const result = await connection.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ id: tProject.id })
+            .customizeQuery({
+                beforeColumns: connection.rawFragment`(${connection.const(10, 'int')}) as "a1", (${connection.const(20, 'int')}) as "a2", (${connection.const(30, 'int')}) as "a3", (${connection.const(40, 'int')}) as "a4", `,
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ($1) as "a1", ($2) as "a2", ($3) as "a3", ($4) as "a4",  id as id from project where id = $5"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            10,
+            20,
+            30,
+            40,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+        expect(result).toEqual([{ id: 1 }])
+    })
+
+    test('rawfragment-plain-const-interpolation-arity-6', async () => {
+        ctx.mockNext([{ id: 1 }])
+        const connection = ctx.conn
+        const result = await connection.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ id: tProject.id })
+            .customizeQuery({
+                beforeColumns: connection.rawFragment`(${connection.const(10, 'int')}) as "a1", (${connection.const(20, 'int')}) as "a2", (${connection.const(30, 'int')}) as "a3", (${connection.const(40, 'int')}) as "a4", (${connection.const(50, 'int')}) as "a5", (${connection.const(60, 'int')}) as "a6", `,
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ($1) as "a1", ($2) as "a2", ($3) as "a3", ($4) as "a4", ($5) as "a5", ($6) as "a6",  id as id from project where id = $7"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            10,
+            20,
+            30,
+            40,
+            50,
+            60,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+        expect(result).toEqual([{ id: 1 }])
+    })
 })

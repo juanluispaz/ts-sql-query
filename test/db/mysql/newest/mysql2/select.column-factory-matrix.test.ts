@@ -30,6 +30,9 @@ import {
     tColMatrixOptionalComputed,
     tColMatrixPk,
     vColMatrix,
+    vColMatrixAdapter,
+    tColMatrixVirtualAdapter,
+    vColMatrixVirtualAdapter,
     tColMatrixColumnAdapter,
     tColMatrixOptionalAdapter,
     tColMatrixDefaultAdapter,
@@ -904,4 +907,326 @@ describe(ctx.label, () => {
         expect(row).toEqual(matrixRowAdapted)
     })
 
+    test('view-required-column-factory-adapter-transforms-each-kind', async () => {
+        // View `column(name, kind, adapter)` — the View-side trailing-adapter overload
+        // (required) per kind. The raw seed is read through each column's adapter; the
+        // leaf TYPE is unchanged from the no-adapter vColMatrix twin, the read SQL/value
+        // coincides with the Table `column`+adapter cell, the typed READ PATH does not.
+        ctx.mockNext(matrixRow)
+        const row = await ctx.conn.selectFrom(vColMatrixAdapter)
+            .select({
+                id:          vColMatrixAdapter.id,
+                mInt:        vColMatrixAdapter.mInt,
+                mBigint:     vColMatrixAdapter.mBigint,
+                mDouble:     vColMatrixAdapter.mDouble,
+                mBool:       vColMatrixAdapter.mBool,
+                mUuid:       vColMatrixAdapter.mUuid,
+                mDate:       vColMatrixAdapter.mDate,
+                mTime:       vColMatrixAdapter.mTime,
+                mDatetime:   vColMatrixAdapter.mDatetime,
+                mStr:        vColMatrixAdapter.mStr,
+                cents:       vColMatrixAdapter.cents,
+                money:       vColMatrixAdapter.money,
+                signingKey:  vColMatrixAdapter.signingKey,
+                semver:      vColMatrixAdapter.semver,
+                channel:     vColMatrixAdapter.channel,
+                releaseDay:  vColMatrixAdapter.releaseDay,
+                cutoffClock: vColMatrixAdapter.cutoffClock,
+                signOff:     vColMatrixAdapter.signOff,
+                activity:    vColMatrixAdapter.activity,
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, m_int as mInt, m_bigint as mBigint, m_double as mDouble, m_bool as mBool, bin_to_uuid(m_uuid) as mUuid, m_date as mDate, m_time as mTime, m_datetime as mDatetime, m_str as mStr, m_int as cents, m_double as money, bin_to_uuid(m_uuid) as signingKey, m_str as semver, m_str as \`channel\`, m_date as releaseDay, m_time as cutoffClock, m_datetime as signOff, m_str as activity from col_matrix_view"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof row, {
+            id:          number
+            mInt:        number
+            mBigint:     bigint
+            mDouble:     number
+            mBool:       boolean
+            mUuid:       string
+            mDate:       Date
+            mTime:       Date
+            mDatetime:   Date
+            mStr:        string
+            cents:       number
+            money:       number
+            signingKey:  string
+            semver:      string
+            channel:     ReleaseChannel
+            releaseDay:  Date
+            cutoffClock: Date
+            signOff:     Date
+            activity:    WorklogActivity
+        }>>()
+        expect(row).toEqual(matrixRowAdapted)
+    })
+
+    test('view-optional-column-factory-adapter-transforms-each-kind', async () => {
+        // View `optionalColumn(name, kind, adapter)` — the View-side trailing-adapter
+        // overload (optional) per kind. Same read as the required View+adapter above but
+        // each leaf is `?: T`; the seed row has values so every leaf resolves present.
+        ctx.mockNext(matrixRow)
+        const row = await ctx.conn.selectFrom(vColMatrixAdapter)
+            .select({
+                id:          vColMatrixAdapter.id,
+                mInt:        vColMatrixAdapter.oInt,
+                mBigint:     vColMatrixAdapter.oBigint,
+                mDouble:     vColMatrixAdapter.oDouble,
+                mBool:       vColMatrixAdapter.oBool,
+                mUuid:       vColMatrixAdapter.oUuid,
+                mDate:       vColMatrixAdapter.oDate,
+                mTime:       vColMatrixAdapter.oTime,
+                mDatetime:   vColMatrixAdapter.oDatetime,
+                mStr:        vColMatrixAdapter.oStr,
+                cents:       vColMatrixAdapter.oCents,
+                money:       vColMatrixAdapter.oMoney,
+                signingKey:  vColMatrixAdapter.oSigningKey,
+                semver:      vColMatrixAdapter.oSemver,
+                channel:     vColMatrixAdapter.oChannel,
+                releaseDay:  vColMatrixAdapter.oReleaseDay,
+                cutoffClock: vColMatrixAdapter.oCutoffClock,
+                signOff:     vColMatrixAdapter.oSignOff,
+                activity:    vColMatrixAdapter.oActivity,
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, m_int as mInt, m_bigint as mBigint, m_double as mDouble, m_bool as mBool, bin_to_uuid(m_uuid) as mUuid, m_date as mDate, m_time as mTime, m_datetime as mDatetime, m_str as mStr, m_int as cents, m_double as money, bin_to_uuid(m_uuid) as signingKey, m_str as semver, m_str as \`channel\`, m_date as releaseDay, m_time as cutoffClock, m_datetime as signOff, m_str as activity from col_matrix_view"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof row, {
+            id:           number
+            mInt?:        number
+            mBigint?:     bigint
+            mDouble?:     number
+            mBool?:       boolean
+            mUuid?:       string
+            mDate?:       Date
+            mTime?:       Date
+            mDatetime?:   Date
+            mStr?:        string
+            cents?:       number
+            money?:       number
+            signingKey?:  string
+            semver?:      string
+            channel?:     ReleaseChannel
+            releaseDay?:  Date
+            cutoffClock?: Date
+            signOff?:     Date
+            activity?:    WorklogActivity
+        }>>()
+        expect(row).toEqual(matrixRowAdapted)
+    })
+
+    test('table-virtual-column-factory-adapter-transforms-each-kind', async () => {
+        // Table virtualColumnFromFragment(kind, fn, adapter) per kind — the virtual read path through a trailing adapter; read SQL/value coincides with the column+adapter cell, the typed path does not.
+        ctx.mockNext(matrixRow)
+        const row = await ctx.conn.selectFrom(tColMatrixVirtualAdapter)
+            .select({
+                id:          tColMatrixVirtualAdapter.id,
+                mInt:        tColMatrixVirtualAdapter.mInt,
+                mBigint:     tColMatrixVirtualAdapter.mBigint,
+                mDouble:     tColMatrixVirtualAdapter.mDouble,
+                mBool:       tColMatrixVirtualAdapter.mBool,
+                mUuid:       tColMatrixVirtualAdapter.mUuid,
+                mDate:       tColMatrixVirtualAdapter.mDate,
+                mTime:       tColMatrixVirtualAdapter.mTime,
+                mDatetime:   tColMatrixVirtualAdapter.mDatetime,
+                mStr:        tColMatrixVirtualAdapter.mStr,
+                cents:       tColMatrixVirtualAdapter.cents,
+                money:       tColMatrixVirtualAdapter.money,
+                signingKey:  tColMatrixVirtualAdapter.signingKey,
+                semver:      tColMatrixVirtualAdapter.semver,
+                channel:     tColMatrixVirtualAdapter.channel,
+                releaseDay:  tColMatrixVirtualAdapter.releaseDay,
+                cutoffClock: tColMatrixVirtualAdapter.cutoffClock,
+                signOff:     tColMatrixVirtualAdapter.signOff,
+                activity:    tColMatrixVirtualAdapter.activity,
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, m_int as mInt, m_bigint as mBigint, m_double as mDouble, m_bool as mBool, bin_to_uuid(m_uuid) as mUuid, m_date as mDate, m_time as mTime, m_datetime as mDatetime, m_str as mStr, m_int as cents, m_double as money, bin_to_uuid(m_uuid) as signingKey, m_str as semver, m_str as \`channel\`, m_date as releaseDay, m_time as cutoffClock, m_datetime as signOff, m_str as activity from col_matrix"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof row, {
+            id:           number
+            mInt:         number
+            mBigint:      bigint
+            mDouble:      number
+            mBool:        boolean
+            mUuid:        string
+            mDate:        Date
+            mTime:        Date
+            mDatetime:    Date
+            mStr:         string
+            cents:        number
+            money:        number
+            signingKey:   string
+            semver:       string
+            channel:      ReleaseChannel
+            releaseDay:   Date
+            cutoffClock:  Date
+            signOff:      Date
+            activity:     WorklogActivity
+        }>>()
+        expect(row).toEqual(matrixRowAdapted)
+    })
+
+    test('table-optional-virtual-column-factory-adapter-transforms-each-kind', async () => {
+        // Table optionalVirtualColumnFromFragment(kind, fn, adapter) per kind — the optional virtual read path with a trailing adapter; each leaf is `?: T`, the seed row has values so every leaf resolves present.
+        ctx.mockNext(matrixRow)
+        const row = await ctx.conn.selectFrom(tColMatrixVirtualAdapter)
+            .select({
+                id:          tColMatrixVirtualAdapter.id,
+                mInt:        tColMatrixVirtualAdapter.oInt,
+                mBigint:     tColMatrixVirtualAdapter.oBigint,
+                mDouble:     tColMatrixVirtualAdapter.oDouble,
+                mBool:       tColMatrixVirtualAdapter.oBool,
+                mUuid:       tColMatrixVirtualAdapter.oUuid,
+                mDate:       tColMatrixVirtualAdapter.oDate,
+                mTime:       tColMatrixVirtualAdapter.oTime,
+                mDatetime:   tColMatrixVirtualAdapter.oDatetime,
+                mStr:        tColMatrixVirtualAdapter.oStr,
+                cents:       tColMatrixVirtualAdapter.oCents,
+                money:       tColMatrixVirtualAdapter.oMoney,
+                signingKey:  tColMatrixVirtualAdapter.oSigningKey,
+                semver:      tColMatrixVirtualAdapter.oSemver,
+                channel:     tColMatrixVirtualAdapter.oChannel,
+                releaseDay:  tColMatrixVirtualAdapter.oReleaseDay,
+                cutoffClock: tColMatrixVirtualAdapter.oCutoffClock,
+                signOff:     tColMatrixVirtualAdapter.oSignOff,
+                activity:    tColMatrixVirtualAdapter.oActivity,
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, m_int as mInt, m_bigint as mBigint, m_double as mDouble, m_bool as mBool, bin_to_uuid(m_uuid) as mUuid, m_date as mDate, m_time as mTime, m_datetime as mDatetime, m_str as mStr, m_int as cents, m_double as money, bin_to_uuid(m_uuid) as signingKey, m_str as semver, m_str as \`channel\`, m_date as releaseDay, m_time as cutoffClock, m_datetime as signOff, m_str as activity from col_matrix"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof row, {
+            id:           number
+            mInt?:        number
+            mBigint?:     bigint
+            mDouble?:     number
+            mBool?:       boolean
+            mUuid?:       string
+            mDate?:       Date
+            mTime?:       Date
+            mDatetime?:   Date
+            mStr?:        string
+            cents?:       number
+            money?:       number
+            signingKey?:  string
+            semver?:      string
+            channel?:     ReleaseChannel
+            releaseDay?:  Date
+            cutoffClock?: Date
+            signOff?:     Date
+            activity?:    WorklogActivity
+        }>>()
+        expect(row).toEqual(matrixRowAdapted)
+    })
+
+    test('view-virtual-column-factory-adapter-transforms-each-kind', async () => {
+        // View virtualColumnFromFragment(kind, fn, adapter) per kind — the View-side virtual read path with a trailing adapter over col_matrix_view.
+        ctx.mockNext(matrixRow)
+        const row = await ctx.conn.selectFrom(vColMatrixVirtualAdapter)
+            .select({
+                id:          vColMatrixVirtualAdapter.id,
+                mInt:        vColMatrixVirtualAdapter.mInt,
+                mBigint:     vColMatrixVirtualAdapter.mBigint,
+                mDouble:     vColMatrixVirtualAdapter.mDouble,
+                mBool:       vColMatrixVirtualAdapter.mBool,
+                mUuid:       vColMatrixVirtualAdapter.mUuid,
+                mDate:       vColMatrixVirtualAdapter.mDate,
+                mTime:       vColMatrixVirtualAdapter.mTime,
+                mDatetime:   vColMatrixVirtualAdapter.mDatetime,
+                mStr:        vColMatrixVirtualAdapter.mStr,
+                cents:       vColMatrixVirtualAdapter.cents,
+                money:       vColMatrixVirtualAdapter.money,
+                signingKey:  vColMatrixVirtualAdapter.signingKey,
+                semver:      vColMatrixVirtualAdapter.semver,
+                channel:     vColMatrixVirtualAdapter.channel,
+                releaseDay:  vColMatrixVirtualAdapter.releaseDay,
+                cutoffClock: vColMatrixVirtualAdapter.cutoffClock,
+                signOff:     vColMatrixVirtualAdapter.signOff,
+                activity:    vColMatrixVirtualAdapter.activity,
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, m_int as mInt, m_bigint as mBigint, m_double as mDouble, m_bool as mBool, bin_to_uuid(m_uuid) as mUuid, m_date as mDate, m_time as mTime, m_datetime as mDatetime, m_str as mStr, m_int as cents, m_double as money, bin_to_uuid(m_uuid) as signingKey, m_str as semver, m_str as \`channel\`, m_date as releaseDay, m_time as cutoffClock, m_datetime as signOff, m_str as activity from col_matrix_view"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof row, {
+            id:           number
+            mInt:         number
+            mBigint:      bigint
+            mDouble:      number
+            mBool:        boolean
+            mUuid:        string
+            mDate:        Date
+            mTime:        Date
+            mDatetime:    Date
+            mStr:         string
+            cents:        number
+            money:        number
+            signingKey:   string
+            semver:       string
+            channel:      ReleaseChannel
+            releaseDay:   Date
+            cutoffClock:  Date
+            signOff:      Date
+            activity:     WorklogActivity
+        }>>()
+        expect(row).toEqual(matrixRowAdapted)
+    })
+
+    test('view-optional-virtual-column-factory-adapter-transforms-each-kind', async () => {
+        // View optionalVirtualColumnFromFragment(kind, fn, adapter) per kind — the View-side optional virtual read path with a trailing adapter; each leaf is `?: T`.
+        ctx.mockNext(matrixRow)
+        const row = await ctx.conn.selectFrom(vColMatrixVirtualAdapter)
+            .select({
+                id:          vColMatrixVirtualAdapter.id,
+                mInt:        vColMatrixVirtualAdapter.oInt,
+                mBigint:     vColMatrixVirtualAdapter.oBigint,
+                mDouble:     vColMatrixVirtualAdapter.oDouble,
+                mBool:       vColMatrixVirtualAdapter.oBool,
+                mUuid:       vColMatrixVirtualAdapter.oUuid,
+                mDate:       vColMatrixVirtualAdapter.oDate,
+                mTime:       vColMatrixVirtualAdapter.oTime,
+                mDatetime:   vColMatrixVirtualAdapter.oDatetime,
+                mStr:        vColMatrixVirtualAdapter.oStr,
+                cents:       vColMatrixVirtualAdapter.oCents,
+                money:       vColMatrixVirtualAdapter.oMoney,
+                signingKey:  vColMatrixVirtualAdapter.oSigningKey,
+                semver:      vColMatrixVirtualAdapter.oSemver,
+                channel:     vColMatrixVirtualAdapter.oChannel,
+                releaseDay:  vColMatrixVirtualAdapter.oReleaseDay,
+                cutoffClock: vColMatrixVirtualAdapter.oCutoffClock,
+                signOff:     vColMatrixVirtualAdapter.oSignOff,
+                activity:    vColMatrixVirtualAdapter.oActivity,
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, m_int as mInt, m_bigint as mBigint, m_double as mDouble, m_bool as mBool, bin_to_uuid(m_uuid) as mUuid, m_date as mDate, m_time as mTime, m_datetime as mDatetime, m_str as mStr, m_int as cents, m_double as money, bin_to_uuid(m_uuid) as signingKey, m_str as semver, m_str as \`channel\`, m_date as releaseDay, m_time as cutoffClock, m_datetime as signOff, m_str as activity from col_matrix_view"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof row, {
+            id:           number
+            mInt?:        number
+            mBigint?:     bigint
+            mDouble?:     number
+            mBool?:       boolean
+            mUuid?:       string
+            mDate?:       Date
+            mTime?:       Date
+            mDatetime?:   Date
+            mStr?:        string
+            cents?:       number
+            money?:       number
+            signingKey?:  string
+            semver?:      string
+            channel?:     ReleaseChannel
+            releaseDay?:  Date
+            cutoffClock?: Date
+            signOff?:     Date
+            activity?:    WorklogActivity
+        }>>()
+        expect(row).toEqual(matrixRowAdapted)
+    })
 })

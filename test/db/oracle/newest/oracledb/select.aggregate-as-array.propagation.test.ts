@@ -9,6 +9,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { tIssue, tProject } from '../../domain/connection.js'
+import { dynamicPick } from '../../../../../src/dynamic/pick.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -157,5 +158,34 @@ describe(ctx.label, () => {
             issues?: Array<{ id: number; title: string }>
         }>>>()
         expect(rows).toEqual([{ pid: 1 }])
+    })
+    test('aggregate-as-array-of-a-dynamic-pick-projection', async () => {
+        // B-probe1: the aggregateAsArray element is a `dynamicPick(...)` result (a
+        // runtime-selected projection) rather than a literal object. The picked fields
+        // drive the aggregated element shape; a single json_agg, valid on the real DB.
+        // Project 1 owns issues 1 ('Update hero copy') and 2 ('Redesign navbar').
+        const tIssueLeft = tIssue.forUseInLeftJoin()
+        const availableFields = { iid: tIssueLeft.id, title: tIssueLeft.title }
+        const picked = dynamicPick(availableFields, { iid: true, title: true }, ['iid'])
+        ctx.mockNext([{ pid: 1, issues: [{ iid: 1, title: 'Update hero copy' }, { iid: 2, title: 'Redesign navbar' }] }])
+        const rows = await ctx.conn.selectFrom(tProject)
+            .leftJoin(tIssueLeft).on(tIssueLeft.projectId.equals(tProject.id))
+            .where(tProject.id.equals(1))
+            .select({ pid: tProject.id, issues: ctx.conn.aggregateAsArray(picked) })
+            .groupBy('pid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as "pid", json_arrayagg(json_object('iid' value issue.id, 'title' value issue.title)) as "issues" from project left join issue on issue.project_id = project.id where project.id = :0 group by project.id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            pid:    number
+            issues: Array<{ iid?: number | undefined; title?: string | undefined }>
+        }>>>()
+        const sorted = rows.map(r => ({ ...r, issues: [...r.issues].sort((a, b) => a.iid! - b.iid!) }))
+        expect(sorted).toEqual([{ pid: 1, issues: [{ iid: 1, title: 'Update hero copy' }, { iid: 2, title: 'Redesign navbar' }] }])
     })
 })

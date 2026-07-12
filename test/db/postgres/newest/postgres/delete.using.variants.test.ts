@@ -18,8 +18,14 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tOrganization, tProject, tProjectReview } from '../../domain/connection.js'
+import { Values } from '../../../../../src/Values.js'
+import { DBConnection, tIssue, tOrganization, tProject, tProjectReview } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+
+// A Values source used as the USING target of a DELETE (UD-T4-2 reachability).
+class VProjectIdList extends Values<DBConnection, 'projectIds'> {
+    id = this.column('int')
+}
 
 // tProjectReview is referenced by the `delete-using-returning-scaled-adapter-column`
 // test below; the cells where that test is uncommented use it for real.
@@ -357,6 +363,34 @@ describe(ctx.label, () => {
             expect(row).toEqual(expected)
             expect('obj' in row).toBe(true)
             expect(row.obj).toBe(null)
+        })
+    })
+
+    test('delete-using-values-source', async () => {
+        // UD-T4-2: the USING target is a `Values` source (vs a table / a
+        // forUseInQueryAs CTE). The Values `WITH projectIds(id) AS (VALUES ...)` must
+        // hoist to the top of the DELETE through the USING clause — distinct typed source
+        // from the CTE-view cell above, byte-coincident emission otherwise. The `where`
+        // filters by an impossible id so no seed rows are deleted under real DB.
+        ctx.mockNext(0)
+        await ctx.withRollback(async () => {
+            const ids = Values.create(VProjectIdList, 'projectIds', [{ id: 1 }])
+            const affected = await ctx.conn.deleteFrom(tIssue)
+                .using(ids)
+                .where(tIssue.projectId.equals(ids.id))
+                .and(tIssue.id.equals(99999))
+                .executeDelete()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectIds(id) as (values ($1::int4)) delete from issue using projectIds where issue.project_id = projectIds.id and issue.id = $2"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                99999,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            if (!ctx.realDbEnabled) expect(affected).toBe(0)
+            else expect(typeof affected).toBe('number')
         })
     })
 })

@@ -76,3 +76,8 @@ INSERT INTO ledger_entry (amount, memo, discount) VALUES (250, 70, 30);
 -- stage/channel/min_version NULL so the Nullable family hits the real NULL branch.
 INSERT INTO release_draft (id, title, stage, channel, min_version, budget, target_day, cutoff) VALUES (1, 'Alpha cut', 'candidate', 'beta', '1.0.0', 1500.5, DATE '2024-07-10', TIMESTAMP '1970-01-01 08:30:00');
 INSERT INTO release_draft (id, title, stage, channel, min_version, budget, target_day, cutoff) VALUES (2, 'Nightly build', NULL, NULL, NULL, NULL, NULL, NULL);
+
+-- col_matrix: one driver-stable row. m_uuid is RAW(16) (UUID_TO_RAW), m_bool
+-- NUMBER(1) (1), m_time a TIMESTAMP on 1970-01-01 (localTime). Temporal seeds
+-- mirror select.column-factory-types.test.ts.
+INSERT INTO col_matrix (id, m_int, m_bigint, m_double, m_bool, m_uuid, m_date, m_time, m_datetime, m_str) VALUES (1, 42, 5000, 3.5, 1, UUID_TO_RAW('0a8f9c1e-1111-4222-8333-444455556666'), DATE '2024-03-04', TIMESTAMP '1970-01-01 09:15:00', TIMESTAMP '2024-01-14 12:30:00', 'hello');

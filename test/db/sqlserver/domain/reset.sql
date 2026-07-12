@@ -21,6 +21,7 @@ DELETE FROM calendar_year;
 DELETE FROM invoice;
 DELETE FROM ledger_entry;
 DELETE FROM issue_worklog;
+DELETE FROM col_matrix;
 DELETE FROM country;
 DELETE FROM issue;
 DELETE FROM project;

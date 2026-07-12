@@ -386,4 +386,165 @@ describe(ctx.label, () => {
         // group) is realized in the value, not just the Array<number | null> type
         expect([...result].sort((a, b) => (a ?? 99) - (b ?? 99))).toEqual([2, 3, null])
     })
+    // ---- CONN B5 aggregate min/max/sum/average leaves (round-44)
+    // min/max fan-out over the leaf kinds the existing aggregation coverage
+    // doesn't reach: a plain `string`, a plain `double`, a plain `localTime`, a
+    // plain `localDateTime`, and the three CUSTOM temporal kinds (customLocalDate
+    // / customLocalTime / customLocalDateTime). Plus sum/average over a plain
+    // `double` column and sumDistinct/averageDistinct over a plain `int` column.
+    // min/max preserve the input value-source kind (flipping only optionality), so
+    // each leaf keeps its own result type; sum/average/*Distinct are optional
+    // (empty set → NULL). Values are asserted exactly (the seed drives the real
+    // aggregate on the native-sqlite / docker runs), mirroring the
+    // min-preserves-localdate handling above. The plain double / localDateTime
+    // leaves read through the double / localDateTime `virtualColumnFromFragment`
+    // columns (billed_amount / published_at), keeping every reference on the three
+    // already-imported fixtures.
+
+    test('min-max-over-string', async () => {
+        // min/max over a plain `string` column (issue.status). Statuses are
+        // {open, in_progress, open, closed}; lexicographic min = 'closed',
+        // max = 'open'.
+        ctx.mockNext({ lo: 'closed', hi: 'open' })
+        const result = await ctx.conn.selectFrom(tIssue)
+            .select({
+                lo: ctx.conn.min(tIssue.status),
+                hi: ctx.conn.max(tIssue.status),
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select min(status) as lo, max(status) as hi from issue"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, { lo?: string | undefined; hi?: string | undefined }>>()
+        expect(result).toEqual({ lo: 'closed', hi: 'open' })
+    })
+
+    test('min-max-over-plain-double', async () => {
+        // min/max over a plain `double` leaf (the double virtualColumnFromFragment
+        // reading billed_amount). billed_amount is {200, 50, 200}; min = 50,
+        // max = 200 — a distinct typed path from the customDouble min/max above.
+        ctx.mockNext({ lo: 50, hi: 200 })
+        const result = await ctx.conn.selectFrom(tIssueWorklog)
+            .select({
+                lo: ctx.conn.min(tIssueWorklog.doubleVirtual),
+                hi: ctx.conn.max(tIssueWorklog.doubleVirtual),
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select min(billed_amount) as lo, max(billed_amount) as hi from issue_worklog"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, { lo?: number | undefined; hi?: number | undefined }>>()
+        expect(result).toEqual({ lo: 50, hi: 200 })
+    })
+
+    test('min-max-over-plain-localtime', async () => {
+        // min/max over a plain `localTime` column (issue_worklog.started_at).
+        // Times {09:15, 14:00, 10:30} → min 09:15, max 14:00, each normalised onto
+        // 1970-01-01 UTC.
+        const lo = new Date(Date.UTC(1970, 0, 1, 9, 15, 0))
+        const hi = new Date(Date.UTC(1970, 0, 1, 14, 0, 0))
+        ctx.mockNext({ lo, hi })
+        const result = await ctx.conn.selectFrom(tIssueWorklog)
+            .select({
+                lo: ctx.conn.min(tIssueWorklog.startedAt),
+                hi: ctx.conn.max(tIssueWorklog.startedAt),
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select min(started_at) as lo, max(started_at) as hi from issue_worklog"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, { lo?: Date | undefined; hi?: Date | undefined }>>()
+        expect(result).toEqual({ lo, hi })
+    })
+
+    test('min-max-over-plain-localdatetime', async () => {
+        // min/max over a plain `localDateTime` leaf (the localDateTime
+        // virtualColumnFromFragment reading published_at). Stamps
+        // {2024-01-16 09:00, 2024-02-21 10:00, 2024-03-02 11:00} → min the earliest,
+        // max the latest (UTC).
+        const lo = new Date(Date.UTC(2024, 0, 16, 9, 0, 0))
+        const hi = new Date(Date.UTC(2024, 2, 2, 11, 0, 0))
+        ctx.mockNext({ lo, hi })
+        const result = await ctx.conn.selectFrom(tProjectRelease)
+            .select({
+                lo: ctx.conn.min(tProjectRelease.localDateTimeVirtual),
+                hi: ctx.conn.max(tProjectRelease.localDateTimeVirtual),
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select min(published_at) as lo, max(published_at) as hi from project_release"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, { lo?: Date | undefined; hi?: Date | undefined }>>()
+        expect(result).toEqual({ lo, hi })
+    })
+
+    test('min-max-over-custom-temporal-leaves', async () => {
+        // min/max over the three CUSTOM temporal kinds on project_release:
+        // released_on (customLocalDate 'ReleaseDay'), cutoff_time (customLocalTime
+        // 'CutoffClock') and published_at (customLocalDateTime 'PublishStamp').
+        // min/max preserve each custom kind (the brand is the typeName, erased in
+        // the Date result). Dates {2024-01-15, 2024-02-20, 2024-03-01} → endpoints
+        // (date-only normalises to 10:00 UTC); cutoffs {17:00, 18:30, 16:00} →
+        // 16:00 / 18:30 on 1970-01-01; publish stamps {2024-01-16 09:00,
+        // 2024-02-21 10:00, 2024-03-02 11:00} → the endpoints.
+        const dayLo   = new Date(Date.UTC(2024, 0, 15, 10, 0, 0))
+        const dayHi   = new Date(Date.UTC(2024, 2, 1, 10, 0, 0))
+        const clockLo = new Date(Date.UTC(1970, 0, 1, 16, 0, 0))
+        const clockHi = new Date(Date.UTC(1970, 0, 1, 18, 30, 0))
+        const stampLo = new Date(Date.UTC(2024, 0, 16, 9, 0, 0))
+        const stampHi = new Date(Date.UTC(2024, 2, 2, 11, 0, 0))
+        const expected = { dayLo, dayHi, clockLo, clockHi, stampLo, stampHi }
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tProjectRelease)
+            .select({
+                dayLo:   ctx.conn.min(tProjectRelease.releasedOn),
+                dayHi:   ctx.conn.max(tProjectRelease.releasedOn),
+                clockLo: ctx.conn.min(tProjectRelease.cutoffTime),
+                clockHi: ctx.conn.max(tProjectRelease.cutoffTime),
+                stampLo: ctx.conn.min(tProjectRelease.publishedAt),
+                stampHi: ctx.conn.max(tProjectRelease.publishedAt),
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select min(released_on) as dayLo, max(released_on) as dayHi, min(cutoff_time) as clockLo, max(cutoff_time) as clockHi, min(published_at) as stampLo, max(published_at) as stampHi from project_release"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, {
+            dayLo?:   Date | undefined
+            dayHi?:   Date | undefined
+            clockLo?: Date | undefined
+            clockHi?: Date | undefined
+            stampLo?: Date | undefined
+            stampHi?: Date | undefined
+        }>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('sum-average-over-plain-double', async () => {
+        // sum / average over a plain `double` leaf (the double
+        // virtualColumnFromFragment reading billed_amount). billed_amount is
+        // {200, 50, 200}: sum = 450, average = 150.
+        ctx.mockNext({ s: 450, av: 150 })
+        const result = await ctx.conn.selectFrom(tIssueWorklog)
+            .select({
+                s:  ctx.conn.sum(tIssueWorklog.doubleVirtual),
+                av: ctx.conn.average(tIssueWorklog.doubleVirtual),
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum(billed_amount) as [s], avg(billed_amount) as av from issue_worklog"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, { s?: number | undefined; av?: number | undefined }>>()
+        expect(result).toEqual({ s: 450, av: 150 })
+    })
+
+    test('sum-distinct-average-distinct-over-int', async () => {
+        // sumDistinct / averageDistinct over a plain `int` column (issue.priority).
+        // Priorities {2, 1, 3, 2}; the DISTINCT set is {1, 2, 3}: sumDistinct = 6,
+        // averageDistinct = 2.
+        ctx.mockNext({ sd: 6, avd: 2 })
+        const result = await ctx.conn.selectFrom(tIssue)
+            .select({
+                sd:  ctx.conn.sumDistinct(tIssue.priority),
+                avd: ctx.conn.averageDistinct(tIssue.priority),
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum(distinct priority) as sd, avg(distinct cast(priority as float)) as avd from issue"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, { sd?: number | undefined; avd?: number | undefined }>>()
+        expect(result).toEqual({ sd: 6, avd: 2 })
+    })
 })

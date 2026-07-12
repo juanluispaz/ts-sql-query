@@ -73,3 +73,9 @@ INSERT INTO ledger_entry (amount, memo, discount) VALUES (250, 70, 30);
 INSERT INTO release_draft (id, title, stage, channel, min_version, budget, target_day, cutoff) VALUES
     (1, 'Alpha cut', 'candidate', 'beta', '1.0.0', 1500.5, '2024-07-10', '08:30:00'),
     (2, 'Nightly build', NULL, NULL, NULL, NULL, NULL, NULL);
+
+-- col_matrix: one driver-stable row. The temporal values mirror the seeds in
+-- select.column-factory-types.test.ts (work_date / started_at / signed_off_at)
+-- so their per-driver normalised Date reads are already known.
+INSERT INTO col_matrix (id, m_int, m_bigint, m_double, m_bool, m_uuid, m_date, m_time, m_datetime, m_str) VALUES
+    (1, 42, 5000, 3.5, TRUE, '0a8f9c1e-1111-4222-8333-444455556666', '2024-03-04', '09:15:00', '2024-01-14 12:30:00', 'hello');

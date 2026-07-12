@@ -309,4 +309,51 @@ describe(ctx.label, () => {
         expect('body' in issue1.outer.mid.inner).toBe(true)
         expect(issue1.outer.mid.inner.body).toBe(null)
     })
+    // ---- PROJ rule-3 optional-leaf default analog (round-44)
+    test('aggregate-element-with-required-nested-object-optional-leaf-default-drops-null', async () => {
+        // The DEFAULT-projector analog of
+        // aggregate-element-with-required-nested-object-optional-leaf-as-nullable:
+        // the inner `header` object has a REQUIRED leaf (`title`) so it stays
+        // required on every element (rule 3), plus an OPTIONAL `body` leaf. WITHOUT
+        // projectingOptionalValuesAsNullable() the default projector DROPS a null
+        // optional leaf inside the required object — `body?: string`, absent at
+        // runtime. Project 1: issue 1 (body NULL → absent), issue 2 (body
+        // 'Use new tokens' → present). The mock is primed with the RAW aggregated
+        // rows (body null for issue 1); the projector drops it.
+        ctx.mockNext([{ pid: 1, issues: [
+            { id: 1, header: { title: 'Update hero copy', body: null } },
+            { id: 2, header: { title: 'Redesign navbar',  body: 'Use new tokens' } },
+        ] }])
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.projectId.equals(1))
+            .select({
+                pid:    tIssue.projectId,
+                issues: ctx.conn.aggregateAsArray({
+                    id:     tIssue.id,
+                    header: { title: tIssue.title, body: tIssue.body },
+                }),
+            })
+            .groupBy('pid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as pid, json_group_array(json_object('id', id, 'header.title', title, 'header.body', body)) as issues from issue where project_id = ? group by project_id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            pid:    number
+            issues: Array<{ id: number; header: { title: string; body?: string } }>
+        }>>>()
+        const sorted = rows.map(r => ({ ...r, issues: [...r.issues].sort((a, b) => a.id - b.id) }))
+        expect(sorted).toEqual([{ pid: 1, issues: [
+            { id: 1, header: { title: 'Update hero copy' } },
+            { id: 2, header: { title: 'Redesign navbar', body: 'Use new tokens' } },
+        ] }])
+        // Issue 1's null body is ABSENT (dropped) inside the required `header`
+        // under the default projector — the distinct path from the nullable twin.
+        const issue1 = rows[0]!.issues.find(i => i.id === 1)!
+        expect('body' in issue1.header).toBe(false)
+    })
 })

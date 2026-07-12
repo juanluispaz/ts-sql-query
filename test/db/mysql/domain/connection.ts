@@ -69,6 +69,51 @@ const shiftHourAdapter: TypeAdapter = {
         return next.transformValueToDB(value instanceof Date ? new Date(value.getTime() - 3600000) : value, type)
     },
 }
+// Observable trailing adapters for the executeFunction return-kind fan-out
+// (CONN B2, exercised by exec.function-value-kinds.test.ts). Each
+// transformValueFromDB does a visible transform on its kind's marshalled value
+// so the trailing-adapter slot's effect is observable in the function result
+// (shapes mirror select.connection-trailing-adapter.test.ts). transformValueToDB
+// delegates to next (the function has no bound value to shift). String kinds
+// reuse bracketAdapter and temporal kinds reuse shiftHourAdapter above.
+const fnNumberTimesTen: TypeAdapter = {
+    transformValueFromDB(value, type, next) {
+        const v = next.transformValueFromDB(value, type)
+        return typeof v === 'number' ? v * 10 : v
+    },
+    transformValueToDB(value, type, next) {
+        return next.transformValueToDB(value, type)
+    },
+}
+const fnBigintTimesTen: TypeAdapter = {
+    transformValueFromDB(value, type, next) {
+        const v = next.transformValueFromDB(value, type)
+        return typeof v === 'bigint' ? v * 10n : v
+    },
+    transformValueToDB(value, type, next) {
+        return next.transformValueToDB(value, type)
+    },
+}
+const fnBoolNegate: TypeAdapter = {
+    transformValueFromDB(value, type, next) {
+        const v = next.transformValueFromDB(value, type)
+        return typeof v === 'boolean' ? !v : v
+    },
+    transformValueToDB(value, type, next) {
+        return next.transformValueToDB(value, type)
+    },
+}
+// Lowercase-then-bracket a uuid string on read; lowercasing first keeps the
+// assertion stable across engines that echo a uuid in a different case.
+const fnUuidBracket: TypeAdapter = {
+    transformValueFromDB(value, type, next) {
+        const v = next.transformValueFromDB(value, type)
+        return typeof v === 'string' ? '[' + v.toLowerCase() + ']' : v
+    },
+    transformValueToDB(value, type, next) {
+        return next.transformValueToDB(value, type)
+    },
+}
 const publishedAdapter = new CustomBooleanTypeAdapter('t', 'f')
 // Nullable custom-boolean adapter — the optional sibling of verified/published.
 const approvedAdapter  = new CustomBooleanTypeAdapter('A', 'R')
@@ -306,6 +351,270 @@ export class DBConnection extends MySqlConnection<'DBConnection'> {
     }
     callRetCustomLocalDateTimeOptional(id: number): Promise<Date | null> {
         return this.executeFunction<Date>('latest_issue_at', [this.const(id, 'int')], 'customLocalDateTime', 'SignOffStamp', 'optional')
+    }
+
+    // executeFunction return-kind × {required, optional} × {no-adapter, trailing
+    // adapter} fan-out (CONN F5-CONN B2), exercised by
+    // `exec.function-value-kinds.test.ts`. Each kind reads its col_matrix row-1
+    // value through a zero-arg `cm_<basekind>()` function (schema.sql). The four
+    // wrappers per kind route the SAME DB value through: the base required /
+    // optional null-gate, and the trailing-adapter slot (required / optional),
+    // whose observable transformValueFromDB (numeric ×10, bigint ×10n, boolean
+    // negate, uuid/string bracket, Date +1h) makes the adapter visible in the
+    // result. Custom kinds thread the typeName generic and reuse the base
+    // function; the plain-kind adapter rides the last positional slot, the
+    // custom-kind adapter the `adapter2` slot after the typeName.
+
+    // int (cm_int)
+    callCmInt(): Promise<number> {
+        return this.executeFunction('cm_int', [], 'int', 'required')
+    }
+    callCmIntOpt(): Promise<number | null> {
+        return this.executeFunction('cm_int', [], 'int', 'optional')
+    }
+    callCmIntAdapter(): Promise<number> {
+        return this.executeFunction('cm_int', [], 'int', 'required', fnNumberTimesTen)
+    }
+    callCmIntOptAdapter(): Promise<number | null> {
+        return this.executeFunction('cm_int', [], 'int', 'optional', fnNumberTimesTen)
+    }
+
+    // bigint (cm_bigint)
+    callCmBigint(): Promise<bigint> {
+        return this.executeFunction('cm_bigint', [], 'bigint', 'required')
+    }
+    callCmBigintOpt(): Promise<bigint | null> {
+        return this.executeFunction('cm_bigint', [], 'bigint', 'optional')
+    }
+    callCmBigintAdapter(): Promise<bigint> {
+        return this.executeFunction('cm_bigint', [], 'bigint', 'required', fnBigintTimesTen)
+    }
+    callCmBigintOptAdapter(): Promise<bigint | null> {
+        return this.executeFunction('cm_bigint', [], 'bigint', 'optional', fnBigintTimesTen)
+    }
+
+    // double (cm_double)
+    callCmDouble(): Promise<number> {
+        return this.executeFunction('cm_double', [], 'double', 'required')
+    }
+    callCmDoubleOpt(): Promise<number | null> {
+        return this.executeFunction('cm_double', [], 'double', 'optional')
+    }
+    callCmDoubleAdapter(): Promise<number> {
+        return this.executeFunction('cm_double', [], 'double', 'required', fnNumberTimesTen)
+    }
+    callCmDoubleOptAdapter(): Promise<number | null> {
+        return this.executeFunction('cm_double', [], 'double', 'optional', fnNumberTimesTen)
+    }
+
+    // boolean (cm_bool)
+    callCmBoolean(): Promise<boolean> {
+        return this.executeFunction('cm_bool', [], 'boolean', 'required')
+    }
+    callCmBooleanOpt(): Promise<boolean | null> {
+        return this.executeFunction('cm_bool', [], 'boolean', 'optional')
+    }
+    callCmBooleanAdapter(): Promise<boolean> {
+        return this.executeFunction('cm_bool', [], 'boolean', 'required', fnBoolNegate)
+    }
+    callCmBooleanOptAdapter(): Promise<boolean | null> {
+        return this.executeFunction('cm_bool', [], 'boolean', 'optional', fnBoolNegate)
+    }
+
+    // uuid (cm_uuid)
+    callCmUuid(): Promise<string> {
+        return this.executeFunction('cm_uuid', [], 'uuid', 'required')
+    }
+    callCmUuidOpt(): Promise<string | null> {
+        return this.executeFunction('cm_uuid', [], 'uuid', 'optional')
+    }
+    callCmUuidAdapter(): Promise<string> {
+        return this.executeFunction('cm_uuid', [], 'uuid', 'required', fnUuidBracket)
+    }
+    callCmUuidOptAdapter(): Promise<string | null> {
+        return this.executeFunction('cm_uuid', [], 'uuid', 'optional', fnUuidBracket)
+    }
+
+    // localDate (cm_date)
+    callCmLocalDate(): Promise<Date> {
+        return this.executeFunction('cm_date', [], 'localDate', 'required')
+    }
+    callCmLocalDateOpt(): Promise<Date | null> {
+        return this.executeFunction('cm_date', [], 'localDate', 'optional')
+    }
+    callCmLocalDateAdapter(): Promise<Date> {
+        return this.executeFunction('cm_date', [], 'localDate', 'required', shiftHourAdapter)
+    }
+    callCmLocalDateOptAdapter(): Promise<Date | null> {
+        return this.executeFunction('cm_date', [], 'localDate', 'optional', shiftHourAdapter)
+    }
+
+    // localTime (cm_time)
+    callCmLocalTime(): Promise<Date> {
+        return this.executeFunction('cm_time', [], 'localTime', 'required')
+    }
+    callCmLocalTimeOpt(): Promise<Date | null> {
+        return this.executeFunction('cm_time', [], 'localTime', 'optional')
+    }
+    callCmLocalTimeAdapter(): Promise<Date> {
+        return this.executeFunction('cm_time', [], 'localTime', 'required', shiftHourAdapter)
+    }
+    callCmLocalTimeOptAdapter(): Promise<Date | null> {
+        return this.executeFunction('cm_time', [], 'localTime', 'optional', shiftHourAdapter)
+    }
+
+    // localDateTime (cm_datetime)
+    callCmLocalDateTime(): Promise<Date> {
+        return this.executeFunction('cm_datetime', [], 'localDateTime', 'required')
+    }
+    callCmLocalDateTimeOpt(): Promise<Date | null> {
+        return this.executeFunction('cm_datetime', [], 'localDateTime', 'optional')
+    }
+    callCmLocalDateTimeAdapter(): Promise<Date> {
+        return this.executeFunction('cm_datetime', [], 'localDateTime', 'required', shiftHourAdapter)
+    }
+    callCmLocalDateTimeOptAdapter(): Promise<Date | null> {
+        return this.executeFunction('cm_datetime', [], 'localDateTime', 'optional', shiftHourAdapter)
+    }
+
+    // string (cm_str)
+    callCmString(): Promise<string> {
+        return this.executeFunction('cm_str', [], 'string', 'required')
+    }
+    callCmStringOpt(): Promise<string | null> {
+        return this.executeFunction('cm_str', [], 'string', 'optional')
+    }
+    callCmStringAdapter(): Promise<string> {
+        return this.executeFunction('cm_str', [], 'string', 'required', bracketAdapter)
+    }
+    callCmStringOptAdapter(): Promise<string | null> {
+        return this.executeFunction('cm_str', [], 'string', 'optional', bracketAdapter)
+    }
+
+    // enum (cm_str, WorklogActivity)
+    callCmEnum(): Promise<WorklogActivity> {
+        return this.executeFunction<WorklogActivity>('cm_str', [], 'enum', 'WorklogActivity', 'required')
+    }
+    callCmEnumOpt(): Promise<WorklogActivity | null> {
+        return this.executeFunction<WorklogActivity>('cm_str', [], 'enum', 'WorklogActivity', 'optional')
+    }
+    callCmEnumAdapter(): Promise<WorklogActivity> {
+        return this.executeFunction<WorklogActivity>('cm_str', [], 'enum', 'WorklogActivity', 'required', bracketAdapter)
+    }
+    callCmEnumOptAdapter(): Promise<WorklogActivity | null> {
+        return this.executeFunction<WorklogActivity>('cm_str', [], 'enum', 'WorklogActivity', 'optional', bracketAdapter)
+    }
+
+    // custom (cm_str, ReleaseChannel)
+    callCmCustom(): Promise<ReleaseChannel> {
+        return this.executeFunction<ReleaseChannel>('cm_str', [], 'custom', 'ReleaseChannel', 'required')
+    }
+    callCmCustomOpt(): Promise<ReleaseChannel | null> {
+        return this.executeFunction<ReleaseChannel>('cm_str', [], 'custom', 'ReleaseChannel', 'optional')
+    }
+    callCmCustomAdapter(): Promise<ReleaseChannel> {
+        return this.executeFunction<ReleaseChannel>('cm_str', [], 'custom', 'ReleaseChannel', 'required', bracketAdapter)
+    }
+    callCmCustomOptAdapter(): Promise<ReleaseChannel | null> {
+        return this.executeFunction<ReleaseChannel>('cm_str', [], 'custom', 'ReleaseChannel', 'optional', bracketAdapter)
+    }
+
+    // customComparable (cm_str, Semver)
+    callCmCustomComparable(): Promise<string> {
+        return this.executeFunction<string>('cm_str', [], 'customComparable', 'Semver', 'required')
+    }
+    callCmCustomComparableOpt(): Promise<string | null> {
+        return this.executeFunction<string>('cm_str', [], 'customComparable', 'Semver', 'optional')
+    }
+    callCmCustomComparableAdapter(): Promise<string> {
+        return this.executeFunction<string>('cm_str', [], 'customComparable', 'Semver', 'required', bracketAdapter)
+    }
+    callCmCustomComparableOptAdapter(): Promise<string | null> {
+        return this.executeFunction<string>('cm_str', [], 'customComparable', 'Semver', 'optional', bracketAdapter)
+    }
+
+    // customInt (cm_int, Cents)
+    callCmCustomInt(): Promise<number> {
+        return this.executeFunction<number>('cm_int', [], 'customInt', 'Cents', 'required')
+    }
+    callCmCustomIntOpt(): Promise<number | null> {
+        return this.executeFunction<number>('cm_int', [], 'customInt', 'Cents', 'optional')
+    }
+    callCmCustomIntAdapter(): Promise<number> {
+        return this.executeFunction<number>('cm_int', [], 'customInt', 'Cents', 'required', fnNumberTimesTen)
+    }
+    callCmCustomIntOptAdapter(): Promise<number | null> {
+        return this.executeFunction<number>('cm_int', [], 'customInt', 'Cents', 'optional', fnNumberTimesTen)
+    }
+
+    // customUuid (cm_uuid, SigningKey)
+    callCmCustomUuid(): Promise<string> {
+        return this.executeFunction<string>('cm_uuid', [], 'customUuid', 'SigningKey', 'required')
+    }
+    callCmCustomUuidOpt(): Promise<string | null> {
+        return this.executeFunction<string>('cm_uuid', [], 'customUuid', 'SigningKey', 'optional')
+    }
+    callCmCustomUuidAdapter(): Promise<string> {
+        return this.executeFunction<string>('cm_uuid', [], 'customUuid', 'SigningKey', 'required', fnUuidBracket)
+    }
+    callCmCustomUuidOptAdapter(): Promise<string | null> {
+        return this.executeFunction<string>('cm_uuid', [], 'customUuid', 'SigningKey', 'optional', fnUuidBracket)
+    }
+
+    // customDouble (cm_double, Money)
+    callCmCustomDouble(): Promise<number> {
+        return this.executeFunction<number>('cm_double', [], 'customDouble', 'Money', 'required')
+    }
+    callCmCustomDoubleOpt(): Promise<number | null> {
+        return this.executeFunction<number>('cm_double', [], 'customDouble', 'Money', 'optional')
+    }
+    callCmCustomDoubleAdapter(): Promise<number> {
+        return this.executeFunction<number>('cm_double', [], 'customDouble', 'Money', 'required', fnNumberTimesTen)
+    }
+    callCmCustomDoubleOptAdapter(): Promise<number | null> {
+        return this.executeFunction<number>('cm_double', [], 'customDouble', 'Money', 'optional', fnNumberTimesTen)
+    }
+
+    // customLocalDate (cm_date, ReleaseDay)
+    callCmCustomLocalDate(): Promise<Date> {
+        return this.executeFunction<Date>('cm_date', [], 'customLocalDate', 'ReleaseDay', 'required')
+    }
+    callCmCustomLocalDateOpt(): Promise<Date | null> {
+        return this.executeFunction<Date>('cm_date', [], 'customLocalDate', 'ReleaseDay', 'optional')
+    }
+    callCmCustomLocalDateAdapter(): Promise<Date> {
+        return this.executeFunction<Date>('cm_date', [], 'customLocalDate', 'ReleaseDay', 'required', shiftHourAdapter)
+    }
+    callCmCustomLocalDateOptAdapter(): Promise<Date | null> {
+        return this.executeFunction<Date>('cm_date', [], 'customLocalDate', 'ReleaseDay', 'optional', shiftHourAdapter)
+    }
+
+    // customLocalTime (cm_time, CutoffClock)
+    callCmCustomLocalTime(): Promise<Date> {
+        return this.executeFunction<Date>('cm_time', [], 'customLocalTime', 'CutoffClock', 'required')
+    }
+    callCmCustomLocalTimeOpt(): Promise<Date | null> {
+        return this.executeFunction<Date>('cm_time', [], 'customLocalTime', 'CutoffClock', 'optional')
+    }
+    callCmCustomLocalTimeAdapter(): Promise<Date> {
+        return this.executeFunction<Date>('cm_time', [], 'customLocalTime', 'CutoffClock', 'required', shiftHourAdapter)
+    }
+    callCmCustomLocalTimeOptAdapter(): Promise<Date | null> {
+        return this.executeFunction<Date>('cm_time', [], 'customLocalTime', 'CutoffClock', 'optional', shiftHourAdapter)
+    }
+
+    // customLocalDateTime (cm_datetime, SignOffStamp)
+    callCmCustomLocalDateTime(): Promise<Date> {
+        return this.executeFunction<Date>('cm_datetime', [], 'customLocalDateTime', 'SignOffStamp', 'required')
+    }
+    callCmCustomLocalDateTimeOpt(): Promise<Date | null> {
+        return this.executeFunction<Date>('cm_datetime', [], 'customLocalDateTime', 'SignOffStamp', 'optional')
+    }
+    callCmCustomLocalDateTimeAdapter(): Promise<Date> {
+        return this.executeFunction<Date>('cm_datetime', [], 'customLocalDateTime', 'SignOffStamp', 'required', shiftHourAdapter)
+    }
+    callCmCustomLocalDateTimeOptAdapter(): Promise<Date | null> {
+        return this.executeFunction<Date>('cm_datetime', [], 'customLocalDateTime', 'SignOffStamp', 'optional', shiftHourAdapter)
     }
 
     // Reusable typed SQL fragments — exercised by
@@ -1022,4 +1331,414 @@ export const tReleaseDraft = new class TReleaseDraft extends Table<DBConnection,
     shiftedReleaseDay = this.columnWithDefaultValue<Date, 'ReleaseDay'>('shifted_release_day', 'customLocalDate', 'ReleaseDay', shiftHourAdapter)
     shiftedCutoff     = this.columnWithDefaultValue<Date, 'CutoffClock'>('shifted_cutoff', 'customLocalTime', 'CutoffClock', shiftHourAdapter)
     constructor() { super('release_draft') }
+}()
+
+// COL F2-COL T4 — non-virtual column-factory per-kind fan-out. `col_matrix`
+// holds one plain, NOT NULL column per base kind; each tColMatrix* Table below
+// reads those SAME columns through a DIFFERENT column factory, and vColMatrix
+// does so through the View factories. The optionality / default / computed /
+// primary-key distinction each factory encodes is TYPE-LEVEL only, so every
+// factory funnels through the same per-kind DBColumnImpl read marshalling on a
+// single plain row — the read SQL/value coincides, the typed path does not.
+// The custom kinds reuse the domain's registered typeNames (Cents / Money /
+// SigningKey / Semver / ReleaseChannel / ReleaseDay / CutoffClock / SignOffStamp
+// via baseTypeForCustom; enum WorklogActivity).
+
+// `column(...)` (required) per kind.
+export const tColMatrixColumn = new class TColMatrixColumn extends Table<DBConnection, 'TColMatrixColumn'> {
+    id          = this.primaryKey('id', 'int')
+    mInt        = this.column('m_int', 'int')
+    mBigint     = this.column('m_bigint', 'bigint')
+    mDouble     = this.column('m_double', 'double')
+    mBool       = this.column('m_bool', 'boolean')
+    mUuid       = this.column('m_uuid', 'uuid')
+    mDate       = this.column('m_date', 'localDate')
+    mTime       = this.column('m_time', 'localTime')
+    mDatetime   = this.column('m_datetime', 'localDateTime')
+    mStr        = this.column('m_str', 'string')
+    cents       = this.column<number, 'Cents'>('m_int', 'customInt', 'Cents')
+    money       = this.column<number, 'Money'>('m_double', 'customDouble', 'Money')
+    signingKey  = this.column<string, 'SigningKey'>('m_uuid', 'customUuid', 'SigningKey')
+    semver      = this.column<string, 'Semver'>('m_str', 'customComparable', 'Semver')
+    channel     = this.column<ReleaseChannel, 'ReleaseChannel'>('m_str', 'custom', 'ReleaseChannel')
+    releaseDay  = this.column<Date, 'ReleaseDay'>('m_date', 'customLocalDate', 'ReleaseDay')
+    cutoffClock = this.column<Date, 'CutoffClock'>('m_time', 'customLocalTime', 'CutoffClock')
+    signOff     = this.column<Date, 'SignOffStamp'>('m_datetime', 'customLocalDateTime', 'SignOffStamp')
+    activity    = this.column<WorklogActivity, 'WorklogActivity'>('m_str', 'enum', 'WorklogActivity')
+    constructor() { super('col_matrix') }
+}()
+
+// `optionalColumn(...)` (optional) per kind. `id` stays a required primaryKey so
+// the projected object keeps a required field (optional leaves read `?: T`).
+export const tColMatrixOptional = new class TColMatrixOptional extends Table<DBConnection, 'TColMatrixOptional'> {
+    id          = this.primaryKey('id', 'int')
+    mInt        = this.optionalColumn('m_int', 'int')
+    mBigint     = this.optionalColumn('m_bigint', 'bigint')
+    mDouble     = this.optionalColumn('m_double', 'double')
+    mBool       = this.optionalColumn('m_bool', 'boolean')
+    mUuid       = this.optionalColumn('m_uuid', 'uuid')
+    mDate       = this.optionalColumn('m_date', 'localDate')
+    mTime       = this.optionalColumn('m_time', 'localTime')
+    mDatetime   = this.optionalColumn('m_datetime', 'localDateTime')
+    mStr        = this.optionalColumn('m_str', 'string')
+    cents       = this.optionalColumn<number, 'Cents'>('m_int', 'customInt', 'Cents')
+    money       = this.optionalColumn<number, 'Money'>('m_double', 'customDouble', 'Money')
+    signingKey  = this.optionalColumn<string, 'SigningKey'>('m_uuid', 'customUuid', 'SigningKey')
+    semver      = this.optionalColumn<string, 'Semver'>('m_str', 'customComparable', 'Semver')
+    channel     = this.optionalColumn<ReleaseChannel, 'ReleaseChannel'>('m_str', 'custom', 'ReleaseChannel')
+    releaseDay  = this.optionalColumn<Date, 'ReleaseDay'>('m_date', 'customLocalDate', 'ReleaseDay')
+    cutoffClock = this.optionalColumn<Date, 'CutoffClock'>('m_time', 'customLocalTime', 'CutoffClock')
+    signOff     = this.optionalColumn<Date, 'SignOffStamp'>('m_datetime', 'customLocalDateTime', 'SignOffStamp')
+    activity    = this.optionalColumn<WorklogActivity, 'WorklogActivity'>('m_str', 'enum', 'WorklogActivity')
+    constructor() { super('col_matrix') }
+}()
+
+// `columnWithDefaultValue(...)` (required on read, omittable on insert) per kind.
+export const tColMatrixDefault = new class TColMatrixDefault extends Table<DBConnection, 'TColMatrixDefault'> {
+    id          = this.primaryKey('id', 'int')
+    mInt        = this.columnWithDefaultValue('m_int', 'int')
+    mBigint     = this.columnWithDefaultValue('m_bigint', 'bigint')
+    mDouble     = this.columnWithDefaultValue('m_double', 'double')
+    mBool       = this.columnWithDefaultValue('m_bool', 'boolean')
+    mUuid       = this.columnWithDefaultValue('m_uuid', 'uuid')
+    mDate       = this.columnWithDefaultValue('m_date', 'localDate')
+    mTime       = this.columnWithDefaultValue('m_time', 'localTime')
+    mDatetime   = this.columnWithDefaultValue('m_datetime', 'localDateTime')
+    mStr        = this.columnWithDefaultValue('m_str', 'string')
+    cents       = this.columnWithDefaultValue<number, 'Cents'>('m_int', 'customInt', 'Cents')
+    money       = this.columnWithDefaultValue<number, 'Money'>('m_double', 'customDouble', 'Money')
+    signingKey  = this.columnWithDefaultValue<string, 'SigningKey'>('m_uuid', 'customUuid', 'SigningKey')
+    semver      = this.columnWithDefaultValue<string, 'Semver'>('m_str', 'customComparable', 'Semver')
+    channel     = this.columnWithDefaultValue<ReleaseChannel, 'ReleaseChannel'>('m_str', 'custom', 'ReleaseChannel')
+    releaseDay  = this.columnWithDefaultValue<Date, 'ReleaseDay'>('m_date', 'customLocalDate', 'ReleaseDay')
+    cutoffClock = this.columnWithDefaultValue<Date, 'CutoffClock'>('m_time', 'customLocalTime', 'CutoffClock')
+    signOff     = this.columnWithDefaultValue<Date, 'SignOffStamp'>('m_datetime', 'customLocalDateTime', 'SignOffStamp')
+    activity    = this.columnWithDefaultValue<WorklogActivity, 'WorklogActivity'>('m_str', 'enum', 'WorklogActivity')
+    constructor() { super('col_matrix') }
+}()
+
+// `optionalColumnWithDefaultValue(...)` (optional on read, omittable on insert) per kind.
+export const tColMatrixOptionalDefault = new class TColMatrixOptionalDefault extends Table<DBConnection, 'TColMatrixOptionalDefault'> {
+    id          = this.primaryKey('id', 'int')
+    mInt        = this.optionalColumnWithDefaultValue('m_int', 'int')
+    mBigint     = this.optionalColumnWithDefaultValue('m_bigint', 'bigint')
+    mDouble     = this.optionalColumnWithDefaultValue('m_double', 'double')
+    mBool       = this.optionalColumnWithDefaultValue('m_bool', 'boolean')
+    mUuid       = this.optionalColumnWithDefaultValue('m_uuid', 'uuid')
+    mDate       = this.optionalColumnWithDefaultValue('m_date', 'localDate')
+    mTime       = this.optionalColumnWithDefaultValue('m_time', 'localTime')
+    mDatetime   = this.optionalColumnWithDefaultValue('m_datetime', 'localDateTime')
+    mStr        = this.optionalColumnWithDefaultValue('m_str', 'string')
+    cents       = this.optionalColumnWithDefaultValue<number, 'Cents'>('m_int', 'customInt', 'Cents')
+    money       = this.optionalColumnWithDefaultValue<number, 'Money'>('m_double', 'customDouble', 'Money')
+    signingKey  = this.optionalColumnWithDefaultValue<string, 'SigningKey'>('m_uuid', 'customUuid', 'SigningKey')
+    semver      = this.optionalColumnWithDefaultValue<string, 'Semver'>('m_str', 'customComparable', 'Semver')
+    channel     = this.optionalColumnWithDefaultValue<ReleaseChannel, 'ReleaseChannel'>('m_str', 'custom', 'ReleaseChannel')
+    releaseDay  = this.optionalColumnWithDefaultValue<Date, 'ReleaseDay'>('m_date', 'customLocalDate', 'ReleaseDay')
+    cutoffClock = this.optionalColumnWithDefaultValue<Date, 'CutoffClock'>('m_time', 'customLocalTime', 'CutoffClock')
+    signOff     = this.optionalColumnWithDefaultValue<Date, 'SignOffStamp'>('m_datetime', 'customLocalDateTime', 'SignOffStamp')
+    activity    = this.optionalColumnWithDefaultValue<WorklogActivity, 'WorklogActivity'>('m_str', 'enum', 'WorklogActivity')
+    constructor() { super('col_matrix') }
+}()
+
+// `computedColumn(...)` (required on read, excluded from the writable shape) per kind.
+export const tColMatrixComputed = new class TColMatrixComputed extends Table<DBConnection, 'TColMatrixComputed'> {
+    id          = this.primaryKey('id', 'int')
+    mInt        = this.computedColumn('m_int', 'int')
+    mBigint     = this.computedColumn('m_bigint', 'bigint')
+    mDouble     = this.computedColumn('m_double', 'double')
+    mBool       = this.computedColumn('m_bool', 'boolean')
+    mUuid       = this.computedColumn('m_uuid', 'uuid')
+    mDate       = this.computedColumn('m_date', 'localDate')
+    mTime       = this.computedColumn('m_time', 'localTime')
+    mDatetime   = this.computedColumn('m_datetime', 'localDateTime')
+    mStr        = this.computedColumn('m_str', 'string')
+    cents       = this.computedColumn<number, 'Cents'>('m_int', 'customInt', 'Cents')
+    money       = this.computedColumn<number, 'Money'>('m_double', 'customDouble', 'Money')
+    signingKey  = this.computedColumn<string, 'SigningKey'>('m_uuid', 'customUuid', 'SigningKey')
+    semver      = this.computedColumn<string, 'Semver'>('m_str', 'customComparable', 'Semver')
+    channel     = this.computedColumn<ReleaseChannel, 'ReleaseChannel'>('m_str', 'custom', 'ReleaseChannel')
+    releaseDay  = this.computedColumn<Date, 'ReleaseDay'>('m_date', 'customLocalDate', 'ReleaseDay')
+    cutoffClock = this.computedColumn<Date, 'CutoffClock'>('m_time', 'customLocalTime', 'CutoffClock')
+    signOff     = this.computedColumn<Date, 'SignOffStamp'>('m_datetime', 'customLocalDateTime', 'SignOffStamp')
+    activity    = this.computedColumn<WorklogActivity, 'WorklogActivity'>('m_str', 'enum', 'WorklogActivity')
+    constructor() { super('col_matrix') }
+}()
+
+// `optionalComputedColumn(...)` (optional on read, excluded from the writable shape) per kind.
+export const tColMatrixOptionalComputed = new class TColMatrixOptionalComputed extends Table<DBConnection, 'TColMatrixOptionalComputed'> {
+    id          = this.primaryKey('id', 'int')
+    mInt        = this.optionalComputedColumn('m_int', 'int')
+    mBigint     = this.optionalComputedColumn('m_bigint', 'bigint')
+    mDouble     = this.optionalComputedColumn('m_double', 'double')
+    mBool       = this.optionalComputedColumn('m_bool', 'boolean')
+    mUuid       = this.optionalComputedColumn('m_uuid', 'uuid')
+    mDate       = this.optionalComputedColumn('m_date', 'localDate')
+    mTime       = this.optionalComputedColumn('m_time', 'localTime')
+    mDatetime   = this.optionalComputedColumn('m_datetime', 'localDateTime')
+    mStr        = this.optionalComputedColumn('m_str', 'string')
+    cents       = this.optionalComputedColumn<number, 'Cents'>('m_int', 'customInt', 'Cents')
+    money       = this.optionalComputedColumn<number, 'Money'>('m_double', 'customDouble', 'Money')
+    signingKey  = this.optionalComputedColumn<string, 'SigningKey'>('m_uuid', 'customUuid', 'SigningKey')
+    semver      = this.optionalComputedColumn<string, 'Semver'>('m_str', 'customComparable', 'Semver')
+    channel     = this.optionalComputedColumn<ReleaseChannel, 'ReleaseChannel'>('m_str', 'custom', 'ReleaseChannel')
+    releaseDay  = this.optionalComputedColumn<Date, 'ReleaseDay'>('m_date', 'customLocalDate', 'ReleaseDay')
+    cutoffClock = this.optionalComputedColumn<Date, 'CutoffClock'>('m_time', 'customLocalTime', 'CutoffClock')
+    signOff     = this.optionalComputedColumn<Date, 'SignOffStamp'>('m_datetime', 'customLocalDateTime', 'SignOffStamp')
+    activity    = this.optionalComputedColumn<WorklogActivity, 'WorklogActivity'>('m_str', 'enum', 'WorklogActivity')
+    constructor() { super('col_matrix') }
+}()
+
+// `primaryKey(...)` per COMPARABLE kind (primaryKey needs a comparable kind — no
+// boolean/temporal-custom arms here). A caller-provided composite PK across
+// int/string/uuid/bigint columns; only the read path is observed.
+export const tColMatrixPk = new class TColMatrixPk extends Table<DBConnection, 'TColMatrixPk'> {
+    id       = this.primaryKey('m_int', 'int')
+    strPk    = this.primaryKey('m_str', 'string')
+    uuidPk   = this.primaryKey('m_uuid', 'uuid')
+    bigintPk = this.primaryKey('m_bigint', 'bigint')
+    constructor() { super('col_matrix') }
+}()
+
+// View side: the View `column(...)` (required, prefix-free names) and
+// `optionalColumn(...)` (optional, `o`-prefixed names) factories per kind, over
+// the col_matrix_view DB view.
+export const vColMatrix = new class VColMatrix extends View<DBConnection, 'VColMatrix'> {
+    id           = this.column('id', 'int')
+    mInt         = this.column('m_int', 'int')
+    mBigint      = this.column('m_bigint', 'bigint')
+    mDouble      = this.column('m_double', 'double')
+    mBool        = this.column('m_bool', 'boolean')
+    mUuid        = this.column('m_uuid', 'uuid')
+    mDate        = this.column('m_date', 'localDate')
+    mTime        = this.column('m_time', 'localTime')
+    mDatetime    = this.column('m_datetime', 'localDateTime')
+    mStr         = this.column('m_str', 'string')
+    cents        = this.column<number, 'Cents'>('m_int', 'customInt', 'Cents')
+    money        = this.column<number, 'Money'>('m_double', 'customDouble', 'Money')
+    signingKey   = this.column<string, 'SigningKey'>('m_uuid', 'customUuid', 'SigningKey')
+    semver       = this.column<string, 'Semver'>('m_str', 'customComparable', 'Semver')
+    channel      = this.column<ReleaseChannel, 'ReleaseChannel'>('m_str', 'custom', 'ReleaseChannel')
+    releaseDay   = this.column<Date, 'ReleaseDay'>('m_date', 'customLocalDate', 'ReleaseDay')
+    cutoffClock  = this.column<Date, 'CutoffClock'>('m_time', 'customLocalTime', 'CutoffClock')
+    signOff      = this.column<Date, 'SignOffStamp'>('m_datetime', 'customLocalDateTime', 'SignOffStamp')
+    activity     = this.column<WorklogActivity, 'WorklogActivity'>('m_str', 'enum', 'WorklogActivity')
+    oInt         = this.optionalColumn('m_int', 'int')
+    oBigint      = this.optionalColumn('m_bigint', 'bigint')
+    oDouble      = this.optionalColumn('m_double', 'double')
+    oBool        = this.optionalColumn('m_bool', 'boolean')
+    oUuid        = this.optionalColumn('m_uuid', 'uuid')
+    oDate        = this.optionalColumn('m_date', 'localDate')
+    oTime        = this.optionalColumn('m_time', 'localTime')
+    oDatetime    = this.optionalColumn('m_datetime', 'localDateTime')
+    oStr         = this.optionalColumn('m_str', 'string')
+    oCents       = this.optionalColumn<number, 'Cents'>('m_int', 'customInt', 'Cents')
+    oMoney       = this.optionalColumn<number, 'Money'>('m_double', 'customDouble', 'Money')
+    oSigningKey  = this.optionalColumn<string, 'SigningKey'>('m_uuid', 'customUuid', 'SigningKey')
+    oSemver      = this.optionalColumn<string, 'Semver'>('m_str', 'customComparable', 'Semver')
+    oChannel     = this.optionalColumn<ReleaseChannel, 'ReleaseChannel'>('m_str', 'custom', 'ReleaseChannel')
+    oReleaseDay  = this.optionalColumn<Date, 'ReleaseDay'>('m_date', 'customLocalDate', 'ReleaseDay')
+    oCutoffClock = this.optionalColumn<Date, 'CutoffClock'>('m_time', 'customLocalTime', 'CutoffClock')
+    oSignOff     = this.optionalColumn<Date, 'SignOffStamp'>('m_datetime', 'customLocalDateTime', 'SignOffStamp')
+    oActivity    = this.optionalColumn<WorklogActivity, 'WorklogActivity'>('m_str', 'enum', 'WorklogActivity')
+    constructor() { super('col_matrix_view') }
+}()
+
+// COL F2-COL T4 (round-44 adapter arm) — the trailing-`adapter` overload of each
+// non-virtual column factory is a DISTINCT typed path from the no-adapter form.
+// Each tColMatrix*Adapter class reads the SAME col_matrix columns through the
+// factory's trailing-TypeAdapter overload; the adapter's transformValueFromDB
+// performs an OBSERVABLE read transform per kind (numeric ×10, bigint ×10n,
+// boolean negate, uuid lowercase+bracket, string bracket, Date +1h), so the
+// projected VALUE differs from the raw seed while the leaf TYPE is unchanged.
+// `transformValueToDB` delegates to `next`, so writes/placeholders are untouched.
+// The adapters are local to keep this block self-contained + verbatim per dialect.
+const colMatrixNumberX10: TypeAdapter = {
+    transformValueFromDB(value, type, next) {
+        const v = next.transformValueFromDB(value, type)
+        return typeof v === 'number' ? v * 10 : v
+    },
+    transformValueToDB(value, type, next) { return next.transformValueToDB(value, type) },
+}
+const colMatrixBigintX10: TypeAdapter = {
+    transformValueFromDB(value, type, next) {
+        const v = next.transformValueFromDB(value, type)
+        return typeof v === 'bigint' ? v * 10n : v
+    },
+    transformValueToDB(value, type, next) { return next.transformValueToDB(value, type) },
+}
+const colMatrixBoolNegate: TypeAdapter = {
+    transformValueFromDB(value, type, next) {
+        const v = next.transformValueFromDB(value, type)
+        return typeof v === 'boolean' ? !v : v
+    },
+    transformValueToDB(value, type, next) { return next.transformValueToDB(value, type) },
+}
+const colMatrixStringBracket: TypeAdapter = {
+    transformValueFromDB(value, type, next) {
+        const v = next.transformValueFromDB(value, type)
+        return typeof v === 'string' ? '[' + v + ']' : v
+    },
+    transformValueToDB(value, type, next) { return next.transformValueToDB(value, type) },
+}
+// uuid reads are lowercased before bracketing so the assertion is stable on
+// engines that may echo a uuid in a different case (e.g. SQL Server).
+const colMatrixUuidBracket: TypeAdapter = {
+    transformValueFromDB(value, type, next) {
+        const v = next.transformValueFromDB(value, type)
+        return typeof v === 'string' ? '[' + v.toLowerCase() + ']' : v
+    },
+    transformValueToDB(value, type, next) { return next.transformValueToDB(value, type) },
+}
+const colMatrixShiftHour: TypeAdapter = {
+    transformValueFromDB(value, type, next) {
+        const v = next.transformValueFromDB(value, type)
+        return v instanceof Date ? new Date(v.getTime() + 3600000) : v
+    },
+    transformValueToDB(value, type, next) { return next.transformValueToDB(value, type) },
+}
+
+
+// `column(name, kind, adapter)` — the trailing-adapter overload (required).
+export const tColMatrixColumnAdapter = new class TColMatrixColumnAdapter extends Table<DBConnection, 'TColMatrixColumnAdapter'> {
+    id          = this.primaryKey('id', 'int')
+    mInt        = this.column('m_int', 'int', colMatrixNumberX10)
+    mBigint     = this.column('m_bigint', 'bigint', colMatrixBigintX10)
+    mDouble     = this.column('m_double', 'double', colMatrixNumberX10)
+    mBool       = this.column('m_bool', 'boolean', colMatrixBoolNegate)
+    mUuid       = this.column('m_uuid', 'uuid', colMatrixUuidBracket)
+    mDate       = this.column('m_date', 'localDate', colMatrixShiftHour)
+    mTime       = this.column('m_time', 'localTime', colMatrixShiftHour)
+    mDatetime   = this.column('m_datetime', 'localDateTime', colMatrixShiftHour)
+    mStr        = this.column('m_str', 'string', colMatrixStringBracket)
+    cents       = this.column<number, 'Cents'>('m_int', 'customInt', 'Cents', colMatrixNumberX10)
+    money       = this.column<number, 'Money'>('m_double', 'customDouble', 'Money', colMatrixNumberX10)
+    signingKey  = this.column<string, 'SigningKey'>('m_uuid', 'customUuid', 'SigningKey', colMatrixUuidBracket)
+    semver      = this.column<string, 'Semver'>('m_str', 'customComparable', 'Semver', colMatrixStringBracket)
+    channel     = this.column<ReleaseChannel, 'ReleaseChannel'>('m_str', 'custom', 'ReleaseChannel', colMatrixStringBracket)
+    releaseDay  = this.column<Date, 'ReleaseDay'>('m_date', 'customLocalDate', 'ReleaseDay', colMatrixShiftHour)
+    cutoffClock = this.column<Date, 'CutoffClock'>('m_time', 'customLocalTime', 'CutoffClock', colMatrixShiftHour)
+    signOff     = this.column<Date, 'SignOffStamp'>('m_datetime', 'customLocalDateTime', 'SignOffStamp', colMatrixShiftHour)
+    activity    = this.column<WorklogActivity, 'WorklogActivity'>('m_str', 'enum', 'WorklogActivity', colMatrixStringBracket)
+    constructor() { super('col_matrix') }
+}()
+
+// `optionalColumn(name, kind, adapter)` — optional; `?: T` leaves.
+export const tColMatrixOptionalAdapter = new class TColMatrixOptionalAdapter extends Table<DBConnection, 'TColMatrixOptionalAdapter'> {
+    id          = this.primaryKey('id', 'int')
+    mInt        = this.optionalColumn('m_int', 'int', colMatrixNumberX10)
+    mBigint     = this.optionalColumn('m_bigint', 'bigint', colMatrixBigintX10)
+    mDouble     = this.optionalColumn('m_double', 'double', colMatrixNumberX10)
+    mBool       = this.optionalColumn('m_bool', 'boolean', colMatrixBoolNegate)
+    mUuid       = this.optionalColumn('m_uuid', 'uuid', colMatrixUuidBracket)
+    mDate       = this.optionalColumn('m_date', 'localDate', colMatrixShiftHour)
+    mTime       = this.optionalColumn('m_time', 'localTime', colMatrixShiftHour)
+    mDatetime   = this.optionalColumn('m_datetime', 'localDateTime', colMatrixShiftHour)
+    mStr        = this.optionalColumn('m_str', 'string', colMatrixStringBracket)
+    cents       = this.optionalColumn<number, 'Cents'>('m_int', 'customInt', 'Cents', colMatrixNumberX10)
+    money       = this.optionalColumn<number, 'Money'>('m_double', 'customDouble', 'Money', colMatrixNumberX10)
+    signingKey  = this.optionalColumn<string, 'SigningKey'>('m_uuid', 'customUuid', 'SigningKey', colMatrixUuidBracket)
+    semver      = this.optionalColumn<string, 'Semver'>('m_str', 'customComparable', 'Semver', colMatrixStringBracket)
+    channel     = this.optionalColumn<ReleaseChannel, 'ReleaseChannel'>('m_str', 'custom', 'ReleaseChannel', colMatrixStringBracket)
+    releaseDay  = this.optionalColumn<Date, 'ReleaseDay'>('m_date', 'customLocalDate', 'ReleaseDay', colMatrixShiftHour)
+    cutoffClock = this.optionalColumn<Date, 'CutoffClock'>('m_time', 'customLocalTime', 'CutoffClock', colMatrixShiftHour)
+    signOff     = this.optionalColumn<Date, 'SignOffStamp'>('m_datetime', 'customLocalDateTime', 'SignOffStamp', colMatrixShiftHour)
+    activity    = this.optionalColumn<WorklogActivity, 'WorklogActivity'>('m_str', 'enum', 'WorklogActivity', colMatrixStringBracket)
+    constructor() { super('col_matrix') }
+}()
+
+// `columnWithDefaultValue(name, kind, adapter)` — required on read.
+export const tColMatrixDefaultAdapter = new class TColMatrixDefaultAdapter extends Table<DBConnection, 'TColMatrixDefaultAdapter'> {
+    id          = this.primaryKey('id', 'int')
+    mInt        = this.columnWithDefaultValue('m_int', 'int', colMatrixNumberX10)
+    mBigint     = this.columnWithDefaultValue('m_bigint', 'bigint', colMatrixBigintX10)
+    mDouble     = this.columnWithDefaultValue('m_double', 'double', colMatrixNumberX10)
+    mBool       = this.columnWithDefaultValue('m_bool', 'boolean', colMatrixBoolNegate)
+    mUuid       = this.columnWithDefaultValue('m_uuid', 'uuid', colMatrixUuidBracket)
+    mDate       = this.columnWithDefaultValue('m_date', 'localDate', colMatrixShiftHour)
+    mTime       = this.columnWithDefaultValue('m_time', 'localTime', colMatrixShiftHour)
+    mDatetime   = this.columnWithDefaultValue('m_datetime', 'localDateTime', colMatrixShiftHour)
+    mStr        = this.columnWithDefaultValue('m_str', 'string', colMatrixStringBracket)
+    cents       = this.columnWithDefaultValue<number, 'Cents'>('m_int', 'customInt', 'Cents', colMatrixNumberX10)
+    money       = this.columnWithDefaultValue<number, 'Money'>('m_double', 'customDouble', 'Money', colMatrixNumberX10)
+    signingKey  = this.columnWithDefaultValue<string, 'SigningKey'>('m_uuid', 'customUuid', 'SigningKey', colMatrixUuidBracket)
+    semver      = this.columnWithDefaultValue<string, 'Semver'>('m_str', 'customComparable', 'Semver', colMatrixStringBracket)
+    channel     = this.columnWithDefaultValue<ReleaseChannel, 'ReleaseChannel'>('m_str', 'custom', 'ReleaseChannel', colMatrixStringBracket)
+    releaseDay  = this.columnWithDefaultValue<Date, 'ReleaseDay'>('m_date', 'customLocalDate', 'ReleaseDay', colMatrixShiftHour)
+    cutoffClock = this.columnWithDefaultValue<Date, 'CutoffClock'>('m_time', 'customLocalTime', 'CutoffClock', colMatrixShiftHour)
+    signOff     = this.columnWithDefaultValue<Date, 'SignOffStamp'>('m_datetime', 'customLocalDateTime', 'SignOffStamp', colMatrixShiftHour)
+    activity    = this.columnWithDefaultValue<WorklogActivity, 'WorklogActivity'>('m_str', 'enum', 'WorklogActivity', colMatrixStringBracket)
+    constructor() { super('col_matrix') }
+}()
+
+// `optionalColumnWithDefaultValue(name, kind, adapter)` — optional.
+export const tColMatrixOptionalDefaultAdapter = new class TColMatrixOptionalDefaultAdapter extends Table<DBConnection, 'TColMatrixOptionalDefaultAdapter'> {
+    id          = this.primaryKey('id', 'int')
+    mInt        = this.optionalColumnWithDefaultValue('m_int', 'int', colMatrixNumberX10)
+    mBigint     = this.optionalColumnWithDefaultValue('m_bigint', 'bigint', colMatrixBigintX10)
+    mDouble     = this.optionalColumnWithDefaultValue('m_double', 'double', colMatrixNumberX10)
+    mBool       = this.optionalColumnWithDefaultValue('m_bool', 'boolean', colMatrixBoolNegate)
+    mUuid       = this.optionalColumnWithDefaultValue('m_uuid', 'uuid', colMatrixUuidBracket)
+    mDate       = this.optionalColumnWithDefaultValue('m_date', 'localDate', colMatrixShiftHour)
+    mTime       = this.optionalColumnWithDefaultValue('m_time', 'localTime', colMatrixShiftHour)
+    mDatetime   = this.optionalColumnWithDefaultValue('m_datetime', 'localDateTime', colMatrixShiftHour)
+    mStr        = this.optionalColumnWithDefaultValue('m_str', 'string', colMatrixStringBracket)
+    cents       = this.optionalColumnWithDefaultValue<number, 'Cents'>('m_int', 'customInt', 'Cents', colMatrixNumberX10)
+    money       = this.optionalColumnWithDefaultValue<number, 'Money'>('m_double', 'customDouble', 'Money', colMatrixNumberX10)
+    signingKey  = this.optionalColumnWithDefaultValue<string, 'SigningKey'>('m_uuid', 'customUuid', 'SigningKey', colMatrixUuidBracket)
+    semver      = this.optionalColumnWithDefaultValue<string, 'Semver'>('m_str', 'customComparable', 'Semver', colMatrixStringBracket)
+    channel     = this.optionalColumnWithDefaultValue<ReleaseChannel, 'ReleaseChannel'>('m_str', 'custom', 'ReleaseChannel', colMatrixStringBracket)
+    releaseDay  = this.optionalColumnWithDefaultValue<Date, 'ReleaseDay'>('m_date', 'customLocalDate', 'ReleaseDay', colMatrixShiftHour)
+    cutoffClock = this.optionalColumnWithDefaultValue<Date, 'CutoffClock'>('m_time', 'customLocalTime', 'CutoffClock', colMatrixShiftHour)
+    signOff     = this.optionalColumnWithDefaultValue<Date, 'SignOffStamp'>('m_datetime', 'customLocalDateTime', 'SignOffStamp', colMatrixShiftHour)
+    activity    = this.optionalColumnWithDefaultValue<WorklogActivity, 'WorklogActivity'>('m_str', 'enum', 'WorklogActivity', colMatrixStringBracket)
+    constructor() { super('col_matrix') }
+}()
+
+// `computedColumn(name, kind, adapter)` — required, non-writable.
+export const tColMatrixComputedAdapter = new class TColMatrixComputedAdapter extends Table<DBConnection, 'TColMatrixComputedAdapter'> {
+    id          = this.primaryKey('id', 'int')
+    mInt        = this.computedColumn('m_int', 'int', colMatrixNumberX10)
+    mBigint     = this.computedColumn('m_bigint', 'bigint', colMatrixBigintX10)
+    mDouble     = this.computedColumn('m_double', 'double', colMatrixNumberX10)
+    mBool       = this.computedColumn('m_bool', 'boolean', colMatrixBoolNegate)
+    mUuid       = this.computedColumn('m_uuid', 'uuid', colMatrixUuidBracket)
+    mDate       = this.computedColumn('m_date', 'localDate', colMatrixShiftHour)
+    mTime       = this.computedColumn('m_time', 'localTime', colMatrixShiftHour)
+    mDatetime   = this.computedColumn('m_datetime', 'localDateTime', colMatrixShiftHour)
+    mStr        = this.computedColumn('m_str', 'string', colMatrixStringBracket)
+    cents       = this.computedColumn<number, 'Cents'>('m_int', 'customInt', 'Cents', colMatrixNumberX10)
+    money       = this.computedColumn<number, 'Money'>('m_double', 'customDouble', 'Money', colMatrixNumberX10)
+    signingKey  = this.computedColumn<string, 'SigningKey'>('m_uuid', 'customUuid', 'SigningKey', colMatrixUuidBracket)
+    semver      = this.computedColumn<string, 'Semver'>('m_str', 'customComparable', 'Semver', colMatrixStringBracket)
+    channel     = this.computedColumn<ReleaseChannel, 'ReleaseChannel'>('m_str', 'custom', 'ReleaseChannel', colMatrixStringBracket)
+    releaseDay  = this.computedColumn<Date, 'ReleaseDay'>('m_date', 'customLocalDate', 'ReleaseDay', colMatrixShiftHour)
+    cutoffClock = this.computedColumn<Date, 'CutoffClock'>('m_time', 'customLocalTime', 'CutoffClock', colMatrixShiftHour)
+    signOff     = this.computedColumn<Date, 'SignOffStamp'>('m_datetime', 'customLocalDateTime', 'SignOffStamp', colMatrixShiftHour)
+    activity    = this.computedColumn<WorklogActivity, 'WorklogActivity'>('m_str', 'enum', 'WorklogActivity', colMatrixStringBracket)
+    constructor() { super('col_matrix') }
+}()
+
+// `optionalComputedColumn(name, kind, adapter)` — optional, non-writable.
+export const tColMatrixOptionalComputedAdapter = new class TColMatrixOptionalComputedAdapter extends Table<DBConnection, 'TColMatrixOptionalComputedAdapter'> {
+    id          = this.primaryKey('id', 'int')
+    mInt        = this.optionalComputedColumn('m_int', 'int', colMatrixNumberX10)
+    mBigint     = this.optionalComputedColumn('m_bigint', 'bigint', colMatrixBigintX10)
+    mDouble     = this.optionalComputedColumn('m_double', 'double', colMatrixNumberX10)
+    mBool       = this.optionalComputedColumn('m_bool', 'boolean', colMatrixBoolNegate)
+    mUuid       = this.optionalComputedColumn('m_uuid', 'uuid', colMatrixUuidBracket)
+    mDate       = this.optionalComputedColumn('m_date', 'localDate', colMatrixShiftHour)
+    mTime       = this.optionalComputedColumn('m_time', 'localTime', colMatrixShiftHour)
+    mDatetime   = this.optionalComputedColumn('m_datetime', 'localDateTime', colMatrixShiftHour)
+    mStr        = this.optionalComputedColumn('m_str', 'string', colMatrixStringBracket)
+    cents       = this.optionalComputedColumn<number, 'Cents'>('m_int', 'customInt', 'Cents', colMatrixNumberX10)
+    money       = this.optionalComputedColumn<number, 'Money'>('m_double', 'customDouble', 'Money', colMatrixNumberX10)
+    signingKey  = this.optionalComputedColumn<string, 'SigningKey'>('m_uuid', 'customUuid', 'SigningKey', colMatrixUuidBracket)
+    semver      = this.optionalComputedColumn<string, 'Semver'>('m_str', 'customComparable', 'Semver', colMatrixStringBracket)
+    channel     = this.optionalComputedColumn<ReleaseChannel, 'ReleaseChannel'>('m_str', 'custom', 'ReleaseChannel', colMatrixStringBracket)
+    releaseDay  = this.optionalComputedColumn<Date, 'ReleaseDay'>('m_date', 'customLocalDate', 'ReleaseDay', colMatrixShiftHour)
+    cutoffClock = this.optionalComputedColumn<Date, 'CutoffClock'>('m_time', 'customLocalTime', 'CutoffClock', colMatrixShiftHour)
+    signOff     = this.optionalComputedColumn<Date, 'SignOffStamp'>('m_datetime', 'customLocalDateTime', 'SignOffStamp', colMatrixShiftHour)
+    activity    = this.optionalComputedColumn<WorklogActivity, 'WorklogActivity'>('m_str', 'enum', 'WorklogActivity', colMatrixStringBracket)
+    constructor() { super('col_matrix') }
 }()

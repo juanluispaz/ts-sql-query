@@ -286,4 +286,96 @@ describe(ctx.label, () => {
             else expect(typeof curr === 'bigint' || typeof curr === 'string' || typeof curr === 'number').toBe(true)
         })
     })
+
+    // ---- CONN B4 double/customDouble sequence value-types (round-44)
+    // The genuinely-distinct marshalled-result-type block: doubleSeq reuses the
+    // int sequence issue_id_seq and customDoubleSeq reuses the bigint sequence
+    // audit_tag_seq, but each draws the value marshalled as the WIDER double /
+    // customDouble kind. The emitted SQL is identical to issueIdSeq / auditTagSeq
+    // (the value type only changes the read marshaller, not the keyword); the
+    // marshalled result type is a plain `number` on both.
+
+    test('sequence-double-next-value', async () => {
+        await ctx.withCommit(async () => {
+            // doubleSeq reuses issue_id_seq but its value type is `double`, so the
+            // drawn value is marshalled as a plain `number`. Same SQL as issueIdSeq.
+            ctx.mockNext(42)
+            const next = await ctx.conn.selectFromNoTable()
+                .selectOneColumn(ctx.conn.doubleSeq.nextValue())
+                .executeSelectOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select nextval('issue_id_seq') as result"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+            assertType<Exact<typeof next, number>>()
+            if (!ctx.realDbEnabled) expect(next).toBe(42)
+            else expect(typeof next).toBe('number')
+        })
+    })
+
+    test('sequence-double-current-value', async () => {
+        await ctx.withCommit(async () => {
+            // currentValue() over the same `double` sequence reference: the emitted
+            // SQL is the currval form of issue_id_seq; the value type only changes
+            // the marshaller. currval is session-scoped, so a prior nextValue primes
+            // it on the real DB.
+            ctx.mockNext(41)
+            if (ctx.realDbEnabled) {
+                await ctx.conn.selectFromNoTable()
+                    .selectOneColumn(ctx.conn.doubleSeq.nextValue())
+                    .executeSelectOne()
+            }
+            const curr = await ctx.conn.selectFromNoTable()
+                .selectOneColumn(ctx.conn.doubleSeq.currentValue())
+                .executeSelectOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select currval('issue_id_seq') as result"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+            assertType<Exact<typeof curr, number>>()
+            if (!ctx.realDbEnabled) expect(curr).toBe(41)
+            else expect(typeof curr).toBe('number')
+        })
+    })
+
+    test('sequence-customdouble-next-value', async () => {
+        await ctx.withCommit(async () => {
+            // customDoubleSeq reuses audit_tag_seq but its value type is the
+            // customDouble kind bound to the 'Money' typeName (marshalled to double
+            // via baseTypeForCustom). The value type is a plain `number`, so
+            // nextValue() surfaces a `number`. Same SQL as auditTagSeq.
+            ctx.mockNext(42)
+            const next = await ctx.conn.selectFromNoTable()
+                .selectOneColumn(ctx.conn.customDoubleSeq.nextValue())
+                .executeSelectOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select nextval('audit_tag_seq') as result"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+            assertType<Exact<typeof next, number>>()
+            if (!ctx.realDbEnabled) expect(next).toBe(42)
+            else expect(typeof next).toBe('number')
+        })
+    })
+
+    test('sequence-customdouble-current-value', async () => {
+        await ctx.withCommit(async () => {
+            // currentValue() over the same customDouble ('Money') sequence: the
+            // emitted SQL is the currval form of audit_tag_seq; the value type only
+            // changes the marshaller. currval is session-scoped, so a prior
+            // nextValue primes it on the real DB.
+            ctx.mockNext(41)
+            if (ctx.realDbEnabled) {
+                await ctx.conn.selectFromNoTable()
+                    .selectOneColumn(ctx.conn.customDoubleSeq.nextValue())
+                    .executeSelectOne()
+            }
+            const curr = await ctx.conn.selectFromNoTable()
+                .selectOneColumn(ctx.conn.customDoubleSeq.currentValue())
+                .executeSelectOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select currval('audit_tag_seq') as result"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+            assertType<Exact<typeof curr, number>>()
+            if (!ctx.realDbEnabled) expect(curr).toBe(41)
+            else expect(typeof curr).toBe('number')
+        })
+    })
 })

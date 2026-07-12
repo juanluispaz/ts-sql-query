@@ -21,6 +21,7 @@ TRUNCATE TABLE calendar_year;
 TRUNCATE TABLE invoice;
 TRUNCATE TABLE ledger_entry;
 TRUNCATE TABLE issue_worklog;
+TRUNCATE TABLE col_matrix;
 TRUNCATE TABLE country;
 TRUNCATE TABLE issue;
 TRUNCATE TABLE project;

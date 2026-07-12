@@ -4,6 +4,7 @@
 
 DROP VIEW IF EXISTS release_overview;
 DROP VIEW IF EXISTS project_overview;
+DROP VIEW IF EXISTS col_matrix_view;
 DROP TABLE IF EXISTS project_review;
 DROP TABLE IF EXISTS project_release;
 DROP TABLE IF EXISTS webhook_event;
@@ -11,6 +12,7 @@ DROP TABLE IF EXISTS calendar_year;
 DROP TABLE IF EXISTS invoice;
 DROP TABLE IF EXISTS ledger_entry;
 DROP TABLE IF EXISTS issue_worklog;
+DROP TABLE IF EXISTS col_matrix;
 DROP TABLE IF EXISTS country;
 DROP TABLE IF EXISTS issue;
 DROP TABLE IF EXISTS project;
@@ -266,3 +268,25 @@ CREATE TABLE release_draft (
     shifted_release_day DATE NOT NULL DEFAULT '2025-03-01',
     shifted_cutoff TIME NOT NULL DEFAULT '09:00:00'
 );
+
+-- col_matrix (COL F2-COL T4): one plain, NOT NULL column per base kind. Every
+-- tColMatrix* Table / the vColMatrix View reads these SAME columns through a
+-- DIFFERENT column factory; the optionality/default/computed/pk distinction is
+-- type-level only. SQLite's loose typing: bigint/boolean via INTEGER, double via
+-- REAL, uuid via TEXT ('string' uuidStrategy). Caller-provided int PK.
+CREATE TABLE col_matrix (
+    id INTEGER PRIMARY KEY,
+    m_int INTEGER NOT NULL,
+    m_bigint INTEGER NOT NULL,
+    m_double REAL NOT NULL,
+    m_bool INTEGER NOT NULL,
+    m_uuid TEXT NOT NULL,
+    m_date DATE NOT NULL,
+    m_time TIME NOT NULL,
+    m_datetime DATETIME NOT NULL,
+    m_str VARCHAR(64) NOT NULL
+);
+
+CREATE VIEW col_matrix_view AS
+SELECT id, m_int, m_bigint, m_double, m_bool, m_uuid, m_date, m_time, m_datetime, m_str
+FROM col_matrix;

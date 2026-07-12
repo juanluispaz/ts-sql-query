@@ -4,6 +4,7 @@
 
 DROP VIEW IF EXISTS project_overview;
 DROP VIEW IF EXISTS release_overview;
+DROP VIEW IF EXISTS col_matrix_view;
 DROP TABLE IF EXISTS project_review;
 DROP TABLE IF EXISTS project_release;
 DROP TABLE IF EXISTS webhook_event;
@@ -11,6 +12,7 @@ DROP TABLE IF EXISTS calendar_year;
 DROP TABLE IF EXISTS invoice;
 DROP TABLE IF EXISTS ledger_entry;
 DROP TABLE IF EXISTS issue_worklog;
+DROP TABLE IF EXISTS col_matrix;
 DROP TABLE IF EXISTS country;
 DROP TABLE IF EXISTS issue;
 DROP TABLE IF EXISTS project;
@@ -266,3 +268,49 @@ CREATE TABLE release_draft (
     shifted_release_day DATE NOT NULL DEFAULT '2025-03-01',
     shifted_cutoff TIME NOT NULL DEFAULT '09:00:00'
 );
+
+-- col_matrix (COL F2-COL T4): one plain, NOT NULL column per base kind. Every
+-- tColMatrix* Table / the vColMatrix View reads these SAME columns through a
+-- DIFFERENT column factory; the optionality/default/computed/pk distinction is
+-- type-level only. Caller-provided int PK (no AUTO_INCREMENT).
+CREATE TABLE col_matrix (
+    id INT PRIMARY KEY,
+    m_int INT NOT NULL,
+    m_bigint BIGINT NOT NULL,
+    m_double DOUBLE NOT NULL,
+    m_bool TINYINT(1) NOT NULL,
+    m_uuid BINARY(16) NOT NULL,
+    m_date DATE NOT NULL,
+    m_time TIME NOT NULL,
+    m_datetime DATETIME NOT NULL,
+    m_str VARCHAR(64) NOT NULL
+);
+
+CREATE VIEW col_matrix_view AS
+SELECT id, m_int, m_bigint, m_double, m_bool, m_uuid, m_date, m_time, m_datetime, m_str
+FROM col_matrix;
+
+-- Zero-arg function per base value kind, each returning the col_matrix row-1
+-- value (CONN F5-CONN B2 — executeFunction return-kind + trailing-adapter
+-- fan-out, exercised by `exec.function-value-kinds.test.ts`). Custom kinds reuse
+-- the base-kind function. Declared AFTER col_matrix (the body reads it). m_uuid
+-- is BINARY(16) (UUID_TO_BIN), so cm_uuid returns the CHAR(36) string form via
+-- BIN_TO_UUID to match ret_uuid's string strategy.
+DROP FUNCTION IF EXISTS cm_int;
+DROP FUNCTION IF EXISTS cm_bigint;
+DROP FUNCTION IF EXISTS cm_double;
+DROP FUNCTION IF EXISTS cm_bool;
+DROP FUNCTION IF EXISTS cm_uuid;
+DROP FUNCTION IF EXISTS cm_date;
+DROP FUNCTION IF EXISTS cm_time;
+DROP FUNCTION IF EXISTS cm_datetime;
+DROP FUNCTION IF EXISTS cm_str;
+CREATE FUNCTION cm_int() RETURNS INT DETERMINISTIC RETURN (SELECT m_int FROM col_matrix WHERE id = 1);
+CREATE FUNCTION cm_bigint() RETURNS BIGINT DETERMINISTIC RETURN (SELECT m_bigint FROM col_matrix WHERE id = 1);
+CREATE FUNCTION cm_double() RETURNS DOUBLE DETERMINISTIC RETURN (SELECT m_double FROM col_matrix WHERE id = 1);
+CREATE FUNCTION cm_bool() RETURNS TINYINT(1) DETERMINISTIC RETURN (SELECT m_bool FROM col_matrix WHERE id = 1);
+CREATE FUNCTION cm_uuid() RETURNS CHAR(36) DETERMINISTIC RETURN (SELECT BIN_TO_UUID(m_uuid) FROM col_matrix WHERE id = 1);
+CREATE FUNCTION cm_date() RETURNS DATE DETERMINISTIC RETURN (SELECT m_date FROM col_matrix WHERE id = 1);
+CREATE FUNCTION cm_time() RETURNS TIME DETERMINISTIC RETURN (SELECT m_time FROM col_matrix WHERE id = 1);
+CREATE FUNCTION cm_datetime() RETURNS DATETIME DETERMINISTIC RETURN (SELECT m_datetime FROM col_matrix WHERE id = 1);
+CREATE FUNCTION cm_str() RETURNS VARCHAR(64) DETERMINISTIC RETURN (SELECT m_str FROM col_matrix WHERE id = 1);

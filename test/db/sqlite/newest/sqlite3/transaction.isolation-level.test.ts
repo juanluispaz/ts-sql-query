@@ -159,4 +159,20 @@ describe(ctx.label, () => {
         expect(result).toBe(1)
     })
     */
+    // NOT-APPLICABLE: SqliteConnection does not define isolationLevel(...) (single implicit serializable mode, no access modes).
+    /*
+    // ---- isolationLevel read-only access mode (round-44)
+    test('isolation-level-with-read-only-access-mode-builds-pair-opts', async () => {
+        // The level+accessMode branch with the `'read only'` access mode:
+        // `isolationLevel('repeatable read', 'read only')` → opts
+        // `['repeatable read', 'read only']`. The existing pair test covers the
+        // `'read write'` access mode; this is its read-only twin (and the
+        // transaction body is a plain SELECT, so real DBs accept the read-only
+        // mode).
+        ctx.mockNext(1)
+        const result = await runReadOnlyTransaction(ctx.conn.isolationLevel('repeatable read', 'read only'))
+        expect(ctx.lastTransactionOpts).toEqual(['repeatable read', 'read only'])
+        expect(result).toBe(1)
+    })
+    */
 })

@@ -4,6 +4,7 @@
 
 DROP VIEW IF EXISTS project_overview;
 DROP VIEW IF EXISTS release_overview;
+DROP VIEW IF EXISTS col_matrix_view;
 DROP TABLE IF EXISTS project_review CASCADE;
 DROP TABLE IF EXISTS project_release CASCADE;
 DROP TABLE IF EXISTS audit_entry CASCADE;
@@ -12,6 +13,7 @@ DROP TABLE IF EXISTS calendar_year CASCADE;
 DROP TABLE IF EXISTS invoice CASCADE;
 DROP TABLE IF EXISTS ledger_entry CASCADE;
 DROP TABLE IF EXISTS issue_worklog CASCADE;
+DROP TABLE IF EXISTS col_matrix CASCADE;
 DROP TABLE IF EXISTS country CASCADE;
 DROP TABLE IF EXISTS issue CASCADE;
 DROP TABLE IF EXISTS project CASCADE;
@@ -324,3 +326,75 @@ CREATE TABLE release_draft (
     shifted_release_day DATE NOT NULL DEFAULT '2025-03-01',
     shifted_cutoff TIME NOT NULL DEFAULT '09:00:00'
 );
+
+-- col_matrix (COL F2-COL T4): one plain, NOT NULL column per base value kind.
+-- Every tColMatrix* Table class and the vColMatrix View read these SAME columns
+-- through a DIFFERENT column factory (column / optionalColumn /
+-- columnWithDefaultValue / optionalColumnWithDefaultValue / computedColumn /
+-- optionalComputedColumn / primaryKey + View column / optionalColumn). The
+-- optionality / default / computed / primary-key distinction is type-level only,
+-- so a single plain row drives every factory's per-kind read path. Caller-provided
+-- int PK (no identity) keeps the per-dialect reset trivial.
+CREATE TABLE col_matrix (
+    id INTEGER PRIMARY KEY,
+    m_int INTEGER NOT NULL,
+    m_bigint BIGINT NOT NULL,
+    m_double DOUBLE PRECISION NOT NULL,
+    m_bool BOOLEAN NOT NULL,
+    m_uuid VARCHAR(36) NOT NULL,
+    m_date DATE NOT NULL,
+    m_time TIME NOT NULL,
+    m_datetime TIMESTAMP NOT NULL,
+    m_str VARCHAR(64) NOT NULL
+);
+
+-- View side of col_matrix — surfaces the same per-kind read marshalling through
+-- the View column / optionalColumn factories (vColMatrix).
+CREATE VIEW col_matrix_view AS
+SELECT id, m_int, m_bigint, m_double, m_bool, m_uuid, m_date, m_time, m_datetime, m_str
+FROM col_matrix;
+
+-- One zero-arg function per base value kind, each returning the col_matrix row-1
+-- value of that kind (CONN F5-CONN B2 — executeFunction return-kind + trailing
+-- adapter fan-out, exercised by `exec.function-value-kinds.test.ts`). Custom
+-- kinds reuse the base-kind function (customInt→cm_int, customDouble→cm_double,
+-- customUuid→cm_uuid, customLocalDate→cm_date, customLocalTime→cm_time,
+-- customLocalDateTime→cm_datetime, enum/custom/customComparable→cm_str). These
+-- are declared AFTER col_matrix because a `LANGUAGE sql` body is parsed and
+-- validated against the referenced table at CREATE time.
+DROP FUNCTION IF EXISTS cm_int();
+DROP FUNCTION IF EXISTS cm_bigint();
+DROP FUNCTION IF EXISTS cm_double();
+DROP FUNCTION IF EXISTS cm_bool();
+DROP FUNCTION IF EXISTS cm_uuid();
+DROP FUNCTION IF EXISTS cm_date();
+DROP FUNCTION IF EXISTS cm_time();
+DROP FUNCTION IF EXISTS cm_datetime();
+DROP FUNCTION IF EXISTS cm_str();
+
+CREATE FUNCTION cm_int() RETURNS integer
+LANGUAGE sql AS $$ SELECT m_int FROM col_matrix WHERE id = 1 $$;
+
+CREATE FUNCTION cm_bigint() RETURNS bigint
+LANGUAGE sql AS $$ SELECT m_bigint FROM col_matrix WHERE id = 1 $$;
+
+CREATE FUNCTION cm_double() RETURNS double precision
+LANGUAGE sql AS $$ SELECT m_double FROM col_matrix WHERE id = 1 $$;
+
+CREATE FUNCTION cm_bool() RETURNS boolean
+LANGUAGE sql AS $$ SELECT m_bool FROM col_matrix WHERE id = 1 $$;
+
+CREATE FUNCTION cm_uuid() RETURNS varchar
+LANGUAGE sql AS $$ SELECT m_uuid FROM col_matrix WHERE id = 1 $$;
+
+CREATE FUNCTION cm_date() RETURNS date
+LANGUAGE sql AS $$ SELECT m_date FROM col_matrix WHERE id = 1 $$;
+
+CREATE FUNCTION cm_time() RETURNS time
+LANGUAGE sql AS $$ SELECT m_time FROM col_matrix WHERE id = 1 $$;
+
+CREATE FUNCTION cm_datetime() RETURNS timestamp
+LANGUAGE sql AS $$ SELECT m_datetime FROM col_matrix WHERE id = 1 $$;
+
+CREATE FUNCTION cm_str() RETURNS varchar
+LANGUAGE sql AS $$ SELECT m_str FROM col_matrix WHERE id = 1 $$;

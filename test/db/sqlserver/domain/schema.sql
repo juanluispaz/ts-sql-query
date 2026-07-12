@@ -4,6 +4,7 @@
 
 IF OBJECT_ID('project_overview', 'V') IS NOT NULL DROP VIEW project_overview;
 IF OBJECT_ID('release_overview', 'V') IS NOT NULL DROP VIEW release_overview;
+IF OBJECT_ID('col_matrix_view', 'V') IS NOT NULL DROP VIEW col_matrix_view;
 IF OBJECT_ID('project_review', 'U') IS NOT NULL DROP TABLE project_review;
 IF OBJECT_ID('project_release', 'U') IS NOT NULL DROP TABLE project_release;
 IF OBJECT_ID('audit_entry', 'U') IS NOT NULL DROP TABLE audit_entry;
@@ -12,6 +13,7 @@ IF OBJECT_ID('calendar_year', 'U') IS NOT NULL DROP TABLE calendar_year;
 IF OBJECT_ID('invoice', 'U') IS NOT NULL DROP TABLE invoice;
 IF OBJECT_ID('ledger_entry', 'U') IS NOT NULL DROP TABLE ledger_entry;
 IF OBJECT_ID('issue_worklog', 'U') IS NOT NULL DROP TABLE issue_worklog;
+IF OBJECT_ID('col_matrix', 'U') IS NOT NULL DROP TABLE col_matrix;
 IF OBJECT_ID('country', 'U') IS NOT NULL DROP TABLE country;
 IF OBJECT_ID('issue', 'U') IS NOT NULL DROP TABLE issue;
 IF OBJECT_ID('project', 'U') IS NOT NULL DROP TABLE project;
@@ -344,3 +346,62 @@ CREATE TABLE release_draft (
     shifted_release_day DATE NOT NULL DEFAULT '2025-03-01',
     shifted_cutoff TIME NOT NULL DEFAULT '09:00:00'
 );
+GO
+
+-- col_matrix (COL F2-COL T4): one plain, NOT NULL column per base kind. Every
+-- tColMatrix* Table / the vColMatrix View reads these SAME columns through a
+-- DIFFERENT column factory; the optionality/default/computed/pk distinction is
+-- type-level only. boolean is BIT, uuid uniqueidentifier, localDateTime DATETIME.
+-- Caller-provided int PK (no IDENTITY). CREATE VIEW must lead its own batch (GO).
+CREATE TABLE col_matrix (
+    id INT PRIMARY KEY,
+    m_int INT NOT NULL,
+    m_bigint BIGINT NOT NULL,
+    m_double FLOAT NOT NULL,
+    m_bool BIT NOT NULL,
+    m_uuid uniqueidentifier NOT NULL,
+    m_date DATE NOT NULL,
+    m_time TIME NOT NULL,
+    m_datetime DATETIME NOT NULL,
+    m_str VARCHAR(64) NOT NULL
+);
+GO
+
+CREATE VIEW col_matrix_view AS
+SELECT id, m_int, m_bigint, m_double, m_bool, m_uuid, m_date, m_time, m_datetime, m_str
+FROM col_matrix;
+GO
+
+-- Zero-arg scalar function per base value kind (CONN F5-CONN B2). Custom kinds
+-- reuse the base-kind function. Each is its own GO batch, declared AFTER
+-- col_matrix (SQL Server does not defer name resolution for functions). m_uuid is
+-- uniqueidentifier (read back uppercased, lowercased by the marshaller); m_bool
+-- is BIT. The call site is dbo.cm_<kind>().
+IF OBJECT_ID('cm_int',      'FN') IS NOT NULL DROP FUNCTION cm_int;
+IF OBJECT_ID('cm_bigint',   'FN') IS NOT NULL DROP FUNCTION cm_bigint;
+IF OBJECT_ID('cm_double',   'FN') IS NOT NULL DROP FUNCTION cm_double;
+IF OBJECT_ID('cm_bool',     'FN') IS NOT NULL DROP FUNCTION cm_bool;
+IF OBJECT_ID('cm_uuid',     'FN') IS NOT NULL DROP FUNCTION cm_uuid;
+IF OBJECT_ID('cm_date',     'FN') IS NOT NULL DROP FUNCTION cm_date;
+IF OBJECT_ID('cm_time',     'FN') IS NOT NULL DROP FUNCTION cm_time;
+IF OBJECT_ID('cm_datetime', 'FN') IS NOT NULL DROP FUNCTION cm_datetime;
+IF OBJECT_ID('cm_str',      'FN') IS NOT NULL DROP FUNCTION cm_str;
+GO
+CREATE FUNCTION cm_int() RETURNS INT AS BEGIN RETURN (SELECT m_int FROM col_matrix WHERE id = 1) END;
+GO
+CREATE FUNCTION cm_bigint() RETURNS BIGINT AS BEGIN RETURN (SELECT m_bigint FROM col_matrix WHERE id = 1) END;
+GO
+CREATE FUNCTION cm_double() RETURNS FLOAT AS BEGIN RETURN (SELECT m_double FROM col_matrix WHERE id = 1) END;
+GO
+CREATE FUNCTION cm_bool() RETURNS BIT AS BEGIN RETURN (SELECT m_bool FROM col_matrix WHERE id = 1) END;
+GO
+CREATE FUNCTION cm_uuid() RETURNS uniqueidentifier AS BEGIN RETURN (SELECT m_uuid FROM col_matrix WHERE id = 1) END;
+GO
+CREATE FUNCTION cm_date() RETURNS DATE AS BEGIN RETURN (SELECT m_date FROM col_matrix WHERE id = 1) END;
+GO
+CREATE FUNCTION cm_time() RETURNS TIME AS BEGIN RETURN (SELECT m_time FROM col_matrix WHERE id = 1) END;
+GO
+CREATE FUNCTION cm_datetime() RETURNS DATETIME AS BEGIN RETURN (SELECT m_datetime FROM col_matrix WHERE id = 1) END;
+GO
+CREATE FUNCTION cm_str() RETURNS VARCHAR(64) AS BEGIN RETURN (SELECT m_str FROM col_matrix WHERE id = 1) END;
+GO

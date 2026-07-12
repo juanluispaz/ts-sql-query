@@ -702,4 +702,72 @@ describe(ctx.label, () => {
         expect('body' in sorted[0]!).toBe(true)
         expect(sorted).toEqual([{ id: 1, body: null }, { id: 2, body: 'Use new tokens' }])
     })
+
+    test('inline-aggregated-array-projecting-optional-values-as-nullable-then-as-optional-non-empty-array', async () => {
+        // The inline (`forUseAsInlineAggregatedArrayValue()`) sibling of the
+        // `asOptionalNonEmptyArray` array-shape modifier: the SELECT builder carries the
+        // projecting flag onto the value source, and a modifier chained on that value
+        // source must keep the present-null element leaf. `asOptionalNonEmptyArray()`
+        // flips the array to optional (`issues?`); the element still surfaces its optional
+        // `body` leaf present-as-`null`.
+        ctx.mockNext({ pid: 1, issues: [{ id: 1, body: null }, { id: 2, body: 'Use new tokens' }] })
+        const issues = ctx.conn.subSelectUsing(tProject).from(tIssue)
+            .where(tIssue.projectId.equals(tProject.id))
+            .select({ id: tIssue.id, body: tIssue.body })
+            .projectingOptionalValuesAsNullable()
+            .forUseAsInlineAggregatedArrayValue()
+            .asOptionalNonEmptyArray()
+        const row = await ctx.conn.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ pid: tProject.id, issues })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, (select json_agg(json_build_object('id', id, 'body', body)) from issue where project_id = project.id) as issues from project where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            pid:     number
+            issues?: Array<{ id: number; body: string | null }>
+        }>>()
+        const sorted = [...row.issues!].sort((a, b) => a.id - b.id)
+        expect('body' in sorted[0]!).toBe(true)
+        expect(sorted).toEqual([{ id: 1, body: null }, { id: 2, body: 'Use new tokens' }])
+    })
+
+    test('inline-aggregated-array-projecting-optional-values-as-nullable-then-as-required-in-optional-object', async () => {
+        // The inline (`forUseAsInlineAggregatedArrayValue()`) sibling of the
+        // `asRequiredInOptionalObject` array-shape modifier: the value source is the
+        // required member of an optional `meta` object, and the projecting flag carried
+        // onto it must survive the modifier's reconstruction — the element keeps its
+        // optional `body` leaf present-as-`null`. Project 1 has issues, so `meta` is present.
+        ctx.mockNext({ pid: 1, 'meta.issues': [{ id: 1, body: null }, { id: 2, body: 'Use new tokens' }] })
+        const issues = ctx.conn.subSelectUsing(tProject).from(tIssue)
+            .where(tIssue.projectId.equals(tProject.id))
+            .select({ id: tIssue.id, body: tIssue.body })
+            .projectingOptionalValuesAsNullable()
+            .forUseAsInlineAggregatedArrayValue()
+            .asRequiredInOptionalObject()
+        const row = await ctx.conn.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ pid: tProject.id, meta: { issues } })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as pid, (select json_agg(json_build_object('id', id, 'body', body)) from issue where project_id = project.id) as "meta.issues" from project where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            pid:   number
+            meta?: { issues: Array<{ id: number; body: string | null }> }
+        }>>()
+        const sorted = [...row.meta!.issues].sort((a, b) => a.id - b.id)
+        expect('body' in sorted[0]!).toBe(true)
+        expect(sorted).toEqual([{ id: 1, body: null }, { id: 2, body: 'Use new tokens' }])
+    })
+
 })

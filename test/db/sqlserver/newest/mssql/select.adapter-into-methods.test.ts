@@ -1450,8 +1450,9 @@ describe(ctx.label, () => {
     })
 
     test('starts-with-escape-backslash', async () => {
-        // `startsWith('R\\')` — the literal backslash is itself escaped in the bound
-        // param. 'R-7A2' contains no backslash, so the empty set comes back.
+        // `startsWith('R\\')` — T-SQL `LIKE` does not treat `\` as an escape character,
+        // so the literal backslash is bound as-is (not doubled). 'R-7A2' contains no
+        // backslash, so the empty set comes back.
         ctx.mockNext([])
         const rows = await ctx.conn.selectFrom(tProjectReview)
             .where(tProjectReview.id.equals(1))
@@ -1510,8 +1511,9 @@ describe(ctx.label, () => {
     })
 
     test('ends-with-escape-backslash', async () => {
-        // `endsWith('x\\y')` — the literal backslash is escaped in the bound param.
-        // 'R-7A2' contains no backslash, so the empty set comes back.
+        // `endsWith('x\\y')` — T-SQL `LIKE` does not treat `\` as an escape character,
+        // so the literal backslash is bound as-is (not doubled). 'R-7A2' contains no
+        // backslash, so the empty set comes back.
         ctx.mockNext([])
         const rows = await ctx.conn.selectFrom(tProjectReview)
             .where(tProjectReview.id.equals(1))
@@ -1570,8 +1572,9 @@ describe(ctx.label, () => {
     })
 
     test('contains-escape-backslash', async () => {
-        // `contains('a\\b')` — the literal backslash is escaped in the bound param.
-        // 'R-7A2' contains no backslash, so the empty set comes back.
+        // `contains('a\\b')` — T-SQL `LIKE` does not treat `\` as an escape character,
+        // so the literal backslash is bound as-is (not doubled). 'R-7A2' contains no
+        // backslash, so the empty set comes back.
         ctx.mockNext([])
         const rows = await ctx.conn.selectFrom(tProjectReview)
             .where(tProjectReview.id.equals(1))

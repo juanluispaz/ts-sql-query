@@ -10105,4 +10105,31 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
+    test('boolean-equals-value-source-operand', async () => {
+        // billable: worklog 1 -> TRUE, 2 -> FALSE, 3 -> NULL. sub selects worklog
+        // 1's billable (TRUE). `.equals(sub)` matches worklog 1 (TRUE); worklog 2
+        // (FALSE) differs and worklog 3 (NULL) is excluded by NULL semantics — the
+        // output-coincident `=` twin of the `notEquals(value-source)` case above.
+        const sub = ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .selectOneColumn(tIssueWorklog.billable)
+            .forUseAsInlineQueryValue()
+
+        const expected = [{ id: 1 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.billable.equals(sub))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue_worklog where billable = (select billable as "result" from issue_worklog where id = :0) order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
 })

@@ -1222,4 +1222,37 @@ describe(ctx.label, () => {
             { pid: 2, issues: [{ iid: 3 }] },
         ] })
     })
+
+    // NOT-APPLICABLE: MariaDB types `forUseAsInlineAggregatedArrayValue` as `never` for a correlated inline aggregate (no LATERAL — no outer reference allowed in an inner FROM), so the outer `aggregateAsArrayOfOneColumn(...)` has no inline value source to wrap here. The test runs+validates on PostgreSQL/SQLite/MySQL/Oracle. Body kept (canonical shape) for cross-cell diff parity per the symmetry rule.
+    /*
+    test('aggregate-as-array-of-one-column-wrapping-inline-object-aggregate-projecting-nullable', async () => {
+        // The aggregate-of-aggregate path (AbstractQueryBuilder recursion): the OUTER
+        // `aggregateAsArrayOfOneColumn(...)` wraps an INNER inline object-aggregate that carries
+        // `projectingOptionalValuesAsNullable()`. The outer aggregate must read the INNER value
+        // source's projecting flag so the doubly-nested element keeps its optional `body` leaf
+        // present-as-`null`. Only the inline form (`json_agg((select json_agg(…) …))`) is
+        // SQL-valid; the direct nested aggregate would be rejected. Project 1 has issues 1
+        // (body null) and 2, so the single grouped row nests one inner array.
+        ctx.mockNext([{ pid: 1, nested: [[{ id: 1, body: null }, { id: 2, body: 'Use new tokens' }]] }])
+        const inner = ctx.conn.subSelectUsing(tProject).from(tIssue)
+            .where(tIssue.projectId.equals(tProject.id))
+            .select({ id: tIssue.id, body: tIssue.body })
+            .projectingOptionalValuesAsNullable()
+            .forUseAsInlineAggregatedArrayValue()
+        const nested = ctx.conn.aggregateAsArrayOfOneColumn(inner)
+        const rows = await ctx.conn.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ pid: tProject.id, nested })
+            .groupBy('pid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(ctx.lastParams).toMatchInlineSnapshot()
+        assertType<Exact<typeof rows, Array<{ pid: number; nested: Array<Array<{ id: number; body: string | null }>> }>>>()
+        const inners = rows[0]!.nested.map(arr => [...arr].sort((a, b) => a.id - b.id))
+        expect('body' in inners[0]![0]!).toBe(true)
+        expect(rows).toEqual([{ pid: 1, nested: [[{ id: 1, body: null }, { id: 2, body: 'Use new tokens' }]] }])
+    })
+    */
+
 })

@@ -25,9 +25,9 @@
 //     throws `TsSqlProcessingError` with reason
 //     `CONSTANT_VALUES_VIEW_CANNOT_BE_EMPTY`.
 //
-// `Values` is typed on every dialect under test (the `Values.create(...)`
-// class form is constrained to all six SQL dialects), so the Values tests
-// run live on every cell.
+// `Values` is typed on this dialect (the `Values.create(...)` class form is
+// constrained to all six SQL dialects); the `WITH ... VALUES` form this cell
+// emits is pinned by the snapshots below.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -209,9 +209,8 @@ describe(ctx.label, () => {
         // `column<T>('customInt', 'IssueId')` and
         // `optionalColumn<T>('customDouble', 'Money')` on the
         // `VIssueBilling` view above route through the
-        // `typeof adapter === 'string'` branch of /
-        // 128-133 — the only branch reached when the user passes a
-        // typeName. The emitted VALUES tuple casts the placeholders for
+        // `typeof adapter === 'string'` branch — the only branch reached when the
+        // user passes a typeName. The emitted VALUES tuple casts the placeholders for
         // the custom-typed columns; the exact cast each dialect emits is
         // pinned by the snapshot.
         ctx.mockNext([

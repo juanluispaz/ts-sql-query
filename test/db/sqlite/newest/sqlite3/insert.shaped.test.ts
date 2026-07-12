@@ -93,10 +93,10 @@ describe(ctx.label, () => {
         // `.shapedAs({...}).setIfValue({...})` where the optional renamed key
         // `pub` maps to `published` — a defaulted, NON-nullable column. Passing
         // `null` skips it (the value-gate) so it takes its DB default, exactly
-        // like the non-shaped `setIfValue` does. The value type of a non-nullable
-        // defaulted column carries no `undefined`, so only an explicit `null`
-        // exercises the skip here (an `undefined` would be caught by the shape's
-        // key type) — this is what distinguishes it from the nullable case above.
+        // like the non-shaped `setIfValue` does. A defaulted, non-nullable shaped key
+        // accepts both `null` and `undefined` at the value-gate and skips it either way
+        // (the sibling defaulted null-skip tests below exercise `undefined`); this test
+        // pins the `null` arm — what distinguishes it from the nullable case above.
         ctx.mockNext(1)
         await ctx.withRollback(async () => {
             const inserted = await ctx.conn.insertInto(tProject)

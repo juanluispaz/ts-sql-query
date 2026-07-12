@@ -13,7 +13,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tProject } from '../../domain/connection.js'
+import { tIssue, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -64,6 +64,39 @@ describe(ctx.label, () => {
             `)
             assertType<Exact<typeof row, { id: number; name: string; slug: string }>>()
             expect(row).toEqual(expected)
+        })
+    })
+
+    test('shaped-set-if-value-null-skip-composed-with-on-conflict-returning', async () => {
+        // FIX-A shaped `setIfValue({vc: null})` — `null` skips the defaulted, NON-nullable
+        // `view_count` (DEFAULT 0), exactly like the unshaped form — COMPOSED with a targeted
+        // ON CONFLICT DO NOTHING and a trailing RETURNING. The skipped column stays out of the
+        // INSERT column list AND the upsert + returning still compose on one statement. A fresh
+        // (project 1, number 9999) does not collide, so the insert proceeds and RETURNING yields
+        // the inserted `number` (a deterministic column, not the auto-id, so mock and real assert
+        // the same value).
+        ctx.mockNext({ num: 9999 })
+        await ctx.withRollback(async () => {
+            const row = await ctx.conn.insertInto(tIssue)
+                .shapedAs({ pid: 'projectId', num: 'number', ttl: 'title', st: 'status', pr: 'priority', vc: 'viewCount' })
+                .setIfValue({ pid: 1, num: 9999, ttl: 'Shaped skip upsert', st: 'open', pr: 2, vc: null })
+                .onConflictOn(tIssue.projectId, tIssue.number)
+                .doNothing()
+                .returning({ num: tIssue.number })
+                .executeInsertNoneOrOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?, ?, ?, ?, ?) on conflict (project_id, number) do nothing returning number as num"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                9999,
+                "Shaped skip upsert",
+                "open",
+                2,
+              ]
+            `)
+            assertType<Exact<typeof row, { num: number } | null>>()
+            expect(row).toEqual({ num: 9999 })
         })
     })
 

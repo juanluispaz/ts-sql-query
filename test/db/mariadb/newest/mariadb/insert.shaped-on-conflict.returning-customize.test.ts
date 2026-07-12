@@ -74,4 +74,30 @@ describe(ctx.label, () => {
     //     })
     // })
 
+    // NOT-APPLICABLE: MariaDB does not support RETURNING on INSERT, and the targeted onConflictOn(...) opener is not typed on MariaDBConnection (ON DUPLICATE KEY UPDATE takes no conflict target)
+    // test('shaped-set-if-value-null-skip-composed-with-on-conflict-returning', async () => {
+    //     // FIX-A shaped `setIfValue({vc: null})` — `null` skips the defaulted, NON-nullable
+    //     // `view_count` (DEFAULT 0), exactly like the unshaped form — COMPOSED with a targeted
+    //     // ON CONFLICT DO NOTHING and a trailing RETURNING. The skipped column stays out of the
+    //     // INSERT column list AND the upsert + returning still compose on one statement. A fresh
+    //     // (project 1, number 9999) does not collide, so the insert proceeds and RETURNING yields
+    //     // the inserted `number` (a deterministic column, not the auto-id, so mock and real assert
+    //     // the same value).
+    //     ctx.mockNext({ num: 9999 })
+    //     await ctx.withRollback(async () => {
+    //         const row = await ctx.conn.insertInto(tIssue)
+    //             .shapedAs({ pid: 'projectId', num: 'number', ttl: 'title', st: 'status', pr: 'priority', vc: 'viewCount' })
+    //             .setIfValue({ pid: 1, num: 9999, ttl: 'Shaped skip upsert', st: 'open', pr: 2, vc: null })
+    //             .onConflictOn(tIssue.projectId, tIssue.number)
+    //             .doNothing()
+    //             .returning({ num: tIssue.number })
+    //             .executeInsertNoneOrOne()
+    //
+    //         expect(ctx.lastSql).toMatchInlineSnapshot()
+    //         expect(ctx.lastParams).toMatchInlineSnapshot()
+    //         assertType<Exact<typeof row, { num: number } | null>>()
+    //         expect(row).toEqual({ num: 9999 })
+    //     })
+    // })
+
 })

@@ -14,8 +14,15 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tOrganization, tProject } from '../../domain/connection.js'
+import { Values } from '../../../../../src/Values.js'
+import { DBConnection, tIssue, tOrganization, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+
+// A Values source used as the FROM target of an UPDATE.
+class VOrgNameList extends Values<DBConnection, 'orgNames'> {
+    id   = this.column('int')
+    name = this.column('string')
+}
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -227,4 +234,35 @@ describe(ctx.label, () => {
         })
     })
     */
+
+    test('update-from-values-source', async () => {
+        // The FROM target is a `Values` source (vs a table or a forUseInQueryAs CTE).
+        // The Values `WITH orgNames(id, name) AS (VALUES ...)` must hoist to the top of
+        // the UPDATE through the FROM clause — the symmetric twin of the covered
+        // `delete.using(values)`. The where filters by an impossible id so no seed rows
+        // are updated under real DB.
+        ctx.mockNext(0)
+        await ctx.withRollback(async () => {
+            const orgs = Values.create(VOrgNameList, 'orgNames', [{ id: 1, name: 'Renamed via values' }])
+            const affected = await ctx.conn.update(tProject)
+                .from(orgs)
+                .set({ name: orgs.name })
+                .where(tProject.organizationId.equals(orgs.id))
+                .and(tProject.id.equals(99999))
+                .executeUpdate()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"with orgNames(id, \`name\`) as (values row(?, ?)) update project, orgNames set project.\`name\` = orgNames.\`name\` where project.organization_id = orgNames.id and project.id = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "Renamed via values",
+                99999,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            if (!ctx.realDbEnabled) expect(affected).toBe(0)
+            else expect(typeof affected).toBe('number')
+        })
+    })
+
 })

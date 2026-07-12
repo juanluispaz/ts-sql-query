@@ -917,4 +917,186 @@ describe(ctx.label, () => {
             expect(affected).toBe(0)
         })
     })
+
+    test('empty-on-conflict-update-set-degrades-preserving-conflict-target-where', async () => {
+        // The conflict-TARGET where (the partial-index predicate emitted BEFORE the DO
+        // clause) SURVIVES the empty-degrade — distinct from the DO-UPDATE where, which is
+        // DROPPED by the degrade (see the `…-with-where-degrades-dropping-the-where` sibling).
+        // `onConflictOn(cols).where(archived_at is null)` sets the arbiter predicate;
+        // `doUpdateDynamicSet({archivedAt:null}).ignoreAnySetWithNoValue()` empties the
+        // update-set, so the builder degrades to `… where archived_at is null do nothing` —
+        // the target-where is emitted before `do nothing`, so it is preserved, not replaced.
+        // (org 1, 'mktg-site') collides with the seed, so the conflict fires and nothing is
+        // inserted or updated → 0 affected.
+        ctx.mockNext(0)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, slug: 'mktg-site', name: 'ignored' })
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .where(tProject.archivedAt.isNull())
+                .doUpdateDynamicSet({ archivedAt: null })
+                .ignoreAnySetWithNoValue()
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) where archived_at is null do nothing"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "mktg-site",
+                "ignored",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(0)
+        })
+    })
+
+    test('empty-on-conflict-update-set-degrades-preserving-returning-one-column-none-or-one', async () => {
+        // The scalar `returningOneColumn(col)` sibling of the object-`returning` degrade
+        // tests: `doUpdateDynamicSet({archivedAt:null}).ignoreAnySetWithNoValue()` empties
+        // the update-set → degrades to `… do nothing`, and the trailing
+        // `.returningOneColumn(id)` SURVIVES the degrade. (org 1, 'mktg-site') collides, so
+        // the row is suppressed and `executeInsertNoneOrOne()` resolves null.
+        ctx.mockNext(undefined)
+        await ctx.withRollback(async () => {
+            const id = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, slug: 'mktg-site', name: 'ignored' })
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doUpdateDynamicSet({ archivedAt: null })
+                .ignoreAnySetWithNoValue()
+                .returningOneColumn(tProject.id)
+                .executeInsertNoneOrOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) do nothing returning id as result"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "mktg-site",
+                "ignored",
+              ]
+            `)
+            assertType<Exact<typeof id, number | null>>()
+            expect(id).toBeNull()
+        })
+    })
+
+    test('empty-on-conflict-update-set-degrades-preserving-returning-one-column-many', async () => {
+        // The `executeInsertMany()` shape of the same scalar-returning degrade: the
+        // suppressed row makes the scalar-array result an empty array.
+        const expected: number[] = []
+        ctx.mockNext(expected)
+        await ctx.withRollback(async () => {
+            const ids = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, slug: 'mktg-site', name: 'ignored' })
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doUpdateDynamicSet({ archivedAt: null })
+                .ignoreAnySetWithNoValue()
+                .returningOneColumn(tProject.id)
+                .executeInsertMany()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) do nothing returning id as result"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "mktg-site",
+                "ignored",
+              ]
+            `)
+            assertType<Exact<typeof ids, number[]>>()
+            expect(ids).toEqual(expected)
+        })
+    })
+
+    test('empty-on-conflict-update-set-degrades-preserving-returning-one-column-one-throws-no-result', async () => {
+        // The `executeInsertOne()` shape: the degrade suppresses the colliding row, so the
+        // scalar-returning statement produces zero rows and the exactly-one contract throws
+        // NO_RESULT — output-coincident with the standalone execute-shapes coverage but
+        // reached through the empty-degrade path.
+        ctx.mockNext(undefined)
+        await ctx.withRollback(async () => {
+            let caught: unknown
+            try {
+                await ctx.conn.insertInto(tProject)
+                    .values({ organizationId: 1, slug: 'mktg-site', name: 'ignored' })
+                    .onConflictOn(tProject.organizationId, tProject.slug)
+                    .doUpdateDynamicSet({ archivedAt: null })
+                    .ignoreAnySetWithNoValue()
+                    .returningOneColumn(tProject.id)
+                    .executeInsertOne()
+            } catch (e) { caught = e }
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) do nothing returning id as result"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "mktg-site",
+                "ignored",
+              ]
+            `)
+            expect(caught instanceof TsSqlError ? caught.errorReason.reason : caught).toBe('NO_RESULT')
+        })
+    })
+
+    test('empty-on-conflict-update-set-degrades-preserving-returning-under-shaped', async () => {
+        // The SHAPED opener (`shapedAs({...}).set({...})` on renamed keys) composed with the
+        // empty-degrade and a trailing RETURNING: `doUpdateSetIfValue({archivedAt:undefined})`
+        // empties the update-set → degrades to `… do nothing`, and the `.returning({id})`
+        // still renders after the shaped INSERT. (org 1, 'mktg-site') collides → suppressed →
+        // executeInsertNoneOrOne resolves null.
+        ctx.mockNext(null)
+        await ctx.withRollback(async () => {
+            const row = await ctx.conn.insertInto(tProject)
+                .shapedAs({
+                    orgId:       'organizationId',
+                    projectName: 'name',
+                    projectSlug: 'slug',
+                    arch:        'archivedAt',
+                })
+                .set({
+                    orgId:       1,
+                    projectName: 'ignored',
+                    projectSlug: 'mktg-site',
+                })
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doUpdateSetIfValue({ arch: undefined })
+                .returning({ id: tProject.id })
+                .executeInsertNoneOrOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (?, ?, ?) on conflict (organization_id, slug) do nothing returning id as id"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "ignored",
+                "mktg-site",
+              ]
+            `)
+            assertType<Exact<typeof row, { id: number } | null>>()
+            expect(row).toBeNull()
+        })
+    })
+
+    // NOT-APPLICABLE: SQLite has no ON CONFLICT ON CONSTRAINT
+    /*
+    test('empty-on-conflict-on-constraint-set-degrades-preserving-returning', async () => {
+        // The CONSTRAINT-target degrade (the `…-on-constraint-set-degrades` sibling) with a
+        // trailing RETURNING: `onConflictOnConstraint(rawFragment).doUpdateSetIfValue({archivedAt:undefined})`
+        // empties the update-set → degrades to `on conflict on constraint … do nothing`, and the
+        // trailing `.returning({id})` still renders after the no-op. That constraint is
+        // PostgreSQL's default name for the inline `UNIQUE (organization_id, slug)`; (org 1,
+        // 'mktg-site') collides → suppressed → executeInsertNoneOrOne resolves null.
+        ctx.mockNext(null)
+        await ctx.withRollback(async () => {
+            const row = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, slug: 'mktg-site', name: 'ignored' })
+                .onConflictOnConstraint(ctx.conn.rawFragment`project_organization_id_slug_key`)
+                .doUpdateSetIfValue({ archivedAt: undefined })
+                .returning({ id: tProject.id })
+                .executeInsertNoneOrOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof row, { id: number } | null>>()
+            expect(row).toBeNull()
+        })
+    })
+    */
 })

@@ -133,4 +133,52 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ status: string; total: number }>>>()
         expect(result).toEqual(expected)
     })
+
+    test('group-by-having-then-select-one-column', async () => {
+        // Select-last route reaching `DynamicHavingExpressionWithoutSelect.selectOneColumn`:
+        // `groupBy(vs).having(cond)` BEFORE `selectOneColumn(...)` (the select-first twins
+        // that pin the same SQL open with `.select({...})` up front). Per status group the
+        // count is closed→1, in_progress→1, open→2; `having(count > 1)` keeps only the open
+        // group, so the single scalar column (the group count) comes back as [2].
+        const expected = [2]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .groupBy(tIssue.status)
+            .having(ctx.conn.count(tIssue.id).greaterThan(1))
+            .selectOneColumn(ctx.conn.count(tIssue.id))
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(id) as result from issue group by \`status\` having count(id) > ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<number>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('group-by-having-then-select-count-all', async () => {
+        // Select-last route reaching `DynamicHavingExpressionWithoutSelect.selectCountAll`:
+        // `groupBy(vs).having(cond)` BEFORE `selectCountAll()`, which projects the per-group
+        // `count(*)`. `having(count(id) > 1)` keeps only the open status group (2 issues), so
+        // its `count(*)` row is [2].
+        const expected = [2]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .groupBy(tIssue.status)
+            .having(ctx.conn.count(tIssue.id).greaterThan(1))
+            .selectCountAll()
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(*) as result from issue group by \`status\` having count(id) > ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<number>>>()
+        expect(result).toEqual(expected)
+    })
+
 })

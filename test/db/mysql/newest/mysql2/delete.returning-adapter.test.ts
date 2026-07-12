@@ -85,4 +85,28 @@ describe(ctx.label, () => {
         })
     })
     */
+
+    // NOT-APPLICABLE: MySQL has no RETURNING on DELETE
+    /*
+    test('delete-col-matrix-virtual-adapter-returning-scaled-int', async () => {
+        // The col-matrix virtual-adapter column `cents` (a `virtualColumnFromFragment` over the
+        // base `m_int` carrying the ×10 `Cents` adapter) read back through DELETE … RETURNING:
+        // the fragment renders `m_int` in the RETURNING clause and the adapter transforms the raw
+        // db value on read (42 → 420). col_matrix has one driver-stable row (id 1) and nothing FKs
+        // into it, so the delete is referential-integrity-safe.
+        await ctx.withRollback(async () => {
+            ctx.mockNext(42)
+            const cents = await ctx.conn.deleteFrom(tColMatrixVirtualAdapter)
+                .where(tColMatrixVirtualAdapter.id.equals(1))
+                .returningOneColumn(tColMatrixVirtualAdapter.cents)
+                .executeDeleteOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof cents, number>>()
+            expect(cents).toBe(420)
+        })
+    })
+    */
+
 })

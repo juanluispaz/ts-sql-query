@@ -2,9 +2,9 @@
 // AS (VALUES ...)` clause. The `WITH ... VALUES` form this dialect emits
 // is pinned by the snapshot below.
 //
-// `Values` is typed on every dialect under test (the `Values.create(...)`
-// class form is constrained to all six SQL dialects), so the Values tests
-// run live on every cell.
+// `Values` is typed on this dialect (the `Values.create(...)` class form is
+// constrained to all six SQL dialects); the `WITH ... VALUES` form this cell
+// emits is pinned by the snapshots below.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'

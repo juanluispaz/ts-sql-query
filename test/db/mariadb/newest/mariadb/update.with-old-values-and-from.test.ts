@@ -273,4 +273,53 @@ describe(ctx.label, () => {
     })
     */
 
+    // TODO[LIMITATION]: see LIMITATIONS.md — `oldValues()` emits `OLD_VALUE(col)`, only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Uncomment and bake the body when mariadb:latest catches up to 13.0.1+.
+    /*
+    test('returning-old-value-with-from-then-inner-join-projects-join-brought-in-column', async () => {
+        // `oldValues()` combined with `.from(j1).innerJoin(j2).on(...)` (a JOIN after
+        // `.from()`, not a second `.from()`): the RETURNING projection reads the
+        // pre-update `old.name`, the post-update `project.name`, AND the
+        // `app_user.full_name` brought in through the inner join. The synthetic
+        // pre-update subquery has to survive the from-then-join source registration
+        // while the live join supplies the assignee column. Update project 1's name
+        // to its issue-1 assignee (Ada Lovelace via user 1); old name 'Marketing site'.
+        ctx.mockNext({
+            id:       1,
+            oldName:  'Marketing site',
+            newName:  'Ada Lovelace',
+            assignee: 'Ada Lovelace',
+        })
+        await ctx.withRollback(async () => {
+            const oldProject = tProject.oldValues()
+            const row = await ctx.conn.update(tProject)
+                .from(tIssue)
+                .innerJoin(tAppUser).on(tAppUser.id.equals(tIssue.assigneeId))
+                .set({ name: tAppUser.fullName })
+                .where(tProject.id.equals(tIssue.projectId))
+                    .and(tIssue.id.equals(1))
+                .returning({
+                    id:       tProject.id,
+                    oldName:  oldProject.name,
+                    newName:  tProject.name,
+                    assignee: tAppUser.fullName,
+                })
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof row, {
+                id:       number
+                oldName:  string
+                newName:  string
+                assignee: string
+            }>>()
+            expect(row).toEqual({
+                id:       1,
+                oldName:  'Marketing site',
+                newName:  'Ada Lovelace',
+                assignee: 'Ada Lovelace',
+            })
+        })
+    })
+    */
 })

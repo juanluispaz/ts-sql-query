@@ -190,4 +190,69 @@ describe(ctx.label, () => {
         const sorted = rows.map(r => ({ ...r, issues: [...r.issues].sort((a, b) => a.iid! - b.iid!) }))
         expect(sorted).toEqual([{ pid: 1, issues: [{ iid: 1, title: 'Update hero copy' }, { iid: 2, title: 'Redesign navbar' }] }])
     })
+
+    test('builder-projecting-flag-and-bare-aggregate-project-optionals-independently', async () => {
+        // Two projection flags live in ONE query and act INDEPENDENTLY:
+        //   - the BUILDER-level `.projectingOptionalValuesAsNullable()` retypes the
+        //     flat top-level optional leaf `optArchived` to a present required-null
+        //     (`Date | null`) — the general-projection branch of the transform walk.
+        //   - the co-selected BARE `aggregateAsArray({...})` (WITHOUT its own
+        //     `.projectingOptionalValuesAsNullable()`) keeps the AGGREGATE default:
+        //     its optional element leaf `body` is DROPPED (absent at runtime), NOT
+        //     flipped to present-null — the aggregated-array branch reads the
+        //     aggregate's own (unset) flag, not the builder's.
+        // So in the SAME row the flat leaf surfaces present-null while the aggregate
+        // element's null leaf is dropped: the two flags do not leak into each other.
+        // Project 1 (archived_at NULL) owns issues 1 (body NULL) and 2 (body set).
+        ctx.mockNext([{
+            pid:         1,
+            optArchived: null,
+            issues: [
+                { id: 1, body: null },
+                { id: 2, body: 'Use new tokens' },
+            ],
+        }])
+
+        // groupBy-BEFORE-select shape so the builder-level
+        // `.projectingOptionalValuesAsNullable()` is reachable after `.select(...)`.
+        const rows = await ctx.conn.selectFrom(tProject)
+            .innerJoin(tIssue).on(tIssue.projectId.equals(tProject.id))
+            .where(tProject.id.equals(1))
+            .groupBy(tProject.id, tProject.archivedAt)
+            .select({
+                pid:         tProject.id,
+                optArchived: tProject.archivedAt,
+                issues:      ctx.conn.aggregateAsArray({ id: tIssue.id, body: tIssue.body }),
+            })
+            .projectingOptionalValuesAsNullable()
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, project.archived_at as optArchived, json_arrayagg(json_object('id', issue.id, 'body', issue.\`body\`)) as issues from project inner join issue on issue.project_id = project.id where project.id = ? group by project.id, project.archived_at"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            pid:         number
+            optArchived: Date | null
+            issues:      Array<{ id: number; body?: string }>
+        }>>>()
+        const sorted = rows.map(r => ({ ...r, issues: [...r.issues].sort((a, b) => a.id - b.id) }))
+        expect(sorted).toEqual([{
+            pid:         1,
+            optArchived: null,
+            issues: [
+                { id: 1 },
+                { id: 2, body: 'Use new tokens' },
+            ],
+        }])
+        // The flat optional leaf is PRESENT-null (builder flag) …
+        expect('optArchived' in rows[0]!).toBe(true)
+        expect(rows[0]!.optArchived).toBe(null)
+        // … while the aggregate element's null leaf is DROPPED (aggregate default),
+        // NOT reshaped to present-null by the builder flag.
+        const issue1 = rows[0]!.issues.find(i => i.id === 1)!
+        expect('body' in issue1).toBe(false)
+    })
 })

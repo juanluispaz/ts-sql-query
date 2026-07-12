@@ -298,4 +298,36 @@ describe(ctx.label, () => {
             expect(inserted).toBe(1)
         })
     })
+    // NOT-APPLICABLE: PostgreSQL rejects `ON CONFLICT DO UPDATE` without an inference target, so the connection blocks the bare `onConflictDoUpdateSet` at compile time; PostgreSQL upserts go through the targeted `multi-row-on-conflict-on-columns-do-update-*` test above.
+    /*
+    test('multi-row-bare-on-conflict-do-update-set-with-inserted-row-ref', async () => {
+        // Multi-row VALUES chained to a BARE (no-target) `onConflictDoUpdateSet` — the
+        // no-target upsert on the `CustomizableExecutableMultipleInsert` receiver.
+        ctx.mockNext(2)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.insertInto(tProject)
+                .values([
+                    { organizationId: 1, slug: 'mktg-site', name: 'Bare A' },
+                    { organizationId: 1, slug: 'tools', name: 'Bare B' },
+                ])
+                .onConflictDoUpdateSet({ name: tProject.valuesForInsert().name })
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof affected, number>>()
+            if (ctx.realDbEnabled) {
+                expect(typeof affected).toBe('number')
+                const updated = await ctx.conn.selectFrom(tProject)
+                    .where(tProject.id.in([1, 2]))
+                    .select({ id: tProject.id, name: tProject.name })
+                    .orderBy('id')
+                    .executeSelectMany()
+                expect(updated).toEqual([{ id: 1, name: 'Bare A' }, { id: 2, name: 'Bare B' }])
+            } else {
+                expect(affected).toBe(2)
+            }
+        })
+    })
+    */
 })

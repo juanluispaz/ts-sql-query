@@ -57,6 +57,13 @@ function _typeNegatives() {
     // @ts-expect-error string[] passed to an int column's in
     void connection.dynamicConditionFor(selectFields).withValues({ priority: { in: ['a'] } })
 
+    // Rule: `between` is offered on a Comparable VALUE SOURCE (`col.between(a, b)`) but is
+    // NOT an operator of the dynamic-condition ComparableFilter — the two-bound form has no
+    // single-key operator-object representation, so `{ between: … }` is rejected (documents
+    // the surprise that a value-source method is absent from the matching filter).
+    // @ts-expect-error between is not an operator of a comparable column's ComparableFilter
+    void connection.dynamicConditionFor(selectFields).withValues({ priority: { between: [1, 3] } })
+
     // Rule: the `and` conjunction takes an array of filters, not a bare filter.
     // @ts-expect-error and expects an array of filters
     void connection.dynamicConditionFor(selectFields).withValues({ and: { priority: { equals: 1 } } })

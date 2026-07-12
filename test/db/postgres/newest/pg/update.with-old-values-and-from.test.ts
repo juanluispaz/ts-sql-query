@@ -15,7 +15,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { Values } from '../../../../../src/Values.js'
-import { DBConnection, tOrganization, tProject } from '../../domain/connection.js'
+import { DBConnection, tAppUser, tIssue, tOrganization, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 // A Values source used as the FROM target of an UPDATE … oldValues() … RETURNING.
@@ -280,6 +280,57 @@ describe(ctx.label, () => {
                 newName: string
             }>>()
             expect(row).toEqual({ id: 1, oldName: 'Marketing site', newName: 'Marketing site / Renamed via values' })
+        })
+    })
+
+    test('returning-old-value-with-from-then-inner-join-projects-join-brought-in-column', async () => {
+        // `oldValues()` combined with `.from(j1).innerJoin(j2).on(...)` (a JOIN after
+        // `.from()`, not a second `.from()`): the RETURNING projection reads the
+        // pre-update `old.name`, the post-update `project.name`, AND the
+        // `app_user.full_name` brought in through the inner join. The synthetic
+        // pre-update subquery has to survive the from-then-join source registration
+        // while the live join supplies the assignee column. Update project 1's name
+        // to its issue-1 assignee (Ada Lovelace via user 1); old name 'Marketing site'.
+        ctx.mockNext({
+            id:       1,
+            oldName:  'Marketing site',
+            newName:  'Ada Lovelace',
+            assignee: 'Ada Lovelace',
+        })
+        await ctx.withRollback(async () => {
+            const oldProject = tProject.oldValues()
+            const row = await ctx.conn.update(tProject)
+                .from(tIssue)
+                .innerJoin(tAppUser).on(tAppUser.id.equals(tIssue.assigneeId))
+                .set({ name: tAppUser.fullName })
+                .where(tProject.id.equals(tIssue.projectId))
+                    .and(tIssue.id.equals(1))
+                .returning({
+                    id:       tProject.id,
+                    oldName:  oldProject.name,
+                    newName:  tProject.name,
+                    assignee: tAppUser.fullName,
+                })
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = app_user.full_name from issue inner join app_user on app_user.id = issue.assignee_id where project.id = issue.project_id and issue.id = $1 returning project.id as id, old.name as "oldName", project.name as "newName", app_user.full_name as assignee"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof row, {
+                id:       number
+                oldName:  string
+                newName:  string
+                assignee: string
+            }>>()
+            expect(row).toEqual({
+                id:       1,
+                oldName:  'Marketing site',
+                newName:  'Ada Lovelace',
+                assignee: 'Ada Lovelace',
+            })
         })
     })
 

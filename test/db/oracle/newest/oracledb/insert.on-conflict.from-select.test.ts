@@ -309,4 +309,34 @@ describe(ctx.label, () => {
     })
     */
 
+    // NOT-APPLICABLE: Oracle has no INSERT…ON CONFLICT (uses MERGE)
+    /*
+    test('from-select-on-conflict-on-columns-do-update-set-where-partial-update-predicate', async () => {
+        // `from(select).onConflictOn(cols).doUpdateSet({...}).where(pred)` — the DO
+        // UPDATE partial-update predicate on the from-select upsert.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const source = ctx.conn.selectFrom(tProject)
+                .where(tProject.id.equals(1))
+                .select({
+                    organizationId: tProject.organizationId,
+                    slug:           tProject.slug,
+                    name:           tProject.name,
+                })
+
+            const affected = await ctx.conn.insertInto(tProject)
+                .from(source)
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doUpdateSet({ name: 'Reactivated via from-select where' })
+                .where(tProject.name.notEquals('Reactivated via from-select where'))
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof affected, number>>()
+            if (ctx.realDbEnabled) expect(typeof affected).toBe('number')
+            else expect(affected).toBe(1)
+        })
+    })
+    */
 })

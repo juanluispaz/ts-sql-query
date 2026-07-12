@@ -304,4 +304,48 @@ describe(ctx.label, () => {
             expect(inserted).toBe(1)
         })
     })
+
+    test('multi-row-bare-on-conflict-do-update-set-with-inserted-row-ref', async () => {
+        // Multi-row VALUES chained to a BARE (no-target) `onConflictDoUpdateSet` — the
+        // no-target upsert on the `CustomizableExecutableMultipleInsert` receiver
+        // (SQLite `ON CONFLICT DO UPDATE` without a conflict target; MySQL/MariaDB
+        // `ON DUPLICATE KEY UPDATE`). Each conflicting row updates `name` to its own
+        // attempted value via `valuesForInsert()`. Both rows collide with the seeded
+        // projects 1 ('mktg-site') and 2 ('tools'), so DO UPDATE fires for each.
+        ctx.mockNext(2)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.insertInto(tProject)
+                .values([
+                    { organizationId: 1, slug: 'mktg-site', name: 'Bare A' },
+                    { organizationId: 1, slug: 'tools', name: 'Bare B' },
+                ])
+                .onConflictDoUpdateSet({ name: tProject.valuesForInsert().name })
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?), (?, ?, ?) on duplicate key update name = value(name)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "mktg-site",
+                "Bare A",
+                1,
+                "tools",
+                "Bare B",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            if (ctx.realDbEnabled) {
+                expect(typeof affected).toBe('number')
+                // Each conflicting row updated to its own attempted name.
+                const updated = await ctx.conn.selectFrom(tProject)
+                    .where(tProject.id.in([1, 2]))
+                    .select({ id: tProject.id, name: tProject.name })
+                    .orderBy('id')
+                    .executeSelectMany()
+                expect(updated).toEqual([{ id: 1, name: 'Bare A' }, { id: 2, name: 'Bare B' }])
+            } else {
+                expect(affected).toBe(2)
+            }
+        })
+    })
 })

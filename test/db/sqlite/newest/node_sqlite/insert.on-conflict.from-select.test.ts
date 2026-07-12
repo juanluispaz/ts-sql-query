@@ -289,4 +289,43 @@ describe(ctx.label, () => {
         })
     })
 
+
+    test('from-select-on-conflict-on-columns-do-update-set-where-partial-update-predicate', async () => {
+        // `from(select).onConflictOn(cols).doUpdateSet({...}).where(pred)` — the DO
+        // UPDATE partial-update predicate on the from-select upsert. The VALUES path
+        // pins this WHERE (see `insert.on-conflict.where-and-or-chain.test.ts`); the
+        // from-select conflict suite otherwise omits it. The source re-selects
+        // project 1's (organization_id, slug), colliding with the UNIQUE
+        // (organization_id, slug); the partial-update WHERE (name still differs from
+        // the new value) holds, so DO UPDATE refreshes `name`.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const source = ctx.conn.selectFrom(tProject)
+                .where(tProject.id.equals(1))
+                .select({
+                    organizationId: tProject.organizationId,
+                    slug:           tProject.slug,
+                    name:           tProject.name,
+                })
+
+            const affected = await ctx.conn.insertInto(tProject)
+                .from(source)
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doUpdateSet({ name: 'Reactivated via from-select where' })
+                .where(tProject.name.notEquals('Reactivated via from-select where'))
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) select organization_id as organizationId, slug as slug, name as name from project where id = ? on conflict (organization_id, slug) do update set name = ? where project.name <> ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "Reactivated via from-select where",
+                "Reactivated via from-select where",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            if (ctx.realDbEnabled) expect(typeof affected).toBe('number')
+            else expect(affected).toBe(1)
+        })
+    })
 })

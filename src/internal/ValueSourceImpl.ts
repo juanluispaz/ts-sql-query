@@ -53,7 +53,7 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
     __aggreagtedProjectingOptionalValuesAsNullable?: boolean | undefined
     __uuidString?: boolean | undefined
 
-    constructor(valueType: ValueType, valueTypeName: string, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined, aggregatedArrayColumns?: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode?: __AggregatedArrayMode, uuidString?: boolean) {
+    constructor(valueType: ValueType, valueTypeName: string, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined, aggregatedArrayColumns?: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode?: __AggregatedArrayMode, uuidString?: boolean, aggregatedProjectingOptionalValuesAsNullable?: boolean) {
         this.__valueType = valueType
         this.__valueTypeName = valueTypeName
         this.__optionalType = optionalType
@@ -61,6 +61,7 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
         if (aggregatedArrayColumns) {
             this.__aggregatedArrayColumns = aggregatedArrayColumns
             this.__aggregatedArrayMode = aggregatedArrayMode
+            this.__aggreagtedProjectingOptionalValuesAsNullable = aggregatedProjectingOptionalValuesAsNullable
         }
         if (uuidString) {
             this.__uuidString = uuidString
@@ -1800,7 +1801,14 @@ export class AllowWhenValueSource extends ValueSourceImpl {
     __allowed: boolean
     __error: Error
     constructor(allowed: boolean, error: Error, valueSource: ValueSourceImpl) {
-        super(valueSource.__valueType, valueSource.__valueTypeName, valueSource.__optionalType, valueSource.__typeAdapter)
+        // Carry the wrapped source's aggregated-array descriptor forward: the
+        // result projector reads `__aggregatedArrayColumns` / `__aggregatedArrayMode`
+        // / `__aggreagtedProjectingOptionalValuesAsNullable` directly off the value
+        // source it finds in the query columns, so an aggregate wrapped by an
+        // `allowWhen` / `disallowWhen` gate (e.g. `forUseAsInlineQueryValue()` over a
+        // one-column aggregate, then `.allowWhen(...)`) must keep them or the array
+        // is mishandled at read time.
+        super(valueSource.__valueType, valueSource.__valueTypeName, valueSource.__optionalType, valueSource.__typeAdapter, valueSource.__aggregatedArrayColumns, valueSource.__aggregatedArrayMode, valueSource.__uuidString, valueSource.__aggreagtedProjectingOptionalValuesAsNullable)
         this.__valueSource = valueSource
         this.__error = error
         this.__allowed = allowed
@@ -2487,7 +2495,7 @@ function valueSourceInitializationForInlineSelect(selectData: SelectData, requir
             // Avoid treat the column as a custom boolean
             typeAdapter = new ProxyTypeAdapter(typeAdapter)
         }
-        return [valueSourcePrivate.__valueType, valueSourcePrivate.__valueTypeName, required ? 'required' : 'optional', typeAdapter, valueSourcePrivate.__aggregatedArrayColumns, valueSourcePrivate.__aggregatedArrayMode, valueSourcePrivate.__uuidString] as const
+        return [valueSourcePrivate.__valueType, valueSourcePrivate.__valueTypeName, required ? 'required' : 'optional', typeAdapter, valueSourcePrivate.__aggregatedArrayColumns, valueSourcePrivate.__aggregatedArrayMode, valueSourcePrivate.__uuidString, valueSourcePrivate.__aggreagtedProjectingOptionalValuesAsNullable] as const
     } else {
         throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'unexpected value' }, 'Unexpected inline select')
     }

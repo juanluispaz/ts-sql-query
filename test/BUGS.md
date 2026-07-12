@@ -67,50 +67,7 @@ of that. Two minutes of triage and one paragraph is the bar.
 
 ## Open Bugs
 
-## `forUseAsInlineQueryValue()` over a one-column `projectingOptionalValuesAsNullable()` aggregate drops the present-null leaf
-
-**Where**: `src/internal/ValueSourceImpl.ts` — `valueSourceInitializationForInlineSelect`
-(2476-2494), the `__oneColumn` branch (2479-2490). It returns the 7-tuple
-`[valueType, valueTypeName, optionalType, typeAdapter, __aggregatedArrayColumns,
-__aggregatedArrayMode, __uuidString]` which is spread into the `ValueSourceImpl` base
-ctor (56-68). That ctor copies `__aggregatedArrayColumns` + `__aggregatedArrayMode`
-(so the outer transform still json-transforms the array) but has **no slot for**
-`__aggreagtedProjectingOptionalValuesAsNullable`, so the projecting flag is silently
-dropped. The `InlineSelectValueSource` (ctor 2168) built by `forUseAsInlineQueryValue()`
-(`src/queryBuilders/SelectQueryBuilder.ts:636`) then reaches
-`src/queryBuilders/AbstractQueryBuilder.ts:81` (`__transformAggregatedArray(false, …)`)
-and the default projector drops the optional null leaf.
-
-This is the **incomplete tail of the R46 fix (`0b837af0`)**: that commit threaded the
-flag through both aggregate families' ctor/gates/modifiers + the three base-clone
-copy-sites (136/148/160), and `6505628a` threaded it through the `DBColumnImpl`
-column-map clones (148/204) — but this inline-select-init clone was missed. Same
-projecting-flag family (see the runbook §7.4 corollary: a runtime flag propagated to
-one builder-clone can be silently absent on a sibling clone).
-
-**Reproduction**: build a one-column select whose single column is a projecting
-aggregate and consume it via `forUseAsInlineQueryValue()`:
-
-```ts
-const issues = conn.subSelectUsing(tProject).from(tIssue)
-    .where(tIssue.projectId.equals(tProject.id))
-    .selectOneColumn(conn.aggregateAsArray({ id: tIssue.id, body: tIssue.body }).projectingOptionalValuesAsNullable())
-    .forUseAsInlineQueryValue()
-const row = await conn.selectFrom(tProject).where(tProject.id.equals(1))
-    .select({ pid: tProject.id, issues }).executeSelectOne()
-// TYPE:    row.issues is Array<{ id: number; body: string | null }> | undefined  (element present-null)
-// RUNTIME: for a null body, 'body' in row.issues[i] === false  (leaf DROPPED — should be present-null)
-```
-
-The control `.select({...}).projectingOptionalValuesAsNullable().forUseAsInlineAggregatedArrayValue()`
-(the R46-fixed twin) correctly keeps `'body' in el === true`. Emitted SQL is the same shape
-in both — the divergence is purely the dropped flag, so it is a type-vs-runtime soundness bug.
-
-**Current workaround in the suite**: the regression test (a `select.aggregate-as-array.*`
-test asserting the present-null element survives `forUseAsInlineQueryValue()` over a
-one-column projecting aggregate, with the `'body' in el`/`el.body===null` boundary probe)
-is marked `// TODO[BUG]` — its `assertType<Exact<…, body: string | null>>` is ground truth;
-the value assertion documents the current (wrong) drop.
+_None open._
 
 ## Common bug shapes (for the fixing agent)
 

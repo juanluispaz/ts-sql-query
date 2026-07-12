@@ -892,4 +892,99 @@ describe(ctx.label, () => {
         expect(miss.obj.tag).toBe('rel')
         expect(rows).toEqual(expected)
     })
+
+    test('two-different-left-joins-merged-in-one-leaf-plus-const-survives-partial-miss-default', async () => {
+        // A SINGLE leaf that MERGES two DIFFERENT left joins with an operator
+        // (`combined` = project.id + assignee.id) PLUS a `connection.const()`
+        // NO-TABLE leaf. The always-present const anchors the container, so the
+        // object is REQUIRED (`obj:`) and the merged left-join leaf is demoted to
+        // optional; because the sum is null as soon as EITHER join misses, a
+        // partial miss drops the merged leaf while the container SURVIVES carrying
+        // only the const. issue 3 -> project 2 hit, assignee absent -> `combined`
+        // is null, `obj` stays present with just `tag`. issue 4 -> project 3 +
+        // assignee 3 -> combined = 3 + 3.
+        const expected = [
+            { iid: 3, obj: { tag: 'rel' } },
+            { iid: 4, obj: { combined: 6, tag: 'rel' } },
+        ]
+        ctx.mockNext([
+            { iid: 3, 'obj.combined': null, 'obj.tag': 'rel' },
+            { iid: 4, 'obj.combined': 6, 'obj.tag': 'rel' },
+        ])
+        const tProjLeft = tProject.forUseInLeftJoin()
+        const tAssigneeLeft = tAppUser.forUseInLeftJoin()
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .leftJoin(tProjLeft).on(tProjLeft.id.equals(tIssue.projectId))
+            .leftJoin(tAssigneeLeft).on(tAssigneeLeft.id.equals(tIssue.assigneeId))
+            .where(tIssue.id.in([3, 4]))
+            .select({
+                iid: tIssue.id,
+                obj: { combined: tProjLeft.id.add(tAssigneeLeft.id), tag: ctx.conn.const('rel', 'string') },
+            })
+            .orderBy('iid')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.id + app_user.id as \`obj.combined\`, ? as \`obj.tag\` from issue left join project on project.id = issue.project_id left join app_user on app_user.id = issue.assignee_id where issue.id in (?, ?) order by iid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "rel",
+            3,
+            4,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            iid: number
+            obj: { combined?: number; tag: string }
+        }>>>()
+        const miss = rows[0]!
+        expect('obj' in miss).toBe(true)
+        expect('combined' in miss.obj).toBe(false)
+        expect(miss.obj.tag).toBe('rel')
+        expect(rows).toEqual(expected)
+    })
+
+    test('two-different-left-joins-merged-in-one-leaf-plus-const-survives-partial-miss-projecting-optional-values-as-nullable', async () => {
+        // Same merged-leaf rule-3 promotion under `projectingOptionalValuesAsNullable()`:
+        // the object stays REQUIRED (const anchors it) and the demoted merged
+        // left-join leaf flips to `number | null`, surfacing as `null` on the
+        // partial miss instead of being absent. issue 3 -> assignee absent ->
+        // `obj: { combined: null, tag: 'rel' }`.
+        const expected = [
+            { iid: 3, obj: { combined: null, tag: 'rel' } },
+            { iid: 4, obj: { combined: 6, tag: 'rel' } },
+        ]
+        ctx.mockNext([
+            { iid: 3, 'obj.combined': null, 'obj.tag': 'rel' },
+            { iid: 4, 'obj.combined': 6, 'obj.tag': 'rel' },
+        ])
+        const tProjLeft = tProject.forUseInLeftJoin()
+        const tAssigneeLeft = tAppUser.forUseInLeftJoin()
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .leftJoin(tProjLeft).on(tProjLeft.id.equals(tIssue.projectId))
+            .leftJoin(tAssigneeLeft).on(tAssigneeLeft.id.equals(tIssue.assigneeId))
+            .where(tIssue.id.in([3, 4]))
+            .select({
+                iid: tIssue.id,
+                obj: { combined: tProjLeft.id.add(tAssigneeLeft.id), tag: ctx.conn.const('rel', 'string') },
+            })
+            .projectingOptionalValuesAsNullable()
+            .orderBy('iid')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.id + app_user.id as \`obj.combined\`, ? as \`obj.tag\` from issue left join project on project.id = issue.project_id left join app_user on app_user.id = issue.assignee_id where issue.id in (?, ?) order by iid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "rel",
+            3,
+            4,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            iid: number
+            obj: { combined: number | null; tag: string }
+        }>>>()
+        const miss = rows[0]!
+        expect(miss.obj.combined).toBe(null)
+        expect(miss.obj.tag).toBe('rel')
+        expect(rows).toEqual(expected)
+    })
+
 })

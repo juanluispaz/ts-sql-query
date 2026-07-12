@@ -53,8 +53,8 @@ export type InsertableRowShapedAs<TABLE extends ITable<any>, SHAPE extends Inser
 export type InsertableValuesShapedAs<TABLE extends ITable<any>, SHAPE extends InsertShapeContent<TABLE>> = 
     MakeTypeVisible<MandatoryInsertValues<TABLE, ResolveShape<TABLE, SHAPE>>>
 
-export type UpdatableOnInsertConflictRowShapedAs<TABLE extends ITable<any>, SHAPE extends InsertShapeContent<TABLE>> = 
-    MakeTypeVisible<OnConflictUpdateValues<TABLE, ResolveShape<TABLE, SHAPE>>>
+export type UpdatableOnInsertConflictRowShapedAs<TABLE extends ITable<any>, SHAPE extends InsertShapeContent<TABLE>> =
+    MakeTypeVisible<OnConflictUpdateSetsContent<TABLE, AllowsNoTableOrViewRequired<TABLE[typeof source]>, ResolveShape<TABLE, SHAPE>>>
 export type UpdatableOnInsertConflictValuesShapedAs<TABLE extends ITable<any>, SHAPE extends InsertShapeContent<TABLE>> = 
     MakeTypeVisible<OnConflictUpdateValues<TABLE, ResolveShape<TABLE, SHAPE>>>
 

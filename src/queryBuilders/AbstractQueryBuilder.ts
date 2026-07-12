@@ -251,7 +251,20 @@ export class AbstractQueryBuilder {
                 // type.
                 let valueSourceRequiredTables = new Set<AnyTableOrView>()
                 valueSourcePrivate.__registerTableOrView(this.__sqlBuilder, valueSourceRequiredTables)
-                if (valueSourceRequiredTables.size > 0) {
+                if (valueSourceRequiredTables.size > 1) {
+                    // Rule 2 requires every field to come from the *same single*
+                    // outer (left) join. A single leaf that itself depends on more
+                    // than one table — e.g. a value combining columns of two
+                    // different left joins with an operator — cannot come from a
+                    // single left join, so it disqualifies rule 2. This mirrors the
+                    // type-level AllFromSameLeftJoinWithOriginallyRequired, which is
+                    // false as soon as a field's source spans two joins. Without
+                    // this, a size-2 leaf reaching this point first (nothing yet to
+                    // compare its size against) would leave alwaysSameRequiredTablesSize
+                    // true and wrongly drop an object the type marks as required
+                    // (e.g. one anchored by a no-table const).
+                    alwaysSameRequiredTablesSize = false
+                } else if (valueSourceRequiredTables.size > 0) {
                     if (alwaysSameRequiredTablesSize === undefined) {
                         firstRequiredTables = valueSourceRequiredTables
                         alwaysSameRequiredTablesSize = true

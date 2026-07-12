@@ -284,16 +284,21 @@ describe(ctx.label, () => {
         assertType<Exact<ConflictValuesShaped, { newEmail?: string; newFullName?: string }>>()
     })
 
-    test('docs-extra:utility-types/updatable-on-insert-conflict-row-shaped-as-equals-values', () => {
-        // Both on-conflict shaped aliases delegate to OnConflictUpdateValues,
-        // so the Row form is exactly the Values form for this pair.
+    test('docs-extra:utility-types/updatable-on-insert-conflict-row-shaped-as', () => {
         const myShape = {
             newEmail:    'email',
             newFullName: 'fullName',
         } as const
-        type ConflictRowShaped    = UpdatableOnInsertConflictRowShapedAs<typeof tAppUser, typeof myShape>
-        type ConflictValuesShaped = UpdatableOnInsertConflictValuesShapedAs<typeof tAppUser, typeof myShape>
-        assertType<Exact<ConflictRowShaped, ConflictValuesShaped>>()
+        type ConflictRowShaped = UpdatableOnInsertConflictRowShapedAs<typeof tAppUser, typeof myShape>
+        // The *Row* variant additionally accepts value-sources under the
+        // renamed keys (unlike the literal-only Values sibling).
+        const literal:  ConflictRowShaped = { newFullName: 'Ada' }
+        const valueSrc: ConflictRowShaped = { newFullName: tAppUser.fullName }
+        void literal
+        void valueSrc
+        // Key-set pin against the shaped Values sibling (the leaf value-source
+        // brand is not portably nameable).
+        assertType<Exact<keyof ConflictRowShaped, keyof UpdatableOnInsertConflictValuesShapedAs<typeof tAppUser, typeof myShape>>>()
     })
 
     test('docs-extra:utility-types/column-keys-view-includes-virtual-column', () => {

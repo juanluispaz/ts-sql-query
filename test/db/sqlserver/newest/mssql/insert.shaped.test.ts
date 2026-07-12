@@ -2156,14 +2156,11 @@ describe(ctx.label, () => {
         expect(err.disallowedProperty).toBe('archived')
         expect(err.disallowedIndex).toBe(1)
     })
-    // ── shaped setIfValue null-skip per defaulted-non-nullable kind (FIX A per-kind
-    // tail). The shipped tests cover the boolean-adapter kind (tProject.published,
-    // t/f); these extend the animated MandatoryOptionalInsertSets branch to other
-    // kinds with a REAL DB DEFAULT so the skip is real-validatable: enum (event_type
-    // DEFAULT 'created'), bigint (view_count DEFAULT 0), and the Y/N boolean adapter
-    // (organization.verified DEFAULT 'N', a different mapping than published). The
-    // renamed defaulted key is `null`, so the value-gate drops it and the column list
-    // omits it; the DB supplies the default.
+    // A shaped `.setIfValue({k: null})` where the renamed key maps a defaulted,
+    // NON-nullable column: `null` skips it (the value-gate drops it), so the INSERT
+    // column list omits it and the DB supplies its default. Per kind with a real DB
+    // DEFAULT: enum (event_type DEFAULT 'created'), bigint (view_count DEFAULT 0), and
+    // the Y/N boolean adapter (organization.verified DEFAULT 'N').
 
     test('shaped-set-if-value-null-skips-enum-defaulted-shaped-key', async () => {
         // `evt` → event_type (enum, DEFAULT 'created'): null skips it, so the INSERT
@@ -2211,7 +2208,7 @@ describe(ctx.label, () => {
 
     test('shaped-set-if-value-null-skips-boolean-adapter-defaulted-shaped-key', async () => {
         // `v` → verified (boolean with the Y/N CustomBooleanTypeAdapter, DEFAULT 'N' —
-        // a different mapping than the shipped t/f published test): null skips it, so
+        // a different mapping than the t/f published column): null skips it, so
         // the INSERT lists only name and plan.
         ctx.mockNext(1)
         await ctx.withRollback(async () => {
@@ -2232,8 +2229,7 @@ describe(ctx.label, () => {
     })
 
     test('shaped-set-if-value-undefined-skips-defaulted-shaped-key', async () => {
-        // The `| undefined` arm of the animated MandatoryOptionalInsertSets union: a
-        // defaulted-non-nullable shaped column accepts `undefined` too (not only null)
+        // A defaulted-non-nullable shaped column accepts `undefined` too (not only null)
         // and skips identically — the enum event_type is dropped, leaving only issue_id.
         ctx.mockNext(1)
         await ctx.withRollback(async () => {

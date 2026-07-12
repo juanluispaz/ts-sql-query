@@ -907,12 +907,10 @@ describe(ctx.label, () => {
         expect('body' in rows[0]!.detail).toBe(false)
     })
     test('union-all-of-nested-object-aggregate-arms-projecting-optional-values-as-nullable', async () => {
-        // The shipped aggregate-nullable compound test projects the aggregate TOP-LEVEL;
-        // this NESTS it inside a projection object member (`wrap`), so the compound
-        // re-projection reaches createColumnsFromInnerObject (the fix's second line)
-        // through the compound path. The element's projectingOptionalValuesAsNullable()
-        // flag must still ride through: a null `archivedAt` surfaces PRESENT-null one
-        // nesting level deeper. Arm 1 = org 1 (projects 1,2 — archived_at NULL), arm 2 =
+        // A nullable aggregate NESTED inside a projection object member (`wrap`),
+        // re-projected through a compound (unionAll). The element's
+        // projectingOptionalValuesAsNullable() flag must ride through the compound: a
+        // null `archivedAt` surfaces PRESENT-null one nesting level deeper. Arm 1 = org 1 (projects 1,2 — archived_at NULL), arm 2 =
         // org 2 (projects 3 NULL, 4 archived).
         const tProjectLeft = tProject.forUseInLeftJoin()
         const archivedDate = new Date('2024-02-01T00:00:00.000Z')

@@ -3204,18 +3204,17 @@ describe(ctx.label, () => {
         // The rule-3 object is present on the null-body row; only `body` is null.
         expect(rows[0]!.detail.body).toBeNull()
     })
-    // ── aggregateAsArray carried through a forUseInQueryAs(...) CTE. These pin the
-    // shared column-copy (createColumnsFrom / createColumnsFromInnerObject) preserving
-    // an aggregate element's own projectingOptionalValuesAsNullable() flag across the
-    // CTE re-projection: a null optional leaf stays PRESENT-null with the flag and is
+    // aggregateAsArray re-selected out of a forUseInQueryAs(...) CTE: an aggregate
+    // element's own projectingOptionalValuesAsNullable() flag must survive the CTE
+    // re-projection — a null optional leaf stays PRESENT-null with the flag and is
     // DROPPED without it. org 1 owns projects 1,2 (archived_at NULL); org 2 owns
     // projects 3 (NULL), 4 (archived). The aggregate has no inner ORDER BY, so array
     // order is not deterministic on the real engine — value assertions sort by id.
 
     test('cte-with-top-level-aggregate-as-array-nullable-leaf-carries-projecting-flag', async () => {
         // TOP-LEVEL aggregate with projectingOptionalValuesAsNullable() carried through
-        // the CTE (WithViewImpl -> createColumnsFrom): the null `archivedAt` leaf stays
-        // PRESENT-null (`archivedAt: Date | null`) after the re-projection.
+        // the CTE: the null `archivedAt` leaf stays PRESENT-null (`archivedAt: Date | null`)
+        // after the re-projection.
         const connection = ctx.conn
         const tProjectLeft = tProject.forUseInLeftJoin()
         const archivedDate = new Date('2024-02-01T00:00:00.000Z')
@@ -3268,8 +3267,8 @@ describe(ctx.label, () => {
 
     test('cte-with-nested-object-aggregate-as-array-nullable-leaf-carries-projecting-flag', async () => {
         // The SAME nullable aggregate NESTED inside a projection object member (`wrap`)
-        // carried through the CTE (createColumnsFromInnerObject): the fix's second line.
-        // The null `archivedAt` leaf still stays PRESENT-null one nesting level deeper.
+        // carried through the CTE: the null `archivedAt` leaf still stays PRESENT-null
+        // one nesting level deeper.
         const connection = ctx.conn
         const tProjectLeft = tProject.forUseInLeftJoin()
         const archivedDate = new Date('2024-02-01T00:00:00.000Z')
@@ -3328,10 +3327,9 @@ describe(ctx.label, () => {
     })
 
     test('cte-with-top-level-aggregate-as-array-default-projector-drops-null-leaf', async () => {
-        // The B-T1a DEFAULT-projector companion (no projectingOptionalValuesAsNullable()):
-        // pins the base composition (an aggregate array round-trips through a CTE column
-        // at all) independent of the nullable flag. The null `archivedAt` leaf is DROPPED
-        // (`archivedAt?: Date`, key absent).
+        // The default-projector variant (no projectingOptionalValuesAsNullable()): an
+        // aggregate array round-trips through a CTE column, and the null `archivedAt`
+        // leaf is DROPPED (`archivedAt?: Date`, key absent).
         const connection = ctx.conn
         const tProjectLeft = tProject.forUseInLeftJoin()
         const archivedDate = new Date('2024-02-01T00:00:00.000Z')
@@ -3388,9 +3386,8 @@ describe(ctx.label, () => {
     })
 
     test('cte-with-nested-object-aggregate-as-array-default-projector-drops-null-leaf', async () => {
-        // The B-T1b DEFAULT-projector companion: the nested-in-object aggregate carried
-        // through the CTE (createColumnsFromInnerObject) under the default projector —
-        // the null `archivedAt` leaf is DROPPED one nesting level deeper.
+        // The default-projector variant of the nested-in-object aggregate carried through
+        // the CTE: the null `archivedAt` leaf is DROPPED one nesting level deeper.
         const connection = ctx.conn
         const tProjectLeft = tProject.forUseInLeftJoin()
         const archivedDate = new Date('2024-02-01T00:00:00.000Z')

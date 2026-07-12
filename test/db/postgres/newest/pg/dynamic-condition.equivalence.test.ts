@@ -5244,7 +5244,7 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
     })
 
-    // Comparable `*IfValue` op×type rotation through the dynamic dispatcher.
+    // Comparable `*IfValue` operators per leaf type through the dynamic dispatcher.
     // Each dynamic `*IfValue` operator is paired against its direct `.xxxIfValue`
     // twin (present value → predicate fires) and proven to emit identical SQL +
     // params. The filter is passed inline to `withValues`, so the value-source-map
@@ -5254,7 +5254,7 @@ describe(ctx.label, () => {
     // -- comparable IfValue on the tIssueWorklog numeric/temporal columns:
     //    bigint (durationMs), customInt (costCents), customDouble (billedAmount),
     //    localDate (workDate), localTime (startedAt).
-    test('dyn-t4/if-value-comparable-worklog-family', async () => {
+    test('equivalence/if-value-comparable-worklog-family', async () => {
         const loDate = new Date(Date.UTC(2024, 2, 1, 0, 0, 0))
         const hiDate = new Date(Date.UTC(2024, 2, 31, 0, 0, 0))
         const loTime = new Date(Date.UTC(1970, 0, 1, 9, 0, 0))
@@ -5316,7 +5316,7 @@ describe(ctx.label, () => {
     //    localDateTime (createdAt) `greaterOrEqualIfValue`; plus the equalable
     //    IfValue twins: double `isNotIfValue`, string (title)
     //    `isIfValue`/`isNotIfValue`/`inIfValue`/`notInIfValue`. All on tIssue.
-    test('dyn-t4/if-value-issue-family', async () => {
+    test('equivalence/if-value-issue-family', async () => {
         const since = new Date('2020-01-01T00:00:00.000Z')
         ctx.mockNext([])
         await ctx.conn.selectFrom(tIssue)
@@ -5366,7 +5366,7 @@ describe(ctx.label, () => {
     //    customLocalDate (releasedOn), customLocalTime (cutoffTime),
     //    customLocalDateTime (signedOffAt), each with `lessThanIfValue` +
     //    `greaterOrEqualIfValue`. TZ=UTC forced by the suite.
-    test('dyn-t4/if-value-comparable-custom-temporal-family', async () => {
+    test('equivalence/if-value-comparable-custom-temporal-family', async () => {
         const loDay = new Date(Date.UTC(2024, 0, 1, 10, 0, 0))
         const hiDay = new Date(Date.UTC(2024, 11, 31, 10, 0, 0))
         const loClock = new Date(Date.UTC(1970, 0, 1, 9, 0, 0))
@@ -5414,13 +5414,13 @@ describe(ctx.label, () => {
         `)
     })
 
-    // Base (non-IfValue) operators routed through the dynamic dispatcher: int
+    // Base (non-IfValue) operators per leaf type through the dynamic dispatcher: int
     // `isNot` (priority) and enum `equals` / `notEquals` / `in` (status, mapped
     // through the `['enum', T]` descriptor — status stores the enum values in a
     // plain string column). Each fires on a present value and equals its direct
     // twin. Filter is annotated with an explicit `DynamicCondition<...>` so the
     // `FilterTypeOf<descriptor>` arm validates the shapes.
-    test('dyn-t4/base-op-int-and-enum-family', async () => {
+    test('equivalence/base-op-int-and-enum-family', async () => {
         type Filter = DynamicCondition<{ id: 'int', priority: 'int', status: ['enum', 'open' | 'closed'] }>
         const filter: Filter = {
             priority: { isNot: 4 },

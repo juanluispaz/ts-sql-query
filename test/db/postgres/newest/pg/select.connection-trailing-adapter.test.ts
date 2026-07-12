@@ -1110,12 +1110,11 @@ describe(ctx.label, () => {
         else expect(typeof v).toBe('string')
     })
 
-    // ── CONN-T4-01..07: const/optionalConst + trailing adapter for the remaining
-    // kinds (closes the B1/D-2 dangling comment above). The string-backed kinds
-    // (enum / custom / customComparable) route through stringBracket and are fully
-    // real-validated; the temporal / customLocal kinds route a Date through
-    // shiftHourFromDb and assert the +1h transform mock-only + Date presence on the
-    // real DB (some drivers do not round-trip a date-only / custom-temporal const).
+    // const/optionalConst + trailing adapter for the remaining value kinds. The
+    // string-backed kinds (enum / custom / customComparable) route through stringBracket
+    // and are fully real-validated; the temporal / customLocal kinds route a Date
+    // through shiftHourFromDb and assert the +1h transform mock-only + Date presence on
+    // the real DB (some drivers do not round-trip a date-only / custom-temporal const).
 
     test('const/enum-adapter-transforms-read-value', async () => {
         ctx.mockNext('coding')

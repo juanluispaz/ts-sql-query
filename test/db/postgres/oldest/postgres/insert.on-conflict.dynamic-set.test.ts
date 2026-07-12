@@ -840,15 +840,12 @@ describe(ctx.label, () => {
         })
     })
     test('empty-on-conflict-update-set-degrade-on-colliding-row-throws-mandatory-value-not-received', async () => {
-        // MUT-SEAM characterization: the R43 degrade+returningLastInsertedId sibling used
-        // a FRESH slug so the insert proceeded and returned the new id. Here the row
-        // COLLIDES (org 1, 'mktg-site' — the seed row), so the degraded `… do nothing`
-        // suppresses it. The degrade never sets __onConflictDoNothing, so the
-        // returningLastInsertedId guard — which types the result NON-null `number` — has
-        // no id to return and throws MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE. The
-        // emitted SQL is byte-identical to the covered onConflictDoNothing twin; the
-        // throw (not a null resolution) is the type-sound fallback for the impossible
-        // case. Control twin below resolves null instead.
+        // Emptying the update-set degrades the statement to `… do nothing`, and the row
+        // COLLIDES (org 1, 'mktg-site' — the seed row) so it is suppressed. The degrade
+        // still types the returningLastInsertedId result as a NON-null `number`, but the
+        // suppressed row returns no id, so the guard throws
+        // MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE. The control twin below (a plain
+        // onConflictDoNothing, typed `number | null`) resolves null instead.
         ctx.mockNext(null)
         await ctx.withRollback(async () => {
             let caught: unknown
@@ -877,8 +874,8 @@ describe(ctx.label, () => {
     test('conflict-do-nothing-returning-last-inserted-id-on-colliding-row-resolves-null', async () => {
         // The control twin for the degrade throw above: a plain
         // `onConflictDoNothing().returningLastInsertedId()` on the SAME colliding row
-        // types the result `number | null` (doNothing sets __onConflictDoNothing), so
-        // the suppressed row resolves to null rather than throwing.
+        // types the result `number | null`, so the suppressed row resolves to null
+        // rather than throwing.
         ctx.mockNext(null)
         await ctx.withRollback(async () => {
             const id = await ctx.conn.insertInto(tProject)
@@ -900,7 +897,7 @@ describe(ctx.label, () => {
     })
 
     test('empty-on-conflict-update-set-with-where-degrades-dropping-the-where', async () => {
-        // MUT-SEAM boundary: `doUpdateSetIfValue({archivedAt:undefined})` empties the
+        // `doUpdateSetIfValue({archivedAt:undefined})` empties the
         // update-set (sole property fails the value gate), THEN a `.where(cond)`. The
         // builder degrades to `… do nothing`, and the do-update `where` clause is DROPPED
         // — `do nothing` has no where slot, so the where is REPLACED (not mis-applied).

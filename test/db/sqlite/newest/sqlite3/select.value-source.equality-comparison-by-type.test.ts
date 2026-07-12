@@ -9335,7 +9335,8 @@ describe(ctx.label, () => {
         expect(rows).toEqual(allDropped)
     })
 
-    // EQCMP T4 tail (MISSING_TESTS_AUDIT_45.md §II.D, EQ-T4-01..24).
+    // Value-source (scalar-subquery) operands for is/isNot/equals/notEquals per leaf,
+    // and inN with a mixed const + value-source operand per leaf.
     // The value-source (scalar-subquery) operand overload of is / isNot /
     // equals / notEquals on leaves whose value-source overload was const-only,
     // plus the `inN` MIXED (const + value-source) list per leaf (except bigint,
@@ -9345,7 +9346,7 @@ describe(ctx.label, () => {
     // extra sub-select joins the IN list).
     // ==================================================================
 
-    test('eq-t4/boolean-is-is-not-value-source-operand', async () => {
+    test('boolean-is-is-not-value-source-operand', async () => {
         // billable (plain optional boolean): worklog 1 -> TRUE, 2 -> FALSE,
         // 3 -> NULL. sub selects worklog 1's billable (TRUE). `.is(sub)` matches
         // worklog 1; `.isNot(sub)` matches worklogs 2 (FALSE, distinct) and 3
@@ -9387,7 +9388,7 @@ describe(ctx.label, () => {
         expect(isNot).toEqual(expectedIsNot)
     })
 
-    test('eq-t4/boolean-not-equals-value-source-operand', async () => {
+    test('boolean-not-equals-value-source-operand', async () => {
         // billable: worklog 1 -> TRUE, 2 -> FALSE, 3 -> NULL. sub selects worklog
         // 1's billable (TRUE). `.notEquals(sub)` matches worklog 2 (FALSE); worklog
         // 3 (NULL) is excluded by NULL semantics (unlike `.isNot`).
@@ -9413,7 +9414,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('eq-t4/uuid-is-is-not-value-source-operand', async () => {
+    test('uuid-is-is-not-value-source-operand', async () => {
         // external_ref (optional uuid): issue 1 -> 0a8f…, 2 -> 7b3e…, 3,4 -> NULL.
         // sub selects issue 1's external_ref. `.is(sub)` matches issue 1;
         // `.isNot(sub)` matches issues 2, 3, 4 (the NULL rows are distinct from the
@@ -9455,7 +9456,7 @@ describe(ctx.label, () => {
         expect(isNot).toEqual(expectedIsNot)
     })
 
-    test('eq-t4/uuid-equals-not-equals-value-source-operand', async () => {
+    test('uuid-equals-not-equals-value-source-operand', async () => {
         // external_ref: issue 1 -> 0a8f…, 2 -> 7b3e…, 3,4 -> NULL. sub selects issue
         // 1's external_ref. `.equals(sub)` matches issue 1; `.notEquals(sub)` matches
         // issue 2 (issues 3,4 NULL, excluded by NULL semantics).
@@ -9496,7 +9497,7 @@ describe(ctx.label, () => {
         expect(ne).toEqual(expectedNe)
     })
 
-    test('eq-t4/customDouble-is-is-not-value-source-operand', async () => {
+    test('customDouble-is-is-not-value-source-operand', async () => {
         // billed_amount ('Money' customDouble, required): worklog 1 -> 200, 2 -> 50,
         // 3 -> 200. sub selects worklog 2's billed_amount (50). `.is(sub)` matches
         // worklog 2; `.isNot(sub)` matches worklogs 1 and 3 (both 200).
@@ -9537,7 +9538,7 @@ describe(ctx.label, () => {
         expect(isNot).toEqual(expectedIsNot)
     })
 
-    test('eq-t4/customComparable-is-is-not-value-source-operand', async () => {
+    test('customComparable-is-is-not-value-source-operand', async () => {
         // version ('Semver' customComparable, required): release 1 -> 1.2.0,
         // 2 -> 1.3.0-beta.1, 3 -> 0.9.0. sub selects release 1's version.
         // `.is(sub)` matches release 1; `.isNot(sub)` matches releases 2 and 3.
@@ -9578,7 +9579,7 @@ describe(ctx.label, () => {
         expect(isNot).toEqual(expectedIsNot)
     })
 
-    test('eq-t4/customLocalDateTime-is-is-not-value-source-operand', async () => {
+    test('customLocalDateTime-is-is-not-value-source-operand', async () => {
         // signed_off_at ('SignOffStamp' customLocalDateTime, optional): release 1 ->
         // 2024-01-14 12:30, 2 -> NULL, 3 -> 2024-02-28 09:00. sub selects release 1's
         // signed_off_at. `.is(sub)` matches release 1; `.isNot(sub)` matches releases
@@ -9622,7 +9623,7 @@ describe(ctx.label, () => {
 
     // ---- inN MIXED (const + scalar-subquery value-source) per leaf ----
 
-    test('eq-t4/int-in-n-mixed-const-and-value-source', async () => {
+    test('int-in-n-mixed-const-and-value-source', async () => {
         // priority (int): issue 1 -> 2, 2 -> 1, 3 -> 3, 4 -> 2. sub selects issue
         // 3's priority (3). `.inN(1, sub)` -> priority in (1, 3): issue 2 (p1) and
         // issue 3 (p3).
@@ -9649,7 +9650,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('eq-t4/double-in-n-mixed-const-and-value-source', async () => {
+    test('double-in-n-mixed-const-and-value-source', async () => {
         // estimated_hours (optional double) is NULL in the seed; set issue 1 -> 2.5
         // and issue 2 -> 7.5 inside a rollback. sub selects issue 1's estimated_hours
         // (2.5). `.inN(7.5, sub)` -> estimated_hours in (7.5, 2.5): issue 1 (2.5) and
@@ -9685,7 +9686,7 @@ describe(ctx.label, () => {
         })
     })
 
-    test('eq-t4/string-in-n-mixed-const-and-value-source', async () => {
+    test('string-in-n-mixed-const-and-value-source', async () => {
         // title: issue 1 'Update hero copy', 2 'Redesign navbar', 3 'Migrate to
         // ESM', 4 'Document /v2/users'. sub selects issue 3's title. `.inN('Update
         // hero copy', sub)` matches issues 1 and 3.
@@ -9712,7 +9713,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('eq-t4/uuid-in-n-mixed-const-and-value-source', async () => {
+    test('uuid-in-n-mixed-const-and-value-source', async () => {
         // external_ref: issue 1 -> 0a8f…, 2 -> 7b3e…, 3,4 -> NULL. sub selects issue
         // 1's external_ref. `.inN('7b3e…', sub)` matches issue 2 (7b3e…) and issue 1
         // (0a8f…); issues 3,4 NULL are excluded.
@@ -9739,7 +9740,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('eq-t4/localDate-in-n-mixed-const-and-value-source', async () => {
+    test('localDate-in-n-mixed-const-and-value-source', async () => {
         // work_date: worklog 1 -> 2024-03-04, 2 -> 2024-03-05, 3 -> 2024-03-06. sub
         // selects worklog 3's work_date. `.inN(2024-03-04, sub)` matches worklogs 1
         // and 3.
@@ -9766,7 +9767,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('eq-t4/localTime-in-n-mixed-const-and-value-source', async () => {
+    test('localTime-in-n-mixed-const-and-value-source', async () => {
         // started_at (optional localTime): worklog 1 -> 09:15:00, 2 -> 14:00:00,
         // 3 -> 10:30:00. sub selects worklog 3's started_at. `.inN(09:15:00, sub)`
         // matches worklogs 1 and 3.
@@ -9793,7 +9794,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('eq-t4/localDateTime-in-n-mixed-const-and-value-source', async () => {
+    test('localDateTime-in-n-mixed-const-and-value-source', async () => {
         // created_at (plain localDateTime, seeded distinct): org 1 -> 2023-06-15
         // 08:00, org 2 -> 2023-09-20 14:30. sub selects org 2's created_at.
         // `.inN(org-1 instant, sub)` matches org 1 (const arm) and org 2 (subquery
@@ -9821,7 +9822,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('eq-t4/customInt-in-n-mixed-const-and-value-source', async () => {
+    test('customInt-in-n-mixed-const-and-value-source', async () => {
         // cost_cents ('Cents' customInt): worklog 1 -> 100, 2 -> 100, 3 -> 400. sub
         // selects worklog 1's cost_cents (100). `.inN(400, sub)` -> cost_cents in
         // (400, 100): worklog 3 (const arm, 400) and worklogs 1, 2 (subquery arm,
@@ -9849,7 +9850,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('eq-t4/customDouble-in-n-mixed-const-and-value-source', async () => {
+    test('customDouble-in-n-mixed-const-and-value-source', async () => {
         // billed_amount ('Money' customDouble): worklog 1 -> 200, 2 -> 50, 3 -> 200.
         // sub selects worklog 2's billed_amount (50). `.inN(200, sub)` -> billed_amount
         // in (200, 50): worklogs 1, 3 (const arm) and worklog 2 (subquery arm).
@@ -9876,7 +9877,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('eq-t4/customComparable-in-n-mixed-const-and-value-source', async () => {
+    test('customComparable-in-n-mixed-const-and-value-source', async () => {
         // version ('Semver' customComparable): release 1 -> 1.2.0, 2 -> 1.3.0-beta.1,
         // 3 -> 0.9.0. sub selects release 3's version. `.inN('1.2.0', sub)` matches
         // releases 1 and 3.
@@ -9903,7 +9904,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('eq-t4/custom-in-n-mixed-const-and-value-source', async () => {
+    test('custom-in-n-mixed-const-and-value-source', async () => {
         // channel ('ReleaseChannel' custom): release 1 -> stable, 2 -> beta, 3 ->
         // canary. sub selects release 3's channel. `.inN('stable', sub)` matches
         // releases 1 and 3.
@@ -9930,7 +9931,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('eq-t4/enum-in-n-mixed-const-and-value-source', async () => {
+    test('enum-in-n-mixed-const-and-value-source', async () => {
         // activity ('WorklogActivity' enum): worklog 1 -> coding, 2 -> review, 3 ->
         // meeting. sub selects worklog 3's activity. `.inN('coding', sub)` matches
         // worklogs 1 and 3.
@@ -9957,7 +9958,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('eq-t4/customUuid-in-n-mixed-const-and-value-source', async () => {
+    test('customUuid-in-n-mixed-const-and-value-source', async () => {
         // signing_key ('SigningKey' customUuid, optional): release 1 -> 0a8f…,
         // 2 -> NULL, 3 -> 7b3e…. sub selects release 3's signing_key. `.inN('0a8f…',
         // sub)` matches releases 1 (0a8f…) and 3 (7b3e…); release 2 NULL is excluded.
@@ -9984,7 +9985,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('eq-t4/customLocalDate-in-n-mixed-const-and-value-source', async () => {
+    test('customLocalDate-in-n-mixed-const-and-value-source', async () => {
         // released_on ('ReleaseDay' customLocalDate): release 1 -> 2024-01-15,
         // 2 -> 2024-02-20, 3 -> 2024-03-01. sub selects release 3's released_on.
         // `.inN(2024-01-15, sub)` matches releases 1 and 3.
@@ -10011,7 +10012,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('eq-t4/customLocalTime-in-n-mixed-const-and-value-source', async () => {
+    test('customLocalTime-in-n-mixed-const-and-value-source', async () => {
         // cutoff_time ('CutoffClock' customLocalTime): release 1 -> 17:00:00,
         // 2 -> 18:30:00, 3 -> 16:00:00. sub selects release 3's cutoff_time.
         // `.inN(17:00:00, sub)` matches releases 1 and 3.
@@ -10038,7 +10039,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('eq-t4/customLocalDateTime-in-n-mixed-const-and-value-source', async () => {
+    test('customLocalDateTime-in-n-mixed-const-and-value-source', async () => {
         // signed_off_at ('SignOffStamp' customLocalDateTime, optional): release 1 ->
         // 2024-01-14 12:30, 2 -> NULL, 3 -> 2024-02-28 09:00. sub selects release 3's
         // signed_off_at. `.inN(release-1 instant, sub)` matches releases 1 and 3;
@@ -10066,7 +10067,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    test('eq-t4/boolean-in-n-mixed-const-and-value-source', async () => {
+    test('boolean-in-n-mixed-const-and-value-source', async () => {
         // billable (plain optional boolean): worklog 1 -> TRUE, 2 -> FALSE, 3 ->
         // NULL. sub selects worklog 2's billable (FALSE). `.inN(true, sub)` ->
         // billable in (true, false): worklog 1 (TRUE) and worklog 2 (FALSE); worklog

@@ -160,10 +160,10 @@ describe(ctx.label, () => {
         expect(rows).toEqual([{ pid: 1 }])
     })
     test('aggregate-as-array-of-a-dynamic-pick-projection', async () => {
-        // B-probe1: the aggregateAsArray element is a `dynamicPick(...)` result (a
-        // runtime-selected projection) rather than a literal object. The picked fields
-        // drive the aggregated element shape; a single json_agg, valid on the real DB.
-        // Project 1 owns issues 1 ('Update hero copy') and 2 ('Redesign navbar').
+        // The aggregateAsArray element is a `dynamicPick(...)` result (a runtime-selected
+        // projection) rather than a literal object: the picked fields drive the
+        // aggregated element shape, and it emits a single valid json_agg. Project 1 owns
+        // issues 1 ('Update hero copy') and 2 ('Redesign navbar').
         const tIssueLeft = tIssue.forUseInLeftJoin()
         const availableFields = { iid: tIssueLeft.id, title: tIssueLeft.title }
         const picked = dynamicPick(availableFields, { iid: true, title: true }, ['iid'])

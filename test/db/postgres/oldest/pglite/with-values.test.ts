@@ -452,7 +452,7 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
     test('values-self-joined-via-left-join-clone-hoists-the-with-once', async () => {
-        // VV-T4-1: the LEFT-JOIN clone variant of the self-join. `forUseInLeftJoinAs('anc')`
+        // The LEFT-JOIN clone variant of the Values self-join. `forUseInLeftJoinAs('anc')`
         // reuses the single hoisted `treeNode` CTE and adds `left join treeNode as anc`; the
         // join side is optional-widened so `ancName` is `?: string`. Both nodes have a
         // matching parent (1↔2) so ancName is present.
@@ -488,7 +488,7 @@ describe(ctx.label, () => {
     })
 
     test('values-self-joined-with-two-aliased-clones-neither-is-the-source', async () => {
-        // VV-T4-2: both the FROM and the JOIN side are `.as(alias)` clones (`a`, `b`); the
+        // Both the FROM and the JOIN side are `.as(alias)` clones (`a`, `b`); the
         // original `nodes` never appears in FROM. The dedup guard must still hoist the
         // single WITH when neither reference is the canonical __source.
         const expected = [
@@ -524,7 +524,7 @@ describe(ctx.label, () => {
     })
 
     test('values-in-both-arms-of-a-compound-hoists-two-distinct-withs', async () => {
-        // VV-T4-3: a DISTINCT Values source in EACH arm of a UNION ALL → two separate WITH
+        // A DISTINCT Values source in EACH arm of a UNION ALL → two separate WITH
         // definitions (projectPatch, idList) hoisted to the top of the compound. UNION ALL
         // keeps duplicates: {1,2} ∪all {2,3} = {1,2,2,3}.
         const expected = [{ id: 1 }, { id: 2 }, { id: 2 }, { id: 3 }]
@@ -552,7 +552,7 @@ describe(ctx.label, () => {
     })
 
     test('values-in-a-non-correlated-exists-hoists-the-with', async () => {
-        // VV-T4-4: a Values source inside a NON-correlated `exists(selectFrom(values)...)`.
+        // A Values source inside a NON-correlated `exists(selectFrom(values)...)`.
         // The WITH hoists to the outer query even though the subquery does not reference
         // the outer row. idList has a row, so the exists is always true → every project.
         const expected = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]

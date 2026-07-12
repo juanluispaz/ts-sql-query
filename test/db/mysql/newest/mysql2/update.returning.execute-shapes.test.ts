@@ -115,12 +115,11 @@ describe(ctx.label, () => {
     // NOT-APPLICABLE: MySQL has no RETURNING
     /*
     test('update-returning-none-or-one-row-shape-present-on-match', async () => {
-        // UD-T4-4: the PRESENT arm of the `executeUpdateNoneOrOne()` row-shape branch.
-        // WHERE id=1 matches exactly one row, so the UPDATE affects it and RETURNING
-        // yields a single object — the One arm resolves the object (the null-on-no-match
-        // sibling above covers the None arm; the object-present case is otherwise only
-        // reached incidentally via the MORE_THAN_ONE_ROW mock branch). status is unchanged
-        // by the set, so it comes back as the seed value ('open').
+        // The PRESENT arm of `executeUpdateNoneOrOne()` on the row-shape branch: WHERE
+        // id=1 matches exactly one row, so RETURNING yields a single object and the
+        // None-or-One executor resolves it (the null-on-no-match sibling above covers the
+        // None arm). status is unchanged by the set, so it comes back as the seed value
+        // ('open').
         const expected = { id: 1, status: 'open' }
         ctx.mockNext(expected)
         await ctx.withRollback(async () => {

@@ -261,4 +261,29 @@ describe(ctx.label, () => {
         })
     })
 
+    test('update-from-returning-one-column-from-table-column', async () => {
+        // `returningOneColumn(organization.name)` returns a column of the FROM-joined table, not
+        // the target — PostgreSQL's UPDATE … FROM … RETURNING can reference FROM-relation
+        // columns. project 1 → org 1 (Acme Corp); the org name comes back.
+        ctx.mockNext('Acme Corp')
+        await ctx.withRollback(async () => {
+            const orgName = await ctx.conn.update(tProject)
+                .from(tOrganization)
+                .set({ name: tOrganization.name })
+                .where(tProject.id.equals(1))
+                .and(tProject.organizationId.equals(tOrganization.id))
+                .returningOneColumn(tOrganization.name)
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = organization.name from organization where project.id = $1 and project.organization_id = organization.id returning organization.name as result"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof orgName, string>>()
+            expect(orgName).toBe('Acme Corp')
+        })
+    })
+
 })

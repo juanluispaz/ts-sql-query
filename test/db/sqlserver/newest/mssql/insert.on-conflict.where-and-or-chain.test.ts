@@ -306,4 +306,41 @@ describe(ctx.label, () => {
     })
     */
 
+    // NOT-APPLICABLE: SQL Server has no INSERT…ON CONFLICT (uses MERGE)
+    /*
+    test('on-columns-arbiter-where-then-do-update-set-where-lands-both-predicates', async () => {
+        // Two independently-built WHERE clauses in one statement: the conflict-target
+        // (partial-index) ARBITER predicate from `onConflictOn(cols).where(...)`, and the DO
+        // UPDATE predicate from `doUpdateSet(...).where(...)`. They land as
+        // `on conflict (cols) where <arbiter> do update set ... where <update>`. A plain
+        // (non-partial) UNIQUE index satisfies any arbiter predicate, so both PostgreSQL and
+        // SQLite accept it. (1, 'mktg-site') collides with the seed; the non-archived arbiter
+        // matches and the update fires because the name differs from the new value.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, slug: 'mktg-site', name: 'ignored' })
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .where(tProject.archivedAt.isNull())
+                .doUpdateSet({ name: 'Marketing site v8' })
+                .where(tProject.name.notEquals('Marketing site v8'))
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values ($1, $2, $3) on conflict (organization_id, slug) where archived_at is null do update set name = $4 where project.name <> $5"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "mktg-site",
+                "ignored",
+                "Marketing site v8",
+                "Marketing site v8",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            if (ctx.realDbEnabled) expect(typeof affected).toBe('number')
+            else expect(affected).toBe(1)
+        })
+    })
+    */
+
 })

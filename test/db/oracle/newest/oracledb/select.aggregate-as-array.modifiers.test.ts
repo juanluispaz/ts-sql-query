@@ -861,4 +861,104 @@ describe(ctx.label, () => {
         expect(sorted).toEqual([{ id: 1, body: null }, { id: 2, body: 'Use new tokens' }])
     })
 
+    test('aggregate-as-array-projecting-optional-values-as-nullable-then-disallow-when', async () => {
+        // `disallowWhen(false, …)` leaves the value source allowed. The gate rebuilds the
+        // value source, and the rebuilt element projection keeps its optional `body` leaf
+        // present-as-`null` rather than dropping it.
+        ctx.mockNext([{ pid: 1, issues: [{ id: 1, body: null }, { id: 2, body: 'Use new tokens' }] }])
+        const tIssueLeft = tIssue.forUseInLeftJoin()
+        const query = ctx.conn.selectFrom(tProject)
+            .leftJoin(tIssueLeft).on(tIssueLeft.projectId.equals(tProject.id))
+            .where(tProject.id.equals(1))
+            .select({
+                pid:    tProject.id,
+                issues: ctx.conn.aggregateAsArray({ id: tIssueLeft.id, body: tIssueLeft.body })
+                    .projectingOptionalValuesAsNullable()
+                    .disallowWhen(false, 'aggregate-disallow-when-open'),
+            })
+            .groupBy('pid')
+
+        expect(isQueryAllowed(query)).toBe(true)
+        const rows = await query.executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as "pid", json_arrayagg(json_object('id' value issue.id, 'body' value issue."body")) as "issues" from project left join issue on issue.project_id = project.id where project.id = :0 group by project.id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            pid:    number
+            issues: Array<{ id: number; body: string | null }>
+        }>>>()
+        const sorted = rows.map(r => ({ pid: r.pid, issues: [...r.issues].sort((a, b) => a.id - b.id) }))
+        expect('body' in sorted[0]!.issues[0]!).toBe(true)
+        expect(sorted).toEqual([{ pid: 1, issues: [{ id: 1, body: null }, { id: 2, body: 'Use new tokens' }] }])
+    })
+
+    test('inline-aggregated-array-projecting-optional-values-as-nullable-then-allow-when', async () => {
+        // An inline aggregated array (`forUseAsInlineAggregatedArrayValue()`) built with
+        // `projectingOptionalValuesAsNullable()` and gated with `allowWhen(true, …)`. The open
+        // gate rebuilds the value source keeping the required-array shape and the present-null
+        // `body` leaf.
+        ctx.mockNext({ pid: 1, issues: [{ id: 1, body: null }, { id: 2, body: 'Use new tokens' }] })
+        const issues = ctx.conn.subSelectUsing(tProject).from(tIssue)
+            .where(tIssue.projectId.equals(tProject.id))
+            .select({ id: tIssue.id, body: tIssue.body })
+            .projectingOptionalValuesAsNullable()
+            .forUseAsInlineAggregatedArrayValue()
+            .allowWhen(true, 'inline-aggregated-array-allow-when-open')
+        const query = ctx.conn.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ pid: tProject.id, issues })
+
+        expect(isQueryAllowed(query)).toBe(true)
+        const row = await query.executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "pid", (select json_arrayagg(json_object('id' value id, 'body' value "body")) from issue where project_id = project.id) as "issues" from project where id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            pid:    number
+            issues: Array<{ id: number; body: string | null }>
+        }>>()
+        const sorted = [...row.issues].sort((a, b) => a.id - b.id)
+        expect('body' in sorted[0]!).toBe(true)
+        expect(sorted).toEqual([{ id: 1, body: null }, { id: 2, body: 'Use new tokens' }])
+    })
+
+    test('inline-aggregated-array-projecting-optional-values-as-nullable-then-disallow-when', async () => {
+        // An inline aggregated array (`forUseAsInlineAggregatedArrayValue()`) built with
+        // `projectingOptionalValuesAsNullable()` and gated with `disallowWhen(false, …)`. The
+        // open gate rebuilds the value source keeping the required-array shape and the
+        // present-null `body` leaf.
+        ctx.mockNext({ pid: 1, issues: [{ id: 1, body: null }, { id: 2, body: 'Use new tokens' }] })
+        const issues = ctx.conn.subSelectUsing(tProject).from(tIssue)
+            .where(tIssue.projectId.equals(tProject.id))
+            .select({ id: tIssue.id, body: tIssue.body })
+            .projectingOptionalValuesAsNullable()
+            .forUseAsInlineAggregatedArrayValue()
+            .disallowWhen(false, 'inline-aggregated-array-disallow-when-open')
+        const query = ctx.conn.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ pid: tProject.id, issues })
+
+        expect(isQueryAllowed(query)).toBe(true)
+        const row = await query.executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "pid", (select json_arrayagg(json_object('id' value id, 'body' value "body")) from issue where project_id = project.id) as "issues" from project where id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            pid:    number
+            issues: Array<{ id: number; body: string | null }>
+        }>>()
+        const sorted = [...row.issues].sort((a, b) => a.id - b.id)
+        expect('body' in sorted[0]!).toBe(true)
+        expect(sorted).toEqual([{ id: 1, body: null }, { id: 2, body: 'Use new tokens' }])
+    })
+
 })

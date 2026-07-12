@@ -283,4 +283,28 @@ describe(ctx.label, () => {
         })
     })
 
+    // TODO[LIMITATION]: see LIMITATIONS.md — UPDATE ... RETURNING needs MariaDB 13.0.1+ and is not accepted on a multi-table UPDATE as of 12.3.2
+    /*
+    test('update-from-returning-one-column-from-table-column', async () => {
+        // `returningOneColumn(organization.name)` returns a column of the FROM-joined table, not
+        // the target — PostgreSQL's UPDATE … FROM … RETURNING can reference FROM-relation
+        // columns. project 1 → org 1 (Acme Corp); the org name comes back.
+        ctx.mockNext('Acme Corp')
+        await ctx.withRollback(async () => {
+            const orgName = await ctx.conn.update(tProject)
+                .from(tOrganization)
+                .set({ name: tOrganization.name })
+                .where(tProject.id.equals(1))
+                .and(tProject.organizationId.equals(tOrganization.id))
+                .returningOneColumn(tOrganization.name)
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof orgName, string>>()
+            expect(orgName).toBe('Acme Corp')
+        })
+    })
+    */
+
 })

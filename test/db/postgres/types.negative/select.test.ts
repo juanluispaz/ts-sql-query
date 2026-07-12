@@ -510,6 +510,15 @@ function _typeNegatives() {
     // must keep compiling — proves the brand lock is not over-broad.
     void connection.const<number, 'ReleaseTag'>(7, 'customInt', 'ReleaseTag')
         .equals(connection.const<number, 'ReleaseTag'>(5, 'customInt', 'ReleaseTag'))
+
+    // Rule: `forUseAsInlineQueryValue()` produces a scalar inline value, so it is only
+    // reachable on a ONE-column select (`selectOneColumn(...)`); a multi-column
+    // `.select({...})` result types it `never`, so the call does not compile.
+    void connection.subSelectUsing(tProject).from(tIssue)
+        .where(tIssue.projectId.equals(tProject.id))
+        .select({ id: tIssue.id, body: tIssue.body })
+        // @ts-expect-error forUseAsInlineQueryValue is never on a multi-column select
+        .forUseAsInlineQueryValue()
 }
 
 test('select-negative-types', () => {

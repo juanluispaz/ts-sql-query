@@ -392,4 +392,31 @@ describe(ctx.label, () => {
             else expect(typeof affected).toBe('number')
         })
     })
+    test('delete-using-returning-one-column-auxiliary-using-column', async () => {
+        // `returningOneColumn(project.slug)` returns a column of the USING-joined table —
+        // PostgreSQL's DELETE … USING … RETURNING can project USING-relation columns. Filtered
+        // by an impossible issue id so no seed rows are removed; executeDeleteNoneOrOne returns
+        // null on the real DB.
+        const expectedMock = 'mktg-site'
+        ctx.mockNext(expectedMock)
+        await ctx.withRollback(async () => {
+            const slug = await ctx.conn.deleteFrom(tIssue)
+                .using(tProject)
+                .where(tIssue.projectId.equals(tProject.id))
+                .and(tIssue.id.equals(99999))
+                .returningOneColumn(tProject.slug)
+                .executeDeleteNoneOrOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using project where issue.project_id = project.id and issue.id = $1 returning project.slug as result"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                99999,
+              ]
+            `)
+            assertType<Exact<typeof slug, string | null>>()
+            if (!ctx.realDbEnabled) expect(slug).toEqual(expectedMock)
+            else expect(slug).toBeNull()
+        })
+    })
+
 })

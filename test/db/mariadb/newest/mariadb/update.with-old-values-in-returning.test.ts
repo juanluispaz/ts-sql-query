@@ -315,4 +315,41 @@ describe(ctx.label, () => {
         })
     })
     */
+    // TODO[LIMITATION]: see LIMITATIONS.md — `oldValues()` emits `OLD_VALUE(col)`, only supported on MariaDB 13.0.1+ (MDEV-5092); the mariadb:latest docker image still ships MariaDB 12.x. Snapshot pre-baked for when mariadb:latest catches up to 13.0.1+; uncomment the body then.
+    /*
+    test('allowing-no-where-returning-old-and-new-via-oldValues', async () => {
+        // `updateAllowingNoWhere(t)` lifts the MISSING_WHERE guard, so this whole-table UPDATE
+        // has no WHERE. Every project's name is set to a constant, and `oldValues()` in
+        // RETURNING returns each row's pre-update name (via `old.*`) beside the new one. All 4
+        // seed projects are updated.
+        const expected = [
+            { id: 1, oldName: 'Marketing site', newName: 'Renamed all' },
+            { id: 2, oldName: 'Internal tools', newName: 'Renamed all' },
+            { id: 3, oldName: 'Public API',     newName: 'Renamed all' },
+            { id: 4, oldName: 'Legacy app',     newName: 'Renamed all' },
+        ]
+        ctx.mockNext(expected)
+        await ctx.withRollback(async () => {
+            const oldProject = tProject.oldValues()
+            const rows = await ctx.conn.updateAllowingNoWhere(tProject)
+                .set({ name: 'Renamed all' })
+                .returning({
+                    id:      tProject.id,
+                    oldName: oldProject.name,
+                    newName: tProject.name,
+                })
+                .executeUpdateMany()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof rows, Array<{
+                id:      number
+                oldName: string
+                newName: string
+            }>>>()
+            expect([...rows].sort((a, b) => a.id - b.id)).toEqual(expected)
+        })
+    })
+    */
+
 })

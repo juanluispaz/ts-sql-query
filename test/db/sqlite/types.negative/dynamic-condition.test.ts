@@ -10,7 +10,7 @@
 
 import { test, expect } from '../../../lib/testRunner.js'
 import type { DBConnection } from '../domain/connection.js'
-import { tIssue } from '../domain/connection.js'
+import { tIssue, tIssueWorklog, tProjectRelease } from '../domain/connection.js'
 
 declare const connection: DBConnection
 
@@ -20,6 +20,22 @@ function _typeNegatives() {
         title:    tIssue.title,
         priority: tIssue.priority,
     }
+
+    // Rule: enum / boolean / custom columns are Equalable-only — their
+    // dynamic-condition filter is an EqualableFilter (equals/notEquals/in/…), so the
+    // Comparable operators (lessThan/greaterThan/…) and the String operators
+    // (like/startsWith/…) are NOT offered. EqualableFilter ⊄ ComparableFilter / StringFilter.
+    const equalableFields = {
+        activity: tIssueWorklog.activity,    // enum
+        billable: tIssueWorklog.billable,    // boolean
+        channel:  tProjectRelease.channel,   // custom
+    }
+    // @ts-expect-error lessThan is not an operator of an enum column's EqualableFilter
+    void connection.dynamicConditionFor(equalableFields).withValues({ activity: { lessThan: 'coding' } })
+    // @ts-expect-error greaterThan is not an operator of a boolean column's EqualableFilter
+    void connection.dynamicConditionFor(equalableFields).withValues({ billable: { greaterThan: true } })
+    // @ts-expect-error like is not an operator of a custom column's EqualableFilter
+    void connection.dynamicConditionFor(equalableFields).withValues({ channel: { like: 'stable' } })
 
     // Rule: a filter key must name a field declared in the definition.
     // @ts-expect-error 'nope' is not a field of the dynamic-condition definition

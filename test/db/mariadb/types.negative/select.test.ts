@@ -9,6 +9,7 @@
 // rule it enforces. DESIGN §6.
 
 import { test, expect } from '../../../lib/testRunner.js'
+import { assertType, type Exact } from '../../../lib/assertType.js'
 import type { DBConnection } from '../domain/connection.js'
 import { tAppUser, tCountry, tIssue, tIssueWorklog, tOrganization, tProject, tProjectReview } from '../domain/connection.js'
 
@@ -513,6 +514,13 @@ function _typeNegatives() {
     // must keep compiling — proves the brand lock is not over-broad.
     void connection.const<number, 'ReleaseTag'>(7, 'customInt', 'ReleaseTag')
         .equals(connection.const<number, 'ReleaseTag'>(5, 'customInt', 'ReleaseTag'))
+    // Rule: a correlated sub-select (`subSelectUsing(...)`) cannot be promoted to a named
+    // CTE via `forUseInQueryAs(...)` on MariaDB (no correlated-CTE / LATERAL support), so
+    // the method is typed `never`.
+    const _corr = connection.subSelectUsing(tProject).from(tIssue)
+        .where(tIssue.projectId.equals(tProject.id))
+        .select({ id: tIssue.id })
+    assertType<Exact<typeof _corr.forUseInQueryAs, never>>()
 }
 
 test('select-negative-types', () => {

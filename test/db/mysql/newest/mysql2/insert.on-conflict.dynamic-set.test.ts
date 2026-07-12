@@ -807,4 +807,92 @@ describe(ctx.label, () => {
         })
     })
     */
+
+    // NOT-APPLICABLE: MySQL has no RETURNING, so returningLastInsertedId() is not typed
+    //                 on the conflict do-nothing / degrade path (as the R43 sibling).
+    //                 MariaDB, which supports RETURNING, runs both live.
+    /*
+    test('empty-on-conflict-update-set-degrade-on-colliding-row-throws-mandatory-value-not-received', async () => {
+        // MUT-SEAM characterization (bare-form dialect): emptying the update-set
+        // degrades to the conflict no-op (`insert ignore …`); the row COLLIDES (org 1,
+        // 'mktg-site' — the seed row) so it is suppressed. The degrade never sets
+        // __onConflictDoNothing, so the returningLastInsertedId guard — which types the
+        // result NON-null `number` — has no id to return and throws
+        // MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE. The control twin below resolves
+        // null instead.
+        ctx.mockNext(null)
+        await ctx.withRollback(async () => {
+            let caught: unknown
+            try {
+                await ctx.conn.insertInto(tProject)
+                    .values({ organizationId: 1, slug: 'mktg-site', name: 'ignored' })
+                    .onConflictDoUpdateDynamicSet({ archivedAt: null })
+                    .ignoreAnySetWithNoValue()
+                    .returningLastInsertedId()
+                    .executeInsert()
+            } catch (e) { caught = e }
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            expect(caught instanceof TsSqlError ? caught.errorReason.reason : caught)
+                .toBe('MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE')
+        })
+    })
+    */
+
+    // NOT-APPLICABLE: MySQL has no RETURNING, so returningLastInsertedId() is not typed
+    //                 on the conflict do-nothing / degrade path (as the R43 sibling).
+    //                 MariaDB, which supports RETURNING, runs both live.
+    /*
+    test('conflict-do-nothing-returning-last-inserted-id-on-colliding-row-resolves-null', async () => {
+        // The control twin for the degrade throw above: a plain
+        // `onConflictDoNothing().returningLastInsertedId()` on the SAME colliding row
+        // types the result `number | null` (doNothing sets __onConflictDoNothing), so
+        // the suppressed row resolves to null rather than throwing.
+        ctx.mockNext(null)
+        await ctx.withRollback(async () => {
+            const id = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, slug: 'mktg-site', name: 'ignored' })
+                .onConflictDoNothing()
+                .returningLastInsertedId()
+                .executeInsert()
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof id, number | null>>()
+            expect(id).toBeNull()
+        })
+    })
+    */
+
+    // NOT-APPLICABLE: `ON DUPLICATE KEY UPDATE` takes no WHERE, so there is no
+    //                 `.doUpdateSetIfValue(...).where(...)` boundary to reach here.
+    //                 The postgres/sqlite cells run it live.
+    /*
+    test('empty-on-conflict-update-set-with-where-degrades-dropping-the-where', async () => {
+        // MUT-SEAM boundary: `doUpdateSetIfValue({archivedAt:undefined})` empties the
+        // update-set (sole property fails the value gate), THEN a `.where(cond)`. The
+        // builder degrades to `… do nothing`, and the do-update `where` clause is DROPPED
+        // — `do nothing` has no where slot, so the where is REPLACED (not mis-applied).
+        // A legitimate NOT-APPLICABLE-shaped boundary that emits valid SQL. (org 1,
+        // 'mktg-site') collides with the seed → nothing inserted → 0.
+        ctx.mockNext(0)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, slug: 'mktg-site', name: 'ignored' })
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doUpdateSetIfValue({ archivedAt: undefined })
+                .where(tProject.name.equals('whatever'))
+                .executeInsert()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values ($1, $2, $3) on conflict (organization_id, slug) do nothing"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "mktg-site",
+                "ignored",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(0)
+        })
+    })
+    */
 })

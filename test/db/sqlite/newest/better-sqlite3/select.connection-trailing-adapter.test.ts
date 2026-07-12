@@ -1102,4 +1102,115 @@ describe(ctx.label, () => {
         else expect(typeof v).toBe('string')
     })
 
+    // ── CONN-T4-01..07: const/optionalConst + trailing adapter for the remaining
+    // kinds (closes the B1/D-2 dangling comment above). The string-backed kinds
+    // (enum / custom / customComparable) route through stringBracket and are fully
+    // real-validated; the temporal / customLocal kinds route a Date through
+    // shiftHourFromDb and assert the +1h transform mock-only + Date presence on the
+    // real DB (some drivers do not round-trip a date-only / custom-temporal const).
+
+    test('const/enum-adapter-transforms-read-value', async () => {
+        ctx.mockNext('coding')
+        const v = await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.const<WorklogActivity, 'WorklogActivity'>('coding', 'enum', 'WorklogActivity', stringBracket))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "coding",
+          ]
+        `)
+        assertType<Exact<typeof v, WorklogActivity>>()
+        expect(v).toBe('[coding]')
+    })
+
+    test('const/custom-adapter-transforms-read-value', async () => {
+        ctx.mockNext('stable')
+        const v = await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.const<ReleaseChannel, 'ReleaseChannel'>('stable', 'custom', 'ReleaseChannel', stringBracket))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "stable",
+          ]
+        `)
+        assertType<Exact<typeof v, ReleaseChannel>>()
+        expect(v).toBe('[stable]')
+    })
+
+    test('const/custom-comparable-adapter-transforms-read-value', async () => {
+        ctx.mockNext('1.2.0')
+        const v = await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.const<string, 'Semver'>('1.2.0', 'customComparable', 'Semver', stringBracket))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "1.2.0",
+          ]
+        `)
+        assertType<Exact<typeof v, string>>()
+        expect(v).toBe('[1.2.0]')
+    })
+
+    test('optional-const/enum-adapter-transforms-read-value', async () => {
+        ctx.mockNext('review')
+        const v = await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.optionalConst<WorklogActivity, 'WorklogActivity'>('review', 'enum', 'WorklogActivity', stringBracket))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "review",
+          ]
+        `)
+        assertType<Exact<typeof v, WorklogActivity | null>>()
+        expect(v).toBe('[review]')
+    })
+
+    // NOTE: a plain `const(date, 'localDate', adapter)` is intentionally omitted — a
+    // date-only const round-tripped through selectFromNoTable is not read-parsable on
+    // the pg driver (the marshaller rejects PG's `...+00:00` echo, throwing
+    // INVALID_VALUE_RECEIVED_FROM_DATABASE), the exact non-round-trippable case the B1
+    // comment above warns about. The customLocal kinds below DO round-trip.
+
+    test('const/custom-local-time-adapter-transforms-read-value', async () => {
+        const lt = new Date(Date.UTC(1970, 0, 1, 17, 0, 0))
+        ctx.mockNext(lt)
+        const v = await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.const<Date, 'CutoffClock'>(lt, 'customLocalTime', 'CutoffClock', shiftHourFromDb))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "17:00:00",
+          ]
+        `)
+        assertType<Exact<typeof v, Date>>()
+        if (!ctx.realDbEnabled) expect(v).toEqual(new Date(Date.UTC(1970, 0, 1, 18, 0, 0)))
+        else expect(v instanceof Date).toBe(true)
+    })
+
+    // NOTE: `const(date, 'customLocalDate', ...)` is omitted for the same reason as the
+    // plain localDate above — the underlying localDate marshaller rejects PG's date-only
+    // echo. The time / date-time customLocal kinds (above and below) round-trip fine.
+
+    test('const/custom-local-date-time-adapter-transforms-read-value', async () => {
+        const ldt = new Date(Date.UTC(2024, 0, 14, 12, 30, 0))
+        ctx.mockNext(ldt)
+        const v = await ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.const<Date, 'SignOffStamp'>(ldt, 'customLocalDateTime', 'SignOffStamp', shiftHourFromDb))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2024-01-14 12:30:00",
+          ]
+        `)
+        assertType<Exact<typeof v, Date>>()
+        if (!ctx.realDbEnabled) expect(v).toEqual(new Date(Date.UTC(2024, 0, 14, 13, 30, 0)))
+        else expect(v instanceof Date).toBe(true)
+    })
+
 })

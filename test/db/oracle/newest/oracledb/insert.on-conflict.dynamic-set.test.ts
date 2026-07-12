@@ -837,4 +837,82 @@ describe(ctx.label, () => {
         })
     })
     */
+    // NOT-APPLICABLE: Oracle has no INSERT…ON CONFLICT (uses MERGE)
+    /*
+    test('empty-on-conflict-update-set-degrade-on-colliding-row-throws-mandatory-value-not-received', async () => {
+        // MUT-SEAM characterization: the R43 degrade+returningLastInsertedId sibling used
+        // a FRESH slug so the insert proceeded and returned the new id. Here the row
+        // COLLIDES (org 1, 'mktg-site' — the seed row), so the degraded `… do nothing`
+        // suppresses it. The degrade never sets __onConflictDoNothing, so the
+        // returningLastInsertedId guard — which types the result NON-null `number` — has
+        // no id to return and throws MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE. The
+        // emitted SQL is byte-identical to the covered onConflictDoNothing twin; the
+        // throw (not a null resolution) is the type-sound fallback for the impossible
+        // case. Control twin below resolves null instead.
+        ctx.mockNext(null)
+        await ctx.withRollback(async () => {
+            let caught: unknown
+            try {
+                await ctx.conn.insertInto(tProject)
+                    .values({ organizationId: 1, slug: 'mktg-site', name: 'ignored' })
+                    .onConflictOn(tProject.organizationId, tProject.slug)
+                    .doUpdateDynamicSet({ archivedAt: null })
+                    .ignoreAnySetWithNoValue()
+                    .returningLastInsertedId()
+                    .executeInsert()
+            } catch (e) { caught = e }
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            expect(caught instanceof TsSqlError ? caught.errorReason.reason : caught)
+                .toBe('MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE')
+        })
+    })
+    */
+
+    // NOT-APPLICABLE: Oracle has no INSERT…ON CONFLICT (uses MERGE)
+    /*
+    test('conflict-do-nothing-returning-last-inserted-id-on-colliding-row-resolves-null', async () => {
+        // The control twin for the degrade throw above: a plain
+        // `onConflictDoNothing().returningLastInsertedId()` on the SAME colliding row
+        // types the result `number | null` (doNothing sets __onConflictDoNothing), so
+        // the suppressed row resolves to null rather than throwing.
+        ctx.mockNext(null)
+        await ctx.withRollback(async () => {
+            const id = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, slug: 'mktg-site', name: 'ignored' })
+                .onConflictDoNothing()
+                .returningLastInsertedId()
+                .executeInsert()
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof id, number | null>>()
+            expect(id).toBeNull()
+        })
+    })
+    */
+
+    // NOT-APPLICABLE: Oracle has no INSERT…ON CONFLICT (uses MERGE)
+    /*
+    test('empty-on-conflict-update-set-with-where-degrades-dropping-the-where', async () => {
+        // MUT-SEAM boundary: `doUpdateSetIfValue({archivedAt:undefined})` empties the
+        // update-set (sole property fails the value gate), THEN a `.where(cond)`. The
+        // builder degrades to `… do nothing`, and the do-update `where` clause is DROPPED
+        // — `do nothing` has no where slot, so the where is REPLACED (not mis-applied).
+        // A legitimate NOT-APPLICABLE-shaped boundary that emits valid SQL. (org 1,
+        // 'mktg-site') collides with the seed → nothing inserted → 0.
+        ctx.mockNext(0)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, slug: 'mktg-site', name: 'ignored' })
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doUpdateSetIfValue({ archivedAt: undefined })
+                .where(tProject.name.equals('whatever'))
+                .executeInsert()
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(0)
+        })
+    })
+    */
 })

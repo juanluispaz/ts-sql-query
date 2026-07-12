@@ -148,4 +148,25 @@ describe(ctx.label, () => {
         }>>>()
         expect(result).toEqual(expected)
     })
+
+    test('optional-left-outer-join-is-elided-when-unused', async () => {
+        // The ELIDED branch of `.optionalLeftOuterJoin(...)`: no projection / where /
+        // orderBy references `assignee`, so the eliminator drops the join entirely —
+        // byte-identical to the `optionalLeftJoin` elided snapshot (the verbose keyword
+        // only shows when the join is kept).
+        const expected = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]
+        ctx.mockNext(expected)
+        const assignee = tAppUser.forUseInLeftJoin()
+        const result = await ctx.conn.selectFrom(tIssue)
+            .optionalLeftOuterJoin(assignee).on(assignee.id.equals(tIssue.assigneeId))
+            .select({
+                id: tIssue.id,
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+        expect(result).toEqual(expected)
+    })
 })

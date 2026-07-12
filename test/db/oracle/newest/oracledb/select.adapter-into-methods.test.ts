@@ -1145,4 +1145,446 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
+    // ── STR adapter-receiver T4 tail (MISSING_TESTS_AUDIT_45.md §II.F) ──
+    // The remaining `*IfValue` string predicates on the bracket-adapter column
+    // `reviewerCode`, each a FIRE + ELIDE twin: a present needle fires the same
+    // clause as its non-IfValue sibling above, while `undefined` fails `_isValue`
+    // and the predicate is dropped BEFORE the clause is built (the WHERE keeps
+    // only the `id` clause). Followed by the affix-escape matrix — startsWith /
+    // endsWith / contains fed a literal needle CONTAINING a LIKE metacharacter
+    // (`%` / `_` / `\`), so the string arm escapes it in the bound param. In all
+    // cases the predicate receiver is the adapter column; its read reshapes the
+    // PROJECTED value only, never the predicate operand.
+
+    test('str-t4/equals-insensitive-if-value-fire', async () => {
+        // `equalsInsensitiveIfValue('r-7a2')` — present value fires
+        // `lower(reviewer_code) = lower($n)`; 'R-7A2' case-folds equal so review 1
+        // matches. Byte-identical to `equals-insensitive-predicate` bar the elide arm.
+        const expected = [{ id: 1, reviewer: '[R-7A2]' }]
+        ctx.mockNext([{ id: 1, reviewer: 'R-7A2' }])
+        const rows = await ctx.conn.selectFrom(tProjectReview)
+            .where(tProjectReview.id.equals(1))
+                .and(tProjectReview.reviewerCode.equalsInsensitiveIfValue('r-7a2'))
+            .select({ id: tProjectReview.id, reviewer: tProjectReview.reviewerCode })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", reviewer_code as "reviewer" from project_review where id = :0 and lower(reviewer_code) = lower(:1)"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            "r-7a2",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; reviewer: string }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('str-t4/equals-insensitive-if-value-elide', async () => {
+        // `equalsInsensitiveIfValue(undefined)` — `undefined` fails `_isValue`, so
+        // the predicate is dropped BEFORE the case-fold remap: NO
+        // `lower(reviewer_code) = lower($n)` fragment. WHERE keeps only `id`.
+        const expected = [{ id: 1, reviewer: '[R-7A2]' }]
+        ctx.mockNext([{ id: 1, reviewer: 'R-7A2' }])
+        const rows = await ctx.conn.selectFrom(tProjectReview)
+            .where(tProjectReview.id.equals(1))
+                .and(tProjectReview.reviewerCode.equalsInsensitiveIfValue(undefined))
+            .select({ id: tProjectReview.id, reviewer: tProjectReview.reviewerCode })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", reviewer_code as "reviewer" from project_review where id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; reviewer: string }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('str-t4/not-equals-insensitive-if-value-fire', async () => {
+        // `notEqualsInsensitiveIfValue('zzz')` — present value fires
+        // `lower(reviewer_code) <> lower($n)`; 'R-7A2' is case-folded not-equal to
+        // 'zzz' so review 1 is kept.
+        const expected = [{ id: 1, reviewer: '[R-7A2]' }]
+        ctx.mockNext([{ id: 1, reviewer: 'R-7A2' }])
+        const rows = await ctx.conn.selectFrom(tProjectReview)
+            .where(tProjectReview.id.equals(1))
+                .and(tProjectReview.reviewerCode.notEqualsInsensitiveIfValue('zzz'))
+            .select({ id: tProjectReview.id, reviewer: tProjectReview.reviewerCode })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", reviewer_code as "reviewer" from project_review where id = :0 and lower(reviewer_code) <> lower(:1)"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            "zzz",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; reviewer: string }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('str-t4/not-equals-insensitive-if-value-elide', async () => {
+        // `notEqualsInsensitiveIfValue(undefined)` — dropped BEFORE the case-fold
+        // remap: NO `lower(reviewer_code) <> lower($n)` fragment. WHERE keeps only `id`.
+        const expected = [{ id: 1, reviewer: '[R-7A2]' }]
+        ctx.mockNext([{ id: 1, reviewer: 'R-7A2' }])
+        const rows = await ctx.conn.selectFrom(tProjectReview)
+            .where(tProjectReview.id.equals(1))
+                .and(tProjectReview.reviewerCode.notEqualsInsensitiveIfValue(undefined))
+            .select({ id: tProjectReview.id, reviewer: tProjectReview.reviewerCode })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", reviewer_code as "reviewer" from project_review where id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; reviewer: string }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('str-t4/like-if-value-fire', async () => {
+        // `likeIfValue('R%')` — present value fires `reviewer_code like $n`;
+        // 'R-7A2' matches the pattern so review 1 is kept.
+        const expected = [{ id: 1, reviewer: '[R-7A2]' }]
+        ctx.mockNext([{ id: 1, reviewer: 'R-7A2' }])
+        const rows = await ctx.conn.selectFrom(tProjectReview)
+            .where(tProjectReview.id.equals(1))
+                .and(tProjectReview.reviewerCode.likeIfValue('R%'))
+            .select({ id: tProjectReview.id, reviewer: tProjectReview.reviewerCode })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", reviewer_code as "reviewer" from project_review where id = :0 and reviewer_code like :1 escape '\\'"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            "R%",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; reviewer: string }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('str-t4/like-if-value-elide', async () => {
+        // `likeIfValue(undefined)` — dropped BEFORE the clause is built: NO
+        // `reviewer_code like $n` fragment. WHERE keeps only `id`.
+        const expected = [{ id: 1, reviewer: '[R-7A2]' }]
+        ctx.mockNext([{ id: 1, reviewer: 'R-7A2' }])
+        const rows = await ctx.conn.selectFrom(tProjectReview)
+            .where(tProjectReview.id.equals(1))
+                .and(tProjectReview.reviewerCode.likeIfValue(undefined))
+            .select({ id: tProjectReview.id, reviewer: tProjectReview.reviewerCode })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", reviewer_code as "reviewer" from project_review where id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; reviewer: string }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('str-t4/not-like-if-value-fire', async () => {
+        // `notLikeIfValue('ZZ%')` — present value fires `reviewer_code not like $n`;
+        // 'R-7A2' does not match 'ZZ%' so review 1 is kept.
+        const expected = [{ id: 1, reviewer: '[R-7A2]' }]
+        ctx.mockNext([{ id: 1, reviewer: 'R-7A2' }])
+        const rows = await ctx.conn.selectFrom(tProjectReview)
+            .where(tProjectReview.id.equals(1))
+                .and(tProjectReview.reviewerCode.notLikeIfValue('ZZ%'))
+            .select({ id: tProjectReview.id, reviewer: tProjectReview.reviewerCode })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", reviewer_code as "reviewer" from project_review where id = :0 and reviewer_code not like :1 escape '\\'"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            "ZZ%",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; reviewer: string }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('str-t4/not-like-if-value-elide', async () => {
+        // `notLikeIfValue(undefined)` — dropped BEFORE the clause is built: NO
+        // `reviewer_code not like $n` fragment. WHERE keeps only `id`.
+        const expected = [{ id: 1, reviewer: '[R-7A2]' }]
+        ctx.mockNext([{ id: 1, reviewer: 'R-7A2' }])
+        const rows = await ctx.conn.selectFrom(tProjectReview)
+            .where(tProjectReview.id.equals(1))
+                .and(tProjectReview.reviewerCode.notLikeIfValue(undefined))
+            .select({ id: tProjectReview.id, reviewer: tProjectReview.reviewerCode })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", reviewer_code as "reviewer" from project_review where id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; reviewer: string }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('str-t4/like-insensitive-if-value-fire', async () => {
+        // `likeInsensitiveIfValue('r%')` — present value fires `reviewer_code ilike $n`;
+        // the case-folded pattern matches 'R-7A2' so review 1 is kept.
+        const expected = [{ id: 1, reviewer: '[R-7A2]' }]
+        ctx.mockNext([{ id: 1, reviewer: 'R-7A2' }])
+        const rows = await ctx.conn.selectFrom(tProjectReview)
+            .where(tProjectReview.id.equals(1))
+                .and(tProjectReview.reviewerCode.likeInsensitiveIfValue('r%'))
+            .select({ id: tProjectReview.id, reviewer: tProjectReview.reviewerCode })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", reviewer_code as "reviewer" from project_review where id = :0 and lower(reviewer_code) like lower(:1) escape '\\'"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            "r%",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; reviewer: string }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('str-t4/like-insensitive-if-value-elide', async () => {
+        // `likeInsensitiveIfValue(undefined)` — dropped BEFORE the clause is built: NO
+        // `reviewer_code ilike $n` fragment. WHERE keeps only `id`.
+        const expected = [{ id: 1, reviewer: '[R-7A2]' }]
+        ctx.mockNext([{ id: 1, reviewer: 'R-7A2' }])
+        const rows = await ctx.conn.selectFrom(tProjectReview)
+            .where(tProjectReview.id.equals(1))
+                .and(tProjectReview.reviewerCode.likeInsensitiveIfValue(undefined))
+            .select({ id: tProjectReview.id, reviewer: tProjectReview.reviewerCode })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", reviewer_code as "reviewer" from project_review where id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; reviewer: string }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('str-t4/not-like-insensitive-if-value-fire', async () => {
+        // `notLikeInsensitiveIfValue('zz%')` — present value fires
+        // `reviewer_code not ilike $n`; the case-folded pattern does not match
+        // 'R-7A2' so review 1 is kept.
+        const expected = [{ id: 1, reviewer: '[R-7A2]' }]
+        ctx.mockNext([{ id: 1, reviewer: 'R-7A2' }])
+        const rows = await ctx.conn.selectFrom(tProjectReview)
+            .where(tProjectReview.id.equals(1))
+                .and(tProjectReview.reviewerCode.notLikeInsensitiveIfValue('zz%'))
+            .select({ id: tProjectReview.id, reviewer: tProjectReview.reviewerCode })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", reviewer_code as "reviewer" from project_review where id = :0 and lower(reviewer_code) not like lower(:1) escape '\\'"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            "zz%",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; reviewer: string }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('str-t4/not-like-insensitive-if-value-elide', async () => {
+        // `notLikeInsensitiveIfValue(undefined)` — dropped BEFORE the clause is built:
+        // NO `reviewer_code not ilike $n` fragment. WHERE keeps only `id`.
+        const expected = [{ id: 1, reviewer: '[R-7A2]' }]
+        ctx.mockNext([{ id: 1, reviewer: 'R-7A2' }])
+        const rows = await ctx.conn.selectFrom(tProjectReview)
+            .where(tProjectReview.id.equals(1))
+                .and(tProjectReview.reviewerCode.notLikeInsensitiveIfValue(undefined))
+            .select({ id: tProjectReview.id, reviewer: tProjectReview.reviewerCode })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", reviewer_code as "reviewer" from project_review where id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; reviewer: string }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('str-t4/starts-with-escape-percent', async () => {
+        // `startsWith('R%')` — the literal `%` is escaped in the bound param so it
+        // matches literally, not as a wildcard. 'R-7A2' does NOT literally start
+        // with 'R%', so the empty set comes back; the escaped param is load-bearing.
+        ctx.mockNext([])
+        const rows = await ctx.conn.selectFrom(tProjectReview)
+            .where(tProjectReview.id.equals(1))
+                .and(tProjectReview.reviewerCode.startsWith('R%'))
+            .select({ id: tProjectReview.id, reviewer: tProjectReview.reviewerCode })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", reviewer_code as "reviewer" from project_review where id = :0 and reviewer_code like (:1 || '%') escape '\\'"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            "R\\%",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; reviewer: string }>>>()
+        expect(rows).toEqual([])
+    })
+
+    test('str-t4/starts-with-escape-underscore', async () => {
+        // `startsWith('R_')` — the literal `_` is escaped so it matches a literal
+        // underscore, not any-single-char. 'R-7A2' starts with 'R-', not 'R_'.
+        ctx.mockNext([])
+        const rows = await ctx.conn.selectFrom(tProjectReview)
+            .where(tProjectReview.id.equals(1))
+                .and(tProjectReview.reviewerCode.startsWith('R_'))
+            .select({ id: tProjectReview.id, reviewer: tProjectReview.reviewerCode })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", reviewer_code as "reviewer" from project_review where id = :0 and reviewer_code like (:1 || '%') escape '\\'"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            "R\\_",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; reviewer: string }>>>()
+        expect(rows).toEqual([])
+    })
+
+    test('str-t4/starts-with-escape-backslash', async () => {
+        // `startsWith('R\\')` — the literal backslash is itself escaped in the bound
+        // param. 'R-7A2' contains no backslash, so the empty set comes back.
+        ctx.mockNext([])
+        const rows = await ctx.conn.selectFrom(tProjectReview)
+            .where(tProjectReview.id.equals(1))
+                .and(tProjectReview.reviewerCode.startsWith('R\\'))
+            .select({ id: tProjectReview.id, reviewer: tProjectReview.reviewerCode })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", reviewer_code as "reviewer" from project_review where id = :0 and reviewer_code like (:1 || '%') escape '\\'"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            "R\\\\",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; reviewer: string }>>>()
+        expect(rows).toEqual([])
+    })
+
+    test('str-t4/ends-with-escape-percent', async () => {
+        // `endsWith('2%')` — the literal `%` is escaped so it matches literally.
+        // 'R-7A2' does NOT literally end with '2%'.
+        ctx.mockNext([])
+        const rows = await ctx.conn.selectFrom(tProjectReview)
+            .where(tProjectReview.id.equals(1))
+                .and(tProjectReview.reviewerCode.endsWith('2%'))
+            .select({ id: tProjectReview.id, reviewer: tProjectReview.reviewerCode })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", reviewer_code as "reviewer" from project_review where id = :0 and reviewer_code like ('%' || :1) escape '\\'"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            "2\\%",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; reviewer: string }>>>()
+        expect(rows).toEqual([])
+    })
+
+    test('str-t4/ends-with-escape-underscore', async () => {
+        // `endsWith('_2')` — the literal `_` is escaped so it matches a literal
+        // underscore. 'R-7A2' ends with 'A2', not '_2'.
+        ctx.mockNext([])
+        const rows = await ctx.conn.selectFrom(tProjectReview)
+            .where(tProjectReview.id.equals(1))
+                .and(tProjectReview.reviewerCode.endsWith('_2'))
+            .select({ id: tProjectReview.id, reviewer: tProjectReview.reviewerCode })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", reviewer_code as "reviewer" from project_review where id = :0 and reviewer_code like ('%' || :1) escape '\\'"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            "\\_2",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; reviewer: string }>>>()
+        expect(rows).toEqual([])
+    })
+
+    test('str-t4/ends-with-escape-backslash', async () => {
+        // `endsWith('x\\y')` — the literal backslash is escaped in the bound param.
+        // 'R-7A2' contains no backslash, so the empty set comes back.
+        ctx.mockNext([])
+        const rows = await ctx.conn.selectFrom(tProjectReview)
+            .where(tProjectReview.id.equals(1))
+                .and(tProjectReview.reviewerCode.endsWith('x\\y'))
+            .select({ id: tProjectReview.id, reviewer: tProjectReview.reviewerCode })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", reviewer_code as "reviewer" from project_review where id = :0 and reviewer_code like ('%' || :1) escape '\\'"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            "x\\\\y",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; reviewer: string }>>>()
+        expect(rows).toEqual([])
+    })
+
+    test('str-t4/contains-escape-percent', async () => {
+        // `contains('7%A')` — the literal `%` is escaped so it matches literally.
+        // 'R-7A2' has no literal '7%A' substring.
+        ctx.mockNext([])
+        const rows = await ctx.conn.selectFrom(tProjectReview)
+            .where(tProjectReview.id.equals(1))
+                .and(tProjectReview.reviewerCode.contains('7%A'))
+            .select({ id: tProjectReview.id, reviewer: tProjectReview.reviewerCode })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", reviewer_code as "reviewer" from project_review where id = :0 and reviewer_code like ('%' || :1 || '%') escape '\\'"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            "7\\%A",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; reviewer: string }>>>()
+        expect(rows).toEqual([])
+    })
+
+    test('str-t4/contains-escape-underscore', async () => {
+        // `contains('a_b')` — the literal `_` is escaped so it matches a literal
+        // underscore, not any-single-char. 'R-7A2' has no literal 'a_b' substring.
+        ctx.mockNext([])
+        const rows = await ctx.conn.selectFrom(tProjectReview)
+            .where(tProjectReview.id.equals(1))
+                .and(tProjectReview.reviewerCode.contains('a_b'))
+            .select({ id: tProjectReview.id, reviewer: tProjectReview.reviewerCode })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", reviewer_code as "reviewer" from project_review where id = :0 and reviewer_code like ('%' || :1 || '%') escape '\\'"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            "a\\_b",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; reviewer: string }>>>()
+        expect(rows).toEqual([])
+    })
+
+    test('str-t4/contains-escape-backslash', async () => {
+        // `contains('a\\b')` — the literal backslash is escaped in the bound param.
+        // 'R-7A2' contains no backslash, so the empty set comes back.
+        ctx.mockNext([])
+        const rows = await ctx.conn.selectFrom(tProjectReview)
+            .where(tProjectReview.id.equals(1))
+                .and(tProjectReview.reviewerCode.contains('a\\b'))
+            .select({ id: tProjectReview.id, reviewer: tProjectReview.reviewerCode })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", reviewer_code as "reviewer" from project_review where id = :0 and reviewer_code like ('%' || :1 || '%') escape '\\'"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            "a\\\\b",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; reviewer: string }>>>()
+        expect(rows).toEqual([])
+    })
+
 })

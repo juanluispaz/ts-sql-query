@@ -19,7 +19,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssueWorklog, tProject, tProjectRelease, vProjectOverview, vReleaseOverview } from '../../domain/connection.js'
+import { tIssueWorklog, tOrganization, tProject, tProjectRelease, vProjectOverview, vReleaseOverview } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -1407,4 +1407,94 @@ describe(ctx.label, () => {
         expect(inElide).toEqual(all)
     })
 
+    // ── modifier→getter leaf completeness: a null-modifier (valueWhenNull / nullIfValue)
+    // wraps the temporal column, then a getter extracts from the wrapped expression. The
+    // getter emission is identical to the plain-column getter; the modifier adds the
+    // coalesce/nullif wrapper. Seed: release 1 released_on 2024-01-15 (a Monday),
+    // cutoff_time 17:00:00; organization 1 created_at 2023-06-15 08:00:00. Tests run
+    // under TZ=UTC.
+
+    test('modifier-getter/customLocalDate-value-when-null-get-month-and-null-if-value-get-day', async () => {
+        // `releasedOn.valueWhenNull(d).getMonth()` -> getMonth over coalesce(released_on, $1);
+        // released_on is non-null so the coalesce yields it: month 0 (January, JS 0-indexed).
+        // `releasedOn.nullIfValue(d2).getDay()` -> getDay over nullif(released_on, $2); the
+        // probe differs from released_on so the value survives: dow 1 (Monday).
+        const fallback = new Date(Date.UTC(2000, 0, 1))
+        const probe = new Date(Date.UTC(1999, 5, 6))
+        const expected = [{ mo: 0, dow: 1 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .select({
+                mo:  tProjectRelease.releasedOn.valueWhenNull(fallback).getMonth(),
+                dow: tProjectRelease.releasedOn.nullIfValue(probe).getDay(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select month(ifnull(released_on, ?)) - 1 as mo, dayofweek(nullif(released_on, ?)) - 1 as dow from project_release where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2000-01-01T00:00:00.000Z,
+            1999-06-06T00:00:00.000Z,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ mo: number; dow?: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('modifier-getter/customLocalTime-value-when-null-get-hours-and-null-if-value-get-seconds', async () => {
+        // `cutoffTime.valueWhenNull(t).getHours()` -> getHours over coalesce(cutoff_time, $1);
+        // cutoff_time 17:00:00 is non-null so hours = 17.
+        // `cutoffTime.nullIfValue(t2).getSeconds()` -> getSeconds over nullif(cutoff_time, $2);
+        // the probe differs so the value survives: seconds = 0.
+        const fallback = new Date(Date.UTC(1970, 0, 1, 0, 0, 0))
+        const probe = new Date(Date.UTC(1970, 0, 1, 12, 0, 0))
+        const expected = [{ h: 17, s: 0 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .select({
+                h: tProjectRelease.cutoffTime.valueWhenNull(fallback).getHours(),
+                s: tProjectRelease.cutoffTime.nullIfValue(probe).getSeconds(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select hour(ifnull(cutoff_time, ?)) as \`h\`, second(nullif(cutoff_time, ?)) as \`s\` from project_release where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "00:00:00",
+            "12:00:00",
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ h: number; s?: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('modifier-getter/localDateTime-value-when-null-get-full-year-and-null-if-value-get-hours', async () => {
+        // `createdAt.valueWhenNull(dt).getFullYear()` -> getFullYear over coalesce(created_at, $1);
+        // created_at 2023-06-15 08:00:00 non-null so year = 2023.
+        // `createdAt.nullIfValue(dt2).getHours()` -> getHours over nullif(created_at, $2); the
+        // probe differs so the value survives: hours = 8.
+        const fallback = new Date(Date.UTC(1970, 0, 1, 0, 0, 0))
+        const probe = new Date(Date.UTC(1999, 0, 1, 0, 0, 0))
+        const expected = [{ y: 2023, h: 8 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.id.equals(1))
+            .select({
+                y: tOrganization.createdAt.valueWhenNull(fallback).getFullYear(),
+                h: tOrganization.createdAt.nullIfValue(probe).getHours(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select year(ifnull(created_at, ?)) as \`y\`, hour(nullif(created_at, ?)) as \`h\` from \`organization\` where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1970-01-01T00:00:00.000Z,
+            1999-01-01T00:00:00.000Z,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ y: number; h?: number }>>>()
+        expect(rows).toEqual(expected)
+    })
 })

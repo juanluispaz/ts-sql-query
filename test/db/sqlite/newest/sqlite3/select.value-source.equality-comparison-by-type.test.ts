@@ -9335,4 +9335,763 @@ describe(ctx.label, () => {
         expect(rows).toEqual(allDropped)
     })
 
+    // EQCMP T4 tail (MISSING_TESTS_AUDIT_45.md §II.D, EQ-T4-01..24).
+    // The value-source (scalar-subquery) operand overload of is / isNot /
+    // equals / notEquals on leaves whose value-source overload was const-only,
+    // plus the `inN` MIXED (const + value-source) list per leaf (except bigint,
+    // already covered by `bigint-in-n-mixed-const-and-value-source`). Each is
+    // output-coincident with its covered const / subquery sibling — only the
+    // operand shape changes (a bound `$N` becomes a scalar sub-select, or an
+    // extra sub-select joins the IN list).
+    // ==================================================================
+
+    test('eq-t4/boolean-is-is-not-value-source-operand', async () => {
+        // billable (plain optional boolean): worklog 1 -> TRUE, 2 -> FALSE,
+        // 3 -> NULL. sub selects worklog 1's billable (TRUE). `.is(sub)` matches
+        // worklog 1; `.isNot(sub)` matches worklogs 2 (FALSE, distinct) and 3
+        // (NULL, distinct from TRUE).
+        const sub = ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .selectOneColumn(tIssueWorklog.billable)
+            .forUseAsInlineQueryValue()
+
+        const expectedIs = [{ id: 1 }]
+        ctx.mockNext(expectedIs)
+        const is = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.billable.is(sub))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable is (select billable as result from issue_worklog where id = ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof is, Array<{ id: number }>>>()
+        expect(is).toEqual(expectedIs)
+
+        const expectedIsNot = [{ id: 2 }, { id: 3 }]
+        ctx.mockNext(expectedIsNot)
+        const isNot = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.billable.isNot(sub))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable is not (select billable as result from issue_worklog where id = ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        expect(isNot).toEqual(expectedIsNot)
+    })
+
+    test('eq-t4/boolean-not-equals-value-source-operand', async () => {
+        // billable: worklog 1 -> TRUE, 2 -> FALSE, 3 -> NULL. sub selects worklog
+        // 1's billable (TRUE). `.notEquals(sub)` matches worklog 2 (FALSE); worklog
+        // 3 (NULL) is excluded by NULL semantics (unlike `.isNot`).
+        const sub = ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .selectOneColumn(tIssueWorklog.billable)
+            .forUseAsInlineQueryValue()
+
+        const expected = [{ id: 2 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.billable.notEquals(sub))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable <> (select billable as result from issue_worklog where id = ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('eq-t4/uuid-is-is-not-value-source-operand', async () => {
+        // external_ref (optional uuid): issue 1 -> 0a8f…, 2 -> 7b3e…, 3,4 -> NULL.
+        // sub selects issue 1's external_ref. `.is(sub)` matches issue 1;
+        // `.isNot(sub)` matches issues 2, 3, 4 (the NULL rows are distinct from the
+        // non-null operand under IS DISTINCT FROM).
+        const sub = ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .selectOneColumn(tIssue.externalRef)
+            .forUseAsInlineQueryValue()
+
+        const expectedIs = [{ id: 1 }]
+        ctx.mockNext(expectedIs)
+        const is = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.externalRef.is(sub))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref is (select external_ref as result from issue where id = ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof is, Array<{ id: number }>>>()
+        expect(is).toEqual(expectedIs)
+
+        const expectedIsNot = [{ id: 2 }, { id: 3 }, { id: 4 }]
+        ctx.mockNext(expectedIsNot)
+        const isNot = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.externalRef.isNot(sub))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref is not (select external_ref as result from issue where id = ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        expect(isNot).toEqual(expectedIsNot)
+    })
+
+    test('eq-t4/uuid-equals-not-equals-value-source-operand', async () => {
+        // external_ref: issue 1 -> 0a8f…, 2 -> 7b3e…, 3,4 -> NULL. sub selects issue
+        // 1's external_ref. `.equals(sub)` matches issue 1; `.notEquals(sub)` matches
+        // issue 2 (issues 3,4 NULL, excluded by NULL semantics).
+        const sub = ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .selectOneColumn(tIssue.externalRef)
+            .forUseAsInlineQueryValue()
+
+        const expectedEq = [{ id: 1 }]
+        ctx.mockNext(expectedEq)
+        const eq = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.externalRef.equals(sub))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref = (select external_ref as result from issue where id = ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof eq, Array<{ id: number }>>>()
+        expect(eq).toEqual(expectedEq)
+
+        const expectedNe = [{ id: 2 }]
+        ctx.mockNext(expectedNe)
+        const ne = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.externalRef.notEquals(sub))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref <> (select external_ref as result from issue where id = ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        expect(ne).toEqual(expectedNe)
+    })
+
+    test('eq-t4/customDouble-is-is-not-value-source-operand', async () => {
+        // billed_amount ('Money' customDouble, required): worklog 1 -> 200, 2 -> 50,
+        // 3 -> 200. sub selects worklog 2's billed_amount (50). `.is(sub)` matches
+        // worklog 2; `.isNot(sub)` matches worklogs 1 and 3 (both 200).
+        const sub = ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(2))
+            .selectOneColumn(tIssueWorklog.billedAmount)
+            .forUseAsInlineQueryValue()
+
+        const expectedIs = [{ id: 2 }]
+        ctx.mockNext(expectedIs)
+        const is = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.billedAmount.is(sub))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billed_amount is (select billed_amount as result from issue_worklog where id = ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof is, Array<{ id: number }>>>()
+        expect(is).toEqual(expectedIs)
+
+        const expectedIsNot = [{ id: 1 }, { id: 3 }]
+        ctx.mockNext(expectedIsNot)
+        const isNot = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.billedAmount.isNot(sub))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billed_amount is not (select billed_amount as result from issue_worklog where id = ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        expect(isNot).toEqual(expectedIsNot)
+    })
+
+    test('eq-t4/customComparable-is-is-not-value-source-operand', async () => {
+        // version ('Semver' customComparable, required): release 1 -> 1.2.0,
+        // 2 -> 1.3.0-beta.1, 3 -> 0.9.0. sub selects release 1's version.
+        // `.is(sub)` matches release 1; `.isNot(sub)` matches releases 2 and 3.
+        const sub = ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .selectOneColumn(tProjectRelease.version)
+            .forUseAsInlineQueryValue()
+
+        const expectedIs = [{ id: 1 }]
+        ctx.mockNext(expectedIs)
+        const is = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.version.is(sub))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where version is (select version as result from project_release where id = ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof is, Array<{ id: number }>>>()
+        expect(is).toEqual(expectedIs)
+
+        const expectedIsNot = [{ id: 2 }, { id: 3 }]
+        ctx.mockNext(expectedIsNot)
+        const isNot = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.version.isNot(sub))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where version is not (select version as result from project_release where id = ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        expect(isNot).toEqual(expectedIsNot)
+    })
+
+    test('eq-t4/customLocalDateTime-is-is-not-value-source-operand', async () => {
+        // signed_off_at ('SignOffStamp' customLocalDateTime, optional): release 1 ->
+        // 2024-01-14 12:30, 2 -> NULL, 3 -> 2024-02-28 09:00. sub selects release 1's
+        // signed_off_at. `.is(sub)` matches release 1; `.isNot(sub)` matches releases
+        // 2 (NULL, distinct) and 3 (different value).
+        const sub = ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .selectOneColumn(tProjectRelease.signedOffAt)
+            .forUseAsInlineQueryValue()
+
+        const expectedIs = [{ id: 1 }]
+        ctx.mockNext(expectedIs)
+        const is = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.signedOffAt.is(sub))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signed_off_at is (select signed_off_at as result from project_release where id = ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof is, Array<{ id: number }>>>()
+        expect(is).toEqual(expectedIs)
+
+        const expectedIsNot = [{ id: 2 }, { id: 3 }]
+        ctx.mockNext(expectedIsNot)
+        const isNot = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.signedOffAt.isNot(sub))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signed_off_at is not (select signed_off_at as result from project_release where id = ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        expect(isNot).toEqual(expectedIsNot)
+    })
+
+    // ---- inN MIXED (const + scalar-subquery value-source) per leaf ----
+
+    test('eq-t4/int-in-n-mixed-const-and-value-source', async () => {
+        // priority (int): issue 1 -> 2, 2 -> 1, 3 -> 3, 4 -> 2. sub selects issue
+        // 3's priority (3). `.inN(1, sub)` -> priority in (1, 3): issue 2 (p1) and
+        // issue 3 (p3).
+        const sub = ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(3))
+            .selectOneColumn(tIssue.priority)
+            .forUseAsInlineQueryValue()
+
+        const expected = [{ id: 2 }, { id: 3 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.priority.inN(1, sub))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where priority in (?, (select priority as result from issue where id = ?)) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            3,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('eq-t4/double-in-n-mixed-const-and-value-source', async () => {
+        // estimated_hours (optional double) is NULL in the seed; set issue 1 -> 2.5
+        // and issue 2 -> 7.5 inside a rollback. sub selects issue 1's estimated_hours
+        // (2.5). `.inN(7.5, sub)` -> estimated_hours in (7.5, 2.5): issue 1 (2.5) and
+        // issue 2 (7.5); issues 3,4 NULL are excluded. The SELECT is last so
+        // ctx.lastSql captures it.
+        await ctx.withRollback(async () => {
+            ctx.mockNext(1)
+            await ctx.conn.update(tIssue).set({ estimatedHours: 2.5 }).where(tIssue.id.equals(1)).executeUpdate()
+            ctx.mockNext(1)
+            await ctx.conn.update(tIssue).set({ estimatedHours: 7.5 }).where(tIssue.id.equals(2)).executeUpdate()
+
+            const sub = ctx.conn.selectFrom(tIssue)
+                .where(tIssue.id.equals(1))
+                .selectOneColumn(tIssue.estimatedHours)
+                .forUseAsInlineQueryValue()
+
+            const expected = [{ id: 1 }, { id: 2 }]
+            ctx.mockNext(expected)
+            const rows = await ctx.conn.selectFrom(tIssue)
+                .where(tIssue.estimatedHours.inN(7.5, sub))
+                .select({ id: tIssue.id })
+                .orderBy('id')
+                .executeSelectMany()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where estimated_hours in (?, (select estimated_hours as result from issue where id = ?)) order by id"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                7.5,
+                1,
+              ]
+            `)
+            assertType<Exact<typeof rows, Array<{ id: number }>>>()
+            expect(rows).toEqual(expected)
+        })
+    })
+
+    test('eq-t4/string-in-n-mixed-const-and-value-source', async () => {
+        // title: issue 1 'Update hero copy', 2 'Redesign navbar', 3 'Migrate to
+        // ESM', 4 'Document /v2/users'. sub selects issue 3's title. `.inN('Update
+        // hero copy', sub)` matches issues 1 and 3.
+        const sub = ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(3))
+            .selectOneColumn(tIssue.title)
+            .forUseAsInlineQueryValue()
+
+        const expected = [{ id: 1 }, { id: 3 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.title.inN('Update hero copy', sub))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where title in (?, (select title as result from issue where id = ?)) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "Update hero copy",
+            3,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('eq-t4/uuid-in-n-mixed-const-and-value-source', async () => {
+        // external_ref: issue 1 -> 0a8f…, 2 -> 7b3e…, 3,4 -> NULL. sub selects issue
+        // 1's external_ref. `.inN('7b3e…', sub)` matches issue 2 (7b3e…) and issue 1
+        // (0a8f…); issues 3,4 NULL are excluded.
+        const sub = ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .selectOneColumn(tIssue.externalRef)
+            .forUseAsInlineQueryValue()
+
+        const expected = [{ id: 1 }, { id: 2 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.externalRef.inN('7b3e9d20-2222-4c55-9b66-dddd00009999', sub))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref in (?, (select external_ref as result from issue where id = ?)) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "7b3e9d20-2222-4c55-9b66-dddd00009999",
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('eq-t4/localDate-in-n-mixed-const-and-value-source', async () => {
+        // work_date: worklog 1 -> 2024-03-04, 2 -> 2024-03-05, 3 -> 2024-03-06. sub
+        // selects worklog 3's work_date. `.inN(2024-03-04, sub)` matches worklogs 1
+        // and 3.
+        const sub = ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(3))
+            .selectOneColumn(tIssueWorklog.workDate)
+            .forUseAsInlineQueryValue()
+
+        const expected = [{ id: 1 }, { id: 3 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.workDate.inN(new Date(Date.UTC(2024, 2, 4, 0, 0, 0)), sub))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where work_date in (?, (select work_date as result from issue_worklog where id = ?)) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2024-03-04",
+            3,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('eq-t4/localTime-in-n-mixed-const-and-value-source', async () => {
+        // started_at (optional localTime): worklog 1 -> 09:15:00, 2 -> 14:00:00,
+        // 3 -> 10:30:00. sub selects worklog 3's started_at. `.inN(09:15:00, sub)`
+        // matches worklogs 1 and 3.
+        const sub = ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(3))
+            .selectOneColumn(tIssueWorklog.startedAt)
+            .forUseAsInlineQueryValue()
+
+        const expected = [{ id: 1 }, { id: 3 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.startedAt.inN(new Date(Date.UTC(1970, 0, 1, 9, 15, 0)), sub))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where started_at in (?, (select started_at as result from issue_worklog where id = ?)) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "09:15:00",
+            3,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('eq-t4/localDateTime-in-n-mixed-const-and-value-source', async () => {
+        // created_at (plain localDateTime, seeded distinct): org 1 -> 2023-06-15
+        // 08:00, org 2 -> 2023-09-20 14:30. sub selects org 2's created_at.
+        // `.inN(org-1 instant, sub)` matches org 1 (const arm) and org 2 (subquery
+        // arm).
+        const sub = ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.id.equals(2))
+            .selectOneColumn(tOrganization.createdAt)
+            .forUseAsInlineQueryValue()
+
+        const expected = [{ id: 1 }, { id: 2 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.createdAt.inN(new Date(Date.UTC(2023, 5, 15, 8, 0, 0)), sub))
+            .select({ id: tOrganization.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where created_at in (?, (select created_at as result from organization where id = ?)) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2023-06-15 08:00:00",
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('eq-t4/customInt-in-n-mixed-const-and-value-source', async () => {
+        // cost_cents ('Cents' customInt): worklog 1 -> 100, 2 -> 100, 3 -> 400. sub
+        // selects worklog 1's cost_cents (100). `.inN(400, sub)` -> cost_cents in
+        // (400, 100): worklog 3 (const arm, 400) and worklogs 1, 2 (subquery arm,
+        // 100).
+        const sub = ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .selectOneColumn(tIssueWorklog.costCents)
+            .forUseAsInlineQueryValue()
+
+        const expected = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.costCents.inN(400, sub))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where cost_cents in (?, (select cost_cents as result from issue_worklog where id = ?)) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            400,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('eq-t4/customDouble-in-n-mixed-const-and-value-source', async () => {
+        // billed_amount ('Money' customDouble): worklog 1 -> 200, 2 -> 50, 3 -> 200.
+        // sub selects worklog 2's billed_amount (50). `.inN(200, sub)` -> billed_amount
+        // in (200, 50): worklogs 1, 3 (const arm) and worklog 2 (subquery arm).
+        const sub = ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(2))
+            .selectOneColumn(tIssueWorklog.billedAmount)
+            .forUseAsInlineQueryValue()
+
+        const expected = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.billedAmount.inN(200, sub))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billed_amount in (?, (select billed_amount as result from issue_worklog where id = ?)) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            200,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('eq-t4/customComparable-in-n-mixed-const-and-value-source', async () => {
+        // version ('Semver' customComparable): release 1 -> 1.2.0, 2 -> 1.3.0-beta.1,
+        // 3 -> 0.9.0. sub selects release 3's version. `.inN('1.2.0', sub)` matches
+        // releases 1 and 3.
+        const sub = ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(3))
+            .selectOneColumn(tProjectRelease.version)
+            .forUseAsInlineQueryValue()
+
+        const expected = [{ id: 1 }, { id: 3 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.version.inN('1.2.0', sub))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where version in (?, (select version as result from project_release where id = ?)) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "1.2.0",
+            3,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('eq-t4/custom-in-n-mixed-const-and-value-source', async () => {
+        // channel ('ReleaseChannel' custom): release 1 -> stable, 2 -> beta, 3 ->
+        // canary. sub selects release 3's channel. `.inN('stable', sub)` matches
+        // releases 1 and 3.
+        const sub = ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(3))
+            .selectOneColumn(tProjectRelease.channel)
+            .forUseAsInlineQueryValue()
+
+        const expected = [{ id: 1 }, { id: 3 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.channel.inN('stable', sub))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where channel in (?, (select channel as result from project_release where id = ?)) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "stable",
+            3,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('eq-t4/enum-in-n-mixed-const-and-value-source', async () => {
+        // activity ('WorklogActivity' enum): worklog 1 -> coding, 2 -> review, 3 ->
+        // meeting. sub selects worklog 3's activity. `.inN('coding', sub)` matches
+        // worklogs 1 and 3.
+        const sub = ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(3))
+            .selectOneColumn(tIssueWorklog.activity)
+            .forUseAsInlineQueryValue()
+
+        const expected = [{ id: 1 }, { id: 3 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.activity.inN('coding', sub))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where activity in (?, (select activity as result from issue_worklog where id = ?)) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "coding",
+            3,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('eq-t4/customUuid-in-n-mixed-const-and-value-source', async () => {
+        // signing_key ('SigningKey' customUuid, optional): release 1 -> 0a8f…,
+        // 2 -> NULL, 3 -> 7b3e…. sub selects release 3's signing_key. `.inN('0a8f…',
+        // sub)` matches releases 1 (0a8f…) and 3 (7b3e…); release 2 NULL is excluded.
+        const sub = ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(3))
+            .selectOneColumn(tProjectRelease.signingKey)
+            .forUseAsInlineQueryValue()
+
+        const expected = [{ id: 1 }, { id: 3 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.signingKey.inN('0a8f9c1e-1111-4222-8333-444455556666', sub))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signing_key in (?, (select signing_key as result from project_release where id = ?)) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "0a8f9c1e-1111-4222-8333-444455556666",
+            3,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('eq-t4/customLocalDate-in-n-mixed-const-and-value-source', async () => {
+        // released_on ('ReleaseDay' customLocalDate): release 1 -> 2024-01-15,
+        // 2 -> 2024-02-20, 3 -> 2024-03-01. sub selects release 3's released_on.
+        // `.inN(2024-01-15, sub)` matches releases 1 and 3.
+        const sub = ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(3))
+            .selectOneColumn(tProjectRelease.releasedOn)
+            .forUseAsInlineQueryValue()
+
+        const expected = [{ id: 1 }, { id: 3 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.releasedOn.inN(new Date(Date.UTC(2024, 0, 15, 0, 0, 0)), sub))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where released_on in (?, (select released_on as result from project_release where id = ?)) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2024-01-15",
+            3,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('eq-t4/customLocalTime-in-n-mixed-const-and-value-source', async () => {
+        // cutoff_time ('CutoffClock' customLocalTime): release 1 -> 17:00:00,
+        // 2 -> 18:30:00, 3 -> 16:00:00. sub selects release 3's cutoff_time.
+        // `.inN(17:00:00, sub)` matches releases 1 and 3.
+        const sub = ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(3))
+            .selectOneColumn(tProjectRelease.cutoffTime)
+            .forUseAsInlineQueryValue()
+
+        const expected = [{ id: 1 }, { id: 3 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.cutoffTime.inN(new Date(Date.UTC(1970, 0, 1, 17, 0, 0)), sub))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where cutoff_time in (?, (select cutoff_time as result from project_release where id = ?)) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "17:00:00",
+            3,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('eq-t4/customLocalDateTime-in-n-mixed-const-and-value-source', async () => {
+        // signed_off_at ('SignOffStamp' customLocalDateTime, optional): release 1 ->
+        // 2024-01-14 12:30, 2 -> NULL, 3 -> 2024-02-28 09:00. sub selects release 3's
+        // signed_off_at. `.inN(release-1 instant, sub)` matches releases 1 and 3;
+        // release 2 NULL is excluded.
+        const sub = ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(3))
+            .selectOneColumn(tProjectRelease.signedOffAt)
+            .forUseAsInlineQueryValue()
+
+        const expected = [{ id: 1 }, { id: 3 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.signedOffAt.inN(new Date(Date.UTC(2024, 0, 14, 12, 30, 0)), sub))
+            .select({ id: tProjectRelease.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release where signed_off_at in (?, (select signed_off_at as result from project_release where id = ?)) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2024-01-14 12:30:00",
+            3,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('eq-t4/boolean-in-n-mixed-const-and-value-source', async () => {
+        // billable (plain optional boolean): worklog 1 -> TRUE, 2 -> FALSE, 3 ->
+        // NULL. sub selects worklog 2's billable (FALSE). `.inN(true, sub)` ->
+        // billable in (true, false): worklog 1 (TRUE) and worklog 2 (FALSE); worklog
+        // 3 NULL is excluded.
+        const sub = ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(2))
+            .selectOneColumn(tIssueWorklog.billable)
+            .forUseAsInlineQueryValue()
+
+        const expected = [{ id: 1 }, { id: 2 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.billable.inN(true, sub))
+            .select({ id: tIssueWorklog.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where billable in (?, (select billable as result from issue_worklog where id = ?)) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            true,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
 })

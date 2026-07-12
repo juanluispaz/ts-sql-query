@@ -451,4 +451,126 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ id: number; ancName: string }>>>()
         expect(result).toEqual(expected)
     })
+    test('values-self-joined-via-left-join-clone-hoists-the-with-once', async () => {
+        // VV-T4-1: the LEFT-JOIN clone variant of the self-join. `forUseInLeftJoinAs('anc')`
+        // reuses the single hoisted `treeNode` CTE and adds `left join treeNode as anc`; the
+        // join side is optional-widened so `ancName` is `?: string`. Both nodes have a
+        // matching parent (1↔2) so ancName is present.
+        const expected = [
+            { id: 1, ancName: 'b' },
+            { id: 2, ancName: 'a' },
+        ]
+        ctx.mockNext(expected)
+        const nodes = Values.create(VTreeNode, 'treeNode', [
+            { id: 1, parentId: 2, name: 'a' },
+            { id: 2, parentId: 1, name: 'b' },
+        ])
+        const anc = nodes.forUseInLeftJoinAs('anc')
+        const result = await ctx.conn.selectFrom(nodes)
+            .leftJoin(anc).on(anc.id.equals(nodes.parentId))
+            .select({ id: nodes.id, ancName: anc.name })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with treeNode as (select * from (values (@0, @1, @2), (@3, @4, @5)) as treeNode(id, parentId, name)) select treeNode.id as id, anc.name as ancName from treeNode left join treeNode as anc on anc.id = treeNode.parentId order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+            "a",
+            2,
+            1,
+            "b",
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; ancName?: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('values-self-joined-with-two-aliased-clones-neither-is-the-source', async () => {
+        // VV-T4-2: both the FROM and the JOIN side are `.as(alias)` clones (`a`, `b`); the
+        // original `nodes` never appears in FROM. The dedup guard must still hoist the
+        // single WITH when neither reference is the canonical __source.
+        const expected = [
+            { id: 1, ancName: 'b' },
+            { id: 2, ancName: 'a' },
+        ]
+        ctx.mockNext(expected)
+        const nodes = Values.create(VTreeNode, 'treeNode', [
+            { id: 1, parentId: 2, name: 'a' },
+            { id: 2, parentId: 1, name: 'b' },
+        ])
+        const a = nodes.as('a')
+        const b = nodes.as('b')
+        const result = await ctx.conn.selectFrom(a)
+            .innerJoin(b).on(b.id.equals(a.parentId))
+            .select({ id: a.id, ancName: b.name })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with treeNode as (select * from (values (@0, @1, @2), (@3, @4, @5)) as treeNode(id, parentId, name)) select [a].id as id, [b].name as ancName from treeNode as [a] inner join treeNode as [b] on [b].id = [a].parentId order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+            "a",
+            2,
+            1,
+            "b",
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; ancName: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('values-in-both-arms-of-a-compound-hoists-two-distinct-withs', async () => {
+        // VV-T4-3: a DISTINCT Values source in EACH arm of a UNION ALL → two separate WITH
+        // definitions (projectPatch, idList) hoisted to the top of the compound. UNION ALL
+        // keeps duplicates: {1,2} ∪all {2,3} = {1,2,2,3}.
+        const expected = [{ id: 1 }, { id: 2 }, { id: 2 }, { id: 3 }]
+        ctx.mockNext(expected)
+        const idsA = Values.create(VProjectPatch, 'projectPatch', [{ id: 1, name: 'a' }, { id: 2, name: 'b' }])
+        const idsB = Values.create(VIdList, 'idList', [{ id: 2 }, { id: 3 }])
+        const result = await ctx.conn.selectFrom(idsA).select({ id: idsA.id })
+            .unionAll(ctx.conn.selectFrom(idsB).select({ id: idsB.id }))
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectPatch as (select * from (values (@0, @1), (@2, @3)) as projectPatch(id, name)), idList as (select * from (values (@4), (@5)) as idList(id)) select id as id from projectPatch union all select id as id from idList order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            "a",
+            2,
+            "b",
+            2,
+            3,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('values-in-a-non-correlated-exists-hoists-the-with', async () => {
+        // VV-T4-4: a Values source inside a NON-correlated `exists(selectFrom(values)...)`.
+        // The WITH hoists to the outer query even though the subquery does not reference
+        // the outer row. idList has a row, so the exists is always true → every project.
+        const expected = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]
+        ctx.mockNext(expected)
+        const ids = Values.create(VIdList, 'idList', [{ id: 1 }])
+        const result = await ctx.conn.selectFrom(tProject)
+            .where(ctx.conn.exists(ctx.conn.selectFrom(ids).selectOneColumn(ids.id)))
+            .select({ id: tProject.id })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with idList as (select * from (values (@0)) as idList(id)) select id as id from project where exists(select id as [result] from idList) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+        expect(result).toEqual(expected)
+    })
 })

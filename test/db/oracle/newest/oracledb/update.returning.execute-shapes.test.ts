@@ -135,4 +135,45 @@ describe(ctx.label, () => {
           ]
         `)
     })
+    test('update-returning-none-or-one-row-shape-present-on-match', async () => {
+        // UD-T4-4: the PRESENT arm of the `executeUpdateNoneOrOne()` row-shape branch.
+        // WHERE id=1 matches exactly one row, so the UPDATE affects it and RETURNING
+        // yields a single object — the One arm resolves the object (the null-on-no-match
+        // sibling above covers the None arm; the object-present case is otherwise only
+        // reached incidentally via the MORE_THAN_ONE_ROW mock branch). status is unchanged
+        // by the set, so it comes back as the seed value ('open').
+        const expected = { id: 1, status: 'open' }
+        ctx.mockNext(expected)
+        await ctx.withRollback(async () => {
+            const row = await ctx.conn.update(tIssue)
+                .set({ priority: 5 })
+                .where(tIssue.id.equals(1))
+                .returning({
+                    id:     tIssue.id,
+                    status: tIssue.status,
+                })
+                .executeUpdateNoneOrOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set priority = :0 where id = :1 returning id, status into :2, :3"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                5,
+                1,
+                {
+                  "as": "id",
+                  "dir": 3003,
+                },
+                {
+                  "as": "status",
+                  "dir": 3003,
+                },
+              ]
+            `)
+            assertType<Exact<typeof row, {
+                id:     number
+                status: string
+            } | null>>()
+            expect(row).toEqual(expected)
+        })
+    })
 })

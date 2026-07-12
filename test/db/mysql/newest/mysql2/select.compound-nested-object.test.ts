@@ -906,4 +906,83 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
         expect('body' in rows[0]!.detail).toBe(false)
     })
+    test('union-all-of-nested-object-aggregate-arms-projecting-optional-values-as-nullable', async () => {
+        // The shipped aggregate-nullable compound test projects the aggregate TOP-LEVEL;
+        // this NESTS it inside a projection object member (`wrap`), so the compound
+        // re-projection reaches createColumnsFromInnerObject (the fix's second line)
+        // through the compound path. The element's projectingOptionalValuesAsNullable()
+        // flag must still ride through: a null `archivedAt` surfaces PRESENT-null one
+        // nesting level deeper. Arm 1 = org 1 (projects 1,2 — archived_at NULL), arm 2 =
+        // org 2 (projects 3 NULL, 4 archived).
+        const tProjectLeft = tProject.forUseInLeftJoin()
+        const archivedDate = new Date('2024-02-01T00:00:00.000Z')
+        const expected = [
+            { orgId: 1, wrap: { projects: [
+                { id: 1, name: 'Marketing site', archivedAt: null },
+                { id: 2, name: 'Internal tools', archivedAt: null },
+            ] } },
+            { orgId: 2, wrap: { projects: [
+                { id: 3, name: 'Public API', archivedAt: null },
+                { id: 4, name: 'Legacy app', archivedAt: archivedDate },
+            ] } },
+        ]
+        ctx.mockNext([
+            { orgId: 1, 'wrap.projects': [
+                { id: 1, name: 'Marketing site', archivedAt: null },
+                { id: 2, name: 'Internal tools', archivedAt: null },
+            ] },
+            { orgId: 2, 'wrap.projects': [
+                { id: 3, name: 'Public API', archivedAt: null },
+                { id: 4, name: 'Legacy app', archivedAt: archivedDate },
+            ] },
+        ])
+        const rows = await ctx.conn.selectFrom(tOrganization)
+            .leftJoin(tProjectLeft).on(tProjectLeft.organizationId.equals(tOrganization.id))
+            .where(tOrganization.id.equals(1))
+            .select({
+                orgId: tOrganization.id,
+                wrap:  { projects: ctx.conn.aggregateAsArray({ id: tProjectLeft.id, name: tProjectLeft.name, archivedAt: tProjectLeft.archivedAt })
+                    .projectingOptionalValuesAsNullable() },
+            })
+            .groupBy('orgId')
+            .unionAll(
+                ctx.conn.selectFrom(tOrganization)
+                    .leftJoin(tProjectLeft).on(tProjectLeft.organizationId.equals(tOrganization.id))
+                    .where(tOrganization.id.equals(2))
+                    .select({
+                        orgId: tOrganization.id,
+                        wrap:  { projects: ctx.conn.aggregateAsArray({ id: tProjectLeft.id, name: tProjectLeft.name, archivedAt: tProjectLeft.archivedAt })
+                            .projectingOptionalValuesAsNullable() },
+                    })
+                    .groupBy('orgId'),
+            )
+            .orderBy('orgId')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`organization\`.id as orgId, json_arrayagg(json_object('id', project.id, 'name', project.\`name\`, 'archivedAt', project.archived_at)) as \`wrap.projects\` from \`organization\` left join project on project.organization_id = \`organization\`.id where \`organization\`.id = ? group by \`organization\`.id union all select \`organization\`.id as orgId, json_arrayagg(json_object('id', project.id, 'name', project.\`name\`, 'archivedAt', project.archived_at)) as \`wrap.projects\` from \`organization\` left join project on project.organization_id = \`organization\`.id where \`organization\`.id = ? group by \`organization\`.id order by orgId"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            orgId: number
+            wrap:  { projects: Array<{ id: number; name: string; archivedAt: Date | null }> }
+        }>>>()
+        const sorted = rows.map(r => ({ ...r, wrap: { projects: [...r.wrap.projects].sort((a, b) => a.id - b.id) } }))
+        if (!ctx.realDbEnabled) {
+            expect(sorted).toEqual(expected)
+        } else {
+            expect(sorted[0]!.wrap.projects).toEqual([
+                { id: 1, name: 'Marketing site', archivedAt: null },
+                { id: 2, name: 'Internal tools', archivedAt: null },
+            ])
+            expect(sorted[1]!.wrap.projects.find(p => p.id === 3)).toEqual({ id: 3, name: 'Public API', archivedAt: null })
+            expect(sorted[1]!.wrap.projects.find(p => p.id === 4)!.archivedAt instanceof Date).toBe(true)
+        }
+        // The null `archivedAt` leaf stays PRESENT-null through the nested-object compound.
+        expect('archivedAt' in sorted[0]!.wrap.projects[0]!).toBe(true)
+        expect(sorted[0]!.wrap.projects[0]!.archivedAt).toBeNull()
+    })
 })

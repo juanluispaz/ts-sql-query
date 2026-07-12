@@ -7,7 +7,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { TsSqlError } from '../../../../../src/TsSqlError.js'
-import { tProject } from '../../domain/connection.js'
+import { tIssue, tOrganization, tProject, tWebhookEvent } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 // The disallow rules throw a `TsSqlProcessingError` (an `Error`) onto which
@@ -2156,4 +2156,100 @@ describe(ctx.label, () => {
         expect(err.disallowedProperty).toBe('archived')
         expect(err.disallowedIndex).toBe(1)
     })
+    // ── shaped setIfValue null-skip per defaulted-non-nullable kind (FIX A per-kind
+    // tail). The shipped tests cover the boolean-adapter kind (tProject.published,
+    // t/f); these extend the animated MandatoryOptionalInsertSets branch to other
+    // kinds with a REAL DB DEFAULT so the skip is real-validatable: enum (event_type
+    // DEFAULT 'created'), bigint (view_count DEFAULT 0), and the Y/N boolean adapter
+    // (organization.verified DEFAULT 'N', a different mapping than published). The
+    // renamed defaulted key is `null`, so the value-gate drops it and the column list
+    // omits it; the DB supplies the default.
+
+    test('shaped-set-if-value-null-skips-enum-defaulted-shaped-key', async () => {
+        // `evt` → event_type (enum, DEFAULT 'created'): null skips it, so the INSERT
+        // lists only issue_id and the DB fills event_type.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const inserted = await ctx.conn.insertInto(tWebhookEvent)
+                .shapedAs({ iss: 'issueId', evt: 'eventType' })
+                .setIfValue({ iss: 1, evt: null })
+                .executeInsert()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into webhook_event (issue_id) values (@0)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof inserted, number>>()
+            expect(inserted).toBe(1)
+        })
+    })
+
+    test('shaped-set-if-value-null-skips-bigint-defaulted-shaped-key', async () => {
+        // `vc` → view_count (bigint, DEFAULT 0): null skips it, so the INSERT lists the
+        // required issue columns without view_count and the DB fills the default.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const inserted = await ctx.conn.insertInto(tIssue)
+                .shapedAs({ pid: 'projectId', num: 'number', ttl: 'title', st: 'status', pr: 'priority', vc: 'viewCount' })
+                .setIfValue({ pid: 1, num: 9001, ttl: 'Bigint default skip', st: 'open', pr: 2, vc: null })
+                .executeInsert()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (@0, @1, @2, @3, @4)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                9001,
+                "Bigint default skip",
+                "open",
+                2,
+              ]
+            `)
+            assertType<Exact<typeof inserted, number>>()
+            expect(inserted).toBe(1)
+        })
+    })
+
+    test('shaped-set-if-value-null-skips-boolean-adapter-defaulted-shaped-key', async () => {
+        // `v` → verified (boolean with the Y/N CustomBooleanTypeAdapter, DEFAULT 'N' —
+        // a different mapping than the shipped t/f published test): null skips it, so
+        // the INSERT lists only name and plan.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const inserted = await ctx.conn.insertInto(tOrganization)
+                .shapedAs({ n: 'name', p: 'plan', v: 'verified' })
+                .setIfValue({ n: 'Skip Verified Inc', p: 'free', v: null })
+                .executeInsert()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, [plan]) values (@0, @1)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Skip Verified Inc",
+                "free",
+              ]
+            `)
+            assertType<Exact<typeof inserted, number>>()
+            expect(inserted).toBe(1)
+        })
+    })
+
+    test('shaped-set-if-value-undefined-skips-defaulted-shaped-key', async () => {
+        // The `| undefined` arm of the animated MandatoryOptionalInsertSets union: a
+        // defaulted-non-nullable shaped column accepts `undefined` too (not only null)
+        // and skips identically — the enum event_type is dropped, leaving only issue_id.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const inserted = await ctx.conn.insertInto(tWebhookEvent)
+                .shapedAs({ iss: 'issueId', evt: 'eventType' })
+                .setIfValue({ iss: 1, evt: undefined })
+                .executeInsert()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into webhook_event (issue_id) values (@0)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof inserted, number>>()
+            expect(inserted).toBe(1)
+        })
+    })
+
 })

@@ -5243,4 +5243,217 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project_release order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
     })
+
+    // Comparable `*IfValue` op×type rotation through the dynamic dispatcher.
+    // Each dynamic `*IfValue` operator is paired against its direct `.xxxIfValue`
+    // twin (present value → predicate fires) and proven to emit identical SQL +
+    // params. The filter is passed inline to `withValues`, so the value-source-map
+    // inference arm validates the mapping (no `DynamicCondition<...>` annotation).
+    // Grouped by source table so each pair runs in one `where(...)`.
+
+    // -- comparable IfValue on the tIssueWorklog numeric/temporal columns:
+    //    bigint (durationMs), customInt (costCents), customDouble (billedAmount),
+    //    localDate (workDate), localTime (startedAt).
+    test('dyn-t4/if-value-comparable-worklog-family', async () => {
+        const loDate = new Date(Date.UTC(2024, 2, 1, 0, 0, 0))
+        const hiDate = new Date(Date.UTC(2024, 2, 31, 0, 0, 0))
+        const loTime = new Date(Date.UTC(1970, 0, 1, 9, 0, 0))
+        const hiTime = new Date(Date.UTC(1970, 0, 1, 17, 0, 0))
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.durationMs.greaterThanIfValue(10n)
+                .and(tIssueWorklog.durationMs.lessOrEqualIfValue(99n))
+                .and(tIssueWorklog.costCents.lessThanIfValue(300))
+                .and(tIssueWorklog.costCents.greaterThanIfValue(50))
+                .and(tIssueWorklog.billedAmount.lessThanIfValue(500))
+                .and(tIssueWorklog.billedAmount.greaterThanIfValue(100))
+                .and(tIssueWorklog.workDate.lessThanIfValue(hiDate))
+                .and(tIssueWorklog.workDate.greaterOrEqualIfValue(loDate))
+                .and(tIssueWorklog.startedAt.lessThanIfValue(hiTime))
+                .and(tIssueWorklog.startedAt.greaterOrEqualIfValue(loTime)))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssueWorklog)
+            .where(ctx.conn.dynamicConditionFor({
+                id: tIssueWorklog.id,
+                durationMs: tIssueWorklog.durationMs,
+                costCents: tIssueWorklog.costCents,
+                billedAmount: tIssueWorklog.billedAmount,
+                workDate: tIssueWorklog.workDate,
+                startedAt: tIssueWorklog.startedAt,
+            }).withValues({
+                durationMs: { greaterThanIfValue: 10n, lessOrEqualIfValue: 99n },
+                costCents: { lessThanIfValue: 300, greaterThanIfValue: 50 },
+                billedAmount: { lessThanIfValue: 500, greaterThanIfValue: 100 },
+                workDate: { lessThanIfValue: hiDate, greaterOrEqualIfValue: loDate },
+                startedAt: { lessThanIfValue: hiTime, greaterOrEqualIfValue: loTime },
+            }))
+            .select({ id: tIssueWorklog.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue_worklog where duration_ms > $1 and duration_ms <= $2 and cost_cents < $3 and cost_cents > $4 and billed_amount < $5 and billed_amount > $6 and work_date < $7 and work_date >= $8 and started_at < $9 and started_at >= $10 order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            10n,
+            99n,
+            300,
+            50,
+            500,
+            100,
+            2024-03-31T00:00:00.000Z,
+            2024-03-01T00:00:00.000Z,
+            "17:00:00",
+            "09:00:00",
+          ]
+        `)
+    })
+
+    // -- comparable IfValue: double (estimatedHours) `greaterThanIfValue`,
+    //    localDateTime (createdAt) `greaterOrEqualIfValue`; plus the equalable
+    //    IfValue twins: double `isNotIfValue`, string (title)
+    //    `isIfValue`/`isNotIfValue`/`inIfValue`/`notInIfValue`. All on tIssue.
+    test('dyn-t4/if-value-issue-family', async () => {
+        const since = new Date('2020-01-01T00:00:00.000Z')
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.estimatedHours.greaterThanIfValue(2.5)
+                .and(tIssue.estimatedHours.isNotIfValue(3.5))
+                .and(tIssue.createdAt.greaterOrEqualIfValue(since))
+                .and(tIssue.title.isIfValue('a'))
+                .and(tIssue.title.isNotIfValue('b'))
+                .and(tIssue.title.inIfValue(['c', 'd']))
+                .and(tIssue.title.notInIfValue(['e'])))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor({
+                id: tIssue.id,
+                estimatedHours: tIssue.estimatedHours,
+                createdAt: tIssue.createdAt,
+                title: tIssue.title,
+            }).withValues({
+                estimatedHours: { greaterThanIfValue: 2.5, isNotIfValue: 3.5 },
+                createdAt: { greaterOrEqualIfValue: since },
+                title: { isIfValue: 'a', isNotIfValue: 'b', inIfValue: ['c', 'd'], notInIfValue: ['e'] },
+            }))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where estimated_hours > $1 and estimated_hours is distinct from $2 and created_at >= $3 and title is not distinct from $4 and title is distinct from $5 and title in ($6, $7) and title not in ($8) order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            2.5,
+            3.5,
+            2020-01-01T00:00:00.000Z,
+            "a",
+            "b",
+            "c",
+            "d",
+            "e",
+          ]
+        `)
+    })
+
+    // -- comparable IfValue on the tProjectRelease custom-temporal columns:
+    //    customLocalDate (releasedOn), customLocalTime (cutoffTime),
+    //    customLocalDateTime (signedOffAt), each with `lessThanIfValue` +
+    //    `greaterOrEqualIfValue`. TZ=UTC forced by the suite.
+    test('dyn-t4/if-value-comparable-custom-temporal-family', async () => {
+        const loDay = new Date(Date.UTC(2024, 0, 1, 10, 0, 0))
+        const hiDay = new Date(Date.UTC(2024, 11, 31, 10, 0, 0))
+        const loClock = new Date(Date.UTC(1970, 0, 1, 9, 0, 0))
+        const hiClock = new Date(Date.UTC(1970, 0, 1, 20, 0, 0))
+        const loStamp = new Date(Date.UTC(2024, 0, 1, 0, 0, 0))
+        const hiStamp = new Date(Date.UTC(2024, 11, 31, 0, 0, 0))
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.releasedOn.lessThanIfValue(hiDay)
+                .and(tProjectRelease.releasedOn.greaterOrEqualIfValue(loDay))
+                .and(tProjectRelease.cutoffTime.lessThanIfValue(hiClock))
+                .and(tProjectRelease.cutoffTime.greaterOrEqualIfValue(loClock))
+                .and(tProjectRelease.signedOffAt.lessThanIfValue(hiStamp))
+                .and(tProjectRelease.signedOffAt.greaterOrEqualIfValue(loStamp)))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tProjectRelease)
+            .where(ctx.conn.dynamicConditionFor({
+                id: tProjectRelease.id,
+                releasedOn: tProjectRelease.releasedOn,
+                cutoffTime: tProjectRelease.cutoffTime,
+                signedOffAt: tProjectRelease.signedOffAt,
+            }).withValues({
+                releasedOn: { lessThanIfValue: hiDay, greaterOrEqualIfValue: loDay },
+                cutoffTime: { lessThanIfValue: hiClock, greaterOrEqualIfValue: loClock },
+                signedOffAt: { lessThanIfValue: hiStamp, greaterOrEqualIfValue: loStamp },
+            }))
+            .select({ id: tProjectRelease.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from project_release where released_on < $1 and released_on >= $2 and cutoff_time < $3 and cutoff_time >= $4 and signed_off_at < $5 and signed_off_at >= $6 order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            2024-12-31T10:00:00.000Z,
+            2024-01-01T10:00:00.000Z,
+            "20:00:00",
+            "09:00:00",
+            2024-12-31T00:00:00.000Z,
+            2024-01-01T00:00:00.000Z,
+          ]
+        `)
+    })
+
+    // Base (non-IfValue) operators routed through the dynamic dispatcher: int
+    // `isNot` (priority) and enum `equals` / `notEquals` / `in` (status, mapped
+    // through the `['enum', T]` descriptor — status stores the enum values in a
+    // plain string column). Each fires on a present value and equals its direct
+    // twin. Filter is annotated with an explicit `DynamicCondition<...>` so the
+    // `FilterTypeOf<descriptor>` arm validates the shapes.
+    test('dyn-t4/base-op-int-and-enum-family', async () => {
+        type Filter = DynamicCondition<{ id: 'int', priority: 'int', status: ['enum', 'open' | 'closed'] }>
+        const filter: Filter = {
+            priority: { isNot: 4 },
+            status: { equals: 'open', notEquals: 'closed', in: ['open', 'closed'] },
+        }
+        const fields = { id: tIssue.id, priority: tIssue.priority, status: tIssue.status }
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.priority.isNot(4)
+                .and(tIssue.status.equals('open'))
+                .and(tIssue.status.notEquals('closed'))
+                .and(tIssue.status.in(['open', 'closed'])))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+        const refSql = ctx.lastSql
+        const refParams = ctx.lastParams
+
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .where(ctx.conn.dynamicConditionFor(fields).withValues(filter))
+            .select({ id: tIssue.id }).orderBy('id').executeSelectMany()
+
+        expect(ctx.lastSql).toBe(refSql)
+        expect(ctx.lastParams).toEqual(refParams)
+        expect(refSql).toMatchInlineSnapshot(`"select id as id from issue where priority is distinct from $1 and status = $2 and status <> $3 and status in ($4, $5) order by id"`)
+        expect(refParams).toMatchInlineSnapshot(`
+          [
+            4,
+            "open",
+            "closed",
+            "open",
+            "closed",
+          ]
+        `)
+    })
 })

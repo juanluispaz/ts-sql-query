@@ -706,12 +706,10 @@ describe(ctx.label, () => {
     })
 
     test('inline-aggregated-array-projecting-optional-values-as-nullable-then-as-optional-non-empty-array', async () => {
-        // The inline (`forUseAsInlineAggregatedArrayValue()`) sibling of the
-        // `asOptionalNonEmptyArray` array-shape modifier: the SELECT builder carries the
-        // projecting flag onto the value source, and a modifier chained on that value
-        // source must keep the present-null element leaf. `asOptionalNonEmptyArray()`
-        // flips the array to optional (`issues?`); the element still surfaces its optional
-        // `body` leaf present-as-`null`.
+        // An inline aggregated array (`forUseAsInlineAggregatedArrayValue()`) built with
+        // `projectingOptionalValuesAsNullable()`, then `asOptionalNonEmptyArray()`: the modifier
+        // flips the array to optional (`issues?`) while each element still surfaces its optional
+        // `body` leaf present-as-`null` (not dropped).
         ctx.mockNext({ pid: 1, issues: [{ id: 1, body: null }, { id: 2, body: 'Use new tokens' }] })
         const issues = ctx.conn.subSelectUsing(tProject).from(tIssue)
             .where(tIssue.projectId.equals(tProject.id))
@@ -740,10 +738,9 @@ describe(ctx.label, () => {
     })
 
     test('inline-aggregated-array-projecting-optional-values-as-nullable-then-as-required-in-optional-object', async () => {
-        // The inline (`forUseAsInlineAggregatedArrayValue()`) sibling of the
-        // `asRequiredInOptionalObject` array-shape modifier: the value source is the
-        // required member of an optional `meta` object, and the projecting flag carried
-        // onto it must survive the modifier's reconstruction — the element keeps its
+        // An inline aggregated array (`forUseAsInlineAggregatedArrayValue()`) built with
+        // `projectingOptionalValuesAsNullable()`, then `asRequiredInOptionalObject()`: it is the
+        // required member of an optional `meta` object, and each element still surfaces its
         // optional `body` leaf present-as-`null`. Project 1 has issues, so `meta` is present.
         ctx.mockNext({ pid: 1, 'meta.issues': [{ id: 1, body: null }, { id: 2, body: 'Use new tokens' }] })
         const issues = ctx.conn.subSelectUsing(tProject).from(tIssue)

@@ -1187,13 +1187,11 @@ describe(ctx.label, () => {
     })
 
     test('aggregate-as-array-of-one-column-wrapping-inline-object-aggregate-projecting-nullable', async () => {
-        // The aggregate-of-aggregate path (AbstractQueryBuilder recursion): the OUTER
-        // `aggregateAsArrayOfOneColumn(...)` wraps an INNER inline object-aggregate that carries
-        // `projectingOptionalValuesAsNullable()`. The outer aggregate must read the INNER value
-        // source's projecting flag so the doubly-nested element keeps its optional `body` leaf
-        // present-as-`null`. Only the inline form (`json_agg((select json_agg(…) …))`) is
-        // SQL-valid; the direct nested aggregate would be rejected. Project 1 has issues 1
-        // (body null) and 2, so the single grouped row nests one inner array.
+        // An OUTER `aggregateAsArrayOfOneColumn(...)` wrapping an INNER inline object-aggregate
+        // built with `projectingOptionalValuesAsNullable()`. The doubly-nested element keeps its
+        // optional `body` leaf present-as-`null` through the outer aggregate. Emits the inline
+        // form `json_agg((select json_agg(…) …))`. Project 1 has issues 1 (body null) and 2, so
+        // the single grouped row nests one inner array.
         ctx.mockNext([{ pid: 1, nested: [[{ id: 1, body: null }, { id: 2, body: 'Use new tokens' }]] }])
         const inner = ctx.conn.subSelectUsing(tProject).from(tIssue)
             .where(tIssue.projectId.equals(tProject.id))

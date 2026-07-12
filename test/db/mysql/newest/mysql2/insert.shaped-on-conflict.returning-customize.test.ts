@@ -76,10 +76,10 @@ describe(ctx.label, () => {
 
     // NOT-APPLICABLE: MySQL does not support RETURNING on INSERT, and the targeted onConflictOn(...) opener is not typed on MySqlConnection (ON DUPLICATE KEY UPDATE takes no conflict target)
     // test('shaped-set-if-value-null-skip-composed-with-on-conflict-returning', async () => {
-    //     // FIX-A shaped `setIfValue({vc: null})` — `null` skips the defaulted, NON-nullable
-    //     // `view_count` (DEFAULT 0), exactly like the unshaped form — COMPOSED with a targeted
+    //     // A shaped `setIfValue({vc: null})` — `null` skips the defaulted, NON-nullable
+    //     // `view_count` (DEFAULT 0), like the unshaped form — combined with a targeted
     //     // ON CONFLICT DO NOTHING and a trailing RETURNING. The skipped column stays out of the
-    //     // INSERT column list AND the upsert + returning still compose on one statement. A fresh
+    //     // INSERT column list, and the upsert + returning still compose on one statement. A fresh
     //     // (project 1, number 9999) does not collide, so the insert proceeds and RETURNING yields
     //     // the inserted `number` (a deterministic column, not the auto-id, so mock and real assert
     //     // the same value).

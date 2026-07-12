@@ -238,9 +238,8 @@ describe(ctx.label, () => {
     test('update-from-values-source', async () => {
         // The FROM target is a `Values` source (vs a table or a forUseInQueryAs CTE).
         // The Values `WITH orgNames(id, name) AS (VALUES ...)` must hoist to the top of
-        // the UPDATE through the FROM clause — the symmetric twin of the covered
-        // `delete.using(values)`. The where filters by an impossible id so no seed rows
-        // are updated under real DB.
+        // the UPDATE through the FROM clause. The where filters by an impossible id so no
+        // seed rows are updated under real DB.
         ctx.mockNext(0)
         await ctx.withRollback(async () => {
             const orgs = Values.create(VOrgNameList, 'orgNames', [{ id: 1, name: 'Renamed via values' }])

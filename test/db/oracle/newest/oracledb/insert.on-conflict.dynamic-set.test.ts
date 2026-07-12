@@ -916,15 +916,12 @@ describe(ctx.label, () => {
     // NOT-APPLICABLE: Oracle has no INSERT…ON CONFLICT (uses MERGE)
     /*
     test('empty-on-conflict-update-set-degrades-preserving-conflict-target-where', async () => {
-        // The conflict-TARGET where (the partial-index predicate emitted BEFORE the DO
-        // clause) SURVIVES the empty-degrade — distinct from the DO-UPDATE where, which is
-        // DROPPED by the degrade (see the `…-with-where-degrades-dropping-the-where` sibling).
-        // `onConflictOn(cols).where(archived_at is null)` sets the arbiter predicate;
-        // `doUpdateDynamicSet({archivedAt:null}).ignoreAnySetWithNoValue()` empties the
-        // update-set, so the builder degrades to `… where archived_at is null do nothing` —
-        // the target-where is emitted before `do nothing`, so it is preserved, not replaced.
-        // (org 1, 'mktg-site') collides with the seed, so the conflict fires and nothing is
-        // inserted or updated → 0 affected.
+        // `onConflictOn(cols).where(archived_at is null)` sets the arbiter (partial-index)
+        // predicate; `doUpdateDynamicSet({archivedAt:null}).ignoreAnySetWithNoValue()` then
+        // empties the update-set, so the builder degrades to `… where archived_at is null do
+        // nothing`. The conflict-target where is emitted before `do nothing`, so it is
+        // preserved (a DO-UPDATE where, emitted after the clause, would instead be dropped).
+        // (org 1, 'mktg-site') collides, so the conflict fires and nothing is inserted → 0.
         ctx.mockNext(0)
         await ctx.withRollback(async () => {
             const affected = await ctx.conn.insertInto(tProject)
@@ -946,11 +943,10 @@ describe(ctx.label, () => {
     // NOT-APPLICABLE: Oracle has no INSERT…ON CONFLICT (uses MERGE)
     /*
     test('empty-on-conflict-update-set-degrades-preserving-returning-one-column-none-or-one', async () => {
-        // The scalar `returningOneColumn(col)` sibling of the object-`returning` degrade
-        // tests: `doUpdateDynamicSet({archivedAt:null}).ignoreAnySetWithNoValue()` empties
-        // the update-set → degrades to `… do nothing`, and the trailing
-        // `.returningOneColumn(id)` SURVIVES the degrade. (org 1, 'mktg-site') collides, so
-        // the row is suppressed and `executeInsertNoneOrOne()` resolves null.
+        // `doUpdateDynamicSet({archivedAt:null}).ignoreAnySetWithNoValue()` empties the
+        // update-set → degrades to `… do nothing`, and the trailing single-column
+        // `.returningOneColumn(id)` still renders after the no-op. (org 1, 'mktg-site')
+        // collides, so the row is suppressed and `executeInsertNoneOrOne()` resolves null.
         ctx.mockNext(undefined)
         await ctx.withRollback(async () => {
             const id = await ctx.conn.insertInto(tProject)
@@ -972,8 +968,8 @@ describe(ctx.label, () => {
     // NOT-APPLICABLE: Oracle has no INSERT…ON CONFLICT (uses MERGE)
     /*
     test('empty-on-conflict-update-set-degrades-preserving-returning-one-column-many', async () => {
-        // The `executeInsertMany()` shape of the same scalar-returning degrade: the
-        // suppressed row makes the scalar-array result an empty array.
+        // The `executeInsertMany()` shape of the empty-degrade + `returningOneColumn`: the
+        // suppressed colliding row makes the scalar-array result an empty array.
         const expected: number[] = []
         ctx.mockNext(expected)
         await ctx.withRollback(async () => {
@@ -998,8 +994,7 @@ describe(ctx.label, () => {
     test('empty-on-conflict-update-set-degrades-preserving-returning-one-column-one-throws-no-result', async () => {
         // The `executeInsertOne()` shape: the degrade suppresses the colliding row, so the
         // scalar-returning statement produces zero rows and the exactly-one contract throws
-        // NO_RESULT — output-coincident with the standalone execute-shapes coverage but
-        // reached through the empty-degrade path.
+        // NO_RESULT.
         ctx.mockNext(undefined)
         await ctx.withRollback(async () => {
             let caught: unknown
@@ -1022,10 +1017,10 @@ describe(ctx.label, () => {
     // NOT-APPLICABLE: Oracle has no INSERT…ON CONFLICT (uses MERGE)
     /*
     test('empty-on-conflict-update-set-degrades-preserving-returning-under-shaped', async () => {
-        // The SHAPED opener (`shapedAs({...}).set({...})` on renamed keys) composed with the
-        // empty-degrade and a trailing RETURNING: `doUpdateSetIfValue({archivedAt:undefined})`
-        // empties the update-set → degrades to `… do nothing`, and the `.returning({id})`
-        // still renders after the shaped INSERT. (org 1, 'mktg-site') collides → suppressed →
+        // A SHAPED insert (`shapedAs({...}).set({...})` on renamed keys) with an empty-degrade
+        // and a trailing RETURNING: `doUpdateSetIfValue({arch:undefined})` (arch → archived_at)
+        // empties the update-set → degrades to `… do nothing`, and the `.returning({id})` still
+        // renders after the shaped INSERT. (org 1, 'mktg-site') collides → suppressed →
         // executeInsertNoneOrOne resolves null.
         ctx.mockNext(null)
         await ctx.withRollback(async () => {
@@ -1057,8 +1052,8 @@ describe(ctx.label, () => {
     // NOT-APPLICABLE: Oracle has no INSERT…ON CONFLICT (uses MERGE)
     /*
     test('empty-on-conflict-on-constraint-set-degrades-preserving-returning', async () => {
-        // The CONSTRAINT-target degrade (the `…-on-constraint-set-degrades` sibling) with a
-        // trailing RETURNING: `onConflictOnConstraint(rawFragment).doUpdateSetIfValue({archivedAt:undefined})`
+        // A CONSTRAINT-target on-conflict with an empty-degrade and a trailing RETURNING:
+        // `onConflictOnConstraint(rawFragment).doUpdateSetIfValue({archivedAt:undefined})`
         // empties the update-set → degrades to `on conflict on constraint … do nothing`, and the
         // trailing `.returning({id})` still renders after the no-op. That constraint is
         // PostgreSQL's default name for the inline `UNIQUE (organization_id, slug)`; (org 1,

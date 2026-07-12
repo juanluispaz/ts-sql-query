@@ -10108,8 +10108,7 @@ describe(ctx.label, () => {
     test('boolean-equals-value-source-operand', async () => {
         // billable: worklog 1 -> TRUE, 2 -> FALSE, 3 -> NULL. sub selects worklog
         // 1's billable (TRUE). `.equals(sub)` matches worklog 1 (TRUE); worklog 2
-        // (FALSE) differs and worklog 3 (NULL) is excluded by NULL semantics — the
-        // output-coincident `=` twin of the `notEquals(value-source)` case above.
+        // (FALSE) differs and worklog 3 (NULL) is excluded by NULL semantics.
         const sub = ctx.conn.selectFrom(tIssueWorklog)
             .where(tIssueWorklog.id.equals(1))
             .selectOneColumn(tIssueWorklog.billable)

@@ -67,48 +67,7 @@ of that. Two minutes of triage and one paragraph is the bar.
 
 ## Open Bugs
 
-## Array-modifier after `projectingOptionalValuesAsNullable()` drops the present-null projection flag
-
-**Where**: `src/internal/ValueSourceImpl.ts` — the three array-shape modifiers
-`useEmptyArrayForNoValue` / `asOptionalNonEmptyArray` / `asRequiredInOptionalObject`
-on **`AggregateValueAsArrayValueSource`** (≈lines 2649-2657) and on
-**`AggregateSelectValueSource`** (≈lines 2271-2278). Each does
-`return new …(this.__aggregatedArrayColumns, this.__aggregatedArrayMode, <mode>, …)`
-but does **not** copy `this.__aggreagtedProjectingOptionalValuesAsNullable`, whereas
-`projectingOptionalValuesAsNullable()` (≈2672-2675 / 2294-2297) sets that flag on `this`
-and returns `this`. So a modifier chained *after* `projectingOptionalValuesAsNullable()`
-rebuilds a value source with the flag lost. The typed surface
-(`src/expressions/values.ts:982-991`) makes this the *only* reachable order: the modifiers
-return the plain `AggregatedArrayValueSource` (which lacks `projectingOptionalValuesAsNullable`),
-so modifier-first can't reach the projection; only projecting-then-modifier type-checks — and
-it keeps `TYPE = STRICT_TYPE` (present-null element), so the type promises present-null.
-This is the residual of commit `6505628a`, which copied the same flag in
-`DBColumnImpl.createColumnsFrom`/`createColumnsFromInnerObject` (lines 148/204 — the pattern to
-replicate) but not in these value-source reconstruction methods (same fingerprint, a different
-clone path). **Complete fix scope** (walk every clone site so the fix isn't partial again): the six
-`return new Aggregate…ValueSource(…)` reconstructions above (2650/2653/2656 + 2272/2275/2278); and
-audit the base value-source copy sites (`ValueSourceImpl.ts` ≈134-157, which carry
-`__aggregatedArrayColumns`/`__aggregatedArrayMode` without the flag). The `NullAggregate…` variants
-(≈2662/2667/2770/2776/2284/2393…, reached by `onlyWhenOrNull(false)`/`ignoreWhenAsNull(true)`) are
-**exempt** — the whole array becomes literal `null`, so element projection is moot.
-
-**Reproduction**: on a left-joined optional leaf,
-`aggregateAsArray({ id, name, archivedAt }).projectingOptionalValuesAsNullable().useEmptyArrayForNoValue()`.
-The result type is `Array<{ id: number; name: string; archivedAt: Date | null }>` (archivedAt
-present-null; `npm run validate:tests` confirms the `assertType<Exact<…>>` holds). The emitted SQL
-still projects the leaf (`json_agg(json_build_object('archivedAt', project.archived_at))`). But at
-runtime the null leaf is **dropped**: mocking a row `{ projects: [{ id:1, name:'x', archivedAt:null }] }`,
-`'archivedAt' in rows[0].projects[0]` is `false` (value `undefined`) instead of present-`null`.
-Coordinator-probed vs the terminal-`projectingOptionalValuesAsNullable()` control (which correctly
-gives `'archivedAt' in … === true`, value `null`). Affects all three modifiers × both classes
-(`AggregateValueAsArrayValueSource` = `connection.aggregateAsArray(...)`;
-`AggregateSelectValueSource` = `select(...).forUseAsInlineAggregatedArrayValue()`).
-
-**Current workaround in the suite**: none — no existing test composes
-`projectingOptionalValuesAsNullable()` with a following array modifier. A characterization test
-`PROJ-BUG-1` (a `projecting…().useEmptyArrayForNoValue()` chain asserting the null leaf present-null)
-should carry a `// TODO[BUG]` on its present-null assertion until the flag is threaded through the six
-reconstruction methods.
+_None open._
 
 ## Common bug shapes (for the fixing agent)
 

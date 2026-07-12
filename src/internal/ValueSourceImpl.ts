@@ -133,6 +133,7 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
         if (this.__aggregatedArrayColumns) {
             result.__aggregatedArrayColumns = this.__aggregatedArrayColumns
             result.__aggregatedArrayMode = this.__aggregatedArrayMode
+            result.__aggreagtedProjectingOptionalValuesAsNullable = this.__aggreagtedProjectingOptionalValuesAsNullable
         }
         if (this.__uuidString) {
             result.__uuidString = this.__uuidString
@@ -144,6 +145,7 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
         if (this.__aggregatedArrayColumns) {
             result.__aggregatedArrayColumns = this.__aggregatedArrayColumns
             result.__aggregatedArrayMode = this.__aggregatedArrayMode
+            result.__aggreagtedProjectingOptionalValuesAsNullable = this.__aggreagtedProjectingOptionalValuesAsNullable
         }
         if (this.__uuidString) {
             result.__uuidString = this.__uuidString
@@ -155,6 +157,7 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
         if (this.__aggregatedArrayColumns) {
             result.__aggregatedArrayColumns = this.__aggregatedArrayColumns
             result.__aggregatedArrayMode = this.__aggregatedArrayMode
+            result.__aggreagtedProjectingOptionalValuesAsNullable = this.__aggreagtedProjectingOptionalValuesAsNullable
         }
         if (this.__uuidString) {
             result.__uuidString = this.__uuidString
@@ -2212,11 +2215,12 @@ export class AggregateSelectValueSource implements ValueSource<any, any, any, an
     __aggreagtedProjectingOptionalValuesAsNullable?: boolean | undefined
     __isAggregate = true
 
-    constructor(selectData: InlineSelectData, aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode: __AggregatedArrayMode, _optionalType: OptionalType) {
+    constructor(selectData: InlineSelectData, aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode: __AggregatedArrayMode, _optionalType: OptionalType, projectingOptionalValuesAsNullable?: boolean) {
         this.__selectData = selectData
         this.__aggregatedArrayColumns = aggregatedArrayColumns
         this.__aggregatedArrayMode = aggregatedArrayMode
         this.__optionalType = _optionalType
+        this.__aggreagtedProjectingOptionalValuesAsNullable = projectingOptionalValuesAsNullable
     }
 
     isConstValue(): boolean {
@@ -2227,16 +2231,16 @@ export class AggregateSelectValueSource implements ValueSource<any, any, any, an
     }
     allowWhen(when: boolean, error: string | Error): any {
         if (typeof error === 'string') {
-            return new AllowWhenAggregateSelectValueSource(when, new TsSqlProcessingError({ reason: 'DISALLOWED', message: error, functionName: 'allowWhen' }, error), this.__selectData, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType)
+            return new AllowWhenAggregateSelectValueSource(when, new TsSqlProcessingError({ reason: 'DISALLOWED', message: error, functionName: 'allowWhen' }, error), this.__selectData, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType, this.__aggreagtedProjectingOptionalValuesAsNullable)
         } else {
-            return new AllowWhenAggregateSelectValueSource(when, error, this.__selectData, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType)
+            return new AllowWhenAggregateSelectValueSource(when, error, this.__selectData, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType, this.__aggreagtedProjectingOptionalValuesAsNullable)
         }
     }
     disallowWhen(when: boolean, error: string | Error): any {
         if (typeof error === 'string') {
-            return new AllowWhenAggregateSelectValueSource(!when, new TsSqlProcessingError({ reason: 'DISALLOWED', message: error, functionName: 'disallowWhen' }, error), this.__selectData, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType)
+            return new AllowWhenAggregateSelectValueSource(!when, new TsSqlProcessingError({ reason: 'DISALLOWED', message: error, functionName: 'disallowWhen' }, error), this.__selectData, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType, this.__aggreagtedProjectingOptionalValuesAsNullable)
         } else {
-            return new AllowWhenAggregateSelectValueSource(!when, error, this.__selectData, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType)
+            return new AllowWhenAggregateSelectValueSource(!when, error, this.__selectData, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType, this.__aggreagtedProjectingOptionalValuesAsNullable)
         }
     }
 
@@ -2269,13 +2273,13 @@ export class AggregateSelectValueSource implements ValueSource<any, any, any, an
     }
 
     useEmptyArrayForNoValue(): any {
-        return new AggregateSelectValueSource(this.__selectData, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, 'required')
+        return new AggregateSelectValueSource(this.__selectData, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, 'required', this.__aggreagtedProjectingOptionalValuesAsNullable)
     }
     asOptionalNonEmptyArray(): any {
-        return new AggregateSelectValueSource(this.__selectData, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, 'optional')
+        return new AggregateSelectValueSource(this.__selectData, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, 'optional', this.__aggreagtedProjectingOptionalValuesAsNullable)
     }
     asRequiredInOptionalObject(): any {
-        return new AggregateSelectValueSource(this.__selectData, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, 'requiredInOptionalObject')
+        return new AggregateSelectValueSource(this.__selectData, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, 'requiredInOptionalObject', this.__aggreagtedProjectingOptionalValuesAsNullable)
     }
     onlyWhenOrNull(when: boolean): any {
         if (when) {
@@ -2300,8 +2304,8 @@ export class AggregateSelectValueSource implements ValueSource<any, any, any, an
 export class AllowWhenAggregateSelectValueSource extends AggregateSelectValueSource {
     __allowed: boolean
     __error: Error
-    constructor(allowed: boolean, error: Error, selectData: InlineSelectData, aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode: __AggregatedArrayMode, _optionalType: OptionalType) {
-        super(selectData, aggregatedArrayColumns, aggregatedArrayMode, _optionalType)
+    constructor(allowed: boolean, error: Error, selectData: InlineSelectData, aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode: __AggregatedArrayMode, _optionalType: OptionalType, projectingOptionalValuesAsNullable?: boolean) {
+        super(selectData, aggregatedArrayColumns, aggregatedArrayMode, _optionalType, projectingOptionalValuesAsNullable)
         this.__error = error
         this.__allowed = allowed
     }
@@ -2507,11 +2511,12 @@ export class AggregateValueAsArrayValueSource implements ValueSource<any, any, a
     __aggreagtedProjectingOptionalValuesAsNullable?: boolean | undefined
     __aggregatedArrayDistinct: boolean
 
-    constructor(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode: __AggregatedArrayMode, _optionalType: OptionalType, distict: boolean) {
+    constructor(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode: __AggregatedArrayMode, _optionalType: OptionalType, distict: boolean, projectingOptionalValuesAsNullable?: boolean) {
         this.__aggregatedArrayColumns = aggregatedArrayColumns
         this.__aggregatedArrayMode = aggregatedArrayMode
         this.__optionalType = _optionalType
         this.__aggregatedArrayDistinct = distict
+        this.__aggreagtedProjectingOptionalValuesAsNullable = projectingOptionalValuesAsNullable
     }
 
     isConstValue(): boolean {
@@ -2522,16 +2527,16 @@ export class AggregateValueAsArrayValueSource implements ValueSource<any, any, a
     }
     allowWhen(when: boolean, error: string | Error): any {
         if (typeof error === 'string') {
-            return new AllowWhenAggregateValueAsArrayValueSource(when, new TsSqlProcessingError({ reason: 'DISALLOWED', message: error, functionName: 'allowWhen' }, error), this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType, this.__aggregatedArrayDistinct)
+            return new AllowWhenAggregateValueAsArrayValueSource(when, new TsSqlProcessingError({ reason: 'DISALLOWED', message: error, functionName: 'allowWhen' }, error), this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType, this.__aggregatedArrayDistinct, this.__aggreagtedProjectingOptionalValuesAsNullable)
         } else {
-            return new AllowWhenAggregateValueAsArrayValueSource(when, error, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType, this.__aggregatedArrayDistinct)
+            return new AllowWhenAggregateValueAsArrayValueSource(when, error, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType, this.__aggregatedArrayDistinct, this.__aggreagtedProjectingOptionalValuesAsNullable)
         }
     }
     disallowWhen(when: boolean, error: string | Error): any {
         if (typeof error === 'string') {
-            return new AllowWhenAggregateValueAsArrayValueSource(!when, new TsSqlProcessingError({ reason: 'DISALLOWED', message: error, functionName: 'disallowWhen' }, error), this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType, this.__aggregatedArrayDistinct)
+            return new AllowWhenAggregateValueAsArrayValueSource(!when, new TsSqlProcessingError({ reason: 'DISALLOWED', message: error, functionName: 'disallowWhen' }, error), this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType, this.__aggregatedArrayDistinct, this.__aggreagtedProjectingOptionalValuesAsNullable)
         } else {
-            return new AllowWhenAggregateValueAsArrayValueSource(!when, error, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType, this.__aggregatedArrayDistinct)
+            return new AllowWhenAggregateValueAsArrayValueSource(!when, error, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType, this.__aggregatedArrayDistinct, this.__aggreagtedProjectingOptionalValuesAsNullable)
         }
     }
     __addWiths(sqlBuilder: HasIsValue, withs: IWithView<any>[]): void {
@@ -2647,13 +2652,13 @@ export class AggregateValueAsArrayValueSource implements ValueSource<any, any, a
     }
 
     useEmptyArrayForNoValue(): any {
-        return new AggregateValueAsArrayValueSource(this.__aggregatedArrayColumns, this.__aggregatedArrayMode, 'required', this.__aggregatedArrayDistinct)
+        return new AggregateValueAsArrayValueSource(this.__aggregatedArrayColumns, this.__aggregatedArrayMode, 'required', this.__aggregatedArrayDistinct, this.__aggreagtedProjectingOptionalValuesAsNullable)
     }
     asOptionalNonEmptyArray(): any {
-        return new AggregateValueAsArrayValueSource(this.__aggregatedArrayColumns, this.__aggregatedArrayMode, 'optional', this.__aggregatedArrayDistinct)
+        return new AggregateValueAsArrayValueSource(this.__aggregatedArrayColumns, this.__aggregatedArrayMode, 'optional', this.__aggregatedArrayDistinct, this.__aggreagtedProjectingOptionalValuesAsNullable)
     }
     asRequiredInOptionalObject(): any {
-        return new AggregateValueAsArrayValueSource(this.__aggregatedArrayColumns, this.__aggregatedArrayMode, 'requiredInOptionalObject', this.__aggregatedArrayDistinct)
+        return new AggregateValueAsArrayValueSource(this.__aggregatedArrayColumns, this.__aggregatedArrayMode, 'requiredInOptionalObject', this.__aggregatedArrayDistinct, this.__aggreagtedProjectingOptionalValuesAsNullable)
     }
     onlyWhenOrNull(when: boolean): any {
         if (when) {
@@ -2678,8 +2683,8 @@ export class AggregateValueAsArrayValueSource implements ValueSource<any, any, a
 export class AllowWhenAggregateValueAsArrayValueSource extends AggregateValueAsArrayValueSource {
     __allowed: boolean
     __error: Error
-    constructor(allowed: boolean, error: Error, aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode: __AggregatedArrayMode, _optionalType: OptionalType, distinct: boolean) {
-        super(aggregatedArrayColumns, aggregatedArrayMode, _optionalType, distinct)
+    constructor(allowed: boolean, error: Error, aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode: __AggregatedArrayMode, _optionalType: OptionalType, distinct: boolean, projectingOptionalValuesAsNullable?: boolean) {
+        super(aggregatedArrayColumns, aggregatedArrayMode, _optionalType, distinct, projectingOptionalValuesAsNullable)
         this.__error = error
         this.__allowed = allowed
     }

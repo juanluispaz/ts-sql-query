@@ -17,10 +17,8 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // ------------------------------------------------------------------
     // bigint — tIssueWorklog.durationMs (optional bigint):
     //   worklog 1 -> 5400000, 2 -> NULL, 3 -> 1800000.
-    // ------------------------------------------------------------------
 
     test('bigint-equals-not-equals', async () => {
         // `.equals(5400000n)` matches worklog 1; `.notEquals(5400000n)` matches
@@ -207,12 +205,10 @@ describe(ctx.label, () => {
         expect(notInRows).toEqual(expectedNotIn)
     })
 
-    // ------------------------------------------------------------------
     // double — tIssue.estimatedHours (optional double, NULL in the seed).
     // Each test populates a couple of rows inside a rollback transaction so
     // the comparison has deterministic operands, then runs the SELECT as the
     // last statement (ctx.lastSql / ctx.lastParams capture it).
-    // ------------------------------------------------------------------
 
     test('double-equals-not-equals', async () => {
         // After setting estimated_hours: issue 1 -> 2.5, issue 2 -> 7.5 (the
@@ -435,10 +431,8 @@ describe(ctx.label, () => {
         })
     })
 
-    // ------------------------------------------------------------------
     // customInt — tIssueWorklog.costCents ('Cents', required, marshalled int):
     //   worklog 1 -> 100, 2 -> 100, 3 -> 400.
-    // ------------------------------------------------------------------
 
     test('customInt-equals-not-equals', async () => {
         // `.equals(400)` matches worklog 3; `.notEquals(400)` matches worklogs
@@ -622,10 +616,8 @@ describe(ctx.label, () => {
         expect(notInRows).toEqual(expectedNotIn)
     })
 
-    // ------------------------------------------------------------------
     // customDouble — tIssueWorklog.billedAmount ('Money', required,
     // marshalled double): worklog 1 -> 200, 2 -> 50, 3 -> 200.
-    // ------------------------------------------------------------------
 
     test('customDouble-equals-not-equals', async () => {
         // `.equals(50)` matches worklog 2; `.notEquals(50)` matches worklogs 1
@@ -769,11 +761,9 @@ describe(ctx.label, () => {
         expect(inNRows).toEqual(expectedInN)
     })
 
-    // ------------------------------------------------------------------
     // uuid — tIssue.externalRef (optional uuid):
     //   issue 1 -> 0a8f9c1e-1111-4222-8333-444455556666,
     //   issue 2 -> 7b3e9d20-2222-4c55-9b66-dddd00009999, issues 3,4 -> NULL.
-    // ------------------------------------------------------------------
 
     test('uuid-equals-not-equals', async () => {
         // `.equals(<issue-1 uuid>)` matches issue 1; `.notEquals(...)` matches
@@ -1176,7 +1166,6 @@ describe(ctx.label, () => {
         expect(inRows).toEqual(expectedFalse)
     })
 
-
     // ==================================================================
     // Direct-fluent arms on existing leaves:
     // customUuid is/isNot + value-source operand, plain-string ordered
@@ -1499,7 +1488,6 @@ describe(ctx.label, () => {
     //   comparisons are deterministic). Each test projects only the int PK, so
     //   no TZ-shifted temporal VALUE is read back; the const operands are built
     //   with new Date(Date.UTC(...)) under the suite's forced TZ=UTC.
-    // ------------------------------------------------------------------
 
     test('localDateTime-equals-not-equals', async () => {
         // `.equals(2023-06-15 08:00)` matches org 1; `.notEquals(...)` matches
@@ -3177,7 +3165,6 @@ describe(ctx.label, () => {
         expect(billedRows).toEqual(expectedBilled)
     })
 
-    // ------------------------------------------------------------------
     // customUuid ordered-Comparable arm — tProjectRelease.signingKey
     // (optional customUuid 'SigningKey'): release 1 -> 0a8f9c1e-…, 2 -> NULL,
     // 3 -> 7b3e9d20-…. between / notBetween / single ordered bounds on this
@@ -3187,7 +3174,6 @@ describe(ctx.label, () => {
     // — true under every engine's uuid ordering (the leading nibble 0a<7b and the
     // SQL Server / Oracle byte-group order agree), unlike string-literal bounds,
     // whose lexical assumption diverges from the engine-native uuid ordering.
-    // ------------------------------------------------------------------
 
     test('customUuid-ordered-comparison-value-source-operand', async () => {
         // loSub = release 1's signing_key (0a…), hiSub = release 3's (7b…).
@@ -3542,10 +3528,8 @@ describe(ctx.label, () => {
         expect(notInElide).toEqual(all)
     })
 
-    // ------------------------------------------------------------------
     // plain boolean — tIssueWorklog.billable (optional boolean):
     //   worklog 1 -> TRUE, 2 -> FALSE, 3 -> NULL.
-    // ------------------------------------------------------------------
 
     test('plain-boolean-is-not-and-is-not-null', async () => {
         // `.isNot(true)` is the null-safe negation: it matches FALSE *and* NULL
@@ -3878,7 +3862,6 @@ describe(ctx.label, () => {
         `)
         expect(notInRows).toEqual(expectedNotIn)
     })
-
 
     test('bigint-equals-not-equals-is-is-not-value-source-operand', async () => {
         // duration_ms: worklog 1 -> 5400000, 2 -> NULL, 3 -> 1800000. sub selects
@@ -4946,7 +4929,6 @@ describe(ctx.label, () => {
         })
     })
 
-
     // ==================================================================
     // The remaining direct-fluent equality / comparison
     // arms per leaf — customDouble ordered-const, string membership +
@@ -5466,7 +5448,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
         expect(rows).toEqual(expected)
     })
-    // F1-EQCMP §V — bare-COLUMN operand overload per leaf. Each operator
+    // Bare-column operand overload per leaf. Each operator
     // takes another COLUMN (here the receiver itself) as its operand, so the
     // RHS renders as a bare column reference via `_appendSql` (`col <op> col`)
     // rather than the bound-literal `$1` form or the subquery `(select ...)`
@@ -5693,7 +5675,7 @@ describe(ctx.label, () => {
         expect(notInN).toEqual(none)
     })
 
-    // F1-EQCMP §V (continued) — bare-COLUMN operand overload, further
+    // Bare-column operand overload, further
     // leaves. Same self-comparison shape as the two tests above: the
     // operand is a bare column ref (`col <op> col`), param-free, with the
     // row result fixed by the column's NULL pattern.
@@ -7038,7 +7020,7 @@ describe(ctx.label, () => {
         expect(notInNv).toEqual(none)
     })
 
-    // F1-EQCMP §V (continued) — int ordered column-operand pair, plus the
+    // Int ordered column-operand pair, plus the
     // coalesce / nullif (valueWhenNull / nullIfValue) IValueSource overload
     // with a COLUMN argument. valueWhenNull / nullIfValue project a value
     // rather than filter, so these assert the projected leaf's type + value.
@@ -7147,7 +7129,7 @@ describe(ctx.label, () => {
         expect(nivRows).toEqual(niv)
     })
 
-    // F1-EQCMP §IfValue — the `*IfValue` twins missing per leaf. Each
+    // The `*IfValue` twins missing per leaf. Each
     // method is asserted in BOTH branches: FIRES (a present value emits the
     // same predicate as its direct twin) and ELIDES (`undefined` drops the
     // sole WHERE, reducing to the bare SELECT so every row is returned).
@@ -9110,7 +9092,7 @@ describe(ctx.label, () => {
         expect(notInE).toEqual(all)
     })
 
-    // F1-EQCMP §Q / §micro — the IN/NOT-IN subquery overload on the string
+    // The IN/NOT-IN subquery overload on the string
     // and boolean leaves (never fed a subquery elsewhere), and a multi-const
     // `inN` on a localTime column.
     // ==================================================================

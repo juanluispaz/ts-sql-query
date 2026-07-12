@@ -415,7 +415,6 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<string | null>>>()
         expect(result).toEqual(['See ADR-014', 'Use new tokens', null, null])
     })
-    // ---- round-44 F3-SELECT: one-column .query()/.params() + plain row-shape noneOrOne present
     test('select-one-column-query-and-params-accessors', async () => {
         // `.query()` / `.params()` on a ONE-COLUMN `selectOneColumn(...)` builder
         // return the built SQL string and params array WITHOUT executing (the same

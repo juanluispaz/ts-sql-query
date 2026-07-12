@@ -1535,7 +1535,6 @@ describe(ctx.label, () => {
         expect(result[0]!.tree[0]!.parentId).toBe(null)
     })
 
-    // ---- SEL-SEAM Round-44: recursiveUnionAll(fn) full-form + projectingOptionalValuesAsNullable ----
     // The dedup `recursiveUnion(fn)` / `recursiveUnionOn` variants above pair the nullable
     // projection with the recursive build. These pin the same pairing on the UNION ALL
     // full-form `recursiveUnionAll(fn)` (emitting `union all` between the anchor and

@@ -43,8 +43,6 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // ---- to-db-validation: transformValueToDB throws (both modes) ----
-
     // Project a const carrying a runtime-invalid value; emitting its
     // param invokes transformValueToDB and rejects before any DB is hit.
     async function toDbReason(makeConst: () => unknown): Promise<string | undefined> {
@@ -101,8 +99,6 @@ describe(ctx.label, () => {
             .executeSelectMany()
         expect(ctx.lastParams).toEqual([null])
     })
-
-    // ---- from-db-validation: transformValueFromDB (mock-only, §18) ----
 
     // mockNext injects a representation the real driver wouldn't return,
     // so the body can only run under the mock. Each test asserts either
@@ -184,7 +180,6 @@ describe(ctx.label, () => {
         expect(await fromDbReason(tIssue.priority.greaterThan(0), 'x')).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')
     })
 
-
     test('marshalling/from-db-validation/boolean-from-numeric-string-one', async () => {
         // The numeric-string boolean branch (`/^(-?\d+)$/` -> `!!(+value)`):
         // engines without a native boolean store it as 0/1 and some drivers
@@ -233,7 +228,6 @@ describe(ctx.label, () => {
         expect(await fromDbValue(tIssue.body, '')).toBeUndefined()
     })
 
-
     test('marshalling/from-db-validation/required-column-null-throws-mandatory', async () => {
         // A REQUIRED column receiving null from the DB trips the projector's
         // MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE check — the required-column
@@ -244,8 +238,6 @@ describe(ctx.label, () => {
         if (ctx.realDbEnabled) return
         expect(await fromDbReason(tIssue.title, null)).toBe('MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE')
     })
-
-    // ---- from-db-validation: aggregated-array JSON (mock-only, §18) ----
 
     // `aggregateAsArray(...)` produces a JSON-aggregated column that
     // `__transformAggregatedArray` parses. A real driver hands back a valid
@@ -280,8 +272,6 @@ describe(ctx.label, () => {
         if (ctx.realDbEnabled) return
         expect(await aggregatedArrayReason('{"a":1}')).toBe('INVALID_JSON_RECEIVED_FROM_DATABASE')
     })
-
-    // ---- from-db-validation: per-row error location (mock-only, §18) ----
 
     test('marshalling/from-db-validation/mandatory-error-carries-row-index-and-column-path', async () => {
         // A per-row MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE raised by

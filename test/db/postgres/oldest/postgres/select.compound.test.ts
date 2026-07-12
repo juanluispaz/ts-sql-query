@@ -136,7 +136,6 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-
     test('compound-order-by-desc', async () => {
         // `orderBy('label', 'desc')` on a compound — the enum-mode overload with
         // the simple `desc` mode, rendered INLINE through the compound (distinct
@@ -747,7 +746,6 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-
     test('compound-execute-select-one', async () => {
         // A union whose two arms together yield exactly one row is consumed with
         // `executeSelectOne`, which returns the single object (not an array):
@@ -917,7 +915,6 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ label: string }>>>()
         expect(rows).toEqual(expected)
     })
-
 
     test('distinct-left-arm-survives-into-compound', async () => {
         // `selectDistinctFrom(...)` as the LEFT arm of a compound: the `distinct` keyword survives
@@ -1220,7 +1217,6 @@ describe(ctx.label, () => {
             ],
         })
     })
-    // ---- round-44 F3-SELECT: compound execute-select-one / none-or-one guards
     test('compound-execute-select-one-empty-result-throws-no-result', async () => {
         // `executeSelectOne()` over a COMPOUND select whose arms together match no
         // row throws NO_RESULT — routed through the same runner the plain-select
@@ -1333,7 +1329,6 @@ describe(ctx.label, () => {
             expect(result).toEqual(single)
         }
     })
-    // ---- SEL-SEAM Round-44: C1 compound-orderBy rawFragment-embedding-value-source wrap on the 7 non-union ops ----
     // The existing `compound-order-by-raw-fragment-embedding-value-source` pins the wrap
     // on `union`. A rawFragment whose fragment embeds a no-table value source
     // (`const(1, 'int')`) renders as a bound parameter, forcing the same
@@ -1489,7 +1484,6 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-    // ---- SEL-SEAM Round-44: C1 reaching-forms (rawFragment carrying MULTIPLE / expression-embedded params) ----
     // Two more ways a value-source-embedding rawFragment reaches the compound-orderBy
     // wrap. Both render the value source(s) inside a larger SQL expression (not a bare
     // `$n`), so the ORDER BY term is a computed expression — which dialects that reject a

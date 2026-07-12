@@ -1,4 +1,4 @@
-// CONN F5-CONN B2 — executeFunction return-kind × {required, optional} ×
+// executeFunction return-kind × {required, optional} ×
 // {no-adapter, trailing-adapter} fan-out.
 //
 // Every distinct return kind is a distinct typed executeFunction path, and the
@@ -27,8 +27,6 @@ describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
-
-    // ---- exec.function-value-kinds (CONN B2 return-kind + adapter fan-out) ----
 
     // ── int (cm_int) ────────────────────────────────────────────────────
     // TODO[LIMITATION]: SQLite has no DDL for user-defined SQL functions; see exec.procedure-function.test.ts

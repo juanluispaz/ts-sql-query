@@ -698,7 +698,6 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-
     test('boolean/if-value-source-and-or-with-concrete-boolean-collapses-to-projectable-boolean', async () => {
         // A live IfValueSource (`status.equalsIfValue(value)`) combined via `.and` /
         // `.or` with a concrete BooleanValueSource operand (`priority.greaterThan(1)`)
@@ -990,7 +989,6 @@ describe(ctx.label, () => {
         assertType<Exact<typeof nullIds, number[]>>()
         expect(nullIds).toEqual([2])
     })
-
 
     test('is-null-is-not-null-on-optional-custom-double', async () => {
         // isNull / isNotNull on the OPTIONAL customDouble column `budget` ('Money')
@@ -1521,8 +1519,6 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-
-
     test('nullIfValue-numeric-value-source-overload', async () => {
         // The VALUE-SOURCE overload of `nullIfValue` on the base Number leaf:
         // `priority.nullIfValue(id)` → `nullif(priority, id)` (two columns, no
@@ -1778,9 +1774,8 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { id: number; req?: boolean; own?: boolean; ign?: boolean }>>()
         expect(row).toEqual(expected)
     })
-    // ---- EQCMP double-modifier micro (round-44 T4)
-    // The projection modifier trio on a PLAIN double receiver (`priority.asDouble()`) —
-    // the Number(double) §micro gap. `asRequiredInOptionalObject()` passes the double
+    // The projection modifier trio on a PLAIN double receiver (`priority.asDouble()`).
+    // `asRequiredInOptionalObject()` passes the double
     // through (`req?: number`); `onlyWhenOrNull(false)` / `ignoreWhenAsNull(true)`
     // replace the value source with a typed NULL, so `own` / `ign` are absent under
     // optional-as-undefined and the bake reveals the double NULL cast (`null::float8`

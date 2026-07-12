@@ -287,7 +287,6 @@ describe(ctx.label, () => {
         })
     })
 
-    // ---- CONN B4 double/customDouble sequence value-types (round-44)
     // The genuinely-distinct marshalled-result-type block: doubleSeq reuses the
     // int sequence issue_id_seq and customDoubleSeq reuses the bigint sequence
     // audit_tag_seq, but each draws the value marshalled as the WIDER double /

@@ -399,7 +399,6 @@ describe(ctx.label, () => {
         })
     })
     */
-    // ---- round-44 F4-UPDDEL: one-column-many undefined→null per-element coercion
     // MariaDB's UPDATE has no RETURNING clause; the library refuses
     // `.returningOneColumn(...).executeUpdateMany()` at compile time. Kept
     // commented for symmetry.

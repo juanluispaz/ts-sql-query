@@ -298,7 +298,6 @@ describe(ctx.label, () => {
         expect(row.cents).toBe(1100)
     })
 
-    // ---- COL §B: per-kind virtualColumnFromFragment fan-out (required + optional)
     // on a Table (tIssueWorklog plain+customDouble, tProjectRelease custom+plain
     // uuid/localDateTime) and on a View (vReleaseOverview). Each test observes the
     // DISTINCT read-path leaf type of one kind for one factory (required

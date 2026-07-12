@@ -1455,7 +1455,6 @@ describe(ctx.label, () => {
         `)
     })
 
-
     test('equivalence/bigint-descriptor-dispatch', async () => {
         // The `'bigint'` descriptor maps to a ComparableFilter<bigint>.
         // `viewCount` is a bigint column; the descriptor-typed filter emits
@@ -1611,7 +1610,6 @@ describe(ctx.label, () => {
         `)
     })
 
-
     test('equivalence/local-date-value-source-map-dispatch', async () => {
         // The filter is passed inline (un-annotated) to `withValues`, so the
         // value-source-map inference arm validates the localDate mapping rather
@@ -1735,7 +1733,6 @@ describe(ctx.label, () => {
           ]
         `)
     })
-    // ---- DYN numeric/boolean/enum per-op fan-out (round-44 T4)
     // Per-operator × type × path fan-out for the numeric / boolean / enum
     // dynamic-condition filter surface. Each op is proven to reach the same
     // builder method its direct-API twin does (identical SQL + params), and is
@@ -2567,7 +2564,6 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
     })
-    // ---- DYN string/uuid/temporal/custom per-op fan-out (round-44 T4)
     // Per-operator × type × path fan-out for the string / uuid / temporal /
     // custom dynamic-condition filter surface (sibling of the numeric/boolean/
     // enum block above). Each op is proven to reach the same builder method its

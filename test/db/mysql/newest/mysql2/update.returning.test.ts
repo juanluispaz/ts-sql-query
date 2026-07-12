@@ -391,7 +391,6 @@ describe(ctx.label, () => {
         })
     })
     */
-    // ---- round-44 F4-UPDDEL: one-column-many undefined→null per-element coercion
     // MySQL has no RETURNING clause on UPDATE; the library refuses
     // `.returningOneColumn(...).executeUpdateMany()` at compile time. Kept
     // commented for symmetry.

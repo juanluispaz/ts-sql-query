@@ -388,7 +388,6 @@ describe(ctx.label, () => {
         }>>>()
         expect(rows).toEqual(expected)
     })
-    // ---- F3-PROJ pocket 3b: compound nested-object default/nullable/op twins ----
     // Missing twins of the compound nested-object paths: the DEFAULT rule-3 (the
     // existing one is nullable-only), a NULLABLE depth-3, a NULLABLE left-join
     // object, the unionAll before-op variants of the left-join and rule-1 defaults,
@@ -701,7 +700,6 @@ describe(ctx.label, () => {
         const proj3 = sorted[1]!.projects.find(p => p.id === 3)!
         expect('archivedAt' in proj3).toBe(true)
     })
-    // ---- SEL-SEAM Round-44 (PROJ-deferred): compound-of-rule-3-nested-object DEFAULT projector through the non-union/non-unionAll ops ----
     // The rule-3 nested-object default test above is pinned on `union`. These mirror it
     // to the remaining compound ops (intersect / intersectAll / except / exceptAll /
     // minus / minusAll): each arm projects a `detail` object with a REQUIRED leaf

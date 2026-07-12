@@ -70,7 +70,7 @@ const shiftHourAdapter: TypeAdapter = {
     },
 }
 // Observable trailing adapters for the executeFunction return-kind fan-out
-// (CONN B2, exercised by exec.function-value-kinds.test.ts). Each
+// (exercised by exec.function-value-kinds.test.ts). Each
 // transformValueFromDB does a visible transform on its kind's marshalled value
 // so the trailing-adapter slot's effect is observable in the function result
 // (shapes mirror select.connection-trailing-adapter.test.ts). transformValueToDB
@@ -354,7 +354,7 @@ export class DBConnection extends MariaDBConnection<'DBConnection'> {
     }
 
     // executeFunction return-kind × {required, optional} × {no-adapter, trailing
-    // adapter} fan-out (CONN F5-CONN B2), exercised by
+    // adapter} fan-out, exercised by
     // `exec.function-value-kinds.test.ts`. Each kind reads its col_matrix row-1
     // value through a zero-arg `cm_<basekind>()` function (schema.sql). The four
     // wrappers per kind route the SAME DB value through: the base required /
@@ -857,7 +857,7 @@ export class DBConnection extends MariaDBConnection<'DBConnection'> {
     // (plusThousandBigintAdapter, read +1000n), reusing audit_tag_seq.
     auditTagSeqOffset = this.sequence('audit_tag_seq', 'bigint', plusThousandBigintAdapter)
 
-    // Double / customDouble sequence value-types (CONN §B4): reuse the existing
+    // Double / customDouble sequence value-types: reuse the existing
     // int / bigint sequences but marshal the drawn value as the WIDER double /
     // customDouble kind. The emitted SQL is identical to issueIdSeq / auditTagSeq;
     // only the read marshalling changes. customDouble binds the 'Money' typeName
@@ -1093,7 +1093,7 @@ export const tIssueWorklog = new class TIssueWorklog extends Table<DBConnection,
     // the same nullable expression as activity_label.
     tagLabel         = this.computedColumn('tag_label', 'string', bracketAdapter)
     tagLabelOptional = this.optionalComputedColumn('tag_label_optional', 'string', bracketAdapter)
-    // COL §B — per-kind virtualColumnFromFragment fan-out (required + optional)
+    // Per-kind virtualColumnFromFragment fan-out (required + optional)
     // on a Table: each observes the DISTINCT read-path leaf type of its kind. The
     // fragment references an existing same-table typed column so the emitted SQL
     // is portable (a bare column ref or a portable expression). No DB column —
@@ -1140,7 +1140,7 @@ export const tProjectRelease = new class TProjectRelease extends Table<DBConnect
     // so it stays optional on INSERT — existing tProjectRelease INSERT tests that
     // don't enumerate it keep working. Added last to keep existing snapshots stable.
     publishedAt = this.columnWithDefaultValue<Date, 'PublishStamp'>('published_at', 'customLocalDateTime', 'PublishStamp')
-    // COL §B — per-kind virtualColumnFromFragment fan-out on a writable Table
+    // Per-kind virtualColumnFromFragment fan-out on a writable Table
     // carrying custom-typed columns: the custom string/uuid/temporal kinds (and
     // the plain uuid / localDateTime kinds this table can source) that the
     // worklog fixture can't. required + optional; each references an existing
@@ -1238,7 +1238,7 @@ export const vReleaseOverview = new class VReleaseOverview extends View<DBConnec
     // and the Table-side publishedAt are the other sides).
     publishStampPlain = this.column('published_stamp_plain', 'localDateTime')
     publishStamp      = this.column<Date, 'PublishStamp'>('published_stamp', 'customLocalDateTime', 'PublishStamp')
-    // COL §B — per-kind virtualColumnFromFragment fan-out on a View source
+    // Per-kind virtualColumnFromFragment fan-out on a View source
     // (required + optional). The View exposes typed columns of every kind, so
     // each virtual column references a same-view column of the matching kind and
     // observes the distinct read-path leaf type on a View instead of a Table.
@@ -1350,7 +1350,7 @@ export const tLedgerEntry = new class TLedgerEntry extends Table<DBConnection, '
 }()
 
 // A dedicated table for the OPTIONAL-column NULL branch of the Nullable family on
-// the bare-base enum/custom/customComparable leaves (§B-1). The required siblings
+// the bare-base enum/custom/customComparable leaves. The required siblings
 // live on tIssueWorklog.activity / tProjectRelease.channel / tProjectRelease.version;
 // here `stage` (enum), `channel` (custom, reusing ReleaseChannel) and `minVersion`
 // (customComparable, reusing the Semver typeName) are nullable, so a draft that has
@@ -1392,7 +1392,7 @@ export const tReleaseDraft = new class TReleaseDraft extends Table<DBConnection,
     constructor() { super('release_draft') }
 }()
 
-// COL F2-COL T4 — non-virtual column-factory per-kind fan-out. `col_matrix`
+// Non-virtual column-factory per-kind fan-out. `col_matrix`
 // holds one plain, NOT NULL column per base kind; each tColMatrix* Table below
 // reads those SAME columns through a DIFFERENT column factory, and vColMatrix
 // does so through the View factories. The optionality / default / computed /
@@ -1603,7 +1603,7 @@ export const vColMatrix = new class VColMatrix extends View<DBConnection, 'VColM
     constructor() { super('col_matrix_view') }
 }()
 
-// COL F2-COL T4 (round-44 adapter arm) — the trailing-`adapter` overload of each
+// The trailing-`adapter` overload of each
 // non-virtual column factory is a DISTINCT typed path from the no-adapter form.
 // Each tColMatrix*Adapter class reads the SAME col_matrix columns through the
 // factory's trailing-TypeAdapter overload; the adapter's transformValueFromDB

@@ -303,7 +303,7 @@ SELECT r.id AS id,
 FROM project_release r
 INNER JOIN project p ON p.id = r.project_id;
 
--- release_draft (§B-1): OPTIONAL enum/custom/customComparable columns so the
+-- release_draft: OPTIONAL enum/custom/customComparable columns so the
 -- Nullable family reaches a real NULL row. Caller-provided int PK (no identity).
 CREATE TABLE release_draft (
     id INTEGER PRIMARY KEY,
@@ -327,7 +327,7 @@ CREATE TABLE release_draft (
     shifted_cutoff TIME NOT NULL DEFAULT '09:00:00'
 );
 
--- col_matrix (COL F2-COL T4): one plain, NOT NULL column per base value kind.
+-- col_matrix: one plain, NOT NULL column per base value kind.
 -- Every tColMatrix* Table class and the vColMatrix View read these SAME columns
 -- through a DIFFERENT column factory (column / optionalColumn /
 -- columnWithDefaultValue / optionalColumnWithDefaultValue / computedColumn /
@@ -355,7 +355,7 @@ SELECT id, m_int, m_bigint, m_double, m_bool, m_uuid, m_date, m_time, m_datetime
 FROM col_matrix;
 
 -- One zero-arg function per base value kind, each returning the col_matrix row-1
--- value of that kind (CONN F5-CONN B2 — executeFunction return-kind + trailing
+-- value of that kind (executeFunction return-kind + trailing
 -- adapter fan-out, exercised by `exec.function-value-kinds.test.ts`). Custom
 -- kinds reuse the base-kind function (customInt→cm_int, customDouble→cm_double,
 -- customUuid→cm_uuid, customLocalDate→cm_date, customLocalTime→cm_time,

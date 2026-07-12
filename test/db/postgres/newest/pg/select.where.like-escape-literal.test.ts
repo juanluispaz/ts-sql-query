@@ -491,7 +491,6 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
     })
 
-    // ---- STR-block-1: the backslash-bracket needle `a\b[c` on the 21 remaining
     // affix predicates (the plain `contains`/`startsWith`/`endsWith` sensitive
     // arms are pinned above). Each dialect encodes the needle differently in the
     // bound param (backslash doubling + `escape` clause, or SqlServer's `[`→`[[]`
@@ -844,7 +843,6 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
     })
 
-    // ---- STR-block-3: each LIKE metacharacter (% / _ / \\ / [) in ISOLATION fed
     // to the 24 affix predicate methods. The escaped bound param below is a
     // substring of the combined-needle params pinned above; enumerated per method
     // for saturation. No seeded email holds the isolated metachar, so the positive

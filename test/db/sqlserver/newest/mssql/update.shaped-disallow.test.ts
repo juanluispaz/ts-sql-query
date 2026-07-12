@@ -495,7 +495,6 @@ describe(ctx.label, () => {
         expect(caughtWhen).toBe(sentinelWhen)
         expect((caughtWhen as { disallowedProperty?: unknown }).disallowedProperty).toBe('projectSlug')
     })
-    // ---- round-44 F4-UPDDEL: the disallow* Error-instance overload on the NON-shaped
     // (plain) UPDATE builder. Without a shape the guards operate on the REAL column
     // names (`name` / `slug` / `archivedAt`). Passing an `Error` instead of a message
     // rethrows THAT SAME instance as-is (not wrapped in a DISALLOWED_BY_QUERY_RULE

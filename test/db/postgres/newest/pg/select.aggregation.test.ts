@@ -387,7 +387,6 @@ describe(ctx.label, () => {
         expect([...result].sort((a, b) => (a ?? 99) - (b ?? 99))).toEqual([2, 3, null])
     })
 
-    // ---- CONN B5 aggregate min/max/sum/average leaves (round-44)
     // min/max fan-out over the leaf kinds the existing aggregation coverage
     // doesn't reach: a plain `string`, a plain `double`, a plain `localTime`, a
     // plain `localDateTime`, and the three CUSTOM temporal kinds (customLocalDate

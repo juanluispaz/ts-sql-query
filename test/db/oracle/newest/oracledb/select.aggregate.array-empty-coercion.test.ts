@@ -249,7 +249,6 @@ describe(ctx.label, () => {
         expect(openIssue.body).toBe(null)
     })
     */
-    // ---- F3-PROJ pocket 1: aggregateAsArrayDistinct element-projection drop rules ----
     // The complex-projection element drop rules (rule 1-4, nested) applied to the
     // DISTINCT object-array aggregate: `aggregateAsArrayDistinct` shares the same
     // element transform as `aggregateAsArray` (the JS-level drop rules are identical),

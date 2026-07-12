@@ -245,7 +245,7 @@ INNER JOIN project p ON p.id = r.project_id;
 --   CREATE FUNCTION project_name(p_id INTEGER) RETURNS TEXT
 --       SELECT name FROM project WHERE id = p_id
 
--- release_draft (§B-1): OPTIONAL enum/custom/customComparable columns so the
+-- release_draft: OPTIONAL enum/custom/customComparable columns so the
 -- Nullable family reaches a real NULL row. Caller-provided int PK (no identity).
 CREATE TABLE release_draft (
     id INTEGER PRIMARY KEY,
@@ -269,7 +269,7 @@ CREATE TABLE release_draft (
     shifted_cutoff TIME NOT NULL DEFAULT '09:00:00'
 );
 
--- col_matrix (COL F2-COL T4): one plain, NOT NULL column per base kind. Every
+-- col_matrix: one plain, NOT NULL column per base kind. Every
 -- tColMatrix* Table / the vColMatrix View reads these SAME columns through a
 -- DIFFERENT column factory; the optionality/default/computed/pk distinction is
 -- type-level only. SQLite's loose typing: bigint/boolean via INTEGER, double via

@@ -251,7 +251,7 @@ describe(ctx.label, () => {
 
     // ── Empty-on-conflict degrade on the from-select upsert ──────────────────
     test('from-select-empty-on-conflict-update-set-degrades-to-conflict-noop', async () => {
-        // MUT-EMPTY-2: on the from-select upsert, `doUpdateDynamicSet({archivedAt:null})`
+        // On the from-select upsert, `doUpdateDynamicSet({archivedAt:null})`
         // then `ignoreAnySetWithNoValue()` empties the update-set; rather than
         // dropping the whole clause, the builder degrades to `… do nothing` (the
         // distinct from-select builder path). The source re-selects project 1's

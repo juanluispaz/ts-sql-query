@@ -271,7 +271,7 @@ describe(ctx.label, () => {
 
     // ── Empty-on-conflict degrade on the from-select upsert ──────────────────
     test('from-select-empty-on-conflict-update-set-degrades-to-conflict-noop', async () => {
-        // MUT-EMPTY-2: on the from-select upsert, the bare no-target
+        // On the from-select upsert, the bare no-target
         // `onConflictDoUpdateDynamicSet({archivedAt:null})` then `ignoreAnySetWithNoValue()`
         // empties the update-set; rather than dropping the whole clause, the builder
         // degrades to the conflict-ignoring insert. The source re-selects project 1's

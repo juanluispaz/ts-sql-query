@@ -28,8 +28,6 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // ---- versionBracketed (REQUIRED receiver) --------------------------------
-
     test('version-bracketed-into-to-lower-case-keeps-result-leaf-bracketed', async () => {
         // `versionBracketed.toLowerCase()` produces a value-returning transform
         // whose result leaf inherits bracketAdapter, so the lowered DB value
@@ -274,8 +272,6 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { id: number; len: number }>>()
         expect(row).toEqual(expected)
     })
-
-    // ---- channelBracketed (OPTIONAL receiver) --------------------------------
 
     test('channel-bracketed-into-to-lower-case-keeps-result-leaf-bracketed', async () => {
         // `channelBracketed.toLowerCase()` on the OPTIONAL receiver — the result

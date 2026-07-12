@@ -137,7 +137,6 @@ describe(ctx.label, () => {
         expect(ctx.lastTransactionOpts).toEqual(['serializable'])
         expect(result).toBe(1)
     })
-    // ---- isolationLevel read-only access mode (round-44)
     test('isolation-level-with-read-only-access-mode-builds-pair-opts', async () => {
         // The level+accessMode branch with the `'read only'` access mode:
         // `isolationLevel('repeatable read', 'read only')` → opts

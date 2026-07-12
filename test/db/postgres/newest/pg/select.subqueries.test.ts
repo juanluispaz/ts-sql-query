@@ -262,7 +262,6 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    // ---- round-44 F3-SELECT: subSelectUsing / subSelectDistinctUsing with a ForUseInLeftJoin arg
     test('sub-select-using-for-use-in-left-join', async () => {
         // `subSelectUsing(t.forUseInLeftJoin())` correlates the inline subquery to
         // a LEFT-JOINED outer table: the outer query left-joins project onto the

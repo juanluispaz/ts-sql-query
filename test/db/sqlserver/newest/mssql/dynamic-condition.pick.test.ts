@@ -352,7 +352,6 @@ describe(ctx.label, () => {
         expect(expanded).toBe(one)
         expect(expanded).toEqual({ id: 1, title: 'Update hero copy' })
     })
-    // ---- F3-PROJ pocket 2: picking × aggregate / drop-rule leaves ----
     // dynamicPick composed with an aggregate-as-array field and with drop-rule
     // leaves (rule-1 requiredInOptionalObject gate, rule-2 left-join originally-
     // required leaf) inside a picked object, plus an all-optional picked select

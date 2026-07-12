@@ -433,7 +433,6 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    // ---- VALVIEW per-kind dispatch fan-out (round-44 T4)
     // A no-op TypeAdapter: read and write both delegate straight to `next`. It
     // fires each kind's trailing-adapter overload without altering the bound
     // param or the read value. The observable-transform adapter arms are already

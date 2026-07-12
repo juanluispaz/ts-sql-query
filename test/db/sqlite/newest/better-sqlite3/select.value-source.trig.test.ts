@@ -378,7 +378,6 @@ describe(ctx.label, () => {
         }
     })
     */
-    // ---- NUM trig tail fan-out (round-44 T4)
     // The 1-arg trig family on an OPTIONAL-INT receiver (`assigneeId`, = 1 for issue 1,
     // present). `divide(2)` lands the operand at 0.5 so acos/asin stay in-domain, and
     // carries the optional marker through, so every leaf is `?: number`. `cot` is a

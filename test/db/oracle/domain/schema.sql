@@ -278,7 +278,7 @@ SELECT r.id AS id,
 FROM project_release r
 INNER JOIN project p ON p.id = r.project_id;
 
--- release_draft (§B-1): OPTIONAL enum/custom/customComparable columns so the
+-- release_draft: OPTIONAL enum/custom/customComparable columns so the
 -- Nullable family reaches a real NULL row. Caller-provided int PK (no identity).
 CREATE TABLE release_draft (
     id NUMBER PRIMARY KEY,
@@ -302,7 +302,7 @@ CREATE TABLE release_draft (
     shifted_cutoff TIMESTAMP DEFAULT TIMESTAMP '1970-01-01 09:00:00' NOT NULL
 );
 
--- col_matrix (COL F2-COL T4): one plain, NOT NULL column per base kind. Every
+-- col_matrix: one plain, NOT NULL column per base kind. Every
 -- tColMatrix* Table / the vColMatrix View reads these SAME columns through a
 -- DIFFERENT column factory; the optionality/default/computed/pk distinction is
 -- type-level only. Oracle has no TIME type — localTime is carried in a TIMESTAMP
@@ -325,7 +325,7 @@ CREATE OR REPLACE VIEW col_matrix_view AS
 SELECT id, m_int, m_bigint, m_double, m_bool, m_uuid, m_date, m_time, m_datetime, m_str
 FROM col_matrix;
 
--- Zero-arg function per base value kind (CONN F5-CONN B2). Custom kinds reuse the
+-- Zero-arg function per base value kind. Custom kinds reuse the
 -- base-kind function. One PL/SQL block per line (blank-line separated, matching
 -- the other functions). m_uuid is RAW(16); cm_uuid converts it to the hyphenated
 -- string via the built-in RAW_TO_UUID (inverse of the seed's UUID_TO_RAW). Oracle

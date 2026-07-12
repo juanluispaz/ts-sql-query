@@ -344,7 +344,6 @@ describe(ctx.label, () => {
         })
     })
     */
-    // ---- round-44 F4-UPDDEL: one-column-many undefined→null per-element coercion
     // MySQL has no RETURNING clause on DELETE; the library refuses
     // `.returningOneColumn(...).executeDeleteMany()` at compile time. Kept
     // commented for symmetry.

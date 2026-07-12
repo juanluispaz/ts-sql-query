@@ -595,7 +595,7 @@ describe(ctx.label, () => {
 // NOT-APPLICABLE: Oracle has no INSERT…ON CONFLICT (uses MERGE)
     /*
     test('shaped-empty-on-conflict-update-set-degrades-to-conflict-noop', async () => {
-        // MUT-EMPTY-1: the SHAPED branch of the empty-on-conflict degrade. After the
+        // The SHAPED branch of the empty-on-conflict degrade. After the
         // shaped opener, `doUpdateDynamicSet({archived:null})` stages the lone renamed
         // key (→ archived_at); `ignoreAnySetWithNoValue()` prunes it (no value),
         // emptying the update-set, so the builder degrades to `… do nothing` rather

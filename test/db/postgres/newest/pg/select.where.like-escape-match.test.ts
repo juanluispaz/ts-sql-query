@@ -465,7 +465,6 @@ describe(ctx.label, () => {
         })
     })
 
-    // ---- STR block-4 real-DB match fan-out (round-44 T4)
     // Row-selection proof of `_escapeLikeWildcard` across the affix grid: each
     // test inserts a probe holding a LITERAL metachar and a decoy where that
     // metachar is replaced by a char a wildcard would match, then asserts which

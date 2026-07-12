@@ -135,7 +135,6 @@ describe(ctx.label, () => {
         expect(String(caught)).toMatch(/INVALID_ORDER_BY_ORDERING|Unknow ordering clause/)
     })
 
-    // ---- orderByFromStringArray / orderByFromStringArrayIfValue ----
     // The array forms process each element through the same per-clause
     // builder path as `orderByFromString` (no intermediate joined string),
     // so each case is asserted as an equivalence against the comma-joined

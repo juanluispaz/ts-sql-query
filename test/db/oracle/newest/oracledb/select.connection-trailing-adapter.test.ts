@@ -592,7 +592,6 @@ describe(ctx.label, () => {
         assertType<Exact<typeof v, Date | null>>()
         expect(v).toEqual(new Date(Date.UTC(2024, 0, 14, 13, 30, 0)))
     })
-    // ---- CONN B1/B3 adapter-slot fan-out (round-44 T4) ----------------------
     // NOT-APPLICABLE: oracle rejects the bare 'select :0 from dual' const/typed-fragment bind for non-numeric adapter kinds (untyped-placeholder bind-type limitation, ORA-01722/01858); the adapter slot is covered here for numeric/uuid kinds via the pre-existing tests and runs live for all kinds on every other cell
     /*
     // The trailing-adapter slot on the remaining const/optionalConst kinds and

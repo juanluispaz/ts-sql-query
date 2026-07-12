@@ -646,7 +646,6 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-
     test('custom-numeric/branded-newtype-keeps-or-erases-the-brand', async () => {
         // On a branded-newtype receiver (`ReleaseTag` = customInt, `Money` =
         // customDouble), brand-KEEPING methods carry the brand through while
@@ -1228,7 +1227,6 @@ describe(ctx.label, () => {
         }
     })
 
-
     test('custom-numeric/adapter-column-through-non-add-arithmetic', async () => {
         // The per-column TypeAdapter (plusOffsetAdapter, read +1000) on the branded
         // customInt view columns propagates through `subtract` and `multiply` (the
@@ -1260,7 +1258,6 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ id: number; optSub?: ReleaseTag; reqMul: ReleaseTag }>>>()
         expect(result).toEqual(expected)
     })
-    // ---- CUSTOMNUM tail: customDouble number-literal overload + adapter ----
 
     test('custom-numeric/customdouble-add-number-literal-overload', async () => {
         // The `add(value: number)` overload on a customDouble receiver (distinct from

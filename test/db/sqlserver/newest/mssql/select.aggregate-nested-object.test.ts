@@ -97,7 +97,6 @@ describe(ctx.label, () => {
             { id: 2, header: { num: 2, title: 'Redesign navbar' } },
         ] }])
     })
-    // ---- F3-PROJ pocket 3a: aggregate element nested-object twins ----
     // Missing default/nullable twins of the aggregate-element nested-object paths:
     // a rule-3 REQUIRED inner object (kept required by a required leaf) carrying an
     // OPTIONAL leaf under the nullable projector, and a DEEP (depth-3) nested object
@@ -224,7 +223,6 @@ describe(ctx.label, () => {
         expect('body' in issue1.outer.mid).toBe(true)
         expect(issue1.outer.mid.body).toBe(null)
     })
-    // ---- PROJ pocket-3 aggregate-element depth-4 twins (round-44 T4) ----
     // Residual of the depth-3 pair above, one level deeper: a DEPTH-4 nested object
     // `outer.mid.inner.{...}` inside the aggregate element, under both projectors. The
     // element projector must descend four levels; the required-leaf spine keeps every
@@ -309,7 +307,6 @@ describe(ctx.label, () => {
         expect('body' in issue1.outer.mid.inner).toBe(true)
         expect(issue1.outer.mid.inner.body).toBe(null)
     })
-    // ---- PROJ rule-3 optional-leaf default analog (round-44)
     test('aggregate-element-with-required-nested-object-optional-leaf-default-drops-null', async () => {
         // The DEFAULT-projector analog of
         // aggregate-element-with-required-nested-object-optional-leaf-as-nullable:

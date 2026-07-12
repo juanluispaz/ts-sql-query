@@ -179,7 +179,6 @@ describe(ctx.label, () => {
         expect(page.count).toBe(2)
         expect(page.data).toEqual(dataRows)
     })
-    // ---- round-44 F3-SELECT: compound executeSelectPage extras {data} / {count,data}
     test('union-execute-select-page-with-extras-data-skips-data-query', async () => {
         // When the EXTRAS argument supplies `data`, the compound data query is NOT
         // executed — the supplied array is returned and only the wrapper count

@@ -158,13 +158,11 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    // ------------------------------------------------------------------
     // Chained getter after a projection modifier — each modifier returns the
     // temporal leaf unchanged (up to its optional marker), so the following
     // date-part getter still fires on a COLUMN receiver. The column arm carries
     // no const cast; the modifier shapes the extracted expression (coalesce /
     // nullif / plain) and the projected optional marker of the number leaf.
-    // ------------------------------------------------------------------
 
     test('chained-valuewhennull-localdate-getmonth', async () => {
         // `workDate.valueWhenNull(fallback).getMonth()` — valueWhenNull re-imposes
@@ -331,7 +329,6 @@ describe(ctx.label, () => {
     // an optional temporal receiver yields an optional number leaf
     // (`?: number | undefined`). The const values are non-null, so every getter
     // realizes a concrete part and the value assertion stays deterministic.
-    // ------------------------------------------------------------------
 
     test('optional-const-localdate-getters', async () => {
         // getFullYear/getMonth/getDate/getDay on an `optionalConst(..., 'localDate')`.

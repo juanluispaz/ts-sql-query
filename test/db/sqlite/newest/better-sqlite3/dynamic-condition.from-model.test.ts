@@ -144,8 +144,6 @@ describe(ctx.label, () => {
         `)
     })
 
-    // ---- Model-first dynamic order-by: OrderByForModel ----
-
     interface IssueOrderModel {
         id:        number
         title:     string
@@ -280,8 +278,6 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, project.name as name, organization.id as "organization.id", organization.name as "organization.name" from project left outer join organization as organization on organization.id = project.organization_id order by "organization.name" asc nulls last, name desc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
     })
-
-    // ---- Whole-string dynamic order-by: DynamicOrderByForModel (no join) ----
 
     interface ProjectWithOrg {
         id:   number

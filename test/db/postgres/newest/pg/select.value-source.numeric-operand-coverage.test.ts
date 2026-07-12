@@ -1006,8 +1006,6 @@ describe(ctx.label, () => {
         }
     })
 
-    // ---- NUM tail fan-out (round-44 T4)
-
     test('num-tail/int-receiver-double-column-promotes', async () => {
         // int receiver (issue_id, required int = 1 for worklog 1) with a plain-DOUBLE
         // COLUMN operand (doubleVirtual, a required virtual double = billed_amount = 200):

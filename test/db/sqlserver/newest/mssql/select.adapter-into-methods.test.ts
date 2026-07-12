@@ -446,7 +446,6 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { id: number; rp: string }>>()
         expect(row).toEqual(expected)
     })
-    // ---- STR-block-2a: the remaining value-returning string transforms fed the
     // bracketAdapter column `reviewerCode`. Each transform's RESULT leaf inherits
     // the receiver's bracketAdapter, so the DB value reads back wrapped in [...].
     // The mock is primed with the RAW DB value, proving the adapter ran on the
@@ -540,7 +539,6 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-    // ---- STR-block-2b: each string PREDICATE method fed the bracketAdapter column
     // `reviewerCode` as receiver, scoped to review 1. bracketAdapter's write half is
     // a pass-through, so the bound operand is NOT bracketed; the observable adapter
     // effect is that the projected `reviewer` still reads bracketed → '[R-7A2]'

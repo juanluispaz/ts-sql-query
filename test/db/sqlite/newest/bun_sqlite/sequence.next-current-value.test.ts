@@ -221,7 +221,6 @@ describe(ctx.label, () => {
     })
     */
 
-
     // NOT-APPLICABLE: SQLite has no CREATE SEQUENCE DDL and SqliteConnection
     // does not expose `connection.sequence(...)`, so these bodies cannot run.
     /*
@@ -324,7 +323,6 @@ describe(ctx.label, () => {
     */
     // NOT-APPLICABLE: this dialect has no sequences; doubleSeq/customDoubleSeq is not typed on its connection.
     /*
-    // ---- CONN B4 double/customDouble sequence value-types (round-44)
     // The genuinely-distinct marshalled-result-type block: doubleSeq reuses the
     // int sequence issue_id_seq and customDoubleSeq reuses the bigint sequence
     // audit_tag_seq, but each draws the value marshalled as the WIDER double /

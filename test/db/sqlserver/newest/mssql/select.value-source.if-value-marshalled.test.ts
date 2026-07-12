@@ -38,9 +38,7 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // ------------------------------------------------------------------
     // bigint — tIssueWorklog.durationMs (optional bigint).
-    // ------------------------------------------------------------------
 
     test('bigint-equals-if-value-fires-and-in-if-value-fires', async () => {
         // `equalsIfValue(5400000n)` fires → `duration_ms = $1` matches
@@ -105,9 +103,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    // ------------------------------------------------------------------
     // customInt — tIssueWorklog.costCents ('Cents', required, marshalled int).
-    // ------------------------------------------------------------------
 
     test('customInt-equals-if-value-fires', async () => {
         // `equalsIfValue(400)` fires → `cost_cents = $1` matches worklog 3; the
@@ -130,10 +126,8 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    // ------------------------------------------------------------------
     // customDouble — tIssueWorklog.billedAmount ('Money', required,
     // marshalled double).
-    // ------------------------------------------------------------------
 
     test('customDouble-equals-if-value-fires', async () => {
         // `equalsIfValue(50)` fires → `billed_amount = $1` matches worklog 2;
@@ -156,9 +150,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    // ------------------------------------------------------------------
     // uuid — tIssue.externalRef (optional uuid).
-    // ------------------------------------------------------------------
 
     test('uuid-equals-if-value-fires', async () => {
         // `equalsIfValue(<issue-1 uuid>)` fires → `external_ref = $1` matches
@@ -181,9 +173,7 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    // ------------------------------------------------------------------
     // customUuid — tProjectRelease.signingKey (optional customUuid 'SigningKey').
-    // ------------------------------------------------------------------
 
     test('customUuid-equals-if-value-fires', async () => {
         // `equalsIfValue(<release-1 key>)` fires → `signing_key = $1` matches
@@ -206,10 +196,8 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    // ------------------------------------------------------------------
     // enum/custom — tIssueWorklog.activity ('WorklogActivity', required enum):
     //   worklog 1=coding, 2=review, 3=meeting.
-    // ------------------------------------------------------------------
 
     test('enum-equals-if-value-fires-and-in-if-value-fires', async () => {
         // `equalsIfValue('coding')` fires → `activity = $1` matches worklog 1;
@@ -250,11 +238,9 @@ describe(ctx.label, () => {
         expect(inRows).toEqual(expectedIn)
     })
 
-    // ------------------------------------------------------------------
     // numeric-custom-boolean — tIssueWorklog.invoiced (CustomBooleanTypeAdapter
     // 1/0): worklog 1=true, 2=false, 3=true. The remap emits `(invoiced = 1)`
     // around the column when the predicate fires, nothing when it elides.
-    // ------------------------------------------------------------------
 
     test('numeric-custom-boolean-equals-if-value-fires', async () => {
         // `equalsIfValue(true)` fires → `(invoiced = 1) = $1` matches worklogs
@@ -301,12 +287,10 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    // ------------------------------------------------------------------
     // compare-`*IfValue` on a non-int leaf — customComparable
     // tProjectRelease.version ('Semver', required): 1=1.2.0, 2=1.3.0-beta.1,
     // 3=0.9.0. customComparable is a ComparableValueSource, so the ordered
     // IfValue arms (`greaterOrEqualIfValue`/`lessThanIfValue`) apply.
-    // ------------------------------------------------------------------
 
     test('customComparable-compare-if-value-fires-and-elides', async () => {
         // `greaterOrEqualIfValue('1.0.0')` fires → `version >= $1`; on the
@@ -334,11 +318,9 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    // ------------------------------------------------------------------
     // notInN on a non-int leaf — customComparable tProjectRelease.version.
     // `notInN(...vals)` is the variadic-rest overload of `notIn([...])`; on a
     // non-int leaf it carries the marshalled customComparable params.
-    // ------------------------------------------------------------------
 
     test('customComparable-not-in-n-variadic-spread', async () => {
         // `version.notInN('1.2.0', '0.9.0')` excludes releases 1 and 3 → only

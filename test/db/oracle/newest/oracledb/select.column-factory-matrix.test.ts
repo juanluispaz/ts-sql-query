@@ -1,4 +1,4 @@
-// COL F2-COL T4 — non-virtual column-factory per-kind fan-out.
+// Non-virtual column-factory per-kind fan-out.
 //
 // Every distinct column factory (`column` / `optionalColumn` /
 // `columnWithDefaultValue` / `optionalColumnWithDefaultValue` /
@@ -109,8 +109,6 @@ describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
-
-    // ---- column-factory-matrix (COL F2-COL T4 fan-out) ----
 
     test('required-column-factory-projects-each-kind', async () => {
         // `column(name, kind)` (required) per kind.
@@ -583,7 +581,6 @@ describe(ctx.label, () => {
         }>>()
         expect(row).toEqual(expected)
     })
-    // ---- COL factory adapter-arm fan-out (round-44 T4) ----------------------
     test('required-column-factory-adapter-transforms-each-kind', async () => {
         // `column(name, kind, adapter)` — the trailing-adapter overload (required). The
         // raw seed is read through each column's adapter (numeric ×10, bigint ×10n,

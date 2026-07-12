@@ -27,10 +27,8 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // ------------------------------------------------------------------
     // plain localDate — tIssueWorklog.workDate (required):
     //   worklog 1 -> 2024-03-04, 2 -> 2024-03-05, 3 -> 2024-03-06.
-    // ------------------------------------------------------------------
 
     test('localDate-equals-not-equals', async () => {
         // `.equals(2024-03-05)` matches worklog 2; `.notEquals(2024-03-05)`
@@ -213,10 +211,8 @@ describe(ctx.label, () => {
         expect(ge).toEqual(expectedGe)
     })
 
-    // ------------------------------------------------------------------
     // plain localTime — tIssueWorklog.startedAt (optional):
     //   worklog 1 -> 09:15:00, 2 -> 14:00:00, 3 -> 10:30:00 (all set in seed).
-    // ------------------------------------------------------------------
 
     test('localTime-equals-not-equals', async () => {
         // `.equals(14:00)` matches worklog 2; `.notEquals(14:00)` matches
@@ -399,10 +395,8 @@ describe(ctx.label, () => {
         expect(ge).toEqual(expectedGe)
     })
 
-    // ------------------------------------------------------------------
     // customLocalTime — tProjectRelease.cutoffTime ('CutoffClock', required):
     //   release 1 -> 17:00:00, 2 -> 18:30:00, 3 -> 16:00:00.
-    // ------------------------------------------------------------------
 
     test('customLocalTime-equals-not-equals', async () => {
         // `.equals(17:00)` matches release 1; `.notEquals(17:00)` matches
@@ -517,11 +511,9 @@ describe(ctx.label, () => {
         expect(notRows).toEqual(expectedNot)
     })
 
-    // ------------------------------------------------------------------
     // customLocalDateTime — tProjectRelease.signedOffAt ('SignOffStamp',
     // optional): release 1 -> 2024-01-14 12:30:00, 2 -> NULL,
     //   3 -> 2024-02-28 09:00:00.
-    // ------------------------------------------------------------------
 
     test('customLocalDateTime-equals-not-equals', async () => {
         // `.equals(2024-01-14 12:30)` matches release 1; `.notEquals(...)`
@@ -637,13 +629,11 @@ describe(ctx.label, () => {
         expect(notRows).toEqual(expectedNot)
     })
 
-    // ------------------------------------------------------------------
     // customLocalDateTime — tProjectRelease.publishedAt ('PublishStamp',
     // REQUIRED-on-read): release 1 -> 2024-01-16 09:00:00. The direct-fluent
     // date/time getter surface on a REQUIRED custom-localDateTime receiver (the
     // required twin of the optional signedOffAt getters), so each getter is a
     // required `number` leaf (not `?: number`).
-    // ------------------------------------------------------------------
 
     test('customLocalDateTime-required-getters', async () => {
         // All 9 LocalDateTimeValueSource getters on the REQUIRED custom-localDateTime
@@ -678,11 +668,9 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    // ------------------------------------------------------------------
     // View customLocalTime — vReleaseOverview.cutoffClock ('CutoffClock',
     // required): the release's cutoff_time surfaced through the view. Release 1
     // -> 17:00:00. The custom-localTime getter surface on a VIEW receiver.
-    // ------------------------------------------------------------------
 
     test('view-customLocalTime-getters', async () => {
         // The 4 LocalTimeValueSource getters on the REQUIRED View custom-localTime
@@ -709,15 +697,11 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-
-
-    // ------------------------------------------------------------------
     // custom-source `.asOptional()` getter — tProjectRelease.releasedOn
     // ('ReleaseDay', customLocalDate) demoted to optional via `.asOptional()`
     // then a getter. asOptional() propagates the optional marker to the getter's
     // number leaf (`?: number | undefined`).
     // Release 1 -> released_on 2024-01-15 -> year 2024.
-    // ------------------------------------------------------------------
 
     test('view-required-localDateTime-getters', async () => {
         // All 9 LocalDateTimeValueSource getters on the REQUIRED plain (non-custom)
@@ -807,14 +791,12 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    // ------------------------------------------------------------------
     // View plain optional localDateTime — vProjectOverview.archivedAt: the
     // project's archived_at surfaced through the view (a plain, non-custom
     // optional localDateTime View column). Each getter carries the optional
     // marker to a `number | undefined` leaf. The underlying project.archived_at
     // is set to a fixed timestamp in-rollback so the values are deterministic:
     // 2024-06-15 13:45:30 (a Saturday).
-    // ------------------------------------------------------------------
 
     test('view-plain-localDateTime-getters', async () => {
         // The 9 LocalDateTimeValueSource getters on the plain (non-custom) OPTIONAL
@@ -864,14 +846,12 @@ describe(ctx.label, () => {
         })
     })
 
-    // ------------------------------------------------------------------
     // custom-source `.asOptional()` getters — tProjectRelease.releasedOn
     // ('ReleaseDay', customLocalDate) demoted to optional via `.asOptional()`
     // then fed the LocalDate getters. asOptional() carries the optional
     // marker to each getter's number leaf (`?: number | undefined`). Release 1
     // -> released_on 2024-01-15 (a Monday) -> month 0 (January, JS 0-indexed),
     // date 15, day-of-week 1.
-    // ------------------------------------------------------------------
 
     test('custom-localDate-asOptional-getters', async () => {
         // The `getMonth`/`getDate`/`getDay` LocalDateValueSource getters on the
@@ -899,13 +879,11 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    // ------------------------------------------------------------------
     // custom-source `.asOptional()` getters — tProjectRelease.cutoffTime
     // ('CutoffClock', customLocalTime) demoted to optional via `.asOptional()`
     // then fed the LocalTime getters. asOptional() carries the optional marker
     // to each getter's number leaf (`?: number | undefined`). Release 1 ->
     // cutoff_time 17:00:00 -> hours 17, minutes 0, seconds 0, milliseconds 0.
-    // ------------------------------------------------------------------
 
     test('custom-localTime-asOptional-getters', async () => {
         // The 4 LocalTimeValueSource getters on the custom-localTime column
@@ -933,7 +911,6 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    // ------------------------------------------------------------------
     // View custom-source `.asOptional()` getters — vReleaseOverview.releasedOn
     // ('ReleaseDay', customLocalDate) surfaced through the view then demoted to
     // optional via `.asOptional()` before the LocalDate getters (the View read
@@ -941,7 +918,6 @@ describe(ctx.label, () => {
     // marker to each getter's number leaf (`?: number | undefined`). Release 1
     // through the view: released_on 2024-01-15 (a Monday) -> year 2024, month 0
     // (January, JS 0-indexed), date 15, day-of-week 1.
-    // ------------------------------------------------------------------
 
     test('view-custom-localDate-asOptional-getters', async () => {
         // The 4 LocalDateValueSource getters on the View custom-localDate column
@@ -970,7 +946,6 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    // ------------------------------------------------------------------
     // View custom-source `.asOptional()` getters — vReleaseOverview.cutoffClock
     // ('CutoffClock', customLocalTime) surfaced through the view then demoted to
     // optional via `.asOptional()` before the LocalTime getters (the View read
@@ -978,7 +953,6 @@ describe(ctx.label, () => {
     // marker to each getter's number leaf (`?: number | undefined`). Release 1
     // through the view: cutoff_clock 17:00:00 -> hours 17, minutes 0, seconds 0,
     // milliseconds 0.
-    // ------------------------------------------------------------------
 
     test('view-custom-localTime-asOptional-getters', async () => {
         // The 4 LocalTimeValueSource getters on the View custom-localTime column
@@ -1006,13 +980,11 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    // ------------------------------------------------------------------
     // View plain localDate — vReleaseOverview.releaseDayPlain: the release's
     // release_day_plain surfaced through the view (a plain, non-custom localDate
     // View column — a distinct read path from the custom View getters, a bare
     // DBColumnImpl). Release 1 -> release_day_plain 2024-01-15 (a Monday) -> year
     // 2024, month 0 (January, JS 0-indexed), date 15, day-of-week 1.
-    // ------------------------------------------------------------------
 
     test('view-plain-localDate-getters', async () => {
         // The 4 LocalDateValueSource getters on the plain (non-custom) REQUIRED
@@ -1040,13 +1012,11 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    // ------------------------------------------------------------------
     // View plain localTime — vReleaseOverview.cutoffPlain: the release's
     // cutoff_plain surfaced through the view (a plain, non-custom localTime View
     // column — a distinct read path from the custom View getters, a bare
     // DBColumnImpl). Release 1 -> cutoff_plain 17:00:00 -> hours 17, minutes 0,
     // seconds 0, milliseconds 0.
-    // ------------------------------------------------------------------
 
     test('view-plain-localTime-getters', async () => {
         // The 4 LocalTimeValueSource getters on the plain (non-custom) REQUIRED

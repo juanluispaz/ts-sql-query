@@ -202,7 +202,6 @@ describe(ctx.label, () => {
         })
     })
 
-
     test('sequence-custom-int-next-value-with-trailing-adapter', async () => {
         await ctx.withCommit(async () => {
             // releaseTagSeqOffset carries the CUSTOM-kind (customInt / ReleaseTag)
@@ -286,7 +285,6 @@ describe(ctx.label, () => {
             else expect(typeof curr === 'bigint' || typeof curr === 'string' || typeof curr === 'number').toBe(true)
         })
     })
-    // ---- CONN B4 double/customDouble sequence value-types (round-44)
     // The genuinely-distinct marshalled-result-type block: doubleSeq reuses the
     // int sequence issue_id_seq and customDoubleSeq reuses the bigint sequence
     // audit_tag_seq, but each draws the value marshalled as the WIDER double /

@@ -347,7 +347,6 @@ describe(ctx.label, () => {
         })
     })
 
-    // ---- round-44 F4-UPDDEL: one-column-many undefined→null per-element coercion
     test('delete-returning-one-column-many-coerces-undefined-to-null', async () => {
         // `returningOneColumn(<optional col>)` consumed by `executeDeleteMany()`
         // maps each returned scalar, coercing a driver-returned `undefined` element

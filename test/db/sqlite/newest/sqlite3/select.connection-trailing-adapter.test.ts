@@ -591,7 +591,6 @@ describe(ctx.label, () => {
         assertType<Exact<typeof v, Date | null>>()
         expect(v).toEqual(new Date(Date.UTC(2024, 0, 14, 13, 30, 0)))
     })
-    // ---- CONN B1/B3 adapter-slot fan-out (round-44 T4) ----------------------
     // The trailing-adapter slot on the remaining const/optionalConst kinds and
     // on both fragmentWithType / aggregateFragmentWithType kinds. Each adapter's
     // transformValueFromDB does an observable transform (numeric ×10, string /

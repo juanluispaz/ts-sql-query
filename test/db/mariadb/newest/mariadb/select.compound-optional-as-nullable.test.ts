@@ -605,7 +605,6 @@ describe(ctx.label, () => {
         expect('body' in nullRow).toBe(true)
         expect(nullRow.body).toBe(null)
     })
-    // ---- SEL-SEAM Round-44: AFTER-op projectingOptionalValuesAsNullable() on the 7 non-union compound ops ----
     // The existing union tests pin the modifier applied AFTER `.union(...)` (on the
     // compound RESULT). These mirror that AFTER-op form to each remaining compound op:
     // the modifier is applied once on the combined result (the arms carry no flag), and
@@ -810,7 +809,6 @@ describe(ctx.label, () => {
         expect(rows[0]!.body).toBe(null)
     })
 
-    // ---- PROJ pocket-3 inline compound-union DEFAULT-projector rule-1/rule-2 leaf twins (round-44 T4) ----
     // The DEFAULT-projector twins of the inline compound cases above. Each is a UNION
     // consumed as an inline aggregated array (`forUseAsInlineAggregatedArrayValue()`)
     // whose element carries a rule-1 (requiredInOptionalObject gate) leaf or a rule-2

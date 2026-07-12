@@ -391,7 +391,6 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-
     test('custom-numeric/customint-arithmetic-and-sign', async () => {
         // Arithmetic / min-max operators on a customInt operand. modulo uses
         // the custom-RHS overload (cost % cost); sign() drops the brand to a
@@ -741,7 +740,6 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-    // ---- Brand survival across the numeric methods -------------------------
     // On a branded-newtype const receiver, every brand-KEEPING numeric method
     // carries the brand (`ReleaseTag` / `Money`) through to the result leaf,
     // never a plain `number`. Both brands are marshalled (ReleaseTag→int,
@@ -1184,7 +1182,6 @@ describe(ctx.label, () => {
         }
     })
 
-
     test('custom-numeric/brand-survival-customdouble-trig', async () => {
         // The 7 trig methods on a branded Money (customDouble) const keep the Money
         // brand. Over the input 0.5 (inside the trig domain) every result is an
@@ -1267,8 +1264,6 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ id: number; optSub?: ReleaseTag; reqMul: ReleaseTag }>>>()
         expect(result).toEqual(expected)
     })
-
-    // ---- CUSTOMNUM tail: customDouble number-literal overload + adapter ----
 
     test('custom-numeric/customdouble-add-number-literal-overload', async () => {
         // The `add(value: number)` overload on a customDouble receiver (distinct from

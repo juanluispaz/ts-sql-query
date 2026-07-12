@@ -323,7 +323,7 @@ FROM project_release r
 INNER JOIN project p ON p.id = r.project_id;
 GO
 
--- release_draft (§B-1): OPTIONAL enum/custom/customComparable columns so the
+-- release_draft: OPTIONAL enum/custom/customComparable columns so the
 -- Nullable family reaches a real NULL row. Caller-provided int PK (no identity).
 CREATE TABLE release_draft (
     id INT PRIMARY KEY,
@@ -348,7 +348,7 @@ CREATE TABLE release_draft (
 );
 GO
 
--- col_matrix (COL F2-COL T4): one plain, NOT NULL column per base kind. Every
+-- col_matrix: one plain, NOT NULL column per base kind. Every
 -- tColMatrix* Table / the vColMatrix View reads these SAME columns through a
 -- DIFFERENT column factory; the optionality/default/computed/pk distinction is
 -- type-level only. boolean is BIT, uuid uniqueidentifier, localDateTime DATETIME.
@@ -372,7 +372,7 @@ SELECT id, m_int, m_bigint, m_double, m_bool, m_uuid, m_date, m_time, m_datetime
 FROM col_matrix;
 GO
 
--- Zero-arg scalar function per base value kind (CONN F5-CONN B2). Custom kinds
+-- Zero-arg scalar function per base value kind. Custom kinds
 -- reuse the base-kind function. Each is its own GO batch, declared AFTER
 -- col_matrix (SQL Server does not defer name resolution for functions). m_uuid is
 -- uniqueidentifier (read back uppercased, lowercased by the marshaller); m_bool

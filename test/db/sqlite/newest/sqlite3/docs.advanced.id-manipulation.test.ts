@@ -158,7 +158,6 @@ describe(ctx.label, () => {
         expect(() => encB.decrypt(encrypted)).toThrow(/Invalid id/)
     })
 
-    // ---- round-44 F7-EXTRAS: full unsigned-64-bit range round-trip
     test('docs-extra:id-manipulation/encrypter-unsigned-64-bit-range-round-trip', () => {
         // 2^64 - 1 (the largest uint64) fits in exactly 16 hex digits, so it still
         // encrypts to the standard 16-char body (values ≥ 2^64 spill past 16 hex

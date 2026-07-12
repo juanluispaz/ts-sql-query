@@ -530,7 +530,6 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-
     test('value-source-rhs/bigint-add-cross-table-operand', async () => {
         // bigint `add` with a value-source operand from a self-join alias: `issue2` is
         // joined on the same id, so `view_count + issue2.view_count` uses qualified
@@ -617,7 +616,6 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ id: number; wn: number; ni?: number }>>>()
         expect(result).toEqual(expected)
     })
-
 
     // ── 8. valueWhenNull / nullIfValue with a CROSS-TABLE value-source operand ─
 
@@ -998,7 +996,6 @@ describe(ctx.label, () => {
             expect(result).toEqual(expected)
         }
     })
-    // ---- NUM tail fan-out (round-44 T4)
 
     test('num-tail/int-receiver-double-column-promotes', async () => {
         // int receiver (issue_id, required int = 1 for worklog 1) with a plain-DOUBLE

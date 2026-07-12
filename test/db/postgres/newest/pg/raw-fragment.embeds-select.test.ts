@@ -314,7 +314,6 @@ describe(ctx.label, () => {
         expect(result).toEqual([{ id: 1 }])
     })
 
-    // ---- CONN B6 rawFragment plain-value-source interpolation arity (round-44 T4)
     // The embedded-SELECT tests above exercise the `__params` forwarder over
     // `IExecutableSelectQuery` entries. These drive the SAME forwarder loop over
     // PLAIN value-source (`const`) entries — a distinct `__params` element type —

@@ -71,7 +71,6 @@ describe(ctx.label, () => {
         `)
         expect(rows).toEqual([{ id: 1 }])
     })
-    // ---- round-44 F7-EXTRAS: ForceTypeCast in INSERT-VALUES / UPDATE-SET position
     test('force-type-cast-adapter-in-insert-values-position', async () => {
         // A ForceTypeCast-wrapped column forces the dialect's placeholder cast in
         // the INSERT VALUES position too (a no-op where the engine infers types).

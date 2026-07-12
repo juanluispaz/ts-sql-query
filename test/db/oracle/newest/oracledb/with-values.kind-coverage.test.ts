@@ -300,7 +300,6 @@ describe(ctx.label, () => {
             .toEqual([{ ref, signing }])
     })
 
-
     test('values-tuple-cast-per-custom-temporal-kind-via-null-value', async () => {
         // Branded custom-temporal kinds as VALUES-tuple columns —
         // customLocalDate ('ReleaseDay'), customLocalTime ('CutoffClock') and
@@ -433,7 +432,6 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    // ---- VALVIEW per-kind dispatch fan-out (round-44 T4)
     // A no-op TypeAdapter: read and write both delegate straight to `next`. It
     // fires each kind's trailing-adapter overload without altering the bound
     // param or the read value. The observable-transform adapter arms are already

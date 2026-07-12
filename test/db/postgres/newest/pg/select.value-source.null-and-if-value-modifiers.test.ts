@@ -989,9 +989,6 @@ describe(ctx.label, () => {
         expect(nullIds).toEqual([2])
     })
 
-
-
-
     test('is-null-is-not-null-on-optional-custom-double', async () => {
         // isNull / isNotNull on the OPTIONAL customDouble column `budget` ('Money')
         // on tReleaseDraft. Draft 1 sets budget 1500.5 (present -> n false, nn true);
@@ -1783,9 +1780,8 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-    // ---- EQCMP double-modifier micro (round-44 T4)
-    // The projection modifier trio on a PLAIN double receiver (`priority.asDouble()`) —
-    // the Number(double) §micro gap. `asRequiredInOptionalObject()` passes the double
+    // The projection modifier trio on a PLAIN double receiver (`priority.asDouble()`).
+    // `asRequiredInOptionalObject()` passes the double
     // through (`req?: number`); `onlyWhenOrNull(false)` / `ignoreWhenAsNull(true)`
     // replace the value source with a typed NULL, so `own` / `ign` are absent under
     // optional-as-undefined and the bake reveals the double NULL cast (`null::float8`

@@ -1740,7 +1740,6 @@ describe(ctx.label, () => {
         `)
     })
 
-    // ---- DYN numeric/boolean/enum per-op fan-out (round-44 T4)
     // Per-operator × type × path fan-out for the numeric / boolean / enum
     // dynamic-condition filter surface. Each op is proven to reach the same
     // builder method its direct-API twin does (identical SQL + params), and is
@@ -2573,7 +2572,6 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
     })
 
-    // ---- DYN string/uuid/temporal/custom per-op fan-out (round-44 T4)
     // Per-operator × type × path fan-out for the string / uuid / temporal /
     // custom dynamic-condition filter surface (sibling of the numeric/boolean/
     // enum block above). Each op is proven to reach the same builder method its

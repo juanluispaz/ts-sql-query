@@ -114,7 +114,6 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-    // ---- VALVIEW U-uses: Values as a query part (compound arm / paged /
     // aggregated source / inline scalar operand). Each pins the WITH-clause
     // hoist through the surrounding construct.
 

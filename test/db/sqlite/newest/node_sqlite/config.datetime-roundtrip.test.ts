@@ -38,8 +38,6 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // ---- localDateTime round-trip, one test per format -----------------
-
     test('localDateTime roundtrip: localdate as text', async () => {
         const conn = ctx.withDateTimeFormat('localdate as text')
         const expected = { v: REF }
@@ -195,7 +193,6 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-    // ---- localDate round-trip, one test per distinct transform arm -----
     // localDate is normalised to the date at 10:00 UTC (the timezone-safe
     // offset SqliteConnection applies). The text formats all encode the
     // same `YYYY-MM-DD`; julian / unix-seconds / unix-milliseconds each
@@ -286,7 +283,6 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-    // ---- localTime round-trip, one test per distinct transform arm ------
     // localTime is normalised onto 1970-01-01. The text/UTC formats encode
     // `HH:MM:SS(.fff)`; julian / unix-seconds / unix-milliseconds each take
     // their own numeric arm.
@@ -376,7 +372,6 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-    // ---- defensive "unexpected value" decode branches ------------------
     // These exercise the arms `transformValueFromDB` takes when the value
     // the db returns does not match the configured format. A real engine
     // in the configured format never hands back the mismatched type (nor a

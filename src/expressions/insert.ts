@@ -122,7 +122,7 @@ export interface CustomizableExecutableMultipleInsert</*in|out*/ TABLE extends H
     returningLastInsertedId: ReturningMultipleLastInsertedIdType<TABLE, USING>
     returning: ReturningFnType<TABLE, USING>
     returningOneColumn: ReturningOneColumnFnType<TABLE, USING>
-    onConflictDoNothing: OnConflictDoNothingFnType<TABLE, USING, CustomizableExecutableMultipleInsertOnConflict<TABLE, USING>>
+    onConflictDoNothing: OnConflictDoNothingFnType<TABLE, USING, CustomizableExecutableMultipleInsertOnConflictOptional<TABLE, USING>>
     onConflictDoUpdateDynamicSet: OnConflictDoUpdateDynamicSetWithoutTargetFnType<TABLE, USING, SHAPE, CustomizableExecutableMultipleInsertOnConflict<TABLE, USING>, CustomizableExecutableMultipleInsertOnConflictOptional<TABLE, USING>>
     onConflictDoUpdateSet: OnConflictDoUpdateSetWithoutTargetFnType<TABLE, USING, SHAPE, CustomizableExecutableMultipleInsertOnConflict<TABLE, USING>, CustomizableExecutableMultipleInsertOnConflictOptional<TABLE, USING>>
     onConflictDoUpdateSetIfValue: OnConflictDoUpdateSetWithoutTargetFnType<TABLE, USING, SHAPE, CustomizableExecutableMultipleInsertOnConflict<TABLE, USING>, CustomizableExecutableMultipleInsertOnConflictOptional<TABLE, USING>>

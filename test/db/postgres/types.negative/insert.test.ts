@@ -149,6 +149,16 @@ function _typeNegatives() {
         .onConflictDoNothing().returning({ id: tOrganization.id })
         // @ts-expect-error executeInsertOne is dropped on the optional-returning (onConflictDoNothing) path
         .executeInsertOne()
+    // Same rule on the MULTI-ROW path: `.values([...])` (an array) yields the
+    // Multiple-insert builder, whose `onConflictDoNothing()` can likewise suppress
+    // every row — so its returning path drops `executeInsertOne` too. Control: the
+    // NoneOrOne arm remains available.
+    void connection.insertInto(tOrganization).values([{ name: 'x', plan: 'free' }])
+        .onConflictDoNothing().returning({ id: tOrganization.id }).executeInsertNoneOrOne()
+    void connection.insertInto(tOrganization).values([{ name: 'x', plan: 'free' }])
+        .onConflictDoNothing().returning({ id: tOrganization.id })
+        // @ts-expect-error executeInsertOne is dropped on the multi-row optional-returning (onConflictDoNothing) path
+        .executeInsertOne()
 
     // Rule: on-conflict handling is deliberately NOT exposed off `defaultValues()`.
     // Although PostgreSQL accepts `INSERT ... DEFAULT VALUES ON CONFLICT ...`, the

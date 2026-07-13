@@ -169,8 +169,6 @@ describe(ctx.label, () => {
             caught = e
         }
         expect(reasonOf(caught)).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')
-        expect(ctx.lastSql).toMatchInlineSnapshot()
-        expect(ctx.lastParams).toMatchInlineSnapshot()
     })
     */
 
@@ -196,8 +194,6 @@ describe(ctx.label, () => {
             caught = e
         }
         expect(reasonOf(caught)).toBe('MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE')
-        expect(ctx.lastSql).toMatchInlineSnapshot()
-        expect(ctx.lastParams).toMatchInlineSnapshot()
     })
     */
 })

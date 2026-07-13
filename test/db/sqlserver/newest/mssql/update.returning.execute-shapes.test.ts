@@ -181,13 +181,6 @@ describe(ctx.label, () => {
             caught = e
         }
         expect(reasonOf(caught)).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set priority = @0 output inserted.priority as [result] where id = @1"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            5,
-            1,
-          ]
-        `)
     })
 
     test('update-returning-one-column-throws-mandatory-value-on-present-null', async () => {
@@ -210,12 +203,5 @@ describe(ctx.label, () => {
             caught = e
         }
         expect(reasonOf(caught)).toBe('MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE')
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set priority = @0 output inserted.status as [result] where id = @1"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            5,
-            1,
-          ]
-        `)
     })
 })

@@ -1,6 +1,5 @@
-// Behavioral coverage of `connection.Values` used as a `WITH name(c1, c2)
-// AS (VALUES ...)` clause. The `WITH ... VALUES` form this dialect emits
-// is pinned by the snapshot below.
+// Behavioral coverage of the standalone `Values` class (`Values.create(...)`)
+// used as a `WITH name(c1, c2) AS (VALUES ...)` clause.
 //
 // `Values` is typed on this dialect (the `Values.create(...)` class form is
 // constrained to all six SQL dialects); the `WITH ... VALUES` form this cell

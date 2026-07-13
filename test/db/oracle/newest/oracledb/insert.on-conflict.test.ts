@@ -842,4 +842,11 @@ describe(ctx.label, () => {
         })
     })
     */
+
+    // NOT-APPLICABLE: Oracle has no INSERT…ON CONFLICT (uses MERGE)
+    /*
+    test('on-conflict-do-update-with-nested-object-returning', async () => {
+        // Not supported by Oracle.
+    })
+    */
 })

@@ -987,4 +987,668 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
+
+    test('merged-two-left-join-leaf-alone-no-const-drops-object-default', async () => {
+        // A merged two-DIFFERENT-left-join leaf (`combined` = project.id +
+        // assignee.id) ALONE in the object — NO const anchor. Because the merged
+        // leaf spans TWO different left joins, rule 2 is disqualified and
+        // the object is OPTIONAL (`obj?`): with nothing else to anchor it, a partial
+        // miss (either join null) drops the WHOLE object. issue 3 -> project 2 hit
+        // but assignee NULL -> combined null -> obj dropped; issue 4 -> project 3 +
+        // assignee 3 -> combined = 3 + 3 = 6.
+        const expected = [
+            { iid: 3 },
+            { iid: 4, obj: { combined: 6 } },
+        ]
+        ctx.mockNext([
+            { iid: 3, 'obj.combined': null },
+            { iid: 4, 'obj.combined': 6 },
+        ])
+        const tProjLeft = tProject.forUseInLeftJoin()
+        const tAssigneeLeft = tAppUser.forUseInLeftJoin()
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .leftJoin(tProjLeft).on(tProjLeft.id.equals(tIssue.projectId))
+            .leftJoin(tAssigneeLeft).on(tAssigneeLeft.id.equals(tIssue.assigneeId))
+            .where(tIssue.id.in([3, 4]))
+            .select({
+                iid: tIssue.id,
+                obj: { combined: tProjLeft.id.add(tAssigneeLeft.id) },
+            })
+            .orderBy('iid')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as "iid", project.id + app_user.id as "obj.combined" from issue left join project on project.id = issue.project_id left join app_user on app_user.id = issue.assignee_id where issue.id in (:0, :1) order by "iid""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+            4,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            iid: number
+            obj?: { combined: number | undefined }
+        }>>>()
+        const miss = rows[0]!
+        expect('obj' in miss).toBe(false)
+        expect(rows).toEqual(expected)
+    })
+
+    test('merged-two-left-join-leaf-alone-no-const-drops-object-projecting-optional-values-as-nullable', async () => {
+        // Same merged-leaf-ALONE boundary under `projectingOptionalValuesAsNullable()`.
+        // The single merged leaf's absent inhabitant collapses the WHOLE object to
+        // `null` (NOT `{ combined: null }`): with no other leaf to realize a
+        // value-present object, the `number | null` inhabitant of `combined` is
+        // unreachable in a present object, so a partial miss surfaces as `obj: null`.
+        // issue 3 -> assignee NULL -> `obj: null`; issue 4 -> combined 6.
+        const expected = [
+            { iid: 3, obj: null },
+            { iid: 4, obj: { combined: 6 } },
+        ]
+        ctx.mockNext([
+            { iid: 3, 'obj.combined': null },
+            { iid: 4, 'obj.combined': 6 },
+        ])
+        const tProjLeft = tProject.forUseInLeftJoin()
+        const tAssigneeLeft = tAppUser.forUseInLeftJoin()
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .leftJoin(tProjLeft).on(tProjLeft.id.equals(tIssue.projectId))
+            .leftJoin(tAssigneeLeft).on(tAssigneeLeft.id.equals(tIssue.assigneeId))
+            .where(tIssue.id.in([3, 4]))
+            .select({
+                iid: tIssue.id,
+                obj: { combined: tProjLeft.id.add(tAssigneeLeft.id) },
+            })
+            .projectingOptionalValuesAsNullable()
+            .orderBy('iid')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as "iid", project.id + app_user.id as "obj.combined" from issue left join project on project.id = issue.project_id left join app_user on app_user.id = issue.assignee_id where issue.id in (:0, :1) order by "iid""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+            4,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            iid: number
+            obj: { combined: number | null } | null
+        }>>>()
+        const miss = rows[0]!
+        expect(miss.obj).toBe(null)
+        expect(rows).toEqual(expected)
+    })
+
+    test('own-optional-sibling-keeps-object-alive-on-left-join-miss-default', async () => {
+        // An object mixing an OWN-TABLE OPTIONAL leaf (`projArchived` =
+        // project.archived_at) with a LEFT-JOIN originallyRequired leaf (`issTitle` =
+        // issue.title). The own-table leaf disqualifies rule 2, so the left-join leaf
+        // is demoted `| undefined` (rule 4). project 4 (Legacy app) has NO issue -> the
+        // join MISSES (`issTitle` absent) but its own `archived_at` is present, so the
+        // object SURVIVES carrying only `projArchived`.
+        const archived = new Date(Date.UTC(2024, 0, 1, 0, 0, 0))
+        const expected = { pid: 4, obj: { projArchived: archived } }
+        ctx.mockNext({ pid: 4, 'obj.issTitle': null, 'obj.projArchived': archived })
+        const tIssueLeft = tIssue.forUseInLeftJoin()
+        const row = await ctx.conn.selectFrom(tProject)
+            .leftJoin(tIssueLeft).on(tIssueLeft.projectId.equals(tProject.id))
+            .where(tProject.id.equals(4))
+            .select({
+                pid: tProject.id,
+                obj: { issTitle: tIssueLeft.title, projArchived: tProject.archivedAt },
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as "pid", issue.title as "obj.issTitle", project.archived_at as "obj.projArchived" from project left join issue on issue.project_id = project.id where project.id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            4,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            pid: number
+            obj?: { issTitle: string | undefined; projArchived: Date | undefined }
+        }>>()
+        expect('obj' in row).toBe(true)
+        expect('issTitle' in row.obj!).toBe(false)
+        expect(row.obj!.projArchived instanceof Date).toBe(true)
+        if (!ctx.realDbEnabled) {
+            expect(row).toEqual(expected)
+        }
+    })
+
+    test('own-optional-sibling-keeps-object-alive-on-left-join-miss-projecting-optional-values-as-nullable', async () => {
+        // Same own-optional-sibling boundary under `projectingOptionalValuesAsNullable()`:
+        // the object stays present (own leaf keeps it alive) and becomes `{...} | null`,
+        // the demoted left-join `issTitle` surfaces as `null` on the miss, and the own
+        // optional `projArchived` flips to `Date | null` (present here). project 4 ->
+        // issue join misses -> `{ issTitle: null, projArchived: <Date> }`.
+        const archived = new Date(Date.UTC(2024, 0, 1, 0, 0, 0))
+        const expected = { pid: 4, obj: { issTitle: null, projArchived: archived } }
+        ctx.mockNext({ pid: 4, 'obj.issTitle': null, 'obj.projArchived': archived })
+        const tIssueLeft = tIssue.forUseInLeftJoin()
+        const row = await ctx.conn.selectFrom(tProject)
+            .leftJoin(tIssueLeft).on(tIssueLeft.projectId.equals(tProject.id))
+            .where(tProject.id.equals(4))
+            .select({
+                pid: tProject.id,
+                obj: { issTitle: tIssueLeft.title, projArchived: tProject.archivedAt },
+            })
+            .projectingOptionalValuesAsNullable()
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as "pid", issue.title as "obj.issTitle", project.archived_at as "obj.projArchived" from project left join issue on issue.project_id = project.id where project.id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            4,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            pid: number
+            obj: { issTitle: string | null; projArchived: Date | null } | null
+        }>>()
+        expect(row.obj).not.toBe(null)
+        expect(row.obj!.issTitle).toBe(null)
+        expect(row.obj!.projArchived instanceof Date).toBe(true)
+        if (!ctx.realDbEnabled) {
+            expect(row).toEqual(expected)
+        }
+    })
+
+    test('merged-leaf-first-with-own-required-anchor-survives-partial-miss-default', async () => {
+        // The merged two-left-join leaf placed FIRST, with an OWN-TABLE required
+        // anchor (`ownId` = issue.id) second. The own-table leaf makes the object
+        // REQUIRED (`obj:`); the leading merged leaf is demoted to
+        // `combined?`. issue 3 -> project 2 hit but assignee NULL -> combined null,
+        // obj survives with `ownId`; issue 4 -> combined = 3 + 3 = 6.
+        const expected = [
+            { iid: 3, obj: { ownId: 3 } },
+            { iid: 4, obj: { combined: 6, ownId: 4 } },
+        ]
+        ctx.mockNext([
+            { iid: 3, 'obj.combined': null, 'obj.ownId': 3 },
+            { iid: 4, 'obj.combined': 6, 'obj.ownId': 4 },
+        ])
+        const tProjLeft = tProject.forUseInLeftJoin()
+        const tAssigneeLeft = tAppUser.forUseInLeftJoin()
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .leftJoin(tProjLeft).on(tProjLeft.id.equals(tIssue.projectId))
+            .leftJoin(tAssigneeLeft).on(tAssigneeLeft.id.equals(tIssue.assigneeId))
+            .where(tIssue.id.in([3, 4]))
+            .select({
+                iid: tIssue.id,
+                obj: { combined: tProjLeft.id.add(tAssigneeLeft.id), ownId: tIssue.id },
+            })
+            .orderBy('iid')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as "iid", project.id + app_user.id as "obj.combined", issue.id as "obj.ownId" from issue left join project on project.id = issue.project_id left join app_user on app_user.id = issue.assignee_id where issue.id in (:0, :1) order by "iid""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+            4,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            iid: number
+            obj: { combined?: number; ownId: number }
+        }>>>()
+        const miss = rows[0]!
+        expect('obj' in miss).toBe(true)
+        expect('combined' in miss.obj).toBe(false)
+        expect(rows).toEqual(expected)
+    })
+
+    test('merged-leaf-first-with-own-required-anchor-survives-partial-miss-projecting-optional-values-as-nullable', async () => {
+        // Same merged-leaf-FIRST + own-anchor boundary under
+        // `projectingOptionalValuesAsNullable()`: the object stays REQUIRED (own leaf)
+        // and the demoted merged leaf flips to `number | null`, surfacing as `null` on
+        // the partial miss. issue 3 -> `obj: { combined: null, ownId: 3 }`.
+        const expected = [
+            { iid: 3, obj: { combined: null, ownId: 3 } },
+            { iid: 4, obj: { combined: 6, ownId: 4 } },
+        ]
+        ctx.mockNext([
+            { iid: 3, 'obj.combined': null, 'obj.ownId': 3 },
+            { iid: 4, 'obj.combined': 6, 'obj.ownId': 4 },
+        ])
+        const tProjLeft = tProject.forUseInLeftJoin()
+        const tAssigneeLeft = tAppUser.forUseInLeftJoin()
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .leftJoin(tProjLeft).on(tProjLeft.id.equals(tIssue.projectId))
+            .leftJoin(tAssigneeLeft).on(tAssigneeLeft.id.equals(tIssue.assigneeId))
+            .where(tIssue.id.in([3, 4]))
+            .select({
+                iid: tIssue.id,
+                obj: { combined: tProjLeft.id.add(tAssigneeLeft.id), ownId: tIssue.id },
+            })
+            .projectingOptionalValuesAsNullable()
+            .orderBy('iid')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as "iid", project.id + app_user.id as "obj.combined", issue.id as "obj.ownId" from issue left join project on project.id = issue.project_id left join app_user on app_user.id = issue.assignee_id where issue.id in (:0, :1) order by "iid""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+            4,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            iid: number
+            obj: { combined: number | null; ownId: number }
+        }>>>()
+        const miss = rows[0]!
+        expect(miss.obj.combined).toBe(null)
+        expect(rows).toEqual(expected)
+    })
+
+    test('merged-leaf-mixing-main-and-left-join-source-plus-const-survives-partial-miss-default', async () => {
+        // A merged leaf mixing the MAIN table (`issue.id`, required) with a LEFT-JOIN
+        // source (`assignee.id`, originallyRequired) PLUS a const anchor. The
+        // `required ⊕ originallyRequired` merge resolves to originallyRequired, so the
+        // const keeps the object REQUIRED (`obj:`) and `combined` is demoted to
+        // `combined?`. issue 3 -> assignee NULL -> combined null, obj survives with
+        // `tag`; issue 4 -> assignee 3 -> combined = 4 + 3 = 7.
+        const expected = [
+            { iid: 3, obj: { tag: 'rel' } },
+            { iid: 4, obj: { combined: 7, tag: 'rel' } },
+        ]
+        ctx.mockNext([
+            { iid: 3, 'obj.combined': null, 'obj.tag': 'rel' },
+            { iid: 4, 'obj.combined': 7, 'obj.tag': 'rel' },
+        ])
+        const tAssigneeLeft = tAppUser.forUseInLeftJoin()
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .leftJoin(tAssigneeLeft).on(tAssigneeLeft.id.equals(tIssue.assigneeId))
+            .where(tIssue.id.in([3, 4]))
+            .select({
+                iid: tIssue.id,
+                obj: { combined: tIssue.id.add(tAssigneeLeft.id), tag: ctx.conn.const('rel', 'string') },
+            })
+            .orderBy('iid')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as "iid", issue.id + app_user.id as "obj.combined", :0 as "obj.tag" from issue left join app_user on app_user.id = issue.assignee_id where issue.id in (:1, :2) order by "iid""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "rel",
+            3,
+            4,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            iid: number
+            obj: { combined?: number; tag: string }
+        }>>>()
+        const miss = rows[0]!
+        expect('obj' in miss).toBe(true)
+        expect('combined' in miss.obj).toBe(false)
+        expect(miss.obj.tag).toBe('rel')
+        expect(rows).toEqual(expected)
+    })
+
+    test('merged-leaf-mixing-main-and-left-join-source-plus-const-survives-partial-miss-projecting-optional-values-as-nullable', async () => {
+        // Same main+left merged-leaf boundary under `projectingOptionalValuesAsNullable()`:
+        // the const keeps the object REQUIRED and the demoted merged leaf flips to
+        // `number | null`, surfacing as `null` on the assignee miss. issue 3 ->
+        // `obj: { combined: null, tag: 'rel' }`.
+        const expected = [
+            { iid: 3, obj: { combined: null, tag: 'rel' } },
+            { iid: 4, obj: { combined: 7, tag: 'rel' } },
+        ]
+        ctx.mockNext([
+            { iid: 3, 'obj.combined': null, 'obj.tag': 'rel' },
+            { iid: 4, 'obj.combined': 7, 'obj.tag': 'rel' },
+        ])
+        const tAssigneeLeft = tAppUser.forUseInLeftJoin()
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .leftJoin(tAssigneeLeft).on(tAssigneeLeft.id.equals(tIssue.assigneeId))
+            .where(tIssue.id.in([3, 4]))
+            .select({
+                iid: tIssue.id,
+                obj: { combined: tIssue.id.add(tAssigneeLeft.id), tag: ctx.conn.const('rel', 'string') },
+            })
+            .projectingOptionalValuesAsNullable()
+            .orderBy('iid')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as "iid", issue.id + app_user.id as "obj.combined", :0 as "obj.tag" from issue left join app_user on app_user.id = issue.assignee_id where issue.id in (:1, :2) order by "iid""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "rel",
+            3,
+            4,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            iid: number
+            obj: { combined: number | null; tag: string }
+        }>>>()
+        const miss = rows[0]!
+        expect(miss.obj.combined).toBe(null)
+        expect(miss.obj.tag).toBe('rel')
+        expect(rows).toEqual(expected)
+    })
+
+    test('merged-leaf-plus-const-nested-one-level-deeper-survives-partial-miss-default', async () => {
+        // The merged-two-left-join leaf + const anchor nested ONE LEVEL DEEPER
+        // (`outer.inner`). The inner object is REQUIRED (const anchor) and
+        // the merged `combined` is demoted; the outer object holds only the required
+        // inner, so it is REQUIRED too. issue 3 -> assignee NULL -> combined null;
+        // issue 4 -> combined = 3 + 3 = 6.
+        const expected = [
+            { iid: 3, outer: { inner: { tag: 'rel' } } },
+            { iid: 4, outer: { inner: { combined: 6, tag: 'rel' } } },
+        ]
+        ctx.mockNext([
+            { iid: 3, 'outer.inner.combined': null, 'outer.inner.tag': 'rel' },
+            { iid: 4, 'outer.inner.combined': 6, 'outer.inner.tag': 'rel' },
+        ])
+        const tProjLeft = tProject.forUseInLeftJoin()
+        const tAssigneeLeft = tAppUser.forUseInLeftJoin()
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .leftJoin(tProjLeft).on(tProjLeft.id.equals(tIssue.projectId))
+            .leftJoin(tAssigneeLeft).on(tAssigneeLeft.id.equals(tIssue.assigneeId))
+            .where(tIssue.id.in([3, 4]))
+            .select({
+                iid: tIssue.id,
+                outer: { inner: { combined: tProjLeft.id.add(tAssigneeLeft.id), tag: ctx.conn.const('rel', 'string') } },
+            })
+            .orderBy('iid')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as "iid", project.id + app_user.id as "outer.inner.combined", :0 as "outer.inner.tag" from issue left join project on project.id = issue.project_id left join app_user on app_user.id = issue.assignee_id where issue.id in (:1, :2) order by "iid""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "rel",
+            3,
+            4,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            iid: number
+            outer: { inner: { combined?: number; tag: string } }
+        }>>>()
+        const miss = rows[0]!
+        expect('combined' in miss.outer.inner).toBe(false)
+        expect(miss.outer.inner.tag).toBe('rel')
+        expect(rows).toEqual(expected)
+    })
+
+    test('merged-leaf-plus-const-nested-one-level-deeper-survives-partial-miss-projecting-optional-values-as-nullable', async () => {
+        // Same nested merged-leaf boundary under `projectingOptionalValuesAsNullable()`:
+        // the inner object stays REQUIRED (const anchor) and the demoted merged leaf
+        // flips to `number | null`, surfacing as `null` on the miss. issue 3 ->
+        // `outer.inner: { combined: null, tag: 'rel' }`.
+        const expected = [
+            { iid: 3, outer: { inner: { combined: null, tag: 'rel' } } },
+            { iid: 4, outer: { inner: { combined: 6, tag: 'rel' } } },
+        ]
+        ctx.mockNext([
+            { iid: 3, 'outer.inner.combined': null, 'outer.inner.tag': 'rel' },
+            { iid: 4, 'outer.inner.combined': 6, 'outer.inner.tag': 'rel' },
+        ])
+        const tProjLeft = tProject.forUseInLeftJoin()
+        const tAssigneeLeft = tAppUser.forUseInLeftJoin()
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .leftJoin(tProjLeft).on(tProjLeft.id.equals(tIssue.projectId))
+            .leftJoin(tAssigneeLeft).on(tAssigneeLeft.id.equals(tIssue.assigneeId))
+            .where(tIssue.id.in([3, 4]))
+            .select({
+                iid: tIssue.id,
+                outer: { inner: { combined: tProjLeft.id.add(tAssigneeLeft.id), tag: ctx.conn.const('rel', 'string') } },
+            })
+            .projectingOptionalValuesAsNullable()
+            .orderBy('iid')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as "iid", project.id + app_user.id as "outer.inner.combined", :0 as "outer.inner.tag" from issue left join project on project.id = issue.project_id left join app_user on app_user.id = issue.assignee_id where issue.id in (:1, :2) order by "iid""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "rel",
+            3,
+            4,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            iid: number
+            outer: { inner: { combined: number | null; tag: string } }
+        }>>>()
+        const miss = rows[0]!
+        expect(miss.outer.inner.combined).toBe(null)
+        expect(rows).toEqual(expected)
+    })
+
+    test('merged-same-single-left-join-leaf-stays-rule-2-and-drops-on-miss-default', async () => {
+        // A merged leaf whose BOTH operands come from the SAME single left join
+        // (`m` = issue.id + issue.number). Merging within ONE source keeps the leaf
+        // single-table, so rule 2 still applies: the object is OPTIONAL (`obj?`) with
+        // `m` required-when-present, and
+        // it DROPS on a join miss. project 3 -> issue 4 hit -> m = 4 + 1 = 5; project
+        // 4 -> no issue -> obj dropped.
+        const expected = [
+            { pid: 3, obj: { m: 5 } },
+            { pid: 4 },
+        ]
+        ctx.mockNext([
+            { pid: 3, 'obj.m': 5 },
+            { pid: 4, 'obj.m': null },
+        ])
+        const tIssueLeft = tIssue.forUseInLeftJoin()
+        const rows = await ctx.conn.selectFrom(tProject)
+            .leftJoin(tIssueLeft).on(tIssueLeft.projectId.equals(tProject.id))
+            .where(tProject.id.in([3, 4]))
+            .select({
+                pid: tProject.id,
+                obj: { m: tIssueLeft.id.add(tIssueLeft.number) },
+            })
+            .orderBy('pid')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as "pid", issue.id + issue."number" as "obj.m" from project left join issue on issue.project_id = project.id where project.id in (:0, :1) order by "pid""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+            4,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            pid: number
+            obj?: { m: number }
+        }>>>()
+        const miss = rows[1]!
+        expect('obj' in miss).toBe(false)
+        expect(rows).toEqual(expected)
+    })
+
+    test('merged-same-single-left-join-leaf-stays-rule-2-and-drops-on-miss-projecting-optional-values-as-nullable', async () => {
+        // Same merged-SAME-single-left-join boundary under
+        // `projectingOptionalValuesAsNullable()`: the object is OPTIONAL and surfaces
+        // as `null` on the join miss (not absent). project 4 -> no issue -> `obj: null`.
+        const expected = [
+            { pid: 3, obj: { m: 5 } },
+            { pid: 4, obj: null },
+        ]
+        ctx.mockNext([
+            { pid: 3, 'obj.m': 5 },
+            { pid: 4, 'obj.m': null },
+        ])
+        const tIssueLeft = tIssue.forUseInLeftJoin()
+        const rows = await ctx.conn.selectFrom(tProject)
+            .leftJoin(tIssueLeft).on(tIssueLeft.projectId.equals(tProject.id))
+            .where(tProject.id.in([3, 4]))
+            .select({
+                pid: tProject.id,
+                obj: { m: tIssueLeft.id.add(tIssueLeft.number) },
+            })
+            .projectingOptionalValuesAsNullable()
+            .orderBy('pid')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as "pid", issue.id + issue."number" as "obj.m" from project left join issue on issue.project_id = project.id where project.id in (:0, :1) order by "pid""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+            4,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            pid: number
+            obj: { m: number } | null
+        }>>>()
+        const miss = rows[1]!
+        expect(miss.obj).toBe(null)
+        expect(rows).toEqual(expected)
+    })
+
+    test('object-mixing-own-optional-and-left-join-optional-leaves-drops-on-full-miss-default', async () => {
+        // An object mixing an OWN-TABLE OPTIONAL leaf (`body` = issue.body) with a
+        // LEFT-JOIN OPTIONAL leaf (`arch` = project.archived_at via left join). The
+        // object is OPTIONAL and drops only when BOTH leaves are null. issue 1 -> body NULL + project 1
+        // archived_at NULL -> obj dropped; issue 2 -> body 'Use new tokens' -> obj
+        // present (project 1 archived_at still NULL, so `arch` absent).
+        const expected = [
+            { iid: 1 },
+            { iid: 2, obj: { body: 'Use new tokens' } },
+        ]
+        ctx.mockNext([
+            { iid: 1, 'obj.body': null, 'obj.arch': null },
+            { iid: 2, 'obj.body': 'Use new tokens', 'obj.arch': null },
+        ])
+        const tProjLeft = tProject.forUseInLeftJoin()
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .leftJoin(tProjLeft).on(tProjLeft.id.equals(tIssue.projectId))
+            .where(tIssue.id.in([1, 2]))
+            .select({
+                iid: tIssue.id,
+                obj: { body: tIssue.body, arch: tProjLeft.archivedAt },
+            })
+            .orderBy('iid')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as "iid", issue."body" as "obj.body", project.archived_at as "obj.arch" from issue left join project on project.id = issue.project_id where issue.id in (:0, :1) order by "iid""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            iid: number
+            obj?: { body: string | undefined; arch: Date | undefined }
+        }>>>()
+        const miss = rows[0]!
+        expect('obj' in miss).toBe(false)
+        const hit = rows[1]!
+        expect('obj' in hit).toBe(true)
+        expect('arch' in hit.obj!).toBe(false)
+        expect(rows).toEqual(expected)
+    })
+
+    test('object-mixing-own-optional-and-left-join-optional-leaves-drops-on-full-miss-projecting-optional-values-as-nullable', async () => {
+        // Same own-optional + left-join-optional boundary under
+        // `projectingOptionalValuesAsNullable()`: the object becomes `{...} | null`,
+        // both leaves `| null`, and the full miss surfaces as `obj: null`. issue 1 ->
+        // both null -> `obj: null`; issue 2 -> `{ body: 'Use new tokens', arch: null }`.
+        const expected = [
+            { iid: 1, obj: null },
+            { iid: 2, obj: { body: 'Use new tokens', arch: null } },
+        ]
+        ctx.mockNext([
+            { iid: 1, 'obj.body': null, 'obj.arch': null },
+            { iid: 2, 'obj.body': 'Use new tokens', 'obj.arch': null },
+        ])
+        const tProjLeft = tProject.forUseInLeftJoin()
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .leftJoin(tProjLeft).on(tProjLeft.id.equals(tIssue.projectId))
+            .where(tIssue.id.in([1, 2]))
+            .select({
+                iid: tIssue.id,
+                obj: { body: tIssue.body, arch: tProjLeft.archivedAt },
+            })
+            .projectingOptionalValuesAsNullable()
+            .orderBy('iid')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as "iid", issue."body" as "obj.body", project.archived_at as "obj.arch" from issue left join project on project.id = issue.project_id where issue.id in (:0, :1) order by "iid""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            iid: number
+            obj: { body: string | null; arch: Date | null } | null
+        }>>>()
+        const miss = rows[0]!
+        expect(miss.obj).toBe(null)
+        const hit = rows[1]!
+        expect(hit.obj).not.toBe(null)
+        expect(hit.obj!.arch).toBe(null)
+        expect(rows).toEqual(expected)
+    })
+
+    test('merged-two-left-join-leaf-plus-const-inside-aggregate-element-demotes-leaf-default', async () => {
+        // The merged-two-left-join leaf + const anchor inside an `aggregateAsArray`
+        // ELEMENT. The const anchors the element (required), so the merged leaf
+        // (project.id + assignee.id, spanning two different left joins) is demoted to
+        // `combined?`. project 2 -> issue 3 (assignee NULL) -> combined null, so the
+        // single element is `{ tag: 'rel' }` with `combined` absent.
+        const expected = [{ pid: 2, items: [{ tag: 'rel' }] }]
+        ctx.mockNext([{ pid: 2, items: [{ combined: null, tag: 'rel' }] }])
+        const tIssueLeft = tIssue.forUseInLeftJoin()
+        const tAssigneeLeft = tAppUser.forUseInLeftJoin()
+        const rows = await ctx.conn.selectFrom(tProject)
+            .leftJoin(tIssueLeft).on(tIssueLeft.projectId.equals(tProject.id))
+            .leftJoin(tAssigneeLeft).on(tAssigneeLeft.id.equals(tIssueLeft.assigneeId))
+            .where(tProject.id.equals(2))
+            .select({
+                pid:   tProject.id,
+                items: ctx.conn.aggregateAsArray({
+                    combined: tIssueLeft.id.add(tAssigneeLeft.id),
+                    tag:      ctx.conn.fragmentWithType('string', 'required').sql`'rel'`,
+                }),
+            })
+            .groupBy('pid')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as "pid", json_arrayagg(json_object('combined' value issue.id + app_user.id, 'tag' value 'rel')) as "items" from project left join issue on issue.project_id = project.id left join app_user on app_user.id = issue.assignee_id where project.id = :0 group by project.id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            pid:   number
+            items: Array<{ combined?: number; tag: string }>
+        }>>>()
+        const element = rows[0]!.items[0]!
+        expect('combined' in element).toBe(false)
+        expect(element.tag).toBe('rel')
+        expect(rows).toEqual(expected)
+    })
+
+    test('merged-two-left-join-leaf-plus-const-inside-aggregate-element-demotes-leaf-projecting-optional-values-as-nullable', async () => {
+        // Same merged-leaf-inside-aggregate-element boundary under
+        // `projectingOptionalValuesAsNullable()`: the element stays required (const
+        // anchor) and the demoted merged leaf flips to `number | null`, surfacing as
+        // `null` in the element. project 2 -> issue 3 assignee NULL ->
+        // `items: [{ combined: null, tag: 'rel' }]`.
+        const expected = [{ pid: 2, items: [{ combined: null, tag: 'rel' }] }]
+        ctx.mockNext([{ pid: 2, items: [{ combined: null, tag: 'rel' }] }])
+        const tIssueLeft = tIssue.forUseInLeftJoin()
+        const tAssigneeLeft = tAppUser.forUseInLeftJoin()
+        const rows = await ctx.conn.selectFrom(tProject)
+            .leftJoin(tIssueLeft).on(tIssueLeft.projectId.equals(tProject.id))
+            .leftJoin(tAssigneeLeft).on(tAssigneeLeft.id.equals(tIssueLeft.assigneeId))
+            .where(tProject.id.equals(2))
+            .select({
+                pid:   tProject.id,
+                items: ctx.conn.aggregateAsArray({
+                    combined: tIssueLeft.id.add(tAssigneeLeft.id),
+                    tag:      ctx.conn.fragmentWithType('string', 'required').sql`'rel'`,
+                }).projectingOptionalValuesAsNullable(),
+            })
+            .groupBy('pid')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as "pid", json_arrayagg(json_object('combined' value issue.id + app_user.id, 'tag' value 'rel')) as "items" from project left join issue on issue.project_id = project.id left join app_user on app_user.id = issue.assignee_id where project.id = :0 group by project.id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            pid:   number
+            items: Array<{ combined: number | null; tag: string }>
+        }>>>()
+        const element = rows[0]!.items[0]!
+        expect(element.combined).toBe(null)
+        expect(element.tag).toBe('rel')
+        expect(rows).toEqual(expected)
+    })
 })

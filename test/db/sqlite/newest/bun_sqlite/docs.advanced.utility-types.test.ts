@@ -102,6 +102,15 @@ describe(ctx.label, () => {
             name:           'demo',
         }
         void probe
+        // `InsertableRow` accepts value sources under its mandatory keys, not just
+        // literals (the key-set pin below cannot show this — a literal is assignable
+        // to both the Row and the literal-only Values variant).
+        const vs: ProjInsertRow = {
+            organizationId: tProject.organizationId,
+            slug:           tProject.slug,
+            name:           tProject.name,
+        }
+        void vs
         // The Row wrapper's leaves are `value | IValueSource<…>` whose source
         // brand is dialect-specific and not portably nameable, so we pin the
         // column key set against the Values sibling rather than the full type.
@@ -121,6 +130,9 @@ describe(ctx.label, () => {
             title: 'new title',
         }
         void probe
+        // `UpdatableRow` accepts value sources, not just literals.
+        const vs: IssueUpdateRow = { title: tIssue.title }
+        void vs
         // Key-set pin (the leaf value-source brand is not portably nameable).
         assertType<Exact<keyof IssueUpdateRow, keyof UpdatableValues<typeof tIssue>>>()
     })
@@ -166,6 +178,11 @@ describe(ctx.label, () => {
         // doc-end
         const probe: OrgUpsertRow = { plan: 'enterprise' }
         void probe
+        // `UpdatableOnInsertConflictRow` accepts value sources, not just literals
+        // (the key-set pin below cannot show this — a literal is assignable to both
+        // the Row and the literal-only Values variant).
+        const vs: OrgUpsertRow = { plan: tOrganization.plan }
+        void vs
         // Key-set pin against the Values sibling (the leaf value-source brand
         // is not portably nameable).
         assertType<Exact<keyof OrgUpsertRow, keyof UpdatableOnInsertConflictValues<typeof tOrganization>>>()

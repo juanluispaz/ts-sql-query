@@ -841,4 +841,40 @@ describe(ctx.label, () => {
         })
     })
     */
+
+    // NOT-APPLICABLE: MySQL has no RETURNING, so a RETURNING projection after an upsert is unavailable.
+    /*
+    test('on-conflict-do-update-with-nested-object-returning', async () => {
+        // `onConflictOn(cols).doUpdateSet(...)` with a NESTED-object RETURNING.
+        // The upsert always writes a row, so the projection is REQUIRED
+        // (`{ id, audit: { name, slug } }` — a plain nested object, no left
+        // join). tProject has UNIQUE (organization_id, slug); (1, 'mktg-site')
+        // collides with the seed, so DO UPDATE refreshes `name` and RETURNING
+        // yields the row's id plus its {name, slug} folded into the `audit`
+        // sub-object. The mock is keyed by the flat emitted aliases
+        // (`audit.name`, `audit.slug`); the complex projection reassembles them.
+        const expected = { id: 1, audit: { name: 'Updated mktg', slug: 'mktg-site' } }
+        ctx.mockNext({ id: 1, 'audit.name': 'Updated mktg', 'audit.slug': 'mktg-site' })
+        await ctx.withRollback(async () => {
+            const row = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, slug: 'mktg-site', name: 'Updated mktg' })
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doUpdateSet({ name: 'Updated mktg' })
+                .returning({ id: tProject.id, audit: { name: tProject.name, slug: tProject.slug } })
+                .executeInsertOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+              [
+                1,
+                "mktg-site",
+                "Updated mktg",
+                "Updated mktg",
+              ]
+            `)
+            assertType<Exact<typeof row, { id: number; audit: { name: string; slug: string } }>>()
+            expect(row).toEqual(expected)
+        })
+    })
+    */
 })

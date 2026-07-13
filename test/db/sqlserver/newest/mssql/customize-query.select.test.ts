@@ -613,4 +613,41 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ id: number; tree: number[] }>>>()
         expect(result).toEqual(expected)
     })
+    test('customize-recursive-select-custom-window-renders-in-inline-scalar-value', async () => {
+        // A recursive select consumed as an inline SCALAR value via
+        // `.forUseAsInlineQueryValue()`, carrying `customWindow` alongside the
+        // `afterSelectKeyword` / `beforeColumns` hooks: the `window <name> as (...)`
+        // clause renders inside the scalar subquery's SELECT. Every seeded issue
+        // leaves `parent_id` NULL, so the traversal from a single
+        // anchor yields one row (id 1).
+        const expected = [{ id: 1, root: 1 }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+        const rootIssueId = connection.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .selectOneColumn(tIssue.id)
+            .recursiveUnionAllOn((child) => tIssue.parentId.equals(child.result))
+            .customizeQuery({
+                afterSelectKeyword: connection.rawFragment`/* hint */`,
+                beforeColumns:      connection.rawFragment`/* cols */ `,
+                customWindow:       connection.rawFragment`w1 as (partition by result)`,
+            })
+            .forUseAsInlineQueryValue()
+
+        const result = await connection.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ id: tProject.id, root: rootIssueId })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive_select_1 as (select id as [result] from issue where id = @0 union all select issue.id as [result] from issue join recursive_select_1 on issue.parent_id = recursive_select_1.[result]) select id as id, (select /* hint */ /* cols */  [result] as [result] from recursive_select_1 window w1 as (partition by result)) as root from project where id = @1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; root?: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
 })

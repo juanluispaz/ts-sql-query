@@ -49,9 +49,17 @@ function _typeNegatives() {
         bad:  tProject.nonExistent,
     })
 
-    // Note: `tTable.oldValues()` IS typed on SqlServerConnection (the
-    // current dialect); the compile-time negative lives in the
-    // `types.negative` suite of the dialects that don't expose it.
+    // Rule: `tTable.oldValues()` IS typed on SqlServerConnection (the current
+    // dialect, unlike mysql/oracle/sqlite where `oldValues()` itself is `never`),
+    // but its columns are RETURNING-ONLY. They carry the `NOldValues<…>` source,
+    // which `.set()` / `.where()` (keyed on the update's `USING` source) exclude —
+    // so referencing an old-value column in `set()` or `where()` does not compile,
+    // even though the same column IS accepted in `returning(...)`.
+    const oldProject = tProject.oldValues()
+    // @ts-expect-error oldValues() columns are RETURNING-only; not assignable in set()
+    void connection.update(tProject).set({ name: oldProject.name }).where(tProject.id.equals(1))
+    // @ts-expect-error oldValues() columns are RETURNING-only; not usable in where()
+    void connection.update(tProject).set({ name: 'x' }).where(oldProject.name.equals('y'))
 
     // Rule: under an active shape, the conditional `*When` set arms accept
     // only the renamed shape keys — never the real columns (same contract as

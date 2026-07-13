@@ -454,4 +454,27 @@ describe(ctx.label, () => {
     })
     */
 
+
+    // NOT-APPLICABLE: MySQL has no DELETE … RETURNING; the fluent API narrows
+    // `returningOneColumn` / `returning` to `never` on MySqlConnection.
+    /*
+    test('execute-delete-one-column-many-with-max-throws-when-over-limit', async () => {
+        // The one-column arity of the many max-throw arm: `executeDeleteMany(min,
+        // max)` with `returningOneColumn(col)`. WHERE matches all 4 seeded issues
+        // (priority >= 1), so the one-column-many result has 4 rows and max = 1
+        // throws `MAXIMUM_ROWS_EXCEEDED` in both modes (the mock is primed with 4
+        // statuses so the guard fires without shaping).
+        ctx.mockNext(['open', 'in_progress', 'open', 'closed'])
+        await ctx.withRollback(async () => {
+            let caught: unknown
+            try {
+                await ctx.conn.deleteFrom(tIssue)
+                    .where(tIssue.priority.greaterOrEqual(1))
+                    .returningOneColumn(tIssue.status)
+                    .executeDeleteMany(0, 1)
+            } catch (e) { caught = e }
+            expect(String(caught)).toMatch(/MAXIMUM_ROWS_EXCEEDED|deleted more/)
+        })
+    })
+    */
 })

@@ -327,4 +327,43 @@ describe(ctx.label, () => {
         })
     })
     */
+
+    // NOT-APPLICABLE: SQLite has no `OLD`/`OLD_VALUE`/`OUTPUT deleted` equivalent for returning pre-update column snapshots from a single UPDATE, so `oldValues()` is typed `never` on `SqliteConnection`; audit-style RETURNING with old/new must be emulated via a separate SELECT before the UPDATE.
+    /*
+    test('returning-old-optional-and-assignee-with-from-inner-join-projecting-nullable', async () => {
+        // `oldValues()` in RETURNING combined with `UPDATE … FROM(join)` under
+        // `projectingOptionalValuesAsNullable()`. The from-then-join wires
+        // issue → app_user while the synthetic pre-update subquery survives, and
+        // the RETURNING projection reads the pre-update OPTIONAL column
+        // `archivedAt` beside the joined-in assignee name. Because `archivedAt`
+        // is an optional column, under `projectingOptionalValuesAsNullable()` it
+        // surfaces as `Date | null` (not `?: Date`); project 1's archived_at is
+        // NULL, so `oldArchivedAt` comes back as `null`. Update project 1's name
+        // to its issue-1 assignee (Ada Lovelace via user 1).
+        ctx.mockNext({ oldArchivedAt: null, assignee: 'Ada Lovelace' })
+        await ctx.withRollback(async () => {
+            const oldProject = tProject.oldValues()
+            const row = await ctx.conn.update(tProject)
+                .from(tIssue)
+                .innerJoin(tAppUser).on(tAppUser.id.equals(tIssue.assigneeId))
+                .set({ name: tAppUser.fullName })
+                .where(tProject.id.equals(tIssue.projectId))
+                    .and(tIssue.id.equals(1))
+                .returning({
+                    oldArchivedAt: oldProject.archivedAt,
+                    assignee:      tAppUser.fullName,
+                })
+                .projectingOptionalValuesAsNullable()
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof row, {
+                oldArchivedAt: Date | null
+                assignee:      string
+            }>>()
+            expect(row).toEqual({ oldArchivedAt: null, assignee: 'Ada Lovelace' })
+        })
+    })
+    */
 })

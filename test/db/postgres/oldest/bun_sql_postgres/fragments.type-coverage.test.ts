@@ -24,6 +24,20 @@ const bracketAdapter: TypeAdapter = {
     },
 }
 
+// A non-identity temporal TypeAdapter: shifts a read Date +1 hour so the
+// adapter's effect is observable in a temporal aggregate result. Used to prove
+// the trailing `adapter?` argument of `aggregateFragmentWithType(...)` is
+// threaded on the temporal return arms below.
+const shiftHourAdapter: TypeAdapter = {
+    transformValueFromDB(value, type, next) {
+        const v = next.transformValueFromDB(value, type)
+        return v instanceof Date ? new Date(v.getTime() + 3600000) : v
+    },
+    transformValueToDB(value, type, next) {
+        return next.transformValueToDB(value, type)
+    },
+}
+
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
     afterAll(() => ctx.down(), ctx.timeoutMs)
@@ -435,6 +449,130 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
+
+    test('aggregate-fragment-with-type-local-time-threads-a-trailing-type-adapter', async () => {
+        // The TEMPORAL `localTime` return arm of `aggregateFragmentWithType(...)`
+        // with a trailing adapter: `shiftHourAdapter` shifts the read value +1h. The
+        // mock is primed with the RAW aggregated value; the adapter shifts it on the
+        // way out. Issue 1's worklogs {09:15, 10:30} -> max(started_at) = 10:30 ->
+        // +1h -> 11:30.
+        ctx.mockNext({ mlt: new Date(Date.UTC(1970, 0, 1, 10, 30, 0)) })
+        const expected = { mlt: new Date(Date.UTC(1970, 0, 1, 11, 30, 0)) }
+        const row = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.issueId.equals(1))
+            .select({
+                mlt: ctx.conn.aggregateFragmentWithType('localTime', 'required', shiftHourAdapter).sql`max(${tIssueWorklog.startedAt})`,
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(started_at) as mlt from issue_worklog where issue_id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { mlt: Date }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('aggregate-fragment-with-type-local-date-time-threads-a-trailing-type-adapter', async () => {
+        // The TEMPORAL `localDateTime` return arm of `aggregateFragmentWithType(...)`
+        // with a trailing adapter. Releases' signed_off_at {2024-01-14 12:30, NULL,
+        // 2024-02-28 09:00} -> max = 2024-02-28 09:00 -> +1h -> 10:00.
+        ctx.mockNext({ mldt: new Date(Date.UTC(2024, 1, 28, 9, 0, 0)) })
+        const expected = { mldt: new Date(Date.UTC(2024, 1, 28, 10, 0, 0)) }
+        const row = await ctx.conn.selectFrom(tProjectRelease)
+            .select({
+                mldt: ctx.conn.aggregateFragmentWithType('localDateTime', 'required', shiftHourAdapter).sql`max(${tProjectRelease.signedOffAt})`,
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(signed_off_at) as mldt from project_release"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof row, { mldt: Date }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('aggregate-fragment-with-type-custom-local-time-threads-a-trailing-type-adapter', async () => {
+        // The CUSTOM-kind `customLocalTime` ('CutoffClock') return arm with a
+        // trailing adapter. Releases'
+        // cutoff_time {17:00, 18:30, 16:00} -> max = 18:30 -> +1h -> 19:30.
+        ctx.mockNext({ mct: new Date(Date.UTC(1970, 0, 1, 18, 30, 0)) })
+        const expected = { mct: new Date(Date.UTC(1970, 0, 1, 19, 30, 0)) }
+        const row = await ctx.conn.selectFrom(tProjectRelease)
+            .select({
+                mct: ctx.conn.aggregateFragmentWithType<Date, 'CutoffClock'>('customLocalTime', 'CutoffClock', 'required', shiftHourAdapter).sql`max(${tProjectRelease.cutoffTime})`,
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(cutoff_time) as mct from project_release"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof row, { mct: Date }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('aggregate-fragment-with-type-custom-local-date-time-threads-a-trailing-type-adapter', async () => {
+        // The CUSTOM-kind `customLocalDateTime` ('SignOffStamp') return arm with a
+        // trailing adapter. max(signed_off_at) = 2024-02-28
+        // 09:00 -> +1h -> 10:00.
+        ctx.mockNext({ mcdt: new Date(Date.UTC(2024, 1, 28, 9, 0, 0)) })
+        const expected = { mcdt: new Date(Date.UTC(2024, 1, 28, 10, 0, 0)) }
+        const row = await ctx.conn.selectFrom(tProjectRelease)
+            .select({
+                mcdt: ctx.conn.aggregateFragmentWithType<Date, 'SignOffStamp'>('customLocalDateTime', 'SignOffStamp', 'required', shiftHourAdapter).sql`max(${tProjectRelease.signedOffAt})`,
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(signed_off_at) as mcdt from project_release"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof row, { mcdt: Date }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('aggregate-fragment-with-type-local-date-threads-a-trailing-type-adapter', async () => {
+        // The TEMPORAL `localDate` return arm with a trailing adapter. The localDate
+        // marshaller rejects a real date-only echo through the shifting adapter, so
+        // the value is asserted MOCK-ONLY (real-DB asserts structurally). max(work_date)
+        // over the worklogs {2024-03-04, 2024-03-05, 2024-03-06} = 2024-03-06 -> +1h.
+        // The mock localDate marshaller reads the date back at 10:00 UTC (the same
+        // date-only echo the existing localDate arms show), so the +1h adapter lands
+        // it at 11:00.
+        ctx.mockNext({ mld: new Date(Date.UTC(2024, 2, 6, 0, 0, 0)) })
+        const expected = { mld: new Date(Date.UTC(2024, 2, 6, 11, 0, 0)) }
+        const row = await ctx.conn.selectFrom(tIssueWorklog)
+            .select({
+                mld: ctx.conn.aggregateFragmentWithType('localDate', 'required', shiftHourAdapter).sql`max(${tIssueWorklog.workDate})`,
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(work_date) as mld from issue_worklog"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof row, { mld: Date }>>()
+        if (ctx.realDbEnabled) {
+            expect(row.mld instanceof Date).toBe(true)
+        } else {
+            expect(row).toEqual(expected)
+        }
+    })
+
+    test('aggregate-fragment-with-type-custom-local-date-threads-a-trailing-type-adapter', async () => {
+        // The CUSTOM-kind `customLocalDate` ('ReleaseDay') return arm with a trailing
+        // adapter. Same localDate marshaller boundary, so the
+        // value is asserted MOCK-ONLY. max(released_on) over {2024-01-15, 2024-02-20,
+        // 2024-03-01} = 2024-03-01 -> +1h.
+        // The mock localDate marshaller reads the date back at 10:00 UTC, so the
+        // +1h adapter lands it at 11:00.
+        ctx.mockNext({ mcd: new Date(Date.UTC(2024, 2, 1, 0, 0, 0)) })
+        const expected = { mcd: new Date(Date.UTC(2024, 2, 1, 11, 0, 0)) }
+        const row = await ctx.conn.selectFrom(tProjectRelease)
+            .select({
+                mcd: ctx.conn.aggregateFragmentWithType<Date, 'ReleaseDay'>('customLocalDate', 'ReleaseDay', 'required', shiftHourAdapter).sql`max(${tProjectRelease.releasedOn})`,
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(released_on) as mcd from project_release"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof row, { mcd: Date }>>()
+        if (ctx.realDbEnabled) {
+            expect(row.mcd instanceof Date).toBe(true)
+        } else {
+            expect(row).toEqual(expected)
+        }
+    })
 
     test('fragment-with-type-optional-arms-over-worklog', async () => {
         // The `'optional'` arms of the boolean / localDate / localTime /

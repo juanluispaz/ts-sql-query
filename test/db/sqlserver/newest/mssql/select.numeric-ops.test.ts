@@ -1080,4 +1080,65 @@ describe(ctx.label, () => {
             expect(row).toEqual(expected)
         }
     })
+
+    // TODO[LIMITATION]: SQL Server's `asInt()` on a double emits `round(cast(<x> as float), 0)` (still FLOAT-typed), and SQL Server rejects the `float % int` modulo operator (error 402); the double→int-then-`modulo` arm is only valid where `asInt()` yields an integer/numeric receiver (PG/SQLite/MariaDB/Oracle).
+    /*
+    test('asInt-chained-into-numeric-op', async () => {
+        // A REQUIRED double value's `.asInt()` chained into downstream int
+        // ops. The receiver is `priority.asDouble()` (int→double, priority(id=1)=2
+        // → 2.0); `.asInt()` on a double rounds back to int
+        // (`round((priority::float)::numeric)`) and the `.modulo(2)` / `.add(1)`
+        // ops wrap that expression. priority(1)=2 → asInt 2 → modulo(2)=0,
+        // add(1)=3. Required receiver → required `number` leaves.
+        const expected = [{ id: 1, m: 0, a: 3 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                m:  tIssue.priority.asDouble().asInt().modulo(2),
+                a:  tIssue.priority.asDouble().asInt().add(1),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(ctx.lastParams).toMatchInlineSnapshot()
+        assertType<Exact<typeof result, Array<{ id: number; m: number; a: number }>>>()
+        expect(result).toEqual(expected)
+    })
+    */
+
+    test('asBigint-chained-into-bigint-op', async () => {
+        // A REQUIRED int value's `.asBigint()` chained into downstream bigint
+        // ops. `priority.asBigint()` is an int→bigint Noop-wrap that emits no
+        // SQL (renders the bare column), so `.add(2n)` / `.modulo(2n)` wrap
+        // `priority` directly. priority(id=1)=2 → add(2n)=4n, modulo(2n)=0n.
+        // Required receiver → required `bigint` leaves. A bigint result can
+        // come back as a string on some drivers, so the real-DB branch coerces
+        // through BigInt(...).
+        const expected = [{ id: 1, a: 4n, m: 0n }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                a:  tIssue.priority.asBigint().add(2n),
+                m:  tIssue.priority.asBigint().modulo(2n),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority + @0 as [a], priority % @1 as [m] from issue where id = @2"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2n,
+            2n,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; a: bigint; m: bigint }>>>()
+        if (ctx.realDbEnabled) {
+            expect(BigInt(result[0]!.a)).toBe(4n)
+            expect(BigInt(result[0]!.m)).toBe(0n)
+        } else {
+            expect(result).toEqual(expected)
+        }
+    })
 })

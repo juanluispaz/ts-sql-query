@@ -690,4 +690,11 @@ describe(ctx.label, () => {
         })
     })
     */
+
+    // NOT-APPLICABLE: SQL Server has no INSERT…ON CONFLICT (uses MERGE)
+    /*
+    test('on-conflict-do-update-with-nested-object-returning', async () => {
+        // Not supported by SQL Server.
+    })
+    */
 })

@@ -7,7 +7,6 @@
 //
 //   - eq / not / lt / lte / gt / gte
 //   - in / notIn (empty + non-empty)
-//   - between (object form with min/max)
 //   - like / notLike / likeInsensitive / notLikeInsensitive
 //   - startsWith / endsWith / contains and their `notXxx` /
 //     `xxxInsensitive` cousins

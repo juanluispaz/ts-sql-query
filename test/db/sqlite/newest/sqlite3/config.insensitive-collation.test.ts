@@ -65,7 +65,7 @@ describe(ctx.label, () => {
             .where(tAppUser.email.likeInsensitive('ad%'))
             .select({ id: tAppUser.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email like (? collate NOCASE) escape '\\'"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email like ? collate NOCASE escape '\\'"`)
 
         const empty = ctx.withInsensitiveCollation('')
         await empty.selectFrom(tAppUser)
@@ -81,7 +81,7 @@ describe(ctx.label, () => {
             .where(tAppUser.email.notLikeInsensitive('ad%'))
             .select({ id: tAppUser.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email not like (? collate NOCASE) escape '\\'"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email not like ? collate NOCASE escape '\\'"`)
 
         const empty = ctx.withInsensitiveCollation('')
         await empty.selectFrom(tAppUser)
@@ -97,7 +97,7 @@ describe(ctx.label, () => {
             .where(tAppUser.email.startsWithInsensitive('ad'))
             .select({ id: tAppUser.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email like ((? || '%') collate NOCASE) escape '\\'"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email like (? || '%') collate NOCASE escape '\\'"`)
 
         const empty = ctx.withInsensitiveCollation('')
         await empty.selectFrom(tAppUser)
@@ -113,7 +113,7 @@ describe(ctx.label, () => {
             .where(tAppUser.email.notStartsWithInsensitive('ad'))
             .select({ id: tAppUser.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email not like ((? || '%') collate NOCASE) escape '\\'"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email not like (? || '%') collate NOCASE escape '\\'"`)
 
         const empty = ctx.withInsensitiveCollation('')
         await empty.selectFrom(tAppUser)
@@ -129,7 +129,7 @@ describe(ctx.label, () => {
             .where(tAppUser.email.endsWithInsensitive('@acme.test'))
             .select({ id: tAppUser.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email like (('%' || ?) collate NOCASE) escape '\\'"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email like ('%' || ?) collate NOCASE escape '\\'"`)
 
         const empty = ctx.withInsensitiveCollation('')
         await empty.selectFrom(tAppUser)
@@ -145,7 +145,7 @@ describe(ctx.label, () => {
             .where(tAppUser.email.notEndsWithInsensitive('@acme.test'))
             .select({ id: tAppUser.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email not like (('%' || ?) collate NOCASE) escape '\\'"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email not like ('%' || ?) collate NOCASE escape '\\'"`)
 
         const empty = ctx.withInsensitiveCollation('')
         await empty.selectFrom(tAppUser)
@@ -161,7 +161,7 @@ describe(ctx.label, () => {
             .where(tAppUser.email.containsInsensitive('cme'))
             .select({ id: tAppUser.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email like (('%' || ? || '%') collate NOCASE) escape '\\'"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email like ('%' || ? || '%') collate NOCASE escape '\\'"`)
 
         const empty = ctx.withInsensitiveCollation('')
         await empty.selectFrom(tAppUser)
@@ -177,7 +177,7 @@ describe(ctx.label, () => {
             .where(tAppUser.email.notContainsInsensitive('cme'))
             .select({ id: tAppUser.id })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email not like (('%' || ? || '%') collate NOCASE) escape '\\'"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email not like ('%' || ? || '%') collate NOCASE escape '\\'"`)
 
         const empty = ctx.withInsensitiveCollation('')
         await empty.selectFrom(tAppUser)

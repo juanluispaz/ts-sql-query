@@ -570,11 +570,13 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
             // bracket the union, mirroring the non-recursive CTE path below. The
             // projection-only hooks `afterSelectKeyword` / `beforeColumns` /
             // `customWindow` customize a plain SELECT clause the compound body does not
-            // have, so they are not applicable once the query is consumed as a CTE (they
-            // still apply when it is executed directly). This is an explicit allow-list
-            // on purpose: it keeps any current or future projection-only hook from
-            // silently landing on a body that cannot emit it. See
-            // docs/queries/sql-fragments.md § Customizing a select.
+            // have, so they are dropped here — but when ORDER BY / LIMIT / OFFSET force a
+            // wrapping `<as> as (select ... from <recursive-member> order by ...)`, that
+            // wrapping select IS a plain SELECT carrying the projection, so they are
+            // re-homed onto it in the ordering branch below (they still apply when the
+            // query is executed directly). This is an explicit allow-list on purpose: it
+            // keeps any current or future projection-only hook from silently landing on a
+            // body that cannot emit it. See docs/queries/sql-fragments.md § Customizing a select.
             if (outerCustomization) {
                 const cteBody = recursiveView.__selectData
                 const cteBodyCustomization: SelectCustomization<any, any> = { ...cteBody.__customization }
@@ -594,9 +596,11 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
             // wrapping CTE `<as> as (select ... from <recursive-member> order by ...
             // limit ... offset ...)`, keeping the recursive member under its generated
             // name. `outerSelect` already IS that `select ... from <recursive-member>`
-            // carrying the ordering/paging; strip everything but the ORDER BY hooks off
-            // it (the projection-only hooks were dropped above; `beforeQuery` /
-            // `afterQuery` went to the CTE body) and use it as the wrapping CTE body.
+            // carrying the ordering/paging; keep the ORDER BY hooks and the
+            // projection-only hooks (`afterSelectKeyword` / `beforeColumns` /
+            // `customWindow`) on it — the wrapping select is a plain SELECT that can emit
+            // them — and drop the rest (`beforeQuery` / `afterQuery` went to the CTE
+            // body), then use it as the wrapping CTE body.
             const outerHasOrderingOrPaging = !!outerSelect && (
                 !!outerSelect.__orderBy
                 || outerSelect.__limit !== undefined
@@ -606,8 +610,17 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
             )
             if (outerHasOrderingOrPaging) {
                 let wrapCustomization: SelectCustomization<any, any> | undefined
-                if (outerCustomization && (outerCustomization.beforeOrderByItems !== undefined || outerCustomization.afterOrderByItems !== undefined)) {
+                if (outerCustomization) {
                     wrapCustomization = {}
+                    if (outerCustomization.afterSelectKeyword !== undefined) {
+                        wrapCustomization.afterSelectKeyword = outerCustomization.afterSelectKeyword
+                    }
+                    if (outerCustomization.beforeColumns !== undefined) {
+                        wrapCustomization.beforeColumns = outerCustomization.beforeColumns
+                    }
+                    if (outerCustomization.customWindow !== undefined) {
+                        wrapCustomization.customWindow = outerCustomization.customWindow
+                    }
                     if (outerCustomization.beforeOrderByItems !== undefined) {
                         wrapCustomization.beforeOrderByItems = outerCustomization.beforeOrderByItems
                     }

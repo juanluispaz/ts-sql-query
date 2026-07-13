@@ -214,6 +214,48 @@ describe(ctx.label, () => {
         expect(result).toEqual([{ id: 2 }])
     })
 
+    test('customize-recursive-select-projection-only-hooks-render-in-wrapping-cte-with-ordering', async () => {
+        // The same recursive select consumed as a CTE via `.forUseInQueryAs(...)`, but
+        // now ALSO carrying `orderBy`. The ordering cannot fold into the recursive term
+        // (`... union all ... order by ...` is rejected by every engine), so the result
+        // is exposed through a WRAPPING `tree as (select ... from <recursive-member>
+        // order by ...)`. That wrapping select IS a plain SELECT that keeps the
+        // projection, so the projection-only hooks `afterSelectKeyword` / `beforeColumns`
+        // / `customWindow` — legitimately dropped on the no-ordering path in the test
+        // above — DO render here, each at its own site, alongside `beforeOrderByItems`.
+        // `beforeQuery` / `afterQuery` still bracket the recursive union inside the CTE
+        // body (they belong to the compound anchor∪recursive body, not the wrapper).
+        ctx.mockNext([{ id: 2 }])
+        const connection = ctx.conn
+        const tree = connection.selectFrom(tIssue)
+            .where(tIssue.id.equals(2))
+            .select({ id: tIssue.id, parentId: tIssue.parentId })
+            .recursiveUnionAllOn((parent) => tIssue.id.equals(parent.parentId))
+            .orderBy('id')
+            .customizeQuery({
+                beforeQuery:        connection.rawFragment`/* head */ `,
+                afterQuery:         connection.rawFragment` /* tail */`,
+                afterSelectKeyword: connection.rawFragment`/* hint */`,
+                beforeColumns:      connection.rawFragment`/* cols */ `,
+                customWindow:       connection.rawFragment`w1 as (partition by id)`,
+                beforeOrderByItems: connection.rawFragment`parentId asc`,
+            })
+            .forUseInQueryAs('tree')
+
+        const result = await connection.selectFrom(tree)
+            .select({ id: tree.id })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive_select_1(id, parentId) as (/* head */  select id as id, parent_id as parentId from issue where id = :0 union all select issue.id as id, issue.parent_id as parentId from issue join recursive_select_1 on issue.id = recursive_select_1.parentId  /* tail */), tree as (select /* hint */ /* cols */  id as id, parentId as parentId from recursive_select_1 window w1 as (partition by id) order by parentId asc, id) select id as "id" from tree"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+        expect(result).toEqual([{ id: 2 }])
+    })
+
     test('customize-select-hook-fragment-with-column-reference', async () => {
         // A fragment that references a column drives
         // `__registerRequiredColumn` on the customization

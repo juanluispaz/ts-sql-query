@@ -156,7 +156,7 @@ async function validateOrResetForReuse(host: string, port: number): Promise<void
     // pass `release_on_commit => FALSE` so it stays held across the
     // explicit DDL commits during reset and we release it manually at
     // the end).
-    const oracledb = await import('oracledb')
+    const oracledb = (await import('oracledb')).default
     const conn = await oracledb.getConnection({
         user: 'system',
         password: ORACLE_PASSWORD,
@@ -315,7 +315,7 @@ let workerUserEnsured = false
 
 async function ensureWorkerUserExists(host: string, port: number, workerUser: string): Promise<void> {
     if (workerUserEnsured) return
-    const oracledb = await import('oracledb')
+    const oracledb = (await import('oracledb')).default
     const sys = await oracledb.getConnection({
         user: 'system',
         password: ORACLE_PASSWORD,
@@ -386,7 +386,7 @@ async function bootstrapWorkerUserSchemaAndSeed(host: string, port: number): Pro
     const workerUser = workerName(BASE_ORACLE_USER)
     await ensureWorkerUserExists(host, port, workerUser)
 
-    const oracledb = await import('oracledb')
+    const oracledb = (await import('oracledb')).default
     const conn = await oracledb.getConnection({
         user: workerUser,
         password: APP_PASSWORD,
@@ -413,7 +413,7 @@ export function createOracleDBPoolTestContext(spec: OracleTestSpec): OracleTestC
     const connector = spec.label.split(' / ')[1] ?? ''
     const realDbEnabled = isRealDbEnabled(DATABASE, /* needsDocker */ true, version, connector)
     const buildRunner = memoizeSharedRunner(async (params: { host: string; port: number; workerUser: string }) => {
-        const oracledb = await import('oracledb')
+        const oracledb = (await import('oracledb')).default
         const { OracleDBPoolQueryRunner } = await import('../../../src/queryRunners/OracleDBPoolQueryRunner.js')
         const pool = await oracledb.createPool({
             user: params.workerUser,

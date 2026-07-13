@@ -105,6 +105,9 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     override _falseValue = '0'
     override _trueValueForCondition = '(1=1)'
     override _falseValueForCondition = '(0=1)'
+    // Oracle's LIKE has no default escape character, so the `\`-escaped wildcards
+    // produced by `_escapeLikeWildcard` need an explicit `escape '\'` clause.
+    override _likeEscape = " escape '\\'"
     _nullValueForCondition = '(0=null)'
     override _appendSql(value: ToSql | AnyValueSource, params: any[], forceTypeCast: boolean): string {
         if (isValueSource(value) && !isColumn(value)) {
@@ -1093,110 +1096,6 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     // the backslash declared by the `escape '\'` clause every affix predicate
     // below emits. The inherited `_escapeLikeWildcard` produces exactly that
     // backslash escaping (`%`->`\%`, `_`->`\_`, `\`->`\\`), so no override.
-    override _like(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._appendSqlParenthesis(valueSource, params, false) + ' like ' + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, false) + " escape '\\'"
-    }
-    override _notLike(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._appendSqlParenthesis(valueSource, params, false) + ' not like ' + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, false) + " escape '\\'"
-    }
-    override _likeInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        const collation = this._connectionConfiguration.insensitiveCollation
-        if (collation) {
-            return this._appendSqlParenthesis(valueSource, params, false) + ' like (' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false) + ' collate ' + collation + ") escape '\\'"
-        } else if (collation === '') {
-            return this._appendSqlParenthesis(valueSource, params, false) + ' like ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false) + " escape '\\'"
-        } else {
-            return 'lower(' + this._appendSql(valueSource, params, false) + ') like lower(' + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, false) + ") escape '\\'"
-        }
-    }
-    override _notLikeInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        const collation = this._connectionConfiguration.insensitiveCollation
-        if (collation) {
-            return this._appendSqlParenthesis(valueSource, params, false) + ' not like (' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false) + ' collate ' + collation + ") escape '\\'"
-        } else if (collation === '') {
-            return this._appendSqlParenthesis(valueSource, params, false) + ' not like ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false) + " escape '\\'"
-        } else {
-            return 'lower(' + this._appendSql(valueSource, params, false) + ') not like lower(' + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, false) + ") escape '\\'"
-        }
-    }
-    override _startsWith(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._appendSqlParenthesis(valueSource, params, false) + ' like (' + this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + " || '%') escape '\\'"
-    }
-    override _notStartsWith(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._appendSqlParenthesis(valueSource, params, false) + ' not like (' + this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + " || '%') escape '\\'"
-    }
-    override _endsWith(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._appendSqlParenthesis(valueSource, params, false) + " like ('%' || " + this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + ") escape '\\'"
-    }
-    override _notEndsWith(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._appendSqlParenthesis(valueSource, params, false) + " not like ('%' || " + this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + ") escape '\\'"
-    }
-    override _startsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        const collation = this._connectionConfiguration.insensitiveCollation
-        if (collation) {
-            return this._appendSqlParenthesis(valueSource, params, false) + ' like ((' + this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + " || '%') collate " + collation + ") escape '\\'"
-        } else if (collation === '') {
-            return this._appendSqlParenthesis(valueSource, params, false) + ' like (' + this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + " || '%') escape '\\'"
-        } else {
-            return 'lower(' + this._appendSql(valueSource, params, false) + ') like lower(' + this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + " || '%') escape '\\'"
-        }
-    }
-    override _notStartsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        const collation = this._connectionConfiguration.insensitiveCollation
-        if (collation) {
-            return this._appendSqlParenthesis(valueSource, params, false) + ' not like ((' + this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + " || '%') collate " + collation + ") escape '\\'"
-        } else if (collation === '') {
-            return this._appendSqlParenthesis(valueSource, params, false) + ' not like (' + this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + " || '%') escape '\\'"
-        } else {
-            return 'lower(' + this._appendSql(valueSource, params, false) + ') not like lower(' + this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + " || '%') escape '\\'"
-        }
-    }
-    override _endsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        const collation = this._connectionConfiguration.insensitiveCollation
-        if (collation) {
-            return this._appendSqlParenthesis(valueSource, params, false) + " like (('%' || " + this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + ") collate " + collation + ") escape '\\'"
-        } else if (collation === '') {
-            return this._appendSqlParenthesis(valueSource, params, false) + " like ('%' || " + this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + ") escape '\\'"
-        } else {
-            return 'lower(' + this._appendSql(valueSource, params, false) + ") like lower('%' || " + this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + ") escape '\\'"
-        }
-    }
-    override _notEndsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        const collation = this._connectionConfiguration.insensitiveCollation
-        if (collation) {
-            return this._appendSqlParenthesis(valueSource, params, false) + " not like (('%' || " + this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + ") collate " + collation + ") escape '\\'"
-        } else if (collation === '') {
-            return this._appendSqlParenthesis(valueSource, params, false) + " not like ('%' || " + this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + ") escape '\\'"
-        } else {
-            return 'lower(' + this._appendSql(valueSource, params, false) + ") not like lower('%' || " + this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + ") escape '\\'"
-        }
-    }
-    override _contains(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._appendSqlParenthesis(valueSource, params, false) + " like ('%' || " + this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + " || '%') escape '\\'"
-    }
-    override _notContains(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._appendSqlParenthesis(valueSource, params, false) + " not like ('%' || " + this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + " || '%') escape '\\'"
-    }
-    override _containsInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        const collation = this._connectionConfiguration.insensitiveCollation
-        if (collation) {
-            return this._appendSqlParenthesis(valueSource, params, false) + " like (('%' || " + this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + " || '%') collate " + collation + ") escape '\\'"
-        } else if (collation === '') {
-            return this._appendSqlParenthesis(valueSource, params, false) + " like ('%' || " + this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + " || '%') escape '\\'"
-        } else {
-            return 'lower(' + this._appendSql(valueSource, params, false) + ") like lower('%' || " + this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + " || '%') escape '\\'"
-        }
-    }
-    override _notContainsInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        const collation = this._connectionConfiguration.insensitiveCollation
-        if (collation) {
-            return this._appendSqlParenthesis(valueSource, params, false) + " not like (('%' || " + this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + " || '%') collate " + collation + ") escape '\\'"
-        } else if (collation === '') {
-            return this._appendSqlParenthesis(valueSource, params, false) + " not like ('%' || " + this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + " || '%') escape '\\'"
-        } else {
-            return 'lower(' + this._appendSql(valueSource, params, false) + ") not like lower('%' || " + this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + " || '%') escape '\\'"
-        }
-    }
     override _in(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         if (Array.isArray(value) && value.length <= 0) {
             return this._falseValueForCondition

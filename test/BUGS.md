@@ -67,7 +67,101 @@ of that. Two minutes of triage and one paragraph is the bar.
 
 ## Open Bugs
 
-_None currently open._
+## Recursive select consumed via `forUseInQueryAs` with ordering/paging drops the `afterSelectKeyword` / `beforeColumns` / `customWindow` customize hooks
+
+**Where**: `src/queryBuilders/SelectQueryBuilder.ts` — `forUseInQueryAs`, the
+ordering/paging branch at ~607-623 (`wrapCustomization`, ~608-617, copies only
+`beforeOrderByItems` / `afterOrderByItems` onto the wrapping CTE's select). The
+allow-list comment at ~564-577 treats the three projection-only hooks as
+not-applicable, but its rationale ("a plain SELECT clause the compound body
+does not have") does **not** hold on this branch: the wrapping CTE
+`<as> as (select … from <recursive-member> order by … limit …)` IS a plain
+select with a surviving projection (the same `outerSelect` the code notes at
+~596-599 "already IS that `select … from <recursive-member>`").
+
+**Reproduction**: a recursive result carrying `orderBy`/`limit` AND
+`customizeQuery({ afterSelectKeyword, beforeColumns, customWindow, beforeOrderByItems })`,
+consumed via `.forUseInQueryAs('tree')`, emits:
+`… , tree as (select id as id, title as title from recursive_select_1 order by title asc, id limit $N) …`
+— `beforeOrderByItems` (`title asc`) re-homes to the wrapping select and
+renders, but `afterSelectKeyword` / `beforeColumns` / `customWindow` are
+**dropped** (no `/* hint */`, no `/* cols */`, no `window w1`). The
+non-recursive twin renders all five in the identical
+`<name> as (select /* hint */ /* cols */ … window … order by …)` structure
+(`customize-query.select.test.ts:269`
+`customize-select-projection-only-hooks-survive-as-cte`), and the recursive
+result renders them when executed directly — so this is inconsistent, not a
+missing capability. Expected: the three projection-only hooks render on the
+wrapping CTE's select. Fix: extend `wrapCustomization` to also carry
+`afterSelectKeyword` / `beforeColumns` / `customWindow`, and adjust the
+~564-577 allow-list to distinguish the **ordering path** (wrapping select
+survives → hooks apply) from the **no-ordering path** (the recursive member IS
+the CTE, no plain SELECT clause → genuinely NOT-APPLICABLE).
+
+**Current workaround in the suite**: no test currently exercises this
+composition (the gap this bug was found through). See `MISSING_TESTS_AUDIT_49.md`
+item **SEL-1**: add the test (marked `// TODO[BUG]` until fixed) asserting the
+three hooks render in the wrapping CTE. The no-ordering path
+(`customize-recursive-select-projection-only-hooks-not-applicable-as-cte`,
+`customize-query.select.test.ts:174`) correctly asserts they are dropped and
+stays as-is (a genuine NOT-APPLICABLE boundary).
+
+## The base dialect (`AbstractSqlBuilder`) `_startsWithInsensitive` / `_notStartsWithInsensitive` are wrong (swapped `_escapeLikeWildcard` args + missing the SQLite `escape '\\'`); every dialect overrides them instead of the base being fixed
+
+`AbstractSqlBuilder` is the **base dialect** (SQLite-shaped, expanded by
+PostgreSQL with minimal overrides), so its implementation is meant to be a
+correct, usable dialect — not an unreachable abstract fallback. It currently is
+not, for the two insensitive prefix predicates.
+
+**Where**: `src/sqlBuilders/AbstractSqlBuilder.ts` — `_startsWithInsensitive`
+(~2811-2820) and `_notStartsWithInsensitive` (~2821-2830). Two defects:
+1. **Swapped args.** All three branches call `_escapeLikeWildcard(value, params, …)`,
+   but the signature is `_escapeLikeWildcard(params, value, …)` (`:2932`). Every
+   correct caller passes `(params, value)` — the sensitive siblings
+   `_startsWith`/`_notStartsWith`/`_endsWith`/`_notEndsWith` (~2800-2809) and every
+   dialect override. Root cause: `_escapeLikeWildcard`'s signature is the **sole
+   outlier** in the render-helper family — `_appendSql(value, params, …)`,
+   `_appendValue(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast)`
+   (identical tail!), `_appendConditionSql(value, params, …)` all put **value
+   first**. Whoever wrote these two methods followed that pervasive convention and
+   passed `(value, params)` — correct for the convention, wrong for this one
+   function. This routes the `params` array through the `typeof value === 'string'`
+   escape guard (always false → the `%`/`_`/`\` LIKE-wildcard escaping never runs).
+2. **Not SQLite-shaped.** The `else` (no-collation) branch emits
+   `lower(col) like lower(escaped || '%')` with **no `escape '\\'` clause**, while
+   `SqliteSqlBuilder`'s override adds `… escape '\\'` — so the base, which is
+   supposed to be the SQLite dialect, does not actually match SQLite.
+
+**History (why it's here)**: the insensitive-comparison rework
+(`85ec8ded` "Rework insensitive comparison to allow use collations instead of the
+lower function; … Fix some 'not' ignored … on MySQL, MariaDB, Oracle, PostgreSQL,
+Sqlite, SqlServer") introduced these base methods with the swap and fixed the
+behavior **per dialect via overrides** rather than correcting the base. As a
+result all six dialects (Postgres/SqlServer/Oracle/Sqlite/MariaDB+MySql) override
+both methods; only `NoopDBSqlBuilder` inherits the broken base — which is why no
+current matrix cell reproduces it (the SQLite cells run SQLite's override, not the
+base).
+
+**Reproduction**: no matrix cell currently exercises the base (SQLite overrides
+it). Once the base is corrected to be SQLite-shaped and the redundant
+`SqliteSqlBuilder` override is removed, the existing SQLite insensitive-affix
+escape tests (`select.where.like-escape*.test.ts`, `operators-insensitive`) would
+run against the base and pin it. Suggested fix, in order: (a) reconcile
+`_escapeLikeWildcard`'s signature to `(value, params, …)` to match
+`_appendValue`/`_appendSql` (then the base methods here become correct unchanged
+and every other caller flips `(params, value)` → `(value, params)`) — or at
+minimum fix these two methods to `(params, value)`; (b) make the base `else`
+branch SQLite-shaped (add `escape '\\'`); (c) drop the now-redundant
+`SqliteSqlBuilder` override and minimize the PostgreSQL one, so the base carries
+the shared behavior as intended. The other dialects' overrides stay (they emit
+genuinely dialect-specific SQL: PG `ilike`, MySql/MariaDB `like concat(...)`,
+SqlServer `+ '%'`/collate, Oracle `escape '\\'`).
+
+**Current workaround in the suite**: none needed — the bug is masked by the
+per-dialect overrides, so the suite is green. This entry tracks the base-dialect
+correctness + the design-debt (overrides added instead of fixing the base). No
+`// TODO[BUG]` marker exists yet because no test reaches the base today; the test
+appears once the redundant SQLite override is removed (step c).
 
 ## Common bug shapes (for the fixing agent)
 

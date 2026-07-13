@@ -12,7 +12,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tProject } from '../../domain/connection.js'
+import { tIssue, tOrganization, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -82,6 +82,33 @@ describe(ctx.label, () => {
             expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
             assertType<Exact<typeof affected, number>>()
             expect(affected).toBe(4)
+        })
+    })
+
+    test('update-allowing-no-where-from-then-left-join-touches-all-rows', async () => {
+        // The LEFT-join limb of the AllowingNoWhere from/join family: an
+        // `updateAllowingNoWhere(t).from(j).leftJoin(k).on(...)` reachable on the
+        // guard-relaxed builder. Each issue's status is stamped from its project's
+        // organization name (left-joined off the FROM project) with the project slug
+        // as a coalesce fallback. The FROM project is correlated to the target issue
+        // by FK, so each issue matches exactly one source row (a stable many:1
+        // update — a bare cross-join would be a non-deterministic multi-match). Every
+        // issue has a project and every project an organization, so all 4 update.
+        ctx.mockNext(4)
+        await ctx.withRollback(async () => {
+            const tOrg = tOrganization.forUseInLeftJoin()
+            const affected = await ctx.conn.updateAllowingNoWhere(tIssue)
+                .from(tProject)
+                .leftJoin(tOrg).on(tOrg.id.equals(tProject.organizationId))
+                .set({ status: tOrg.name.valueWhenNull(tProject.slug) })
+                .where(tProject.id.equals(tIssue.projectId))
+                .executeUpdate()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = coalesce(organization.name, project.slug) from project left join organization on organization.id = project.organization_id where project.id = issue.project_id"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+            assertType<Exact<typeof affected, number>>()
+            if (ctx.realDbEnabled) expect(typeof affected).toBe('number')
+            else expect(affected).toBe(4)
         })
     })
 

@@ -45,6 +45,23 @@ function _typeNegatives() {
     // sqlite connection must not typecheck.
     // @ts-expect-error sqlite has no DELETE … USING — using() is excluded
     void connection.deleteFrom(tIssue).using(tProject)
+    // Rule: `executeDeleteNoneOrOne` / `executeDeleteOne` / `executeDeleteMany`
+    // are RETURNING executors — they resolve the projected row(s), so they live on
+    // the interface reached through `returning(...)` / `returningOneColumn(...)`. A
+    // bare delete (no RETURNING) exposes only the count-only `executeDelete(min?, max?)`;
+    // reaching any of the row-returning variants without a returning clause does not
+    // compile.
+    // @ts-expect-error executeDeleteNoneOrOne needs a RETURNING clause; it is not on a bare delete
+    void connection.deleteFrom(tIssue).where(tIssue.id.equals(1)).executeDeleteNoneOrOne()
+    // @ts-expect-error executeDeleteOne needs a RETURNING clause; it is not on a bare delete
+    void connection.deleteFrom(tIssue).where(tIssue.id.equals(1)).executeDeleteOne()
+    // @ts-expect-error executeDeleteMany needs a RETURNING clause; it is not on a bare delete
+    void connection.deleteFrom(tIssue).where(tIssue.id.equals(1)).executeDeleteMany()
+
+    // Positive control: the count-only `executeDelete()` IS on a bare delete and
+    // must keep compiling — proving the guard above is scoped to the row executors.
+    void connection.deleteFrom(tIssue).where(tIssue.id.equals(1)).executeDelete()
+
 }
 
 test('delete-negative-types', () => {

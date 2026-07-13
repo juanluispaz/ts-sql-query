@@ -188,4 +188,42 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof result, Array<{ id: number; a?: number }>>>()
     })
+    test('asBigint-on-double-chained-into-bigint-op', async () => {
+        // A DOUBLE value's `.asBigint()` feeding downstream BIGINT ops. The receiver
+        // is `priority.asDouble()`
+        // (int→double, priority(id=1)=2 → 2.0); `.asBigint()` on a double
+        // rounds back to an integer (`round((priority::float)::numeric)`), and
+        // the `.add(2n)` / `.modulo(2n)` ops wrap that rounded expression.
+        // priority(1)=2 → asBigint 2 → add(2n)=4n, modulo(2n)=0n. Required
+        // receiver → required `bigint` leaves. A bigint result can come back as
+        // a string on some drivers, so the real-DB branch coerces through
+        // BigInt(...).
+        const expected = [{ id: 1, a: 4n, m: 0n }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                a:  tIssue.priority.asDouble().asBigint().add(2n),
+                m:  tIssue.priority.asDouble().asBigint().modulo(2n),
+            })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round(cast(priority as real)) + ? as "a", round(cast(priority as real)) % ? as "m" from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+            2,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; a: bigint; m: bigint }>>>()
+        if (ctx.realDbEnabled) {
+            expect(BigInt(result[0]!.a)).toBe(4n)
+            expect(BigInt(result[0]!.m)).toBe(0n)
+        } else {
+            expect(result).toEqual(expected)
+        }
+    })
+
 })

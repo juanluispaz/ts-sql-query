@@ -114,6 +114,33 @@ describe(ctx.label, () => {
         })
     })
 
+    test('shaped-update-returning-nested-object', async () => {
+        // A `shapedAs({...}).set({...})` update whose RETURNING folds the real columns
+        // into a nested `audit` sub-object. The shaped SET map (renamed keys) is
+        // orthogonal to the returning projection, which reads the REAL columns. The
+        // mock is keyed by the flat emitted aliases (`audit.name`, `audit.slug`); the
+        // complex projection reassembles them. Project 1 renamed; slug unchanged.
+        const expected = { id: 1, audit: { name: 'Shaped nested returning', slug: 'mktg-site' } }
+        ctx.mockNext({ id: 1, 'audit.name': 'Shaped nested returning', 'audit.slug': 'mktg-site' })
+        await ctx.withRollback(async () => {
+            const row = await ctx.conn.update(tProject)
+                .shapedAs({ projectName: 'name' })
+                .set({ projectName: 'Shaped nested returning' })
+                .where(tProject.id.equals(1))
+                .returning({ id: tProject.id, audit: { name: tProject.name, slug: tProject.slug } })
+                .executeUpdateOne()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = $1 where id = $2 returning id as id, name as "audit.name", slug as "audit.slug""`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Shaped nested returning",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof row, { id: number; audit: { name: string; slug: string } }>>()
+            expect(row).toEqual(expected)
+        })
+    })
+
     test('shaped-update-extend-shape-then-dynamic-set', async () => {
         // `update(t).shapedAs({...}).extendShape({...}).dynamicSet({...})` on the
         // where-REQUIRED update path. `extendShape` is a shape *widener*, so it

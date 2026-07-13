@@ -38,6 +38,19 @@ const shiftHourAdapter: TypeAdapter = {
     },
 }
 
+// A non-identity boolean TypeAdapter: negates the read boolean so the adapter's
+// effect is observable in the result value. Used to prove the trailing
+// `adapter?` argument of `fragmentWithType('boolean', …)` is threaded on read.
+const negateBoolAdapter: TypeAdapter = {
+    transformValueFromDB(value, type, next) {
+        const v = next.transformValueFromDB(value, type)
+        return typeof v === 'boolean' ? !v : v
+    },
+    transformValueToDB(value, type, next) {
+        return next.transformValueToDB(value, type)
+    },
+}
+
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
     afterAll(() => ctx.down(), ctx.timeoutMs)
@@ -683,5 +696,78 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{ ca?: Date | undefined }>>>()
         expect(rows).toEqual([expected])
+    })
+
+    test('fragment-with-type-boolean-threads-a-trailing-type-adapter', async () => {
+        // The `boolean` return arm of `fragmentWithType(...)` with a trailing
+        // adapter. `negateBoolAdapter` flips the read boolean; the mock is primed
+        // with the RAW db value. Worklog 1's
+        // billable is TRUE, read back through the adapter -> false. Both the
+        // `'required'` and `'optional'` arms thread the adapter identically (the
+        // SQL is the same; only the optional leaf widens).
+        ctx.mockNext({ req: true, opt: true })
+        const expected = { req: false, opt: false }
+        const c = ctx.conn
+        const row = await c.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .select({
+                req: c.fragmentWithType('boolean', 'required', negateBoolAdapter).sql`${tIssueWorklog.billable}`,
+                opt: c.fragmentWithType('boolean', 'optional', negateBoolAdapter).sql`${tIssueWorklog.billable}`,
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select billable as req, billable as opt from issue_worklog where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { req: boolean; opt?: boolean }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('fragment-with-type-local-date-threads-a-trailing-type-adapter', async () => {
+        // The TEMPORAL `localDate` return arm of `fragmentWithType(...)` with a
+        // trailing adapter over a plain column read. `shiftHourAdapter` shifts the
+        // read value +1h. Worklog 1's work_date 2024-03-04 reads back at 10:00 UTC
+        // (the date-only echo) -> +1h -> 11:00 UTC.
+        ctx.mockNext({ wd: new Date(Date.UTC(2024, 2, 4, 10, 0, 0)) })
+        const expected = { wd: new Date(Date.UTC(2024, 2, 4, 11, 0, 0)) }
+        const row = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .select({
+                wd: ctx.conn.fragmentWithType('localDate', 'required', shiftHourAdapter).sql`${tIssueWorklog.workDate}`,
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select work_date as wd from issue_worklog where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { wd: Date }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('fragment-with-type-custom-local-date-threads-a-trailing-type-adapter', async () => {
+        // The CUSTOM-kind `customLocalDate` ('ReleaseDay') return arm of
+        // `fragmentWithType(type, typeName, required, adapter)` over a plain column
+        // read. `shiftHourAdapter` shifts the read value +1h. Release 1's
+        // released_on 2024-01-15 reads back at 10:00 UTC -> +1h -> 11:00 UTC.
+        ctx.mockNext({ rOn: new Date(Date.UTC(2024, 0, 15, 10, 0, 0)) })
+        const expected = { rOn: new Date(Date.UTC(2024, 0, 15, 11, 0, 0)) }
+        const row = await ctx.conn.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .select({
+                rOn: ctx.conn.fragmentWithType<Date, 'ReleaseDay'>('customLocalDate', 'ReleaseDay', 'required', shiftHourAdapter).sql`${tProjectRelease.releasedOn}`,
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select released_on as "rOn" from project_release where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { rOn: Date }>>()
+        expect(row).toEqual(expected)
     })
 })

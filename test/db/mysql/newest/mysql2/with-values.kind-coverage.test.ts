@@ -988,4 +988,59 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ n: number; vd?: Date; vt?: Date; vts?: Date }>>>()
         expect(rows).toEqual([{ n: 7 }])
     })
+    test('values-tuple-required-cell-is-a-no-table-value-source-expression', async () => {
+        // A VALUES row CELL may itself be a no-table-required ValueSource, not
+        // only a literal. Here the required `id` cell is `const(40)` plus a typed
+        // literal `2` (an inline int fragment), so the tuple carries the ARITHMETIC
+        // expression `$1 + 2` instead of a single bound literal; it evaluates to 42
+        // on the DB. The typed operand gives the engine the operand type it needs
+        // (a bound `$1 + $2` would be an ambiguous `unknown + unknown` on some
+        // engines). Consumed via a plain `selectFrom(values)`, not via insert.
+        class VExprSampler extends Values<DBConnection, 'exprSampler'> {
+            id = this.column('int')
+        }
+        const expected = [{ id: 42 }]
+        ctx.mockNext(expected)
+        const v = Values.create(VExprSampler, 'exprSampler', [
+            { id: ctx.conn.const(40, 'int').add(ctx.conn.fragmentWithType('int', 'required').sql`2`) },
+        ])
+        const rows = await ctx.conn.selectFrom(v)
+            .select({ id: v.id })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with exprSampler(id) as (values row(? + (2))) select id as id from exprSampler"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            40,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('values-tuple-optional-cell-is-a-no-table-value-source-expression', async () => {
+        // An OPTIONAL `id` column whose cell is a no-table-required ValueSource
+        // (`const(40)` plus a typed literal `2`). The
+        // optional slot still accepts the value-source arm; the tuple carries the
+        // arithmetic expression `$1 + 2` and the present value reads back through the
+        // optional leaf (42). Projected object is all-optional (`?: number | undefined`).
+        class VOptExprSampler extends Values<DBConnection, 'optExprSampler'> {
+            id = this.optionalColumn('int')
+        }
+        ctx.mockNext([{ id: 42 }])
+        const v = Values.create(VOptExprSampler, 'optExprSampler', [
+            { id: ctx.conn.const(40, 'int').add(ctx.conn.fragmentWithType('int', 'required').sql`2`) },
+        ])
+        const rows = await ctx.conn.selectFrom(v)
+            .select({ id: v.id })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with optExprSampler(id) as (values row(? + (2))) select id as id from optExprSampler"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            40,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id?: number | undefined }>>>()
+        expect(rows).toEqual([{ id: 42 }])
+    })
+
 })

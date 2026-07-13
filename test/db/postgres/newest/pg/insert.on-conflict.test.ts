@@ -809,6 +809,34 @@ describe(ctx.label, () => {
         })
     })
 
+    test('on-conflict-on-constraint-do-update-with-single-partial-where', async () => {
+        // `onConflictOnConstraint(name).doUpdateSet(...).where(pred)` — a SINGLE
+        // partial-UPDATE-WHERE (no `.and` chain) off a named-constraint conflict
+        // target. `ada@acme.test` collides via `app_user_email_key`; the WHERE (email
+        // matches) is satisfied, so DO UPDATE runs.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'ada@acme.test', fullName: 'Ada Lovelace v3' })
+                .onConflictOnConstraint(ctx.conn.rawFragment`app_user_email_key`)
+                .doUpdateSet({ fullName: 'Ada Lovelace v3' })
+                .where(tAppUser.email.equals('ada@acme.test'))
+                .executeInsert()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into app_user (email, full_name) values ($1, $2) on conflict on constraint app_user_email_key do update set full_name = $3 where app_user.email = $4"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "ada@acme.test",
+                "Ada Lovelace v3",
+                "Ada Lovelace v3",
+                "ada@acme.test",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            if (ctx.realDbEnabled) expect(typeof affected).toBe('number')
+            else expect(affected).toBe(1)
+        })
+    })
+
     test('on-conflict-do-update-with-nested-object-returning', async () => {
         // `onConflictOn(cols).doUpdateSet(...)` with a NESTED-object RETURNING.
         // The upsert always writes a row, so the projection is REQUIRED

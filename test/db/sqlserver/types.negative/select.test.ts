@@ -11,7 +11,7 @@
 import { test, expect } from '../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../lib/assertType.js'
 import type { DBConnection } from '../domain/connection.js'
-import { tAppUser, tCountry, tIssue, tIssueWorklog, tOrganization, tProject, tProjectReview } from '../domain/connection.js'
+import { tAppUser, tCountry, tIssue, tIssueWorklog, tOrganization, tProject, tProjectRelease, tProjectReview } from '../domain/connection.js'
 
 // `connection` is type-only — the function below is checked by tsc but
 // never invoked at runtime, so we don't need a real instance and don't
@@ -528,6 +528,56 @@ function _typeNegatives() {
         .where(tIssue.projectId.equals(tProject.id))
         .select({ id: tIssue.id })
     assertType<Exact<typeof _corr.forUseInQueryAs, never>>()
+    // Rule: a `subSelectUsing(...)`-scoped select keeps the correlated outer
+    // table(s) in its REQUIRED set (they are supplied by the enclosing query, not
+    // this select's own FROM), so it is a correlated SUB-select — the row
+    // executors `executeSelectMany` / `executeSelectOne` / `executeSelectNoneOrOne`
+    // / `executeSelectPage` are `this`-guarded to `NotSubselectUsing` and excluded
+    // from it (they belong only to a self-contained `selectFrom(...)` whose REQUIRED
+    // set is empty). The supported terminals are `.forUseAsInlineQueryValue()` /
+    // `.forUseInQueryAs(...)`. Reaching any executor on a subSelectUsing scope must
+    // not compile. (The select is bound to a variable so each executor error lands
+    // on its own single-line call rather than on the multi-line chain receiver.)
+    const correlatedSelect = connection.subSelectUsing(tProject).from(tIssue)
+        .where(tIssue.projectId.equals(tProject.id))
+        .select({ id: tIssue.id })
+    // @ts-expect-error executeSelectMany is not on a subSelectUsing-scoped (correlated) select
+    void correlatedSelect.executeSelectMany()
+    // @ts-expect-error executeSelectOne is not on a subSelectUsing-scoped (correlated) select
+    void correlatedSelect.executeSelectOne()
+    // @ts-expect-error executeSelectNoneOrOne is not on a subSelectUsing-scoped (correlated) select
+    void correlatedSelect.executeSelectNoneOrOne()
+    // @ts-expect-error executeSelectPage is not on a subSelectUsing-scoped (correlated) select
+    void correlatedSelect.executeSelectPage()
+
+    // Positive control: a self-contained `selectFrom(...)` select (no correlated
+    // outer table in its REQUIRED set) DOES expose the row executors and must keep
+    // compiling — proving the guard above is scoped to the correlated form.
+    void connection.selectFrom(tIssue).select({ id: tIssue.id }).executeSelectMany()
+
+    // Rule: the temporal date-part getters are split by leaf kind. A `localDate`
+    // leaf offers only the DATE-part getters (getFullYear / getMonth / getDate /
+    // getDay), never the time-of-day getters or `getTime`; a `localTime` leaf offers
+    // only the time getters (getHours / getMinutes / getSeconds / getMilliseconds),
+    // never the date getters or `getTime`. Only a `localDateTime` leaf carries the
+    // full set plus `getTime`. The custom-branded twins (customLocalDate /
+    // customLocalTime) mirror the same split. Each getter absent on a given leaf must
+    // stay absent so an accidental widening is caught. workDate is localDate,
+    // startedAt is localTime, releasedOn is customLocalDate ('ReleaseDay'),
+    // cutoffTime is customLocalTime ('CutoffClock').
+    // @ts-expect-error getHours is a time getter, absent on a localDate leaf
+    void tIssueWorklog.workDate.getHours()
+    // @ts-expect-error getTime is a localDateTime-only getter, absent on a localDate leaf
+    void tIssueWorklog.workDate.getTime()
+    // @ts-expect-error getFullYear is a date getter, absent on a localTime leaf
+    void tIssueWorklog.startedAt.getFullYear()
+    // @ts-expect-error getTime is a localDateTime-only getter, absent on a localTime leaf
+    void tIssueWorklog.startedAt.getTime()
+    // @ts-expect-error getHours is a time getter, absent on a customLocalDate leaf
+    void tProjectRelease.releasedOn.getHours()
+    // @ts-expect-error getFullYear is a date getter, absent on a customLocalTime leaf
+    void tProjectRelease.cutoffTime.getFullYear()
+
 }
 
 test('select-negative-types', () => {

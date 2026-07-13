@@ -256,6 +256,128 @@ describe(ctx.label, () => {
         expect(result).toEqual([{ id: 2 }])
     })
 
+    test('customize-recursive-select-projection-only-hooks-render-in-wrapping-cte-with-limit', async () => {
+        // A recursive select carrying `limit` (paging), consumed as a CTE via
+        // `.forUseInQueryAs(...)`. The limit cannot fold into the recursive term, so
+        // the result is exposed through a WRAPPING
+        // `tree as (select ... from <recursive-member> limit N)`. That wrapping
+        // select is a plain SELECT that keeps the projection, so the projection-only
+        // hooks `afterSelectKeyword` / `beforeColumns` / `customWindow` render here,
+        // each at its own site. `beforeQuery` / `afterQuery` bracket the recursive
+        // union inside the CTE body.
+        ctx.mockNext([{ id: 2 }])
+        const connection = ctx.conn
+        const tree = connection.selectFrom(tIssue)
+            .where(tIssue.id.equals(2))
+            .select({ id: tIssue.id, parentId: tIssue.parentId })
+            .recursiveUnionAllOn((parent) => tIssue.id.equals(parent.parentId))
+            .limit(10)
+            .customizeQuery({
+                beforeQuery:        connection.rawFragment`/* head */ `,
+                afterQuery:         connection.rawFragment` /* tail */`,
+                afterSelectKeyword: connection.rawFragment`/* hint */`,
+                beforeColumns:      connection.rawFragment`/* cols */ `,
+                customWindow:       connection.rawFragment`w1 as (partition by id)`,
+            })
+            .forUseInQueryAs('tree')
+
+        const result = await connection.selectFrom(tree)
+            .select({ id: tree.id })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (/* head */  select id as id, parent_id as parentId from issue where id = ? union all select issue.id as id, issue.parent_id as parentId from issue join recursive_select_1 on issue.id = recursive_select_1.parentId  /* tail */), tree as (select /* hint */ /* cols */  id as id, parentId as parentId from recursive_select_1 window w1 as (partition by id) limit ?) select id as id from tree"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+            10,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+        expect(result).toEqual([{ id: 2 }])
+    })
+
+    test('customize-recursive-select-projection-only-hooks-render-in-wrapping-cte-with-limit-and-offset', async () => {
+        // A recursive select carrying `limit` + `offset` paging (the fluent API
+        // reaches OFFSET only after a LIMIT), consumed as a CTE. Neither can fold
+        // into the recursive term, so both are exposed through the WRAPPING
+        // `tree as (select ... from <recursive-member> limit N offset M)`, and the
+        // projection-only hooks `afterSelectKeyword` / `beforeColumns` / `customWindow`
+        // render in the wrapper.
+        ctx.mockNext([{ id: 2 }])
+        const connection = ctx.conn
+        const tree = connection.selectFrom(tIssue)
+            .where(tIssue.id.equals(2))
+            .select({ id: tIssue.id, parentId: tIssue.parentId })
+            .recursiveUnionAllOn((parent) => tIssue.id.equals(parent.parentId))
+            .limit(10)
+            .offset(5)
+            .customizeQuery({
+                beforeQuery:        connection.rawFragment`/* head */ `,
+                afterQuery:         connection.rawFragment` /* tail */`,
+                afterSelectKeyword: connection.rawFragment`/* hint */`,
+                beforeColumns:      connection.rawFragment`/* cols */ `,
+                customWindow:       connection.rawFragment`w1 as (partition by id)`,
+            })
+            .forUseInQueryAs('tree')
+
+        const result = await connection.selectFrom(tree)
+            .select({ id: tree.id })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (/* head */  select id as id, parent_id as parentId from issue where id = ? union all select issue.id as id, issue.parent_id as parentId from issue join recursive_select_1 on issue.id = recursive_select_1.parentId  /* tail */), tree as (select /* hint */ /* cols */  id as id, parentId as parentId from recursive_select_1 window w1 as (partition by id) limit ? offset ?) select id as id from tree"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+            10,
+            5,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+        // limit/offset page the recursive result: offset 5 skips the single-row
+        // traversal on a real engine, while the mock returns its primed row.
+        if (ctx.realDbEnabled) expect(result).toEqual([])
+        else expect(result).toEqual([{ id: 2 }])
+    })
+
+    test('customize-recursive-select-projection-only-hooks-render-in-wrapping-cte-with-order-by-and-limit', async () => {
+        // A recursive select carrying `orderBy` + `limit`, consumed as a CTE. Both
+        // the ordering and the limit are exposed in the WRAPPING
+        // `tree as (select ... from <recursive-member> ... order by ... limit N)`, and
+        // the projection-only hooks `afterSelectKeyword` / `beforeColumns` /
+        // `customWindow` plus `beforeOrderByItems` render in the wrapper.
+        ctx.mockNext([{ id: 2 }])
+        const connection = ctx.conn
+        const tree = connection.selectFrom(tIssue)
+            .where(tIssue.id.equals(2))
+            .select({ id: tIssue.id, parentId: tIssue.parentId })
+            .recursiveUnionAllOn((parent) => tIssue.id.equals(parent.parentId))
+            .orderBy('id')
+            .limit(10)
+            .customizeQuery({
+                beforeQuery:        connection.rawFragment`/* head */ `,
+                afterQuery:         connection.rawFragment` /* tail */`,
+                afterSelectKeyword: connection.rawFragment`/* hint */`,
+                beforeColumns:      connection.rawFragment`/* cols */ `,
+                customWindow:       connection.rawFragment`w1 as (partition by id)`,
+                beforeOrderByItems: connection.rawFragment`parentId asc`,
+            })
+            .forUseInQueryAs('tree')
+
+        const result = await connection.selectFrom(tree)
+            .select({ id: tree.id })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (/* head */  select id as id, parent_id as parentId from issue where id = ? union all select issue.id as id, issue.parent_id as parentId from issue join recursive_select_1 on issue.id = recursive_select_1.parentId  /* tail */), tree as (select /* hint */ /* cols */  id as id, parentId as parentId from recursive_select_1 window w1 as (partition by id) order by parentId asc, id limit ?) select id as id from tree"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+            10,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+        expect(result).toEqual([{ id: 2 }])
+    })
+
     test('customize-select-hook-fragment-with-column-reference', async () => {
         // A fragment that references a column drives
         // `__registerRequiredColumn` on the customization
@@ -647,6 +769,115 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof result, Array<{ id: number; root?: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('customize-recursive-one-column-custom-window-and-ordering-in-inline-scalar-value', async () => {
+        // A one-column recursive select consumed as an inline SCALAR value via
+        // `.forUseAsInlineQueryValue()`, carrying BOTH `orderBy` and `customWindow`
+        // alongside the projection hooks. Ordering forces a wrapping subquery, and the
+        // `afterSelectKeyword` / `beforeColumns` / `customWindow` hooks render inside
+        // that wrapped select. Every seeded issue leaves `parent_id` NULL, so the
+        // traversal from a single anchor yields exactly one row and the scalar subquery
+        // resolves to a single value.
+        const expected = [{ id: 1, root: 1 }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+        const rootIssueId = connection.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .selectOneColumn(tIssue.id)
+            .recursiveUnionAllOn((child) => tIssue.parentId.equals(child.result))
+            .orderBy('result')
+            .customizeQuery({
+                afterSelectKeyword: connection.rawFragment`/* hint */`,
+                beforeColumns:      connection.rawFragment`/* cols */ `,
+                customWindow:       connection.rawFragment`w1 as (partition by result)`,
+            })
+            .forUseAsInlineQueryValue()
+
+        const result = await connection.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ id: tProject.id, root: rootIssueId })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as result from issue where id = ? union all select issue.id as result from issue join recursive_select_1 on issue.parent_id = recursive_select_1.result) select id as id, (select /* hint */ /* cols */  result as result from recursive_select_1 window w1 as (partition by result) order by result) as root from project where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; root?: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('customize-recursive-one-column-custom-window-and-ordering-in-inline-aggregated-array-value', async () => {
+        // A one-column recursive select consumed as an inline AGGREGATED-ARRAY value
+        // via `.forUseAsInlineAggregatedArrayValue()`, carrying BOTH `orderBy` and
+        // `customWindow`. Ordering forces the wrapping subquery that `json_agg(...)`
+        // reads from; the projection hooks + `customWindow` render inside that wrapped
+        // select. Single-anchor traversal yields a one-element array.
+        const expected = [{ id: 1, tree: [1] }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+        const tree = connection.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .selectOneColumn(tIssue.id)
+            .recursiveUnionAllOn((child) => tIssue.parentId.equals(child.result))
+            .orderBy('result')
+            .customizeQuery({
+                afterSelectKeyword: connection.rawFragment`/* hint */`,
+                beforeColumns:      connection.rawFragment`/* cols */ `,
+                customWindow:       connection.rawFragment`w1 as (partition by result)`,
+            })
+            .forUseAsInlineAggregatedArrayValue()
+
+        const result = await connection.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ id: tProject.id, tree })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as result from issue where id = ? union all select issue.id as result from issue join recursive_select_1 on issue.parent_id = recursive_select_1.result) select id as id, (select json_group_array(a_2_.result) from (select /* hint */ /* cols */  result as result from recursive_select_1 window w1 as (partition by result) order by result) as a_2_) as tree from project where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; tree: number[] }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('customize-recursive-one-column-ordering-in-inline-aggregated-array-value', async () => {
+        // A one-column recursive select carrying `orderBy` and consumed as an inline
+        // AGGREGATED-ARRAY value via `.forUseAsInlineAggregatedArrayValue()`. Ordering
+        // a recursive result forces the wrapping-CTE mechanism, and the
+        // aggregated-array consumer reads from that wrapped CTE. Every seeded issue
+        // leaves `parent_id` NULL, so the traversal from a single anchor
+        // yields a one-element array.
+        const expected = [{ id: 1, tree: [1] }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+        const tree = connection.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .selectOneColumn(tIssue.id)
+            .recursiveUnionAllOn((child) => tIssue.parentId.equals(child.result))
+            .orderBy('result')
+            .forUseAsInlineAggregatedArrayValue()
+
+        const result = await connection.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ id: tProject.id, tree })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as result from issue where id = ? union all select issue.id as result from issue join recursive_select_1 on issue.parent_id = recursive_select_1.result) select id as id, (select json_group_array(a_2_.result) from (select result as result from recursive_select_1 order by result) as a_2_) as tree from project where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; tree: number[] }>>>()
         expect(result).toEqual(expected)
     })
 

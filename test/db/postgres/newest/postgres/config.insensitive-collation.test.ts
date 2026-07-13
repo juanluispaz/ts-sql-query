@@ -186,4 +186,34 @@ describe(ctx.label, () => {
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email not ilike ('%' || $1 || '%')"`)
     })
+    test('collation: affix operators with a value-source (column) needle', async () => {
+        // The insensitive-affix operators reached with a VALUE-SOURCE (column)
+        // needle instead of a string literal, under a SET collation. The needle
+        // renders as the column expression (`full_name`) — no bound param for the
+        // needle — inside the `(... || '%')` affix, and the ` collate <name>` suffix
+        // still trails the whole comparison. The empty-collation arm keeps the same
+        // column needle with no
+        // collate suffix. No email starts with / contains a user's own full name,
+        // so both queries match no rows — the assertions pin the emitted SQL.
+        const collated = ctx.withInsensitiveCollation(ctx.exampleInsensitiveCollation)
+        await collated.selectFrom(tAppUser)
+            .where(tAppUser.email.startsWithInsensitive(tAppUser.fullName))
+            .select({ id: tAppUser.id })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email ilike (replace(replace(replace(full_name, '\\', '\\\\'), '%', '\\%'), '_', '\\_') || '%') collate "C""`)
+
+        await collated.selectFrom(tAppUser)
+            .where(tAppUser.email.containsInsensitive(tAppUser.fullName))
+            .select({ id: tAppUser.id })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email ilike ('%' || replace(replace(replace(full_name, '\\', '\\\\'), '%', '\\%'), '_', '\\_') || '%') collate "C""`)
+
+        const empty = ctx.withInsensitiveCollation('')
+        await empty.selectFrom(tAppUser)
+            .where(tAppUser.email.startsWithInsensitive(tAppUser.fullName))
+            .select({ id: tAppUser.id })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email ilike (replace(replace(replace(full_name, '\\', '\\\\'), '%', '\\%'), '_', '\\_') || '%')"`)
+    })
+
 })

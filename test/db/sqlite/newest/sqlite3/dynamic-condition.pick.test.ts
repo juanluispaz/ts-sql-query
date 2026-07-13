@@ -491,6 +491,50 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
+    test('pick/rule-1-gate-leaf-inside-picked-object-projecting-optional-values-as-nullable', async () => {
+        // A rule-1 requiredInOptionalObject gate leaf inside a picked nested `meta`
+        // object, under `projectingOptionalValuesAsNullable()`. The nullable
+        // projector keeps optional shapes PRESENT: the optional `meta` object
+        // surfaces as `meta: {…} | null` and the optional `meta.assigneeId` surfaces
+        // as `number | null`. `meta.gate` stays the mandatory required leaf. Issues
+        // 1, 2 both carry a status, so `meta` is present in every row.
+        const expected = [
+            { id: 1, meta: { gate: 'open', assigneeId: 1 } },
+            { id: 2, meta: { gate: 'in_progress', assigneeId: 2 } },
+        ]
+        ctx.mockNext([
+            { id: 1, 'meta.gate': 'open', 'meta.assigneeId': 1 },
+            { id: 2, 'meta.gate': 'in_progress', 'meta.assigneeId': 2 },
+        ])
+        const availableFields = {
+            id: tIssue.id,
+            meta: {
+                gate:       tIssue.status.asRequiredInOptionalObject(),
+                assigneeId: tIssue.assigneeId,
+            },
+        }
+        const picked = dynamicPick(availableFields, { meta: { assigneeId: true } }, ['id', 'meta.gate'])
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.in([1, 2]))
+            .select(picked)
+            .projectingOptionalValuesAsNullable()
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, status as "meta.gate", assignee_id as "meta.assigneeId" from issue where id in (?, ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            id:   number
+            meta: { gate: string; assigneeId: number | null } | null
+        }>>>()
+        expect(rows).toEqual(expected)
+    })
+
     test('pick/rule-2-left-join-leaf-inside-picked-object-default', async () => {
         // A rule-2 originally-required left-join leaf (`name` from a left-joined
         // project) inside a picked nested `proj` object, mixed with the optional
@@ -529,6 +573,49 @@ describe(ctx.label, () => {
         expect(rows).toEqual([{ iid: 1, proj: { id: 1, name: 'Marketing site' } }])
         // Project 1's null archivedAt is dropped under the default projector.
         expect('archivedAt' in rows[0]!.proj!).toBe(false)
+    })
+
+    test('pick/rule-2-left-join-leaf-inside-picked-object-projecting-optional-values-as-nullable', async () => {
+        // A rule-2 originally-required left-join leaf inside a picked nested `proj`
+        // object, under `projectingOptionalValuesAsNullable()`. The nullable
+        // projector keeps optional shapes PRESENT: the optional `proj` object
+        // surfaces as `proj: {…} | null` and the optional `proj.archivedAt` surfaces
+        // present-as-`Date | null`. `proj.id` / `proj.name` stay mandatory. Issue 1
+        // joins project 1 (archived_at NULL → archivedAt PRESENT as null under the
+        // nullable projector).
+        const tProjLeft = tProject.forUseInLeftJoin()
+        ctx.mockNext([{ iid: 1, proj: { id: 1, name: 'Marketing site', archivedAt: null } }])
+        const availableFields = {
+            iid: tIssue.id,
+            proj: {
+                id:         tProjLeft.id,
+                name:       tProjLeft.name,
+                archivedAt: tProjLeft.archivedAt,
+            },
+        }
+        const picked = dynamicPick(availableFields, { proj: { archivedAt: true } }, ['iid', 'proj.id', 'proj.name'])
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .leftJoin(tProjLeft).on(tProjLeft.id.equals(tIssue.projectId))
+            .where(tIssue.id.equals(1))
+            .select(picked)
+            .projectingOptionalValuesAsNullable()
+            .orderBy('iid')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as iid, project.id as "proj.id", project.name as "proj.name", project.archived_at as "proj.archivedAt" from issue left join project on project.id = issue.project_id where issue.id = ? order by iid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            iid:  number
+            proj: { id: number; name: string; archivedAt: Date | null } | null
+        }>>>()
+        expect(rows).toEqual([{ iid: 1, proj: { id: 1, name: 'Marketing site', archivedAt: null } }])
+        // Project 1's null archivedAt is PRESENT-null under the nullable projector.
+        expect('archivedAt' in rows[0]!.proj!).toBe(true)
+        expect(rows[0]!.proj!.archivedAt).toBe(null)
     })
 
     test('pick/all-optional-select-picked-projecting-optional-values-as-nullable', async () => {

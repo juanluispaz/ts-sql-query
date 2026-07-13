@@ -147,4 +147,57 @@ describe(ctx.label, () => {
         })
     })
     */
+
+    // NOT-APPLICABLE: MySQL has no RETURNING
+    /*
+    test('update-returning-one-column-throws-invalid-value-on-wrong-typed-value', async () => {
+        // The one-column value is PRESENT but of a shape the required-`int`
+        // column can't accept (a non-integer `1.5`), so `transformValueFromDB`
+        // rejects it with INVALID_VALUE_RECEIVED_FROM_DATABASE (distinct from
+        // the NO_RESULT / MANDATORY_VALUE gates). The mock hands the scalar back
+        // directly on the one-column path.
+        if (ctx.realDbEnabled) return
+        ctx.mockNext(1.5)
+        let caught: unknown
+        try {
+            await ctx.conn.update(tIssue)
+                .set({ priority: 5 })
+                .where(tIssue.id.equals(1))
+                .returningOneColumn(tIssue.priority)
+                .executeUpdateOne()
+        } catch (e) {
+            caught = e
+        }
+        expect(reasonOf(caught)).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(ctx.lastParams).toMatchInlineSnapshot()
+    })
+    */
+
+    // NOT-APPLICABLE: MySQL has no RETURNING
+    /*
+    test('update-returning-one-column-throws-mandatory-value-on-present-null', async () => {
+        // The one-column value is PRESENT but null on a required column
+        // (`status`). `transformValueFromDB` coerces null→null and the
+        // required-column result-gate then rejects it with
+        // MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE. A `null` scalar is
+        // distinct from the `undefined` "no row" sentinel that fires NO_RESULT, so
+        // the mock reaches the value-gate.
+        if (ctx.realDbEnabled) return
+        ctx.mockNext(null)
+        let caught: unknown
+        try {
+            await ctx.conn.update(tIssue)
+                .set({ priority: 5 })
+                .where(tIssue.id.equals(1))
+                .returningOneColumn(tIssue.status)
+                .executeUpdateOne()
+        } catch (e) {
+            caught = e
+        }
+        expect(reasonOf(caught)).toBe('MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE')
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(ctx.lastParams).toMatchInlineSnapshot()
+    })
+    */
 })

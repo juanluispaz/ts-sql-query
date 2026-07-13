@@ -366,4 +366,83 @@ describe(ctx.label, () => {
         })
     })
     */
+
+    // NOT-APPLICABLE: SQLite has no `OLD`/`OLD_VALUE`/`OUTPUT deleted` equivalent for returning pre-update column snapshots from a single UPDATE, so `oldValues()` is typed `never` on `SqliteConnection`; audit-style RETURNING with old/new must be emulated via a separate SELECT before the UPDATE.
+    /*
+    test('returning-old-value-with-from-then-left-join-drops-nested-object-on-join-miss', async () => {
+        // `oldValues()` combined with `.from(issue).leftJoin(app_user).on(...)`. The
+        // RETURNING reads the pre-update `old.name` and folds the left-joined assignee
+        // into a rule-2 nested `obj` object. Issue 3 (project 2, 'Internal tools') has a
+        // NULL assignee_id, so the LEFT join MISSES → app_user.full_name is NULL → the
+        // rule-2 nested object DROPS under the default projector. name is set to a
+        // literal so the no-match join cannot null out project.name.
+        ctx.mockNext({ id: 2, oldName: 'Internal tools', 'obj.assignee': null })
+        await ctx.withRollback(async () => {
+            const tUserLeft = tAppUser.forUseInLeftJoin()
+            const oldProject = tProject.oldValues()
+            const row = await ctx.conn.update(tProject)
+                .from(tIssue)
+                .leftJoin(tUserLeft).on(tUserLeft.id.equals(tIssue.assigneeId))
+                .set({ name: 'Renamed via left join' })
+                .where(tProject.id.equals(tIssue.projectId))
+                    .and(tIssue.id.equals(3))
+                .returning({
+                    id:      tProject.id,
+                    oldName: oldProject.name,
+                    obj:     { assignee: tUserLeft.fullName },
+                })
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof row, {
+                id:      number
+                oldName: string
+                obj?:    { assignee: string }
+            }>>()
+            expect(row).toEqual({ id: 2, oldName: 'Internal tools' })
+            // The left-join miss nulls app_user.full_name → the rule-2 object drops.
+            expect('obj' in row).toBe(false)
+        })
+    })
+    */
+
+    // NOT-APPLICABLE: SQLite has no `OLD`/`OLD_VALUE`/`OUTPUT deleted` equivalent for returning pre-update column snapshots from a single UPDATE, so `oldValues()` is typed `never` on `SqliteConnection`; audit-style RETURNING with old/new must be emulated via a separate SELECT before the UPDATE.
+    /*
+    test('returning-old-value-with-from-then-left-join-projects-nullable-assignee-on-miss', async () => {
+        // `oldValues()` × `.from(issue).leftJoin(app_user)` under
+        // `projectingOptionalValuesAsNullable()`: the left-joined `app_user.full_name`
+        // (originally required, made nullable by the
+        // LEFT join) surfaces present-as-`string | null` rather than dropped. Issue 3
+        // (project 2, 'Internal tools') has a NULL assignee_id, so the LEFT join MISSES
+        // → assignee comes back as `null` (present). `old.name` stays required.
+        ctx.mockNext({ id: 2, oldName: 'Internal tools', assignee: null })
+        await ctx.withRollback(async () => {
+            const tUserLeft = tAppUser.forUseInLeftJoin()
+            const oldProject = tProject.oldValues()
+            const row = await ctx.conn.update(tProject)
+                .from(tIssue)
+                .leftJoin(tUserLeft).on(tUserLeft.id.equals(tIssue.assigneeId))
+                .set({ name: 'Renamed via left join nullable' })
+                .where(tProject.id.equals(tIssue.projectId))
+                    .and(tIssue.id.equals(3))
+                .returning({
+                    id:       tProject.id,
+                    oldName:  oldProject.name,
+                    assignee: tUserLeft.fullName,
+                })
+                .projectingOptionalValuesAsNullable()
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof row, {
+                id:       number
+                oldName:  string
+                assignee: string | null
+            }>>()
+            expect(row).toEqual({ id: 2, oldName: 'Internal tools', assignee: null })
+        })
+    })
+    */
 })

@@ -261,7 +261,7 @@ describe(ctx.label, () => {
             2,
           ]
         `)
-        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with result_for_count(id, "label") as (/* head */  select id as id, name as "label" from project where id in (:0, :1) union select id as id, name as "label" from project where id = :2 order by 1  /* tail */) select count(*) from result_for_count"`)
+        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with result_for_count(id, "label") as (/* head */  select id as id, name as "label" from project where id in (:0, :1) union select id as id, name as "label" from project where id = :2  /* tail */) select count(*) from result_for_count"`)
         expect(ctx.history[1]!.params).toMatchInlineSnapshot(`
           [
             1,
@@ -311,7 +311,7 @@ describe(ctx.label, () => {
             3,
           ]
         `)
-        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with result_for_count(id, "label") as (/* head */  select id as id, name as "label" from project where id in (:0, :1) union select id as id, name as "label" from project where id = :2 order by 1  /* tail */) select count(*) from result_for_count"`)
+        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with result_for_count(id, "label") as (/* head */  select id as id, name as "label" from project where id in (:0, :1) union select id as id, name as "label" from project where id = :2  /* tail */) select count(*) from result_for_count"`)
         expect(ctx.history[1]!.params).toMatchInlineSnapshot(`
           [
             1,

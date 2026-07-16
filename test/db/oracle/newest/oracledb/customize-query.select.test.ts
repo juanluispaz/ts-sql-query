@@ -246,7 +246,7 @@ describe(ctx.label, () => {
             .select({ id: tree.id })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive_select_1(id, parentId) as (/* head */  select id as id, parent_id as parentId from issue where id = :0 union all select issue.id as id, issue.parent_id as parentId from issue join recursive_select_1 on issue.id = recursive_select_1.parentId  /* tail */), tree as (select /* hint */ /* cols */  id as id, parentId as parentId from recursive_select_1 window w1 as (partition by id) order by parentId asc, id) select id as "id" from tree"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive_select_1(id, parentId) as (/* head */  select id as id, parent_id as parentId from issue where id = :0 union all select issue.id as id, issue.parent_id as parentId from issue join recursive_select_1 on issue.id = recursive_select_1.parentId  /* tail */), tree as (select /* hint */ /* cols */  id as id, parentId as parentId from recursive_select_1 window w1 as (partition by id) order by parentId asc, id offset 0 rows) select id as "id" from tree"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -456,7 +456,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with open_issues as (select /* hint */ /* cols */  id as id, project_id as projectId from issue where id in (:0, :1) window w1 as (partition by project_id) order by project_id asc, id, priority asc) select id as "id", projectId as "projectId" from open_issues order by "id""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with open_issues as (select /* hint */ /* cols */  id as id, project_id as projectId from issue where id in (:0, :1) window w1 as (partition by project_id) order by project_id asc, id, priority asc offset 0 rows) select id as "id", projectId as "projectId" from open_issues order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -503,7 +503,7 @@ describe(ctx.label, () => {
             2,
           ]
         `)
-        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with result_for_count as (/* head */  select id as id, name as name from project where id <= :0 order by id  /* tail */) select count(*) from result_for_count"`)
+        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with result_for_count as (/* head */  select id as id, name as name from project where id <= :0  /* tail */) select count(*) from result_for_count"`)
         expect(ctx.history[1]!.params).toMatchInlineSnapshot(`
           [
             3,
@@ -558,7 +558,7 @@ describe(ctx.label, () => {
             2,
           ]
         `)
-        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with result_for_count as (select /* hint */ /* cols */  id as id, name as name from project where id <= :0 window w1 as (partition by organization_id) order by project.organization_id asc, id, project.name desc) select count(*) from result_for_count"`)
+        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with result_for_count as (select /* hint */ /* cols */  id as id, name as name from project where id <= :0 window w1 as (partition by organization_id)) select count(*) from result_for_count"`)
         expect(ctx.history[1]!.params).toMatchInlineSnapshot(`
           [
             3,
@@ -600,7 +600,7 @@ describe(ctx.label, () => {
             2,
           ]
         `)
-        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with result_for_count as (/* head */  select distinct id as id from project where id <= :0 order by id  /* tail */) select count(*) from result_for_count"`)
+        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with result_for_count as (/* head */  select distinct id as id from project where id <= :0  /* tail */) select count(*) from result_for_count"`)
         expect(ctx.history[1]!.params).toMatchInlineSnapshot(`
           [
             3,
@@ -648,7 +648,7 @@ describe(ctx.label, () => {
             2,
           ]
         `)
-        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with result_for_count as (/* head */  select status as status, count(id) as total from issue group by status order by status  /* tail */) select count(*) from result_for_count"`)
+        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with result_for_count as (/* head */  select status as status, count(id) as total from issue group by status  /* tail */) select count(*) from result_for_count"`)
         expect(ctx.history[1]!.params).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof page, {
             data:  Array<{ status: string; total: number }>
@@ -772,40 +772,44 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-    // TODO[BUG]: see BUGS.md — a one-column select consumed via forUseAsInlineQueryValue() keeps its orderBy, and the library renders that ORDER BY inside the scalar subquery, which Oracle rejects (ORA-00907). customWindow is not the trigger: Oracle accepts a WINDOW clause at top level and in a derived table, and rejects a bare ORDER BY in a scalar subquery with no window at all. The aggregated-array sibling wraps its select in a derived table and runs fine here.
-    // test('customize-recursive-one-column-custom-window-and-ordering-in-inline-scalar-value', async () => {
-    //     // A one-column recursive select consumed as an inline SCALAR value via
-    //     // `.forUseAsInlineQueryValue()`, carrying BOTH `orderBy` and `customWindow`
-    //     // alongside the projection hooks. Ordering forces a wrapping subquery, and the
-    //     // `afterSelectKeyword` / `beforeColumns` / `customWindow` hooks render inside
-    //     // that wrapped select. Every seeded issue leaves `parent_id` NULL, so the
-    //     // traversal from a single anchor yields exactly one row and the scalar subquery
-    //     // resolves to a single value.
-    //     const expected = [{ id: 1, root: 1 }]
-    //     ctx.mockNext(expected)
-    //     const connection = ctx.conn
-    //     const rootIssueId = connection.selectFrom(tIssue)
-    //         .where(tIssue.id.equals(1))
-    //         .selectOneColumn(tIssue.id)
-    //         .recursiveUnionAllOn((child) => tIssue.parentId.equals(child.result))
-    //         .orderBy('result')
-    //         .customizeQuery({
-    //             afterSelectKeyword: connection.rawFragment`/* hint */`,
-    //             beforeColumns:      connection.rawFragment`/* cols */ `,
-    //             customWindow:       connection.rawFragment`w1 as (partition by result)`,
-    //         })
-    //         .forUseAsInlineQueryValue()
-    //
-    //     const result = await connection.selectFrom(tProject)
-    //         .where(tProject.id.equals(1))
-    //         .select({ id: tProject.id, root: rootIssueId })
-    //         .executeSelectMany()
-    //
-    //     expect(ctx.lastSql).toMatchInlineSnapshot()
-    //     expect(ctx.lastParams).toMatchInlineSnapshot()
-    //     assertType<Exact<typeof result, Array<{ id: number; root?: number }>>>()
-    //     expect(result).toEqual(expected)
-    // })
+    test('customize-recursive-one-column-custom-window-and-ordering-in-inline-scalar-value', async () => {
+        // A one-column recursive select consumed as an inline SCALAR value via
+        // `.forUseAsInlineQueryValue()`, carrying BOTH `orderBy` and `customWindow`
+        // alongside the projection hooks. Ordering forces a wrapping subquery, and the
+        // `afterSelectKeyword` / `beforeColumns` / `customWindow` hooks render inside
+        // that wrapped select. Every seeded issue leaves `parent_id` NULL, so the
+        // traversal from a single anchor yields exactly one row and the scalar subquery
+        // resolves to a single value.
+        const expected = [{ id: 1, root: 1 }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+        const rootIssueId = connection.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .selectOneColumn(tIssue.id)
+            .recursiveUnionAllOn((child) => tIssue.parentId.equals(child.result))
+            .orderBy('result')
+            .customizeQuery({
+                afterSelectKeyword: connection.rawFragment`/* hint */`,
+                beforeColumns:      connection.rawFragment`/* cols */ `,
+                customWindow:       connection.rawFragment`w1 as (partition by result)`,
+            })
+            .forUseAsInlineQueryValue()
+    
+        const result = await connection.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ id: tProject.id, root: rootIssueId })
+            .executeSelectMany()
+    
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive_select_1(result) as (select id as result from issue where id = :0 union all select issue.id as result from issue join recursive_select_1 on issue.parent_id = recursive_select_1.result) select id as "id", (select /* hint */ /* cols */  result as "result" from recursive_select_1 window w1 as (partition by result) order by "result" offset 0 rows) as "root" from project where id = :1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; root?: number }>>>()
+        expect(result).toEqual(expected)
+    })
 
     test('customize-recursive-one-column-custom-window-and-ordering-in-inline-aggregated-array-value', async () => {
         // A one-column recursive select consumed as an inline AGGREGATED-ARRAY value

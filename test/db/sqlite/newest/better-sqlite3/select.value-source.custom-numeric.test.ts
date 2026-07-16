@@ -67,7 +67,7 @@ describe(ctx.label, () => {
         // ceil/floor/round (the customInt||customDouble arm) and abs.
         // This SQLite build returns ceil/floor/round/abs of an integer as a
         // plain integer, so the value round-trips in both modes.
-        const score = ctx.conn.const(7, 'customInt', 'Score')
+        const score = ctx.conn.const(7, 'customInt', 'ScoreCount')
         const expected = [{ id: 1, c: 7, f: 7, r: 7, a: 7 }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssue)
@@ -168,7 +168,7 @@ describe(ctx.label, () => {
         if (ctx.realDbEnabled) {
             const row = result[0]!
             expect(row.sq).toBeCloseTo(2, 5)
-            expect(row.cb).toBeCloseTo(Math.cbrt(4), 4)
+            expect(row.cb).toBeCloseTo(Math.cbrt(4), 10)
             expect(row.e).toBeCloseTo(Math.exp(4), 5)
             expect(row.l).toBeCloseTo(Math.log(4), 5)
             expect(row.l10).toBeCloseTo(Math.log10(4), 5)
@@ -930,7 +930,7 @@ describe(ctx.label, () => {
             expect(result[0]!.ex).toBeCloseTo(Math.exp(4), 5)
             expect(result[0]!.l).toBeCloseTo(Math.log(4), 5)
             expect(result[0]!.l10).toBeCloseTo(Math.log10(4), 5)
-            expect(result[0]!.cb).toBeCloseTo(Math.cbrt(4), 4)
+            expect(result[0]!.cb).toBeCloseTo(Math.cbrt(4), 10)
         } else {
             expect(result).toEqual(expected)
         }

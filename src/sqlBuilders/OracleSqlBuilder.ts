@@ -617,8 +617,14 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     override _buildSelectLimitOffset(query: SelectData, params: any[]): string {
         let result = super._buildSelectLimitOffset(query, params)
 
-        if (!result && this._isAggregateArrayWrapped(params) && (query.__orderBy || query.__customization?.beforeOrderByItems || query.__customization?.afterOrderByItems)) {
-            result += ' offset 0 rows' // Workaround to force oracle to order the result (if not the order by is ignored)
+        if (!result && (query.__orderBy || query.__customization?.beforeOrderByItems || query.__customization?.afterOrderByItems) && !this._isCurrentRootQuery(query, params)) {
+            // Oracle needs a row-limiting clause to honour an ORDER BY in a subquery, and
+            // this noop offset supplies one. Without it the ordering is either ignored — in
+            // a CTE body or a derived table — or rejected outright: a scalar subquery in the
+            // select list carrying a bare ORDER BY is an ORA-00907. Both follow from the
+            // same rule, so the gate is the position (any non-root select), the same one
+            // SQL Server uses for its identical workaround.
+            result += ' offset 0 rows'
         }
         return result
     }

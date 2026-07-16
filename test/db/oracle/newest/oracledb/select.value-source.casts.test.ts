@@ -227,7 +227,7 @@ describe(ctx.label, () => {
     })
 
 
-    // TODO[BUG]: see BUGS.md — the emitted SQL computes the sum exactly, but oracledb marshals the NUMBER(38) result through a JavaScript number, so 9007199254740995 arrives as 9007199254740996: an integral value the bigint marshaller accepts, i.e. a clean but wrong bigint.
+    // TODO[LIMITATION]: see LIMITATIONS.md — the emitted SQL computes the sum exactly, but oracledb reads every NUMBER as a JavaScript number unless a `fetchTypeHandler` fetches the wide ones as strings, which this suite does not install, so 9007199254740995 arrives rounded to 9007199254740996: an integral value the bigint marshaller accepts, i.e. a clean but wrong bigint.
     /*
     test('asBigint-on-double-keeps-bigint-arithmetic-exact', async () => {
         // The cast `asBigint()` emits is what keeps the arithmetic exact: computed in

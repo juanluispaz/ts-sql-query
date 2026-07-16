@@ -69,7 +69,7 @@ describe(ctx.label, () => {
         // The string-`typeName` overload of `optionalConst` (custom typed
         // value source). Purely client-side: the type name does not change
         // emitted SQL, and the literal reads back unchanged.
-        const value = ctx.conn.optionalConst(7, 'customInt', 'Score')
+        const value = ctx.conn.optionalConst(7, 'customInt', 'ScoreCount')
         expect(value.isConstValue()).toBe(true)
         expect(value.getConstValue()).toBe(7)
     })

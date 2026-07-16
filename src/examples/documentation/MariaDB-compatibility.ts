@@ -3765,7 +3765,7 @@ async function main() {
     expectedParams.push(`["Smi","Smi",10,20]`)
     expectedType.push(`selectManyRows`)
     expectedResult.push(0)
-    expectedQuery.push(`with result_for_count as (select id as id, first_name as firstName, last_name as lastName from customer where lower(first_name) like concat(lower(?), '%') or lower(last_name) like concat(lower(?), '%') group by id order by firstName, lastName) select count(*) from result_for_count`)
+    expectedQuery.push(`with result_for_count as (select id as id, first_name as firstName, last_name as lastName from customer where lower(first_name) like concat(lower(?), '%') or lower(last_name) like concat(lower(?), '%') group by id) select count(*) from result_for_count`)
     expectedParams.push(`["Smi","Smi"]`)
     expectedType.push(`selectOneColumnOneRow`)
     
@@ -3802,7 +3802,7 @@ async function main() {
     expectedParams.push(`["Smi","Smi",10,20]`)
     expectedType.push(`selectManyRows`)
     expectedResult.push(0)
-    expectedQuery.push(`with result_for_count as (select distinct id as id, first_name as firstName, last_name as lastName from customer where lower(first_name) like concat(lower(?), '%') or lower(last_name) like concat(lower(?), '%') order by firstName, lastName) select count(*) from result_for_count`)
+    expectedQuery.push(`with result_for_count as (select distinct id as id, first_name as firstName, last_name as lastName from customer where lower(first_name) like concat(lower(?), '%') or lower(last_name) like concat(lower(?), '%')) select count(*) from result_for_count`)
     expectedParams.push(`["Smi","Smi"]`)
     expectedType.push(`selectOneColumnOneRow`)
     

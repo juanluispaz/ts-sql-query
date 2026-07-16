@@ -227,7 +227,7 @@ describe(ctx.label, () => {
     })
 
 
-    // TODO[BUG]: see BUGS.md — the emitted SQL computes the sum exactly, but sqlite3 marshals the INTEGER result through a JavaScript number, so 9007199254740995 arrives as 9007199254740994: a clean but wrong bigint.
+    // TODO[LIMITATION]: see LIMITATIONS.md — the emitted SQL computes the sum exactly, but the deprecated sqlite3 driver has no exact-integer option at all, so 9007199254740995 arrives rounded to 9007199254740994: a clean but wrong bigint.
     /*
     test('asBigint-on-double-keeps-bigint-arithmetic-exact', async () => {
         // The cast `asBigint()` emits is what keeps the arithmetic exact: computed in

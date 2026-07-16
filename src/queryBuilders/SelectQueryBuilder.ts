@@ -187,6 +187,31 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
         return this.__executeSelectMany(source)
     }
     abstract __buildSelectCount(countAll: AggregateFunctions0ValueSource, params: any[]): string
+    /**
+     * Strips from a copy of the select data everything that only describes the page, so
+     * what remains is the same query counting every matching row.
+     *
+     * `limit` / `offset` pick the page. The ordering doesn't: a `count(*)` is the same
+     * whatever order the rows come in, so it is pure cost — Oracle plans the sort at 15x
+     * the count's own cost and spills it to temp, and SQL Server sorts every row too. It
+     * takes the `beforeOrderByItems` / `afterOrderByItems` hooks with it: they are content
+     * for an ORDER BY clause the count doesn't have. Every other `customizeQuery` hook
+     * stays — `beforeQuery` / `afterQuery` decorate the statement itself, which the count
+     * is as much as the page is.
+     */
+    __dropPaginationForCount(data: SelectData): void {
+        delete data.__limit
+        delete data.__offset
+        delete data.__orderBy
+        const customization = data.__customization
+        if (customization && (customization.beforeOrderByItems || customization.afterOrderByItems)) {
+            const countCustomization = {...customization}
+            delete countCustomization.beforeOrderByItems
+            delete countCustomization.afterOrderByItems
+            data.__customization = countCustomization
+        }
+    }
+
     __executeSelectCount(source: QueryExecutionSource): Promise<any> {
         try {
             this.__sqlBuilder._resetUnique()
@@ -845,8 +870,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
             // other statement-level hooks) ride on the wrapped inner query instead
             // of being dropped from the plain `select count(*) from <table>` form.
             const data = {...this.__asSelectData()} // Ensure any missing initialization and create a copy of the data
-            delete data.__limit
-            delete data.__offset
+            this.__dropPaginationForCount(data)
 
             const withView = new WithViewImpl(this.__sqlBuilder, 'result_for_count', data)
             const withs: Array<IWithView<any>> = []
@@ -1550,8 +1574,7 @@ export class CompoundSelectQueryBuilder extends AbstractSelect implements ToSql,
 
     __buildSelectCount(countAll: AggregateFunctions0ValueSource, params: any[]): string {
         const data = {...this.__asSelectData()} // Ensure any missing initialization and create a copy of the data
-        delete data.__limit
-        delete data.__offset
+        this.__dropPaginationForCount(data)
 
         const withView = new WithViewImpl(this.__sqlBuilder, 'result_for_count', data)
         const withs: Array<IWithView<any>> = []

@@ -319,6 +319,13 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         if (this._connectionConfiguration.usePlatformDependentRound) {
             return 'round(' + this._appendSql(valueSource, params, false) + ')'
         }
+        // The cast is emitted even for an operand that is already exact, where the
+        // tie-breaking rule alone wouldn't need it: it also gives the expression a
+        // resolved type, which is what lets a downstream operator resolve against an
+        // untyped placeholder — `round($1) % $2` is a `double precision % unknown` on
+        // PostgreSQL, an operator that does not exist. It does mean `round()` answers a
+        // numeric, which the drivers hand back as a string for a custom type carrying no
+        // marshalling of its own.
         return 'round((' + this._appendSql(valueSource, params, false) + ')::numeric)'
     }
     override _equalsInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {

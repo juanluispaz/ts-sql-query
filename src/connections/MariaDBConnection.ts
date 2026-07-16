@@ -15,7 +15,20 @@ import type { Default } from '../expressions/Default.js'
 import { DefaultImpl } from '../expressions/Default.js'
 
 export abstract class MariaDBConnection</*in|out*/ NAME extends string> extends AbstractAdvancedConnection<NConnection<'mariaDB', NAME>> {
- 
+
+    /**
+     * How UUID values are stored: in MariaDB's native `UUID` column type (`'uuid'`,
+     * requiring MariaDB 10.7+) or in a character column such as `CHAR(36)` (`'string'`).
+     *
+     * **Both strategies currently emit identical SQL, by nature and not by omission** —
+     * unlike MySQL's `binary` strategy, which needs `UUID_TO_BIN` / `BIN_TO_UUID`, or
+     * SQLite's and Oracle's. MariaDB's native `UUID` compares, concatenates and measures
+     * exactly like a `CHAR(36)`, the driver hands both back as a string, and binding a
+     * string parameter against either needs no conversion — so there is nothing for the
+     * builder to do differently. The property declares the application's schema intent and
+     * is kept as the seam for a future strategy that does need one; don't take the absence
+     * of a `_getUuidStrategy()` on the MariaDB builder for an unwired knob.
+     */
     protected uuidStrategy: 'string' | 'uuid' = 'uuid'
 
     /**

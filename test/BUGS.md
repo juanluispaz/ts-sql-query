@@ -67,12 +67,17 @@ of that. Two minutes of triage and one paragraph is the bar.
 
 ## Open Bugs
 
-Most entries below are a **silently wrong value** rather than a rejection, and
-most are invisible to the matrix as it stands — each entry says why under
-*Current workaround in the suite*. A `none` there is not "nothing to do": it
-means no test would notice a regression either.
+**None.** Add new entries here following the recipe above.
 
-### The microsecond coverage gap (not a bug — a gap the next round should close)
+When you do: most defects this suite surfaces are a **silently wrong value**
+rather than a rejection, and are invisible to the matrix until a test reaches
+them — so say under *Current workaround in the suite* why the matrix can't see
+it. A `none` there is not "nothing to do": it means no test would notice a
+regression either.
+
+## Coverage gaps carried over (not bugs — no entry to fix)
+
+### The microsecond coverage gap
 
 The date-part truncation defects fixed in this round are only **half covered**.
 `const-localdatetime-subsecond-getters-truncate`
@@ -95,115 +100,6 @@ Closing it needs a fixture change, not a test-only one: `TIMESTAMP` /
 differ — MySQL / MariaDB `DATETIME` holds **whole seconds** and SQL Server
 `DATETIME` ~3.33 ms, so the schemas would need `DATETIME(6)` / `DATETIME2(7)`
 before any such fixture can hold the value.
-
-## Five query runners lose `bigint` precision beyond 2^53
-
-**Where**: the query runners — `MySql2QueryRunner`, `OracleDBQueryRunner`,
-`BetterSqlite3QueryRunner`, `Sqlite3QueryRunner`, `NodeSqliteQueryRunner`.
-
-**Reproduction**: `tIssue.priority.asDouble().asBigint().add(9007199254740993n)`
-now emits SQL that computes `9007199254740995` **exactly** on every engine (the
-cast added in this round is what makes the arithmetic exact), but five runners
-marshal that result through a JavaScript number on the way back:
-
-| connector | returns | |
-|---|---|---|
-| `mysql2` | `9007199254740996n` | clean, wrong |
-| `oracledb` | `9007199254740996n` | clean, wrong |
-| `better-sqlite3` | `9007199254740996n` | clean, wrong |
-| `sqlite3` | `9007199254740994n` | clean, wrong |
-| `node_sqlite` | throws `SQL_INVALID_VALUE` | loud |
-| **pg, postgres, pglite, mssql, mariadb, bun_sql_*, sqlite-wasm-OO1, …** | **`9007199254740995n`** | **correct** |
-
-The value is integral, so `transformValueFromDB`'s `bigint` arm coerces it with
-`BigInt(...)` and hands the caller a **clean, wrong `bigint`** — no error, no
-warning. Only `node_sqlite` refuses (`RangeError: Value is too large to be
-represented as a JavaScript number`), which is why it is the loud one.
-
-Twelve of the seventeen cells return the exact value, so this is a runner
-configuration gap rather than an engine limit: each driver has a knob for it
-(`better-sqlite3` `safeIntegers`, `mysql2` `supportBigNumbers` /
-`bigNumberStrings`, `oracledb` fetch type handlers). The library declares the
-column `bigint`; the runner should be configured to preserve it.
-
-**Current workaround in the suite**:
-`{mysql/newest/mysql2, oracle/newest/oracledb, sqlite/newest/better-sqlite3,
-sqlite/newest/sqlite3, sqlite/newest/node_sqlite}/select.value-source.casts.test.ts`,
-test `asBigint-on-double-keeps-bigint-arithmetic-exact` — commented out with a
-`// TODO[BUG]` in those five cells; it runs and validates in the other twelve.
-
-## Oracle: an inline scalar subquery keeps a bare `ORDER BY`, which Oracle rejects
-
-**Where**: `OracleSqlBuilder._buildSelectLimitOffset` (~line 617, injection at
-~620) — its gate, not the `forUseAsInlineQueryValue()` path itself.
-
-**Reproduction**: a one-column select carrying `orderBy` consumed via
-`.forUseAsInlineQueryValue()` renders as
-`(select ... from t window w1 as (...) order by "result")` in the SELECT list.
-Oracle rejects it with **ORA-00907: missing right parenthesis**.
-
-**The rule is narrower than "Oracle forbids ORDER BY in a scalar subquery"** —
-that premise was falsified by probing `gvenzl/oracle-free:23-slim-faststart`:
-
-```
-(SELECT dummy FROM dual ORDER BY dummy)                             → ORA-00907
-(SELECT dummy FROM dual ORDER BY dummy OFFSET 0 ROWS)               → OK
-(SELECT dummy FROM dual WINDOW w1 AS (...) ORDER BY dummy
-                                          OFFSET 0 ROWS)            → OK
-```
-
-Oracle rejects a **bare** `ORDER BY` in a scalar subquery but accepts one
-carrying a row-limiting clause. A live, green test proves it:
-`oracle/newest/oracledb/cte.recursive-union-variants.test.ts:1141`
-(`recursive-result-order-by-limit-inline-scalar-value`) emits
-`(select result ... order by result fetch next :1 rows only)` and runs against
-real Oracle.
-
-So the derived-table wrap is a red herring: what makes the aggregated-array
-sibling work is the `offset 0 rows` **inside** the wrap, not the wrap — Oracle
-silently *ignores* an `ORDER BY` in a derived table with no row-limiting clause
-(`OracleSqlBuilder.ts:621` says so itself).
-
-**SQL Server has the identical workaround and gates it on a different, working
-predicate** — `SqlServerSqlBuilder._buildSelectLimitOffset` (~344, injection at
-~360) fires on `!this._isCurrentRootQuery(query, params)`, which covers every
-non-root select; Oracle gates on `this._isAggregateArrayWrapped(params)`, which
-is true only inside the aggregate wrapper. **That divergence is the bug.**
-Converging Oracle onto SQL Server's predicate fixes this *and* the adjacent
-defect below, but needs one probe first: that the injection cannot reach a
-recursive CTE member, where `offset` is illegal.
-
-**Adjacent, not filed separately**: the same gate means an Oracle CTE body or
-derived table carrying `ORDER BY` outside the aggregate wrapper gets no
-`offset 0 rows`, and Oracle **silently ignores that ordering** (e.g.
-`cte.recursive-union-variants.test.ts:1279`, `:1040`,
-`customize-query.select.test.ts:249`). Semantic, not syntactic, and masked
-wherever the natural row order happens to match.
-
-**Current workaround in the suite**:
-`oracle/newest/oracledb/customize-query.select.test.ts`, test
-`customize-recursive-one-column-custom-window-and-ordering-in-inline-scalar-value`
-— commented out with a `// TODO[BUG]` (line comments, because the body embeds
-`/* hint */` fragments).
-
-## MariaDB: `uuidStrategy` is documented but does nothing
-
-**Where**: `MariaDBConnection.ts:19` declares `uuidStrategy: 'string' | 'uuid'`,
-and `docs/configuration/supported-databases/mariadb.md:103-109` instructs users
-to override it.
-
-**Reproduction**: `MariaDBSqlBuilder` and `AbstractMySqlMariaBDSqlBuilder`
-contain **zero** references to `uuidStrategy`, `_getUuidStrategy`, `_asString`
-or `_isUuid` — MySQL, SQLite and Oracle each declare their own
-`_getUuidStrategy()`, and there is no base implementation to inherit. Both
-MariaDB strategies happen to need no SQL conversion, so no value is wrong
-today; the option is simply inert while the docs promise it works.
-
-Either wire it up or remove it from the connection and the docs page. Note the
-uuid→string concept is hand-spelled in five places with no shared seam — the
-same drift generator as the date-part extractors above.
-
-**Current workaround in the suite**: none.
 
 ## Common bug shapes (for the fixing agent)
 

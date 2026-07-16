@@ -22,10 +22,7 @@
 // emit two untyped params that postgres rejects as `unknown <op> unknown`.
 //
 // SQL Server supports trig functions and computes exp/ln/log10 with
-// platform precision; a custom type carries no marshalling
-// (transformValueFromDB falls through to `return value`, so the driver's
-// raw representation leaks). These tests pin the emitted SQL and assert
-// the value.
+// platform precision. These tests pin the emitted SQL and assert the value.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -63,11 +60,10 @@ describe(ctx.label, () => {
 
     test('custom-numeric/customint-rounding-and-abs', async () => {
         // customInt operand keeps the customInt result type through
-        // ceil/floor/round (the customInt||customDouble arm) and abs. A
-        // custom type carries no marshalling, so on SQL Server the
-        // driver leaks the raw representation as a string ('7') for every
-        // column; the mock echoes the seeded numbers.
-        const score = ctx.conn.const(7, 'customInt', 'Score')
+        // ceil/floor/round (the customInt||customDouble arm) and abs. The
+        // typeName is marshalled through its base int on the connection, so
+        // every leaf round-trips as a number.
+        const score = ctx.conn.const(7, 'customInt', 'ScoreCount')
         const expected = [{ id: 1, c: 7, f: 7, r: 7, a: 7 }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssue)
@@ -91,11 +87,7 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof result, Array<{ id: number; c: number; f: number; r: number; a: number }>>>()
-        if (ctx.realDbEnabled) {
-            expect(result).toEqual([{ id: 1, c: '7', f: '7', r: '7', a: '7' }])
-        } else {
-            expect(result).toEqual(expected)
-        }
+        expect(result).toEqual(expected)
     })
 
     test('custom-numeric/double-arithmetic', async () => {
@@ -171,7 +163,7 @@ describe(ctx.label, () => {
         if (ctx.realDbEnabled) {
             expect(result[0]!.id).toBe(1)
             expect(result[0]!.sq).toBeCloseTo(2, 5)
-            expect(result[0]!.cb).toBeCloseTo(Math.cbrt(4), 4)
+            expect(result[0]!.cb).toBeCloseTo(Math.cbrt(4), 10)
             expect(result[0]!.e).toBeCloseTo(Math.exp(4), 5)
             expect(result[0]!.l).toBeCloseTo(Math.log(4), 5)
             expect(result[0]!.l10).toBeCloseTo(Math.log10(4), 5)
@@ -930,7 +922,7 @@ describe(ctx.label, () => {
             expect(result[0]!.ex).toBeCloseTo(Math.exp(4), 5)
             expect(result[0]!.l).toBeCloseTo(Math.log(4), 5)
             expect(result[0]!.l10).toBeCloseTo(Math.log10(4), 5)
-            expect(result[0]!.cb).toBeCloseTo(Math.cbrt(4), 4)
+            expect(result[0]!.cb).toBeCloseTo(Math.cbrt(4), 10)
         } else {
             expect(result).toEqual(expected)
         }

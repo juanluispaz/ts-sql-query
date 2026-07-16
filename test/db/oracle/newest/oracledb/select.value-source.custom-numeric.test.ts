@@ -67,7 +67,7 @@ describe(ctx.label, () => {
         // ceil/floor/round (the customInt||customDouble arm) and abs.
         // The integer results are exact, so the VALUE is asserted in
         // both modes.
-        const score = ctx.conn.const(7, 'customInt', 'Score')
+        const score = ctx.conn.const(7, 'customInt', 'ScoreCount')
         const expected = [{ id: 1, c: 7, f: 7, r: 7, a: 7 }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssue)
@@ -950,7 +950,7 @@ describe(ctx.label, () => {
             expect(result[0]!.ex).toBeCloseTo(Math.exp(4), 5)
             expect(result[0]!.l).toBeCloseTo(Math.log(4), 5)
             expect(result[0]!.l10).toBeCloseTo(Math.log10(4), 5)
-            expect(result[0]!.cb).toBeCloseTo(Math.cbrt(4), 4)
+            expect(result[0]!.cb).toBeCloseTo(Math.cbrt(4), 10)
         } else {
             expect(result).toEqual(expected)
         }

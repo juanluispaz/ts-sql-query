@@ -91,3 +91,18 @@ async function doYourLogic(connection: DBConnection) {
     connection // ...
 }
 ```
+
+!!! note "Safe Integers"
+
+    If your queries may return integers larger than JavaScript's safe integer range — a `bigint` column, or arithmetic that grows past `Number.MAX_SAFE_INTEGER` (`9_007_199_254_740_991`) — enable `supportBigNumbers` in the connection configuration:
+
+    ```ts
+    const pool = createPool({
+        // ... the rest of your configuration
+        supportBigNumbers: true
+    });
+    ```
+
+    Without it the driver reads every integer as a JavaScript `number`, so an out-of-range value comes back rounded — silently, since the rounded value is still an integer. With it, the driver hands those values over as strings and ts-sql-query converts them to the type the column declares (`bigint` stays exact, `int` raises `INVALID_VALUE_RECEIVED_FROM_DATABASE` if it truly doesn't fit). Values within the safe range keep coming back as `number`, so nothing else changes.
+
+    Add `bigNumberStrings: true` as well only if you want *every* integer as a string, not just the out-of-range ones.

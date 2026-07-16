@@ -301,7 +301,7 @@ describe(ctx.label, () => {
             .select({ s: statuses.s })
             .orderBy('s')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with statuses("s") as (select status as "s" from issue where status = :0 union select status as "s" from issue where status = :1 order by 1 desc) select "s" as "s" from statuses order by "s""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with statuses("s") as (select status as "s" from issue where status = :0 union select status as "s" from issue where status = :1 order by 1 desc offset 0 rows) select "s" as "s" from statuses order by "s""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",

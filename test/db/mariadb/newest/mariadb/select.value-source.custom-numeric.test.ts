@@ -62,7 +62,7 @@ describe(ctx.label, () => {
     test('custom-numeric/customint-rounding-and-abs', async () => {
         // customInt operand keeps the customInt result type through
         // ceil/floor/round (the customInt||customDouble arm) and abs.
-        const score = ctx.conn.const(7, 'customInt', 'Score')
+        const score = ctx.conn.const(7, 'customInt', 'ScoreCount')
         const expected = [{ id: 1, c: 7, f: 7, r: 7, a: 7 }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssue)
@@ -163,7 +163,7 @@ describe(ctx.label, () => {
         if (ctx.realDbEnabled) {
             expect(result[0]!.id).toBe(1)
             expect(result[0]!.sq).toBeCloseTo(2, 5)
-            expect(result[0]!.cb).toBeCloseTo(Math.cbrt(4), 4)
+            expect(result[0]!.cb).toBeCloseTo(Math.cbrt(4), 10)
             expect(result[0]!.e).toBeCloseTo(Math.exp(4), 5)
             expect(result[0]!.l).toBeCloseTo(Math.log(4), 5)
             expect(result[0]!.l10).toBeCloseTo(Math.log10(4), 5)
@@ -251,11 +251,11 @@ describe(ctx.label, () => {
             expect(result[0]!.id).toBe(1)
             expect(result[0]!.p).toBeCloseTo(64, 5)
             expect(result[0]!.ln).toBeCloseTo(3, 5)
-            // A custom type carries no marshalling — handling the type is the
-            // connection's / type adapter's job — so the `cast(... as decimal)`
-            // result of roundn leaks the driver's raw representation as a
-            // string, while power/divide/atan2 come back as numbers.
-            expect(result[0]!.rn).toBe('8.00')
+            // The typeName is marshalled through its base double on the connection,
+            // so every arm round-trips as a number regardless of the representation
+            // its expression produces (roundn is cast to an exact type, which the
+            // driver hands over as a string).
+            expect(result[0]!.rn).toBeCloseTo(8, 5)
             expect(result[0]!.di).toBeCloseTo(4, 5)
             expect(result[0]!.at2).toBeCloseTo(Math.atan2(8, 2), 5)
         } else {
@@ -937,7 +937,7 @@ describe(ctx.label, () => {
             expect(result[0]!.ex).toBeCloseTo(Math.exp(4), 5)
             expect(result[0]!.l).toBeCloseTo(Math.log(4), 5)
             expect(result[0]!.l10).toBeCloseTo(Math.log10(4), 5)
-            expect(result[0]!.cb).toBeCloseTo(Math.cbrt(4), 4)
+            expect(result[0]!.cb).toBeCloseTo(Math.cbrt(4), 10)
         } else {
             expect(result).toEqual(expected)
         }

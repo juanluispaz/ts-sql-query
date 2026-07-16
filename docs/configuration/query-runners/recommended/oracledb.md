@@ -146,3 +146,24 @@ async function main() {
     }
 }
 ```
+
+!!! note "Safe Integers"
+
+    If your queries may return numbers larger than JavaScript's safe integer range — a `bigint` column, or arithmetic that grows past `Number.MAX_SAFE_INTEGER` (`9_007_199_254_740_991`) — install a `fetchTypeHandler` that reads the wide `NUMBER` columns as strings:
+
+    ```ts
+    import oracledb from 'oracledb';
+
+    oracledb.fetchTypeHandler = function(metaData) {
+        // A NUMBER wider than 15 digits (or of unknown precision) can't round-trip
+        // through a JavaScript number; fetch it as a string instead.
+        if (metaData.dbType === oracledb.DB_TYPE_NUMBER && (metaData.precision === 0 || metaData.precision > 15)) {
+            return { type: oracledb.STRING };
+        }
+        return undefined;
+    };
+    ```
+
+    Without it the driver reads every `NUMBER` as a JavaScript `number`, so an out-of-range value comes back rounded — silently, since the rounded value is still an integer. With it, the driver hands those columns over as strings and ts-sql-query converts them to the type the column declares (`bigint` stays exact, `int` raises `INVALID_VALUE_RECEIVED_FROM_DATABASE` if it truly doesn't fit). Narrow columns keep coming back as `number`, so nothing else changes.
+
+    The handler can also be passed per query, or scoped by `metaData.name` if you prefer to name the columns explicitly.

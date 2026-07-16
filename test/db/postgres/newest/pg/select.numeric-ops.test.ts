@@ -936,7 +936,7 @@ describe(ctx.label, () => {
         if (ctx.realDbEnabled) {
             expect(row.id).toBe(1)
             expect(row.ab).toBe(2); expect(row.ce).toBe(2); expect(row.fl).toBe(2); expect(row.sg).toBe(1)
-            expect(row.cb).toBeCloseTo(Math.cbrt(2), 4)
+            expect(row.cb).toBeCloseTo(Math.cbrt(2), 10)
             expect(row.ex).toBeCloseTo(Math.exp(2), 5)
             expect(row.ln).toBeCloseTo(Math.log(2), 5)
             expect(row.l10).toBeCloseTo(Math.log10(2), 5)
@@ -1063,7 +1063,7 @@ describe(ctx.label, () => {
             expect(row.id).toBe(4)
             expect(row.ab).toBe(3); expect(row.ce).toBe(3); expect(row.fl).toBe(3); expect(row.sg).toBe(1)
             expect(row.sq).toBeCloseTo(Math.sqrt(3), 5)
-            expect(row.cb).toBeCloseTo(Math.cbrt(3), 4)
+            expect(row.cb).toBeCloseTo(Math.cbrt(3), 10)
             expect(row.ex).toBeCloseTo(Math.exp(3), 5)
             expect(row.ln).toBeCloseTo(Math.log(3), 5)
             expect(row.l10).toBeCloseTo(Math.log10(3), 5)

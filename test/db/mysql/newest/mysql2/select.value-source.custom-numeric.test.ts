@@ -67,7 +67,7 @@ describe(ctx.label, () => {
         // ceil/floor/round (the customInt||customDouble arm) and abs.
         // MySQL returns ceil/floor/round/abs of an integer as a plain
         // integer, so the value round-trips in both modes.
-        const score = ctx.conn.const(7, 'customInt', 'Score')
+        const score = ctx.conn.const(7, 'customInt', 'ScoreCount')
         const expected = [{ id: 1, c: 7, f: 7, r: 7, a: 7 }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssue)
@@ -263,11 +263,11 @@ describe(ctx.label, () => {
             expect(row.id).toBe(1)
             expect(row.p).toBe(64)
             expect(row.ln).toBe(3)
-            // A custom type carries no marshalling — handling the type is the
-            // connection's / type adapter's job — so the `cast(... as decimal)`
-            // result of roundn leaks the driver's raw representation as a
-            // string, while power/divide/atan2 come back as numbers.
-            expect(row.rn).toBe('8.00')
+            // The typeName is marshalled through its base double on the connection,
+            // so every arm round-trips as a number regardless of the representation
+            // its expression produces (roundn is cast to an exact type, which the
+            // driver hands over as a string).
+            expect(row.rn).toBeCloseTo(8, 5)
             expect(row.di).toBeCloseTo(4, 5)
             expect(row.at2).toBeCloseTo(Math.atan2(8, 2), 5)
         } else {

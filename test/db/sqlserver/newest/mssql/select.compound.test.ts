@@ -1133,7 +1133,7 @@ describe(ctx.label, () => {
             2,
           ]
         `)
-        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with result_for_count as (select * from (select name as [label] from project union select title as [label] from issue) as o_1_ order by lower([label]) asc offset 0 rows) select count(*) from result_for_count"`)
+        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with result_for_count as (select name as [label] from project union select title as [label] from issue) select count(*) from result_for_count"`)
         expect(ctx.history[1]!.params).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof page, { data: Array<{ label: string }>; count: number }>>()
         expect(page).toEqual({ data: dataRows, count: 8 })
@@ -1162,7 +1162,7 @@ describe(ctx.label, () => {
             .union(ctx.conn.selectFrom(tIssue).select({ label: tIssue.title }))
             .orderBy('label')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select name as [label] from project order by project.name asc offset 0 rows) _t_2_ union select title as [label] from issue order by [label]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select name as [label] from project order by project.name asc offset 0 rows) _t_1_ union select title as [label] from issue order by [label]"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{ label: string }>>>()
         expect(result).toEqual(expected)

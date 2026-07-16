@@ -537,3 +537,40 @@ It stays `TODO[LIMITATION]` in
 the symmetric placeholder in every other cell). Reactivate by adding the
 dialect-agnostic unit test described above if a home for lib-only unit
 tests is introduced.
+
+## Reading an integer beyond 2^53 exactly is the driver's configuration, not the library's
+
+`bigint` columns and any arithmetic that grows past `Number.MAX_SAFE_INTEGER`
+(`9_007_199_254_740_991`) come back **rounded** on several connectors, because
+their driver reads every integer as a JavaScript `number` by default. The
+rounded value is still an integer, so `transformValueFromDB`'s `bigint` arm
+coerces it happily and the caller gets a **clean, wrong `bigint`** — no error.
+
+**This is a deliberate library position, not a defect.** v2 explicitly *removed*
+the forced `safeIntegers(true)` from `BetterSqlite3QueryRunner` so every SQLite
+runner behaves the same way, and left the choice to the application — see the
+*Safe Integers* note on each driver's page under
+[`docs/configuration/query-runners/`](../docs/configuration/query-runners/).
+The library does not touch the connection object the application hands it.
+
+| connector | how the application makes it exact |
+|---|---|
+| `mysql2` | `supportBigNumbers: true` on the connection — only out-of-range values change (they arrive as strings), so nothing else is affected |
+| `oracledb` | an `oracledb.fetchTypeHandler` fetching wide `NUMBER` columns as strings |
+| `better-sqlite3` | `safeIntegers` on the database |
+| `node_sqlite` | `setReadBigInts` on the statement |
+| `bun_sqlite`, `bun_sql_sqlite` | `safeIntegers` in the configuration |
+| **`sqlite3`** | **no option exists** — the driver has no exact-integer API at all, and it is deprecated (its own page already warns that it loses precision past `MAX_SAFE_INTEGER`) |
+
+**Why the suite can't validate it**: the matrix builds its connections with the
+drivers' defaults (see each cell's `runners.ts`), which is deliberate — it is
+what an application gets out of the box. So the test
+`asBigint-on-double-keeps-bigint-arithmetic-exact`
+(`select.value-source.casts.test.ts`) is commented out with a
+`// TODO[LIMITATION]` in the five cells whose driver rounds
+(`mysql/newest/mysql2`, `oracle/newest/oracledb`,
+`sqlite/newest/{better-sqlite3, sqlite3, node_sqlite}`) and runs in the twelve
+whose driver is exact by default — which is what validates the library's own
+emission. Enabling the options above in those five `runners.ts` would let the
+test run there too, at the cost of the cells no longer reflecting a default
+setup; that is a suite-design call, not a library one.

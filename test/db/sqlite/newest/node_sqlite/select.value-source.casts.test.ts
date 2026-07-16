@@ -227,7 +227,7 @@ describe(ctx.label, () => {
     })
 
 
-    // TODO[BUG]: see BUGS.md — the emitted SQL computes the sum exactly, but the runner reads the INTEGER result as a JavaScript number, and node:sqlite refuses the conversion: RangeError 'Value is too large to be represented as a JavaScript number: 9007199254740995' surfaces as SQL_INVALID_VALUE.
+    // TODO[LIMITATION]: see LIMITATIONS.md — the emitted SQL computes the sum exactly, but the runner reads integers as JavaScript numbers unless `setReadBigInts` is enabled, and node:sqlite refuses the conversion outright: RangeError 'Value is too large to be represented as a JavaScript number: 9007199254740995' surfaces as SQL_INVALID_VALUE.
     /*
     test('asBigint-on-double-keeps-bigint-arithmetic-exact', async () => {
         // The cast `asBigint()` emits is what keeps the arithmetic exact: computed in

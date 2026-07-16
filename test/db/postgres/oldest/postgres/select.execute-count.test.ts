@@ -36,7 +36,7 @@ describe(ctx.label, () => {
             0,
           ]
         `)
-        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with result_for_count as (select distinct status as status from issue order by status) select count(*) from result_for_count"`)
+        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with result_for_count as (select distinct status as status from issue) select count(*) from result_for_count"`)
         expect(ctx.history[1]!.params).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof page, {
             data:  Array<{ status: string }>
@@ -74,7 +74,7 @@ describe(ctx.label, () => {
             0,
           ]
         `)
-        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with result_for_count as (select status as status, count(id) as total from issue group by status order by status) select count(*) from result_for_count"`)
+        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with result_for_count as (select status as status, count(id) as total from issue group by status) select count(*) from result_for_count"`)
         expect(ctx.history[1]!.params).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof page, {
             data:  Array<{ status: string; total: number }>
@@ -111,7 +111,7 @@ describe(ctx.label, () => {
             0,
           ]
         `)
-        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with result_for_count as (select distinct status as status, priority as priority from issue group by status, priority order by status) select count(*) from result_for_count"`)
+        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with result_for_count as (select distinct status as status, priority as priority from issue group by status, priority) select count(*) from result_for_count"`)
         expect(ctx.history[1]!.params).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof page, {
             data:  Array<{ status: string; priority: number }>

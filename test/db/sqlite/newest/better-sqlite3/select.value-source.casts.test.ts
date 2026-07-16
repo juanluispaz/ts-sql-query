@@ -227,7 +227,7 @@ describe(ctx.label, () => {
     })
 
 
-    // TODO[BUG]: see BUGS.md — the emitted SQL computes the sum exactly, but the runner does not enable better-sqlite3's safe integers, so the INTEGER result is marshalled through a JavaScript number and 9007199254740995 arrives as 9007199254740996: a clean but wrong bigint.
+    // TODO[LIMITATION]: see LIMITATIONS.md — the emitted SQL computes the sum exactly, but better-sqlite3 reads integers as JavaScript numbers unless the database enables `safeIntegers`, which this suite does not, so 9007199254740995 arrives rounded to 9007199254740996: a clean but wrong bigint.
     /*
     test('asBigint-on-double-keeps-bigint-arithmetic-exact', async () => {
         // The cast `asBigint()` emits is what keeps the arithmetic exact: computed in

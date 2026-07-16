@@ -125,8 +125,14 @@ export class DBConnection extends SqliteConnection<'DBConnection'> {
         switch (type) {
             case 'IssueId':      return 'int'
             case 'ReleaseTag':   return 'int'
+            case 'Cents':        return 'int'
             case 'Money':        return 'double'
             case 'BillingRef':   return 'uuid'
+            case 'ProjectId':    return 'int'
+            case 'Meters':       return 'double'
+            case 'Ratio':        return 'double'
+            case 'ScoreCount':   return 'int'
+            case 'Score':        return 'double'
             // Branded custom types declared on tProjectRelease / vReleaseOverview.
             case 'Semver':       return 'string'
             case 'ReleaseChannel': return 'string'

@@ -13,8 +13,9 @@
 //   - tIssue.viewCount   — bigint, seed default 0 for every issue.
 //   - tIssueWorklog.costCents    — customInt 'Cents', worklog 1 = 100.
 //   - tIssueWorklog.billedAmount — customDouble 'Money', worklog 1 = 200.
-// Custom leaves carry no marshalling for `::numeric`-cast results, so the logn arm
-// leaks the driver's raw string on the postgres drivers; the real-DB branch coerces it.
+// The custom leaves' typeNames are marshalled through their base type on the
+// connection, so every arm round-trips as a number whatever representation its
+// expression produces.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -198,11 +199,10 @@ describe(ctx.label, () => {
     test('const-rhs/customdouble-divide-atan2-logn', async () => {
         // divide / atan2 / logn on a customDouble with a CONST RHS. `billed_amount`
         // ('Money', marshalled) = 200 for worklog 1: divide(4) = 50, atan2(200) = π/4.
-        // logn keeps the customDouble type with no marshalling, so the
-        // `::numeric`-cast result leaks the driver's raw value as a string on
-        // the postgres drivers — log_200(200) = 1 — while it stays a clean
-        // number on the other dialects; the real-DB branch coerces it through
-        // Number(...).
+        // logn keeps the customDouble type, whose typeName is marshalled through
+        // its base double on the connection — log_200(200) = 1 — so it round-trips
+        // as a number on every dialect, including the ones whose expression is cast
+        // to an exact type the driver hands over as a string.
         const expected = [{ id: 1, di: 50, at: Math.atan2(200, 200), ln: 1 }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssueWorklog)

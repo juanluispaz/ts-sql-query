@@ -1254,7 +1254,7 @@ describe(ctx.label, () => {
             2,
           ]
         `)
-        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with recursive_select_1 as (select id as id, title as title from issue where id in (@0, @1, @2) union all select issue.id as id, issue.title as title from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id), result_for_count as (/* head */  select id as id, title as title from recursive_select_1 order by id offset 0 rows  /* tail */) select count(*) from result_for_count"`)
+        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with recursive_select_1 as (select id as id, title as title from issue where id in (@0, @1, @2) union all select issue.id as id, issue.title as title from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id), result_for_count as (/* head */  select id as id, title as title from recursive_select_1  /* tail */) select count(*) from result_for_count"`)
         expect(ctx.history[1]!.params).toMatchInlineSnapshot(`
           [
             1,
@@ -1307,7 +1307,7 @@ describe(ctx.label, () => {
             2,
           ]
         `)
-        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with recursive_select_1 as (select id as id, title as title from issue where id in (@0, @1, @2) union all select issue.id as id, issue.title as title from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id), result_for_count as (select /* hint */ /* cols */  id as id, title as title from recursive_select_1 order by id offset 0 rows) select count(*) from result_for_count"`)
+        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with recursive_select_1 as (select id as id, title as title from issue where id in (@0, @1, @2) union all select issue.id as id, issue.title as title from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id), result_for_count as (select /* hint */ /* cols */  id as id, title as title from recursive_select_1) select count(*) from result_for_count"`)
         expect(ctx.history[1]!.params).toMatchInlineSnapshot(`
           [
             1,

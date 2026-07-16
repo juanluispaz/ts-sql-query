@@ -51,11 +51,9 @@ describe(ctx.label, () => {
 
     test('custom-numeric/customint-rounding-and-abs', async () => {
         // customInt operand keeps the customInt result type through
-        // ceil/floor/round and abs. A custom type carries no marshalling,
-        // so the `round(...::numeric)` result leaks the driver's raw
-        // representation: a string ('7') on the postgres drivers, while
-        // ceil/floor/abs come back as numbers.
-        const score = ctx.conn.const(7, 'customInt', 'Score')
+        // ceil/floor/round and abs. The typeName is marshalled through its base
+        // int on the connection, so every leaf round-trips as a number.
+        const score = ctx.conn.const(7, 'customInt', 'ScoreCount')
         const expected = [{ id: 1, c: 7, f: 7, r: 7, a: 7 }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssue)
@@ -79,11 +77,7 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof result, Array<{ id: number; c: number; f: number; r: number; a: number }>>>()
-        if (ctx.realDbEnabled) {
-            expect(result).toEqual([{ id: 1, c: 7, f: 7, r: '7', a: 7 }])
-        } else {
-            expect(result).toEqual(expected)
-        }
+        expect(result).toEqual(expected)
     })
 
     test('custom-numeric/double-arithmetic', async () => {
@@ -159,7 +153,7 @@ describe(ctx.label, () => {
         if (ctx.realDbEnabled) {
             expect(result[0]!.id).toBe(1)
             expect(result[0]!.sq).toBeCloseTo(2, 5)
-            expect(result[0]!.cb).toBeCloseTo(Math.cbrt(4), 4)
+            expect(result[0]!.cb).toBeCloseTo(Math.cbrt(4), 10)
             expect(result[0]!.e).toBeCloseTo(Math.exp(4), 5)
             expect(result[0]!.l).toBeCloseTo(Math.log(4), 5)
             expect(result[0]!.l10).toBeCloseTo(Math.log10(4), 5)
@@ -220,10 +214,10 @@ describe(ctx.label, () => {
 
     test('custom-numeric/customdouble-operation1-math', async () => {
         // The 5 SqlOperation1 customDouble arms — power, logn, roundn,
-        // divide, atan2. A custom type carries no marshalling, so the
-        // `::numeric`-cast results (logn, roundn) leak the driver's raw
-        // representation: strings ('3.0000000000000000', '8.00') on the
-        // postgres drivers, while power/divide/atan2 come back as numbers.
+        // divide, atan2. The typeName is marshalled through its base double on
+        // the connection, so every arm round-trips as a number regardless of the
+        // representation its expression produces (logn and roundn are cast to
+        // `::numeric`, which the drivers hand over as a string).
         const v = ctx.conn.const(8, 'customDouble', 'Score')
         const o = ctx.conn.const(2, 'customDouble', 'Score')
         const expected = [{ id: 1, p: 64, ln: 3, rn: 8, di: 4, at2: Math.atan2(8, 2) }]
@@ -245,8 +239,8 @@ describe(ctx.label, () => {
         if (ctx.realDbEnabled) {
             expect(result[0]!.id).toBe(1)
             expect(result[0]!.p).toBeCloseTo(64, 5)
-            expect(result[0]!.ln).toBe('3.0000000000000000')
-            expect(result[0]!.rn).toBe('8.00')
+            expect(result[0]!.ln).toBeCloseTo(3, 5)
+            expect(result[0]!.rn).toBeCloseTo(8, 5)
             expect(result[0]!.di).toBeCloseTo(4, 5)
             expect(result[0]!.at2).toBeCloseTo(Math.atan2(8, 2), 5)
         } else {
@@ -933,7 +927,7 @@ describe(ctx.label, () => {
             expect(result[0]!.ex).toBeCloseTo(Math.exp(4), 5)
             expect(result[0]!.l).toBeCloseTo(Math.log(4), 5)
             expect(result[0]!.l10).toBeCloseTo(Math.log10(4), 5)
-            expect(result[0]!.cb).toBeCloseTo(Math.cbrt(4), 4)
+            expect(result[0]!.cb).toBeCloseTo(Math.cbrt(4), 10)
         } else {
             expect(result).toEqual(expected)
         }

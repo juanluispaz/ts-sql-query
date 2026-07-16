@@ -11,7 +11,7 @@ This feature provides a convenient way to retrieve paginated data along with the
     The `executeSelectPage()` method runs the query **twice** behind the scenes:
 
     - The first execution fetches the **current page** of data, applying the specified `LIMIT`, `OFFSET`, and `ORDER BY` clauses.
-    - The second execution runs the **same query without pagination**, in order to count the **total number of matching rows**.
+    - The second execution runs the **same query without pagination** — no `LIMIT`, no `OFFSET` and no `ORDER BY`, since none of them changes how many rows match — in order to count the **total number of matching rows**.
 
     This dual-query strategy ensures consistent pagination, which is particularly useful for displaying data in user interfaces with accurate page controls (e.g., “Showing 21–30 of 146 results”).
 

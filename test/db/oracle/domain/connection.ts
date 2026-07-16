@@ -151,6 +151,11 @@ export class DBConnection extends OracleConnection<'DBConnection'> {
             case 'Money':      return 'double'
             case 'ReleaseTag':   return 'int'
             case 'BillingRef': return 'uuid'
+            case 'ProjectId':    return 'int'
+            case 'Meters':       return 'double'
+            case 'Ratio':        return 'double'
+            case 'ScoreCount':   return 'int'
+            case 'Score':        return 'double'
             // Branded custom types declared on tProjectRelease / vReleaseOverview.
             case 'Semver':       return 'string'
             case 'ReleaseChannel': return 'string'

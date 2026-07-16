@@ -957,8 +957,6 @@ describe(ctx.label, () => {
         // `optional` marker (`?: bigint`). ceil/floor/round=5400000n,
         // subtract(400000n)=5000000n, modulo(1000000n)=400000n,
         // minValue(6000000n)=greatest=6000000n, maxValue(6000000n)=least=5400000n.
-        // A bigint result can come back as a string on some drivers, so the real-DB
-        // branch coerces through BigInt(...).
         const expected = {
             id: 1, ce: 5400000n, fl: 5400000n, ro: 5400000n,
             s: 5000000n, mo: 400000n, mn: 6000000n, mx: 5400000n,
@@ -1108,13 +1106,11 @@ describe(ctx.label, () => {
     })
 
     test('asBigint-chained-into-bigint-op', async () => {
-        // A REQUIRED int value's `.asBigint()` chained into downstream bigint
-        // ops. `priority.asBigint()` is an int→bigint Noop-wrap that emits no
-        // SQL (renders the bare column), so `.add(2n)` / `.modulo(2n)` wrap
-        // `priority` directly. priority(id=1)=2 → add(2n)=4n, modulo(2n)=0n.
-        // Required receiver → required `bigint` leaves. A bigint result can
-        // come back as a string on some drivers, so the real-DB branch coerces
-        // through BigInt(...).
+        // A REQUIRED int value's `.asBigint()` chained into downstream bigint ops.
+        // `priority.asBigint()` is an int→bigint Noop-wrap that emits no SQL
+        // (renders the bare column), so `.add(2n)` / `.modulo(2n)` wrap `priority`
+        // directly. priority(id=1)=2 → add(2n)=4n, modulo(2n)=0n. Required
+        // receiver → required `bigint` leaves.
         const expected = [{ id: 1, a: 4n, m: 0n }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssue)

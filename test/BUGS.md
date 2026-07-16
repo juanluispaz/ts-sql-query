@@ -77,6 +77,26 @@ regression either.
 
 ## Coverage gaps carried over (not bugs — no entry to fix)
 
+These are **not** defects and there is nothing in `src/` to change. They are the
+places where a fix that landed has **no test holding it down**, so a regression
+would be silent. Kept here because the loudest lesson of the round that fixed
+them was that a defect survives exactly as long as no fixture can express it.
+
+### `sqrt(4)` and `cbrt(8)` are exact — assert them with `toBe`
+
+`Math.sqrt(4) === 2` and `Math.cbrt(8) === 2` are both **exactly** true in
+IEEE-754, yet the matrix pins them with `toBeCloseTo(2, 10)`. `toBeCloseTo` on a
+value the engine can only return exactly asserts less than it could: it says
+"near 2" where "is 2" is available and true.
+
+Not urgent — `n=10` already catches every defect this suite has seen (the
+tightening round proved every engine sustains it). Worth doing when someone is
+in these files anyway: `select.numeric-ops.test.ts` and
+`select.value-source.custom-numeric.test.ts`, all 17 cells. Check each candidate
+against the engine first — `cbrt(4)` is *not* exact (`4.999999999999999` for
+`cbrt(125)` on MySQL / SQLite), so only the values that round-trip exactly may
+become `toBe`.
+
 ### The microsecond coverage gap
 
 The date-part truncation defects fixed in this round are only **half covered**.

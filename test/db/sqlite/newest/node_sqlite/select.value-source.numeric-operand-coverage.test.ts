@@ -237,13 +237,10 @@ describe(ctx.label, () => {
     })
 
     test('const-rhs/double-modulo', async () => {
-        // modulo on a customDouble (billed_amount = 200 for worklog 1) and a
-        // plain double (issue_id cast to double = 1) with a CONST RHS:
-        // 200 % 3 = 2, 1 % 3 = 1. A fractional `%` can't run on a float on
-        // every engine, so the emitted form casts to numeric / uses mod(...);
-        // that result a custom type is not marshalled out of can come back as a
-        // string on some drivers, so the real-DB branch coerces both keys
-        // through Number(...).
+        // modulo on a customDouble (billed_amount = 200 for worklog 1) and a plain
+        // double (issue_id cast to double = 1) with a CONST RHS: 200 % 3 = 2, 1 %
+        // 3 = 1. A fractional `%` can't run on a float on every engine, so the
+        // emitted form casts to numeric / uses mod(...).
         const expected = [{ id: 1, mo: 2, mc: 1 }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssueWorklog)
@@ -385,9 +382,7 @@ describe(ctx.label, () => {
     })
     test('value-source-rhs/bigint-modulo', async () => {
         // `modulo` on a bigint with a value-SOURCE RHS (a const bigint 3n).
-        // view_count = 0 for issue 1, so 0 % 3 = 0. The bigint `mod(...)` result
-        // can leak as a string on some drivers, so the real-DB branch coerces it
-        // through BigInt(...).
+        // view_count = 0 for issue 1, so 0 % 3 = 0. The bigint `mod(...
         const expected = [{ id: 1, mo: 0n }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssue)
@@ -553,8 +548,7 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof result, Array<{ id: number; sum: bigint }>>>()
-        // A bigint sum can come back as a string on some drivers, so the real-DB
-        // branch coerces it through BigInt(...); the mock keeps the exact shape.
+        // The mock keeps the exact shape.
         if (ctx.realDbEnabled) {
             expect(result[0]!.id).toBe(1)
             expect(BigInt(result[0]!.sum)).toBe(0n)
@@ -960,10 +954,9 @@ describe(ctx.label, () => {
 
     test('subquery-operand/bigint-receiver-operators', async () => {
         // bigint receiver (view_count = 0) with the bigint scalar subquery
-        // (`max(duration_ms)` = 5400000) across subtract / modulo / minValue / maxValue.
-        // subtract = -5400000, modulo = 0 % 5400000 = 0, minValue = greatest(0, 5400000)
-        // = 5400000, maxValue = least(0, 5400000) = 0. A bigint result can come back as a
-        // string on some drivers, so the real-DB branch coerces through BigInt(...).
+        // (`max(duration_ms)` = 5400000) across subtract / modulo / minValue /
+        // maxValue. subtract = -5400000, modulo = 0 % 5400000 = 0, minValue =
+        // greatest(0, 5400000) = 5400000, maxValue = least(0, 5400000) = 0.
         const sub = () => ctx.conn.selectFrom(tIssueWorklog).selectOneColumn(ctx.conn.max(tIssueWorklog.durationMs)).forUseAsInlineQueryValue()
         const expected = [{ id: 1, s: -5400000n, mo: 0n, mn: 5400000n, mx: 0n }]
         ctx.mockNext(expected)
@@ -998,13 +991,12 @@ describe(ctx.label, () => {
     })
 
     test('num-tail/int-receiver-double-column-promotes', async () => {
-        // int receiver (issue_id, required int = 1 for worklog 1) with a plain-DOUBLE
-        // COLUMN operand (doubleVirtual, a required virtual double = billed_amount = 200):
-        // power / logn / atan2 take the value-source overload and PROMOTE to a double
-        // result. power(1, 200) = 1, logn(base 200 of 1) = 0, atan2(1, 200) is a small
-        // float. Both operands required → required `number` leaves. A `::numeric`-cast
-        // result can leak the driver's raw string, so the real-DB branch coerces through
-        // Number(...).
+        // int receiver (issue_id, required int = 1 for worklog 1) with a
+        // plain-DOUBLE COLUMN operand (doubleVirtual, a required virtual double =
+        // billed_amount = 200): power / logn / atan2 take the value-source
+        // overload and PROMOTE to a double result. power(1, 200) = 1, logn(base
+        // 200 of 1) = 0, atan2(1, 200) is a small float. Both operands required →
+        // required `number` leaves.
         const expected = [{ id: 1, pw: 1, ln: 0, at: Math.atan2(1, 200) }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssueWorklog)
@@ -1100,13 +1092,13 @@ describe(ctx.label, () => {
     })
 
     test('num-tail/int-opt-receiver-unary-and-arithmetic', async () => {
-        // Optional-int receiver (minutes, = 90 for worklog 1, present). The unary family
-        // (abs/ceil/floor/sign), the cast arm (asDouble/asBigint), and const-operand
-        // arithmetic (subtract/modulo/minValue/maxValue) all keep the OPTIONAL marker, so
-        // every leaf is `?: number` (asBigint `?: bigint`). Over 90: abs/ceil/floor = 90,
-        // sign = 1, asDouble = 90, asBigint = 90n, subtract(1) = 89, modulo(4) = 2,
-        // minValue(50) = greatest(90,50) = 90, maxValue(50) = least(90,50) = 50. A bigint
-        // result can come back as a string on some drivers → coerce through BigInt(...).
+        // Optional-int receiver (minutes, = 90 for worklog 1, present). The unary
+        // family (abs/ceil/floor/sign), the cast arm (asDouble/asBigint), and
+        // const-operand arithmetic (subtract/modulo/minValue/maxValue) all keep
+        // the OPTIONAL marker, so every leaf is `?: number` (asBigint `?:
+        // bigint`). Over 90: abs/ceil/floor = 90, sign = 1, asDouble = 90,
+        // asBigint = 90n, subtract(1) = 89, modulo(4) = 2, minValue(50) =
+        // greatest(90,50) = 90, maxValue(50) = least(90,50) = 50.
         const expected = {
             id: 1, ab: 90, ce: 90, fl: 90, sg: 1, ad: 90, abi: 90n,
             s: 89, mo: 2, mn: 90, mx: 50,
@@ -1160,13 +1152,12 @@ describe(ctx.label, () => {
     })
 
     test('num-tail/bigint-opt-receiver-rounding-and-arithmetic', async () => {
-        // Optional-bigint receiver (duration_ms, = 5400000 for worklog 1, present).
-        // rounding (ceil/floor/round) + const-operand arithmetic
-        // (subtract/modulo/minValue/maxValue) keep the OPTIONAL marker → every leaf
-        // `?: bigint`. Over 5400000n: ceil/floor/round = 5400000n, subtract(1n) = 5399999n,
-        // modulo(1000000n) = 400000n, minValue(1n) = greatest(5400000,1) = 5400000n,
-        // maxValue(1n) = least(5400000,1) = 1n. A bigint result can come back as a string
-        // on some drivers → coerce through BigInt(...).
+        // Optional-bigint receiver (duration_ms, = 5400000 for worklog 1,
+        // present). rounding (ceil/floor/round) + const-operand arithmetic
+        // (subtract/modulo/minValue/maxValue) keep the OPTIONAL marker → every
+        // leaf `?: bigint`. Over 5400000n: ceil/floor/round = 5400000n,
+        // subtract(1n) = 5399999n, modulo(1000000n) = 400000n, minValue(1n) =
+        // greatest(5400000,1) = 5400000n, maxValue(1n) = least(5400000,1) = 1n.
         const expected = {
             id: 1, c: 5400000n, f: 5400000n, r: 5400000n,
             s: 5399999n, mo: 400000n, mn: 5400000n, mx: 1n,
@@ -1214,10 +1205,9 @@ describe(ctx.label, () => {
     })
 
     test('num-tail/direct-divide-value-projection', async () => {
-        // A bare `divide` projected directly (never fed into another operator). Both
-        // operands are required columns on issue 1 (priority = 2, id = 1), so the result
-        // is a required `number`: 2 / 1 = 2. divide always yields a double, so the real-DB
-        // branch coerces through Number(...).
+        // A bare `divide` projected directly (never fed into another operator).
+        // Both operands are required columns on issue 1 (priority = 2, id = 1), so
+        // the result is a required `number`: 2 / 1 = 2.
         const expected = [{ id: 1, dv: 2 }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssue)

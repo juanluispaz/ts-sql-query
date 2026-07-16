@@ -569,6 +569,58 @@ function _typeNegatives() {
     void tProjectRelease.releasedOn.getHours()
     // @ts-expect-error getFullYear is a date getter, absent on a customLocalTime leaf
     void tProjectRelease.cutoffTime.getFullYear()
+    // @ts-expect-error getTime is a localDateTime-only getter, absent on a customLocalDate leaf
+    void tProjectRelease.releasedOn.getTime()
+    // @ts-expect-error getTime is a localDateTime-only getter, absent on a customLocalTime leaf
+    void tProjectRelease.cutoffTime.getTime()
+
+    // Rule: a compound (union / intersect / except) result takes the narrower
+    // `CompoundSelectCustomization`, which offers only `beforeQuery` /
+    // `afterQuery`. The five SELECT-only hooks must be rejected: a compound has
+    // no top-level SELECT to host `afterSelectKeyword` / `beforeColumns` /
+    // `customWindow`, so accepting them would silently drop the fragment, and
+    // the two order-by hooks would render against the compound's ORDER BY,
+    // which the narrower type deliberately does not expose.
+    void connection.selectFrom(tProject).select({ label: tProject.name })
+        .union(connection.selectFrom(tIssue).select({ label: tIssue.title }))
+        .customizeQuery({
+            // @ts-expect-error afterSelectKeyword is a SELECT-only hook, absent on a compound customization
+            afterSelectKeyword: connection.rawFragment`distinct`,
+        })
+    void connection.selectFrom(tProject).select({ label: tProject.name })
+        .union(connection.selectFrom(tIssue).select({ label: tIssue.title }))
+        .customizeQuery({
+            // @ts-expect-error beforeColumns is a SELECT-only hook, absent on a compound customization
+            beforeColumns: connection.rawFragment`/* cols */`,
+        })
+    void connection.selectFrom(tProject).select({ label: tProject.name })
+        .union(connection.selectFrom(tIssue).select({ label: tIssue.title }))
+        .customizeQuery({
+            // @ts-expect-error customWindow is a SELECT-only hook, absent on a compound customization
+            customWindow: connection.rawFragment`w as (order by 1)`,
+        })
+    void connection.selectFrom(tProject).select({ label: tProject.name })
+        .union(connection.selectFrom(tIssue).select({ label: tIssue.title }))
+        .customizeQuery({
+            // @ts-expect-error beforeOrderByItems is a SELECT-only hook, absent on a compound customization
+            beforeOrderByItems: connection.rawFragment`/* before */`,
+        })
+    void connection.selectFrom(tProject).select({ label: tProject.name })
+        .union(connection.selectFrom(tIssue).select({ label: tIssue.title }))
+        .customizeQuery({
+            // @ts-expect-error afterOrderByItems is a SELECT-only hook, absent on a compound customization
+            afterOrderByItems: connection.rawFragment`/* after */`,
+        })
+
+    // Control: the two hooks the compound customization DOES carry must keep
+    // compiling — the rule above is about the narrower shape, not about
+    // customizeQuery being unavailable on a compound.
+    void connection.selectFrom(tProject).select({ label: tProject.name })
+        .union(connection.selectFrom(tIssue).select({ label: tIssue.title }))
+        .customizeQuery({
+            beforeQuery: connection.rawFragment`/* before */`,
+            afterQuery:  connection.rawFragment`/* after */`,
+        })
 }
 
 test('select-negative-types', () => {

@@ -1018,8 +1018,8 @@ describe(ctx.label, () => {
     // use max(priority) (=3, deterministic → ×10 = 30); the string / temporal
     // kinds aggregate a non-deterministic seed column, so the transformed value
     // is asserted mock-only and structurally on the real DB.
-    // NOTE: boolean / uuid / customUuid have no portable max() aggregate across
-    // dialects, so their aggregate arm is omitted (see the coordinator report).
+    // NOTE: uuid / customUuid are omitted from this max()-based fan-out — max()
+    // over them is not portable across dialects.
 
     test('aggregate-fragment-with-type/double-adapter-transforms-read-value', async () => {
         ctx.mockNext(3)

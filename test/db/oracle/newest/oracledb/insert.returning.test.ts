@@ -374,6 +374,35 @@ describe(ctx.label, () => {
     })
     */
 
+    // NOT-APPLICABLE: Oracle has no INSERT…ON CONFLICT (uses MERGE)
+    /*
+    test('insert-on-conflict-do-nothing-returning-one-column-execute-insert-many', async () => {
+        // The one-column arity twin of the object-returning sibling above: the
+        // ON CONFLICT DO NOTHING builder reached through `returningOneColumn(col)`
+        // instead of `returning({ ... })`, so the result is a plain `string[]`
+        // rather than an array of row objects. Neither (name, plan) pair collides
+        // with a unique key, so both rows insert and both names come back; a
+        // suppressed row would simply shrink the array (no `| null` arm).
+        const expectedMock = ['Conflict one-column A', 'Conflict one-column B']
+        ctx.mockNext(expectedMock)
+        await ctx.withRollback(async () => {
+            const names = await ctx.conn.insertInto(tOrganization)
+                .values([
+                    { name: 'Conflict one-column A', plan: 'free' },
+                    { name: 'Conflict one-column B', plan: 'pro' },
+                ])
+                .onConflictDoNothing()
+                .returningOneColumn(tOrganization.name)
+                .executeInsertMany()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof names, string[]>>()
+            expect(names.slice().sort()).toEqual(['Conflict one-column A', 'Conflict one-column B'])
+        })
+    })
+    */
+
     test('insert-returning-one-column-nullable', async () => {
         // `returningOneColumn(<nullable column>)` — the scalar single-column
         // RETURNING shortcut over an OPTIONAL column, so the result carries the

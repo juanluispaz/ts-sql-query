@@ -462,7 +462,6 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
-
     test('aggregate-fragment-with-type-local-time-threads-a-trailing-type-adapter', async () => {
         // The TEMPORAL `localTime` return arm of `aggregateFragmentWithType(...)`
         // with a trailing adapter: `shiftHourAdapter` shifts the read value +1h. The
@@ -722,6 +721,50 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof row, { req: boolean; opt?: boolean }>>()
         expect(row).toEqual(expected)
+    })
+
+    test('aggregate-fragment-with-type-boolean-threads-a-trailing-type-adapter', async () => {
+        // The `boolean` return arm of `aggregateFragmentWithType(...)` with a
+        // trailing adapter — the aggregate sibling of the `fragmentWithType`
+        // boolean+adapter arm above. `count(*) > 0` is true over the seeded
+        // issues; `negateBoolAdapter` flips the read value -> false, so the
+        // adapter's effect is what distinguishes this from the no-adapter
+        // boolean aggregate arm.
+        ctx.mockNext({ any: true })
+        const c = ctx.conn
+        const row = await c.selectFrom(tIssue)
+            .select({
+                any: c.aggregateFragmentWithType('boolean', 'required', negateBoolAdapter).sql`count(*) > 0`,
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(case when count(*) > 0 then 1 else 0 end as bit) as [any] from issue"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof row, { any: boolean }>>()
+        expect(row).toEqual({ any: false })
+    })
+
+    test('aggregate-fragment-with-type-boolean-optional-threads-a-trailing-type-adapter', async () => {
+        // The `'optional'` arm of the same aggregate+adapter pair. A no-match
+        // WHERE makes the aggregate resolve over an EMPTY group, so
+        // `max(priority) > 5` is NULL. The adapter only negates booleans, so
+        // NULL passes through untouched and the leaf is absent — the adapter
+        // does not fabricate a value out of the missing one.
+        ctx.mockNext({ any: null })
+        const c = ctx.conn
+        const row = await c.selectFrom(tIssue)
+            .where(tIssue.id.equals(-1))
+            .select({
+                any: c.aggregateFragmentWithType('boolean', 'optional', negateBoolAdapter).sql`max(${tIssue.priority}) > 5`,
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(case when max(priority) > 5 then 1 when not (max(priority) > 5) then 0 else null end as bit) as [any] from issue where id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            -1,
+          ]
+        `)
+        assertType<Exact<typeof row, { any?: boolean }>>()
+        expect(row).toEqual({})
     })
 
     test('fragment-with-type-local-date-threads-a-trailing-type-adapter', async () => {

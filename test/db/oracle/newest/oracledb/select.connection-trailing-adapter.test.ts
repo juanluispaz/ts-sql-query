@@ -124,8 +124,6 @@ const stringBracket: TypeAdapter = {
         return next.transformValueToDB(value, type)
     },
 }
-// Used only inside the NOT-APPLICABLE block below (oracle bare-const bind limit).
-void stringBracket
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -593,8 +591,6 @@ describe(ctx.label, () => {
         assertType<Exact<typeof v, Date | null>>()
         expect(v).toEqual(new Date(Date.UTC(2024, 0, 14, 13, 30, 0)))
     })
-    // NOT-APPLICABLE: oracle rejects the bare 'select :0 from dual' const/typed-fragment bind for non-numeric adapter kinds (untyped-placeholder bind-type limitation, ORA-01722/01858); the adapter slot is covered here for numeric/uuid kinds via the pre-existing tests and runs live for all kinds on every other cell
-    /*
     // The trailing-adapter slot on the remaining const/optionalConst kinds and
     // on both fragmentWithType / aggregateFragmentWithType kinds. Each adapter's
     // transformValueFromDB does an observable transform (numeric ×10, string /
@@ -1106,7 +1102,6 @@ describe(ctx.label, () => {
         else expect(typeof v).toBe('string')
     })
 
-    */
     // const/optionalConst + trailing adapter for the remaining value kinds. The
     // string-backed kinds (enum / custom / customComparable) route through stringBracket
     // and are fully real-validated; the temporal / customLocal kinds route a Date

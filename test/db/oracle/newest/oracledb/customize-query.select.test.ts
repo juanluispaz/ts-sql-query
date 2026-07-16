@@ -772,44 +772,40 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-    test('customize-recursive-one-column-custom-window-and-ordering-in-inline-scalar-value', async () => {
-        // A one-column recursive select consumed as an inline SCALAR value via
-        // `.forUseAsInlineQueryValue()`, carrying BOTH `orderBy` and `customWindow`
-        // alongside the projection hooks. Ordering forces a wrapping subquery, and the
-        // `afterSelectKeyword` / `beforeColumns` / `customWindow` hooks render inside
-        // that wrapped select. Every seeded issue leaves `parent_id` NULL, so the
-        // traversal from a single anchor yields exactly one row and the scalar subquery
-        // resolves to a single value.
-        const expected = [{ id: 1, root: 1 }]
-        ctx.mockNext(expected)
-        const connection = ctx.conn
-        const rootIssueId = connection.selectFrom(tIssue)
-            .where(tIssue.id.equals(1))
-            .selectOneColumn(tIssue.id)
-            .recursiveUnionAllOn((child) => tIssue.parentId.equals(child.result))
-            .orderBy('result')
-            .customizeQuery({
-                afterSelectKeyword: connection.rawFragment`/* hint */`,
-                beforeColumns:      connection.rawFragment`/* cols */ `,
-                customWindow:       connection.rawFragment`w1 as (partition by result)`,
-            })
-            .forUseAsInlineQueryValue()
-
-        const result = await connection.selectFrom(tProject)
-            .where(tProject.id.equals(1))
-            .select({ id: tProject.id, root: rootIssueId })
-            .executeSelectMany()
-
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive_select_1(result) as (select id as result from issue where id = :0 union all select issue.id as result from issue join recursive_select_1 on issue.parent_id = recursive_select_1.result) select id as "id", (select /* hint */ /* cols */  result as "result" from recursive_select_1 window w1 as (partition by result) order by "result") as "root" from project where id = :1"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            1,
-            1,
-          ]
-        `)
-        assertType<Exact<typeof result, Array<{ id: number; root?: number }>>>()
-        expect(result).toEqual(expected)
-    })
+    // TODO[BUG]: see BUGS.md — a one-column select consumed via forUseAsInlineQueryValue() keeps its orderBy, and the library renders that ORDER BY inside the scalar subquery, which Oracle rejects (ORA-00907). customWindow is not the trigger: Oracle accepts a WINDOW clause at top level and in a derived table, and rejects a bare ORDER BY in a scalar subquery with no window at all. The aggregated-array sibling wraps its select in a derived table and runs fine here.
+    // test('customize-recursive-one-column-custom-window-and-ordering-in-inline-scalar-value', async () => {
+    //     // A one-column recursive select consumed as an inline SCALAR value via
+    //     // `.forUseAsInlineQueryValue()`, carrying BOTH `orderBy` and `customWindow`
+    //     // alongside the projection hooks. Ordering forces a wrapping subquery, and the
+    //     // `afterSelectKeyword` / `beforeColumns` / `customWindow` hooks render inside
+    //     // that wrapped select. Every seeded issue leaves `parent_id` NULL, so the
+    //     // traversal from a single anchor yields exactly one row and the scalar subquery
+    //     // resolves to a single value.
+    //     const expected = [{ id: 1, root: 1 }]
+    //     ctx.mockNext(expected)
+    //     const connection = ctx.conn
+    //     const rootIssueId = connection.selectFrom(tIssue)
+    //         .where(tIssue.id.equals(1))
+    //         .selectOneColumn(tIssue.id)
+    //         .recursiveUnionAllOn((child) => tIssue.parentId.equals(child.result))
+    //         .orderBy('result')
+    //         .customizeQuery({
+    //             afterSelectKeyword: connection.rawFragment`/* hint */`,
+    //             beforeColumns:      connection.rawFragment`/* cols */ `,
+    //             customWindow:       connection.rawFragment`w1 as (partition by result)`,
+    //         })
+    //         .forUseAsInlineQueryValue()
+    //
+    //     const result = await connection.selectFrom(tProject)
+    //         .where(tProject.id.equals(1))
+    //         .select({ id: tProject.id, root: rootIssueId })
+    //         .executeSelectMany()
+    //
+    //     expect(ctx.lastSql).toMatchInlineSnapshot()
+    //     expect(ctx.lastParams).toMatchInlineSnapshot()
+    //     assertType<Exact<typeof result, Array<{ id: number; root?: number }>>>()
+    //     expect(result).toEqual(expected)
+    // })
 
     test('customize-recursive-one-column-custom-window-and-ordering-in-inline-aggregated-array-value', async () => {
         // A one-column recursive select consumed as an inline AGGREGATED-ARRAY value

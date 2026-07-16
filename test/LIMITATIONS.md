@@ -187,6 +187,88 @@ library emits the SQL (no type-level narrowing) and a future MariaDB
 release could accept this shape. Re-probe against the real engine before
 reactivating.
 
+## Oracle: bind parameters carry no declared type, so oracledb's statement cache can re-bind them with a stale one
+
+`QueryRunner.addParam(params, value)` receives **only the value** — the
+ts-sql-query type is not threaded through to the runner, so
+`OracleDBQueryRunner.addParam` pushes the bare JS value and lets oracledb
+infer the bind type. oracledb's statement cache (`stmtCacheSize`, default
+30) keys on the **SQL text** and retains the bind-type metadata of the
+first execution, so re-executing one text with a differently-typed bind at
+the same position re-binds it with the cached type and Oracle rejects the
+value (`ORA-01722` for a number-typed bind, `ORA-01858` for a date-typed
+one).
+
+Verified against a real `gvenzl/oracle-free:23-slim-faststart` container,
+one pooled connection, `stmtCacheSize: 30`, the same text
+`select :0 as "result" from dual`:
+
+| second execution | result |
+|---|---|
+| bare `'coding'` (what `addParam` pushes today) | **ORA-01722** |
+| `{ val: 'coding', type: oracledb.STRING }` | OK |
+
+So an explicit bind type fixes it **with the cache left on** — this is not
+an Oracle restriction, it is the consequence of binding untyped.
+
+**Why this is a limitation and not a bug**: closing it properly means
+threading the type into `addParam`, which is a **public-interface change**
+— `QueryRunner` is the seam users override, ~29 runners in `src/` plus the
+wrappers (`ConsoleLog` / `Interceptor` / `Mock` / `Chained`) and any
+user-authored runner implement it. The type is already in scope at the
+call site (`AbstractSqlBuilder._appendParam`, where `_columnType` sits
+unused), and the params array already carries bind descriptors
+(`addOutParam` pushes `{ dir: BIND_OUT, as }`), so the shape fits — but it
+is a refactor of its own, out of scope for test work. Until then the
+library deliberately does not declare bind types.
+
+**Exposure — very unlikely outside this suite.** Reaching it needs ALL of
+the following at once:
+
+1. Two queries whose emitted SQL is **byte-identical** — same columns, same
+   table, same clauses. Anything that differs (a different column, a
+   different predicate) produces different text and cannot collide.
+2. A bind at the **same position** whose type differs between the two —
+   e.g. a number in one and a string in the other.
+3. Both executed on the **same pooled connection**, close enough together
+   that the first one's statement is still cached.
+
+An application does not normally satisfy (1) and (2) together: if the SQL
+text is identical, the query is the same query, and the same query almost
+always binds the same types. The realistic way to break that tie is
+`const(...)` over `selectFromNoTable()`, where **every** value kind emits
+the same `select :0 as "result" from dual` regardless of the type bound —
+so the text stays fixed while the type varies. That is a construct a real
+application rarely uses at all, and rarer still with mixed types.
+
+This suite is the outlier by design: it deliberately fans **every** value
+kind out over that one construct, in one file, on one connection — which
+is precisely conditions (1) + (2) + (3). Treat this entry as an artifact of
+exhaustive type-matrix testing, not as a hazard production code is likely
+to meet.
+
+**Workaround in the suite**: the oracle test pool sets `stmtCacheSize: 0`
+(`test/db/oracle/runners.ts`, commented there), which makes each execution
+re-parse with its own bind types. That un-blocked the 33 tests previously
+disabled in `oracle/newest/oracledb/select.connection-trailing-adapter.test.ts`
+under a `NOT-APPLICABLE` reason that misattributed the failure to Oracle
+rejecting the bare bind for non-numeric kinds; the whole file (65 tests)
+now runs and passes against the real engine. **Fingerprint if it resurfaces**:
+the test passes in isolation and fails only in file order. In the unlikely
+event a user meets all three conditions, the same `stmtCacheSize` setting on
+their own pool is the escape hatch.
+
+**Don't "restore the default" without reading this.** Leaving the cache at 30
+is the *fragile* option, not the faithful one: exactly one test of the oracle
+cell then fails, but **which** one depends on file order — the first string
+bind after a numeric one absorbs the stale type and every later one passes, so
+inserting a test into that fan-out migrates the failure to a different test and
+any marker left behind starts lying. Disabling the cache removes the order
+coupling rather than documenting it. The cost is ~1.7% and does not justify the
+trade: the cell measured 80.2s / 82.2s at `0` against 79.9s / 79.8s at `30`
+(two runs each, warm container), and it runs in parallel with the other cells
+inside the matrix's ~2:30.
+
 ## SQL Server rejects a bare bind parameter as an ORDER BY term (error 1008)
 
 `orderBy(<no-table value source>)` — the overload a compound query's

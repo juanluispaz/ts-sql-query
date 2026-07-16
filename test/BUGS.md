@@ -67,6 +67,96 @@ of that. Two minutes of triage and one paragraph is the bar.
 
 ## Open Bugs
 
+All three below were surfaced by running the `--docker` matrix. Each was
+introduced mock-baked and had never been real-validated, so each has been
+red since the test that covers it landed — none is a regression.
+
+## MySQL: `cbrt()` loses precision because the emulation divides in DECIMAL
+
+**Where**: `AbstractSqlBuilder._cbrt` (~line 3016), the shared base used by
+MySQL / MariaDB / SQLite / Oracle.
+
+**Reproduction**: the emission is
+`sign(x) * power(abs(x), 1.0 / 3.0)`. MySQL evaluates `1.0 / 3.0` as DECIMAL
+division and truncates it to the scale set by `div_precision_increment`
+(default 4) → `0.33333`, so the exponent loses ~11 digits:
+
+```
+mysql> SELECT 1.0/3.0, power(8, 1.0/3.0), power(8, 1.0e0/3.0e0);
++---------+---------------------+-----------------------+
+| 0.33333 | 1.999986137104434   | 2                     |
+```
+
+`cbrt(8)` therefore returns `1.999986137104434` instead of `2`. A float
+divisor (`1.0e0 / 3.0e0`) yields exactly `2`.
+
+MariaDB emits the same SQL but its `POWER` returns exactly `2`, which is why
+only the mysql cell fails — MariaDB masks the defect rather than avoiding it.
+Note the SQL Server override at `SqlServerSqlBuilder._cbrt` (~1043) carries the
+same `1.0 / 3.0` literal.
+
+**Current workaround in the suite**:
+`mysql/newest/mysql2/select.numeric-ops.test.ts`, test
+`optional-double-receiver-unary-f1-fan-out` — the `cb` assertion pins the wrong
+value the engine returns today under a `// TODO[BUG]`.
+
+## Oracle: an inline scalar subquery keeps its `ORDER BY`, which Oracle rejects
+
+**Where**: the `forUseAsInlineQueryValue()` emission path (the inline-scalar
+branch, as opposed to the aggregated-array branch).
+
+**Reproduction**: a one-column select carrying `orderBy` consumed via
+`.forUseAsInlineQueryValue()` renders as
+`(select ... from t window w1 as (...) order by "result")` in the SELECT list.
+Oracle rejects it with **ORA-00907: missing right parenthesis**.
+
+Probed directly against `gvenzl/oracle-free:23-slim-faststart` — the WINDOW
+clause is NOT the trigger:
+
+| variant | result |
+|---|---|
+| top-level `window` + `order by` | OK |
+| scalar subquery, `window`, no `order by` | OK |
+| scalar subquery, `window` + `order by` | **ORA-00907** |
+| **scalar subquery, `order by`, NO window** | **ORA-00907** |
+| derived table, `window` + `order by` | OK |
+
+So the rule is simply that Oracle forbids `ORDER BY` inside a scalar subquery
+in the select list. The aggregated-array sibling
+(`...-in-inline-aggregated-array-value`) wraps its select in a derived table and
+runs fine on Oracle, so the wrap is the shape that already works here.
+
+**Current workaround in the suite**:
+`oracle/newest/oracledb/customize-query.select.test.ts`, test
+`customize-recursive-one-column-custom-window-and-ordering-in-inline-scalar-value`
+— commented out with a `// TODO[BUG]` (line comments, because the body embeds
+`/* hint */` fragments).
+
+## SQL Server: `asBigint()` on a double declares `bigint` but emits `float`
+
+**Where**: `src/internal/ValueSourceImpl.ts:454` (`asBigint`; `asInt` at :448 has
+the same shape) + `SqlServerSqlBuilder._modulo` (~1005).
+
+**Reproduction**: `tIssue.priority.asDouble().asBigint().modulo(2n)` emits
+`round(cast(priority as float), 0) % @1` and SQL Server rejects it with
+*"The data types float and bigint are incompatible in the modulo operator"*.
+
+`asBigint()` on a double builds `SqlOperation0ValueSource('_round', this,
+'bigint', 'bigint', ...)`: the declared type becomes `bigint` but the SQL
+expression is still `float` — no cast is emitted. SQL Server's `%` does not
+accept float, and the `_modulo` override that works around this by casting both
+operands to `numeric(38, 16)` only fires when the receiver is a **declared**
+double. After `asBigint()` it is a declared bigint, so the guard is skipped and
+the invalid `float % bigint` reaches the engine.
+
+Needs a design decision: there is no `_asInt` / `_asBigint` hook on
+`SqlBuilder` today, so a dialect cannot make the cast explicit
+(e.g. `cast(round(x, 0) as bigint)`).
+
+**Current workaround in the suite**:
+`sqlserver/newest/mssql/select.value-source.casts.test.ts`, test
+`asBigint-on-double-chained-into-bigint-op` — commented out with a `// TODO[BUG]`.
+
 ## Common bug shapes (for the fixing agent)
 
 Reference for the agent picking up entries above. The test author

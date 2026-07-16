@@ -428,6 +428,36 @@ export function createOracleDBPoolTestContext(spec: OracleTestSpec): OracleTestC
             // test (transaction + reseed borrow).
             poolMin: 0,
             poolMax: 4,
+            // The driver's statement cache keys on the SQL TEXT and retains the
+            // bind-type metadata of the first execution. This suite emits the same
+            // text from many tests with different bind types — every `const(...)`
+            // over `selectFromNoTable()` is `select :0 as "result" from dual` — so a
+            // string const executed after an int/boolean/date one is re-bound with
+            // the cached type and Oracle rejects it (ORA-01858 / ORA-01722). The
+            // tests pass in isolation and fail only in file order, which is the
+            // fingerprint of the cache rather than of the emitted SQL. Disabling it
+            // makes each execution re-parse with its own bind types.
+            //
+            // This deviates from the driver default (30) on purpose. It is a
+            // testing-only concern: an application would have to emit two
+            // byte-identical SQL texts that bind different types at the same
+            // position on one pooled connection, which is essentially what this
+            // suite alone does by fanning every value kind over `const(...)`.
+            // See LIMITATIONS.md, "Oracle: bind parameters carry no declared
+            // type, so oracledb's statement cache can re-bind them with a
+            // stale one".
+            //
+            // Two things worth knowing before "restoring the default":
+            //   - Cost is ~1.7%: this cell measured 80.2s / 82.2s at 0 vs
+            //     79.9s / 79.8s at 30 (two runs each, warm container). Every
+            //     execution re-parses, but it does not move the needle.
+            //   - The default is the FRAGILE option, not the safe one. At 30
+            //     exactly one test of this cell fails — but WHICH one depends on
+            //     file order, because the first string bind after a numeric one
+            //     absorbs the stale type and the rest then pass. Inserting a test
+            //     into that fan-out migrates the failure elsewhere. Disabling the
+            //     cache removes the order coupling instead of documenting it.
+            stmtCacheSize: 0,
         })
         return {
             runner: new OracleDBPoolQueryRunner(pool),

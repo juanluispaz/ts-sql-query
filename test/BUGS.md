@@ -72,23 +72,6 @@ most are invisible to the matrix as it stands — each entry says why under
 *Current workaround in the suite*. A `none` there is not "nothing to do": it
 means no test would notice a regression either.
 
-## SQLite: pre-1970 unix-ms timestamps truncate toward zero instead of down
-
-**Where**: `SqliteSqlBuilder.ts` ~309, 331, 339, 347, 355, 363, 371 and ~379 —
-the `'Unix time milliseconds as integer'` date format.
-
-**Reproduction**: the emission divides two integers (`x / 1000`), which SQLite
-truncates **toward zero** rather than flooring. Correct for positive timestamps,
-wrong for negative ones: with `x = -1500` (`1969-12-31 23:59:58.500`),
-`getSeconds()` returns `59` (correct: 58) and `x % 1000` returns `-500` — a
-negative millisecond. Narrow reach (pre-1970 dates in the ms-integer format
-only) but the same family. Fix: `cast(floor(x / 1000.0) as integer)`, and
-`((x % 1000) + 1000) % 1000` for the ms component.
-
-**Current workaround in the suite**: none — no test covers it. Reaching this
-needs a pre-1970 instant stored in the unix-ms-integer format, which no fixture
-carries.
-
 ### The microsecond coverage gap (not a bug — a gap the next round should close)
 
 The date-part truncation defects fixed in this round are only **half covered**.
@@ -202,24 +185,6 @@ wherever the natural row order happens to match.
 `customize-recursive-one-column-custom-window-and-ordering-in-inline-scalar-value`
 — commented out with a `// TODO[BUG]` (line comments, because the body embeds
 `/* hint */` fragments).
-
-## SQL Server: `getDay()` depends on the session's `SET DATEFIRST`
-
-**Where**: `SqlServerSqlBuilder._getDay` (~line 1069).
-
-**Reproduction**: the emission is `datepart(weekday, x) - 1`. T-SQL's
-`DATEPART(weekday, …)` is affected by **`SET DATEFIRST` / the session
-language**, so the result is only correct under the `us_english` default
-(DATEFIRST 7). Every other dialect emits a session-independent expression, and
-`getDay()` mirrors JavaScript's `Date.getDay()` (0 = Sunday), which has no
-session concept. A deterministic emission would be
-`(datepart(weekday, x) + @@DATEFIRST - 1) % 7`.
-
-**NOT probed** — filed from reading the code plus the T-SQL docs; confirm
-against a session with a non-default `DATEFIRST` before fixing.
-
-**Current workaround in the suite**: none — the matrix only ever connects with
-the default session settings, so the defect cannot surface there.
 
 ## MariaDB: `uuidStrategy` is documented but does nothing
 

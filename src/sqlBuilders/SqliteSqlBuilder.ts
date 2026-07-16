@@ -33,11 +33,46 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     }
     _unixEpochMilliseconds(timeValue: string): string {
         // The 'subsec' modifier on unixepoch() was added in SQLite 3.42; older versions
-        // need to go through julianday() arithmetic to preserve sub-second precision
+        // need to go through julianday() arithmetic to preserve sub-second precision.
         if (this._connectionConfiguration.compatibilityVersion >= 3_042_000) {
             return 'cast(unixepoch(' + timeValue + ", 'subsec') * 1000 as integer)"
         }
-        return 'cast((julianday(' + timeValue + ') - 2440587.5) * 86400000.0 as integer)'
+        // The julianday arithmetic lands a hair below the whole millisecond about half the
+        // time, and a cast truncates — costing a millisecond on 29818 of the 60000
+        // (second, millisecond) pairs. Round to the millisecond before casting, the way
+        // `_getTime` already does with the same expression.
+        return 'cast(round((julianday(' + timeValue + ') - 2440587.5) * 86400000.0) as integer)'
+    }
+    /**
+     * An instant stored as unix-time MILLISECONDS, spelled as the value + modifiers a date
+     * function takes: `strftime('%S', <this>)`.
+     *
+     * SQLite 3.42's 'subsec' modifier lets `unixepoch` take fractional seconds, which is
+     * exactly what the stored value is once divided — so the engine does the conversion
+     * itself, sub-second part included. Older versions only accept whole seconds, and the
+     * value has to be floored first: `x / 1000` won't do, because both operands are
+     * integers and SQLite's integer division truncates **toward zero** rather than
+     * flooring. That is the same thing for an instant at or after 1970 and one second off
+     * before it (`-1500 / 1000` is `-1`, putting `1969-12-31 23:59:58.500` on the wrong
+     * second), so the fallback divides by a REAL literal and floors.
+     */
+    _unixMillisecondsAsDateTimeArgument(sql: string): string {
+        if (this._connectionConfiguration.compatibilityVersion >= 3_042_000) {
+            return sql + " / 1000.0, 'unixepoch', 'subsec'"
+        }
+        return 'cast(floor(' + sql + " / 1000.0) as integer), 'unixepoch'"
+    }
+    /**
+     * The millisecond component of an instant stored as unix-time MILLISECONDS.
+     *
+     * `x % 1000` keeps the sign of the dividend in SQLite, so a pre-1970 instant yields a
+     * NEGATIVE millisecond — which the declared type (and the JavaScript accessor this
+     * mirrors) cannot hold. The double modulo brings it back into 0-999. This stays plain
+     * integer arithmetic on the stored value: routing it through a date function would ask
+     * the engine to parse and rebuild an instant only to take it apart again.
+     */
+    _unixMillisecondsAsMilliseconds(sql: string): string {
+        return '((' + sql + ' % 1000) + 1000) % 1000'
     }
     _getValueSourceDateTimeFormat(valueSource: ToSql): SqliteDateTimeFormat {
         if (isValueSource(valueSource)) {
@@ -306,7 +341,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time seconds as integer') {
             return "cast(strftime('%d', " + this._appendSql(valueSource, params, false) + ", 'unixepoch') as integer)"
         } else if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time milliseconds as integer') {
-            return "cast(strftime('%d', " + this._appendSqlParenthesis(valueSource, params, false) + " / 1000, 'unixepoch') as integer)"
+            return "cast(strftime('%d', " + this._unixMillisecondsAsDateTimeArgument(this._appendSql(valueSource, params, false)) + ") as integer)"
         }
         return "cast(strftime('%d', " + this._appendSql(valueSource, params, false) + ") as integer)"
     }
@@ -328,7 +363,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time seconds as integer') {
             return "cast(strftime('%Y', " + this._appendSql(valueSource, params, false) + ", 'unixepoch') as integer)"
         } else if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time milliseconds as integer') {
-            return "cast(strftime('%Y', " + this._appendSqlParenthesis(valueSource, params, false) + " / 1000, 'unixepoch') as integer)"
+            return "cast(strftime('%Y', " + this._unixMillisecondsAsDateTimeArgument(this._appendSql(valueSource, params, false)) + ") as integer)"
         }
         return "cast(strftime('%Y', " + this._appendSql(valueSource, params, false) + ") as integer)"
     }
@@ -336,7 +371,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time seconds as integer') {
             return "cast(strftime('%m', " + this._appendSql(valueSource, params, false) + ", 'unixepoch') as integer) - 1"
         } else if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time milliseconds as integer') {
-            return "cast(strftime('%m', " + this._appendSqlParenthesis(valueSource, params, false) + " / 1000, 'unixepoch') as integer) - 1"
+            return "cast(strftime('%m', " + this._unixMillisecondsAsDateTimeArgument(this._appendSql(valueSource, params, false)) + ") as integer) - 1"
         }
         return "cast(strftime('%m', " + this._appendSql(valueSource, params, false) + ") as integer) - 1"
     }
@@ -344,7 +379,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time seconds as integer') {
             return "cast(strftime('%w'," + this._appendSql(valueSource, params, false) + ", 'unixepoch') as integer)"
         } else if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time milliseconds as integer') {
-            return "cast(strftime('%w'," + this._appendSqlParenthesis(valueSource, params, false) + " / 1000, 'unixepoch') as integer)"
+            return "cast(strftime('%w'," + this._unixMillisecondsAsDateTimeArgument(this._appendSql(valueSource, params, false)) + ") as integer)"
         }
         return "cast(strftime('%w'," + this._appendSql(valueSource, params, false) + ") as integer)"
     }
@@ -352,7 +387,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time seconds as integer') {
             return "cast(strftime('%H', " + this._appendSql(valueSource, params, false) + ", 'unixepoch') as integer)"
         } else if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time milliseconds as integer') {
-            return "cast(strftime('%H', " + this._appendSqlParenthesis(valueSource, params, false) + " / 1000, 'unixepoch') as integer)"
+            return "cast(strftime('%H', " + this._unixMillisecondsAsDateTimeArgument(this._appendSql(valueSource, params, false)) + ") as integer)"
         }
         return "cast(strftime('%H', " + this._appendSql(valueSource, params, false) + ") as integer)"
     }
@@ -360,7 +395,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time seconds as integer') {
             return "cast(strftime('%M', " + this._appendSql(valueSource, params, false) + ", 'unixepoch') as integer)"
         } else if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time milliseconds as integer') {
-            return "cast(strftime('%M', " + this._appendSqlParenthesis(valueSource, params, false) + " / 1000, 'unixepoch') as integer)"
+            return "cast(strftime('%M', " + this._unixMillisecondsAsDateTimeArgument(this._appendSql(valueSource, params, false)) + ") as integer)"
         }
         return "cast(strftime('%M', " + this._appendSql(valueSource, params, false) + ") as integer)"
     }
@@ -368,7 +403,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time seconds as integer') {
             return "cast(strftime('%S', " + this._appendSql(valueSource, params, false) + ", 'unixepoch') as integer)"
         } else if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time milliseconds as integer') {
-            return "cast(strftime('%S', " + this._appendSqlParenthesis(valueSource, params, false) + " / 1000, 'unixepoch') as integer)"
+            return "cast(strftime('%S', " + this._unixMillisecondsAsDateTimeArgument(this._appendSql(valueSource, params, false)) + ") as integer)"
         }
         return "cast(strftime('%S', " + this._appendSql(valueSource, params, false) + ") as integer)"
     }
@@ -376,7 +411,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time seconds as integer') {
             return '0'
         } else if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time milliseconds as integer') {
-            return this._appendSqlParenthesis(valueSource, params, false) + ' % 1000'
+            return this._unixMillisecondsAsMilliseconds(this._appendSql(valueSource, params, false))
         }
         // `strftime('%f', …)` yields the STRING '01.001', which coerces to a REAL: times
         // 1000 that is 1000.9999999999999, and SQLite's `%` truncates its operands to

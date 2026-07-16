@@ -1067,7 +1067,14 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         return 'datepart(month, ' + this._appendSql(valueSource, params, false) + ') - 1'
     }
     override _getDay(params: any[], valueSource: ToSql): string {
-        return 'datepart(weekday, ' + this._appendSql(valueSource, params, false) + ') - 1'
+        // `getDay()` mirrors JavaScript's `Date.getDay()`, where 0 is always Sunday. T-SQL
+        // is the only supported dialect whose day-of-week is session-dependent:
+        // `DATEPART(weekday, …)` counts from whatever `SET DATEFIRST` says the week starts
+        // on, and `SET LANGUAGE` changes DATEFIRST implicitly (7 for us_english, 1 for most
+        // European languages). A bare `- 1` is only correct under DATEFIRST 7, and silently
+        // shifts every day otherwise. Rebasing on `@@DATEFIRST` pins Sunday to 0 whatever
+        // the session says.
+        return '(datepart(weekday, ' + this._appendSql(valueSource, params, false) + ') + @@datefirst - 1) % 7'
     }
     override _getHours(params: any[], valueSource: ToSql): string {
         return 'datepart(hour, ' + this._appendSql(valueSource, params, false) + ')'

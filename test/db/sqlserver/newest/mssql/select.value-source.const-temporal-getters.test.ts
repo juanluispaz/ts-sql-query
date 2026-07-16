@@ -36,7 +36,7 @@ describe(ctx.label, () => {
                 dow: d.getDay(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(year, @0) as [y], datepart(month, @1) - 1 as mo, datepart(day, @2) as [d], datepart(weekday, @3) - 1 as dow"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(year, @0) as [y], datepart(month, @1) - 1 as mo, datepart(day, @2) as [d], (datepart(weekday, @3) + @@datefirst - 1) % 7 as dow"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2024-01-15T00:00:00.000Z,
@@ -144,7 +144,7 @@ describe(ctx.label, () => {
                 ms:  ts.getMilliseconds(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(day, @0) as [d], datepart(weekday, @1) - 1 as dow, datepart(minute, @2) as [m], datepart(second, @3) as [s], datepart(millisecond, @4) as ms"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(day, @0) as [d], (datepart(weekday, @1) + @@datefirst - 1) % 7 as dow, datepart(minute, @2) as [m], datepart(second, @3) as [s], datepart(millisecond, @4) as ms"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2024-01-15T12:34:56.000Z,
@@ -345,7 +345,7 @@ describe(ctx.label, () => {
                 dow: d.getDay(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(year, @0) as [y], datepart(month, @1) - 1 as mo, datepart(day, @2) as [d], datepart(weekday, @3) - 1 as dow"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(year, @0) as [y], datepart(month, @1) - 1 as mo, datepart(day, @2) as [d], (datepart(weekday, @3) + @@datefirst - 1) % 7 as dow"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2024-01-15T00:00:00.000Z,
@@ -413,7 +413,7 @@ describe(ctx.label, () => {
                 t:   ts.getTime(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(year, @0) as [y], datepart(month, @1) - 1 as mo, datepart(day, @2) as [d], datepart(weekday, @3) - 1 as dow, datepart(hour, @4) as [h], datepart(minute, @5) as [m], datepart(second, @6) as [s], datepart(millisecond, @7) as ms, datediff_big(millisecond, '1970-01-01 00:00:00', @8) as [t]"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(year, @0) as [y], datepart(month, @1) - 1 as mo, datepart(day, @2) as [d], (datepart(weekday, @3) + @@datefirst - 1) % 7 as dow, datepart(hour, @4) as [h], datepart(minute, @5) as [m], datepart(second, @6) as [s], datepart(millisecond, @7) as ms, datediff_big(millisecond, '1970-01-01 00:00:00', @8) as [t]"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2024-01-15T12:34:56.000Z,

@@ -254,7 +254,7 @@ describe(ctx.label, () => {
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select count(id) as result from issue union select count(id) as result from issue) as total"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
-        assertType<Exact<typeof rows, Array<{ total?: number | undefined }>>>()
+        assertType<Exact<typeof rows, Array<{ total?: number }>>>()
         expect(rows).toEqual(expected)
     })
 

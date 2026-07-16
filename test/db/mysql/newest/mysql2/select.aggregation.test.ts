@@ -57,10 +57,9 @@ describe(ctx.label, () => {
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum(priority) as totalPriority from issue"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
-        // sum is optional — empty set aggregates to NULL. The library
-        // surfaces this as `key?: T | undefined`, distinct from the plain
-        // `key?: T` shape produced for scalar inline subqueries.
-        assertType<Exact<typeof result, { totalPriority?: number | undefined }>>()
+        // sum is optional — an empty set aggregates to NULL, and a null leaf is
+        // omitted from the result rather than assigned, so the key is `?: T`.
+        assertType<Exact<typeof result, { totalPriority?: number }>>()
         expect(result.totalPriority).toBe(8)
     })
 
@@ -75,8 +74,8 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select min(priority) as lo, max(priority) as hi from issue"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, {
-            lo?: number | undefined
-            hi?: number | undefined
+            lo?: number
+            hi?: number
         }>>()
         expect(result).toEqual({ lo: 1, hi: 3 })
     })
@@ -131,7 +130,7 @@ describe(ctx.label, () => {
             1,
           ]
         `)
-        assertType<Exact<typeof row, { avgPriority?: number | undefined }>>()
+        assertType<Exact<typeof row, { avgPriority?: number }>>()
         expect(row.avgPriority).toBe(1.5)
     })
 
@@ -148,7 +147,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum(view_count) as \`s\`, sum(distinct view_count) as sd from issue"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
-        assertType<Exact<typeof result, { s?: bigint | undefined; sd?: bigint | undefined }>>()
+        assertType<Exact<typeof result, { s?: bigint; sd?: bigint }>>()
         expect(result).toEqual({ s: 0n, sd: 0n })
     })
 
@@ -166,7 +165,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(version) as \`v\` from project_release"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
-        assertType<Exact<typeof result, { v?: string | undefined }>>()
+        assertType<Exact<typeof result, { v?: string }>>()
         expect(result.v).toBe('1.3.0-beta.1')
     })
 
@@ -183,7 +182,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select min(work_date) as \`d\` from issue_worklog"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
-        assertType<Exact<typeof result, { d?: Date | undefined }>>()
+        assertType<Exact<typeof result, { d?: Date }>>()
         expect(result.d).toEqual(minDate)
     })
     test('average-and-average-distinct-over-bigint', async () => {
@@ -203,7 +202,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select avg(duration_ms) as \`avg\`, avg(distinct duration_ms) as avgD from issue_worklog"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
-        assertType<Exact<typeof row, { avg?: number | undefined; avgD?: number | undefined }>>()
+        assertType<Exact<typeof row, { avg?: number; avgD?: number }>>()
         expect(row).toEqual({ avg: 3600000, avgD: 3600000 })
     })
     test('customdouble-sum-distinct-and-average-return-branches', async () => {
@@ -222,7 +221,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum(billed_amount) as \`s\`, sum(distinct billed_amount) as sd, avg(billed_amount) as av from issue_worklog"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
-        assertType<Exact<typeof result, { s?: number | undefined; sd?: number | undefined; av?: number | undefined }>>()
+        assertType<Exact<typeof result, { s?: number; sd?: number; av?: number }>>()
         expect(result).toEqual({ s: 450, sd: 250, av: 150 })
     })
 
@@ -238,7 +237,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum(cost_cents) as ci from issue_worklog"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
-        assertType<Exact<typeof result, { ci?: number | undefined }>>()
+        assertType<Exact<typeof result, { ci?: number }>>()
         expect(result).toEqual({ ci: 600 })
     })
 
@@ -257,7 +256,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum(distinct cost_cents) as sd, avg(cost_cents) as av from issue_worklog"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
-        assertType<Exact<typeof result, { sd?: number | undefined; av?: number | undefined }>>()
+        assertType<Exact<typeof result, { sd?: number; av?: number }>>()
         expect(result).toEqual({ sd: 500, av: 200 })
     })
 
@@ -283,11 +282,11 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select min(duration_ms) as durLo, max(duration_ms) as durHi, min(cost_cents) as centsLo, min(billed_amount) as amtLo, max(billed_amount) as amtHi from issue_worklog"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, {
-            durLo?:   bigint | undefined
-            durHi?:   bigint | undefined
-            centsLo?: number | undefined
-            amtLo?:   number | undefined
-            amtHi?:   number | undefined
+            durLo?:   bigint
+            durHi?:   bigint
+            centsLo?: number
+            amtLo?:   number
+            amtHi?:   number
         }>>()
         expect(result).toEqual({ durLo: 1800000n, durHi: 5400000n, centsLo: 100, amtLo: 50, amtHi: 200 })
     })
@@ -412,7 +411,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select min(\`status\`) as lo, max(\`status\`) as hi from issue"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
-        assertType<Exact<typeof result, { lo?: string | undefined; hi?: string | undefined }>>()
+        assertType<Exact<typeof result, { lo?: string; hi?: string }>>()
         expect(result).toEqual({ lo: 'closed', hi: 'open' })
     })
 
@@ -429,7 +428,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select min(billed_amount) as lo, max(billed_amount) as hi from issue_worklog"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
-        assertType<Exact<typeof result, { lo?: number | undefined; hi?: number | undefined }>>()
+        assertType<Exact<typeof result, { lo?: number; hi?: number }>>()
         expect(result).toEqual({ lo: 50, hi: 200 })
     })
 
@@ -448,7 +447,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select min(started_at) as lo, max(started_at) as hi from issue_worklog"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
-        assertType<Exact<typeof result, { lo?: Date | undefined; hi?: Date | undefined }>>()
+        assertType<Exact<typeof result, { lo?: Date; hi?: Date }>>()
         expect(result).toEqual({ lo, hi })
     })
 
@@ -468,7 +467,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select min(published_at) as lo, max(published_at) as hi from project_release"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
-        assertType<Exact<typeof result, { lo?: Date | undefined; hi?: Date | undefined }>>()
+        assertType<Exact<typeof result, { lo?: Date; hi?: Date }>>()
         expect(result).toEqual({ lo, hi })
     })
 
@@ -502,12 +501,12 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select min(released_on) as dayLo, max(released_on) as dayHi, min(cutoff_time) as clockLo, max(cutoff_time) as clockHi, min(published_at) as stampLo, max(published_at) as stampHi from project_release"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, {
-            dayLo?:   Date | undefined
-            dayHi?:   Date | undefined
-            clockLo?: Date | undefined
-            clockHi?: Date | undefined
-            stampLo?: Date | undefined
-            stampHi?: Date | undefined
+            dayLo?:   Date
+            dayHi?:   Date
+            clockLo?: Date
+            clockHi?: Date
+            stampLo?: Date
+            stampHi?: Date
         }>>()
         expect(result).toEqual(expected)
     })
@@ -525,7 +524,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum(billed_amount) as \`s\`, avg(billed_amount) as av from issue_worklog"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
-        assertType<Exact<typeof result, { s?: number | undefined; av?: number | undefined }>>()
+        assertType<Exact<typeof result, { s?: number; av?: number }>>()
         expect(result).toEqual({ s: 450, av: 150 })
     })
 
@@ -542,7 +541,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum(distinct priority) as sd, avg(distinct priority) as avd from issue"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
-        assertType<Exact<typeof result, { sd?: number | undefined; avd?: number | undefined }>>()
+        assertType<Exact<typeof result, { sd?: number; avd?: number }>>()
         expect(result).toEqual({ sd: 6, avd: 2 })
     })
 })

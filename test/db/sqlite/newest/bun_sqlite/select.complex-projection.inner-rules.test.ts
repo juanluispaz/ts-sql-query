@@ -91,7 +91,7 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{
             pid: number
-            org?: { id: number | undefined; name: string | undefined }
+            org?: { id?: number; name?: string }
         }>>>()
         expect(rows).toEqual(expected)
     })
@@ -139,7 +139,7 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{
             pid:    number
-            group?: { orgId: number | undefined; orgName: string | undefined }
+            group?: { orgId?: number; orgName?: string }
         }>>>()
         expect(rows).toEqual(expected)
     })
@@ -179,7 +179,7 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{
             iid:  number
-            opt?: { body: string | undefined; assigneeId: number | undefined }
+            opt?: { body?: string; assigneeId?: number }
         }>>>()
         expect(rows).toEqual(expected)
     })
@@ -269,7 +269,7 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{
             iid:  number
-            opt?: { body: string | undefined; assigneeId: number | undefined }
+            opt?: { body?: string; assigneeId?: number }
         }>>>()
         expect(rows).toEqual(expected)
         // Row 3 has every leaf null, so the optional `opt` object is dropped
@@ -343,7 +343,7 @@ describe(ctx.label, () => {
         // `assigneeId` sibling surfaces as `| undefined`.
         assertType<Exact<typeof rows, Array<{
             iid:   number
-            meta?: { flag: boolean; assigneeId: number | undefined }
+            meta?: { flag: boolean; assigneeId?: number }
         }>>>()
         expect(rows).toEqual(expected)
     })
@@ -519,7 +519,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof row, {
             iid:   number
-            proj?: { id: number; name: string; archivedAt: Date | undefined }
+            proj?: { id: number; name: string; archivedAt?: Date }
         }>>()
         expect(row).toEqual(expected)
         // `archivedAt` is null in the seed and optional, so the default
@@ -746,7 +746,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof row, {
             iid:   number
-            meta?: { ownId: number; gate: string; projName: string | undefined }
+            meta?: { ownId: number; gate: string; projName?: string }
         }>>()
         expect(row).toEqual(expected)
     })
@@ -811,7 +811,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof row, {
             iid:    number
-            detail: { title: string; inner?: { body: string | undefined; assigneeId: number | undefined } }
+            detail: { title: string; inner?: { body?: string; assigneeId?: number } }
         }>>()
         expect(row).toEqual(expected)
     })
@@ -954,7 +954,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{
             pid:  number
-            opt?: { body: string | undefined; assigneeId: number | undefined }
+            opt?: { body?: string; assigneeId?: number }
         }>>>()
         expect(rows).toEqual(expected)
     })
@@ -1003,8 +1003,8 @@ describe(ctx.label, () => {
         // originallyRequired `id`) that CONTAINS a nested INNER object (`inner`,
         // also from the same left join). The outer `proj` is optional (`proj?`,
         // dropped when the join misses); the required `id` stays required; and the
-        // inner container surfaces as `{...} | undefined` (present-key, value
-        // undefined when the join misses). Issue 1 → project 1, the join hits, so
+        // inner container surfaces as `inner?: {...}` (dropped when the join
+        // misses). Issue 1 → project 1, the join hits, so
         // `proj` and `inner` are present.
         const expected = { iid: 1, proj: { id: 1, inner: { name: 'Marketing site', slug: 'mktg-site' } } }
         ctx.mockNext({ iid: 1, 'proj.id': 1, 'proj.inner.name': 'Marketing site', 'proj.inner.slug': 'mktg-site' })
@@ -1026,7 +1026,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof row, {
             iid:   number
-            proj?: { id: number; inner: { name: string; slug: string } | undefined }
+            proj?: { id: number; inner?: { name: string; slug: string } }
         }>>()
         expect(row).toEqual(expected)
     })
@@ -1095,7 +1095,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof row, {
             iid:    number
-            detail: { title: string; meta?: { gate: string; assigneeId: number | undefined } }
+            detail: { title: string; meta?: { gate: string; assigneeId?: number } }
         }>>()
         expect(row).toEqual(expected)
     })
@@ -1140,7 +1140,7 @@ describe(ctx.label, () => {
         // Outer `meta` is rule-1 (its `gate` = status.asRequiredInOptionalObject()
         // is never null, so `meta` is always present); inner `inner` is
         // independently rule-1 (its own `innerGate` = body). The inner renders as
-        // `inner: {...} | undefined` inside the optional outer — present when body is
+        // `inner?: {...}` inside the optional outer — present when body is
         // non-null, dropped otherwise. issue 1 (project 1): body null → inner
         // dropped; issue 2: body 'Use new tokens' → inner present with extra = 2.
         const expected = [
@@ -1171,7 +1171,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{
             iid:   number
-            meta?: { gate: string; inner: { innerGate: string; extra: number | undefined } | undefined }
+            meta?: { gate: string; inner?: { innerGate: string; extra?: number } }
         }>>>()
         expect(rows).toEqual(expected)
         // Row 1: the inner rule-1 object is dropped (its gate is null).
@@ -1221,7 +1221,7 @@ describe(ctx.label, () => {
     test('matrix-rule-1-outer-rule-2-inner-default', async () => {
         // Outer `meta` is rule-1 (gate = status); inner `proj` is rule-2 (both
         // leaves from the same left join, `name` originallyRequired + `arch`
-        // optional). The inner renders as `proj: {...} | undefined` inside the
+        // optional). The inner renders as `proj?: {...}` inside the
         // optional outer. issue 1 → project 1 (Marketing site, archived_at null): the
         // join hits so `proj` is present; `arch` is absent (null under asUndefined).
         const expected = { iid: 1, meta: { gate: 'open', proj: { name: 'Marketing site' } } }
@@ -1247,7 +1247,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof row, {
             iid:   number
-            meta?: { gate: string; proj: { name: string; arch: Date | undefined } | undefined }
+            meta?: { gate: string; proj?: { name: string; arch?: Date } }
         }>>()
         expect(row).toEqual(expected)
     })
@@ -1289,7 +1289,7 @@ describe(ctx.label, () => {
     test('matrix-rule-1-outer-rule-4-inner-default', async () => {
         // Outer `meta` is rule-1 (gate = status); inner `inner` is rule-4 (all
         // optional leaves, `body` + `assigneeId`). The inner renders as
-        // `inner: {...} | undefined`, dropped only when every leaf is null.
+        // `inner?: {...}`, dropped only when every leaf is null.
         // issue 1: body null, assignee 1 → inner present with assigneeId;
         // issue 3: body null, assignee null → inner dropped.
         const expected = [
@@ -1321,7 +1321,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{
             iid:   number
-            meta?: { gate: string; inner: { body: string | undefined; assigneeId: number | undefined } | undefined }
+            meta?: { gate: string; inner?: { body?: string; assigneeId?: number } }
         }>>>()
         expect(rows).toEqual(expected)
         // Row 2 (issue 3): the inner rule-4 object is dropped (every leaf null).
@@ -1372,7 +1372,7 @@ describe(ctx.label, () => {
         // Outer `proj` is rule-2 (all leaves from the same left join, `id`
         // originallyRequired); inner `inner` is rule-1 (its gate =
         // slug.asRequiredInOptionalObject()). The rule-2 `id` stays required inside
-        // the optional `proj`; the inner rule-1 renders as `inner: {...} | undefined`.
+        // the optional `proj`; the inner rule-1 renders as `inner?: {...}`.
         // issue 1 → project 1 (slug 'mktg-site', archived_at null): join hits, inner
         // present (slug non-null), `arch` absent.
         const expected = { iid: 1, proj: { id: 1, inner: { gate: 'mktg-site' } } }
@@ -1395,7 +1395,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof row, {
             iid:   number
-            proj?: { id: number; inner: { gate: string; arch: Date | undefined } | undefined }
+            proj?: { id: number; inner?: { gate: string; arch?: Date } }
         }>>()
         expect(row).toEqual(expected)
     })
@@ -1499,7 +1499,7 @@ describe(ctx.label, () => {
     test('matrix-rule-2-outer-rule-4-inner-default', async () => {
         // Outer `proj` is rule-2 (`name` originallyRequired); inner `inner` is
         // rule-4 (its only leaf, `arch`, is optional). The inner renders as
-        // `inner: {...} | undefined`, dropped when its single leaf is null. issue 1 →
+        // `inner?: {...}`, dropped when its single leaf is null. issue 1 →
         // project 1 (archived_at null): join hits so `proj` is present, but the inner
         // rule-4 object is dropped (its only leaf is null).
         const expected = { iid: 1, proj: { name: 'Marketing site' } }
@@ -1522,7 +1522,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof row, {
             iid:   number
-            proj?: { name: string; inner: { arch: Date | undefined } | undefined }
+            proj?: { name: string; inner?: { arch?: Date } }
         }>>()
         expect(row).toEqual(expected)
         // The inner rule-4 object is dropped (its only leaf is null).
@@ -1586,7 +1586,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof row, {
             iid:    number
-            detail: { title: string; proj?: { name: string; arch: Date | undefined } }
+            detail: { title: string; proj?: { name: string; arch?: Date } }
         }>>()
         expect(row).toEqual(expected)
         // The inner rule-2 `proj` is present (the join hit), but its optional `arch`
@@ -1632,7 +1632,7 @@ describe(ctx.label, () => {
         // status.asRequiredInOptionalObject(); status is a required column, never null,
         // so the inner is always present). The rule-4 outer stays present while its own
         // optional `own` leaf drops on the null-body row. Default asUndefined projector:
-        // `outer?`, the inner renders `inner: {...} | undefined`, and the optional
+        // `outer?`, the inner renders `inner?: {...}`, and the optional
         // `own`/`extra` leaves surface as `| undefined`.
         // issue 1 (project 1): body null → own dropped; status 'open', assignee 1.
         // issue 2 (project 1): body 'Use new tokens'; status 'in_progress', assignee 2.
@@ -1664,7 +1664,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{
             iid:    number
-            outer?: { own: string | undefined; inner: { gate: string; extra: number | undefined } | undefined }
+            outer?: { own?: string; inner?: { gate: string; extra?: number } }
         }>>>()
         expect(rows).toEqual(expected)
         // The rule-4 outer stays present on the null-body row (its inner leaves are
@@ -1721,7 +1721,7 @@ describe(ctx.label, () => {
         // Outer `outer` is rule-4 (all-optional), made optional by an optional OWN
         // scalar leaf (`own` = body from the main issue table). Inner `proj` is rule-2
         // (both leaves from the SAME left join, `name` originallyRequired + `arch`
-        // optional), so it renders `proj: {...} | undefined` with `name`
+        // optional), so it renders `proj?: {...}` with `name`
         // required-when-present. Default asUndefined projector: `outer?`, `own` is
         // `string | undefined`, the optional `arch` leaf is dropped when null.
         // issue 2 → project 1 (join hits): body 'Use new tokens', name 'Marketing
@@ -1749,7 +1749,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof row, {
             iid:    number
-            outer?: { own: string | undefined; proj: { name: string; arch: Date | undefined } | undefined }
+            outer?: { own?: string; proj?: { name: string; arch?: Date } }
         }>>()
         expect(row).toEqual(expected)
         // The inner rule-2 `proj` is present (the join hit); its optional `arch` leaf
@@ -1836,7 +1836,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{
             iid:    number
-            outer?: { own: string | undefined; inner: { est: number | undefined; parent: number | undefined } | undefined }
+            outer?: { own?: string; inner?: { est?: number; parent?: number } }
         }>>>()
         expect(rows).toEqual(expected)
         // issue 2: outer present (own non-null), inner collapsed → key ABSENT.
@@ -1924,7 +1924,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{
             iid:      number
-            wrapper?: { inner: { body: string | undefined; assigneeId: number | undefined } | undefined }
+            wrapper?: { inner?: { body?: string; assigneeId?: number } }
         }>>>()
         expect(rows).toEqual(expected)
     })
@@ -2001,7 +2001,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{
             pid:      number
-            wrapper?: { inner: { iid: number; num: number } | undefined }
+            wrapper?: { inner?: { iid: number; num: number } }
         }>>>()
         expect(rows).toEqual(expected)
     })
@@ -2070,7 +2070,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof row, {
             iid:      number
-            wrapper?: { inner: { body: string | undefined; assigneeId: number | undefined } | undefined }
+            wrapper?: { inner?: { body?: string; assigneeId?: number } }
         }>>()
         expect(row).toEqual(expected)
         // The optional `wrapper` key is ABSENT at runtime (the sole inner collapsed).
@@ -2134,7 +2134,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof row, {
             pid:      number
-            wrapper?: { inner: { iid: number; num: number } | undefined }
+            wrapper?: { inner?: { iid: number; num: number } }
         }>>()
         expect(row).toEqual(expected)
         // The optional `wrapper` key is ABSENT at runtime (the sole inner collapsed).
@@ -2197,7 +2197,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof row, {
             iid:      number
-            wrapper?: { inner: { gate: string; extra: number | undefined } | undefined }
+            wrapper?: { inner?: { gate: string; extra?: number } }
         }>>()
         expect(row).toEqual(expected)
     })
@@ -2255,7 +2255,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof row, {
             iid:      number
-            wrapper?: { inner: { gate: string; extra: number | undefined } | undefined }
+            wrapper?: { inner?: { gate: string; extra?: number } }
         }>>()
         expect(row).toEqual(expected)
         // The optional `wrapper` key is ABSENT at runtime (the sole rule-1 inner collapsed).
@@ -2315,7 +2315,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof row, {
             iid: number
-            a?: { b: { c: { body: string | undefined; assigneeId: number | undefined } | undefined } | undefined }
+            a?: { b?: { c?: { body?: string; assigneeId?: number } } }
         }>>()
         expect(row).toEqual(expected)
     })
@@ -2370,7 +2370,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof row, {
             iid: number
-            a?: { b: { c: { body: string | undefined; assigneeId: number | undefined } | undefined } | undefined }
+            a?: { b?: { c?: { body?: string; assigneeId?: number } } }
         }>>()
         expect(row).toEqual(expected)
         // The whole outer `a` key is ABSENT at runtime (the collapse propagated up two levels).
@@ -2433,7 +2433,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof row, {
             iid:       number
-            container: { req: { title: string; num: number }; opt?: { gate: string; extra: number | undefined } }
+            container: { req: { title: string; num: number }; opt?: { gate: string; extra?: number } }
         }>>()
         expect(row).toEqual(expected)
     })
@@ -2520,7 +2520,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof row, {
             iid: number
-            w?: { x: { y: { z: { body: string | undefined; assigneeId: number | undefined } | undefined } | undefined } | undefined }
+            w?: { x?: { y?: { z?: { body?: string; assigneeId?: number } } } }
         }>>()
         expect(row).toEqual(expected)
     })
@@ -2547,7 +2547,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof row, {
             iid: number
-            w?: { x: { y: { z: { body: string | undefined; assigneeId: number | undefined } | undefined } | undefined } | undefined }
+            w?: { x?: { y?: { z?: { body?: string; assigneeId?: number } } } }
         }>>()
         expect(row).toEqual(expected)
         // The whole outer `w` key is ABSENT at runtime (the collapse propagated up three levels).
@@ -2594,7 +2594,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{
             iid:   number
-            meta?: { gate: string | undefined; extra: number | undefined }
+            meta?: { gate?: string; extra?: number }
         }>>>()
         expect(rows).toEqual(expected)
     })
@@ -2690,7 +2690,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{
             projId: number
-            meta?:  { gate: string | undefined; ownReq: number }
+            meta?:  { gate?: string; ownReq: number }
         }>>>()
         expect(rows).toEqual(expected)
     })
@@ -2831,7 +2831,7 @@ describe(ctx.label, () => {
         // optional by its requiredInOptionalObject `gate` leaf but also carrying a
         // genuinely-required `ownReq` leaf. The optional `inner` keeps `wrapper`
         // optional (an optional inner never forces its container required), so both
-        // surface present-key / `| undefined`-valued with `ownReq`
+        // surface as optional keys with `ownReq`
         // required-when-present. When `gate` (body) is null the inner collapses and
         // the whole `wrapper` is dropped.
         // issue 1 (project 1): body null → wrapper dropped; issue 2: body present.
@@ -2865,7 +2865,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{
             iid:      number
-            wrapper?: { inner: { gate: string; ownReq: number } | undefined }
+            wrapper?: { inner?: { gate: string; ownReq: number } }
         }>>>()
         expect(rows).toEqual(expected)
         // issue 1's gate (body) is null, so the inner collapses and the whole
@@ -2960,7 +2960,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{
             pid:      number
-            wrapper?: { inner: { iid: number; constReq: number } | undefined }
+            wrapper?: { inner?: { iid: number; constReq: number } }
         }>>>()
         expect(rows).toEqual(expected)
         // On the join-miss row the whole rule-2 `inner` is dropped (the const
@@ -3596,7 +3596,7 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{
             orgId: number
-            meta?: { projects: Array<{ id: number; name: string; archivedAt: Date | null }> | undefined }
+            meta?: { projects?: Array<{ id: number; name: string; archivedAt: Date | null }> }
         }>>>()
         const sorted = rows.map(r => ({ ...r, meta: { projects: [...r.meta!.projects!].sort((a, b) => a.id - b.id) } }))
         if (!ctx.realDbEnabled) {

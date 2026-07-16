@@ -49,7 +49,7 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{
-            issues: Array<{ issue?: { id: number; title: string } | undefined }>
+            issues: Array<{ issue?: { id: number; title: string } }>
             pid:    number
         }>>>()
         // Project 1 has issues 1 ('Update hero copy') and 2 ('Redesign
@@ -192,7 +192,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{
             pid:    number
-            issues: Array<{ iid?: number | undefined; title?: string | undefined }>
+            issues: Array<{ iid?: number; title?: string }>
         }>>>()
         const sorted = rows.map(r => ({ ...r, issues: [...r.issues].sort((a, b) => a.iid! - b.iid!) }))
         expect(sorted).toEqual([{ pid: 1, issues: [{ iid: 1, title: 'Update hero copy' }, { iid: 2, title: 'Redesign navbar' }] }])

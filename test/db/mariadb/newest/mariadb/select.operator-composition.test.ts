@@ -72,7 +72,7 @@ describe(ctx.label, () => {
 
     test('two-modifiers-as-optional-then-as-required-in-optional-object', async () => {
         // Two nullable modifiers chained: the last one decides the leaf.
-        // `asOptional()` alone gives `?: number | undefined`; the trailing
+        // `asOptional()` alone gives `?: number`; the trailing
         // `asRequiredInOptionalObject()` overrides it, so the top-level leaf is
         // `?: number` (optional key, no explicit `| undefined`). Issue 1: priority 2.
         const expected = { id: 1, p: 2 }

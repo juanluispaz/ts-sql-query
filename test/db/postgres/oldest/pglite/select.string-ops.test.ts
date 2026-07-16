@@ -562,7 +562,7 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof result, Array<{
-            up?: string | undefined; lo?: string | undefined; len?: number | undefined; tl?: string | undefined; tr?: string | undefined
+            up?: string; lo?: string; len?: number; tl?: string; tr?: string
         }>>>()
         expect(result).toEqual(expected)
     })
@@ -583,7 +583,7 @@ describe(ctx.label, () => {
             2,
           ]
         `)
-        assertType<Exact<typeof result, Array<{ rev?: string | undefined }>>>()
+        assertType<Exact<typeof result, Array<{ rev?: string }>>>()
         expect(result).toEqual(expected)
     })
 

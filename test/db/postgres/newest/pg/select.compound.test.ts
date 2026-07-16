@@ -292,7 +292,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select archived_at as "a" from project where archived_at is null union select archived_at as "a" from project where archived_at is null"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
-        assertType<Exact<typeof result, Array<{ a?: Date | undefined }>>>()
+        assertType<Exact<typeof result, Array<{ a?: Date }>>>()
         expect(result).toEqual(expected)
     })
 

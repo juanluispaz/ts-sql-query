@@ -90,133 +90,136 @@ export type ResultObjectValuesForAggregatedArray<COLUMNS> = TransformOptionalPro
     } // the result for aggregateAsArray must not be nullable, | null doesn't apply here
 >
 
-type ResultObjectValues2<COLUMNS> = TransformOptionalProperties<
+type ResultObjectValues2<COLUMNS> = 
     ContainsRequiredInOptionalObject<COLUMNS> extends true ? 
-        {
+        TransformOptionalProperties<{
             [P in UsableKeyOf<COLUMNS>]: 
                 COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
                 ? ValueSourceValueTypeForRequiredInOptionalObject<NonNullable<COLUMNS[P]>>
                 : ResultObjectValues3<NonNullable<COLUMNS[P]>>
-        } | undefined
+        }> | undefined
     : AllFromSameLeftJoinWithOriginallyRequired<COLUMNS> extends true ?
-        {
+        TransformOptionalProperties<{
             [P in UsableKeyOf<COLUMNS>]: 
                 COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
                 ? ValueSourceValueTypeForOptionalObjectResultSameOuterJoin<NonNullable<COLUMNS[P]>>
                 : ResultObjectValues3<NonNullable<COLUMNS[P]>>
-        } | undefined
+        }> | undefined
     : ContainsRequired<COLUMNS> extends true ? 
-        {
+        TransformOptionalProperties<{
             [P in UsableKeyOf<COLUMNS>]: 
                 COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
                 ? ValueSourceValueTypeForObjectResult<NonNullable<COLUMNS[P]>>
                 : ResultObjectValues3<NonNullable<COLUMNS[P]>>
-        }
-    : {
+        }>
+    : TransformOptionalProperties<{
         [P in UsableKeyOf<COLUMNS>]: 
             COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
             ? ValueSourceValueTypeForObjectResult<NonNullable<COLUMNS[P]>>
             : ResultObjectValues3<NonNullable<COLUMNS[P]>>
-    } | undefined
->
+    }> | undefined
 
-type ResultObjectValues3<COLUMNS> = TransformOptionalProperties<
+
+type ResultObjectValues3<COLUMNS> = 
     ContainsRequiredInOptionalObject<COLUMNS> extends true ? 
-        {
+        TransformOptionalProperties<{
             [P in UsableKeyOf<COLUMNS>]: 
                 COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
                 ? ValueSourceValueTypeForRequiredInOptionalObject<NonNullable<COLUMNS[P]>>
                 : ResultObjectValues4<NonNullable<COLUMNS[P]>>
-        } | undefined
+        }> | undefined
     : AllFromSameLeftJoinWithOriginallyRequired<COLUMNS> extends true ?
-        {
+        TransformOptionalProperties<{
             [P in UsableKeyOf<COLUMNS>]: 
                 COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
                 ? ValueSourceValueTypeForOptionalObjectResultSameOuterJoin<NonNullable<COLUMNS[P]>>
                 : ResultObjectValues4<NonNullable<COLUMNS[P]>>
-        } | undefined
+        }> | undefined
     : ContainsRequired<COLUMNS> extends true ? 
-        {
+        TransformOptionalProperties<{
             [P in UsableKeyOf<COLUMNS>]: 
                 COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
                 ? ValueSourceValueTypeForObjectResult<NonNullable<COLUMNS[P]>>
                 : ResultObjectValues4<NonNullable<COLUMNS[P]>>
-        }
-    : {
+        }>
+    : TransformOptionalProperties<{
         [P in UsableKeyOf<COLUMNS>]: 
             COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
             ? ValueSourceValueTypeForObjectResult<NonNullable<COLUMNS[P]>>
             : ResultObjectValues4<NonNullable<COLUMNS[P]>>
-    } | undefined
->
+    }> | undefined
 
-type ResultObjectValues4<COLUMNS> = TransformOptionalProperties<
+
+type ResultObjectValues4<COLUMNS> = 
     ContainsRequiredInOptionalObject<COLUMNS> extends true ? 
-        {
+        TransformOptionalProperties<{
             [P in UsableKeyOf<COLUMNS>]: 
                 COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
                 ? ValueSourceValueTypeForRequiredInOptionalObject<NonNullable<COLUMNS[P]>>
                 : ResultObjectValues5<NonNullable<COLUMNS[P]>>
-        } | undefined
+        }> | undefined
     : AllFromSameLeftJoinWithOriginallyRequired<COLUMNS> extends true ?
-        {
+        TransformOptionalProperties<{
             [P in UsableKeyOf<COLUMNS>]: 
                 COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
                 ? ValueSourceValueTypeForOptionalObjectResultSameOuterJoin<NonNullable<COLUMNS[P]>>
                 : ResultObjectValues5<NonNullable<COLUMNS[P]>>
-        } | undefined
+        }> | undefined
     : ContainsRequired<COLUMNS> extends true ? 
-        {
+        TransformOptionalProperties<{
             [P in UsableKeyOf<COLUMNS>]: 
                 COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
                 ? ValueSourceValueTypeForObjectResult<NonNullable<COLUMNS[P]>>
                 : ResultObjectValues5<NonNullable<COLUMNS[P]>>
-        }
-    : {
+        }>
+    : TransformOptionalProperties<{
         [P in UsableKeyOf<COLUMNS>]: 
             COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
             ? ValueSourceValueTypeForObjectResult<NonNullable<COLUMNS[P]>>
             : ResultObjectValues5<NonNullable<COLUMNS[P]>>
-    } | undefined
->
+    }> | undefined
 
-type ResultObjectValues5<COLUMNS> = TransformOptionalProperties<
+
+type ResultObjectValues5<COLUMNS> = 
     ContainsRequiredInOptionalObject<COLUMNS> extends true ? 
-        {
+        TransformOptionalProperties<{
             [P in UsableKeyOf<COLUMNS>]: 
                 COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
                 ? ValueSourceValueTypeForRequiredInOptionalObject<NonNullable<COLUMNS[P]>>
                 : never // Stop recursion here
-        } | undefined
+        }> | undefined
     : AllFromSameLeftJoinWithOriginallyRequired<COLUMNS> extends true ?
-        {
+        TransformOptionalProperties<{
             [P in UsableKeyOf<COLUMNS>]: 
                 COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
                 ? ValueSourceValueTypeForOptionalObjectResultSameOuterJoin<NonNullable<COLUMNS[P]>>
                 : never // Stop recursion here
-        } | undefined
+        }> | undefined
     : ContainsRequired<COLUMNS> extends true ? 
-        {
+        TransformOptionalProperties<{
             [P in UsableKeyOf<COLUMNS>]: 
                 COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
                 ? ValueSourceValueTypeForObjectResult<NonNullable<COLUMNS[P]>>
                 : never // Stop recursion here
-        }
-    : {
+        }>
+    : TransformOptionalProperties<{
         [P in UsableKeyOf<COLUMNS>]: 
             COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
             ? ValueSourceValueTypeForObjectResult<NonNullable<COLUMNS[P]>>
             : never // Stop recursion here
-    } | undefined
->
+    }> | undefined
+
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-type TransformOptionalProperties<RESULT> = 
-    null extends RESULT ? RESULT 
+// Receives the object alone: the rules mark a nested object as optional by unioning it with
+// undefined, but that union is applied by the caller AFTER this transform, so the object's own
+// properties are always re-encoded.
+type TransformOptionalProperties<RESULT> =
+    null extends RESULT ? RESULT
     : undefined extends RESULT ? RESULT
     : undefined extends string ? RESULT // tsc is working with strict mode disabled. There is no way to infer the optional properties. Keep as required is a better approximation.
-    : { [P in keyof OptionalMap<RESULT>]: true extends OptionalMap<RESULT> ? RESULT[P] : NonNullable<RESULT[P]>}
+    : { [P in keyof OptionalMap<RESULT>]: NonNullable<RESULT[P]>}
 
 type OptionalMap<TYPE> = { [P in MandatoryPropertiesOf<TYPE>]-?: true } & { [P in OptionalPropertiesOf<TYPE>]?: false }
 

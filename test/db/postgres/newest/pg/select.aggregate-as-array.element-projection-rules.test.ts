@@ -88,7 +88,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{
             pid:    number
-            issues: Array<{ title: string; meta?: { gate: string; assigneeId: number | undefined } }>
+            issues: Array<{ title: string; meta?: { gate: string; assigneeId?: number } }>
         }>>>()
         const sorted = rows.map(r => ({ ...r, issues: [...r.issues].sort((a, b) => a.title.localeCompare(b.title)) }))
         expect(sorted).toEqual([{ pid: 1, issues: [
@@ -210,7 +210,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{
             grp:   number
-            items: Array<{ iid: number; proj?: { id: number; name: string; archivedAt: Date | undefined } }>
+            items: Array<{ iid: number; proj?: { id: number; name: string; archivedAt?: Date } }>
         }>>>()
         const sorted = rows.map(r => ({ ...r, items: [...r.items].sort((a, b) => a.iid - b.iid) }))
         expect(sorted).toEqual([{ grp: 1, items: [
@@ -302,7 +302,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{
             grp:   number
-            items: Array<{ iid: number; meta?: { ownId: number; gate: string; projName: string | undefined } }>
+            items: Array<{ iid: number; meta?: { ownId: number; gate: string; projName?: string } }>
         }>>>()
         const sorted = rows.map(r => ({ ...r, items: [...r.items].sort((a, b) => a.iid - b.iid) }))
         expect(sorted).toEqual([{ grp: 1, items: [
@@ -390,7 +390,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{
             orgId: number
-            items: Array<{ pid: number; opt?: { body: string | undefined; assigneeId: number | undefined } }>
+            items: Array<{ pid: number; opt?: { body?: string; assigneeId?: number } }>
         }>>>()
         const sorted = rows.map(r => ({ ...r, items: [...r.items].sort((a, b) => a.pid - b.pid) }))
         expect(sorted).toEqual([{ orgId: 2, items: [
@@ -568,7 +568,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{
             orgId: number
-            items: Array<{ iid: number; wrapper?: { inner: { body: string | undefined; assigneeId: number | undefined } | undefined } }>
+            items: Array<{ iid: number; wrapper?: { inner?: { body?: string; assigneeId?: number } } }>
         }>>>()
         const sorted = rows.map(r => ({ ...r, items: [...r.items].sort((a, b) => a.iid - b.iid) }))
         expect(sorted).toEqual([{ orgId: 1, items: [
@@ -651,7 +651,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{
             orgId: number
-            items: Array<{ body?: string | undefined; assigneeId?: number | undefined }>
+            items: Array<{ body?: string; assigneeId?: number }>
         }>>>()
         expect(rows).toEqual([{ orgId: 2, items: [{ body: 'See ADR-014', assigneeId: 3 }] }])
         // The all-null element is dropped entirely — the array has one element, not two.
@@ -726,7 +726,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{
             orgId: number
-            items: Array<{ pid: number; iss?: { id: number; title: string; body: string | undefined } }>
+            items: Array<{ pid: number; iss?: { id: number; title: string; body?: string } }>
         }>>>()
         const sorted = rows.map(r => ({ ...r, items: [...r.items].sort((a, b) => a.pid - b.pid) }))
         expect(sorted).toEqual([{ orgId: 2, items: [
@@ -955,7 +955,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof row, {
             pid:    number
-            issues: Array<{ ref?: string | undefined; assigneeId?: number | undefined }>
+            issues: Array<{ ref?: string; assigneeId?: number }>
         }>>()
         const sorted = [...row.issues].sort((a, b) => a.assigneeId! - b.assigneeId!)
         expect(sorted).toEqual([
@@ -1034,7 +1034,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof row, {
             pid:       number
-            assignees: Array<{ name?: string | undefined }>
+            assignees: Array<{ name?: string }>
         }>>()
         // The join-miss element is KEPT as `{}` with `name` ABSENT (inline root is
         // non-dropping — `aggregateAsArray` would have dropped it, yielding `[]`).
@@ -1149,7 +1149,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof row, {
             orgId: number
-            items: Array<{ body?: string | undefined; assigneeId?: number | undefined }>
+            items: Array<{ body?: string; assigneeId?: number }>
         }>>()
         const sorted = [...row.items].sort((a, b) => (a.assigneeId ?? -1) - (b.assigneeId ?? -1))
         expect(sorted).toEqual([{}, { body: 'See ADR-014', assigneeId: 3 }])
@@ -1225,7 +1225,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof row, {
             pid:   number
-            items: Array<{ iid: number; meta?: { gate: string; assigneeId: number | undefined } }>
+            items: Array<{ iid: number; meta?: { gate: string; assigneeId?: number } }>
         }>>()
         const sorted = [...row.items].sort((a, b) => a.iid - b.iid)
         expect(sorted).toEqual([
@@ -1304,7 +1304,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof row, {
             orgId: number
-            items: Array<{ pid: number; iss?: { id: number; title: string; body: string | undefined } }>
+            items: Array<{ pid: number; iss?: { id: number; title: string; body?: string } }>
         }>>()
         const sorted = [...row.items].sort((a, b) => a.pid - b.pid)
         expect(sorted).toEqual([
@@ -1388,7 +1388,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof row, {
             orgId: number
-            items: Array<{ iid: number; wrapper?: { inner: { body: string | undefined; assigneeId: number | undefined } | undefined } }>
+            items: Array<{ iid: number; wrapper?: { inner?: { body?: string; assigneeId?: number } } }>
         }>>()
         const sorted = [...row.items].sort((a, b) => a.iid - b.iid)
         expect(sorted).toEqual([

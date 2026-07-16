@@ -149,7 +149,7 @@ describe(ctx.label, () => {
             .select({ r: ctx.conn.intPlus(undefined, 5) })
             .executeSelectMany()
         // one arg undefined → MergeOptionalUnion degrades to optional.
-        assertType<Exact<typeof rows, Array<{ r?: number | undefined }>>>()
+        assertType<Exact<typeof rows, Array<{ r?: number }>>>()
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? + ? as "r""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
@@ -188,7 +188,7 @@ describe(ctx.label, () => {
             1,
           ]
         `)
-        assertType<Exact<typeof rows, Array<{ r?: number | undefined }>>>()
+        assertType<Exact<typeof rows, Array<{ r?: number }>>>()
         expect(rows).toEqual(expected)
     })
     test('build-fragment-with-maybe-optional-args-reads-optional-from-value-source-after-plain-arg', async () => {
@@ -196,7 +196,7 @@ describe(ctx.label, () => {
         // shape: the third arg's optionalType must still reach the merged result.
         // `conn.const('x','string')` is required, `'b'` is a plain literal, and
         // `tIssue.body` is optional -> the merged optionalType is optional, so the
-        // result column is `r?: string | undefined`. `coalesce('x', ...)` = 'x'.
+        // result column is `r?: string`. `coalesce('x', ...)` = 'x'.
         const expected = [{ r: 'x' }]
         ctx.mockNext(expected)
         const rows = await ctx.conn.selectFrom(tIssue)
@@ -212,7 +212,7 @@ describe(ctx.label, () => {
             1,
           ]
         `)
-        assertType<Exact<typeof rows, Array<{ r?: string | undefined }>>>()
+        assertType<Exact<typeof rows, Array<{ r?: string }>>>()
         expect(rows).toEqual(expected)
     })
 
@@ -305,7 +305,7 @@ describe(ctx.label, () => {
             "c",
           ]
         `)
-        assertType<Exact<typeof rows, Array<{ r?: string | undefined }>>>()
+        assertType<Exact<typeof rows, Array<{ r?: string }>>>()
         expect(rows).toEqual([{ r: 'a' }])
     })
 
@@ -449,7 +449,7 @@ describe(ctx.label, () => {
             "d",
           ]
         `)
-        assertType<Exact<typeof rows, Array<{ r?: string | undefined }>>>()
+        assertType<Exact<typeof rows, Array<{ r?: string }>>>()
         expect(rows).toEqual([{ r: 'a' }])
     })
 
@@ -468,7 +468,7 @@ describe(ctx.label, () => {
             "e",
           ]
         `)
-        assertType<Exact<typeof rows, Array<{ r?: string | undefined }>>>()
+        assertType<Exact<typeof rows, Array<{ r?: string }>>>()
         expect(rows).toEqual([{ r: 'a' }])
     })
 
@@ -965,7 +965,7 @@ describe(ctx.label, () => {
             1,
           ]
         `)
-        assertType<Exact<typeof rows, Array<{ r?: string | undefined }>>>()
+        assertType<Exact<typeof rows, Array<{ r?: string }>>>()
         expect(rows).toEqual(expected)
     })
 
@@ -1012,7 +1012,7 @@ describe(ctx.label, () => {
             1,
           ]
         `)
-        assertType<Exact<typeof rows, Array<{ r?: string | undefined }>>>()
+        assertType<Exact<typeof rows, Array<{ r?: string }>>>()
         expect(rows).toEqual(expected)
     })
 
@@ -1057,7 +1057,7 @@ describe(ctx.label, () => {
             3,
           ]
         `)
-        assertType<Exact<typeof rows, Array<{ r?: number | undefined }>>>()
+        assertType<Exact<typeof rows, Array<{ r?: number }>>>()
         expect(rows).toEqual([{ r: undefined }])
         // The optional key is ABSENT, not present-undefined.
         expect('r' in rows[0]!).toBe(false)
@@ -1081,7 +1081,7 @@ describe(ctx.label, () => {
             3,
           ]
         `)
-        assertType<Exact<typeof rows, Array<{ r?: number | undefined }>>>()
+        assertType<Exact<typeof rows, Array<{ r?: number }>>>()
         expect(rows).toEqual([{ r: undefined }])
         expect('r' in rows[0]!).toBe(false)
     })

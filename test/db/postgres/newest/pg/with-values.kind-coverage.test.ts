@@ -226,7 +226,7 @@ describe(ctx.label, () => {
             2005,
           ]
         `)
-        assertType<Exact<typeof present, Array<{ ordinal?: ReleaseTag | undefined }>>>()
+        assertType<Exact<typeof present, Array<{ ordinal?: ReleaseTag }>>>()
         expect(present).toEqual([{ ordinal: 3005 }])
 
         ctx.mockNext([{ ordinal: null }])
@@ -269,7 +269,7 @@ describe(ctx.label, () => {
             null,
           ]
         `)
-        assertType<Exact<typeof rows, Array<{ d?: Date | undefined; t?: Date | undefined; ts?: Date | undefined }>>>()
+        assertType<Exact<typeof rows, Array<{ d?: Date; t?: Date; ts?: Date }>>>()
         expect(rows).toEqual([{}])
     })
 
@@ -331,7 +331,7 @@ describe(ctx.label, () => {
             null,
           ]
         `)
-        assertType<Exact<typeof rows, Array<{ d?: Date | undefined; t?: Date | undefined; ts?: Date | undefined }>>>()
+        assertType<Exact<typeof rows, Array<{ d?: Date; t?: Date; ts?: Date }>>>()
         expect(rows).toEqual([{}])
     })
 
@@ -388,7 +388,7 @@ describe(ctx.label, () => {
             50,
           ]
         `)
-        assertType<Exact<typeof present, Array<{ score?: number | undefined }>>>()
+        assertType<Exact<typeof present, Array<{ score?: number }>>>()
         expect(present).toEqual([{ score: 5 }])
 
         ctx.mockNext([{ score: null }])
@@ -545,7 +545,7 @@ describe(ctx.label, () => {
         // `optionalColumn(kind)` (no adapter) per kind not yet an optional
         // Values-tuple member: boolean/int/bigint/double/string plus custom kinds
         // customInt/customDouble/customComparable/custom/enum. Every leaf is
-        // optional, so the projected object is all-optional (`?: T | undefined`);
+        // optional, so the projected object is all-optional (`?: T`);
         // present values round-trip.
         class VOptSampler extends Values<DBConnection, 'optSampler'> {
             flag  = this.optionalColumn('boolean')
@@ -581,13 +581,13 @@ describe(ctx.label, () => {
             "coding",
           ]
         `)
-        assertType<Exact<typeof rows, Array<{ flag?: boolean | undefined; n?: number | undefined; big?: bigint | undefined; dbl?: number | undefined; str?: string | undefined; cents?: number | undefined; money?: number | undefined; ver?: string | undefined; chan?: ReleaseChannel | undefined; act?: WorklogActivity | undefined }>>>()
+        assertType<Exact<typeof rows, Array<{ flag?: boolean; n?: number; big?: bigint; dbl?: number; str?: string; cents?: number; money?: number; ver?: string; chan?: ReleaseChannel; act?: WorklogActivity }>>>()
         expect(rows).toEqual(expected)
     })
 
     test('values-tuple-optional-uuid-and-custom-uuid-column-no-adapter', async () => {
         // `optionalColumn('uuid')` / `optionalColumn('customUuid', 'SigningKey')`.
-        // All-optional object (`?: T | undefined`); present values round-trip,
+        // All-optional object (`?: T`); present values round-trip,
         // compared case-insensitively.
         class VOptUuidSampler extends Values<DBConnection, 'optUuidSampler'> {
             ref     = this.optionalColumn('uuid')
@@ -607,7 +607,7 @@ describe(ctx.label, () => {
             "11111111-2222-4333-8444-555566667777",
           ]
         `)
-        assertType<Exact<typeof rows, Array<{ ref?: string | undefined; signing?: string | undefined }>>>()
+        assertType<Exact<typeof rows, Array<{ ref?: string; signing?: string }>>>()
         expect(rows.map((r) => ({ ref: r.ref?.toLowerCase(), signing: r.signing?.toLowerCase() })))
             .toEqual([{ ref, signing }])
     })
@@ -646,7 +646,7 @@ describe(ctx.label, () => {
             "coding",
           ]
         `)
-        assertType<Exact<typeof rows, Array<{ flag?: boolean | undefined; big?: bigint | undefined; dbl?: number | undefined; str?: string | undefined; money?: number | undefined; ver?: string | undefined; chan?: ReleaseChannel | undefined; act?: WorklogActivity | undefined }>>>()
+        assertType<Exact<typeof rows, Array<{ flag?: boolean; big?: bigint; dbl?: number; str?: string; money?: number; ver?: string; chan?: ReleaseChannel; act?: WorklogActivity }>>>()
         expect(rows).toEqual(expected)
     })
 
@@ -671,7 +671,7 @@ describe(ctx.label, () => {
             "11111111-2222-4333-8444-555566667777",
           ]
         `)
-        assertType<Exact<typeof rows, Array<{ ref?: string | undefined; signing?: string | undefined }>>>()
+        assertType<Exact<typeof rows, Array<{ ref?: string; signing?: string }>>>()
         expect(rows.map((r) => ({ ref: r.ref?.toLowerCase(), signing: r.signing?.toLowerCase() })))
             .toEqual([{ ref, signing }])
     })
@@ -1024,7 +1024,7 @@ describe(ctx.label, () => {
         // (`const(40)` plus a typed literal `2`). The
         // optional slot still accepts the value-source arm; the tuple carries the
         // arithmetic expression `$1 + 2` and the present value reads back through the
-        // optional leaf (42). Projected object is all-optional (`?: number | undefined`).
+        // optional leaf (42). Projected object is all-optional (`?: number`).
         class VOptExprSampler extends Values<DBConnection, 'optExprSampler'> {
             id = this.optionalColumn('int')
         }
@@ -1041,7 +1041,7 @@ describe(ctx.label, () => {
             40,
           ]
         `)
-        assertType<Exact<typeof rows, Array<{ id?: number | undefined }>>>()
+        assertType<Exact<typeof rows, Array<{ id?: number }>>>()
         expect(rows).toEqual([{ id: 42 }])
     })
 })

@@ -255,7 +255,7 @@ describe(ctx.label, () => {
             1,
           ]
         `)
-        assertType<Exact<typeof rows, Array<{ h?: number | undefined; m?: number | undefined; s?: number | undefined; ms?: number | undefined }>>>()
+        assertType<Exact<typeof rows, Array<{ h?: number; m?: number; s?: number; ms?: number }>>>()
         expect(rows).toEqual(expected)
     })
 
@@ -312,7 +312,7 @@ describe(ctx.label, () => {
             1,
           ]
         `)
-        assertType<Exact<typeof rows, Array<{ y?: number | undefined; mo?: number | undefined; d?: number | undefined; dow?: number | undefined }>>>()
+        assertType<Exact<typeof rows, Array<{ y?: number; mo?: number; d?: number; dow?: number }>>>()
         expect(rows).toEqual(expected)
     })
 
@@ -419,7 +419,7 @@ describe(ctx.label, () => {
             1,
           ]
         `)
-        assertType<Exact<typeof rows, Array<{ y?: number | undefined; mo?: number | undefined; d?: number | undefined; dow?: number | undefined; h?: number | undefined; m?: number | undefined; s?: number | undefined; ms?: number | undefined }>>>()
+        assertType<Exact<typeof rows, Array<{ y?: number; mo?: number; d?: number; dow?: number; h?: number; m?: number; s?: number; ms?: number }>>>()
         expect(rows).toEqual(expected)
     })
 
@@ -698,9 +698,9 @@ describe(ctx.label, () => {
               ]
             `)
             assertType<Exact<typeof rows, Array<{
-                y?: number | undefined; mo?: number | undefined; d?: number | undefined
-                dow?: number | undefined; h?: number | undefined; m?: number | undefined
-                s?: number | undefined; ms?: number | undefined; t?: number | undefined
+                y?: number; mo?: number; d?: number
+                dow?: number; h?: number; m?: number
+                s?: number; ms?: number; t?: number
             }>>>()
             expect(rows).toEqual(expected)
         })
@@ -769,9 +769,9 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{
-            y?: number | undefined; mo?: number | undefined; d?: number | undefined
-            dow?: number | undefined; h?: number | undefined; m?: number | undefined
-            s?: number | undefined; ms?: number | undefined; t?: number | undefined
+            y?: number; mo?: number; d?: number
+            dow?: number; h?: number; m?: number
+            s?: number; ms?: number; t?: number
         }>>>()
         expect(rows).toEqual(expected)
     })

@@ -95,7 +95,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{
             iid:  number
-            opt?: { body: string | undefined; assigneeId: number | undefined }
+            opt?: { body?: string; assigneeId?: number }
         }>>>()
         expect(rows).toEqual(expected)
         // Arm 2 (issue 3) has every leaf null, so the optional `opt` object is
@@ -189,7 +189,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{
             iid:   number
-            meta?: { gate: string; assigneeId: number | undefined }
+            meta?: { gate: string; assigneeId?: number }
         }>>>()
         expect(rows).toEqual(expected)
     })
@@ -558,7 +558,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{
             iid:   number
-            proj?: { id: number; name: string; archivedAt: Date | undefined }
+            proj?: { id: number; name: string; archivedAt?: Date }
         }>>>()
         expect(rows).toEqual(expected)
         // Both arms hit → proj present; its null archivedAt is DROPPED under default.
@@ -605,7 +605,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{
             iid:   number
-            meta?: { gate: string; assigneeId: number | undefined }
+            meta?: { gate: string; assigneeId?: number }
         }>>>()
         expect(rows).toEqual(expected)
     })

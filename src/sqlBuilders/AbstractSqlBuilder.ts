@@ -2987,7 +2987,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return 'reverse(' + this._appendSql(valueSource, params, false) + ')'
     }
     _asDouble(params: any[], valueSource: ToSql): string {
-        return 'cast(' + this._appendSql(valueSource, params, false) + 'as double presition)'
+        return 'cast(' + this._appendSql(valueSource, params, false) + ' as real)'
     }
     _abs(params: any[], valueSource: ToSql): string {
         return 'abs(' + this._appendSql(valueSource, params, false) + ')'
@@ -3252,7 +3252,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return this._appendSqlParenthesisExcluding(valueSource, params, '_multiply', false) + ' * ' + this._appendValueParenthesisExcluding(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, '_multiply', false)
     }
     _divide(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return 'cast(' + this._appendSql(valueSource, params, false) + ' as double presition) / cast(' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false) + ' as double presition)'
+        return 'cast(' + this._appendSql(valueSource, params, false) + ' as real) / cast(' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false) + ' as real)'
     }
     _modulo(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         return this._appendSqlParenthesis(valueSource, params, false) + ' % ' + this._appendValueParenthesis(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false)

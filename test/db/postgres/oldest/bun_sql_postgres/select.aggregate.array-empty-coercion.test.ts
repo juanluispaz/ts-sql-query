@@ -471,7 +471,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{
             orgId: number
-            items: Array<{ body?: string | undefined; assigneeId?: number | undefined }>
+            items: Array<{ body?: string; assigneeId?: number }>
         }>>>()
         expect(rows).toEqual([{ orgId: 2, items: [{ body: 'See ADR-014', assigneeId: 3 }] }])
         // The all-null element is dropped entirely — the array has one element, not two.
@@ -544,7 +544,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{
             pid:    number
-            issues: Array<{ title: string; meta?: { gate: string; assigneeId: number | undefined } }>
+            issues: Array<{ title: string; meta?: { gate: string; assigneeId?: number } }>
         }>>>()
         const sorted = rows.map(r => ({ ...r, issues: [...r.issues].sort((a, b) => a.title.localeCompare(b.title)) }))
         expect(sorted).toEqual([{ pid: 1, issues: [
@@ -625,7 +625,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{
             orgId: number
-            items: Array<{ pid: number; iss?: { id: number; title: string; body: string | undefined } }>
+            items: Array<{ pid: number; iss?: { id: number; title: string; body?: string } }>
         }>>>()
         const sorted = rows.map(r => ({ ...r, items: [...r.items].sort((a, b) => a.pid - b.pid) }))
         expect(sorted).toEqual([{ orgId: 2, items: [

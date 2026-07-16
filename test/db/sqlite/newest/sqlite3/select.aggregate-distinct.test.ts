@@ -26,7 +26,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum(distinct priority) as totalPriority from issue"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
-        assertType<Exact<typeof row, { totalPriority?: number | undefined }>>()
+        assertType<Exact<typeof row, { totalPriority?: number }>>()
         expect(row.totalPriority).toBe(6)
     })
 
@@ -46,7 +46,7 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select avg(distinct priority) as avgDistinctPriority from issue"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
-        assertType<Exact<typeof row, { avgDistinctPriority?: number | undefined }>>()
+        assertType<Exact<typeof row, { avgDistinctPriority?: number }>>()
         if (!ctx.realDbEnabled) expect(row.avgDistinctPriority).toBe(2)
         else expect(typeof row.avgDistinctPriority).toBe('number')
     })
@@ -76,7 +76,7 @@ describe(ctx.label, () => {
             1,
           ]
         `)
-        assertType<Exact<typeof row, { avgPriority?: number | undefined }>>()
+        assertType<Exact<typeof row, { avgPriority?: number }>>()
         expect(row.avgPriority).toBe(1.5)
     })
 

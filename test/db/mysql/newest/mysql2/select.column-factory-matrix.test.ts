@@ -643,7 +643,7 @@ describe(ctx.label, () => {
     test('optional-column-factory-adapter-transforms-each-kind', async () => {
         // `optionalColumn(name, kind, adapter)` — the optional trailing-adapter overload.
         // Same read transforms; `?: T` leaves (a required `id` keeps them `?: T`, not
-        // `?: T | undefined`).
+        // `?: T`).
         ctx.mockNext(matrixRow)
         const row = await ctx.conn.selectFrom(tColMatrixOptionalAdapter)
             .select({

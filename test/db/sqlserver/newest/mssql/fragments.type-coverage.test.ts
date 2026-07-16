@@ -130,7 +130,7 @@ describe(ctx.label, () => {
     test('fragment-with-type-optional-arms-widen-the-leaf', async () => {
         // A set of `'optional'` arms (the SQL is identical to the required form;
         // only the leaf widens). The non-int/bigint families surface as
-        // `?: T | undefined`. string / double / uuid / custom over release 1.
+        // `?: T`. string / double / uuid / custom over release 1.
         const REF1 = '0a8f9c1e-1111-4222-8333-444455556666'
         const expected = {
             v:   '1.2.0',
@@ -157,7 +157,7 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{
-            v?: string | undefined; avg?: number | undefined; key?: string | undefined; ch?: ReleaseChannel | undefined
+            v?: string; avg?: number; key?: string; ch?: ReleaseChannel
         }>>>()
         expect(rows).toEqual([expected])
     })
@@ -217,7 +217,7 @@ describe(ctx.label, () => {
             -1,
           ]
         `)
-        assertType<Exact<typeof result, { mi?: number | undefined; md?: number | undefined; ms?: string | undefined; mb?: boolean | undefined }>>()
+        assertType<Exact<typeof result, { mi?: number; md?: number; ms?: string; mb?: boolean }>>()
         expect(result).toEqual(expected)
     })
 
@@ -236,7 +236,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(work_date) as mld, max(started_at) as mlt from issue_worklog where id = @0"`)
-        assertType<Exact<typeof plain, { mld?: Date | undefined; mlt?: Date | undefined }>>()
+        assertType<Exact<typeof plain, { mld?: Date; mlt?: Date }>>()
         expect(plain).toEqual({})
 
         ctx.mockNext({ mldt: null })
@@ -245,7 +245,7 @@ describe(ctx.label, () => {
             .select({ mldt: c.aggregateFragmentWithType('localDateTime', 'optional').sql`max(${tIssue.createdAt})` })
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(created_at) as mldt from issue where id = @0"`)
-        assertType<Exact<typeof dt, { mldt?: Date | undefined }>>()
+        assertType<Exact<typeof dt, { mldt?: Date }>>()
         expect(dt).toEqual({})
 
         ctx.mockNext({ mcld: null, mclt: null, mcldt: null })
@@ -258,7 +258,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(released_on) as mcld, max(cutoff_time) as mclt, max(signed_off_at) as mcldt from project_release where id = @0"`)
-        assertType<Exact<typeof custom, { mcld?: Date | undefined; mclt?: Date | undefined; mcldt?: Date | undefined }>>()
+        assertType<Exact<typeof custom, { mcld?: Date; mclt?: Date; mcldt?: Date }>>()
         expect(custom).toEqual({})
     })
 
@@ -278,7 +278,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(cost_cents) as mci, max(billed_amount) as mcd, max(activity) as men from issue_worklog where id = @0"`)
-        assertType<Exact<typeof wl, { mci?: number | undefined; mcd?: number | undefined; men?: WorklogActivity | undefined }>>()
+        assertType<Exact<typeof wl, { mci?: number; mcd?: number; men?: WorklogActivity }>>()
         expect(wl).toEqual({})
 
         ctx.mockNext({ mcc: null, mc: null })
@@ -290,7 +290,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select max(version) as mcc, max(channel) as mc from project_release where id = @0"`)
-        assertType<Exact<typeof rel, { mcc?: string | undefined; mc?: ReleaseChannel | undefined }>>()
+        assertType<Exact<typeof rel, { mcc?: string; mc?: ReleaseChannel }>>()
         expect(rel).toEqual({})
     })
 
@@ -590,7 +590,7 @@ describe(ctx.label, () => {
     test('fragment-with-type-optional-arms-over-worklog', async () => {
         // The `'optional'` arms of the boolean / localDate / localTime /
         // customInt / customDouble / enum return families. The SQL is identical
-        // to the required form; only the leaf widens to `?: T | undefined`.
+        // to the required form; only the leaf widens to `?: T`.
         // Worklog 1: billable TRUE, work_date 2024-03-04, started_at 09:15,
         // cost_cents 100 (Cents -> number), billed_amount 200 (Money -> number),
         // activity 'coding'. Every column is present, so each value round-trips.
@@ -623,8 +623,8 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{
-            bill?: boolean | undefined; wd?: Date | undefined; st?: Date | undefined;
-            cost?: number | undefined; amt?: number | undefined; act?: WorklogActivity | undefined
+            bill?: boolean; wd?: Date; st?: Date;
+            cost?: number; amt?: number; act?: WorklogActivity
         }>>>()
         expect(rows).toEqual([expected])
     })
@@ -633,7 +633,7 @@ describe(ctx.label, () => {
         // The `'optional'` arms of the customUuid / customLocalDate /
         // customLocalTime / customLocalDateTime / customComparable return
         // families. The SQL is identical to the required form; only the leaf
-        // widens to `?: T | undefined`. Release 1: signing key the seeded uuid,
+        // widens to `?: T`. Release 1: signing key the seeded uuid,
         // released 2024-01-15, cutoff 17:00, signed off 2024-01-14 12:30,
         // version 1.2.0. Every column is present, so each value round-trips.
         const REF1 = '0a8f9c1e-1111-4222-8333-444455556666'
@@ -664,8 +664,8 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{
-            key?: string | undefined; rOn?: Date | undefined; cut?: Date | undefined;
-            soff?: Date | undefined; v?: string | undefined
+            key?: string; rOn?: Date; cut?: Date;
+            soff?: Date; v?: string
         }>>>()
         expect(rows).toEqual([expected])
     })
@@ -675,7 +675,7 @@ describe(ctx.label, () => {
         // genuinely plain localDateTime column (the release date/time columns are
         // custom-branded). Organization 1's created_at carries an explicit,
         // deterministic 2023-06-15 08:00 (not the CURRENT_TIMESTAMP default), so
-        // the present value round-trips; the leaf widens to `?: Date | undefined`.
+        // the present value round-trips; the leaf widens to `?: Date`.
         const expected = {
             ca: new Date(Date.UTC(2023, 5, 15, 8, 0, 0)),
         }
@@ -694,7 +694,7 @@ describe(ctx.label, () => {
             1,
           ]
         `)
-        assertType<Exact<typeof rows, Array<{ ca?: Date | undefined }>>>()
+        assertType<Exact<typeof rows, Array<{ ca?: Date }>>>()
         expect(rows).toEqual([expected])
     })
     test('fragment-with-type-boolean-threads-a-trailing-type-adapter', async () => {

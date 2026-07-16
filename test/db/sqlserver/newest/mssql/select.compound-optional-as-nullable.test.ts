@@ -819,7 +819,7 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof row, {
-            arr: Array<{ ref?: string | undefined; assigneeId?: number | undefined }>
+            arr: Array<{ ref?: string; assigneeId?: number }>
         }>>()
         const sorted = [...row.arr].sort((a, b) => a.assigneeId! - b.assigneeId!)
         expect(sorted).toEqual([
@@ -862,7 +862,7 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof row, {
-            arr: Array<{ name?: string | undefined }>
+            arr: Array<{ name?: string }>
         }>>()
         // The join-miss element is KEPT as `{}` with `name` ABSENT under default.
         const sorted = [...row.arr].sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''))

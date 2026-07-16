@@ -86,7 +86,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{
             id:     number
-            group?: { sub?: { priority?: number; status?: string } | undefined }
+            group?: { sub?: { priority?: number; status?: string } }
         }>>>()
         expect(rows).toEqual(expected)
     })
@@ -122,7 +122,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{
             id:     number
-            group?: { sub?: { priority?: number; status?: string } | undefined }
+            group?: { sub?: { priority?: number; status?: string } }
         }>>>()
         expect(rows).toEqual(expected)
     })
@@ -487,7 +487,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{
             id:   number
-            meta?: { gate: string; assigneeId: number | undefined }
+            meta?: { gate: string; assigneeId?: number }
         }>>>()
         expect(rows).toEqual(expected)
     })
@@ -569,7 +569,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{
             iid:  number
-            proj?: { id: number; name: string; archivedAt: Date | undefined }
+            proj?: { id: number; name: string; archivedAt?: Date }
         }>>>()
         expect(rows).toEqual([{ iid: 1, proj: { id: 1, name: 'Marketing site' } }])
         // Project 1's null archivedAt is dropped under the default projector.

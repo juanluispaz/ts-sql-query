@@ -201,7 +201,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{
             iid: number
-            a: { keepA: number; b: { keepB: string; c?: { body: string | undefined; assigneeId: number | undefined } } }
+            a: { keepA: number; b: { keepB: string; c?: { body?: string; assigneeId?: number } } }
         }>>>()
         expect(rows).toEqual(expected)
         // Row 2 (issue 3): the level-4 `c` container is dropped entirely — assert
@@ -294,7 +294,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{
             iid: number
-            a: { keepA: number; b: { keepB: string; c: { keepC: string; d?: { body: string | undefined; assigneeId: number | undefined } } } }
+            a: { keepA: number; b: { keepB: string; c: { keepC: string; d?: { body?: string; assigneeId?: number } } } }
         }>>>()
         expect(rows).toEqual(expected)
         // Row 2 (issue 3): the level-5 `d` container is dropped entirely — assert

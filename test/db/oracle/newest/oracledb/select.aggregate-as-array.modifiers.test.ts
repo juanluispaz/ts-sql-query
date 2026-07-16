@@ -471,7 +471,7 @@ describe(ctx.label, () => {
     test('aggregate-as-array-element-level-rule-4-all-optional-not-left-join', async () => {
         // Every array-element column is genuinely optional and NOT from a left
         // join, so each leaf is an optional key —
-        // `Array<{ body?: string | undefined; assigneeId?: number | undefined }>`.
+        // `Array<{ body?: string; assigneeId?: number }>`.
         // Project 1 -> issues 1 (body NULL, assignee 1) and 2 (body, assignee 2);
         // the null leaves surface as ABSENT keys.
         ctx.mockNext([{ pid: 1, opts: [
@@ -495,7 +495,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{
             pid:  number
-            opts: Array<{ body?: string | undefined; assigneeId?: number | undefined }>
+            opts: Array<{ body?: string; assigneeId?: number }>
         }>>>()
         expect(rows.map(r => ({ pid: r.pid, opts: [...r.opts].sort((a, b) => (a.assigneeId ?? 0) - (b.assigneeId ?? 0)) })))
             .toEqual([{ pid: 1, opts: [{ assigneeId: 1 }, { body: 'Use new tokens', assigneeId: 2 }] }])

@@ -213,7 +213,7 @@ describe(ctx.label, () => {
             1,
           ]
         `)
-        assertType<Exact<typeof result, Array<{ x?: number | undefined; y?: boolean | undefined; z?: number | undefined }>>>()
+        assertType<Exact<typeof result, Array<{ x?: number; y?: boolean; z?: number }>>>()
         expect(result).toEqual(expected)
     })
 
@@ -359,7 +359,7 @@ describe(ctx.label, () => {
             1,
           ]
         `)
-        assertType<Exact<typeof result, Array<{ x?: boolean | undefined }>>>()
+        assertType<Exact<typeof result, Array<{ x?: boolean }>>>()
         expect(result).toEqual(expected)
     })
 

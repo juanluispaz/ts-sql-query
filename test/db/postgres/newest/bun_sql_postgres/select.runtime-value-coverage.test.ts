@@ -65,10 +65,10 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof result, {
-            s?:  number | undefined
-            a?:  number | undefined
-            lo?: number | undefined
-            hi?: number | undefined
+            s?:  number
+            a?:  number
+            lo?: number
+            hi?: number
         }>>()
         expect(result.s).toBeUndefined()
         expect(result.a).toBeUndefined()

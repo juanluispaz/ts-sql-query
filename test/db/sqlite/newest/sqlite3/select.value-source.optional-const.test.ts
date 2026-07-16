@@ -63,7 +63,7 @@ describe(ctx.label, () => {
             true,
           ]
         `)
-        assertType<Exact<typeof row, { i?: number | undefined; d?: number | undefined; bi?: bigint | undefined; b?: boolean | undefined }>>()
+        assertType<Exact<typeof row, { i?: number; d?: number; bi?: bigint; b?: boolean }>>()
         expect(row).toEqual(expected)
     })
 
@@ -90,7 +90,7 @@ describe(ctx.label, () => {
             "1.2.0",
           ]
         `)
-        assertType<Exact<typeof row, { u?: string | undefined; e?: WorklogActivity | undefined; c?: ReleaseChannel | undefined; cc?: string | undefined }>>()
+        assertType<Exact<typeof row, { u?: string; e?: WorklogActivity; c?: ReleaseChannel; cc?: string }>>()
         expect(row).toEqual(expected)
     })
 
@@ -114,7 +114,7 @@ describe(ctx.label, () => {
             "0a8f9c1e-1111-4222-8333-444455556666",
           ]
         `)
-        assertType<Exact<typeof row, { ci?: number | undefined; cd?: number | undefined; cu?: string | undefined }>>()
+        assertType<Exact<typeof row, { ci?: number; cd?: number; cu?: string }>>()
         expect(row).toEqual(expected)
     })
 
@@ -145,7 +145,7 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof row, {
-            lt?: Date | undefined; ldt?: Date | undefined; clt?: Date | undefined; cldt?: Date | undefined
+            lt?: Date; ldt?: Date; clt?: Date; cldt?: Date
         }>>()
         expect(row).toEqual(expected)
     })

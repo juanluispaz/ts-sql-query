@@ -248,7 +248,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof row, {
             iid: number
-            obj?: { projName: string | undefined; orgName: string | undefined }
+            obj?: { projName?: string; orgName?: string }
         }>>()
         expect(row).toEqual(expected)
     })
@@ -310,7 +310,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof row, {
             iid: number
-            proj?: { name: string; slug: string | undefined }
+            proj?: { name: string; slug?: string }
         }>>()
         expect(row).toEqual(expected)
     })
@@ -498,7 +498,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{
             pid: number
-            obj?: { issTitle: string | undefined; assigneeName: string | undefined }
+            obj?: { issTitle?: string; assigneeName?: string }
         }>>>()
         const miss = rows[1]!
         expect('obj' in miss).toBe(false)
@@ -573,7 +573,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof row, {
             pid: number
-            obj?: { issTitle: string | undefined; assigneeName: string | undefined }
+            obj?: { issTitle?: string; assigneeName?: string }
         }>>()
         expect('obj' in row).toBe(true)
         expect(row.obj!.issTitle).toBe('Migrate to ESM')
@@ -646,7 +646,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof row, {
             pid: number
-            mix?: { title: string; assigneeName: string | undefined }
+            mix?: { title: string; assigneeName?: string }
         }>>()
         expect('mix' in row).toBe(true)
         expect(row.mix!.title).toBe('Migrate to ESM')
@@ -1025,7 +1025,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{
             iid: number
-            obj?: { combined: number | undefined }
+            obj?: { combined?: number }
         }>>>()
         const miss = rows[0]!
         expect('obj' in miss).toBe(false)
@@ -1103,7 +1103,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof row, {
             pid: number
-            obj?: { issTitle: string | undefined; projArchived: Date | undefined }
+            obj?: { issTitle?: string; projArchived?: Date }
         }>>()
         expect('obj' in row).toBe(true)
         expect('issTitle' in row.obj!).toBe(false)
@@ -1521,7 +1521,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{
             iid: number
-            obj?: { body: string | undefined; arch: Date | undefined }
+            obj?: { body?: string; arch?: Date }
         }>>>()
         const miss = rows[0]!
         expect('obj' in miss).toBe(false)

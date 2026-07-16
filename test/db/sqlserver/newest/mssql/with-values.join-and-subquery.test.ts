@@ -132,7 +132,7 @@ describe(ctx.label, () => {
         `)
         // Inline subquery operand is optional-typed (the type system can't
         // prove the values view yields exactly one row).
-        assertType<Exact<typeof rows, Array<{ pickedCode?: string | undefined }>>>()
+        assertType<Exact<typeof rows, Array<{ pickedCode?: string }>>>()
         expect(rows).toEqual(expected)
     })
 
@@ -158,7 +158,7 @@ describe(ctx.label, () => {
             1,
           ]
         `)
-        assertType<Exact<typeof rows, Array<{ firstVersion?: string | undefined }>>>()
+        assertType<Exact<typeof rows, Array<{ firstVersion?: string }>>>()
         expect(rows).toEqual(expected)
     })
 

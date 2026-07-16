@@ -118,7 +118,7 @@ describe(ctx.label, () => {
             1,
           ]
         `)
-        assertType<Exact<typeof rows, Array<{ key?: string | undefined }>>>()
+        assertType<Exact<typeof rows, Array<{ key?: string }>>>()
         expect(rows).toEqual([expected])
     })
 

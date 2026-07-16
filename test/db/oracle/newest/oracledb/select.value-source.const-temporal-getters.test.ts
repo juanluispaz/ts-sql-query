@@ -195,7 +195,7 @@ describe(ctx.label, () => {
     test('chained-nullifvalue-localdate-getmonth', async () => {
         // `workDate.nullIfValue(other).getMonth()` — nullIfValue widens the leaf
         // to optional (nullif could yield NULL), so the getMonth leaf is
-        // `?: number | undefined`. `other` (2000-01-01) differs from work_date, so
+        // `?: number`. `other` (2000-01-01) differs from work_date, so
         // nullif yields 2024-03-04 -> month 2 (March, JS 0-indexed).
         const other = new Date(Date.UTC(2000, 0, 1))
         const expected = [{ mo: 2 }]
@@ -213,7 +213,7 @@ describe(ctx.label, () => {
             1,
           ]
         `)
-        assertType<Exact<typeof rows, Array<{ mo?: number | undefined }>>>()
+        assertType<Exact<typeof rows, Array<{ mo?: number }>>>()
         expect(rows).toEqual(expected)
     })
 
@@ -221,7 +221,7 @@ describe(ctx.label, () => {
         // `reviewDate.asRequiredInOptionalObject().getMonth()` — the optional
         // review_date column re-marked `requiredInOptionalObject`. As the sole
         // projected field (no required sibling) the object is treated as optional,
-        // so the getMonth leaf carries the undefined arm (`?: number | undefined`).
+        // so the getMonth leaf carries the undefined arm (`?: number`).
         // review 1: review_date 2024-05-20 -> month 4 (May, JS 0-indexed).
         const expected = [{ mo: 4 }]
         ctx.mockNext(expected)
@@ -237,14 +237,14 @@ describe(ctx.label, () => {
             1,
           ]
         `)
-        assertType<Exact<typeof rows, Array<{ mo?: number | undefined }>>>()
+        assertType<Exact<typeof rows, Array<{ mo?: number }>>>()
         expect(rows).toEqual(expected)
     })
 
     test('chained-onlywhenornull-localtime-gethours', async () => {
         // `startedAt.onlyWhenOrNull(true).getHours()` — onlyWhenOrNull(true) keeps
         // the value source unchanged; the getHours leaf stays optional
-        // (`?: number | undefined`). worklog 1: started_at 09:15:00 -> hours 9.
+        // (`?: number`). worklog 1: started_at 09:15:00 -> hours 9.
         const expected = [{ h: 9 }]
         ctx.mockNext(expected)
         const rows = await ctx.conn.selectFrom(tIssueWorklog)
@@ -259,14 +259,14 @@ describe(ctx.label, () => {
             1,
           ]
         `)
-        assertType<Exact<typeof rows, Array<{ h?: number | undefined }>>>()
+        assertType<Exact<typeof rows, Array<{ h?: number }>>>()
         expect(rows).toEqual(expected)
     })
 
     test('chained-ignorewhenasnull-localtime-gethours', async () => {
         // `startedAt.ignoreWhenAsNull(false).getHours()` — ignoreWhenAsNull(false)
         // is the pass-through branch (the value flows unchanged); the getHours leaf
-        // stays optional (`?: number | undefined`). worklog 1: started_at 09:15:00
+        // stays optional (`?: number`). worklog 1: started_at 09:15:00
         // -> hours 9.
         const expected = [{ h: 9 }]
         ctx.mockNext(expected)
@@ -282,7 +282,7 @@ describe(ctx.label, () => {
             1,
           ]
         `)
-        assertType<Exact<typeof rows, Array<{ h?: number | undefined }>>>()
+        assertType<Exact<typeof rows, Array<{ h?: number }>>>()
         expect(rows).toEqual(expected)
     })
 
@@ -330,7 +330,7 @@ describe(ctx.label, () => {
     // true and each getter takes the same `forceTypeCast` arm (identical SQL to
     // the required-const twin above). The only difference is the projected leaf:
     // an optional temporal receiver yields an optional number leaf
-    // (`?: number | undefined`). The const values are non-null, so every getter
+    // (`?: number`). The const values are non-null, so every getter
     // realizes a concrete part and the value assertion stays deterministic.
 
     test('optional-const-localdate-getters', async () => {
@@ -358,7 +358,7 @@ describe(ctx.label, () => {
             2024-01-15T00:00:00.000Z,
           ]
         `)
-        assertType<Exact<typeof rows, Array<{ y?: number | undefined; mo?: number | undefined; d?: number | undefined; dow?: number | undefined }>>>()
+        assertType<Exact<typeof rows, Array<{ y?: number; mo?: number; d?: number; dow?: number }>>>()
         expect(rows).toEqual(expected)
     })
 
@@ -387,7 +387,7 @@ describe(ctx.label, () => {
             1970-01-01T12:34:56.000Z,
           ]
         `)
-        assertType<Exact<typeof rows, Array<{ h?: number | undefined; m?: number | undefined; s?: number | undefined; ms?: number | undefined }>>>()
+        assertType<Exact<typeof rows, Array<{ h?: number; m?: number; s?: number; ms?: number }>>>()
         expect(rows).toEqual(expected)
     })
 
@@ -434,8 +434,8 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{
-            y?: number | undefined; mo?: number | undefined; d?: number | undefined; dow?: number | undefined; h?: number | undefined
-            m?: number | undefined; s?: number | undefined; ms?: number | undefined; t?: number | undefined
+            y?: number; mo?: number; d?: number; dow?: number; h?: number
+            m?: number; s?: number; ms?: number; t?: number
         }>>>()
         expect(rows).toEqual(expected)
     })
@@ -460,7 +460,7 @@ describe(ctx.label, () => {
             1,
           ]
         `)
-        assertType<Exact<typeof rows, Array<{ p?: Date | undefined }>>>()
+        assertType<Exact<typeof rows, Array<{ p?: Date }>>>()
         expect(rows).toEqual(expected)
     })
 })

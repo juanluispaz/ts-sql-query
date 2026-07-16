@@ -700,7 +700,7 @@ describe(ctx.label, () => {
     // custom-source `.asOptional()` getter — tProjectRelease.releasedOn
     // ('ReleaseDay', customLocalDate) demoted to optional via `.asOptional()`
     // then a getter. asOptional() propagates the optional marker to the getter's
-    // number leaf (`?: number | undefined`).
+    // number leaf (`?: number`).
     // Release 1 -> released_on 2024-01-15 -> year 2024.
 
     test('view-required-localDateTime-getters', async () => {
@@ -772,7 +772,7 @@ describe(ctx.label, () => {
     test('custom-source-asOptional-getter', async () => {
         // `.asOptional().getFullYear()` on the required custom-localDate column
         // releasedOn — asOptional() carries the optional marker through to the
-        // getter leaf (`?: number | undefined`). Release 1: released_on 2024-01-15 -> year 2024.
+        // getter leaf (`?: number`). Release 1: released_on 2024-01-15 -> year 2024.
         const expected = [{ y: 2024 }]
         ctx.mockNext(expected)
         const rows = await ctx.conn.selectFrom(tProjectRelease)
@@ -787,7 +787,7 @@ describe(ctx.label, () => {
             1,
           ]
         `)
-        assertType<Exact<typeof rows, Array<{ y?: number | undefined }>>>()
+        assertType<Exact<typeof rows, Array<{ y?: number }>>>()
         expect(rows).toEqual(expected)
     })
 
@@ -838,9 +838,9 @@ describe(ctx.label, () => {
               ]
             `)
             assertType<Exact<typeof rows, Array<{
-                y?: number | undefined; mo?: number | undefined; d?: number | undefined
-                dow?: number | undefined; h?: number | undefined; m?: number | undefined
-                s?: number | undefined; ms?: number | undefined; t?: number | undefined
+                y?: number; mo?: number; d?: number
+                dow?: number; h?: number; m?: number
+                s?: number; ms?: number; t?: number
             }>>>()
             expect(rows).toEqual(expected)
         })
@@ -849,7 +849,7 @@ describe(ctx.label, () => {
     // custom-source `.asOptional()` getters — tProjectRelease.releasedOn
     // ('ReleaseDay', customLocalDate) demoted to optional via `.asOptional()`
     // then fed the LocalDate getters. asOptional() carries the optional
-    // marker to each getter's number leaf (`?: number | undefined`). Release 1
+    // marker to each getter's number leaf (`?: number`). Release 1
     // -> released_on 2024-01-15 (a Monday) -> month 0 (January, JS 0-indexed),
     // date 15, day-of-week 1.
 
@@ -875,14 +875,14 @@ describe(ctx.label, () => {
             1,
           ]
         `)
-        assertType<Exact<typeof rows, Array<{ mo?: number | undefined; d?: number | undefined; dow?: number | undefined }>>>()
+        assertType<Exact<typeof rows, Array<{ mo?: number; d?: number; dow?: number }>>>()
         expect(rows).toEqual(expected)
     })
 
     // custom-source `.asOptional()` getters — tProjectRelease.cutoffTime
     // ('CutoffClock', customLocalTime) demoted to optional via `.asOptional()`
     // then fed the LocalTime getters. asOptional() carries the optional marker
-    // to each getter's number leaf (`?: number | undefined`). Release 1 ->
+    // to each getter's number leaf (`?: number`). Release 1 ->
     // cutoff_time 17:00:00 -> hours 17, minutes 0, seconds 0, milliseconds 0.
 
     test('custom-localTime-asOptional-getters', async () => {
@@ -907,7 +907,7 @@ describe(ctx.label, () => {
             1,
           ]
         `)
-        assertType<Exact<typeof rows, Array<{ h?: number | undefined; m?: number | undefined; s?: number | undefined; ms?: number | undefined }>>>()
+        assertType<Exact<typeof rows, Array<{ h?: number; m?: number; s?: number; ms?: number }>>>()
         expect(rows).toEqual(expected)
     })
 
@@ -934,7 +934,7 @@ describe(ctx.label, () => {
             1,
           ]
         `)
-        assertType<Exact<typeof rows, Array<{ y?: number | undefined; mo?: number | undefined; d?: number | undefined; dow?: number | undefined }>>>()
+        assertType<Exact<typeof rows, Array<{ y?: number; mo?: number; d?: number; dow?: number }>>>()
         expect(rows).toEqual(expected)
     })
 
@@ -942,7 +942,7 @@ describe(ctx.label, () => {
     // ('CutoffClock', customLocalTime) surfaced through the view then demoted to
     // optional via `.asOptional()` before the LocalTime getters (the View read
     // path, distinct from the Table read path). asOptional() carries the optional
-    // marker to each getter's number leaf (`?: number | undefined`). Release 1
+    // marker to each getter's number leaf (`?: number`). Release 1
     // through the view: cutoff_clock 17:00:00 -> hours 17, minutes 0, seconds 0,
     // milliseconds 0.
 
@@ -968,7 +968,7 @@ describe(ctx.label, () => {
             1,
           ]
         `)
-        assertType<Exact<typeof rows, Array<{ h?: number | undefined; m?: number | undefined; s?: number | undefined; ms?: number | undefined }>>>()
+        assertType<Exact<typeof rows, Array<{ h?: number; m?: number; s?: number; ms?: number }>>>()
         expect(rows).toEqual(expected)
     })
 

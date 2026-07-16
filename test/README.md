@@ -147,7 +147,7 @@ Then, for the round-shaping presets:
 | Add a `@ts-expect-error` rule, consistent with existing locks | `--neg-types full` | [`WRITING_TESTS.md` § Negative type tests](./WRITING_TESTS.md#negative-type-tests) |
 | Browse declared caveats on cells (all three categories per cell: `NOT-APPLICABLE`, `TODO[BUG]`, `TODO[LIMITATION]`) | `--cell-caveats summary` (or `full` with `--coord`) | [`LIMITATIONS.md`](./LIMITATIONS.md), [`EXTERNAL_CAVEATS.md`](./EXTERNAL_CAVEATS.md), [`ANTIPATTERNS.md` § Blind copy](./ANTIPATTERNS.md#3-blind-copy-to-bun_sql_postgres) |
 
-`npm run tests:index` builds the underlying index (~28 s, gitignored).
+`npm run tests:index` builds the underlying index (~2 min, ~12 GB peak, gitignored).
 The implementation references under `lib/codeSearcher/` and
 `lib/codeIndexer/` are for the agent **modifying** the tools, not for
 the agent consuming them.

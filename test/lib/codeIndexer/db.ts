@@ -22,8 +22,15 @@ export interface IndexDb {
     exec(sql: string): void
     /** Run a parameterised statement once (INSERT/UPDATE). */
     run(sql: string, params: SqlValue[]): void
-    /** Run the same parameterised statement for many rows inside one transaction. */
-    insertMany(sql: string, rows: SqlValue[][]): void
+    /**
+     * Run the same parameterised statement for many rows inside one transaction.
+     *
+     * `rows` is an ITERABLE and `map` is applied one row at a time, inside the transaction:
+     * the caller's source rows are never copied into a second fully-materialised array.
+     * That matters — the biggest dimension (test refs) is >3.5M rows, so a `rows.map(...)`
+     * at the call site would double the peak for the largest tables.
+     */
+    insertMany<T>(sql: string, rows: Iterable<T>, map: (row: T) => SqlValue[]): void
     /** Run a query and return all rows as plain objects. */
     all<T = Record<string, SqlValue>>(sql: string, params?: SqlValue[]): T[]
     /** Persist (no-op for file-backed DBs that auto-persist) and release resources. */
@@ -43,6 +50,63 @@ export interface QueryDb {
 }
 
 export type SqlValue = string | number | bigint | boolean | null | Uint8Array
+
+/**
+ * What an extractor needs to hand a row over: just `push`. A plain `T[]` satisfies it, and
+ * so does `BatchedRows` — so an extractor never knows whether it is accumulating or
+ * streaming, and the choice is made once, at the call site.
+ */
+export interface RowSink<T> {
+    push(row: T): void
+}
+
+/**
+ * A `RowSink` that flushes to the database every `size` rows instead of accumulating.
+ *
+ * Why this exists: the biggest dimension (test refs) is >3.5M rows and grows with the
+ * matrix. Accumulating it into one array before inserting means the whole dimension is
+ * resident at once, on top of the TypeScript program that dominates this build's peak.
+ * Batching from the point of DETECTION keeps only `size` rows alive at a time.
+ *
+ * The counts are kept incrementally because the rows are gone by the time the build wants
+ * to report on them — there is no final array left to `filter`.
+ */
+export class BatchedRows<T> implements RowSink<T> {
+    private buf: T[] = []
+    /** Rows pushed so far (the whole dimension, not just the live batch). */
+    total = 0
+    /** Of those, how many the checker resolved to a declaration. */
+    resolved = 0
+
+    constructor(
+        private readonly db: IndexDb,
+        private readonly sql: string,
+        private readonly map: (row: T) => SqlValue[],
+        private readonly size = 50_000,
+        /**
+         * Run before this sink writes. Use it to flush a table this one has a FOREIGN KEY
+         * into, so the parent rows are always already there — `node:sqlite` enforces foreign
+         * keys by default (bun:sqlite and better-sqlite3 do not), so without this a streamed
+         * child would fail with SQLITE_CONSTRAINT_FOREIGNKEY under Node and pass under Bun.
+         */
+        private readonly before?: () => void,
+    ) {}
+
+    push(row: T): void {
+        this.buf.push(row)
+        this.total++
+        if ((row as { resolved_symbol_id?: number | null }).resolved_symbol_id != null) this.resolved++
+        if (this.buf.length >= this.size) this.flush()
+    }
+
+    /** Write and drop whatever is buffered. Call once more when the dimension is done. */
+    flush(): void {
+        this.before?.()
+        if (this.buf.length === 0) return
+        this.db.insertMany(this.sql, this.buf, this.map)
+        this.buf = []
+    }
+}
 
 // Pragmas for a fast one-shot bulk build; safe because the index is a
 // disposable derived artifact, not a system of record.
@@ -119,12 +183,12 @@ export async function openBunIndexDb(path: string): Promise<IndexDb> {
         run(sql, params) {
             db.prepare(sql).run(...(params as never[]))
         },
-        insertMany(sql, rows) {
+        insertMany(sql, rows, map) {
             const stmt = db.prepare(sql)
-            const tx = db.transaction((batch: SqlValue[][]) => {
-                for (const r of batch) stmt.run(...(r as never[]))
+            const tx = db.transaction(() => {
+                for (const r of rows) stmt.run(...(map(r) as never[]))
             })
-            tx(rows)
+            tx()
         },
         all<T>(sql: string, params: SqlValue[] = []) {
             return db.prepare(sql).all(...(params as never[])) as T[]
@@ -157,12 +221,12 @@ export async function openNodeSqliteIndexDb(path: string): Promise<IndexDb | nul
         run(sql, params) {
             db.prepare(sql).run(...(params as never[]))
         },
-        insertMany(sql, rows) {
+        insertMany(sql, rows, map) {
             // node:sqlite has no transaction() helper — drive BEGIN/COMMIT by hand.
             const stmt = db.prepare(sql)
             db.exec('BEGIN')
             try {
-                for (const r of rows) stmt.run(...(r as never[]))
+                for (const r of rows) stmt.run(...(map(r) as never[]))
                 db.exec('COMMIT')
             } catch (e) {
                 db.exec('ROLLBACK')
@@ -193,12 +257,12 @@ export async function openBetterSqlite3IndexDb(path: string): Promise<IndexDb> {
         run(sql, params) {
             db.prepare(sql).run(...(params as never[]))
         },
-        insertMany(sql, rows) {
+        insertMany(sql, rows, map) {
             const stmt = db.prepare(sql)
-            const tx = db.transaction((batch: SqlValue[][]) => {
-                for (const r of batch) stmt.run(...(r as never[]))
+            const tx = db.transaction(() => {
+                for (const r of rows) stmt.run(...(map(r) as never[]))
             })
-            tx(rows)
+            tx()
         },
         all<T>(sql: string, params: SqlValue[] = []) {
             return db.prepare(sql).all(...(params as never[])) as T[]

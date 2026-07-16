@@ -17,6 +17,7 @@ import { extractDocTests } from './extractDocTests.js'
 import { extractExamples } from './extractExamples.js'
 import { extractNegTypeTests } from './extractNegTypeTests.js'
 import { Ids } from './model.js'
+import type { TestBlockRow, TestRefRow } from './model.js'
 
 let failures = 0
 function check(name: string, ok: boolean, detail = ''): void {
@@ -38,7 +39,11 @@ async function main(): Promise<void> {
     const src = extractSrc(program, checker, ids)
     const recon = reconcileSimplified(src, program)
     src.heritage.push(...recon.heritage)
-    const tests = extractTests(program, checker, src.declMap, ids)
+    // Plain arrays satisfy RowSink: this structural check wants every row in hand to verify
+    // referential integrity, so it accumulates where the build streams.
+    const testBlocks: TestBlockRow[] = []
+    const testRefs: TestRefRow[] = []
+    extractTests(program, checker, src.declMap, ids, testBlocks, testRefs)
     const docs = extractDocTests(program, checker, src.declMap, ids)
     const examples = extractExamples(program, checker, src.declMap, ids)
     const negTypes = extractNegTypeTests(program, checker, src.declMap, ids)
@@ -54,8 +59,8 @@ async function main(): Promise<void> {
     check('members ≥ 5000', src.members.length >= 5000, `${src.members.length}`)
     check('invocations ≥ 5000', src.invocations.length >= 5000, `${src.invocations.length}`)
     check('keyof operation edges ≥ 1', src.invocations.some(i => i.kind === 'operation'))
-    check('test blocks ≥ 10000', tests.testBlocks.length >= 10000, `${tests.testBlocks.length}`)
-    check('test refs ≥ 100000', tests.testRefs.length >= 100000, `${tests.testRefs.length}`)
+    check('test blocks ≥ 10000', testBlocks.length >= 10000, `${testBlocks.length}`)
+    check('test refs ≥ 100000', testRefs.length >= 100000, `${testRefs.length}`)
     check('doc-test blocks ≥ 100', docs.docTestBlocks.length >= 100, `${docs.docTestBlocks.length}`)
     check('example blocks ≥ 100', examples.exampleBlocks.length >= 100, `${examples.exampleBlocks.length}`)
     check('neg-type assertions ≥ 100', negTypes.negTypes.length >= 100, `${negTypes.negTypes.length}`)
@@ -73,7 +78,7 @@ async function main(): Promise<void> {
     const typeAliasIds = new Set(src.symbols.filter(s => s.kind === 'type').map(s => s.id))
     check('composite type aliases emit heritage edges', src.heritage.some(h => typeAliasIds.has(h.symbol_id)),
         `${src.heritage.filter(h => typeAliasIds.has(h.symbol_id)).length}`)
-    allIn('test_ref.test_block_id → test_block', tests.testRefs.map(r => r.test_block_id), new Set(tests.testBlocks.map(b => b.id)))
+    allIn('test_ref.test_block_id → test_block', testRefs.map(r => r.test_block_id), new Set(testBlocks.map(b => b.id)))
     allIn('doc_test_ref.doc_test_block_id → doc_test_block', docs.docTestRefs.map(r => r.doc_test_block_id), new Set(docs.docTestBlocks.map(b => b.id)))
     allIn('example_ref.example_block_id → example_block', examples.exampleRefs.map(r => r.example_block_id), new Set(examples.exampleBlocks.map(b => b.id)))
     allIn('neg_type_ref.neg_type_id → neg_type', negTypes.negTypeRefs.map(r => r.neg_type_id), new Set(negTypes.negTypes.map(n => n.id)))

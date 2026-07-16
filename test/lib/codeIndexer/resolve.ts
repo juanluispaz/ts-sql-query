@@ -44,7 +44,7 @@ export type DeclMap = Map<ts.Node, RowRef>
 
 // Master switch for type resolution. When off (the `--no-resolve` build), resolveToken
 // short-circuits BEFORE touching the checker, so `getSymbolAtLocation` is never called and
-// the checker's type cache never grows — a low-memory / fast build (~1–2 GB vs ~8 GB) whose
+// the checker's type cache never grows — a low-memory / fast build (~3.6 GB vs ~12 GB) whose
 // only cost is that every `resolved_*_id` FK is NULL (name-based search still works). The
 // Program is still built (extractors read its compiled files; is_public still uses the
 // checker on the ~50 export modules). Set once in build.ts before extraction.

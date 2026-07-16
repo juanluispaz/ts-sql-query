@@ -34,8 +34,8 @@ npx tsx test/lib/codeIndexer/build.ts [--out <path>] [--no-resolve]   # under No
 ```
 
 **`--no-resolve`** (experimental, internal — **not** part of the searcher's documented usage) skips the
-type resolution (`getSymbolAtLocation`), so the checker's type cache never grows: **~1–2 GB / ~3 s**
-instead of **~8 GB / ~28 s**. Same schema and same rows; the only difference is every
+type resolution (`getSymbolAtLocation`), so the checker's type cache never grows: **~3.6 GB / ~15 s**
+instead of **~12 GB / ~2 min**. Same schema and same rows; the only difference is every
 `resolved_symbol_id` / `resolved_member_id` is NULL — name-based search (`symbol_name`) still works, but
 you lose binding-level precision and the lib-vs-noise filter (≈84% of test-ref name occurrences aren't
 lib API). Use it on RAM-constrained machines or when only name discovery is needed; the precise build is
@@ -51,9 +51,9 @@ nothing). The report header prints `name-based` and the chain section flags the 
 is the precise (resolved) build.
 
 Output (default): **`test/lib/codeIndexer/generated/code-index.sqlite`** — gitignored
-(via the `generated` rule), and rebuilt **from scratch each run** (~28 s: ~2 s to build
-the unified TypeScript Program, ~14 s to extract + type-resolve every reference, ~2 s to
-write). It lives in the tool's own `generated/` folder rather than `.test-report/`, which
+(via the `generated` rule), and rebuilt **from scratch each run** (~2 min: ~5 s to build
+the unified TypeScript Program, the rest to extract + type-resolve every reference and
+stream it out). It lives in the tool's own `generated/` folder rather than `.test-report/`, which
 the test harness wipes even when the index is still valid. The run prints the chosen
 backend in brackets and, per ref dimension, the share that type-resolved.
 
@@ -552,4 +552,6 @@ wire it into the `openIndexDb` dispatcher. Everything above `db.ts` is backend-a
   current.
 - It uses the classic `typescript` package (not tsgo, which has no programmatic API yet).
   Unlike a pure-parse pass, it builds a real type-checked Program over the whole tree, so
-  a rebuild is ~28 s (the type resolution is the cost — and the point).
+  a rebuild is ~2 min and peaks at ~12 GB (the type resolution is the cost — and the point;
+  it is ~70% of the peak). This is why `tests:index` is the one script whose runtime is not
+  interchangeable — see `scripts/tests-index.sh --help`.

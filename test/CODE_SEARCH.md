@@ -272,7 +272,7 @@ explicit `--cell-caveats` still overrides.
 the index once** before the first search and refresh it when stale:
 
 ```bash
-npm run tests:index                  -- # build / refresh the index (~28 s)
+npm run tests:index                  -- # build / refresh the index (~2 min, ~12 GB peak)
 ```
 
 ## When you'd use it

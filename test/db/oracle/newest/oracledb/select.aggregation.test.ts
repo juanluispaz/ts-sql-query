@@ -124,7 +124,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select avg(priority) as "avgPriority" from issue where project_id = :0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select avg(cast(priority as float)) as "avgPriority" from issue where project_id = :0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -200,7 +200,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select avg(duration_ms) as "avg", avg(distinct duration_ms) as "avgD" from issue_worklog"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select avg(cast(duration_ms as float)) as "avg", avg(distinct cast(duration_ms as float)) as "avgD" from issue_worklog"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof row, { avg?: number; avgD?: number }>>()
         expect(row).toEqual({ avg: 3600000, avgD: 3600000 })
@@ -254,7 +254,7 @@ describe(ctx.label, () => {
                 av: ctx.conn.average(tIssueWorklog.costCents),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum(distinct cost_cents) as "sd", avg(cost_cents) as "av" from issue_worklog"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum(distinct cost_cents) as "sd", avg(cast(cost_cents as float)) as "av" from issue_worklog"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, { sd?: number; av?: number }>>()
         expect(result).toEqual({ sd: 500, av: 200 })
@@ -539,7 +539,7 @@ describe(ctx.label, () => {
                 avd: ctx.conn.averageDistinct(tIssue.priority),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum(distinct priority) as "sd", avg(distinct priority) as "avd" from issue"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum(distinct priority) as "sd", avg(distinct cast(priority as float)) as "avd" from issue"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, { sd?: number; avd?: number }>>()
         expect(result).toEqual({ sd: 6, avd: 2 })

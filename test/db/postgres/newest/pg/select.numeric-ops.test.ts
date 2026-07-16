@@ -135,7 +135,7 @@ describe(ctx.label, () => {
                 f:  tIssue.priority.divide(2).floor(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, floor(priority::float / $1::float) as "f" from issue where id = $2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, floor(priority::float / $1) as "f" from issue where id = $2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -156,7 +156,7 @@ describe(ctx.label, () => {
                 c:  tIssue.priority.divide(3).ceil(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ceil(priority::float / $1::float) as "c" from issue where id = $2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ceil(priority::float / $1) as "c" from issue where id = $2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -181,7 +181,7 @@ describe(ctx.label, () => {
                 r:  tIssue.priority.divide(2).round(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round((priority::float / $1::float)::numeric) as "r" from issue where id = $2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round((priority::float / $1)::numeric) as "r" from issue where id = $2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -381,7 +381,7 @@ describe(ctx.label, () => {
                 r:  tIssue.priority.divide(3).roundn(2),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round((priority::float / $1::float)::numeric, $2) as "r" from issue where id = $3"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round((priority::float / $1)::numeric, $2) as "r" from issue where id = $3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -537,7 +537,7 @@ describe(ctx.label, () => {
                 })
                 .executeSelectMany()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, estimated_hours::float / $1::float as "d", power(estimated_hours, $2) as "p", sqrt(estimated_hours) as "s", round((estimated_hours)::numeric) as "r" from issue where id = $3"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, estimated_hours / $1 as "d", power(estimated_hours, $2) as "p", sqrt(estimated_hours) as "s", round((estimated_hours)::numeric) as "r" from issue where id = $3"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 2,
@@ -846,7 +846,7 @@ describe(ctx.label, () => {
                 })
                 .executeSelectOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs(estimated_hours) as ab, ceil(estimated_hours) as ce, floor(estimated_hours) as fl, sign(estimated_hours) as sg, cbrt(estimated_hours) as cb, exp(estimated_hours) as ex, ln(estimated_hours) as ln, log(estimated_hours) as l10, log(($1)::numeric, (estimated_hours)::numeric) as lgn, round((estimated_hours)::numeric, $2) as rn, atan2(estimated_hours, $3) as at, round((estimated_hours)::numeric) as ai, round((estimated_hours)::numeric) as abi, estimated_hours::float as ad from issue where id = $4"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs(estimated_hours) as ab, ceil(estimated_hours) as ce, floor(estimated_hours) as fl, sign(estimated_hours) as sg, cbrt(estimated_hours) as cb, exp(estimated_hours) as ex, ln(estimated_hours) as ln, log(estimated_hours) as l10, log(($1)::numeric, (estimated_hours)::numeric) as lgn, round((estimated_hours)::numeric, $2) as rn, atan2(estimated_hours, $3) as at, round((estimated_hours)::numeric)::bigint as ai, round((estimated_hours)::numeric)::bigint as abi, estimated_hours::float as ad from issue where id = $4"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 2,
@@ -1095,7 +1095,7 @@ describe(ctx.label, () => {
                 a:  tIssue.priority.asDouble().asInt().add(1),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round((priority::float)::numeric) % $1 as "m", round((priority::float)::numeric) + $2 as "a" from issue where id = $3"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round((priority::float)::numeric)::bigint % $1 as "m", round((priority::float)::numeric)::bigint + $2 as "a" from issue where id = $3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,

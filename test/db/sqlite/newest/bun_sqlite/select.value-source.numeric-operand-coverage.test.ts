@@ -173,7 +173,7 @@ describe(ctx.label, () => {
                 at: base.atan2(2),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, log(?, cast(priority as real)) as ln, cast(cast(priority as real) as real) / cast(? as real) as di, atan2(cast(priority as real), ?) as at from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, log(?, cast(priority as real)) as ln, cast(priority as real) / ? as di, atan2(cast(priority as real), ?) as at from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -214,7 +214,7 @@ describe(ctx.label, () => {
                 ln: tIssueWorklog.billedAmount.logn(200),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(billed_amount as real) / cast(? as real) as di, atan2(billed_amount, ?) as at, log(?, billed_amount) as ln from issue_worklog where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(billed_amount as real) / ? as di, atan2(billed_amount, ?) as at, log(?, billed_amount) as ln from issue_worklog where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             4,
@@ -879,7 +879,7 @@ describe(ctx.label, () => {
                 at: tIssue.priority.atan2(sub()),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(priority as real) / cast((select max(id) as result from project) as real) as di, log((select max(id) as result from project), priority) as ln, round(priority, (select max(id) as result from project)) as rn, atan2(priority, (select max(id) as result from project)) as at from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(priority as real) / (select max(id) as result from project) as di, log((select max(id) as result from project), priority) as ln, round(priority, (select max(id) as result from project)) as rn, atan2(priority, (select max(id) as result from project)) as at from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -930,7 +930,7 @@ describe(ctx.label, () => {
                 mx: base().maxValue(sub()),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(priority as real) - (select cast(max(id) as real) as result from project) as "s", cast(priority as real) * (select cast(max(id) as real) as result from project) as mu, cast(cast(priority as real) as real) / cast((select cast(max(id) as real) as result from project) as real) as di, cast(priority as real) % (select cast(max(id) as real) as result from project) as mo, power(cast(priority as real), (select cast(max(id) as real) as result from project)) as pw, log((select cast(max(id) as real) as result from project), cast(priority as real)) as ln, round(cast(priority as real), ?) as rn, atan2(cast(priority as real), (select cast(max(id) as real) as result from project)) as at, max(cast(priority as real), (select cast(max(id) as real) as result from project)) as mn, min(cast(priority as real), (select cast(max(id) as real) as result from project)) as mx from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(priority as real) - (select cast(max(id) as real) as result from project) as "s", cast(priority as real) * (select cast(max(id) as real) as result from project) as mu, cast(priority as real) / (select cast(max(id) as real) as result from project) as di, cast(priority as real) % (select cast(max(id) as real) as result from project) as mo, power(cast(priority as real), (select cast(max(id) as real) as result from project)) as pw, log((select cast(max(id) as real) as result from project), cast(priority as real)) as ln, round(cast(priority as real), ?) as rn, atan2(cast(priority as real), (select cast(max(id) as real) as result from project)) as at, max(cast(priority as real), (select cast(max(id) as real) as result from project)) as mn, min(cast(priority as real), (select cast(max(id) as real) as result from project)) as mx from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -1069,7 +1069,7 @@ describe(ctx.label, () => {
                     ad:  tIssue.estimatedHours.asDouble(),
                 })
                 .executeSelectOne()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs(estimated_hours) as ab, ceil(estimated_hours) as ce, floor(estimated_hours) as fl, sign(estimated_hours) as sg, exp(estimated_hours) as ex, ln(estimated_hours) as "l", log10(estimated_hours) as l10, sign(estimated_hours) * power(abs(estimated_hours), 1.0 / 3.0) as cb, round(estimated_hours) as ai, round(estimated_hours) as abi, cast(estimated_hours as real) as ad from issue where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs(estimated_hours) as ab, ceil(estimated_hours) as ce, floor(estimated_hours) as fl, sign(estimated_hours) as sg, exp(estimated_hours) as ex, ln(estimated_hours) as "l", log10(estimated_hours) as l10, sign(estimated_hours) * power(abs(estimated_hours), 1.0e0 / 3.0e0) as cb, cast(round(estimated_hours) as integer) as ai, cast(round(estimated_hours) as integer) as abi, cast(estimated_hours as real) as ad from issue where id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -1227,7 +1227,7 @@ describe(ctx.label, () => {
                 dv: tIssue.priority.divide(tIssue.id),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(priority as real) / cast(id as real) as dv from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(priority as real) / id as dv from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

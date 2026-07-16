@@ -173,7 +173,7 @@ describe(ctx.label, () => {
                 at: base.atan2(2),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, log(?, priority * 1.0) as ln, (priority * 1.0) / ? as di, atan2(priority * 1.0, ?) as \`at\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, log(?, cast(priority as double)) as ln, cast(priority as double) / ? as di, atan2(cast(priority as double), ?) as \`at\` from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -214,7 +214,7 @@ describe(ctx.label, () => {
                 ln: tIssueWorklog.billedAmount.logn(200),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, billed_amount / ? as di, atan2(billed_amount, ?) as \`at\`, log(?, billed_amount) as ln from issue_worklog where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(billed_amount as double) / ? as di, atan2(billed_amount, ?) as \`at\`, log(?, billed_amount) as ln from issue_worklog where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             4,
@@ -254,7 +254,7 @@ describe(ctx.label, () => {
                 mc: tIssueWorklog.issueId.asDouble().modulo(3),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, billed_amount % ? as mo, (issue_id * 1.0) % ? as mc from issue_worklog where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, billed_amount % ? as mo, cast(issue_id as double) % ? as mc from issue_worklog where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -289,7 +289,7 @@ describe(ctx.label, () => {
                 r:  tIssueWorklog.billedAmount.round(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ceil(billed_amount) as \`c\`, floor(billed_amount) as \`f\`, round(billed_amount) as \`r\` from issue_worklog where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ceil(billed_amount) as \`c\`, floor(billed_amount) as \`f\`, round(cast(billed_amount as decimal(65, 30))) as \`r\` from issue_worklog where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -812,7 +812,7 @@ describe(ctx.label, () => {
                 ),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (priority * 1.0) + (select max(id) * 1.0 as result from project) as \`v\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(priority as double) + (select cast(max(id) as double) as result from project) as \`v\` from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -879,7 +879,7 @@ describe(ctx.label, () => {
                 at: tIssue.priority.atan2(sub()),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority / (select max(id) as result from project) as di, log((select max(id) as result from project), priority) as ln, round(priority, (select max(id) as result from project)) as rn, atan2(priority, (select max(id) as result from project)) as \`at\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(priority as double) / (select max(id) as result from project) as di, log((select max(id) as result from project), priority) as ln, round(priority, (select max(id) as result from project)) as rn, atan2(priority, (select max(id) as result from project)) as \`at\` from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -930,7 +930,7 @@ describe(ctx.label, () => {
                 mx: base().maxValue(sub()),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (priority * 1.0) - (select max(id) * 1.0 as result from project) as \`s\`, (priority * 1.0) * (select max(id) * 1.0 as result from project) as mu, (priority * 1.0) / (select max(id) * 1.0 as result from project) as di, (priority * 1.0) % (select max(id) * 1.0 as result from project) as mo, power(priority * 1.0, (select max(id) * 1.0 as result from project)) as pw, log((select max(id) * 1.0 as result from project), priority * 1.0) as ln, round(priority * 1.0, ?) as rn, atan2(priority * 1.0, (select max(id) * 1.0 as result from project)) as \`at\`, greatest(priority * 1.0, (select max(id) * 1.0 as result from project)) as mn, least(priority * 1.0, (select max(id) * 1.0 as result from project)) as mx from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(priority as double) - (select cast(max(id) as double) as result from project) as \`s\`, cast(priority as double) * (select cast(max(id) as double) as result from project) as mu, cast(priority as double) / (select cast(max(id) as double) as result from project) as di, cast(priority as double) % (select cast(max(id) as double) as result from project) as mo, power(cast(priority as double), (select cast(max(id) as double) as result from project)) as pw, log((select cast(max(id) as double) as result from project), cast(priority as double)) as ln, round(cast(cast(priority as double) as decimal(65, 30)), ?) as rn, atan2(cast(priority as double), (select cast(max(id) as double) as result from project)) as \`at\`, greatest(cast(priority as double), (select cast(max(id) as double) as result from project)) as mn, least(cast(priority as double), (select cast(max(id) as double) as result from project)) as mx from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -1069,7 +1069,7 @@ describe(ctx.label, () => {
                     ad:  tIssue.estimatedHours.asDouble(),
                 })
                 .executeSelectOne()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs(estimated_hours) as ab, ceil(estimated_hours) as ce, floor(estimated_hours) as fl, sign(estimated_hours) as sg, exp(estimated_hours) as ex, ln(estimated_hours) as \`l\`, log10(estimated_hours) as l10, sign(estimated_hours) * power(abs(estimated_hours), 1.0 / 3.0) as cb, round(estimated_hours) as ai, round(estimated_hours) as abi, estimated_hours * 1.0 as ad from issue where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs(estimated_hours) as ab, ceil(estimated_hours) as ce, floor(estimated_hours) as fl, sign(estimated_hours) as sg, exp(estimated_hours) as ex, ln(estimated_hours) as \`l\`, log10(estimated_hours) as l10, sign(estimated_hours) * power(abs(estimated_hours), 1.0e0 / 3.0e0) as cb, cast(round(cast(estimated_hours as decimal(65, 30))) as signed) as ai, cast(round(cast(estimated_hours as decimal(65, 30))) as signed) as abi, cast(estimated_hours as double) as ad from issue where id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -1089,7 +1089,7 @@ describe(ctx.label, () => {
                 expect(Number(row.ex)).toBeCloseTo(Math.exp(8), 5)
                 expect(Number(row.l)).toBeCloseTo(Math.log(8), 5)
                 expect(Number(row.l10)).toBeCloseTo(Math.log10(8), 5)
-                expect(Number(row.cb)).toBeCloseTo(Math.cbrt(8), 4)
+                expect(Number(row.cb)).toBeCloseTo(Math.cbrt(8), 10)
                 expect(Number(row.ai)).toBeCloseTo(8, 5)
                 expect(BigInt(row.abi!)).toBe(8n)
                 expect(Number(row.ad)).toBeCloseTo(8, 5)
@@ -1128,7 +1128,7 @@ describe(ctx.label, () => {
                 mx:  tIssueWorklog.minutes.maxValue(50),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs(minutes) as ab, ceil(minutes) as ce, floor(minutes) as fl, sign(minutes) as sg, minutes * 1.0 as ad, minutes as abi, minutes - ? as \`s\`, minutes % ? as mo, greatest(minutes, ?) as mn, least(minutes, ?) as mx from issue_worklog where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs(minutes) as ab, ceil(minutes) as ce, floor(minutes) as fl, sign(minutes) as sg, cast(minutes as double) as ad, minutes as abi, minutes - ? as \`s\`, minutes % ? as mo, greatest(minutes, ?) as mn, least(minutes, ?) as mx from issue_worklog where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1227,7 +1227,7 @@ describe(ctx.label, () => {
                 dv: tIssue.priority.divide(tIssue.id),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority / id as dv from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(priority as double) / id as dv from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

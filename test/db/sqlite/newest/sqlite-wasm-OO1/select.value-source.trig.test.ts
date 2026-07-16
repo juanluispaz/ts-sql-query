@@ -44,7 +44,7 @@ describe(ctx.label, () => {
         } else {
             expect(result).toEqual(expected)
         }
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, acos(cast(priority as real) / cast(? as real)) as "v" from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, acos(cast(priority as real) / ?) as "v" from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             10,
@@ -70,7 +70,7 @@ describe(ctx.label, () => {
         } else {
             expect(result).toEqual(expected)
         }
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, asin(cast(priority as real) / cast(? as real)) as "v" from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, asin(cast(priority as real) / ?) as "v" from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             10,
@@ -241,7 +241,7 @@ describe(ctx.label, () => {
                     ta: tIssue.estimatedHours.divide(10).tan(),
                 })
                 .executeSelectOne()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, acos(cast(estimated_hours as real) / cast(? as real)) as ac, asin(cast(estimated_hours as real) / cast(? as real)) as "as", atan(cast(estimated_hours as real) / cast(? as real)) as at, cos(cast(estimated_hours as real) / cast(? as real)) as co, sin(cast(estimated_hours as real) / cast(? as real)) as si, tan(cast(estimated_hours as real) / cast(? as real)) as ta from issue where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, acos(estimated_hours / ?) as ac, asin(estimated_hours / ?) as "as", atan(estimated_hours / ?) as at, cos(estimated_hours / ?) as co, sin(estimated_hours / ?) as si, tan(estimated_hours / ?) as ta from issue where id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 10,
@@ -329,7 +329,7 @@ describe(ctx.label, () => {
                 ta: tIssue.priority.asDouble().divide(10).tan(),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, acos(cast(cast(priority as real) as real) / cast(? as real)) as ac, asin(cast(cast(priority as real) as real) / cast(? as real)) as "as", atan(cast(cast(priority as real) as real) / cast(? as real)) as at, cos(cast(cast(priority as real) as real) / cast(? as real)) as co, sin(cast(cast(priority as real) as real) / cast(? as real)) as si, tan(cast(cast(priority as real) as real) / cast(? as real)) as ta from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, acos(cast(priority as real) / ?) as ac, asin(cast(priority as real) / ?) as "as", atan(cast(priority as real) / ?) as at, cos(cast(priority as real) / ?) as co, sin(cast(priority as real) / ?) as si, tan(cast(priority as real) / ?) as ta from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             10,
@@ -413,7 +413,7 @@ describe(ctx.label, () => {
                 ta: tIssue.assigneeId.divide(2).tan(),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, acos(cast(assignee_id as real) / cast(? as real)) as ac, asin(cast(assignee_id as real) / cast(? as real)) as "as", atan(cast(assignee_id as real) / cast(? as real)) as at, cos(cast(assignee_id as real) / cast(? as real)) as co, sin(cast(assignee_id as real) / cast(? as real)) as si, tan(cast(assignee_id as real) / cast(? as real)) as ta from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, acos(cast(assignee_id as real) / ?) as ac, asin(cast(assignee_id as real) / ?) as "as", atan(cast(assignee_id as real) / ?) as at, cos(cast(assignee_id as real) / ?) as co, sin(cast(assignee_id as real) / ?) as si, tan(cast(assignee_id as real) / ?) as ta from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,

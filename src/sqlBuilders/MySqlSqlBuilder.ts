@@ -12,6 +12,8 @@ import { __getColumnPrivate } from '../utils/Column.js'
 
 export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
     mySql: true = true
+    // MySQL 8.0.17 added DOUBLE (and FLOAT / REAL) as cast targets.
+    override _castAsDoubleMinCompatibilityVersion: number = 8_000_017
     _getUuidStrategy(): 'string' | 'binary' {
         return this._connectionConfiguration.uuidStrategy as any || 'binary'
     }

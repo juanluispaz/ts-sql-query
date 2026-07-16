@@ -135,7 +135,7 @@ describe(ctx.label, () => {
                 f:  tIssue.priority.divide(2).floor(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, floor(priority / ?) as \`f\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, floor(cast(priority as double) / ?) as \`f\` from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -156,7 +156,7 @@ describe(ctx.label, () => {
                 c:  tIssue.priority.divide(3).ceil(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ceil(priority / ?) as \`c\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ceil(cast(priority as double) / ?) as \`c\` from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -181,7 +181,7 @@ describe(ctx.label, () => {
                 r:  tIssue.priority.divide(2).round(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round(priority / ?) as \`r\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round(cast(cast(priority as double) / ? as decimal(65, 30))) as \`r\` from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -225,7 +225,7 @@ describe(ctx.label, () => {
                 c:  tIssue.priority.multiply(4).cbrt(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, sign(priority * ?) * power(abs(priority * ?), 1.0 / 3.0) as \`c\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, sign(priority * ?) * power(abs(priority * ?), 1.0e0 / 3.0e0) as \`c\` from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             4,
@@ -238,7 +238,7 @@ describe(ctx.label, () => {
             // cbrt is emulated as `sign(x) * power(abs(x), 1.0/3.0)` on
             // dialects without a native cbrt; floating-point rounding in
             // POWER can yield 1.999999… instead of exactly 2.
-            expect(result[0]!.c).toBeCloseTo(2, 4)
+            expect(result[0]!.c).toBeCloseTo(2, 10)
         } else {
             expect(result).toEqual(expected)
         }
@@ -389,7 +389,7 @@ describe(ctx.label, () => {
                 r:  tIssue.priority.divide(3).roundn(2),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round(priority / ?, ?) as \`r\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round(cast(cast(priority as double) / ? as decimal(65, 30)), ?) as \`r\` from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -442,7 +442,7 @@ describe(ctx.label, () => {
                 d:  tIssue.priority.asDouble(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority * 1.0 as \`d\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(priority as double) as \`d\` from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -544,7 +544,7 @@ describe(ctx.label, () => {
                 })
                 .executeSelectMany()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, estimated_hours / ? as \`d\`, power(estimated_hours, ?) as \`p\`, sqrt(estimated_hours) as \`s\`, round(estimated_hours) as \`r\` from issue where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, estimated_hours / ? as \`d\`, power(estimated_hours, ?) as \`p\`, sqrt(estimated_hours) as \`s\`, round(cast(estimated_hours as decimal(65, 30))) as \`r\` from issue where id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 2,
@@ -853,7 +853,7 @@ describe(ctx.label, () => {
                 })
                 .executeSelectOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs(estimated_hours) as ab, ceil(estimated_hours) as ce, floor(estimated_hours) as fl, sign(estimated_hours) as sg, sign(estimated_hours) * power(abs(estimated_hours), 1.0 / 3.0) as cb, exp(estimated_hours) as ex, ln(estimated_hours) as ln, log10(estimated_hours) as l10, log(?, estimated_hours) as lgn, round(estimated_hours, ?) as rn, atan2(estimated_hours, ?) as \`at\`, round(estimated_hours) as ai, round(estimated_hours) as abi, estimated_hours * 1.0 as ad from issue where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs(estimated_hours) as ab, ceil(estimated_hours) as ce, floor(estimated_hours) as fl, sign(estimated_hours) as sg, sign(estimated_hours) * power(abs(estimated_hours), 1.0e0 / 3.0e0) as cb, exp(estimated_hours) as ex, ln(estimated_hours) as ln, log10(estimated_hours) as l10, log(?, estimated_hours) as lgn, round(cast(estimated_hours as decimal(65, 30)), ?) as rn, atan2(estimated_hours, ?) as \`at\`, cast(round(cast(estimated_hours as decimal(65, 30))) as signed) as ai, cast(round(cast(estimated_hours as decimal(65, 30))) as signed) as abi, cast(estimated_hours as double) as ad from issue where id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 2,
@@ -873,13 +873,7 @@ describe(ctx.label, () => {
                 expect(row.id).toBe(1)
                 expect(row.ab).toBe(8); expect(row.ce).toBe(8); expect(row.fl).toBe(8)
                 expect(row.sg).toBe(1)
-                // TODO[BUG]: see BUGS.md — cbrt loses precision on MySQL. The emitted
-                //            `power(abs(x), 1.0 / 3.0)` divides in DECIMAL, which MySQL
-                //            truncates to 0.33333, so cbrt(8) resolves to 1.999986…
-                //            instead of 2. Asserting the wrong value the engine returns
-                //            today; restore `toBeCloseTo(2, 5)` once the divisor is
-                //            emitted as a float.
-                expect(Number(row.cb)).toBeCloseTo(1.999986137104434, 9)
+                expect(Number(row.cb)).toBeCloseTo(2, 10)
                 expect(row.ex).toBeCloseTo(Math.exp(8), 3)
                 expect(row.ln).toBeCloseTo(Math.log(8), 5)
                 expect(row.l10).toBeCloseTo(Math.log10(8), 5)
@@ -929,7 +923,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs(priority * 1.0) as ab, ceil(priority * 1.0) as ce, floor(priority * 1.0) as fl, sign(priority * 1.0) as sg, sign(priority * 1.0) * power(abs(priority * 1.0), 1.0 / 3.0) as cb, exp(priority * 1.0) as ex, ln(priority * 1.0) as ln, log10(priority * 1.0) as l10, power(priority * 1.0, ?) as pw, log(?, priority * 1.0) as lgn, round(priority * 1.0, ?) as rn, atan2(priority * 1.0, ?) as \`at\`, greatest(priority * 1.0, ?) as mn, least(priority * 1.0, ?) as mx from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs(cast(priority as double)) as ab, ceil(cast(priority as double)) as ce, floor(cast(priority as double)) as fl, sign(cast(priority as double)) as sg, sign(cast(priority as double)) * power(abs(cast(priority as double)), 1.0e0 / 3.0e0) as cb, exp(cast(priority as double)) as ex, ln(cast(priority as double)) as ln, log10(cast(priority as double)) as l10, power(cast(priority as double), ?) as pw, log(?, cast(priority as double)) as lgn, round(cast(cast(priority as double) as decimal(65, 30)), ?) as rn, atan2(cast(priority as double), ?) as \`at\`, greatest(cast(priority as double), ?) as mn, least(cast(priority as double), ?) as mx from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -950,7 +944,7 @@ describe(ctx.label, () => {
         if (ctx.realDbEnabled) {
             expect(row.id).toBe(1)
             expect(row.ab).toBe(2); expect(row.ce).toBe(2); expect(row.fl).toBe(2); expect(row.sg).toBe(1)
-            expect(row.cb).toBeCloseTo(Math.cbrt(2), 4)
+            expect(row.cb).toBeCloseTo(Math.cbrt(2), 10)
             expect(row.ex).toBeCloseTo(Math.exp(2), 5)
             expect(row.ln).toBeCloseTo(Math.log(2), 5)
             expect(row.l10).toBeCloseTo(Math.log10(2), 5)
@@ -1055,7 +1049,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs(assignee_id) as ab, ceil(assignee_id) as ce, floor(assignee_id) as fl, sign(assignee_id) as sg, sqrt(assignee_id) as sq, sign(assignee_id) * power(abs(assignee_id), 1.0 / 3.0) as cb, exp(assignee_id) as ex, ln(assignee_id) as ln, log10(assignee_id) as l10, power(assignee_id, ?) as pw, log(?, assignee_id) as lgn, round(assignee_id, ?) as rn, atan2(assignee_id, ?) as \`at\`, assignee_id * 1.0 as ad, assignee_id as abi from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs(assignee_id) as ab, ceil(assignee_id) as ce, floor(assignee_id) as fl, sign(assignee_id) as sg, sqrt(assignee_id) as sq, sign(assignee_id) * power(abs(assignee_id), 1.0e0 / 3.0e0) as cb, exp(assignee_id) as ex, ln(assignee_id) as ln, log10(assignee_id) as l10, power(assignee_id, ?) as pw, log(?, assignee_id) as lgn, round(assignee_id, ?) as rn, atan2(assignee_id, ?) as \`at\`, cast(assignee_id as double) as ad, assignee_id as abi from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -1076,7 +1070,7 @@ describe(ctx.label, () => {
             expect(row.id).toBe(4)
             expect(row.ab).toBe(3); expect(row.ce).toBe(3); expect(row.fl).toBe(3); expect(row.sg).toBe(1)
             expect(row.sq).toBeCloseTo(Math.sqrt(3), 5)
-            expect(row.cb).toBeCloseTo(Math.cbrt(3), 4)
+            expect(row.cb).toBeCloseTo(Math.cbrt(3), 10)
             expect(row.ex).toBeCloseTo(Math.exp(3), 5)
             expect(row.ln).toBeCloseTo(Math.log(3), 5)
             expect(row.l10).toBeCloseTo(Math.log10(3), 5)
@@ -1108,7 +1102,7 @@ describe(ctx.label, () => {
                 a:  tIssue.priority.asDouble().asInt().add(1),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round(priority * 1.0) % ? as \`m\`, round(priority * 1.0) + ? as \`a\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(round(cast(cast(priority as double) as decimal(65, 30))) as signed) % ? as \`m\`, cast(round(cast(cast(priority as double) as decimal(65, 30))) as signed) + ? as \`a\` from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,

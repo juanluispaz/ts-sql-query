@@ -447,14 +447,14 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
     asInt(): any { // test function
         if (this.__valueType === 'double') {
             // Unsafe cast, it happens when TypeSafe is not in use, we round the value
-            return new SqlOperation0ValueSource('_round', this, 'int', 'int', this.__optionalType, this.__typeAdapter)
+            return new SqlOperation0ValueSource('_asInt', this, 'int', 'int', this.__optionalType, this.__typeAdapter)
         }
         return new NoopValueSource(this, 'int', 'int', this.__optionalType, this.__typeAdapter)
     }
     asBigint(): any {
         if (this.__valueType === 'double') {
             // Unsafe cast, it happens when TypeSafe is not in use, we round the value
-            return new SqlOperation0ValueSource('_round', this, 'bigint', 'bigint', this.__optionalType, this.__typeAdapter)
+            return new SqlOperation0ValueSource('_asBigint', this, 'bigint', 'bigint', this.__optionalType, this.__typeAdapter)
         }
         return new NoopValueSource(this, 'bigint', 'bigint', this.__optionalType, this.__typeAdapter)
     }

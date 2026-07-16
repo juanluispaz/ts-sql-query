@@ -114,7 +114,7 @@ describe(ctx.label, () => {
                 prod: base.multiply(2),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (priority * 1.0) + ? as sum, (priority * 1.0) - ? as diff, (priority * 1.0) * ? as prod from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(priority as double) + ? as sum, cast(priority as double) - ? as diff, cast(priority as double) * ? as prod from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -152,7 +152,7 @@ describe(ctx.label, () => {
                 l10: m.log10(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, sqrt(?) as sq, sign(?) * power(abs(?), 1.0 / 3.0) as cb, exp(?) as \`e\`, ln(?) as \`l\`, log10(?) as l10 from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, sqrt(?) as sq, sign(?) * power(abs(?), 1.0e0 / 3.0e0) as cb, exp(?) as \`e\`, ln(?) as \`l\`, log10(?) as l10 from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             4,
@@ -168,11 +168,11 @@ describe(ctx.label, () => {
         if (ctx.realDbEnabled) {
             const row = result[0]!
             expect(row.sq).toBeCloseTo(2, 5)
-            // MySQL emulates cbrt as `sign(x) * power(abs(x), 1/3)`; that
-            // power() is lower-precision than JS Math.cbrt, so the result
-            // (1.5873937166347238) diverges past 5 digits. Assert against the
-            // value MySQL actually returns.
-            expect(row.cb).toBeCloseTo(1.5873937166347238, 5)
+            // MySQL emulates cbrt as `sign(x) * power(abs(x), 1.0e0 / 3.0e0)`.
+            // The exponent marker keeps the divisor a DOUBLE: spelled `1.0 / 3.0`
+            // it is a DECIMAL division truncated to div_precision_increment
+            // decimals, which costs the exponent ~11 digits.
+            expect(row.cb).toBeCloseTo(Math.cbrt(4), 10)
             expect(row.e).toBeCloseTo(Math.exp(4), 5)
             expect(row.l).toBeCloseTo(Math.log(4), 5)
             expect(row.l10).toBeCloseTo(Math.log10(4), 5)
@@ -263,16 +263,17 @@ describe(ctx.label, () => {
             expect(row.id).toBe(1)
             expect(row.p).toBe(64)
             expect(row.ln).toBe(3)
-            expect(row.rn).toBe(8)
-            // MySQL returns the customDouble-typed division (`? / ?`) as a
-            // DECIMAL the driver hands back as a STRING; a custom type carries
-            // no marshalling, so the raw representation leaks through.
-            expect(row.di).toBe('4.0000')
+            // A custom type carries no marshalling — handling the type is the
+            // connection's / type adapter's job — so the `cast(... as decimal)`
+            // result of roundn leaks the driver's raw representation as a
+            // string, while power/divide/atan2 come back as numbers.
+            expect(row.rn).toBe('8.00')
+            expect(row.di).toBeCloseTo(4, 5)
             expect(row.at2).toBeCloseTo(Math.atan2(8, 2), 5)
         } else {
             expect(result).toEqual(expected)
         }
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, power(?, ?) as \`p\`, log(?, ?) as ln, round(?, ?) as rn, ? / ? as di, atan2(?, ?) as at2 from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, power(?, ?) as \`p\`, log(?, ?) as ln, round(cast(? as decimal(65, 30)), ?) as rn, cast(? as double) / ? as di, atan2(?, ?) as at2 from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             8,
@@ -305,7 +306,7 @@ describe(ctx.label, () => {
                 asBig: d.asBigint(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round(?) as asInt, round(?) as asBig from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(round(cast(? as decimal(65, 30))) as signed) as asInt, cast(round(cast(? as decimal(65, 30))) as signed) as asBig from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1.7,
@@ -398,7 +399,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round(?, priority) > ? as big from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round(cast(? as decimal(65, 30)), priority) > ? as big from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             8,
@@ -606,7 +607,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round(?, ?) > ? as big from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round(cast(? as decimal(65, 30)), ?) > ? as big from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             8,
@@ -920,7 +921,7 @@ describe(ctx.label, () => {
                 cb: money.cbrt(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs(?) as ab, ceil(?) as ce, floor(?) as fl, round(?) as ro, exp(?) as ex, ln(?) as \`l\`, log10(?) as l10, sign(?) * power(abs(?), 1.0 / 3.0) as cb from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs(?) as ab, ceil(?) as ce, floor(?) as fl, round(cast(? as decimal(65, 30))) as ro, exp(?) as ex, ln(?) as \`l\`, log10(?) as l10, sign(?) * power(abs(?), 1.0e0 / 3.0e0) as cb from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             4,
@@ -948,7 +949,7 @@ describe(ctx.label, () => {
             expect(result[0]!.ex).toBeCloseTo(Math.exp(4), 5)
             expect(result[0]!.l).toBeCloseTo(Math.log(4), 5)
             expect(result[0]!.l10).toBeCloseTo(Math.log10(4), 5)
-            expect(result[0]!.cb).toBeCloseTo(Math.cbrt(4), 4)
+            expect(result[0]!.cb).toBeCloseTo(Math.cbrt(4), 10)
         } else {
             expect(result).toEqual(expected)
         }
@@ -1014,7 +1015,7 @@ describe(ctx.label, () => {
                 rv: money.roundn(prec),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round(?, ?) as rl, round(?, ?) as rv from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round(cast(? as decimal(65, 30)), ?) as rl, round(cast(? as decimal(65, 30)), ?) as rv from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             8,
@@ -1056,7 +1057,7 @@ describe(ctx.label, () => {
                 mu: money.round().multiply(base),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round(?) + ? as \`a\`, round(?) - ? as \`s\`, round(?) * ? as mu from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round(cast(? as decimal(65, 30))) + ? as \`a\`, round(cast(? as decimal(65, 30))) - ? as \`s\`, round(cast(? as decimal(65, 30))) * ? as mu from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             8,
@@ -1100,7 +1101,7 @@ describe(ctx.label, () => {
                 mx: money.round().maxValue(10 as Money),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, greatest(round(?), ?) as mn, least(round(?), ?) as mx from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, greatest(round(cast(? as decimal(65, 30))), ?) as mn, least(round(cast(? as decimal(65, 30))), ?) as mx from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             8,
@@ -1139,7 +1140,7 @@ describe(ctx.label, () => {
                 mo: money.modulo(base),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ? / ? as di, ? % ? as mo from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(? as double) / ? as di, ? % ? as mo from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             8,

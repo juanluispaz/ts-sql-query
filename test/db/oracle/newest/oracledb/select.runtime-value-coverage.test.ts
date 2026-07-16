@@ -58,7 +58,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum(priority) as "s", avg(priority) as "a", min(priority) as "lo", max(priority) as "hi" from issue where id = :0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum(priority) as "s", avg(cast(priority as float)) as "a", min(priority) as "lo", max(priority) as "hi" from issue where id = :0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             -1,

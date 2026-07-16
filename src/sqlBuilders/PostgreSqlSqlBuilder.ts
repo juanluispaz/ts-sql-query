@@ -248,8 +248,11 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         // if not it is same boolean, nothing to transform here
         return null
     }
-    override _asDouble(params: any[], valueSource: ToSql): string {
-        return this._appendSqlParenthesis(valueSource, params, false) + '::float'
+    override _appendCastAsDouble(sql: string): string {
+        return sql + '::float'
+    }
+    override _appendCastAsInteger(sql: string): string {
+        return sql + '::bigint'
     }
     override _asString(params: any[], valueSource: ToSql): string {
         // Transform an uuid to string
@@ -261,9 +264,6 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         } else {
             return this._defaultTypeAdapter.transformPlaceholder('null', columnTypeName, true, null)
         }
-    }
-    override _divide(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._appendSqlParenthesis(valueSource, params, false) + '::float / ' + this._appendValueParenthesis(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false) + '::float'
     }
     override _modulo(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         if (this._moduloRequiresFloatHandling(columnType, value)) {
@@ -295,28 +295,27 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
     override _roundn(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         // PostgreSQL only has the `round(numeric, integer)` overload — there is
         // no `round(double precision, integer)` (the engine errors with
-        // `function round(double precision, integer) does not exist`). Any
-        // operand that flows through `_divide` is already cast to `::float`, so
-        // without this wrapper `.roundn(n)` would fail at runtime for the
-        // common `.divide(...).roundn(n)` pattern. Cast to numeric so the
-        // overload resolves; `usePlatformDependentRound` does NOT opt out
-        // here because the alternative is invalid SQL, not a different
-        // tie-breaking rule. `round(numeric, s)` breaks ties away from zero
-        // (the rule every other dialect ts-sql-query supports follows).
+        // `function round(double precision, integer) does not exist`). `_divide`
+        // yields a `float`, so without this wrapper `.roundn(n)` would fail at
+        // runtime for the common `.divide(...).roundn(n)` pattern. Cast to
+        // numeric so the overload resolves; `usePlatformDependentRound` does
+        // NOT opt out here because the alternative is invalid SQL, not a
+        // different tie-breaking rule. `round(numeric, s)` breaks ties away from
+        // zero, the rule ts-sql-query follows on every dialect.
         return 'round((' + this._appendSql(valueSource, params, false) + ')::numeric, ' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false) + ')'
     }
     override _round(params: any[], valueSource: ToSql): string {
         // PostgreSQL has two overloads of `round`: `round(numeric)` breaks ties
-        // by rounding away from zero (the rule every other dialect the library
-        // supports follows), while `round(double precision)` defers to libm and
-        // is "platform dependent" per the PG manual — most platforms use
+        // by rounding away from zero (the rule ts-sql-query follows on every
+        // dialect), while `round(double precision)` defers to libm and is
+        // "platform dependent" per the PG manual — most platforms use
         // round-to-nearest-even, which makes `round(0.5)` evaluate to `0`
-        // instead of `1`. Any operand that flows through `_divide` is already
-        // cast to `::float`, so without this wrapper the user-facing `.round()`
-        // would silently switch tie-breaking modes depending on what came
-        // before it in the chain. Cast to numeric so the behavior is portable;
-        // applications that want the platform-dependent behavior can opt in via
-        // `usePlatformDependentRound` on the connection.
+        // instead of `1`. `_divide` and `_asDouble` yield a `float`, so without
+        // this wrapper the user-facing `.round()` would silently switch
+        // tie-breaking modes depending on what came before it in the chain. Cast
+        // to numeric so the behavior is portable; applications that want the
+        // platform-dependent behavior can opt in via `usePlatformDependentRound`
+        // on the connection.
         if (this._connectionConfiguration.usePlatformDependentRound) {
             return 'round(' + this._appendSql(valueSource, params, false) + ')'
         }

@@ -59,6 +59,7 @@ You can set this to your real database version (whatever it is) regardless of wh
 Recognised breakpoints (with the default `Number.POSITIVE_INFINITY` every breakpoint below is enabled — the list reads as the bar you need to clear to keep each feature):
 
 - `>= 8_000_019`: target MySQL 8.0.19+. The row alias syntax `INSERT ... AS _new_ ON DUPLICATE KEY UPDATE col = _new_.col` is emitted to reference values being inserted (added in 8.0.19; the legacy `VALUES(col)` function reference was deprecated in 8.0.20).
+- `>= 8_000_017`: target MySQL 8.0.17+. `DOUBLE` is used as a cast target (added in 8.0.17) whenever a value must be turned into a floating point number — `.asDouble()`, both operands of `.divide(...)`. Below this breakpoint the value is multiplied by the approximate literal `1.0e0` instead, which promotes it to `DOUBLE` on any version.
 - `>= 8_000_000`: target MySQL 8.0+. The `WITH` clause is used and recursive queries are supported.
 - `< 8_000_000`: target MySQL 5. The `WITH` clause is not emitted — the inner query is inlined in the `FROM` instead — recursive queries throw at query-build time, and the legacy `VALUES(col)` reference is used inside `ON DUPLICATE KEY UPDATE`.
 
@@ -69,3 +70,27 @@ class DBConnection extends MySqlConnection<'DBConnection'> {
     protected override compatibilityVersion = 5_007_000
 }
 ```
+
+## Rounding behavior
+
+MySQL's native `ROUND` function applies **different tie-breaking rules** depending on whether its argument is an exact-value or an approximate-value number. Per the [MySQL manual](https://dev.mysql.com/doc/refman/en/mathematical-functions.html#function_round):
+
+> For exact-value numbers (`DECIMAL`), `ROUND()` uses the **"round half away from zero"** rule (so `round(0.5) → 1` and `round(2.5) → 3`).
+>
+> For approximate-value numbers (`DOUBLE`), the result *"depends on the C library; on many systems this means that `ROUND()` uses the 'round half to even' rule"* (so `round(0.5) → 0` and `round(2.5) → 2`).
+
+ts-sql-query breaks ties away from zero on every dialect, matching JavaScript's `Math.round` for positive `.5` values. Expressions such as `.divide(...)` and `.asDouble()` produce a `DOUBLE`, so without care `.round()` would silently switch tie-breaking rules depending on what came before it in the chain. To keep `.round()` predictable and portable, **the MySQL connection casts the operand back to an exact type before applying `round`**, so `value.round()` always rounds ties away from zero regardless of the operand's type.
+
+For example, `tIssue.priority.divide(2).round()` (where `priority = 1`) yields `round(0.5) = 1` on every dialect, including MySQL.
+
+If you prefer MySQL's native `round(<double>)` semantics — typically because your application is single-dialect and you want the IEEE 754 round-to-even tie-breaking common on modern systems, or because existing queries depend on that result — set `usePlatformDependentRound = true` on your connection:
+
+```ts
+import { MySqlConnection } from "ts-sql-query/connections/MySqlConnection";
+
+class DBConnection extends MySqlConnection<'DBConnection'> {
+    protected override usePlatformDependentRound = true
+}
+```
+
+With the flag on, `value.round()` and `value.roundn(n)` emit `round(x)` directly: when `x` is an exact expression you still get away-from-zero, but when `x` is a `DOUBLE` expression (the type produced by `.divide(...)`, `.asDouble()`, and many other arithmetic chains) the tie-breaking follows the C library's rules.

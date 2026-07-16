@@ -9,6 +9,8 @@ import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 
 export class MariaDBSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
     mariaDB: true = true
+    // MariaDB 10.4.0 added DOUBLE as a cast target.
+    override _castAsDoubleMinCompatibilityVersion: number = 10_004_000
     override _isReservedKeyword(word: string): boolean {
         return word.toUpperCase() in reservedWords
     }

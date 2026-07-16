@@ -37,6 +37,7 @@ Recognised breakpoints (with the default `Number.POSITIVE_INFINITY` every breakp
 
 - `>= 13_000_001`: target MariaDB 13.0.1+. Column references on a table-or-view returned by `.oldValues()` are emitted as `OLD_VALUE(col)` so that `UPDATE ... RETURNING` can return both pre- and post-update values in a single statement (added in MariaDB 13.0.1 via [MDEV-5092](https://jira.mariadb.org/browse/MDEV-5092)). Bare column references on the updated table continue to mean the post-update value inside `RETURNING`. Note: MariaDB only supports `RETURNING` on single-table `UPDATE` statements; old values of joined tables can't be returned.
 - `>= 10_005_000`: target MariaDB 10.5+. The `RETURNING` clause (supported on `INSERT` and `DELETE` since MariaDB 10.5) is emitted on `INSERT` to retrieve the last inserted ID directly from the statement. Below this breakpoint the last inserted ID reported by the underlying connector after the query execution is used instead.
+- `>= 10_004_000`: target MariaDB 10.4+. `DOUBLE` is used as a cast target (added in MariaDB 10.4.0) whenever a value must be turned into a floating point number — `.asDouble()`, both operands of `.divide(...)`. Below this breakpoint the value is multiplied by the approximate literal `1.0e0` instead, which promotes it to `DOUBLE` on any version.
 - `>= 10_003_003`: target MariaDB 10.3.3+. The `VALUE(col)` function — added in MariaDB 10.3.3 ([MDEV-12172](https://jira.mariadb.org/browse/MDEV-12172)) as a rename of `VALUES(col)`, to avoid the name clash with the standard Table Value Constructors syntax introduced in the same release — is emitted inside `ON DUPLICATE KEY UPDATE` to reference the values being inserted. The 10.3 line went GA at 10.3.7, so every stable 10.3 release is past this breakpoint. Below it the legacy `VALUES(col)` name is emitted instead — it remains accepted by every modern MariaDB version, so generated SQL stays runnable.
 
 ```ts
@@ -46,6 +47,30 @@ class DBConnection extends MariaDBConnection<'DBConnection'> {
     protected override compatibilityVersion = 10_004_000
 }
 ```
+
+## Rounding behavior
+
+MariaDB's native `ROUND` function applies **different tie-breaking rules** depending on whether its argument is an exact-value or an approximate-value number. Per the [MariaDB knowledge base](https://mariadb.com/kb/en/round/):
+
+> For exact-value numbers (`DECIMAL`), `ROUND()` uses the **"round half away from zero"** rule (so `round(0.5) → 1` and `round(2.5) → 3`).
+>
+> For approximate-value numbers (`DOUBLE`), the result depends on the C library, which rounds half to even on the usual platforms (so `round(0.5) → 0` and `round(2.5) → 2`).
+
+ts-sql-query breaks ties away from zero on every dialect, matching JavaScript's `Math.round` for positive `.5` values. Expressions such as `.divide(...)` and `.asDouble()` produce a `DOUBLE`, so without care `.round()` would silently switch tie-breaking rules depending on what came before it in the chain. To keep `.round()` predictable and portable, **the MariaDB connection casts the operand back to an exact type before applying `round`**, so `value.round()` always rounds ties away from zero regardless of the operand's type.
+
+For example, `tIssue.priority.divide(2).round()` (where `priority = 1`) yields `round(0.5) = 1` on every dialect, including MariaDB.
+
+If you prefer MariaDB's native `round(<double>)` semantics — typically because your application is single-dialect and you want the IEEE 754 round-to-even tie-breaking common on modern systems, or because existing queries depend on that result — set `usePlatformDependentRound = true` on your connection:
+
+```ts
+import { MariaDBConnection } from "ts-sql-query/connections/MariaDBConnection";
+
+class DBConnection extends MariaDBConnection<'DBConnection'> {
+    protected override usePlatformDependentRound = true
+}
+```
+
+With the flag on, `value.round()` and `value.roundn(n)` emit `round(x)` directly: when `x` is an exact expression you still get away-from-zero, but when `x` is a `DOUBLE` expression (the type produced by `.divide(...)`, `.asDouble()`, and many other arithmetic chains) the tie-breaking follows the C library's rules.
 
 ## Sequences
 

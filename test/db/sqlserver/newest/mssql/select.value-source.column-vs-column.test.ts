@@ -236,7 +236,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select priority - id as sub, cast(priority as float) / cast(id as float) as div, power(priority, id) as pw, log(priority, id) as [ln], round(priority, id) as rnd, atn2(priority, id) as at2, least(priority, number) as mx from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select priority - id as sub, cast(priority as float) / id as div, power(priority, id) as pw, log(priority, id) as [ln], round(priority, id) as rnd, atn2(priority, id) as at2, least(priority, number) as mx from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,

@@ -252,7 +252,7 @@ describe(ctx.label, () => {
         } else {
             expect(result).toEqual(expected)
         }
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, power($1, $2) as "p", log(($3)::numeric, ($4)::numeric) as ln, round(($5)::numeric, $6) as rn, $7::float / $8::float as di, atan2($9, $10) as at2 from issue where id = $11"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, power($1, $2) as "p", log(($3)::numeric, ($4)::numeric) as ln, round(($5)::numeric, $6) as rn, $7::float / $8 as di, atan2($9, $10) as at2 from issue where id = $11"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             8,
@@ -285,7 +285,7 @@ describe(ctx.label, () => {
                 asBig: d.asBigint(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round(($1)::numeric) as "asInt", round(($2)::numeric) as "asBig" from issue where id = $3"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round(($1)::numeric)::bigint as "asInt", round(($2)::numeric)::bigint as "asBig" from issue where id = $3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1.7,
@@ -1124,7 +1124,7 @@ describe(ctx.label, () => {
                 mo: money.modulo(base),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, $1::float / $2::float as di, mod(($3)::numeric, ($4)::numeric) as mo from issue where id = $5"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, $1::float / $2 as di, mod(($3)::numeric, ($4)::numeric) as mo from issue where id = $5"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             8,

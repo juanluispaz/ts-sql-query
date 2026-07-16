@@ -42,7 +42,7 @@ describe(ctx.label, () => {
                 dr: tIssue.priority.divide(2).round(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round(view_count) as vr, round(priority::float / $1::float) as dr from issue where id = $2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round(view_count) as vr, round(priority::float / $1) as dr from issue where id = $2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -67,7 +67,7 @@ describe(ctx.label, () => {
                 dr: tIssue.priority.divide(2).round(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round((view_count)::numeric) as vr, round((priority::float / $1::float)::numeric) as dr from issue where id = $2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round((view_count)::numeric) as vr, round((priority::float / $1)::numeric) as dr from issue where id = $2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,

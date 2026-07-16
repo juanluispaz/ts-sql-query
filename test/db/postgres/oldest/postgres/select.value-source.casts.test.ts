@@ -4,8 +4,8 @@
 // per-dialect rendering.
 //
 //   - `.asDouble()`             → cast to a floating-point type
-//   - `.asInt()` on a double    → emulated via `round(...)`
-//   - `.asBigint()` on a double → emulated via `round(...)`
+//   - `.asInt()` on a double    → `round(...)` cast to an integer type
+//   - `.asBigint()` on a double → `round(...)` cast to an integer type
 //   - `.asInt()` / `.asBigint()` on an int — typed-only noop in SQL
 //
 // `.asString()` is only typed on UUID/CustomUuid value sources, so it
@@ -107,7 +107,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round((priority::float / $1::float)::numeric) as rounded from issue where id = $2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round((priority::float / $1)::numeric)::bigint as rounded from issue where id = $2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -130,7 +130,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round((priority::float / $1::float)::numeric) as rounded from issue where id = $2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round((priority::float / $1)::numeric)::bigint as rounded from issue where id = $2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -155,7 +155,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round((priority::float)::numeric) as "p" from issue where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round((priority::float)::numeric)::bigint as "p" from issue where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -209,7 +209,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round((priority::float)::numeric) + $1 as "a", round((priority::float)::numeric) % $2 as "m" from issue where id = $3"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round((priority::float)::numeric)::bigint + $1 as "a", round((priority::float)::numeric)::bigint % $2 as "m" from issue where id = $3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2n,
@@ -224,6 +224,34 @@ describe(ctx.label, () => {
         } else {
             expect(result).toEqual(expected)
         }
+    })
+
+
+    test('asBigint-on-double-keeps-bigint-arithmetic-exact', async () => {
+        // The cast `asBigint()` emits is what keeps the arithmetic exact: computed in
+        // floating point, an operand beyond 2^53 loses its last digits and the result
+        // comes back integral — so the value reaching the caller is a clean, wrong
+        // bigint rather than an error. 2 + 9007199254740993 is the first sum a double
+        // cannot represent.
+        const expected = [{ id: 1, big: 9007199254740995n }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id:  tIssue.id,
+                big: tIssue.priority.asDouble().asBigint().add(9007199254740993n),
+            })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round((priority::float)::numeric)::bigint + $1 as big from issue where id = $2"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            9007199254740993n,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; big: bigint }>>>()
+        expect(result).toEqual(expected)
     })
 
 })

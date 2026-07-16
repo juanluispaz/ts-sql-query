@@ -16,10 +16,15 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         super()
         this._operationsThatNeedParenthesis._concat = false
         this._operationsThatNeedParenthesis._is = true
-        this._operationsThatNeedParenthesis._asDouble = true
         this._operationsThatNeedParenthesis._getDate = true
         this._operationsThatNeedParenthesis._getMonth = true
     }
+    /**
+     * Compatibility version from which the engine accepts DOUBLE as a cast target
+     * (MySQL 8.0.17, MariaDB 10.4.0). Below it, `_appendCastAsDouble` falls back to a
+     * multiplication by an approximate literal.
+     */
+    _castAsDoubleMinCompatibilityVersion: number = Number.POSITIVE_INFINITY
     override _forceAsIdentifier(identifier: string): string {
         return '`' + identifier + '`'
     }
@@ -349,11 +354,47 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         }
         return 'not (' + this._appendSqlParenthesis(valueSource, params, false) + ' <=> ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false) + ')'
     }
-    override _divide(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._appendSqlParenthesis(valueSource, params, false) + ' / ' + this._appendValueParenthesis(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false)
+    override _appendCastAsDouble(sql: string): string {
+        if (this._connectionConfiguration.compatibilityVersion >= this._castAsDoubleMinCompatibilityVersion) {
+            return 'cast(' + sql + ' as double)'
+        }
+        // Older engines have no DOUBLE cast target. Multiplying by an approximate literal
+        // promotes the value to DOUBLE: the exponent marker is what makes the literal
+        // approximate — written `* 1.0` it is an exact literal (DECIMAL) and the value
+        // stays DECIMAL, truncated to div_precision_increment decimals on any later division.
+        return '(' + sql + ' * 1.0e0)'
     }
-    override _asDouble(params: any[], valueSource: ToSql): string {
-        return this._appendSqlParenthesis(valueSource, params, false) + ' * 1.0'
+    override _appendCastAsInteger(sql: string): string {
+        // MySQL / MariaDB reject `cast(x as bigint)`; SIGNED is how they spell a
+        // 64 bits signed integer in a cast.
+        return 'cast(' + sql + ' as signed)'
+    }
+    /**
+     * MySQL / MariaDB round exact-value numbers (DECIMAL) breaking ties away from zero —
+     * the rule every dialect the library supports follows — but round approximate-value
+     * numbers (DOUBLE) by deferring to the C library, which rounds half to even on the
+     * usual platforms: `round(0.5e0)` is `0` and `round(2.5e0)` is `2`. Any operand
+     * reaching here through `_divide` or `_asDouble` is a DOUBLE, so the operand is cast
+     * back to an exact type to keep the tie-breaking rule portable and independent of what
+     * came before it in the chain.
+     */
+    _appendRoundOperandAsExact(params: any[], valueSource: ToSql): string {
+        const sql = this._appendSql(valueSource, params, false)
+        if (this._connectionConfiguration.usePlatformDependentRound) {
+            return sql
+        }
+        if (this._numericKindOf(valueSource) === 'exact') {
+            // An exact operand already rounds away from zero, and an integer one has no tie
+            // to break at all: casting it would only add noise to the query.
+            return sql
+        }
+        return 'cast(' + sql + ' as decimal(65, 30))'
+    }
+    override _round(params: any[], valueSource: ToSql): string {
+        return 'round(' + this._appendRoundOperandAsExact(params, valueSource) + ')'
+    }
+    override _roundn(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        return 'round(' + this._appendRoundOperandAsExact(params, valueSource) + ', ' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false) + ')'
     }
     override _valueWhenNull(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         return 'ifnull(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, false) + ')'

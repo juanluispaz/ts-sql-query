@@ -4580,7 +4580,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push(`select sign(id) * power(abs(id), 1.0 / 3.0) as idCubeRoot, log10(id) as idLog10, log(?, id) as idLogBase2 from customer where id = ?`)
+    expectedQuery.push(`select sign(id) * power(abs(id), 1.0e0 / 3.0e0) as idCubeRoot, log10(id) as idLog10, log(?, id) as idLogBase2 from customer where id = ?`)
     expectedParams.push(`[2,8]`)
     expectedType.push(`selectManyRows`)
 

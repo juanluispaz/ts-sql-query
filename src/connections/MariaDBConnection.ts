@@ -52,6 +52,29 @@ export abstract class MariaDBConnection</*in|out*/ NAME extends string> extends 
      */
     protected override compatibilityVersion: number = Number.POSITIVE_INFINITY
 
+    /**
+     * Use MariaDB's native, platform-dependent `round(<double>)` when applying
+     * `.round()` / `.roundn(n)` to a `DOUBLE` expression (most commonly anything
+     * that flows through `.divide(...)` or `.asDouble()`, which the SqlBuilder
+     * casts to `DOUBLE`).
+     *
+     * Per the MariaDB manual, `ROUND()` over an exact-value number (DECIMAL)
+     * breaks ties by rounding **away from zero** (so `round(0.5) → 1`), while over
+     * an approximate-value number (DOUBLE) the result depends on the C library,
+     * which rounds half to even on the usual platforms (so `round(0.5) → 0` and
+     * `round(2.5) → 2`). ts-sql-query rounds away from zero on every dialect, so
+     * by default the library casts the operand of `.round()` back to an exact type
+     * to make the behavior portable and predictable across dialects.
+     *
+     * Setting this flag to `true` opts out of the cast: the result of `.round()`
+     * then follows whatever `round(<double>)` does on the underlying C library.
+     * Use it when you want MariaDB's native semantics — typically because the
+     * application is single-dialect and prefers the IEEE 754 round-to-even
+     * tie-breaking common on modern systems, or because existing queries depend
+     * on it.
+     */
+    protected usePlatformDependentRound: boolean = false
+
     constructor(queryRunner: QueryRunner, sqlBuilder = new MariaDBSqlBuilder()) {
         super(queryRunner, sqlBuilder)
         queryRunner.useDatabase('mariaDB')

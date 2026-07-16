@@ -67,64 +67,196 @@ of that. Two minutes of triage and one paragraph is the bar.
 
 ## Open Bugs
 
-All three below were surfaced by running the `--docker` matrix. Each was
-introduced mock-baked and had never been real-validated, so each has been
-red since the test that covers it landed — none is a regression.
+Every entry below is a **silently wrong value** confirmed against a real
+engine, and every one is invisible to the matrix today — see
+"Why the suite can't see any of this" at the end of the date-part section.
 
-## MySQL: `cbrt()` loses precision because the emulation divides in DECIMAL
+## PostgreSQL: `getSeconds()` returns 60 and `getMilliseconds()` returns 0
 
-**Where**: `AbstractSqlBuilder._cbrt` (~line 3016), the shared base used by
-MySQL / MariaDB / SQLite / Oracle.
+**Where**: `PostgreSqlSqlBuilder._getSeconds` (~line 459) and
+`_getMilliseconds` (~462).
 
-**Reproduction**: the emission is
-`sign(x) * power(abs(x), 1.0 / 3.0)`. MySQL evaluates `1.0 / 3.0` as DECIMAL
-division and truncates it to the scale set by `div_precision_increment`
-(default 4) → `0.33333`, so the exponent loses ~11 digits:
+**Reproduction**: the emission is `extract(second from x)::integer`.
+`extract(second …)` returns a **numeric including the fraction** (`45.9996`),
+and PostgreSQL's `numeric::integer` cast **rounds** (away from zero) instead of
+truncating. Both methods mirror JavaScript's `Date` accessors, so `getSeconds()`
+is declared `int` (0–59) and `getMilliseconds()` `int` (0–999) — the values
+below cannot exist in the declared type. Probed against `postgres:18-alpine`:
 
 ```
-mysql> SELECT 1.0/3.0, power(8, 1.0/3.0), power(8, 1.0e0/3.0e0);
-+---------+---------------------+-----------------------+
-| 0.33333 | 1.999986137104434   | 2                     |
+                             lib_seconds  correct   lib_ms  correct
+ 12:30:45.9996                    46         45        0      999
+ 12:30:59.9996                    60 (!)     59        0      999
+ 12:30:59.5                       60 (!)     59      500      500
 ```
 
-`cbrt(8)` therefore returns `1.999986137104434` instead of `2`. A float
-divisor (`1.0e0 / 3.0e0`) yields exactly `2`.
+**Oracle spells the same concept `trunc(extract(second from x))`
+(`OracleSqlBuilder.ts:1055`)** — truncation is the library's own intended
+semantics, and PostgreSQL drifted from it. MySQL (`second()`), SQL Server
+(`datepart`) and SQLite (`strftime('%S')`) all truncate correctly.
 
-MariaDB emits the same SQL but its `POWER` returns exactly `2`, which is why
-only the mysql cell fails — MariaDB masks the defect rather than avoiding it.
-Note the SQL Server override at `SqlServerSqlBuilder._cbrt` (~1043) carries the
-same `1.0 / 3.0` literal.
+Fix verified on the same server: `trunc(extract(second from …))::integer` →
+45 / 59 / 59, and `trunc(extract(millisecond from …))::integer % 1000` →
+999 / 999 / 500.
+
+**Current workaround in the suite**: none — no test covers it (see below).
+
+## MySQL / MariaDB: `getMilliseconds()` returns 1000
+
+**Where**: `AbstractMySqlMariaBDSqlBuilder._getMilliseconds` (~line 560).
+
+**Reproduction**: the emission is `round(microsecond(x) / 1000)`.
+`microsecond()` is an int 0–999999, so `int / 1000` is an **exact** (DECIMAL)
+division, and MySQL rounds an exact operand **away from zero**. Probed against
+`mysql:9` and `mariadb:latest`:
+
+```
+ microsecond('12:30:45.999600') = 999600 → round(999600/1000) = 1000 (!)   floor → 999
+ microsecond('12:30:45.123500') = 123500 → round(123500/1000) =  124       floor → 123
+```
+
+`1000` is not a value `Date.getMilliseconds()` can return. Same family as the
+`_divide` / `_cbrt` defects fixed in this round: the operand is exact, so the
+engine applies its exact-arithmetic rules. Fix: `floor(microsecond(x) / 1000)`.
+
+**Current workaround in the suite**: none — no test covers it (see below).
+
+## SQLite: `getMilliseconds()` is off by one for 372 of 60 000 timestamps
+
+**Where**: `SqliteSqlBuilder._getMilliseconds` (~line 375, the default branch at
+~381).
+
+**Reproduction**: the emission is `strftime('%f', x) * 1000 % 1000`.
+`strftime('%f')` yields the **string** `"01.001"`, which coerces to a REAL
+(approximate) → `× 1000` = `1000.9999999999999` → SQLite's `%` casts its
+operands to integer, **truncating** → `1000 % 1000` = 0. So `12:30:01.001`
+returns `0` instead of `1`.
+
+The affected-seconds histogram is an IEEE binade fingerprint — only powers of
+two, doubling each step:
+
+| seconds field | 1 | 2 | 4 | 8 | 16 | 32 | total |
+|---|---|---|---|---|---|---|---|
+| wrong ms values | 12 | 12 | 24 | 47 | 92 | 185 | **372** |
+
+Affects every SQLite connector (it is an emission defect, not a driver one).
+The sibling branch at ~379 (`x % 1000`) is exact and correct — **the two
+branches of the same method disagree**, which is the tell. Fix:
+`cast(round(strftime('%f', x) * 1000) as integer) % 1000` → 0 of 60 000 wrong.
+
+**Current workaround in the suite**: none — no test covers it (see below).
+
+## SQLite: pre-1970 unix-ms timestamps truncate toward zero instead of down
+
+**Where**: `SqliteSqlBuilder.ts` ~309, 331, 339, 347, 355, 363, 371 and ~379 —
+the `'Unix time milliseconds as integer'` date format.
+
+**Reproduction**: the emission divides two integers (`x / 1000`), which SQLite
+truncates **toward zero** rather than flooring. Correct for positive timestamps,
+wrong for negative ones: with `x = -1500` (`1969-12-31 23:59:58.500`),
+`getSeconds()` returns `59` (correct: 58) and `x % 1000` returns `-500` — a
+negative millisecond. Narrow reach (pre-1970 dates in the ms-integer format
+only) but the same family. Fix: `cast(floor(x / 1000.0) as integer)`, and
+`((x % 1000) + 1000) % 1000` for the ms component.
+
+**Current workaround in the suite**: none — no test covers it.
+
+### Why the suite can't see any of the four above
+
+**No seeded fixture has sub-millisecond precision.** Every date-part bug above
+needs a timestamp with microseconds (`.9996`, `.999600`, `.001`) to surface;
+the baked snapshots only use `.123`-style values, where `round ≡ trunc` and the
+defect vanishes. The single highest-leverage change here is to add
+sub-millisecond fixtures — the emission bugs then surface on their own.
+
+The class was found by asking *"which dialects hand-spell one concept, and do
+they agree?"*: `getSeconds()` / `getMilliseconds()` are spelled independently in
+all five builders, three of them are wrong, and each is wrong in a different
+way. Oracle's `trunc(...)` is what revealed the intended semantics.
+
+## Five query runners lose `bigint` precision beyond 2^53
+
+**Where**: the query runners — `MySql2QueryRunner`, `OracleDBQueryRunner`,
+`BetterSqlite3QueryRunner`, `Sqlite3QueryRunner`, `NodeSqliteQueryRunner`.
+
+**Reproduction**: `tIssue.priority.asDouble().asBigint().add(9007199254740993n)`
+now emits SQL that computes `9007199254740995` **exactly** on every engine (the
+cast added in this round is what makes the arithmetic exact), but five runners
+marshal that result through a JavaScript number on the way back:
+
+| connector | returns | |
+|---|---|---|
+| `mysql2` | `9007199254740996n` | clean, wrong |
+| `oracledb` | `9007199254740996n` | clean, wrong |
+| `better-sqlite3` | `9007199254740996n` | clean, wrong |
+| `sqlite3` | `9007199254740994n` | clean, wrong |
+| `node_sqlite` | throws `SQL_INVALID_VALUE` | loud |
+| **pg, postgres, pglite, mssql, mariadb, bun_sql_*, sqlite-wasm-OO1, …** | **`9007199254740995n`** | **correct** |
+
+The value is integral, so `transformValueFromDB`'s `bigint` arm coerces it with
+`BigInt(...)` and hands the caller a **clean, wrong `bigint`** — no error, no
+warning. Only `node_sqlite` refuses (`RangeError: Value is too large to be
+represented as a JavaScript number`), which is why it is the loud one.
+
+Twelve of the seventeen cells return the exact value, so this is a runner
+configuration gap rather than an engine limit: each driver has a knob for it
+(`better-sqlite3` `safeIntegers`, `mysql2` `supportBigNumbers` /
+`bigNumberStrings`, `oracledb` fetch type handlers). The library declares the
+column `bigint`; the runner should be configured to preserve it.
 
 **Current workaround in the suite**:
-`mysql/newest/mysql2/select.numeric-ops.test.ts`, test
-`optional-double-receiver-unary-f1-fan-out` — the `cb` assertion pins the wrong
-value the engine returns today under a `// TODO[BUG]`.
+`{mysql/newest/mysql2, oracle/newest/oracledb, sqlite/newest/better-sqlite3,
+sqlite/newest/sqlite3, sqlite/newest/node_sqlite}/select.value-source.casts.test.ts`,
+test `asBigint-on-double-keeps-bigint-arithmetic-exact` — commented out with a
+`// TODO[BUG]` in those five cells; it runs and validates in the other twelve.
 
-## Oracle: an inline scalar subquery keeps its `ORDER BY`, which Oracle rejects
+## Oracle: an inline scalar subquery keeps a bare `ORDER BY`, which Oracle rejects
 
-**Where**: the `forUseAsInlineQueryValue()` emission path (the inline-scalar
-branch, as opposed to the aggregated-array branch).
+**Where**: `OracleSqlBuilder._buildSelectLimitOffset` (~line 617, injection at
+~620) — its gate, not the `forUseAsInlineQueryValue()` path itself.
 
 **Reproduction**: a one-column select carrying `orderBy` consumed via
 `.forUseAsInlineQueryValue()` renders as
 `(select ... from t window w1 as (...) order by "result")` in the SELECT list.
 Oracle rejects it with **ORA-00907: missing right parenthesis**.
 
-Probed directly against `gvenzl/oracle-free:23-slim-faststart` — the WINDOW
-clause is NOT the trigger:
+**The rule is narrower than "Oracle forbids ORDER BY in a scalar subquery"** —
+that premise was falsified by probing `gvenzl/oracle-free:23-slim-faststart`:
 
-| variant | result |
-|---|---|
-| top-level `window` + `order by` | OK |
-| scalar subquery, `window`, no `order by` | OK |
-| scalar subquery, `window` + `order by` | **ORA-00907** |
-| **scalar subquery, `order by`, NO window** | **ORA-00907** |
-| derived table, `window` + `order by` | OK |
+```
+(SELECT dummy FROM dual ORDER BY dummy)                             → ORA-00907
+(SELECT dummy FROM dual ORDER BY dummy OFFSET 0 ROWS)               → OK
+(SELECT dummy FROM dual WINDOW w1 AS (...) ORDER BY dummy
+                                          OFFSET 0 ROWS)            → OK
+```
 
-So the rule is simply that Oracle forbids `ORDER BY` inside a scalar subquery
-in the select list. The aggregated-array sibling
-(`...-in-inline-aggregated-array-value`) wraps its select in a derived table and
-runs fine on Oracle, so the wrap is the shape that already works here.
+Oracle rejects a **bare** `ORDER BY` in a scalar subquery but accepts one
+carrying a row-limiting clause. A live, green test proves it:
+`oracle/newest/oracledb/cte.recursive-union-variants.test.ts:1141`
+(`recursive-result-order-by-limit-inline-scalar-value`) emits
+`(select result ... order by result fetch next :1 rows only)` and runs against
+real Oracle.
+
+So the derived-table wrap is a red herring: what makes the aggregated-array
+sibling work is the `offset 0 rows` **inside** the wrap, not the wrap — Oracle
+silently *ignores* an `ORDER BY` in a derived table with no row-limiting clause
+(`OracleSqlBuilder.ts:621` says so itself).
+
+**SQL Server has the identical workaround and gates it on a different, working
+predicate** — `SqlServerSqlBuilder._buildSelectLimitOffset` (~344, injection at
+~360) fires on `!this._isCurrentRootQuery(query, params)`, which covers every
+non-root select; Oracle gates on `this._isAggregateArrayWrapped(params)`, which
+is true only inside the aggregate wrapper. **That divergence is the bug.**
+Converging Oracle onto SQL Server's predicate fixes this *and* the adjacent
+defect below, but needs one probe first: that the injection cannot reach a
+recursive CTE member, where `offset` is illegal.
+
+**Adjacent, not filed separately**: the same gate means an Oracle CTE body or
+derived table carrying `ORDER BY` outside the aggregate wrapper gets no
+`offset 0 rows`, and Oracle **silently ignores that ordering** (e.g.
+`cte.recursive-union-variants.test.ts:1279`, `:1040`,
+`customize-query.select.test.ts:249`). Semantic, not syntactic, and masked
+wherever the natural row order happens to match.
 
 **Current workaround in the suite**:
 `oracle/newest/oracledb/customize-query.select.test.ts`, test
@@ -132,30 +264,69 @@ runs fine on Oracle, so the wrap is the shape that already works here.
 — commented out with a `// TODO[BUG]` (line comments, because the body embeds
 `/* hint */` fragments).
 
-## SQL Server: `asBigint()` on a double declares `bigint` but emits `float`
+## Unreachable base-dialect methods that emit invalid or wrong SQL
 
-**Where**: `src/internal/ValueSourceImpl.ts:454` (`asBigint`; `asInt` at :448 has
-the same shape) + `SqlServerSqlBuilder._modulo` (~1005).
+**Where**: `AbstractSqlBuilder` — `_stringConcat` (~3454) / `_stringConcatDistinct`
+(~3463), `_getTime` (~3102), `_getMilliseconds` (~3123), `_getSeconds` (~3120).
 
-**Reproduction**: `tIssue.priority.asDouble().asBigint().modulo(2n)` emits
-`round(cast(priority as float), 0) % @1` and SQL Server rejects it with
-*"The data types float and bigint are incompatible in the modulo operator"*.
+**Reproduction**: all five are overridden by **every** dialect, so no connection
+reaches them today — they are dormant, not live defects. Each is nonetheless
+wrong, and would bite the first dialect that inherits one:
 
-`asBigint()` on a double builds `SqlOperation0ValueSource('_round', this,
-'bigint', 'bigint', ...)`: the declared type becomes `bigint` but the SQL
-expression is still `float` — no cast is emitted. SQL Server's `%` does not
-accept float, and the `_modulo` override that works around this by casting both
-operands to `numeric(38, 16)` only fires when the receiver is a **declared**
-double. After `asBigint()` it is a declared bigint, so the guard is skipped and
-the invalid `float % bigint` reaches the engine.
+- `_stringConcat` emits `string_concat(…)`, **a function no supported engine
+  has** (the real names are `string_agg` / `group_concat` / `listagg`).
+- `_getTime` emits `extract(epoch from x)` → **seconds**, while every override
+  returns **milliseconds** — a 1000× divergence.
+- `_getMilliseconds` emits `extract(millisecond from x)` → `45123`
+  (sec × 1000 + ms), not the 0–999 component; the `% 1000` is missing.
+- `_getSeconds` emits `extract(second from x)` → a fractional `45.123` for a
+  declared `int`.
 
-Needs a design decision: there is no `_asInt` / `_asBigint` hook on
-`SqlBuilder` today, so a dialect cannot make the cast explicit
-(e.g. `cast(round(x, 0) as bigint)`).
+This is the same shape as the `_divide` base, which emitted
+`cast(… as double presition)` — a typo, i.e. invalid SQL — from the **initial
+release** until it was fixed in this round, unnoticed for the library's entire
+life because all six dialects overrode it. A designated base dialect that no
+dialect reaches is not dead code; it is untested code.
 
-**Current workaround in the suite**:
-`sqlserver/newest/mssql/select.value-source.casts.test.ts`, test
-`asBigint-on-double-chained-into-bigint-op` — commented out with a `// TODO[BUG]`.
+**Current workaround in the suite**: none — unreachable code is uncovered by
+construction. Either fix them or make them `abstract`.
+
+## SQL Server: `getDay()` depends on the session's `SET DATEFIRST`
+
+**Where**: `SqlServerSqlBuilder._getDay` (~line 1069).
+
+**Reproduction**: the emission is `datepart(weekday, x) - 1`. T-SQL's
+`DATEPART(weekday, …)` is affected by **`SET DATEFIRST` / the session
+language**, so the result is only correct under the `us_english` default
+(DATEFIRST 7). Every other dialect emits a session-independent expression, and
+`getDay()` mirrors JavaScript's `Date.getDay()` (0 = Sunday), which has no
+session concept. A deterministic emission would be
+`(datepart(weekday, x) + @@DATEFIRST - 1) % 7`.
+
+**NOT probed** — filed from reading the code plus the T-SQL docs; confirm
+against a session with a non-default `DATEFIRST` before fixing.
+
+**Current workaround in the suite**: none — the matrix only ever connects with
+the default session settings, so the defect cannot surface there.
+
+## MariaDB: `uuidStrategy` is documented but does nothing
+
+**Where**: `MariaDBConnection.ts:19` declares `uuidStrategy: 'string' | 'uuid'`,
+and `docs/configuration/supported-databases/mariadb.md:103-109` instructs users
+to override it.
+
+**Reproduction**: `MariaDBSqlBuilder` and `AbstractMySqlMariaBDSqlBuilder`
+contain **zero** references to `uuidStrategy`, `_getUuidStrategy`, `_asString`
+or `_isUuid` — MySQL, SQLite and Oracle each declare their own
+`_getUuidStrategy()`, and there is no base implementation to inherit. Both
+MariaDB strategies happen to need no SQL conversion, so no value is wrong
+today; the option is simply inert while the docs promise it works.
+
+Either wire it up or remove it from the connection and the docs page. Note the
+uuid→string concept is hand-spelled in five places with no shared seam — the
+same drift generator as the date-part extractors above.
+
+**Current workaround in the suite**: none.
 
 ## Common bug shapes (for the fixing agent)
 

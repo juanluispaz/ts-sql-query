@@ -152,7 +152,7 @@ describe(ctx.label, () => {
                 l10: m.log10(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, sqrt(?) as sq, sign(?) * power(abs(?), 1.0 / 3.0) as cb, exp(?) as "e", ln(?) as "l", log10(?) as l10 from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, sqrt(?) as sq, sign(?) * power(abs(?), 1.0e0 / 3.0e0) as cb, exp(?) as "e", ln(?) as "l", log10(?) as l10 from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             4,
@@ -254,7 +254,7 @@ describe(ctx.label, () => {
         } else {
             expect(result).toEqual(expected)
         }
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, power(?, ?) as "p", log(?, ?) as ln, round(?, ?) as rn, cast(? as real) / cast(? as real) as di, atan2(?, ?) as at2 from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, power(?, ?) as "p", log(?, ?) as ln, round(?, ?) as rn, cast(? as real) / ? as di, atan2(?, ?) as at2 from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             8,
@@ -287,7 +287,7 @@ describe(ctx.label, () => {
                 asBig: d.asBigint(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round(?) as asInt, round(?) as asBig from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(round(?) as integer) as asInt, cast(round(?) as integer) as asBig from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1.7,
@@ -902,7 +902,7 @@ describe(ctx.label, () => {
                 cb: money.cbrt(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs(?) as ab, ceil(?) as ce, floor(?) as fl, round(?) as ro, exp(?) as ex, ln(?) as "l", log10(?) as l10, sign(?) * power(abs(?), 1.0 / 3.0) as cb from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs(?) as ab, ceil(?) as ce, floor(?) as fl, round(?) as ro, exp(?) as ex, ln(?) as "l", log10(?) as l10, sign(?) * power(abs(?), 1.0e0 / 3.0e0) as cb from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             4,
@@ -1121,7 +1121,7 @@ describe(ctx.label, () => {
                 mo: money.modulo(base),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(? as real) / cast(? as real) as di, ? % ? as mo from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(? as real) / ? as di, ? % ? as mo from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             8,

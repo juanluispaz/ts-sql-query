@@ -1791,7 +1791,7 @@ describe(ctx.label, () => {
                 ign: tIssue.priority.asDouble().ignoreWhenAsNull(true),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority * 1.0 as req, null as own, null as ign from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(priority as double) as req, null as own, null as ign from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

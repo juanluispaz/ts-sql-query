@@ -42,10 +42,11 @@ export abstract class PostgreSqlConnection<NAME extends string> extends Abstract
      * **away from zero** (so `round(0.5) → 1`), while `round(double
      * precision)` defers to libm — *"the tie-breaking behavior is platform
      * dependent, but 'round to nearest even' is the most common rule"* (so
-     * `round(0.5) → 0` on most systems). Every other dialect ts-sql-query
-     * supports rounds away from zero, so by default the library casts the
-     * operand of `.round()` to `numeric` on PostgreSQL to make the behavior
-     * portable and predictable across dialects.
+     * `round(0.5) → 0` on most systems). ts-sql-query rounds away from zero on
+     * every dialect, so by default the library casts the operand of `.round()`
+     * to `numeric` on PostgreSQL to make the behavior portable and predictable
+     * across dialects. MySQL / MariaDB draw the same distinction between exact
+     * and approximate operands and carry the same flag.
      *
      * Setting this flag to `true` opts out of the cast: the result of
      * `.round()` then follows whatever `round(double precision)` does on the

@@ -54,7 +54,9 @@ PostgreSQL has two overloads of its native `round` function — `round(numeric)`
 >
 > `round(double precision)` → rounds to nearest integer; the tie-breaking behavior is **platform dependent**, but *"round to nearest even"* is the most common rule (so `round(0.5) → 0` on most systems).
 
-Every other dialect ts-sql-query supports (MariaDB, MySQL, Oracle, SQL Server, SQLite) breaks ties away from zero, matching JavaScript's `Math.round` for positive `.5` values. To keep `.round()` predictable and portable, **the PostgreSQL connection casts the operand to `numeric` before applying `round`**, so `value.round()` always rounds ties away from zero regardless of the operand's type.
+ts-sql-query breaks ties away from zero on every dialect, matching JavaScript's `Math.round` for positive `.5` values. To keep `.round()` predictable and portable, **the PostgreSQL connection casts the operand to `numeric` before applying `round`**, so `value.round()` always rounds ties away from zero regardless of the operand's type.
+
+[MySQL](mysql.md#rounding-behavior) and [MariaDB](mariadb.md#rounding-behavior) draw the same distinction between exact and approximate operands and carry the same `usePlatformDependentRound` flag; Oracle, SQL Server and SQLite round away from zero natively and need no cast.
 
 For example, `tIssue.priority.divide(2).round()` (where `priority = 1`) yields `round(0.5) = 1` on every dialect, including PostgreSQL.
 

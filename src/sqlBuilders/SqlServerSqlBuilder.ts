@@ -27,27 +27,6 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         }
         return super._appendRawColumnName(column, params)
     }
-    override _average(params: any[], value: any): string {
-        return 'avg(' + this._averageOperandSql(value, params) + ')'
-    }
-    override _averageDistinct(params: any[], value: any): string {
-        return 'avg(distinct ' + this._averageOperandSql(value, params) + ')'
-    }
-    private _averageOperandSql(value: any, params: any[]): string {
-        // SQL Server `AVG` truncates integer operands to int (returning 2
-        // for `AVG({1, 2, 4})` instead of 2.333) — historical T-SQL
-        // semantics that diverge from every other supported dialect.
-        // `average(...)` / `averageDistinct(...)` exposes a fractional
-        // `NumberValueSource<..., 'optional'>` on the typed surface for
-        // all dialects, so casting an integer operand to `float` here
-        // homogenises the runtime result without forcing the lib's
-        // caller to wrap the column themselves.
-        const valueType = __getValueSourcePrivate(value).__valueType
-        if (valueType === 'int' || valueType === 'bigint' || valueType === 'customInt') {
-            return 'cast(' + this._appendSql(value, params, false) + ' as float)'
-        }
-        return this._appendSql(value, params, false)
-    }
     override _forceAsIdentifier(identifier: string): string {
         return '[' + identifier + ']'
     }
@@ -995,8 +974,11 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     override _random(): string {
         return 'rand()'
     }
-    override _divide(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return 'cast(' + this._appendSql(valueSource, params, false) + ' as float) / cast(' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false) + ' as float)'
+    override _appendCastAsDouble(sql: string): string {
+        return 'cast(' + sql + ' as float)'
+    }
+    override _appendCastAsInteger(sql: string): string {
+        return 'cast(' + sql + ' as bigint)'
     }
     override _modulo(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         if (this._moduloRequiresFloatHandling(columnType, value)) {
@@ -1009,9 +991,6 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             return 'cast(' + this._appendSql(valueSource, params, false) + ' as numeric(38, 16)) % cast(' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false) + ' as numeric(38, 16))'
         }
         return super._modulo(params, valueSource, value, columnType, columnTypeName, typeAdapter)
-    }
-    override _asDouble(params: any[], valueSource: ToSql): string {
-        return 'cast(' + this._appendSql(valueSource, params, false) + ' as float)'
     }
     override _concat(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         let result = ''
@@ -1040,11 +1019,11 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         // single-arg form `round(x)` is rejected.
         return 'round(' + this._appendSql(valueSource, params, false) + ', 0)'
     }
-    override _cbrt(params: any[], valueSource: ToSql): string {
+    override _cbrtRadicand(params: any[], valueSource: ToSql): string {
         // T-SQL's POWER returns the data type of the first argument, so
-        // `power(int, float)` truncates to int. Cast the operand to float
+        // `power(int, float)` truncates to int. Cast the radicand to float
         // so the cube-root emulation returns a fractional result.
-        return 'sign(' + this._appendSql(valueSource, params, false) + ') * power(cast(abs(' + this._appendSql(valueSource, params, false) + ') as float), 1.0 / 3.0)'
+        return this._appendCastAsDouble('abs(' + this._appendSql(valueSource, params, false) + ')')
     }
     override _ln(params: any[], valueSource: ToSql): string {
         return 'log(' + this._appendSql(valueSource, params, false) + ')'

@@ -389,6 +389,8 @@ export interface SqlFunction0 {
     _reverse(params: any[], valueSource: ToSql): string
     // Number functions
     _asDouble(params: any[], valueSource: ToSql): string
+    _asInt(params: any[], valueSource: ToSql): string
+    _asBigint(params: any[], valueSource: ToSql): string
     _abs(params: any[], valueSource: ToSql): string
     _ceil(params: any[], valueSource: ToSql): string
     _floor(params: any[], valueSource: ToSql): string

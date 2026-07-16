@@ -2986,8 +2986,53 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _reverse(params: any[], valueSource: ToSql): string {
         return 'reverse(' + this._appendSql(valueSource, params, false) + ')'
     }
+    /**
+     * The numeric kind of the SQL an operand emits:
+     *
+     * - `approximate`: a floating point expression.
+     * - `exact`: an integer or fixed point expression. Engines divide two exact operands
+     *   exactly — or as an integer division, dropping the fractional part entirely.
+     * - `unknown`: the declared type doesn't say. A `customDouble` is declared by the
+     *   application and may be backed by either (a DECIMAL money column, say), and anything
+     *   that is not a value source is a bound value or a raw fragment.
+     *
+     * Engines apply different rules to each — division, rounding tie-breaks — so a dialect
+     * telling them apart asks here instead of guessing from the emitted string. **When the
+     * kind is `unknown` the caller must take the safe branch**, which is always to cast.
+     */
+    _numericKindOf(operand: any): 'approximate' | 'exact' | 'unknown' {
+        if (!isValueSource(operand)) {
+            return 'unknown'
+        }
+        switch (__getValueSourcePrivate(operand).__valueType) {
+            case 'double':
+                return 'approximate'
+            case 'int':
+            case 'bigint':
+            case 'customInt':
+                return 'exact'
+            default:
+                return 'unknown'
+        }
+    }
+    _appendCastAsDouble(sql: string): string {
+        return 'cast(' + sql + ' as real)'
+    }
+    _appendCastAsInteger(sql: string): string {
+        return 'cast(' + sql + ' as integer)'
+    }
     _asDouble(params: any[], valueSource: ToSql): string {
-        return 'cast(' + this._appendSql(valueSource, params, false) + ' as real)'
+        return this._appendCastAsDouble(this._appendSqlParenthesis(valueSource, params, false))
+    }
+    _asInt(params: any[], valueSource: ToSql): string {
+        // The value is rounded first (the declared type is an integer one) and then cast,
+        // so the emitted SQL type matches the type declared to the user. Without the cast
+        // the expression stays a floating point one, and any later integer arithmetic is
+        // computed in floating point, silently losing precision beyond 2^53.
+        return this._appendCastAsInteger(this._round(params, valueSource))
+    }
+    _asBigint(params: any[], valueSource: ToSql): string {
+        return this._appendCastAsInteger(this._round(params, valueSource))
     }
     _abs(params: any[], valueSource: ToSql): string {
         return 'abs(' + this._appendSql(valueSource, params, false) + ')'
@@ -3014,10 +3059,18 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return 'sqrt(' + this._appendSql(valueSource, params, false) + ')'
     }
     _cbrt(params: any[], valueSource: ToSql): string {
-        // No portable native CBRT exists across engines, and `power(x, 1.0 / 3.0)` returns NaN
+        // No portable native CBRT exists across engines, and `power(x, 1/3)` returns NaN
         // (or an error) for negative x on every engine except PostgreSQL. Emulate the cube
-        // root as `sign(x) * power(abs(x), 1.0 / 3.0)` so it works for the full real domain.
-        return 'sign(' + this._appendSql(valueSource, params, false) + ') * power(abs(' + this._appendSql(valueSource, params, false) + '), 1.0 / 3.0)'
+        // root as `sign(x) * power(abs(x), 1/3)` so it works for the full real domain.
+        //
+        // The exponent is spelled with an exponent marker so every engine reads it as an
+        // approximate (floating point) literal. Written as `1.0 / 3.0` it is an exact
+        // literal on MySQL / MariaDB (DECIMAL) and SQL Server (numeric), where the division
+        // truncates to a handful of decimals and the exponent loses most of its digits.
+        return 'sign(' + this._appendSql(valueSource, params, false) + ') * power(' + this._cbrtRadicand(params, valueSource) + ', 1.0e0 / 3.0e0)'
+    }
+    _cbrtRadicand(params: any[], valueSource: ToSql): string {
+        return 'abs(' + this._appendSql(valueSource, params, false) + ')'
     }
     _sign(params: any[], valueSource: ToSql): string {
         return 'sign(' + this._appendSql(valueSource, params, false) + ')'
@@ -3252,7 +3305,19 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return this._appendSqlParenthesisExcluding(valueSource, params, '_multiply', false) + ' * ' + this._appendValueParenthesisExcluding(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, '_multiply', false)
     }
     _divide(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return 'cast(' + this._appendSql(valueSource, params, false) + ' as real) / cast(' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false) + ' as real)'
+        // `divide` always yields a double — it mirrors JavaScript's `/`, which has no
+        // integer division. Engines are not so kind: dividing two exact operands either
+        // truncates the quotient (MySQL / MariaDB cut it at div_precision_increment
+        // decimals) or drops the fraction outright (`1 / 3` is `0` on PostgreSQL and
+        // SQL Server). A single floating point operand makes the whole division floating
+        // point on every dialect, so the cast is emitted only when neither operand is
+        // already known to be one.
+        const dividend = this._appendSqlParenthesis(valueSource, params, false)
+        const divisor = this._appendValueParenthesis(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false)
+        if (this._numericKindOf(valueSource) === 'approximate' || this._numericKindOf(value) === 'approximate') {
+            return dividend + ' / ' + divisor
+        }
+        return this._appendCastAsDouble(dividend) + ' / ' + divisor
     }
     _modulo(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         return this._appendSqlParenthesis(valueSource, params, false) + ' % ' + this._appendValueParenthesis(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false)
@@ -3368,10 +3433,23 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return 'sum(distinct ' + this._appendSql(value, params, false) + ')'
     }
     _average(params: any[], value: any): string {
-        return 'avg(' + this._appendSql(value, params, false) + ')'
+        return 'avg(' + this._averageOperandSql(params, value) + ')'
     }
     _averageDistinct(params: any[], value: any): string {
-        return 'avg(distinct ' + this._appendSql(value, params, false) + ')'
+        return 'avg(distinct ' + this._averageOperandSql(params, value) + ')'
+    }
+    _averageOperandSql(params: any[], value: any): string {
+        // `average` exposes a fractional NumberValueSource on the typed surface of every
+        // dialect, but an engine averaging an exact operand answers in an exact type, and
+        // each one loses a different amount of the fraction: SQL Server truncates to the
+        // integer itself (`avg({1, 2, 4})` is `2`, not `2.333`), MySQL / MariaDB answer in
+        // DECIMAL cut at div_precision_increment decimals (`1.6667`, not
+        // `1.6666666666666667`). Casting an exact operand homogenises the result without
+        // making the caller wrap the column themselves.
+        if (this._numericKindOf(value) === 'exact') {
+            return this._appendCastAsDouble(this._appendSql(value, params, false))
+        }
+        return this._appendSql(value, params, false)
     }
     _stringConcat(params: any[], separator: string | undefined, value: any): string {
         if (separator === undefined || separator === null) {

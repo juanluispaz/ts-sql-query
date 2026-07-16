@@ -4,8 +4,8 @@
 // per-dialect rendering.
 //
 //   - `.asDouble()`             → cast to a floating-point type
-//   - `.asInt()` on a double    → emulated via `round(...)`
-//   - `.asBigint()` on a double → emulated via `round(...)`
+//   - `.asInt()` on a double    → `round(...)` cast to an integer type
+//   - `.asBigint()` on a double → `round(...)` cast to an integer type
 //   - `.asInt()` / `.asBigint()` on an int — typed-only noop in SQL
 //
 // `.asString()` is only typed on UUID/CustomUuid value sources, so it
@@ -107,7 +107,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round(cast(priority as float) / cast(@0 as float), 0) as rounded from issue where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(round(cast(priority as float) / @0, 0) as bigint) as rounded from issue where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -130,7 +130,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round(cast(priority as float) / cast(@0 as float), 0) as rounded from issue where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(round(cast(priority as float) / @0, 0) as bigint) as rounded from issue where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -155,7 +155,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round(cast(priority as float), 0) as [p] from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(round(cast(priority as float), 0) as bigint) as [p] from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -189,37 +189,64 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ id: number; a?: number }>>>()
     })
 
-    // TODO[BUG]: see BUGS.md — asBigint() on a double emits round(<double>, 0) and declares the result bigint to TypeScript, but the SQL expression stays float; SQL Server's % rejects float, and the dialect guard that casts both operands to numeric only fires for a DECLARED double, so this emits float % bigint and the engine rejects it.
-    // test('asBigint-on-double-chained-into-bigint-op', async () => {
-    //     // A DOUBLE value's `.asBigint()` feeding downstream BIGINT ops. The receiver
-    //     // is `priority.asDouble()`
-    //     // (int→double, priority(id=1)=2 → 2.0); `.asBigint()` on a double
-    //     // rounds back to an integer (`round((priority::float)::numeric)`), and
-    //     // the `.add(2n)` / `.modulo(2n)` ops wrap that rounded expression.
-    //     // priority(1)=2 → asBigint 2 → add(2n)=4n, modulo(2n)=0n. Required
-    //     // receiver → required `bigint` leaves. A bigint result can come back as
-    //     // a string on some drivers, so the real-DB branch coerces through
-    //     // BigInt(...).
-    //     const expected = [{ id: 1, a: 4n, m: 0n }]
-    //     ctx.mockNext(expected)
-    //     const result = await ctx.conn.selectFrom(tIssue)
-    //         .where(tIssue.id.equals(1))
-    //         .select({
-    //             id: tIssue.id,
-    //             a:  tIssue.priority.asDouble().asBigint().add(2n),
-    //             m:  tIssue.priority.asDouble().asBigint().modulo(2n),
-    //         })
-    //         .executeSelectMany()
-    //
-    //     expect(ctx.lastSql).toMatchInlineSnapshot()
-    //     expect(ctx.lastParams).toMatchInlineSnapshot()
-    //     assertType<Exact<typeof result, Array<{ id: number; a: bigint; m: bigint }>>>()
-    //     if (ctx.realDbEnabled) {
-    //         expect(BigInt(result[0]!.a)).toBe(4n)
-    //         expect(BigInt(result[0]!.m)).toBe(0n)
-    //     } else {
-    //         expect(result).toEqual(expected)
-    //     }
-    // })
+    test('asBigint-on-double-chained-into-bigint-op', async () => {
+        // A DOUBLE value's `.asBigint()` feeding downstream BIGINT ops. The receiver
+        // is `priority.asDouble()` (int→double, priority(id=1)=2 → 2.0); `.asBigint()`
+        // on a double rounds back to an integer and casts the rounded expression to
+        // the dialect's 64 bits integer type, so the SQL it emits carries the type the
+        // leaves are declared with. The `.add(2n)` / `.modulo(2n)` ops then wrap that
+        // cast expression: `%` rejects a float receiver here, and integer arithmetic on
+        // a float expression would be computed in floating point.
+        // priority(1)=2 → asBigint 2 → add(2n)=4n, modulo(2n)=0n. Required receiver →
+        // required `bigint` leaves.
+        const expected = [{ id: 1, a: 4n, m: 0n }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                a:  tIssue.priority.asDouble().asBigint().add(2n),
+                m:  tIssue.priority.asDouble().asBigint().modulo(2n),
+            })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(round(cast(priority as float), 0) as bigint) + @0 as [a], cast(round(cast(priority as float), 0) as bigint) % @1 as [m] from issue where id = @2"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2n,
+            2n,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; a: bigint; m: bigint }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('asBigint-on-double-keeps-bigint-arithmetic-exact', async () => {
+        // The cast `asBigint()` emits is what keeps the arithmetic exact: computed in
+        // floating point, an operand beyond 2^53 loses its last digits and the result
+        // comes back integral — so the value reaching the caller is a clean, wrong
+        // bigint rather than an error. 2 + 9007199254740993 is the first sum a double
+        // cannot represent.
+        const expected = [{ id: 1, big: 9007199254740995n }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id:  tIssue.id,
+                big: tIssue.priority.asDouble().asBigint().add(9007199254740993n),
+            })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(round(cast(priority as float), 0) as bigint) + @0 as big from issue where id = @1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            9007199254740993n,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; big: bigint }>>>()
+        expect(result).toEqual(expected)
+    })
 
 })

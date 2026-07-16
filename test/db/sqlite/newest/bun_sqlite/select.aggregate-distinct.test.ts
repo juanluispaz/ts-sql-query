@@ -44,7 +44,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select avg(distinct priority) as avgDistinctPriority from issue"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select avg(distinct cast(priority as real)) as avgDistinctPriority from issue"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof row, { avgDistinctPriority?: number }>>()
         if (!ctx.realDbEnabled) expect(row.avgDistinctPriority).toBe(2)
@@ -70,7 +70,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select avg(distinct priority) as avgPriority from issue where project_id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select avg(distinct cast(priority as real)) as avgPriority from issue where project_id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

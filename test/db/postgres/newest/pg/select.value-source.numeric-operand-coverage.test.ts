@@ -173,7 +173,7 @@ describe(ctx.label, () => {
                 at: base.atan2(2),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, log(($1)::numeric, (priority::float)::numeric) as ln, priority::float::float / $2::float as di, atan2(priority::float, $3) as at from issue where id = $4"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, log(($1)::numeric, (priority::float)::numeric) as ln, priority::float / $2 as di, atan2(priority::float, $3) as at from issue where id = $4"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -214,7 +214,7 @@ describe(ctx.label, () => {
                 ln: tIssueWorklog.billedAmount.logn(200),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, billed_amount::float / $1::float as di, atan2(billed_amount, $2) as at, log(($3)::numeric, (billed_amount)::numeric) as ln from issue_worklog where id = $4"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, billed_amount::float / $1 as di, atan2(billed_amount, $2) as at, log(($3)::numeric, (billed_amount)::numeric) as ln from issue_worklog where id = $4"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             4,
@@ -888,7 +888,7 @@ describe(ctx.label, () => {
                 at: tIssue.priority.atan2(sub()),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority::float / (select max(id) as result from project)::float as di, log(((select max(id) as result from project))::numeric, (priority)::numeric) as ln, round((priority)::numeric, (select max(id) as result from project)) as rn, atan2(priority, (select max(id) as result from project)) as at from issue where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority::float / (select max(id) as result from project) as di, log(((select max(id) as result from project))::numeric, (priority)::numeric) as ln, round((priority)::numeric, (select max(id) as result from project)) as rn, atan2(priority, (select max(id) as result from project)) as at from issue where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -939,7 +939,7 @@ describe(ctx.label, () => {
                 mx: base().maxValue(sub()),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority::float - (select max(id)::float as result from project) as "s", priority::float * (select max(id)::float as result from project) as mu, priority::float::float / (select max(id)::float as result from project)::float as di, mod((priority::float)::numeric, ((select max(id)::float as result from project))::numeric) as mo, power(priority::float, (select max(id)::float as result from project)) as pw, log(((select max(id)::float as result from project))::numeric, (priority::float)::numeric) as ln, round((priority::float)::numeric, $1) as rn, atan2(priority::float, (select max(id)::float as result from project)) as at, greatest(priority::float, (select max(id)::float as result from project)) as mn, least(priority::float, (select max(id)::float as result from project)) as mx from issue where id = $2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority::float - (select max(id)::float as result from project) as "s", priority::float * (select max(id)::float as result from project) as mu, priority::float / (select max(id)::float as result from project) as di, mod((priority::float)::numeric, ((select max(id)::float as result from project))::numeric) as mo, power(priority::float, (select max(id)::float as result from project)) as pw, log(((select max(id)::float as result from project))::numeric, (priority::float)::numeric) as ln, round((priority::float)::numeric, $1) as rn, atan2(priority::float, (select max(id)::float as result from project)) as at, greatest(priority::float, (select max(id)::float as result from project)) as mn, least(priority::float, (select max(id)::float as result from project)) as mx from issue where id = $2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -1078,7 +1078,7 @@ describe(ctx.label, () => {
                     ad:  tIssue.estimatedHours.asDouble(),
                 })
                 .executeSelectOne()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs(estimated_hours) as ab, ceil(estimated_hours) as ce, floor(estimated_hours) as fl, sign(estimated_hours) as sg, exp(estimated_hours) as ex, ln(estimated_hours) as "l", log(estimated_hours) as l10, cbrt(estimated_hours) as cb, round((estimated_hours)::numeric) as ai, round((estimated_hours)::numeric) as abi, estimated_hours::float as ad from issue where id = $1"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs(estimated_hours) as ab, ceil(estimated_hours) as ce, floor(estimated_hours) as fl, sign(estimated_hours) as sg, exp(estimated_hours) as ex, ln(estimated_hours) as "l", log(estimated_hours) as l10, cbrt(estimated_hours) as cb, round((estimated_hours)::numeric)::bigint as ai, round((estimated_hours)::numeric)::bigint as abi, estimated_hours::float as ad from issue where id = $1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -1236,7 +1236,7 @@ describe(ctx.label, () => {
                 dv: tIssue.priority.divide(tIssue.id),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority::float / id::float as dv from issue where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority::float / id as dv from issue where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

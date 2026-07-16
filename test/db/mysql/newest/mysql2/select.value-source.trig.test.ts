@@ -31,7 +31,7 @@ describe(ctx.label, () => {
         } else {
             expect(result).toEqual(expected)
         }
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, acos(priority / ?) as \`v\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, acos(cast(priority as double) / ?) as \`v\` from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             10,
@@ -57,7 +57,7 @@ describe(ctx.label, () => {
         } else {
             expect(result).toEqual(expected)
         }
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, asin(priority / ?) as \`v\` from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, asin(cast(priority as double) / ?) as \`v\` from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             10,
@@ -307,7 +307,7 @@ describe(ctx.label, () => {
                 ta: tIssue.priority.asDouble().divide(10).tan(),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, acos((priority * 1.0) / ?) as ac, asin((priority * 1.0) / ?) as \`as\`, atan((priority * 1.0) / ?) as \`at\`, cos((priority * 1.0) / ?) as co, sin((priority * 1.0) / ?) as si, tan((priority * 1.0) / ?) as ta from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, acos(cast(priority as double) / ?) as ac, asin(cast(priority as double) / ?) as \`as\`, atan(cast(priority as double) / ?) as \`at\`, cos(cast(priority as double) / ?) as co, sin(cast(priority as double) / ?) as si, tan(cast(priority as double) / ?) as ta from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             10,
@@ -347,7 +347,7 @@ describe(ctx.label, () => {
                 ct: tIssue.priority.asDouble().divide(10).cot(),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cot((priority * 1.0) / ?) as ct from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cot(cast(priority as double) / ?) as ct from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             10,
@@ -387,7 +387,7 @@ describe(ctx.label, () => {
                 ta: tIssue.assigneeId.divide(2).tan(),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, acos(assignee_id / ?) as ac, asin(assignee_id / ?) as \`as\`, atan(assignee_id / ?) as \`at\`, cos(assignee_id / ?) as co, sin(assignee_id / ?) as si, tan(assignee_id / ?) as ta from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, acos(cast(assignee_id as double) / ?) as ac, asin(cast(assignee_id as double) / ?) as \`as\`, atan(cast(assignee_id as double) / ?) as \`at\`, cos(cast(assignee_id as double) / ?) as co, sin(cast(assignee_id as double) / ?) as si, tan(cast(assignee_id as double) / ?) as ta from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -428,7 +428,7 @@ describe(ctx.label, () => {
                 ct: tIssue.assigneeId.divide(2).cot(),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cot(assignee_id / ?) as ct from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cot(cast(assignee_id as double) / ?) as ct from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,

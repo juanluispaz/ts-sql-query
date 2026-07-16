@@ -1008,6 +1008,10 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         return 'nvl(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, false) + ')'
     }
     override _divide(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        // Unlike the other dialects, Oracle divides in NUMBER, which is exact to 38
+        // significant digits — more precision than the double this operation yields.
+        // Casting the operands to float here would *lose* precision instead of
+        // preserving it, so the bare division is the correct emission on Oracle.
         return this._appendSqlParenthesis(valueSource, params, false) + ' / ' + this._appendValueParenthesis(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false)
     }
     override _modulo(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
@@ -1015,8 +1019,12 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         // Use the built-in MOD(a, b) function instead.
         return 'mod(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false) + ')'
     }
-    override _asDouble(params: any[], valueSource: ToSql): string {
-        return 'cast(' + this._appendSql(valueSource, params, false) + ' as float)'
+    override _appendCastAsDouble(sql: string): string {
+        return 'cast(' + sql + ' as float)'
+    }
+    override _appendCastAsInteger(sql: string): string {
+        // Oracle has no bigint; NUMBER(38) is its 64 bits (and wider) integer type.
+        return 'cast(' + sql + ' as number(38))'
     }
     override _log10(params: any[], valueSource: ToSql): string {
         // Oracle's LOG signature is LOG(base, value), so the base 10 goes first.

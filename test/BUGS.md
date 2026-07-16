@@ -67,84 +67,10 @@ of that. Two minutes of triage and one paragraph is the bar.
 
 ## Open Bugs
 
-Every entry below is a **silently wrong value** confirmed against a real
-engine, and every one is invisible to the matrix today — see
-"Why the suite can't see any of this" at the end of the date-part section.
-
-## PostgreSQL: `getSeconds()` returns 60 and `getMilliseconds()` returns 0
-
-**Where**: `PostgreSqlSqlBuilder._getSeconds` (~line 459) and
-`_getMilliseconds` (~462).
-
-**Reproduction**: the emission is `extract(second from x)::integer`.
-`extract(second …)` returns a **numeric including the fraction** (`45.9996`),
-and PostgreSQL's `numeric::integer` cast **rounds** (away from zero) instead of
-truncating. Both methods mirror JavaScript's `Date` accessors, so `getSeconds()`
-is declared `int` (0–59) and `getMilliseconds()` `int` (0–999) — the values
-below cannot exist in the declared type. Probed against `postgres:18-alpine`:
-
-```
-                             lib_seconds  correct   lib_ms  correct
- 12:30:45.9996                    46         45        0      999
- 12:30:59.9996                    60 (!)     59        0      999
- 12:30:59.5                       60 (!)     59      500      500
-```
-
-**Oracle spells the same concept `trunc(extract(second from x))`
-(`OracleSqlBuilder.ts:1055`)** — truncation is the library's own intended
-semantics, and PostgreSQL drifted from it. MySQL (`second()`), SQL Server
-(`datepart`) and SQLite (`strftime('%S')`) all truncate correctly.
-
-Fix verified on the same server: `trunc(extract(second from …))::integer` →
-45 / 59 / 59, and `trunc(extract(millisecond from …))::integer % 1000` →
-999 / 999 / 500.
-
-**Current workaround in the suite**: none — no test covers it (see below).
-
-## MySQL / MariaDB: `getMilliseconds()` returns 1000
-
-**Where**: `AbstractMySqlMariaBDSqlBuilder._getMilliseconds` (~line 560).
-
-**Reproduction**: the emission is `round(microsecond(x) / 1000)`.
-`microsecond()` is an int 0–999999, so `int / 1000` is an **exact** (DECIMAL)
-division, and MySQL rounds an exact operand **away from zero**. Probed against
-`mysql:9` and `mariadb:latest`:
-
-```
- microsecond('12:30:45.999600') = 999600 → round(999600/1000) = 1000 (!)   floor → 999
- microsecond('12:30:45.123500') = 123500 → round(123500/1000) =  124       floor → 123
-```
-
-`1000` is not a value `Date.getMilliseconds()` can return. Same family as the
-`_divide` / `_cbrt` defects fixed in this round: the operand is exact, so the
-engine applies its exact-arithmetic rules. Fix: `floor(microsecond(x) / 1000)`.
-
-**Current workaround in the suite**: none — no test covers it (see below).
-
-## SQLite: `getMilliseconds()` is off by one for 372 of 60 000 timestamps
-
-**Where**: `SqliteSqlBuilder._getMilliseconds` (~line 375, the default branch at
-~381).
-
-**Reproduction**: the emission is `strftime('%f', x) * 1000 % 1000`.
-`strftime('%f')` yields the **string** `"01.001"`, which coerces to a REAL
-(approximate) → `× 1000` = `1000.9999999999999` → SQLite's `%` casts its
-operands to integer, **truncating** → `1000 % 1000` = 0. So `12:30:01.001`
-returns `0` instead of `1`.
-
-The affected-seconds histogram is an IEEE binade fingerprint — only powers of
-two, doubling each step:
-
-| seconds field | 1 | 2 | 4 | 8 | 16 | 32 | total |
-|---|---|---|---|---|---|---|---|
-| wrong ms values | 12 | 12 | 24 | 47 | 92 | 185 | **372** |
-
-Affects every SQLite connector (it is an emission defect, not a driver one).
-The sibling branch at ~379 (`x % 1000`) is exact and correct — **the two
-branches of the same method disagree**, which is the tell. Fix:
-`cast(round(strftime('%f', x) * 1000) as integer) % 1000` → 0 of 60 000 wrong.
-
-**Current workaround in the suite**: none — no test covers it (see below).
+Most entries below are a **silently wrong value** rather than a rejection, and
+most are invisible to the matrix as it stands — each entry says why under
+*Current workaround in the suite*. A `none` there is not "nothing to do": it
+means no test would notice a regression either.
 
 ## SQLite: pre-1970 unix-ms timestamps truncate toward zero instead of down
 
@@ -159,20 +85,33 @@ negative millisecond. Narrow reach (pre-1970 dates in the ms-integer format
 only) but the same family. Fix: `cast(floor(x / 1000.0) as integer)`, and
 `((x % 1000) + 1000) % 1000` for the ms component.
 
-**Current workaround in the suite**: none — no test covers it.
+**Current workaround in the suite**: none — no test covers it. Reaching this
+needs a pre-1970 instant stored in the unix-ms-integer format, which no fixture
+carries.
 
-### Why the suite can't see any of the four above
+### The microsecond coverage gap (not a bug — a gap the next round should close)
 
-**No seeded fixture has sub-millisecond precision.** Every date-part bug above
-needs a timestamp with microseconds (`.9996`, `.999600`, `.001`) to surface;
-the baked snapshots only use `.123`-style values, where `round ≡ trunc` and the
-defect vanishes. The single highest-leverage change here is to add
-sub-millisecond fixtures — the emission bugs then surface on their own.
+The date-part truncation defects fixed in this round are only **half covered**.
+`const-localdatetime-subsecond-getters-truncate`
+(`select.value-source.const-temporal-getters.test.ts`, all 17 cells) locks the
+sub-second contract with `:59.999` and `:01.001` — plain millisecond instants,
+which a JavaScript `Date` expresses exactly — and it does catch the two worst:
+PostgreSQL reporting a 60th second, and SQLite losing the millisecond of
+`:01.001`.
 
-The class was found by asking *"which dialects hand-spell one concept, and do
-they agree?"*: `getSeconds()` / `getMilliseconds()` are spelled independently in
-all five builders, three of them are wrong, and each is wrong in a different
-way. Oracle's `trunc(...)` is what revealed the intended semantics.
+But **a JS `Date` has millisecond precision, so no test written through the
+public API can reach the sub-millisecond cases**: PostgreSQL's
+`getMilliseconds()` rounding `.9996` up to `0`, and MySQL / MariaDB's returning
+`1000` for `999600 µs`. Both are fixed, neither is locked. Those instants can
+only enter through a **column** holding microseconds — which is exactly how they
+arise in the wild, since `created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP` stores
+microseconds on PostgreSQL and Oracle.
+
+Closing it needs a fixture change, not a test-only one: `TIMESTAMP` /
+`DATETIME(6)` columns seeded with sub-millisecond values. Note the column types
+differ — MySQL / MariaDB `DATETIME` holds **whole seconds** and SQL Server
+`DATETIME` ~3.33 ms, so the schemas would need `DATETIME(6)` / `DATETIME2(7)`
+before any such fixture can hold the value.
 
 ## Five query runners lose `bigint` precision beyond 2^53
 
@@ -263,33 +202,6 @@ wherever the natural row order happens to match.
 `customize-recursive-one-column-custom-window-and-ordering-in-inline-scalar-value`
 — commented out with a `// TODO[BUG]` (line comments, because the body embeds
 `/* hint */` fragments).
-
-## Unreachable base-dialect methods that emit invalid or wrong SQL
-
-**Where**: `AbstractSqlBuilder` — `_stringConcat` (~3454) / `_stringConcatDistinct`
-(~3463), `_getTime` (~3102), `_getMilliseconds` (~3123), `_getSeconds` (~3120).
-
-**Reproduction**: all five are overridden by **every** dialect, so no connection
-reaches them today — they are dormant, not live defects. Each is nonetheless
-wrong, and would bite the first dialect that inherits one:
-
-- `_stringConcat` emits `string_concat(…)`, **a function no supported engine
-  has** (the real names are `string_agg` / `group_concat` / `listagg`).
-- `_getTime` emits `extract(epoch from x)` → **seconds**, while every override
-  returns **milliseconds** — a 1000× divergence.
-- `_getMilliseconds` emits `extract(millisecond from x)` → `45123`
-  (sec × 1000 + ms), not the 0–999 component; the `% 1000` is missing.
-- `_getSeconds` emits `extract(second from x)` → a fractional `45.123` for a
-  declared `int`.
-
-This is the same shape as the `_divide` base, which emitted
-`cast(… as double presition)` — a typo, i.e. invalid SQL — from the **initial
-release** until it was fixed in this round, unnoticed for the library's entire
-life because all six dialects overrode it. A designated base dialect that no
-dialect reaches is not dead code; it is untested code.
-
-**Current workaround in the suite**: none — unreachable code is uncovered by
-construction. Either fix them or make them `abstract`.
 
 ## SQL Server: `getDay()` depends on the session's `SET DATEFIRST`
 

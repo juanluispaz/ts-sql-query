@@ -3100,7 +3100,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return 'extract(day from ' + this._appendSql(valueSource, params, false) + ')'
     }
     _getTime(params: any[], valueSource: ToSql): string {
-        return 'extract(epoch from ' + this._appendSql(valueSource, params, false) + ')'
+        // Mirrors `Date.getTime()`, so the result is in MILLISECONDS. `extract(epoch …)`
+        // answers in seconds, including the fractional part.
+        return 'round(extract(epoch from ' + this._appendSql(valueSource, params, false) + ') * 1000)'
     }
     _getFullYear(params: any[], valueSource: ToSql): string {
         return 'extract(year from ' + this._appendSql(valueSource, params, false) + ')'
@@ -3118,10 +3120,16 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return 'extract(minute from ' + this._appendSql(valueSource, params, false) + ')'
     }
     _getSeconds(params: any[], valueSource: ToSql): string {
-        return 'extract(second from ' + this._appendSql(valueSource, params, false) + ')'
+        // Mirrors `Date.getSeconds()`: an integer 0-59. `extract(second …)` includes the
+        // sub-second fraction, so it must be truncated — never rounded, or :59.6 would
+        // report a 60th second.
+        return 'trunc(extract(second from ' + this._appendSql(valueSource, params, false) + '))'
     }
     _getMilliseconds(params: any[], valueSource: ToSql): string {
-        return 'extract(millisecond from ' + this._appendSql(valueSource, params, false) + ')'
+        // Mirrors `Date.getMilliseconds()`: an integer 0-999. `extract(millisecond …)`
+        // answers seconds * 1000 + milliseconds, fraction included, so the sub-millisecond
+        // part is truncated away and the seconds are dropped by the modulo.
+        return 'trunc(extract(millisecond from ' + this._appendSql(valueSource, params, false) + ')) % 1000'
     }
     _asString(params: any[], valueSource: ToSql): string {
         // Transform an uuid to string
@@ -3453,20 +3461,20 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     _stringConcat(params: any[], separator: string | undefined, value: any): string {
         if (separator === undefined || separator === null) {
-            return 'string_concat(' + this._appendSql(value, params, false) + ')'
+            return 'group_concat(' + this._appendSql(value, params, false) + ')'
         } else if (separator === '') {
-            return 'string_concat(' + this._appendSql(value, params, false) + ", '')"
+            return 'group_concat(' + this._appendSql(value, params, false) + ", '')"
         } else {
-            return 'string_concat(' + this._appendSql(value, params, false) + ', ' + this._appendValue(separator, params, 'string', 'string', undefined, false) + ')'
+            return 'group_concat(' + this._appendSql(value, params, false) + ', ' + this._appendValue(separator, params, 'string', 'string', undefined, false) + ')'
         }
     }
     _stringConcatDistinct(params: any[], separator: string | undefined, value: any): string {
         if (separator === undefined || separator === null) {
-            return 'string_concat(distinct ' + this._appendSql(value, params, false) + ')'
+            return 'group_concat(distinct ' + this._appendSql(value, params, false) + ')'
         } else if (separator === '') {
-            return 'string_concat(distinct ' + this._appendSql(value, params, false) + ", '')"
+            return 'group_concat(distinct ' + this._appendSql(value, params, false) + ", '')"
         } else {
-            return 'string_concat(distinct ' + this._appendSql(value, params, false) + ', ' + this._appendValue(separator, params, 'string', 'string', undefined, false) + ')'
+            return 'group_concat(distinct ' + this._appendSql(value, params, false) + ', ' + this._appendValue(separator, params, 'string', 'string', undefined, false) + ')'
         }
     }
     _aggregateValueAsArray(valueSource: IAggregatedArrayValueSource<any, any, any>, params: any[]): string {

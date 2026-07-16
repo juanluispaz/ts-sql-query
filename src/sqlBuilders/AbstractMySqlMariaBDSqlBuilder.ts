@@ -558,7 +558,11 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         return 'second(' + this._appendSql(valueSource, params, false) + ')'
     }
     override _getMilliseconds(params: any[], valueSource: ToSql): string {
-        return 'round(microsecond(' + this._appendSql(valueSource, params, false) + ') / 1000)'
+        // `microsecond()` is an int, so `/ 1000` is an exact division and `round` breaks
+        // its tie away from zero: 999600 µs reported 1000 ms, a value this method's
+        // declared type (and the JavaScript accessor it mirrors) cannot hold, and 123500 µs
+        // reported 124. The sub-millisecond part is truncated, not rounded, everywhere else.
+        return 'floor(microsecond(' + this._appendSql(valueSource, params, false) + ') / 1000)'
     }
     override _stringConcat(params: any[], separator: string | undefined, value: any): string {
         if (separator === undefined || separator === null) {

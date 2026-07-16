@@ -116,7 +116,7 @@ describe(ctx.label, () => {
                 ms: t.getMilliseconds(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select strftime('%f', ?) * 1000 % 1000 as ms"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(round(strftime('%f', ?) * 1000) as integer) % 1000 as ms"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "12:34:56",
@@ -144,7 +144,7 @@ describe(ctx.label, () => {
                 ms:  ts.getMilliseconds(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%d', ?) as integer) as "d", cast(strftime('%w',?) as integer) as dow, cast(strftime('%M', ?) as integer) as "m", cast(strftime('%S', ?) as integer) as "s", strftime('%f', ?) * 1000 % 1000 as ms"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%d', ?) as integer) as "d", cast(strftime('%w',?) as integer) as dow, cast(strftime('%M', ?) as integer) as "m", cast(strftime('%S', ?) as integer) as "s", cast(round(strftime('%f', ?) * 1000) as integer) % 1000 as ms"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "2024-01-15 12:34:56",
@@ -374,7 +374,7 @@ describe(ctx.label, () => {
                 ms: t.getMilliseconds(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%H', ?) as integer) as "h", cast(strftime('%M', ?) as integer) as "m", cast(strftime('%S', ?) as integer) as "s", strftime('%f', ?) * 1000 % 1000 as ms"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%H', ?) as integer) as "h", cast(strftime('%M', ?) as integer) as "m", cast(strftime('%S', ?) as integer) as "s", cast(round(strftime('%f', ?) * 1000) as integer) % 1000 as ms"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "12:34:56",
@@ -413,7 +413,7 @@ describe(ctx.label, () => {
                 t:   ts.getTime(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%Y', ?) as integer) as "y", cast(strftime('%m', ?) as integer) - 1 as mo, cast(strftime('%d', ?) as integer) as "d", cast(strftime('%w',?) as integer) as dow, cast(strftime('%H', ?) as integer) as "h", cast(strftime('%M', ?) as integer) as "m", cast(strftime('%S', ?) as integer) as "s", strftime('%f', ?) * 1000 % 1000 as ms, round(unixepoch(?, 'subsec') * 1000) as "t""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%Y', ?) as integer) as "y", cast(strftime('%m', ?) as integer) - 1 as mo, cast(strftime('%d', ?) as integer) as "d", cast(strftime('%w',?) as integer) as dow, cast(strftime('%H', ?) as integer) as "h", cast(strftime('%M', ?) as integer) as "m", cast(strftime('%S', ?) as integer) as "s", cast(round(strftime('%f', ?) * 1000) as integer) % 1000 as ms, round(unixepoch(?, 'subsec') * 1000) as "t""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "2024-01-15 12:34:56",
@@ -457,4 +457,38 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ p?: Date }>>>()
         expect(rows).toEqual(expected)
     })
+
+    test('const-localdatetime-subsecond-getters-truncate', async () => {
+        // The sub-second contract of the date-part getters, which mirror JavaScript's
+        // `Date` accessors: `getSeconds()` is 0-59 and `getMilliseconds()` 0-999, and the
+        // part below each is TRUNCATED, never rounded. A dialect extracting the seconds
+        // as a fractional number and rounding it reports a 60th second for :59.999, and
+        // one whose millisecond field goes through an approximate value loses the 1 of
+        // :01.001. Both instants carry plain millisecond precision, so a JS `Date`
+        // expresses them exactly and every dialect can store them.
+        const endOfMinute = ctx.conn.const(new Date('2024-01-15T12:30:59.999Z'), 'localDateTime')
+        const firstMilli = ctx.conn.const(new Date('2024-01-15T12:30:01.001Z'), 'localDateTime')
+        const expected = [{ s1: 59, ms1: 999, s2: 1, ms2: 1 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFromNoTable()
+            .select({
+                s1:  endOfMinute.getSeconds(),
+                ms1: endOfMinute.getMilliseconds(),
+                s2:  firstMilli.getSeconds(),
+                ms2: firstMilli.getMilliseconds(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%S', ?) as integer) as s1, cast(round(strftime('%f', ?) * 1000) as integer) % 1000 as ms1, cast(strftime('%S', ?) as integer) as s2, cast(round(strftime('%f', ?) * 1000) as integer) % 1000 as ms2"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "2024-01-15 12:30:59.999",
+            "2024-01-15 12:30:59.999",
+            "2024-01-15 12:30:01.001",
+            "2024-01-15 12:30:01.001",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ s1: number; ms1: number; s2: number; ms2: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
 })

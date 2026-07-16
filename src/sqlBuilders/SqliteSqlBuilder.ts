@@ -378,25 +378,13 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         } else if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time milliseconds as integer') {
             return this._appendSqlParenthesis(valueSource, params, false) + ' % 1000'
         }
-        return "strftime('%f', " + this._appendSql(valueSource, params, false) + ") * 1000 % 1000"
-    }
-    override _stringConcat(params: any[], separator: string | undefined, value: any): string {
-        if (separator === undefined || separator === null) {
-            return 'group_concat(' + this._appendSql(value, params, false) + ')'
-        } else if (separator === '') {
-            return 'group_concat(' + this._appendSql(value, params, false) + ", '')"
-        } else {
-            return 'group_concat(' + this._appendSql(value, params, false) + ', ' + this._appendValue(separator, params, 'string', 'string', undefined, false) + ')'
-        }
-    }
-    override _stringConcatDistinct(params: any[], separator: string | undefined, value: any): string {
-        if (separator === undefined || separator === null) {
-            return 'group_concat(distinct ' + this._appendSql(value, params, false) + ')'
-        } else if (separator === '') {
-            return 'group_concat(distinct ' + this._appendSql(value, params, false) + ", '')"
-        } else {
-            return 'group_concat(distinct ' + this._appendSql(value, params, false) + ', ' + this._appendValue(separator, params, 'string', 'string', undefined, false) + ')'
-        }
+        // `strftime('%f', …)` yields the STRING '01.001', which coerces to a REAL: times
+        // 1000 that is 1000.9999999999999, and SQLite's `%` truncates its operands to
+        // integer, so the milliseconds wrapped to 0. Rounding the REAL back to its exact
+        // integer first is what the other branches get for free from their integer operand.
+        // The error only hit ms values whose binade makes the product fall short — 372 of
+        // the 60000 (second, millisecond) pairs, all at powers of two.
+        return "cast(round(strftime('%f', " + this._appendSql(valueSource, params, false) + ") * 1000) as integer) % 1000"
     }
     override _in(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         if (Array.isArray(value) && value.length <= 0) {

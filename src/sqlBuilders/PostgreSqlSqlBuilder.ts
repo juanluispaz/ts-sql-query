@@ -457,10 +457,18 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         return 'extract(minute from ' + this._appendSqlForDatePartArgument(valueSource, params) + ')'
     }
     override _getSeconds(params: any[], valueSource: ToSql): string {
-        return 'extract(second from ' + this._appendSqlForDatePartArgument(valueSource, params) + ')::integer'
+        // `extract(second …)` yields a numeric that INCLUDES the fraction (45.9996), and
+        // `numeric::integer` rounds away from zero — so the bare cast reports 46 for
+        // :45.9996 and 60 for :59.9996, a value this method's declared type (and the
+        // JavaScript accessor it mirrors) cannot hold. Truncate first, as every other
+        // dialect's spelling does.
+        return 'trunc(extract(second from ' + this._appendSqlForDatePartArgument(valueSource, params) + '))::integer'
     }
     override _getMilliseconds(params: any[], valueSource: ToSql): string {
-        return 'extract(millisecond from ' + this._appendSqlForDatePartArgument(valueSource, params) + ')::integer % 1000'
+        // Same rounding cast as `_getSeconds`: `extract(millisecond …)` includes the
+        // sub-millisecond fraction, so :45.9996 rounds up to 46000, and the `% 1000`
+        // then wraps it to 0 instead of 999.
+        return 'trunc(extract(millisecond from ' + this._appendSqlForDatePartArgument(valueSource, params) + '))::integer % 1000'
     }
     _appendSqlForDatePartArgument(valueSource: ToSql, params: any[]): string {
         if (isValueSource(valueSource) && __getValueSourcePrivate(valueSource).isConstValue()) {

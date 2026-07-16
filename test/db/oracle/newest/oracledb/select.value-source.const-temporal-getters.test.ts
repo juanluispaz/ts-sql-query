@@ -463,4 +463,38 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ p?: Date }>>>()
         expect(rows).toEqual(expected)
     })
+
+    test('const-localdatetime-subsecond-getters-truncate', async () => {
+        // The sub-second contract of the date-part getters, which mirror JavaScript's
+        // `Date` accessors: `getSeconds()` is 0-59 and `getMilliseconds()` 0-999, and the
+        // part below each is TRUNCATED, never rounded. A dialect extracting the seconds
+        // as a fractional number and rounding it reports a 60th second for :59.999, and
+        // one whose millisecond field goes through an approximate value loses the 1 of
+        // :01.001. Both instants carry plain millisecond precision, so a JS `Date`
+        // expresses them exactly and every dialect can store them.
+        const endOfMinute = ctx.conn.const(new Date('2024-01-15T12:30:59.999Z'), 'localDateTime')
+        const firstMilli = ctx.conn.const(new Date('2024-01-15T12:30:01.001Z'), 'localDateTime')
+        const expected = [{ s1: 59, ms1: 999, s2: 1, ms2: 1 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFromNoTable()
+            .select({
+                s1:  endOfMinute.getSeconds(),
+                ms1: endOfMinute.getMilliseconds(),
+                s2:  firstMilli.getSeconds(),
+                ms2: firstMilli.getMilliseconds(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select trunc(extract(second from :0)) as "s1", to_number(to_char(:1, 'FF3')) as "ms1", trunc(extract(second from :2)) as "s2", to_number(to_char(:3, 'FF3')) as "ms2" from dual"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2024-01-15T12:30:59.999Z,
+            2024-01-15T12:30:59.999Z,
+            2024-01-15T12:30:01.001Z,
+            2024-01-15T12:30:01.001Z,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ s1: number; ms1: number; s2: number; ms2: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
 })

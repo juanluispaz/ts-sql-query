@@ -1,5 +1,5 @@
-import type { ToSql, InsertData, CompoundOperator, SelectData, QueryColumns, FlatQueryColumns, WithSelectData, WithValuesData, OrderByEntry } from './SqlBuilder.js'
-import { flattenQueryColumns, hasToSql, getQueryColumn } from './SqlBuilder.js'
+import type { ToSql, InsertData, CompoundOperator, SelectData, QueryColumns, FlatQueryColumns, WithSelectData, WithValuesData, OrderByEntry, SqlOperation } from './SqlBuilder.js'
+import { flattenQueryColumns, hasToSql, getQueryColumn, operationOf } from './SqlBuilder.js'
 import type { TypeAdapter } from '../TypeAdapter.js'
 import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 import type { AnyValueSource, __AggregatedArrayColumns, ValueType } from '../expressions/values.js'
@@ -89,6 +89,72 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     _uuidUsesRawFunctions(): boolean {
         const strategy = this._getUuidStrategy()
         return strategy === 'custom-functions' || strategy === 'built-in'
+    }
+    // Oracle's `||` treats NULL as the empty string, so it neither returns NULL from a
+    // concat nor lets an affix predicate on a NULL term match nothing — see
+    // `OracleConnection.concatFunction`. When the connection names a null-propagating
+    // function, it replaces `||` in EVERY concatenation the builder emits: `_concat` and
+    // the affix patterns are the same seam on purpose, since a `startsWith` that
+    // propagates NULL while `concat` does not would just move the inconsistency.
+    //
+    // A cheaper-looking alternative gets proposed every time this code is read, so:
+    // guarding the affix predicates with `term is not null and x like (term || '%')` was
+    // measured and IS correct, and it was rejected on purpose. It taxes every affix
+    // predicate — including the overwhelming majority whose term is never null — to cover
+    // an extreme case; it silently changes `||`'s meaning in one place, which an Oracle
+    // developer does not expect; and it would fix the predicates while leaving `concat`
+    // diverging, so the library would contradict itself. Do not re-add it.
+    // `_concat` is registered as needing parenthesis because `a || b` is an operator, and
+    // an operator embedded in a larger expression must be wrapped. The opt-in function is
+    // not an operator: `f(a, b)` already stands alone, so wrapping it would only emit
+    // `(f(a, b))`. The registration lives in the constructor, which runs before the
+    // connection hands the builder its configuration, so the decision cannot be made
+    // there — it is made here, per call, and costs one property read when the option is
+    // unset (the default). MySQL / MariaDB reach the same conclusion in their constructor
+    // instead, because their concat is always a function.
+    override _needParenthesis(value: any): boolean {
+        if (this._connectionConfiguration.concatFunction && operationOf(value) === '_concat') {
+            return false
+        }
+        return super._needParenthesis(value)
+    }
+    override _needParenthesisExcluding(value: any, excluding: keyof SqlOperation): boolean {
+        if (this._connectionConfiguration.concatFunction && operationOf(value) === '_concat') {
+            return false
+        }
+        return super._needParenthesisExcluding(value, excluding)
+    }
+    override _concatSql(left: string, right: string): string {
+        const concatFunction = this._connectionConfiguration.concatFunction
+        if (concatFunction) {
+            return concatFunction + '(' + left + ', ' + right + ')'
+        }
+        return super._concatSql(left, right)
+    }
+    override _likePatternStartingWith(term: string, fold: boolean): string {
+        const concatFunction = this._connectionConfiguration.concatFunction
+        if (!concatFunction) {
+            return super._likePatternStartingWith(term, fold)
+        }
+        const sql = concatFunction + '(' + term + ", '%')"
+        return fold ? 'lower(' + sql + ')' : sql
+    }
+    override _likePatternEndingWith(term: string, fold: boolean): string {
+        const concatFunction = this._connectionConfiguration.concatFunction
+        if (!concatFunction) {
+            return super._likePatternEndingWith(term, fold)
+        }
+        const sql = concatFunction + "('%', " + term + ')'
+        return fold ? 'lower(' + sql + ')' : sql
+    }
+    override _likePatternContaining(term: string, fold: boolean): string {
+        const concatFunction = this._connectionConfiguration.concatFunction
+        if (!concatFunction) {
+            return super._likePatternContaining(term, fold)
+        }
+        // The function is binary, so gluing both wildcards nests: `f(f('%', term), '%')`.
+        const sql = concatFunction + '(' + concatFunction + "('%', " + term + "), '%')"
+        return fold ? 'lower(' + sql + ')' : sql
     }
     override _isReservedKeyword(word: string): boolean {
         return word.toUpperCase() in reservedWords

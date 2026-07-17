@@ -413,17 +413,18 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
             return "replace(replace(replace(" + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast) + ", '\\\\', '\\\\\\\\'), '%', '\\\\%'), '_', '\\\\_')"
         }
     }
-    override _startsWith(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._appendSqlParenthesis(valueSource, params, false) + ' like concat(' +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + ", '%')"
+    // This dialect family has no `||` operator by default (`PIPES_AS_CONCAT` is not
+    // assumed): concatenation is the n-ary `concat(...)` function. It stands alone, so the
+    // pattern needs no wrapping parenthesis, and the insensitive arm folds the term inside
+    // the call rather than folding the whole pattern.
+    override _likePatternStartingWith(term: string, fold: boolean): string {
+        return fold ? 'concat(lower(' + term + "), '%')" : 'concat(' + term + ", '%')"
     }
-    override _notStartsWith(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._appendSqlParenthesis(valueSource, params, false) + ' not like concat(' +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + ", '%')"
+    override _likePatternEndingWith(term: string, fold: boolean): string {
+        return fold ? "concat('%', lower(" + term + '))' : "concat('%', " + term + ')'
     }
-    override _endsWith(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._appendSqlParenthesis(valueSource, params, false) + " like concat('%', " +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + ')'
-    }
-    override _notEndsWith(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._appendSqlParenthesis(valueSource, params, false) + " not like concat('%', " +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + ')'
+    override _likePatternContaining(term: string, fold: boolean): string {
+        return fold ? "concat('%', lower(" + term + "), '%')" : "concat('%', " + term + ", '%')"
     }
     override _startsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insensitiveCollation
@@ -464,12 +465,6 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         } else {
             return 'lower(' + this._appendSql(valueSource, params, false) + ") not like concat('%', lower(" +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + '))'
         }
-    }
-    override _contains(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._appendSqlParenthesis(valueSource, params, false) + " like concat('%', " +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + ", '%')"
-    }
-    override _notContains(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._appendSqlParenthesis(valueSource, params, false) + " not like concat('%', " +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + ", '%')"
     }
     override _containsInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insensitiveCollation

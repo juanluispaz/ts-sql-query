@@ -861,17 +861,17 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             return "replace(replace(replace(" + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast) + ", '[', '[[]'), '%', '[%]'), '_', '[_]')"
         }
     }
-    override _startsWith(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._appendSqlParenthesis(valueSource, params, false) + ' like (' + this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + " + '%')"
+    // T-SQL concatenates with `+`, not `||`. That is the only thing the affix patterns
+    // needed from this dialect, so the predicates themselves ride the base's shapes; only
+    // the insensitive ones stay overridden below, for their uuid receiver arm.
+    override _likePatternStartingWith(term: string, fold: boolean): string {
+        return fold ? 'lower(' + term + " + '%')" : '(' + term + " + '%')"
     }
-    override _notStartsWith(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._appendSqlParenthesis(valueSource, params, false) + ' not like (' +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + " + '%')"
+    override _likePatternEndingWith(term: string, fold: boolean): string {
+        return fold ? "lower('%' + " + term + ')' : "('%' + " + term + ')'
     }
-    override _endsWith(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._appendSqlParenthesis(valueSource, params, false) + " like ('%' + " +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + ')'
-    }
-    override _notEndsWith(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._appendSqlParenthesis(valueSource, params, false) + " not like ('%' + " +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + ')'
+    override _likePatternContaining(term: string, fold: boolean): string {
+        return fold ? "lower('%' + " + term + " + '%')" : "('%' + " + term + " + '%')"
     }
     override _startsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         if (this._isUuid(valueSource)) {
@@ -924,12 +924,6 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         } else {
             return 'lower(' + this._appendSql(valueSource, params, false) + ") not like lower('%' + " +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + ')'
         }
-    }
-    override _contains(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._appendSqlParenthesis(valueSource, params, false) + " like ('%' + " +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + " + '%')"
-    }
-    override _notContains(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._appendSqlParenthesis(valueSource, params, false) + " not like ('%' + " +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + " + '%')"
     }
     override _containsInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         if (this._isUuid(valueSource)) {

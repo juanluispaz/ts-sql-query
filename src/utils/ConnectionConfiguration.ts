@@ -6,4 +6,5 @@ export interface ConnectionConfiguration {
     compatibilityVersion: number
     uuidStrategy?: string
     usePlatformDependentRound?: boolean
+    concatFunction?: string
 }

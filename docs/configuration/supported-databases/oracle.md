@@ -53,6 +53,89 @@ class DBConnection extends OracleConnection<'DBConnection'> {
 
     Independent of `compatibilityVersion`, `stringConcatDistinct` emits `LISTAGG(DISTINCT …)`, which requires Oracle Database 19c or later (the `DISTINCT` keyword inside `LISTAGG` was added in 19c). Targeting an older Oracle release means avoiding this aggregate.
 
+## Concatenation and NULL
+
+Oracle reads NULL as the empty string when concatenating, so `'x' || null` is `'x'` and `null || null` is NULL. JavaScript's `null` does not survive the trip:
+
+```sql
+'[' || NULL || 'x' || ']'   -- [x]         and  (NULL || 'x') IS NULL  ->  false
+```
+
+This is Oracle's documented behaviour and an Oracle developer expects it, so **ts-sql-query emits `||` and leaves it alone by default**. It surfaces in two places, and the second one is why the option below exists:
+
+- **`concat`** returns a present string where its declared type says the result is optional. `tIssue.body.concat('!')` on a row whose `body` is NULL types as `string | undefined`, and you get `'!'`.
+- **The affix predicates** — `startsWith`, `endsWith`, `contains` and their `Insensitive` variants — build their LIKE pattern by concatenation, so a NULL search term makes the pattern `'%'` and **the filter matches every row instead of none**:
+
+```sql
+-- rows 'Alpha', 'Beta';  .startsWith(<null term>)
+s like (NULL || '%')   ->   s like '%'   ->   both rows
+```
+
+A filter that silently returns the whole table is a different order of problem from a `concat` that answers `'!'`, and it is the reason you might want to opt out of Oracle's semantics here.
+
+### Making concatenation propagate NULL
+
+Set `concatFunction` to the name of a function you created, and **every** concatenation the builder emits — `concat` and the affix patterns alike — goes through it instead of `||`:
+
+```typescriptreact
+import { OracleConnection } from "ts-sql-query/connections/OracleConnection";
+
+class DBConnection extends OracleConnection<'DBConnection'> {
+    protected override concatFunction = 'string_util.concat_strict'
+}
+```
+
+The name is yours; the one above is only what this page's example calls it. The two halves always move together: a `startsWith` that propagates NULL while `concat` does not would just move the inconsistency somewhere else.
+
+!!! warning "It must be a package, not a standalone function"
+
+    Oracle cannot overload standalone subprograms — a second `CREATE OR REPLACE FUNCTION` of the same name **replaces** the first. Overloads live in a package, and you want the overloads: without them a `CLOB` argument is implicitly converted to `VARCHAR2` and silently truncated at 32767 characters.
+
+    Four overloads, not two. With only `(VARCHAR2, VARCHAR2)` and `(CLOB, CLOB)`, Oracle cannot resolve the commonest call of all — a `CLOB` column against a `VARCHAR2` literal — and raises `ORA-06553: PLS-307: too many declarations of ... match this call`. The two mixed overloads are what make it resolvable. `NVARCHAR2` and `NCLOB` arguments reach these through implicit conversion and need no overloads of their own.
+
+```oracle
+CREATE OR REPLACE PACKAGE string_util AS
+    FUNCTION concat_strict(a IN VARCHAR2, b IN VARCHAR2) RETURN VARCHAR2;
+    FUNCTION concat_strict(a IN CLOB, b IN CLOB) RETURN CLOB;
+    FUNCTION concat_strict(a IN CLOB, b IN VARCHAR2) RETURN CLOB;
+    FUNCTION concat_strict(a IN VARCHAR2, b IN CLOB) RETURN CLOB;
+END string_util;
+
+CREATE OR REPLACE PACKAGE BODY string_util AS
+    FUNCTION concat_strict(a IN VARCHAR2, b IN VARCHAR2) RETURN VARCHAR2 IS
+    BEGIN
+        IF a IS NULL OR b IS NULL THEN RETURN NULL; END IF;
+        RETURN a || b;
+    END;
+    FUNCTION concat_strict(a IN CLOB, b IN CLOB) RETURN CLOB IS
+    BEGIN
+        IF a IS NULL OR b IS NULL THEN RETURN NULL; END IF;
+        RETURN a || b;
+    END;
+    FUNCTION concat_strict(a IN CLOB, b IN VARCHAR2) RETURN CLOB IS
+    BEGIN
+        IF a IS NULL OR b IS NULL THEN RETURN NULL; END IF;
+        RETURN a || b;
+    END;
+    FUNCTION concat_strict(a IN VARCHAR2, b IN CLOB) RETURN CLOB IS
+    BEGIN
+        IF a IS NULL OR b IS NULL THEN RETURN NULL; END IF;
+        RETURN a || b;
+    END;
+END string_util;
+```
+
+With the option set, the emitted SQL calls it on both halves:
+
+```sql
+select string_util.concat_strict("body", :0) as "tagged" from issue where id = :1
+select id from issue where title like string_util.concat_strict(:0, '%') escape '\'
+```
+
+!!! tip "Leave it unset unless you need it"
+
+    The default costs nothing and gives an Oracle developer the semantics they expect. Reach for the option when the application is portable across databases and a NULL reaching a `concat` or an affix filter would go unnoticed — which is exactly when the whole-table match above becomes a bug you find in production rather than in a test.
+
 ## UUID strategies
 
 `ts-sql-query` provides different strategies to handle UUID values in Oracle. These strategies control how UUID values are represented in JavaScript and stored in the database. In every case, UUIDs are exchanged as `string` at the JavaScript layer.

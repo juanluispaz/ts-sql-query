@@ -67,6 +67,8 @@ of that. Two minutes of triage and one paragraph is the bar.
 
 ## Open Bugs
 
+*(none — every entry filed by the semantic audit has been fixed.)*
+
 Most defects this suite surfaces are a **silently wrong value** rather than a
 rejection, and are invisible to the matrix until a test reaches them — so each
 entry says under *Current workaround in the suite* why the matrix can't see it.
@@ -90,63 +92,6 @@ yours.
    fixed, and so is any report it came from. So anything a future reader must not
    re-litigate belongs **in a code comment**, next to the code it explains. Each
    entry names what must be recorded that way under *Record in the code*.
-
----
-
-### Oracle's `||` treats NULL as the empty string, so `concat` and every affix predicate diverge from the other five dialects
-
-**Where**: `src/sqlBuilders/AbstractSqlBuilder.ts:3246` (`_concat` → `a || b`,
-used by PostgreSQL, Oracle and SQLite) and the affix predicate family at
-`:2814-2891`, which builds its LIKE pattern with the same `||`.
-
-**Reproduction**: `tIssue.body.concat('!')` where `body IS NULL` types the result
-**optional** (`string | undefined`) — the library *declares* NULL is the answer.
-Oracle returns a present string instead.
-
-```
-oracle  '[' || NULL || 'x' || ']'  =  [x]       and  (NULL || 'x') IS NULL -> NOT NULL
-pg      '[' || NULL || 'x' || ']'  =  NULL
-```
-
-The affix family is the worse half — a filter that silently disables itself:
-
-```
-rows 'Alpha','Beta';  .startsWith(<null term>)
-  oracle:  s like (NULL || '%')  ->  s like '%'  ->  [Alpha,Beta]   <- the WHOLE TABLE
-  pg:      s like (NULL || '%')  ->  s like NULL ->  <no rows>
-```
-
-**The string aggregate is NOT affected** — probed: `listagg`, `string_agg` and
-`group_concat` all skip NULLs identically (`[a,c]`). Keep it out of scope.
-
-This is **not** the `'' IS NULL` question: that one is already neutralised by
-`allowEmptyString: false` (the default), which maps `''`↔`null` in both
-directions (`AbstractConnection.ts:1154`, `:1350`). This is a NULL *column*
-flowing through `||`, which `allowEmptyString` never touches.
-
-**Current workaround in the suite**: none. `issue` row 1 has `body = NULL`
-(`seed.sql:28`) and **it is never selected** — every optional-receiver string
-test pins `id = 2`, and
-`test/db/oracle/newest/oracledb/select.string-ops.test.ts:655` says so out loud:
-*"the leaves stay optional because the receiver is, even though the value is
-present"*. The data is already there; only the test has to reach it.
-
-**Decided**: an **opt-in**, default off, covering **`_concat` and the affix
-family together** — never one without the other. Following what the project
-already does elsewhere: **ship the user the function so they create it
-themselves**, and give it **overloads for the different data types where Oracle
-allows it**, so it behaves as close as possible to the other databases' concat.
-
-The author ruled explicitly **against** the cheaper alternative of a null guard
-(`term is not null and x like (term || '%')`), even though it is probed correct:
-
-> *"I don't like the `like` solution, because it penalises the SQL queries for
-> something extreme, and an Oracle developer is used to this behaviour — so it
-> would introduce an inconsistency in how things work. I prefer the clean opt-in
-> for both cases, keeping consistency that way."*
-
-**Record in the code**: that rejection and its reasons, next to the affix
-builder. It is a cheap, correct-looking idea that will be re-proposed otherwise.
 
 ---
 

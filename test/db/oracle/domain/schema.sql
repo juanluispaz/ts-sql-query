@@ -204,6 +204,27 @@ CREATE OR REPLACE FUNCTION latest_issue_at(p_id IN NUMBER) RETURN TIMESTAMP AS v
 
 CREATE OR REPLACE FUNCTION estimated_total(p_id IN NUMBER) RETURN BINARY_DOUBLE AS v BINARY_DOUBLE; BEGIN SELECT COALESCE(SUM(estimated_hours),0) INTO v FROM issue WHERE project_id = p_id; RETURN v; END;
 
+-- A null-propagating concatenation, for the `concatFunction` connection option: Oracle's
+-- own `||` reads NULL as the empty string, so `concat` returns a present string where its
+-- type says NULL, and an affix predicate on a NULL term matches every row instead of none.
+-- Four overloads, not two: a CLOB argument against a VARCHAR2 literal is the common call,
+-- and with only the (VARCHAR2,VARCHAR2) and (CLOB,CLOB) pair Oracle cannot resolve it
+-- (ORA-06553: too many declarations match this call). NVARCHAR2 / NCLOB reach these
+-- through implicit conversion.
+CREATE OR REPLACE PACKAGE string_util AS
+    FUNCTION concat_strict(a IN VARCHAR2, b IN VARCHAR2) RETURN VARCHAR2;
+    FUNCTION concat_strict(a IN CLOB, b IN CLOB) RETURN CLOB;
+    FUNCTION concat_strict(a IN CLOB, b IN VARCHAR2) RETURN CLOB;
+    FUNCTION concat_strict(a IN VARCHAR2, b IN CLOB) RETURN CLOB;
+END string_util;
+
+CREATE OR REPLACE PACKAGE BODY string_util AS
+    FUNCTION concat_strict(a IN VARCHAR2, b IN VARCHAR2) RETURN VARCHAR2 IS BEGIN IF a IS NULL OR b IS NULL THEN RETURN NULL; END IF; RETURN a || b; END;
+    FUNCTION concat_strict(a IN CLOB, b IN CLOB) RETURN CLOB IS BEGIN IF a IS NULL OR b IS NULL THEN RETURN NULL; END IF; RETURN a || b; END;
+    FUNCTION concat_strict(a IN CLOB, b IN VARCHAR2) RETURN CLOB IS BEGIN IF a IS NULL OR b IS NULL THEN RETURN NULL; END IF; RETURN a || b; END;
+    FUNCTION concat_strict(a IN VARCHAR2, b IN CLOB) RETURN CLOB IS BEGIN IF a IS NULL OR b IS NULL THEN RETURN NULL; END IF; RETURN a || b; END;
+END string_util;
+
 -- Constant-returning functions, one per remaining executeFunction return kind.
 -- Oracle has no TIME type (localTime rides in a TIMESTAMP) and no SQL boolean
 -- (booleans are NUMBER 0/1). ret_uuid returns the string form.

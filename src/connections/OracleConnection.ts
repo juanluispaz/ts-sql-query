@@ -15,6 +15,27 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
     protected uuidStrategy: 'string' | 'custom-functions' | 'built-in' = 'built-in'
 
     /**
+     * Name of a null-propagating concatenation function to emit instead of `||`.
+     *
+     * Oracle's `||` treats NULL as the empty string, so `'x' || null` is `'x'` where every
+     * other supported database answers NULL. That makes `concat` return a present string
+     * where its declared type says the result is optional, and — worse — it makes an affix
+     * predicate built on a NULL term (`startsWith` / `endsWith` / `contains`) collapse to
+     * `like '%'` and match the whole table instead of nothing.
+     *
+     * Left unset (the default) the builder emits Oracle's own `||` and its own semantics:
+     * an Oracle developer expects them, and nothing is paid for a case most applications
+     * never hit. Set it to the name of a function you created and every concatenation the
+     * builder emits — `concat` and the affix patterns alike — goes through it, which is
+     * what makes the behaviour match the other databases. The two always move together.
+     *
+     * The name is yours: pass whatever you called it, package-qualified if it lives in a
+     * package (which it must, if you want the overloads that keep CLOB values from being
+     * truncated). See the Oracle page of the documentation for an implementation.
+     */
+    protected concatFunction?: string
+
+    /**
      * Minimum Oracle Database version the generated SQL must support, encoded as
      * `major * 1_000_000 + minor * 1_000 + patch` (e.g. `23_009_000` for Oracle
      * Database 23.9). Defaults to `Number.POSITIVE_INFINITY` (latest). Recognized

@@ -102,6 +102,26 @@ whose emitted SQL / result type / value is wrong).
 | The per-round findings (the audit's output — a transient working artifact, not kept in the repo) | `MISSING_TESTS_AUDIT_<N>.md` |
 | Turning a finding into a baked, propagated test (the generation half) | [`COVERAGE_RUNBOOK.md`](./COVERAGE_RUNBOOK.md) §5 onward (identical regardless of how the gap was found) |
 
+## … audit where the library and the engine quietly disagree (the semantic audit)
+
+A third audit, on a different axis again. Coverage asks *"what isn't exercised?"*;
+the type audit asks *"which advertised capability is never asserted?"*; this one
+asks *"where does the library promise the user one thing and ask the database for
+another — with nothing failing?"* It finds the defects a **green** matrix hides:
+a declared `bigint` computed in floating point, a `getSeconds()` that returns 60,
+an emitted literal the engine reads as an exact type. One round of it found 13
+defects across 5 dialects, every one years old.
+
+| Want | Read |
+|---|---|
+| The runbook itself (multi-agent, probe-driven) | [`SEMANTIC_AUDIT_RUNBOOK.md`](./SEMANTIC_AUDIT_RUNBOOK.md) |
+| The unit (a promise the engine doesn't keep) | [`SEMANTIC_AUDIT_RUNBOOK.md` § The unit](./SEMANTIC_AUDIT_RUNBOOK.md#the-unit-a-promise-the-engine-doesnt-keep) |
+| The evidence bar (PROBE, never reason) | [`SEMANTIC_AUDIT_RUNBOOK.md` § The evidence bar](./SEMANTIC_AUDIT_RUNBOOK.md#the-evidence-bar-probe-never-reason) |
+| The highest-yield question (*which dialects hand-spell one concept, and do they agree?*) | [`SEMANTIC_AUDIT_RUNBOOK.md` § The four lenses](./SEMANTIC_AUDIT_RUNBOOK.md#the-four-lenses) |
+| Fingerprints to grep for (a string `expected` on a numeric leaf, a rationalising comment, `Number(...)` laundering, a loose `toBeCloseTo`) | [`SEMANTIC_AUDIT_RUNBOOK.md` § Fingerprints](./SEMANTIC_AUDIT_RUNBOOK.md#fingerprints-that-have-paid-off) |
+| **Where the round before you was wrong** (inherited verdicts, false filed premises, load-bearing "excess") | [`SEMANTIC_AUDIT_RUNBOOK.md` § Where the round before you was wrong](./SEMANTIC_AUDIT_RUNBOOK.md#where-the-round-before-you-was-wrong) |
+| The per-round findings (transient, not kept in the repo) | `SEMANTIC_AUDIT_<N>.md` |
+
 ### … find context fast (the searcher)
 
 `tests:where-is` answers *"where does this symbol live / get reached /

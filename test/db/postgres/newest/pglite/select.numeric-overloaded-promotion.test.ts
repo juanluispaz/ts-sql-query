@@ -167,7 +167,7 @@ describe(ctx.label, () => {
                 .select({ id: tIssue.id, hi: tIssue.priority.maxValue(tIssue.estimatedHours) })
                 .executeSelectOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, least(priority, estimated_hours) as hi from issue where id = $1"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, case when estimated_hours is null then null else least(priority, estimated_hours) end as hi from issue where id = $1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -197,7 +197,7 @@ describe(ctx.label, () => {
                 .select({ id: tIssue.id, lo: tIssue.priority.minValue(tIssue.estimatedHours) })
                 .executeSelectOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, greatest(priority, estimated_hours) as lo from issue where id = $1"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, case when estimated_hours is null then null else greatest(priority, estimated_hours) end as lo from issue where id = $1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

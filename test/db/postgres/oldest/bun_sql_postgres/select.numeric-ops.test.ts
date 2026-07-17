@@ -286,6 +286,34 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
+    test('power-fractional-exponent-keeps-the-fraction', async () => {
+        // A fractional exponent must keep the fraction: priority(id=1) = 2, so
+        // `.power(0.5)` = sqrt(2) ~ 1.4142135. A non-degenerate base (2, not 1) is
+        // required — `power(1, 0.5)` = 1 whether or not the fraction survives.
+        const expected = [{ id: 1, r: Math.SQRT2 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                r:  tIssue.priority.power(0.5),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, power(priority, $1) as "r" from issue where id = $2"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            0.5,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; r: number }>>>()
+        if (ctx.realDbEnabled) {
+            expect(result[0]!.r).toBeCloseTo(Math.SQRT2, 5)
+        } else {
+            expect(result).toEqual(expected)
+        }
+    })
+
     test('exp-and-ln', async () => {
         // exp + ln are inverses; ln(exp(2)) should be 2.
         const expected = [{ id: 1, lnExp: 2 }]
@@ -586,7 +614,7 @@ describe(ctx.label, () => {
                 })
                 .executeSelectOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, estimated_hours + $1 as "a", estimated_hours - $2 as "s", estimated_hours * $3 as mu, mod((estimated_hours)::numeric, ($4)::numeric) as mo, greatest(estimated_hours, $5) as mn, least(estimated_hours, $6) as mx from issue where id = $7"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, estimated_hours + $1 as "a", estimated_hours - $2 as "s", estimated_hours * $3 as mu, mod((estimated_hours)::numeric, ($4)::numeric) as mo, case when estimated_hours is null then null else greatest(estimated_hours, $5) end as mn, case when estimated_hours is null then null else least(estimated_hours, $6) end as mx from issue where id = $7"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1.5,
@@ -975,7 +1003,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ceil(duration_ms) as ce, floor(duration_ms) as fl, round((duration_ms)::numeric) as ro, duration_ms - $1 as "s", duration_ms % $2 as mo, greatest(duration_ms, $3) as mn, least(duration_ms, $4) as mx from issue_worklog where id = $5"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ceil(duration_ms) as ce, floor(duration_ms) as fl, round((duration_ms)::numeric) as ro, duration_ms - $1 as "s", duration_ms % $2 as mo, case when duration_ms is null then null else greatest(duration_ms, $3) end as mn, case when duration_ms is null then null else least(duration_ms, $4) end as mx from issue_worklog where id = $5"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             400000n,

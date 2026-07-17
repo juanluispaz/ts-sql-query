@@ -713,10 +713,9 @@ cases above — but the author ruled against carrying the extra cast on every
 preferred over complicating the common query. The trailing-blank handling that the
 sentinel provides is correct for every string shorter than the column's maximum.
 
-**The opt-out — `usePlatformDependentLength`.** A connection flag (default `false`),
-in the same spirit as `usePlatformDependentRound`, lets a user trade the
-JS-faithful default for SQL Server's **native `len(x)`**. With it set, the builder
-emits a bare `len(<x>)`:
+**The opt-out — `excludeTrailingBlanksInLength`.** A connection flag (default
+`false`) lets a user trade the JS-faithful default for SQL Server's **native
+`len(x)`**. With it set, the builder emits a bare `len(<x>)`:
 
 - the max-length edge disappears (`len(REPLICATE('a', 8000))` = 8000, correct), and
   the query is lighter (no sentinel);

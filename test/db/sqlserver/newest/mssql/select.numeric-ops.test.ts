@@ -280,7 +280,7 @@ describe(ctx.label, () => {
                 p:  tIssue.priority.power(3),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, power(priority, @0) as [p] from issue where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, power(cast(priority as float), @0) as [p] from issue where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -289,6 +289,37 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof result, Array<{ id: number; p: number }>>>()
         expect(result).toEqual(expected)
+    })
+
+    test('power-fractional-exponent-keeps-the-fraction', async () => {
+        // Locks the int-base POWER fix: T-SQL's POWER returns its FIRST argument's
+        // type, so a bare `power(<int>, 0.5)` computes in int and truncates the root
+        // to 1. Casting the int base to float keeps the fraction — this is why the
+        // snapshot below is `power(cast(priority as float), @0)`, not `power(priority,
+        // @0)`. priority(id=1) = 2 → sqrt(2) ≈ 1.4142135. A non-degenerate base (2, not
+        // 1) is required: `power(1, 0.5)` = 1 with or without the truncation.
+        const expected = [{ id: 1, r: Math.SQRT2 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                r:  tIssue.priority.power(0.5),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, power(cast(priority as float), @0) as [r] from issue where id = @1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            0.5,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; r: number }>>>()
+        if (ctx.realDbEnabled) {
+            expect(result[0]!.r).toBeCloseTo(Math.SQRT2, 5)
+        } else {
+            expect(result).toEqual(expected)
+        }
     })
 
     test('exp-and-ln', async () => {
@@ -327,7 +358,7 @@ describe(ctx.label, () => {
                 l:  tIssue.priority.power(2).multiply(25).log10(), // log10(2^2*25)=log10(100)=2
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, log10(power(priority, @0) * @1) as [l] from issue where id = @2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, log10(power(cast(priority as float), @0) * @1) as [l] from issue where id = @2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -357,7 +388,7 @@ describe(ctx.label, () => {
                 l:  tIssue.priority.power(3).logn(2), // log_2(2^3) = 3
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, log(power(priority, @0), @1) as [l] from issue where id = @2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, log(power(cast(priority as float), @0), @1) as [l] from issue where id = @2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -591,7 +622,7 @@ describe(ctx.label, () => {
                 })
                 .executeSelectOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, estimated_hours + @0 as [a], estimated_hours - @1 as [s], estimated_hours * @2 as mu, cast(estimated_hours as numeric(38, 16)) % cast(@3 as numeric(38, 16)) as mo, greatest(estimated_hours, @4) as mn, least(estimated_hours, @5) as mx from issue where id = @6"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, estimated_hours + @0 as [a], estimated_hours - @1 as [s], estimated_hours * @2 as mu, cast(estimated_hours as numeric(38, 16)) % cast(@3 as numeric(38, 16)) as mo, case when estimated_hours is null then null else greatest(estimated_hours, @4) end as mn, case when estimated_hours is null then null else least(estimated_hours, @5) end as mx from issue where id = @6"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1.5,
@@ -980,7 +1011,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ceiling(duration_ms) as ce, floor(duration_ms) as fl, round(duration_ms, 0) as ro, duration_ms - @0 as [s], duration_ms % @1 as mo, greatest(duration_ms, @2) as mn, least(duration_ms, @3) as mx from issue_worklog where id = @4"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ceiling(duration_ms) as ce, floor(duration_ms) as fl, round(duration_ms, 0) as ro, duration_ms - @0 as [s], duration_ms % @1 as mo, case when duration_ms is null then null else greatest(duration_ms, @2) end as mn, case when duration_ms is null then null else least(duration_ms, @3) end as mx from issue_worklog where id = @4"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             400000n,
@@ -1043,7 +1074,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs(assignee_id) as ab, ceiling(assignee_id) as ce, floor(assignee_id) as fl, sign(assignee_id) as sg, sqrt(assignee_id) as sq, sign(assignee_id) * power(cast(abs(assignee_id) as float), 1.0e0 / 3.0e0) as cb, exp(assignee_id) as ex, log(assignee_id) as [ln], log10(assignee_id) as l10, power(assignee_id, @0) as pw, log(assignee_id, @1) as lgn, round(assignee_id, @2) as rn, atn2(assignee_id, @3) as [at], cast(assignee_id as float) as ad, assignee_id as abi from issue where id = @4"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs(assignee_id) as ab, ceiling(assignee_id) as ce, floor(assignee_id) as fl, sign(assignee_id) as sg, sqrt(assignee_id) as sq, sign(assignee_id) * power(cast(abs(assignee_id) as float), 1.0e0 / 3.0e0) as cb, exp(assignee_id) as ex, log(assignee_id) as [ln], log10(assignee_id) as l10, power(cast(assignee_id as float), @0) as pw, log(assignee_id, @1) as lgn, round(assignee_id, @2) as rn, atn2(assignee_id, @3) as [at], cast(assignee_id as float) as ad, assignee_id as abi from issue where id = @4"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,

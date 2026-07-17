@@ -65,6 +65,43 @@ describe(ctx.label, () => {
         else expect(rows).toEqual(expected)
     })
 
+    test('valueWhenNull-int-receiver-widens-to-a-fractional-double-fallback', async () => {
+        // Locks the valueWhenNull numeric-type promotion. The result was declared
+        // as the RECEIVER's `int`, but the null-coalescing call (see the snapshot)
+        // resolves to the wider double when the fallback is a double, so a NULL int
+        // row returns the double's fraction — which the marshaller's int arm rejected
+        // with INVALID_VALUE_RECEIVED_FROM_DATABASE. The fallback here is
+        // `priority.divide(2)` (a double source that casts to float, so PostgreSQL
+        // resolves the param type from the cast instead of inferring int and
+        // rejecting the fraction at bind), so the declared type now promotes to
+        // double, like minValue / maxValue / add already do. assignee_id is NULL only
+        // for issue 3 (priority 3 -> 3/2 = 1.5), whose fallback surfaces the fraction.
+        const expected = [
+            { id: 1, w: 1 },
+            { id: 2, w: 2 },
+            { id: 3, w: 1.5 },
+            { id: 4, w: 3 },
+        ]
+        ctx.mockNext(expected)
+
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .select({
+                id: tIssue.id,
+                w:  tIssue.assigneeId.valueWhenNull(tIssue.priority.divide(2)),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ifnull(assignee_id, cast(priority as real) / ?) as "w" from issue order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; w: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
     test('valueWhenNull-with-column-as-default', async () => {
         // The default is another column (`tIssue.id`) instead of a
         // literal. Distinct from the literal-default test because the

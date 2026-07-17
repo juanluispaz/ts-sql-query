@@ -101,7 +101,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, project.name as name, isnull((select count(*) as [result] from issue where project_id = project.id), @0) as issueCount from project as project where project.id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, project.name as name, coalesce((select count(*) as [result] from issue where project_id = project.id), @0) as issueCount from project as project where project.id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,

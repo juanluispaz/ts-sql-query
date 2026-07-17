@@ -54,7 +54,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, isnull(assignee_id, @0) as owner from issue order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce(assignee_id, @0) as owner from issue order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,
@@ -63,6 +63,48 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ id: number; owner: number }>>>()
         if (!ctx.realDbEnabled) expect(rows).toEqual(expected)
         else expect(rows).toEqual(expected)
+    })
+
+    test('valueWhenNull-int-receiver-widens-to-a-fractional-double-fallback', async () => {
+        // Locks two coupled defects on `valueWhenNull`, both of which need a
+        // NULL int receiver reached by a wider/fractional fallback:
+        //  - (all dialects) the result was declared as the RECEIVER's `int`, but
+        //    the emitted `coalesce(<int>, <double>)` resolves to the wider double,
+        //    so a NULL int row returns the double's fraction — and the marshaller's
+        //    int arm threw INVALID_VALUE_RECEIVED_FROM_DATABASE on that valid value.
+        //    Because the fallback is a `double` source, the declared type now
+        //    promotes to double (like minValue/maxValue/add already do).
+        //  - (SQL Server) SQL Server emitted `isnull`, which types the result as its
+        //    FIRST argument and coerces the 1.5 fallback DOWN to int (1); `coalesce`
+        //    keeps the fraction. The snapshot below is `coalesce`, not `isnull`.
+        // The fallback is `priority.divide(2)` (a double source that casts to float,
+        // so PostgreSQL resolves the param type from the cast rather than inferring
+        // int and rejecting the fraction at bind). assignee_id is NULL only for
+        // issue 3 (priority 3 → 3/2 = 1.5), whose fallback surfaces the fraction.
+        const expected = [
+            { id: 1, w: 1 },
+            { id: 2, w: 2 },
+            { id: 3, w: 1.5 },
+            { id: 4, w: 3 },
+        ]
+        ctx.mockNext(expected)
+
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .select({
+                id: tIssue.id,
+                w:  tIssue.assigneeId.valueWhenNull(tIssue.priority.divide(2)),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce(assignee_id, cast(priority as float) / @0) as [w] from issue order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; w: number }>>>()
+        expect(rows).toEqual(expected)
     })
 
     test('valueWhenNull-with-column-as-default', async () => {
@@ -86,7 +128,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, isnull(assignee_id, id) as owner from issue order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce(assignee_id, id) as owner from issue order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number; owner: number }>>>()
         if (!ctx.realDbEnabled) expect(rows).toEqual(expected)
@@ -261,7 +303,7 @@ describe(ctx.label, () => {
             .select({ x: tIssue.title.valueWhenNull(tIssue.body) })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select isnull(title, body) as [x] from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select coalesce(title, body) as [x] from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -307,7 +349,7 @@ describe(ctx.label, () => {
             .select({ id: tIssueWorklog.id, t: tIssueWorklog.startedAt.valueWhenNull(new Date(Date.UTC(1970, 0, 1, 8, 0, 0))) })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, isnull(started_at, @0) as [t] from issue_worklog where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce(started_at, @0) as [t] from issue_worklog where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1970-01-01T08:00:00.000Z,
@@ -374,7 +416,7 @@ describe(ctx.label, () => {
             .select({ id: tProjectRelease.id, x: tProjectRelease.signedOffAt.valueWhenNull(new Date(Date.UTC(2099, 0, 1, 0, 0, 0))) })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, isnull(signed_off_at, @0) as [x] from project_release where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce(signed_off_at, @0) as [x] from project_release where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2099-01-01T00:00:00.000Z,
@@ -396,7 +438,7 @@ describe(ctx.label, () => {
             .select({ id: tProjectRelease.id, x: tProjectRelease.cutoffTime.valueWhenNull(tProjectRelease.cutoffTime) })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, isnull(cutoff_time, cutoff_time) as [x] from project_release where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce(cutoff_time, cutoff_time) as [x] from project_release where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -427,7 +469,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, isnull(work_date, @0) as [d], isnull(work_date, work_date) as d2 from issue_worklog where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce(work_date, @0) as [d], coalesce(work_date, work_date) as d2 from issue_worklog where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2024-01-01T00:00:00.000Z,
@@ -459,7 +501,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, isnull(created_at, @0) as [d], isnull(created_at, created_at) as d2 from organization where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce(created_at, @0) as [d], coalesce(created_at, created_at) as d2 from organization where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2099-01-01T00:00:00.000Z,
@@ -490,7 +532,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, isnull(released_on, @0) as [d], isnull(released_on, released_on) as d2 from project_release where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce(released_on, @0) as [d], coalesce(released_on, released_on) as d2 from project_release where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2099-01-01T00:00:00.000Z,
@@ -612,7 +654,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, isnull(billable, @0) as bwn, nullif(billable, @1) as bni from issue_worklog order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce(billable, @0) as bwn, nullif(billable, @1) as bni from issue_worklog order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             true,
@@ -650,7 +692,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, isnull(cast(case approved when 'A' then 1 when 'R' then 0 else null end as bit), @0) as awn, nullif(cast(case approved when 'A' then 1 when 'R' then 0 else null end as bit), @1) as ani from issue_worklog order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce(cast(case approved when 'A' then 1 when 'R' then 0 else null end as bit), @0) as awn, nullif(cast(case approved when 'A' then 1 when 'R' then 0 else null end as bit), @1) as ani from issue_worklog order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             true,
@@ -691,7 +733,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, isnull(cast(case approved when 'A' then 1 when 'R' then 0 else null end as bit), cast(case when invoiced = 1 then 1 else 0 end as bit)) as awn, nullif(cast(case approved when 'A' then 1 when 'R' then 0 else null end as bit), cast(case when invoiced = 1 then 1 else 0 end as bit)) as ani from issue_worklog order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce(cast(case approved when 'A' then 1 when 'R' then 0 else null end as bit), cast(case when invoiced = 1 then 1 else 0 end as bit)) as awn, nullif(cast(case approved when 'A' then 1 when 'R' then 0 else null end as bit), cast(case when invoiced = 1 then 1 else 0 end as bit)) as ani from issue_worklog order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number; awn: boolean; ani?: boolean }>>>()
         expect(rows).toEqual(expected)
@@ -769,7 +811,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, isnull(version, @0) as [v], nullif(version, @1) as vni, version as vopt from project_release where version is not null order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce(version, @0) as [v], nullif(version, @1) as vni, version as vopt from project_release where version is not null order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "0.0.0",
@@ -808,7 +850,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, isnull(channel, @0) as [c], nullif(channel, @1) as cni, channel as copt from project_release where channel is not null order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce(channel, @0) as [c], nullif(channel, @1) as cni, channel as copt from project_release where channel is not null order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "stable",
@@ -846,7 +888,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, isnull(activity, @0) as [a], nullif(activity, @1) as ani, activity as aopt from issue_worklog where activity is not null order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce(activity, @0) as [a], nullif(activity, @1) as ani, activity as aopt from issue_worklog where activity is not null order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "coding",
@@ -880,7 +922,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, isnull(stage, @0) as coalesced, nullif(stage, @1) as nulled, stage as opt from release_draft order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce(stage, @0) as coalesced, nullif(stage, @1) as nulled, stage as opt from release_draft order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "draft",
@@ -924,7 +966,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, isnull(channel, @0) as coalesced, nullif(channel, @1) as nulled, channel as opt from release_draft order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce(channel, @0) as coalesced, nullif(channel, @1) as nulled, channel as opt from release_draft order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "stable",
@@ -968,7 +1010,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, isnull(min_version, @0) as coalesced, nullif(min_version, @1) as nulled, min_version as opt from release_draft order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce(min_version, @0) as coalesced, nullif(min_version, @1) as nulled, min_version as opt from release_draft order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "0.0.0",
@@ -1081,7 +1123,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, isnull(stage, stage) as cvs, nullif(stage, stage) as nvs from release_draft order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce(stage, stage) as cvs, nullif(stage, stage) as nvs from release_draft order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number; cvs?: ReleaseStage; nvs?: ReleaseStage }>>>()
         expect(rows).toEqual(expected)
@@ -1107,7 +1149,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, isnull(channel, channel) as cvs, nullif(channel, channel) as nvs from release_draft order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce(channel, channel) as cvs, nullif(channel, channel) as nvs from release_draft order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number; cvs?: ReleaseChannel; nvs?: ReleaseChannel }>>>()
         expect(rows).toEqual(expected)
@@ -1133,7 +1175,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, isnull(min_version, min_version) as cvs, nullif(min_version, min_version) as nvs from release_draft order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce(min_version, min_version) as cvs, nullif(min_version, min_version) as nvs from release_draft order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number; cvs?: string; nvs?: string }>>>()
         expect(rows).toEqual(expected)
@@ -1423,7 +1465,7 @@ describe(ctx.label, () => {
             .where(tIssueWorklog.id.equals(1))
             .select({ id: tIssueWorklog.id, t: tIssueWorklog.startedAt.valueWhenNull(tIssueWorklog.startedAt) })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, isnull(started_at, started_at) as [t] from issue_worklog where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce(started_at, started_at) as [t] from issue_worklog where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1463,7 +1505,7 @@ describe(ctx.label, () => {
             .where(tProjectRelease.id.equals(1))
             .select({ id: tProjectRelease.id, x: tProjectRelease.cutoffTime.valueWhenNull(new Date(Date.UTC(1970, 0, 1, 8, 0, 0))) })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, isnull(cutoff_time, @0) as [x] from project_release where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce(cutoff_time, @0) as [x] from project_release where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1970-01-01T08:00:00.000Z,
@@ -1615,7 +1657,7 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, isnull(cast(case when verified = 'Y' then 1 else 0 end as bit), @0) as wn, nullif(cast(case when verified = 'Y' then 1 else 0 end as bit), @1) as ni from organization order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce(cast(case when verified = 'Y' then 1 else 0 end as bit), @0) as wn, nullif(cast(case when verified = 'Y' then 1 else 0 end as bit), @1) as ni from organization order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             false,
@@ -1650,7 +1692,7 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, isnull(cast(case when published = 't' then 1 else 0 end as bit), @0) as wn, nullif(cast(case when published = 't' then 1 else 0 end as bit), @1) as ni from project order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce(cast(case when published = 't' then 1 else 0 end as bit), @0) as wn, nullif(cast(case when published = 't' then 1 else 0 end as bit), @1) as ni from project order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             false,
@@ -1684,7 +1726,7 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, isnull(cast(case when invoiced = 1 then 1 else 0 end as bit), @0) as wn, nullif(cast(case when invoiced = 1 then 1 else 0 end as bit), @1) as ni from issue_worklog order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce(cast(case when invoiced = 1 then 1 else 0 end as bit), @0) as wn, nullif(cast(case when invoiced = 1 then 1 else 0 end as bit), @1) as ni from issue_worklog order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             false,

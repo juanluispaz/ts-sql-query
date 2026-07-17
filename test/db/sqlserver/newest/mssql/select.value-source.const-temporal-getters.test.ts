@@ -211,7 +211,7 @@ describe(ctx.label, () => {
                 mo: tIssueWorklog.workDate.valueWhenNull(fallback).getMonth(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(month, isnull(work_date, @0)) - 1 as mo from issue_worklog where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(month, coalesce(work_date, @0)) - 1 as mo from issue_worklog where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2000-01-01T00:00:00.000Z,
@@ -344,7 +344,7 @@ describe(ctx.label, () => {
                 ign: tProjectRelease.signedOffAt.ignoreWhenAsNull(false).getFullYear(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(year, isnull(signed_off_at, @0)) as vwn, datepart(year, nullif(signed_off_at, @1)) as nif, datepart(year, signed_off_at) as rio, datepart(year, signed_off_at) as own, datepart(year, signed_off_at) as ign from project_release where id = @2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(year, coalesce(signed_off_at, @0)) as vwn, datepart(year, nullif(signed_off_at, @1)) as nif, datepart(year, signed_off_at) as rio, datepart(year, signed_off_at) as own, datepart(year, signed_off_at) as ign from project_release where id = @2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2000-01-01T00:00:00.000Z,

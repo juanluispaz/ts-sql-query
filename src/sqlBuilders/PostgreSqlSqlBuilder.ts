@@ -253,6 +253,18 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         // Transform an uuid to string
         return this._appendSqlParenthesis(valueSource, params, false) + '::text'
     }
+    override _minimumBetweenTwoValues(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        // maxValue(x) — the SMALLER of the two. PostgreSQL's `least` ignores a NULL
+        // operand, contradicting the optional type the library declares; wrap it so a
+        // NULL operand poisons the result. `maxValueFunction` is the user opt-in.
+        return this._minAndMaxValueBetweenTwoValuesPoisoningNull(params, valueSource, value, columnType, columnTypeName, typeAdapter, this._connectionConfiguration.maxValueFunction, 'least')
+    }
+    override _maximumBetweenTwoValues(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        // minValue(x) — the LARGER of the two. PostgreSQL's `greatest` ignores a NULL
+        // operand; wrap it so a NULL operand poisons the result. `minValueFunction` is
+        // the user opt-in.
+        return this._minAndMaxValueBetweenTwoValuesPoisoningNull(params, valueSource, value, columnType, columnTypeName, typeAdapter, this._connectionConfiguration.minValueFunction, 'greatest')
+    }
     override _asNullValue(_params: any[], _columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         if (typeAdapter && typeAdapter.transformPlaceholder) {
             return typeAdapter.transformPlaceholder('null', columnTypeName, true, null, this._defaultTypeAdapter)
@@ -406,18 +418,6 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         } else {
             return this._appendSqlParenthesis(valueSource, params, false) + " not ilike ('%' || " +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + " || '%')"
         }
-    }
-    override _in(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        if (Array.isArray(value) && value.length <= 0) {
-            return this._falseValueForCondition
-        }
-        return super._in(params, valueSource, value, columnType, columnTypeName, typeAdapter)
-    }
-    override _notIn(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        if (Array.isArray(value) && value.length <= 0) {
-            return this._trueValueForCondition
-        }
-        return super._notIn(params, valueSource, value, columnType, columnTypeName, typeAdapter)
     }
     override _stringConcat(params: any[], separator: string | undefined, value: any): string {
         if (separator === undefined || separator === null) {

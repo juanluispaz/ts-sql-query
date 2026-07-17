@@ -58,6 +58,39 @@ export abstract class PostgreSqlConnection<NAME extends string> extends Abstract
      */
     protected usePlatformDependentRound: boolean = false
 
+    /**
+     * Keep PostgreSQL's native NULL handling for `.minValue(x)` / `.maxValue(x)`.
+     *
+     * PostgreSQL's `least(a, b)` / `greatest(a, b)` **ignore** a NULL operand and
+     * return the present value, whereas the library's type declares the result
+     * optional whenever either operand is optional (the same OR rule `add` /
+     * `subtract` / `concat` use) — i.e. a NULL operand should propagate to a NULL
+     * result. By default (`false`) the library wraps `least` / `greatest` in a
+     * `CASE` so a NULL operand poisons the result, matching the declared type and
+     * the other dialects (MySQL / MariaDB / Oracle / SQLite already propagate).
+     *
+     * Setting this flag to `true` keeps the bare native `least` / `greatest`, which
+     * ignores NULL. Prefer {@link minValueFunction} / {@link maxValueFunction} if you
+     * want NULL propagation without the operand-repeating `CASE`.
+     */
+    protected ignoreNullInMinAndMaxValue: boolean = false
+
+    /**
+     * Name of a user-defined SQL function that returns the **larger** of two values
+     * and propagates NULL, used to emit `.minValue(x)` as `func(a, b)` instead of the
+     * default NULL-poisoning `CASE`. Avoids repeating the operand (the
+     * {@link OracleConnection.concatFunction} pattern). Preferred over the `CASE` when set.
+     */
+    protected minValueFunction?: string
+
+    /**
+     * Name of a user-defined SQL function that returns the **smaller** of two values
+     * and propagates NULL, used to emit `.maxValue(x)` as `func(a, b)` instead of the
+     * default NULL-poisoning `CASE`. Avoids repeating the operand. Preferred over the
+     * `CASE` when set.
+     */
+    protected maxValueFunction?: string
+
     constructor(queryRunner: QueryRunner, sqlBuilder = new PostgreSqlSqlBuilder()) {
         super(queryRunner, sqlBuilder)
         queryRunner.useDatabase('postgreSql')

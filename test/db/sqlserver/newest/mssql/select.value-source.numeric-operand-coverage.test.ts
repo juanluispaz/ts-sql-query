@@ -46,7 +46,7 @@ describe(ctx.label, () => {
                 ni: tIssue.viewCount.nullIfValue(tIssue.viewCount),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, greatest(view_count, view_count) as mn, least(view_count, view_count) as mx, isnull(view_count, view_count) as wn, nullif(view_count, view_count) as ni from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, greatest(view_count, view_count) as mn, least(view_count, view_count) as mx, coalesce(view_count, view_count) as wn, nullif(view_count, view_count) as ni from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -79,7 +79,7 @@ describe(ctx.label, () => {
                 ni: tIssueWorklog.costCents.nullIfValue(tIssueWorklog.costCents),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cost_cents - cost_cents as [s], cost_cents * cost_cents as mu, greatest(cost_cents, cost_cents) as mn, least(cost_cents, cost_cents) as mx, isnull(cost_cents, cost_cents) as wn, nullif(cost_cents, cost_cents) as ni from issue_worklog where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cost_cents - cost_cents as [s], cost_cents * cost_cents as mu, greatest(cost_cents, cost_cents) as mn, least(cost_cents, cost_cents) as mx, coalesce(cost_cents, cost_cents) as wn, nullif(cost_cents, cost_cents) as ni from issue_worklog where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -112,7 +112,7 @@ describe(ctx.label, () => {
                 ni: tIssueWorklog.billedAmount.nullIfValue(tIssueWorklog.billedAmount),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, billed_amount - billed_amount as [s], billed_amount * billed_amount as mu, greatest(billed_amount, billed_amount) as mn, least(billed_amount, billed_amount) as mx, isnull(billed_amount, billed_amount) as wn, nullif(billed_amount, billed_amount) as ni from issue_worklog where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, billed_amount - billed_amount as [s], billed_amount * billed_amount as mu, greatest(billed_amount, billed_amount) as mn, least(billed_amount, billed_amount) as mx, coalesce(billed_amount, billed_amount) as wn, nullif(billed_amount, billed_amount) as ni from issue_worklog where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -422,7 +422,7 @@ describe(ctx.label, () => {
                 wn: tIssueWorklog.durationMs.valueWhenNull(ctx.conn.const(0n, 'bigint')),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, isnull(duration_ms, @0) as wn from issue_worklog where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce(duration_ms, @0) as wn from issue_worklog where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0n,
@@ -599,7 +599,7 @@ describe(ctx.label, () => {
                 ni: tIssue.estimatedHours.nullIfValue(0),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, isnull(estimated_hours, @0) as wn, nullif(estimated_hours, @1) as ni from issue where id = @2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce(estimated_hours, @0) as wn, nullif(estimated_hours, @1) as ni from issue where id = @2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0,
@@ -631,7 +631,7 @@ describe(ctx.label, () => {
                 wn: tIssueWorklog.costCents.valueWhenNull(worklog2.costCents),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue_worklog.id as id, isnull(issue_worklog.cost_cents, worklog2.cost_cents) as wn from issue_worklog join issue_worklog as worklog2 on worklog2.id = issue_worklog.id where issue_worklog.id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue_worklog.id as id, coalesce(issue_worklog.cost_cents, worklog2.cost_cents) as wn from issue_worklog join issue_worklog as worklog2 on worklog2.id = issue_worklog.id where issue_worklog.id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -685,7 +685,7 @@ describe(ctx.label, () => {
                 wn: tIssueWorklog.billedAmount.valueWhenNull(worklog2.billedAmount),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue_worklog.id as id, isnull(issue_worklog.billed_amount, worklog2.billed_amount) as wn from issue_worklog join issue_worklog as worklog2 on worklog2.id = issue_worklog.id where issue_worklog.id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue_worklog.id as id, coalesce(issue_worklog.billed_amount, worklog2.billed_amount) as wn from issue_worklog join issue_worklog as worklog2 on worklog2.id = issue_worklog.id where issue_worklog.id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -842,7 +842,7 @@ describe(ctx.label, () => {
                 mx: tIssue.priority.maxValue(sub()),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority - (select max(id) as [result] from project) as [s], priority * (select max(id) as [result] from project) as mu, priority % (select max(id) as [result] from project) as mo, power(priority, (select max(id) as [result] from project)) as pw, greatest(priority, (select max(id) as [result] from project)) as mn, least(priority, (select max(id) as [result] from project)) as mx from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority - (select max(id) as [result] from project) as [s], priority * (select max(id) as [result] from project) as mu, priority % (select max(id) as [result] from project) as mo, power(cast(priority as float), (select max(id) as [result] from project)) as pw, case when (select max(id) as [result] from project) is null then null else greatest(priority, (select max(id) as [result] from project)) end as mn, case when (select max(id) as [result] from project) is null then null else least(priority, (select max(id) as [result] from project)) end as mx from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -924,7 +924,7 @@ describe(ctx.label, () => {
                 mx: base().maxValue(sub()),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(priority as float) - (select cast(max(id) as float) as [result] from project) as [s], cast(priority as float) * (select cast(max(id) as float) as [result] from project) as mu, cast(priority as float) / (select cast(max(id) as float) as [result] from project) as di, cast(cast(priority as float) as numeric(38, 16)) % cast((select cast(max(id) as float) as [result] from project) as numeric(38, 16)) as mo, power(cast(priority as float), (select cast(max(id) as float) as [result] from project)) as pw, log(cast(priority as float), (select cast(max(id) as float) as [result] from project)) as [ln], round(cast(priority as float), @0) as rn, atn2(cast(priority as float), (select cast(max(id) as float) as [result] from project)) as [at], greatest(cast(priority as float), (select cast(max(id) as float) as [result] from project)) as mn, least(cast(priority as float), (select cast(max(id) as float) as [result] from project)) as mx from issue where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(priority as float) - (select cast(max(id) as float) as [result] from project) as [s], cast(priority as float) * (select cast(max(id) as float) as [result] from project) as mu, cast(priority as float) / (select cast(max(id) as float) as [result] from project) as di, cast(cast(priority as float) as numeric(38, 16)) % cast((select cast(max(id) as float) as [result] from project) as numeric(38, 16)) as mo, power(cast(priority as float), (select cast(max(id) as float) as [result] from project)) as pw, log(cast(priority as float), (select cast(max(id) as float) as [result] from project)) as [ln], round(cast(priority as float), @0) as rn, atn2(cast(priority as float), (select cast(max(id) as float) as [result] from project)) as [at], case when (select cast(max(id) as float) as [result] from project) is null then null else greatest(cast(priority as float), (select cast(max(id) as float) as [result] from project)) end as mn, case when (select cast(max(id) as float) as [result] from project) is null then null else least(cast(priority as float), (select cast(max(id) as float) as [result] from project)) end as mx from issue where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -970,7 +970,7 @@ describe(ctx.label, () => {
                 mx: tIssue.viewCount.maxValue(sub()),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, view_count - (select max(duration_ms) as [result] from issue_worklog) as [s], view_count % (select max(duration_ms) as [result] from issue_worklog) as mo, greatest(view_count, (select max(duration_ms) as [result] from issue_worklog)) as mn, least(view_count, (select max(duration_ms) as [result] from issue_worklog)) as mx from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, view_count - (select max(duration_ms) as [result] from issue_worklog) as [s], view_count % (select max(duration_ms) as [result] from issue_worklog) as mo, case when (select max(duration_ms) as [result] from issue_worklog) is null then null else greatest(view_count, (select max(duration_ms) as [result] from issue_worklog)) end as mn, case when (select max(duration_ms) as [result] from issue_worklog) is null then null else least(view_count, (select max(duration_ms) as [result] from issue_worklog)) end as mx from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1008,7 +1008,7 @@ describe(ctx.label, () => {
                 at: tIssueWorklog.issueId.atan2(tIssueWorklog.doubleVirtual),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, power(issue_id, billed_amount) as pw, log(issue_id, billed_amount) as [ln], atn2(issue_id, billed_amount) as [at] from issue_worklog where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, power(cast(issue_id as float), billed_amount) as pw, log(issue_id, billed_amount) as [ln], atn2(issue_id, billed_amount) as [at] from issue_worklog where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1120,7 +1120,7 @@ describe(ctx.label, () => {
                 mx:  tIssueWorklog.minutes.maxValue(50),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs(minutes) as ab, ceiling(minutes) as ce, floor(minutes) as fl, sign(minutes) as sg, cast(minutes as float) as ad, minutes as abi, minutes - @0 as [s], minutes % @1 as mo, greatest(minutes, @2) as mn, least(minutes, @3) as mx from issue_worklog where id = @4"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs(minutes) as ab, ceiling(minutes) as ce, floor(minutes) as fl, sign(minutes) as sg, cast(minutes as float) as ad, minutes as abi, minutes - @0 as [s], minutes % @1 as mo, case when minutes is null then null else greatest(minutes, @2) end as mn, case when minutes is null then null else least(minutes, @3) end as mx from issue_worklog where id = @4"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1176,7 +1176,7 @@ describe(ctx.label, () => {
                 mx: tIssueWorklog.durationMs.maxValue(1n),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ceiling(duration_ms) as [c], floor(duration_ms) as [f], round(duration_ms, 0) as [r], duration_ms - @0 as [s], duration_ms % @1 as mo, greatest(duration_ms, @2) as mn, least(duration_ms, @3) as mx from issue_worklog where id = @4"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ceiling(duration_ms) as [c], floor(duration_ms) as [f], round(duration_ms, 0) as [r], duration_ms - @0 as [s], duration_ms % @1 as mo, case when duration_ms is null then null else greatest(duration_ms, @2) end as mn, case when duration_ms is null then null else least(duration_ms, @3) end as mx from issue_worklog where id = @4"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1n,

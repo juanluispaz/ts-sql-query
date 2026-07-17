@@ -1430,7 +1430,7 @@ describe(ctx.label, () => {
                 dow: tProjectRelease.releasedOn.nullIfValue(probe).getDay(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(month, isnull(released_on, @0)) - 1 as mo, (datepart(weekday, nullif(released_on, @1)) + @@datefirst - 1) % 7 as dow from project_release where id = @2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(month, coalesce(released_on, @0)) - 1 as mo, (datepart(weekday, nullif(released_on, @1)) + @@datefirst - 1) % 7 as dow from project_release where id = @2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2000-01-01T00:00:00.000Z,
@@ -1458,7 +1458,7 @@ describe(ctx.label, () => {
                 s: tProjectRelease.cutoffTime.nullIfValue(probe).getSeconds(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(hour, isnull(cutoff_time, @0)) as [h], datepart(second, nullif(cutoff_time, @1)) as [s] from project_release where id = @2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(hour, coalesce(cutoff_time, @0)) as [h], datepart(second, nullif(cutoff_time, @1)) as [s] from project_release where id = @2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1970-01-01T00:00:00.000Z,
@@ -1486,7 +1486,7 @@ describe(ctx.label, () => {
                 h: tOrganization.createdAt.nullIfValue(probe).getHours(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(year, isnull(created_at, @0)) as [y], datepart(hour, nullif(created_at, @1)) as [h] from organization where id = @2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select datepart(year, coalesce(created_at, @0)) as [y], datepart(hour, nullif(created_at, @1)) as [h] from organization where id = @2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1970-01-01T00:00:00.000Z,

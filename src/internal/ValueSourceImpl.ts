@@ -606,7 +606,25 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
     }
     // SqlFunction1
     valueWhenNull(value: any): any {
-        return new SqlOperationValueWhenNullValueSource(this, value, this.__valueType, this.__valueTypeName, getOptionalType2(this, value), getTypeAdapter2(this, value))
+        let valueType = this.__valueType
+        let valueTypeName = this.__valueTypeName
+        // Promote the declared numeric type from the fallback operand, the same way the
+        // overloaded-number operations do (createSqlOperation1ofOverloadedNumber): an `int`
+        // receiver with a `double` fallback emits `coalesce(<int>, <double>)`, which the
+        // engine resolves to the wider `double`, so a NULL int row legitimately returns the
+        // double's fraction. Without this promotion the result is still declared `int` and
+        // the marshaller's int arm rejects that valid value (INVALID_VALUE_RECEIVED_FROM_DATABASE).
+        // Only a plain `int` receiver needs widening — a double/bigint/customInt/customDouble
+        // receiver already carries the wider-or-matching type, and the compile-time signature
+        // only admits a same-`typeName` operand.
+        if (valueType === 'int' && isValueSource(value)) {
+            const operandType = __getValueSourcePrivate(value).__valueType
+            if (operandType === 'double' || operandType === 'customDouble') {
+                valueType = 'double'
+                valueTypeName = 'double'
+            }
+        }
+        return new SqlOperationValueWhenNullValueSource(this, value, valueType, valueTypeName, getOptionalType2(this, value), getTypeAdapter2(this, value))
     }
     nullIfValue(value: any): any {
         return new SqlOperation1ValueSource('_nullIfValue', this, value, this.__valueType, this.__valueTypeName, 'optional', getTypeAdapter2(this, value))

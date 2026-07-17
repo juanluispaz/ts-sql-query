@@ -137,4 +137,39 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ id: number; capped?: number }>>>()
         expect(result).toEqual(expected)
     })
+
+    test('minValue-maxValue-null-operand-poisons-to-null', async () => {
+        // A NULL operand must POISON the result to NULL — the semantics the library's
+        // optional type declares (mergeOptional: optional if EITHER operand is optional,
+        // the OR rule add/subtract/concat use). assignee_id is NULL for issue 3, so both
+        // `.minValue(5)` (floor at 5, the greater) and `.maxValue(5)` (cap at 5, the
+        // lesser) must be NULL there — 5/1, 5/2, NULL/NULL, 5/3 across the four rows.
+        // This dialect's native least/greatest/min/max already propagates a NULL
+        // operand, so a NULL assignee_id poisons both results to NULL (bare snapshot).
+        const expected = [
+            { id: 1, floored: 5,         capped: 1 },
+            { id: 2, floored: 5,         capped: 2 },
+            { id: 3, floored: undefined, capped: undefined },
+            { id: 4, floored: 5,         capped: 3 },
+        ]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .select({
+                id:      tIssue.id,
+                floored: tIssue.assigneeId.minValue(5),
+                capped:  tIssue.assigneeId.maxValue(5),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, greatest(assignee_id, ?) as floored, least(assignee_id, ?) as capped from issue order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            5,
+            5,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; floored?: number; capped?: number }>>>()
+        expect(result).toEqual(expected)
+    })
 })

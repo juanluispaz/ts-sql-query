@@ -620,18 +620,6 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
             return 'group_concat(distinct ' + this._appendSql(value, params, false) + ' separator ' + this._appendValue(separator, params, 'string', 'string', undefined, false) + ')'
         }
     }
-    override _in(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        if (Array.isArray(value) && value.length <= 0) {
-            return this._falseValueForCondition
-        }
-        return super._in(params, valueSource, value, columnType, columnTypeName, typeAdapter)
-    }
-    override _notIn(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        if (Array.isArray(value) && value.length <= 0) {
-            return this._trueValueForCondition
-        }
-        return super._notIn(params, valueSource, value, columnType, columnTypeName, typeAdapter)
-    }
     override _random(_params: any): string {
         return 'rand()'
     }

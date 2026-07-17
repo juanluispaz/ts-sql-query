@@ -212,6 +212,21 @@ LANGUAGE sql AS $$ SELECT MAX(created_at) FROM issue WHERE project_id = p_id $$;
 CREATE FUNCTION estimated_total(p_id integer) RETURNS double precision
 LANGUAGE sql AS $$ SELECT COALESCE(SUM(estimated_hours), 0)::double precision FROM issue WHERE project_id = p_id $$;
 
+-- Null-propagating min/max helpers for the `minValueFunction` / `maxValueFunction`
+-- opt-in (config.min-max-null-handling.test.ts). PostgreSQL's native `least` / `greatest`
+-- IGNORE a NULL operand; these poison it to NULL instead, so a user who prefers the
+-- function form over the CASE the builder emits by default can name them. `anycompatible`
+-- keeps the operand's numeric type (int stays int, double stays double) — the same helper
+-- the docs (postgresql.md) tell users to create.
+DROP FUNCTION IF EXISTS greatest_strict(anycompatible, anycompatible);
+DROP FUNCTION IF EXISTS least_strict(anycompatible, anycompatible);
+
+CREATE FUNCTION greatest_strict(a anycompatible, b anycompatible) RETURNS anycompatible
+LANGUAGE sql IMMUTABLE AS $$ SELECT CASE WHEN a IS NULL OR b IS NULL THEN NULL ELSE greatest(a, b) END $$;
+
+CREATE FUNCTION least_strict(a anycompatible, b anycompatible) RETURNS anycompatible
+LANGUAGE sql IMMUTABLE AS $$ SELECT CASE WHEN a IS NULL OR b IS NULL THEN NULL ELSE least(a, b) END $$;
+
 -- Constant-returning functions, one per remaining executeFunction return kind
 -- (boolean / uuid / date / time / and the varchar bases behind enum / custom /
 -- customComparable). Each takes an ignored int arg to keep the `select fn($1)`

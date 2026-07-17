@@ -135,7 +135,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(3))
             .selectOneColumn(tIssue.externalRef.asString().valueWhenNull('(no ref)'))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select isnull(convert(nvarchar(36), external_ref), @0) as [result] from issue where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select coalesce(convert(nvarchar(36), external_ref), @0) as [result] from issue where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "(no ref)",
@@ -154,7 +154,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .selectOneColumn(tIssue.body.valueWhenNull(tIssue.externalRef.asString()))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select isnull(body, convert(nvarchar(36), external_ref)) as [result] from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select coalesce(body, convert(nvarchar(36), external_ref)) as [result] from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -432,7 +432,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(3))
             .selectOneColumn(tIssue.externalRef.valueWhenNull(UUID_VALUE))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select isnull(external_ref, @0) as [result] from issue where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select coalesce(external_ref, @0) as [result] from issue where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "f47ac10b-58cc-4372-a567-0e02b2c3d479",
@@ -492,7 +492,7 @@ describe(ctx.label, () => {
             .where(tProjectRelease.id.equals(2))
             .selectOneColumn(tProjectRelease.signingKey.valueWhenNull(UUID_VALUE))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select isnull(signing_key, @0) as [result] from project_release where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select coalesce(signing_key, @0) as [result] from project_release where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "f47ac10b-58cc-4372-a567-0e02b2c3d479",
@@ -513,7 +513,7 @@ describe(ctx.label, () => {
             .where(tProjectRelease.id.equals(1))
             .selectOneColumn(tProjectRelease.signingKey.valueWhenNull(tProjectRelease.signingKey.asOptional()))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select isnull(signing_key, signing_key) as [result] from project_release where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select coalesce(signing_key, signing_key) as [result] from project_release where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -561,7 +561,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .selectOneColumn(tIssue.externalRef.valueWhenNull(tIssue.externalRef.asOptional()))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select isnull(external_ref, external_ref) as [result] from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select coalesce(external_ref, external_ref) as [result] from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -582,7 +582,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(3))
             .selectOneColumn(tIssue.externalRef.valueWhenNull(tIssue.externalRef.asOptional()))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select isnull(external_ref, external_ref) as [result] from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select coalesce(external_ref, external_ref) as [result] from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -598,7 +598,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(3))
             .select({ id: tIssue.id, ref: tIssue.externalRef.valueWhenNull(tIssue.externalRef.asOptional()) })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, isnull(external_ref, external_ref) as [ref] from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce(external_ref, external_ref) as [ref] from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,

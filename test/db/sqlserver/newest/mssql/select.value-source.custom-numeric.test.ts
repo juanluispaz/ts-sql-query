@@ -542,7 +542,7 @@ describe(ctx.label, () => {
                 bni: tIssueWorklog.billedAmount.nullIfValue(0),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, isnull(duration_ms, @0) as dwn, nullif(duration_ms, @1) as dni, isnull(cost_cents, @2) as cwn, nullif(cost_cents, @3) as cni, isnull(billed_amount, @4) as bwn, nullif(billed_amount, @5) as bni from issue_worklog where id = @6"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce(duration_ms, @0) as dwn, nullif(duration_ms, @1) as dni, coalesce(cost_cents, @2) as cwn, nullif(cost_cents, @3) as cni, coalesce(billed_amount, @4) as bwn, nullif(billed_amount, @5) as bni from issue_worklog where id = @6"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             0n,
@@ -853,7 +853,7 @@ describe(ctx.label, () => {
                 niv: tag.nullIfValue(0 as ReleaseTag),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, isnull(@0, @1) as vwn, nullif(@2, @3) as niv from issue where id = @4"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce(@0, @1) as vwn, nullif(@2, @3) as niv from issue where id = @4"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             6,
@@ -1151,7 +1151,7 @@ describe(ctx.label, () => {
                 niv: money.nullIfValue(0 as Money),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, isnull(@0, @1) as vwn, nullif(@2, @3) as niv from issue where id = @4"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce(@0, @1) as vwn, nullif(@2, @3) as niv from issue where id = @4"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             8,

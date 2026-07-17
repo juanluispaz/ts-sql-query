@@ -110,7 +110,7 @@ describe(ctx.label, () => {
                     .and(tIssue.id.equals(3))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = isnull(app_user.full_name, @0) from issue left join app_user on app_user.id = issue.assignee_id where project.id = issue.project_id and issue.id = @1"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = coalesce(app_user.full_name, @0) from issue left join app_user on app_user.id = issue.assignee_id where project.id = issue.project_id and issue.id = @1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Unassigned",
@@ -140,7 +140,7 @@ describe(ctx.label, () => {
                     .and(tIssue.id.equals(3))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = isnull(app_user.full_name, @0) from issue left outer join app_user on app_user.id = issue.assignee_id where project.id = issue.project_id and issue.id = @1"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = coalesce(app_user.full_name, @0) from issue left outer join app_user on app_user.id = issue.assignee_id where project.id = issue.project_id and issue.id = @1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Unassigned",

@@ -294,6 +294,34 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
+    test('power-fractional-exponent-keeps-the-fraction', async () => {
+        // A fractional exponent must keep the fraction: priority(id=1) = 2, so
+        // `.power(0.5)` = sqrt(2) ~ 1.4142135. A non-degenerate base (2, not 1) is
+        // required — `power(1, 0.5)` = 1 whether or not the fraction survives.
+        const expected = [{ id: 1, r: Math.SQRT2 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                r:  tIssue.priority.power(0.5),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, power(priority, ?) as \`r\` from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            0.5,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; r: number }>>>()
+        if (ctx.realDbEnabled) {
+            expect(result[0]!.r).toBeCloseTo(Math.SQRT2, 5)
+        } else {
+            expect(result).toEqual(expected)
+        }
+    })
+
     test('exp-and-ln', async () => {
         // exp + ln are inverses; ln(exp(2)) should be 2.
         const expected = [{ id: 1, lnExp: 2 }]

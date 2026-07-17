@@ -2702,6 +2702,38 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _isNotNull(params: any[], valueSource: ToSql): string {
         return this._appendSqlParenthesis(valueSource, params, false) + ' is not null'
     }
+    _isNullValue(value: any): boolean {
+        if (value === null || value === undefined) {
+            return true
+        }
+        if (!isValueSource(value)) {
+            return false
+        }
+        const valueSourcePrivate = __getValueSourcePrivate(value)
+        if (valueSourcePrivate.isConstValue()) {
+            const valueSourceValue = valueSourcePrivate.getConstValue()
+            if (valueSourceValue === null || valueSourceValue === undefined) {
+                return true
+            }
+        }
+        return false
+    }
+    _isOptionalValue(value: any): boolean {
+        if (value === null || value === undefined) {
+            return true
+        }
+        if (!isValueSource(value)) {
+            return false
+        }
+        const valueSourcePrivate = __getValueSourcePrivate(value)
+        if (valueSourcePrivate.isConstValue()) {
+            const valueSourceValue = valueSourcePrivate.getConstValue()
+            if (valueSourceValue === null || valueSourceValue === undefined) {
+                return true
+            }
+        }
+        return valueSourcePrivate.__optionalType !== 'required'
+    }
     _hasSameBooleanTypeAdapter(valueSource: DBColumn, value: DBColumn): valueSource is DBColumn  {
         if (isColumn(valueSource) && isColumn(value)) {
             const valueSourcePrivate = __getColumnPrivate(valueSource)
@@ -2774,9 +2806,21 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return this._appendSqlParenthesis(valueSource, params, false) + ' >= ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false)
     }
     _in(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        // An empty array can never match, so short-circuit to the false constant.
+        // `<x> in ()` is invalid SQL on every engine, so the guard lives here in the
+        // base (not duplicated per dialect) — a dialect that does not override this
+        // method still emits valid SQL for the empty-array case.
+        if (Array.isArray(value) && value.length <= 0) {
+            return this._falseValueForCondition
+        }
         return this._appendSqlParenthesis(valueSource, params, false) + ' in ' + this._appendSpreadValue(value, params, columnType, columnTypeName, typeAdapter, false)
     }
     _notIn(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        // An empty array excludes nothing, so short-circuit to the true constant
+        // (`<x> not in ()` is likewise invalid SQL everywhere). See `_in` above.
+        if (Array.isArray(value) && value.length <= 0) {
+            return this._trueValueForCondition
+        }
         return this._appendSqlParenthesis(valueSource, params, false) + ' not in ' + this._appendSpreadValue(value, params, columnType, columnTypeName, typeAdapter, false)
     }
     // Escape clause appended to the LIKE expressions built by the comparison predicates
@@ -3391,6 +3435,75 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     _maximumBetweenTwoValues(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         return 'greatest(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false) + ')'
+    }
+    /**
+     * Shared min/max builder for the dialects whose native `least`/`greatest` (or
+     * `iif`) IGNORES a NULL operand — PostgreSQL and SQL Server. `minValue`/`maxValue`
+     * compute their result optionality with `mergeOptional` (optional if EITHER operand
+     * is optional, the same rule `add`/`subtract`/`concat` use); that OR rule **is** the
+     * NULL-propagates (poison) contract — a required receiver with an optional argument is
+     * typed optional precisely because the library anticipates the argument's NULL reaching
+     * the result. Oracle / MySQL / MariaDB (`least`/`greatest`) and SQLite (`min`/`max`)
+     * already deliver poison natively and keep the plain base emission; PostgreSQL and SQL
+     * Server route here to match the type they declare.
+     *
+     * Emits the leanest form the build-time optionality allows — only null-check operands
+     * that CAN be null:
+     *   - both required → `<inner>` (no CASE — nothing can be null).
+     *   - one optional  → `case when <that one> is null then null else <inner> end`.
+     *   - both optional → `case when a is null or b is null then null else <inner> end`.
+     * `<inner>` is `_minAndMaxValueSelection` — the bare `least`/`greatest` here (the coherent
+     * base form); `functionName` is `'least'` for the smaller value, `'greatest'` for the
+     * larger. SQL Server overrides `_minAndMaxValueSelection` to emulate the pair with `iif`
+     * on versions where `least`/`greatest` do not exist, so the poison CASE built here stays
+     * dialect-agnostic while each server still emits SQL it accepts.
+     *
+     * Two opt-outs (the maintainer's principle: what the database provides natively wins,
+     * an opt-in is the last resort):
+     *   - `ignoreNullInMinAndMaxValue` — keep the native ignore-NULL behaviour (no CASE).
+     *   - `userFunction` (`minValueFunction`/`maxValueFunction`) — a user-provided
+     *     null-propagating function emitted as `func(a, b)`, so the operand is not repeated.
+     *
+     * The operand appears twice in the optional cases (null check + `<inner>`); accepted,
+     * because it is almost always a column, and the user-function opt-in exists for the
+     * rare expensive value-source receiver.
+     */
+    _minAndMaxValueBetweenTwoValuesPoisoningNull(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, userFunction: string | undefined, functionName: string): string {
+        const argumentType = this._getMathArgumentType(columnType, columnTypeName, value)
+        const argumentTypeName = this._getMathArgumentTypeName(columnType, columnTypeName, value)
+        if (this._connectionConfiguration.ignoreNullInMinAndMaxValue) {
+            // Opt-out: keep the engine's native least/greatest, which ignores a NULL operand.
+            return this._minAndMaxValueSelection(params, valueSource, value, argumentType, argumentTypeName, typeAdapter, functionName)
+        }
+        if (userFunction) {
+            // Opt-in: a user-provided null-propagating function; it poisons NULL itself, no CASE.
+            return userFunction + '(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, argumentType, argumentTypeName, typeAdapter, false) + ')'
+        }
+        const receiverOptional = this._isOptionalValue(valueSource)
+        const operandOptional = this._isOptionalValue(value)
+        if (!receiverOptional && !operandOptional) {
+            // Both required: nothing can be null, emit the bare native form.
+            return this._minAndMaxValueSelection(params, valueSource, value, argumentType, argumentTypeName, typeAdapter, functionName)
+        }
+        // Build the null check first so its parameters are appended before the inner's.
+        let nullCheck: string
+        if (receiverOptional && operandOptional) {
+            nullCheck = this._isNull(params, valueSource) + ' or ' + this._isNull(params, value)
+        } else if (receiverOptional) {
+            nullCheck = this._isNull(params, valueSource)
+        } else {
+            nullCheck = this._isNull(params, value)
+        }
+        return 'case when ' + nullCheck + ' then null else ' + this._minAndMaxValueSelection(params, valueSource, value, argumentType, argumentTypeName, typeAdapter, functionName) + ' end'
+    }
+    /**
+     * The bare two-value min/max selection with NO null handling: `<functionName>(a, b)`,
+     * i.e. `least` / `greatest` — the coherent base form, used by PostgreSQL (and reachable
+     * by any dialect that keeps `least`/`greatest`). SQL Server overrides this to emulate
+     * the pair with `iif` on the versions where `least`/`greatest` do not exist.
+     */
+    _minAndMaxValueSelection(params: any[], valueSource: ToSql, value: any, argumentType: ValueType, argumentTypeName: string, typeAdapter: TypeAdapter | undefined, functionName: string): string {
+        return functionName + '(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, argumentType, argumentTypeName, typeAdapter, false) + ')'
     }
     _add(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         return this._appendSqlParenthesisExcluding(valueSource, params, '_add', false) + ' + ' + this._appendValueParenthesisExcluding(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, '_add', false)

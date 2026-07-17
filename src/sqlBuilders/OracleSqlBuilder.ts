@@ -1220,18 +1220,6 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     // the backslash declared by the `escape '\'` clause every affix predicate
     // below emits. The inherited `_escapeLikeWildcard` produces exactly that
     // backslash escaping (`%`->`\%`, `_`->`\_`, `\`->`\\`), so no override.
-    override _in(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        if (Array.isArray(value) && value.length <= 0) {
-            return this._falseValueForCondition
-        }
-        return super._in(params, valueSource, value, columnType, columnTypeName, typeAdapter)
-    }
-    override _notIn(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        if (Array.isArray(value) && value.length <= 0) {
-            return this._trueValueForCondition
-        }
-        return super._notIn(params, valueSource, value, columnType, columnTypeName, typeAdapter)
-    }
     override _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayDistinct: boolean, params: any[], _query: SelectData | undefined): string {
         const distict = aggregatedArrayDistinct ? 'distinct ' : ''
         if (isValueSource(aggregatedArrayColumns)) {

@@ -104,7 +104,7 @@ describe(ctx.label, () => {
                 .where(tProject.id.equals(tIssue.projectId))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = isnull(organization.name, project.slug) from project left join organization on organization.id = project.organization_id where project.id = issue.project_id"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = coalesce(organization.name, project.slug) from project left join organization on organization.id = project.organization_id where project.id = issue.project_id"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
             assertType<Exact<typeof affected, number>>()
             if (ctx.realDbEnabled) expect(typeof affected).toBe('number')

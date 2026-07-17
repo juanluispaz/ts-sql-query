@@ -646,7 +646,7 @@ describe(ctx.label, () => {
                 soff: tProjectRelease.signedOffAt.valueWhenNull(tProjectRelease.signedOffAt.asOptional()),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, isnull(signed_off_at, signed_off_at) as soff from project_release where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, coalesce(signed_off_at, signed_off_at) as soff from project_release where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

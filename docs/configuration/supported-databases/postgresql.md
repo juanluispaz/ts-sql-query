@@ -72,6 +72,70 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
 
 With the flag on, `value.round()` emits `round(x)` directly: when `x` is a `numeric` expression you still get away-from-zero, but when `x` is a `double precision` expression (the type produced by `.divide(...)`, `.asDouble()`, and many other arithmetic chains) the tie-breaking follows PostgreSQL's `round(double precision)` rules.
 
+## `minValue` / `maxValue` and NULL
+
+`value.minValue(x)` (floor at `x` — the *greater* of the two) and `value.maxValue(x)` (cap at `x` — the *lesser*) are typed **optional whenever either operand is optional** — the same rule `add` / `subtract` / `concat` follow — so a NULL operand is expected to propagate to a NULL result. MySQL, MariaDB, Oracle and SQLite already do this. PostgreSQL's native `least` / `greatest` **ignore** a NULL operand and return the present value:
+
+```sql
+greatest(NULL::int, 5)  = 5      -- ignores NULL
+least(NULL::int, 5)     = 5
+```
+
+So `tIssue.estimatedHours.minValue(5)` returns `5` for a NULL `estimated_hours` on native PostgreSQL, but `NULL` on the other databases — the same typed call, two values. **To match the declared type, ts-sql-query wraps `least` / `greatest` in a `CASE` that returns NULL when an operand is NULL:**
+
+```sql
+case when estimated_hours is null then null else greatest(estimated_hours, $1) end
+```
+
+Only the leanest check the build-time optionality needs is emitted: two **required** operands stay the bare `greatest(a, b)` / `least(a, b)`, one optional operand null-checks only that one.
+
+### Keeping PostgreSQL's native ignore-NULL behavior
+
+If you prefer PostgreSQL's native behavior — a NULL operand ignored rather than propagated — set `ignoreNullInMinAndMaxValue = true`:
+
+```ts
+import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
+
+class DBConnection extends PostgreSqlConnection<'DBConnection'> {
+    protected override ignoreNullInMinAndMaxValue = true
+}
+```
+
+`value.minValue(x)` then emits the bare `greatest(value, x)` again.
+
+### Propagating NULL through a function instead of a `CASE`
+
+The default `CASE` repeats the operand (once in the null check, once in `least` / `greatest`) — free for a column, but not for an expensive value-source receiver. Name a null-propagating function you created and it is emitted as `func(a, b)` instead, each operand appearing once:
+
+```ts
+class DBConnection extends PostgreSqlConnection<'DBConnection'> {
+    protected override minValueFunction = 'greatest_strict'  // minValue -> the LARGER of the two
+    protected override maxValueFunction = 'least_strict'     // maxValue -> the SMALLER of the two
+}
+```
+
+Mind the mapping: `minValue` (floor) returns the **larger** value, so it uses the `greatest`-like function; `maxValue` (cap) returns the **smaller**, so it uses the `least`-like one. The names are yours; the ones above are only what this page's example calls them.
+
+Create the functions with `anycompatible` (PostgreSQL 14+) so they keep the operand's numeric type — `int` stays `int`, `double precision` stays `double precision`:
+
+```sql
+CREATE FUNCTION greatest_strict(a anycompatible, b anycompatible) RETURNS anycompatible
+LANGUAGE sql IMMUTABLE AS $$ SELECT CASE WHEN a IS NULL OR b IS NULL THEN NULL ELSE greatest(a, b) END $$;
+
+CREATE FUNCTION least_strict(a anycompatible, b anycompatible) RETURNS anycompatible
+LANGUAGE sql IMMUTABLE AS $$ SELECT CASE WHEN a IS NULL OR b IS NULL THEN NULL ELSE least(a, b) END $$;
+```
+
+With the options set, the emitted SQL calls them once per operand:
+
+```sql
+select greatest_strict(estimated_hours, $1) as floored, least_strict(estimated_hours, $2) as capped from issue
+```
+
+!!! tip "Leave all three unset unless you need them"
+
+    The default `CASE` matches the declared type on every database and only pays a repeated operand for a value-source receiver. Reach for `ignoreNullInMinAndMaxValue` when you specifically want PostgreSQL's ignore-NULL semantics, or for `minValueFunction` / `maxValueFunction` when the repeated operand is expensive enough to matter. The row aggregate `min(col)` / `max(col)` over rows is a different function — it ignores NULL on every database by standard SQL — and is unaffected by any of these.
+
 ## Explicit typing
 
 In some situations, PostgreSQL may be unable to infer the correct type of a parameter in a query. This often happens with untyped `NULL` values or when using generic placeholders. To ensure type safety and proper execution, you can explicitly cast the parameter type in the generated SQL.

@@ -710,38 +710,6 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     override _buildDeleteReturning(_query: DeleteData, _params: any[]): string {
         return ''
     }
-    _isNullValue(value: any) {
-        if (value === null || value === undefined) {
-            return true
-        }
-        if (!isValueSource(value)) {
-            return false
-        }
-        const valueSourcePrivate = __getValueSourcePrivate(value)
-        if (valueSourcePrivate.isConstValue()) {
-            const valueSourceValue = valueSourcePrivate.getConstValue()
-            if (valueSourceValue === null || valueSourceValue === undefined) {
-                return true
-            }
-        }
-        return false
-    }
-    _isOptionalValue(value: any) {
-        if (value === null || value === undefined) {
-            return true
-        }
-        if (!isValueSource(value)) {
-            return false
-        }
-        const valueSourcePrivate = __getValueSourcePrivate(value)
-        if (valueSourcePrivate.isConstValue()) {
-            const valueSourceValue = valueSourcePrivate.getConstValue()
-            if (valueSourceValue === null || valueSourceValue === undefined) {
-                return true
-            }
-        }
-        return valueSourcePrivate.__optionalType !== 'required'
-    }
     override _isNull(params: any[], valueSource: ToSql): string {
         if (isColumn(valueSource)) {
             return this._appendRawColumnName(valueSource, params) + ' is null'
@@ -838,7 +806,15 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         // return 'not exists(select ' + this._appendSqlParenthesis(valueSource, params) + ' intersect select ' + this._appendValueParenthesis(value, params, columnTypeName, typeAdapter) + ')'
     }
     override _valueWhenNull(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        let result = 'isnull('
+        // Emit `coalesce`, not T-SQL's `isnull`. `isnull(a, b)` types its result as its
+        // FIRST argument and coerces the fallback to it (the same first-arg-type rule as
+        // POWER — see _power / _cbrtRadicand), so a wider/longer fallback is silently
+        // truncated: `isnull(varchar(3) null, 'abcdef')` = 'abc', `isnull(tinyint, 100000)`
+        // narrows the numeric fallback. `coalesce` types the result as the WIDEST operand,
+        // matching every other dialect and the library's declared type. `coalesce` expands
+        // to a CASE that double-evaluates its first argument; accepted, because that
+        // argument is the receiver — almost always a column, so repeating it is free.
+        let result = 'coalesce('
         if (isValueSource(valueSource) && __getValueSourcePrivate(valueSource).__uuidString) {
             result += 'convert(nvarchar(36), ' + this._appendSql(valueSource, params, false) + ')'
         } else {
@@ -1008,11 +984,22 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         return result
     }
     override _length(params: any[], valueSource: ToSql): string {
+        if (this._connectionConfiguration.excludeTrailingBlanksInLength) {
+            // Opt-in (`excludeTrailingBlanksInLength`): emit T-SQL's native `len(x)`, which
+            // EXCLUDES trailing blanks (`len('Draft  ')` = 5) — diverging from JS
+            // `String.length`. This also removes the max-length edge of the sentinel form
+            // below (a value exactly at its column's declared maximum). A genuine trade,
+            // not a strict improvement; see the flag's JSDoc on SqlServerConnection.
+            return 'len(' + this._appendSql(valueSource, params, false) + ')'
+        }
         // T-SQL's `len()` EXCLUDES trailing blanks — `len('Draft  ')` is 5, not 7 — while
         // `.length()` mirrors JS's `String.length`, which counts them. Appending a non-blank
         // character makes the trailing blanks interior, and the `- 1` takes it back off.
         // `datalength()` is not an option: it answers bytes, so it doubles under `nvarchar`.
         // NULL propagates through the concat, so a NULL receiver still answers NULL.
+        // Edge (documented in LIMITATIONS.md, opt-out above): for a value exactly at its
+        // column's declared maximum, T-SQL string `+` on two non-`max` char types caps the
+        // concat at the maximum and drops the sentinel, so this returns maximum − 1.
         return "len(" + this._appendSql(valueSource, params, false) + " + '.') - 1"
     }
     override _ceil(params: any[], valueSource: ToSql): string {
@@ -1030,6 +1017,22 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         // so the cube-root emulation returns a fractional result.
         return this._appendCastAsDouble('abs(' + this._appendSql(valueSource, params, false) + ')')
     }
+    override _power(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        // `power()` declares its result `double`, but T-SQL's POWER returns the data type
+        // of its FIRST argument (the same first-arg-type rule as ISNULL — see _valueWhenNull),
+        // so `power(<int>, 0.5)` computes and truncates in int (`power(2, 0.5)` = 1, not
+        // 1.4142…) and even an integer exponent overflows the int type where every other
+        // engine widens (`power(50000, 2)` -> arithmetic overflow). Cast an integer base to
+        // float so the fractional/large result is honoured — the same fix _cbrtRadicand
+        // applies. A base that is already floating (`double`/`customDouble`, e.g. a
+        // `.asDouble()` receiver whose SQL is itself `cast(... as float)`) keeps the
+        // fraction natively and is left uncast to avoid a redundant double cast.
+        let base = this._appendSql(valueSource, params, false)
+        if (columnType !== 'double' && columnType !== 'customDouble') {
+            base = this._appendCastAsDouble(base)
+        }
+        return 'power(' + base + ', ' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false) + ')'
+    }
     override _ln(params: any[], valueSource: ToSql): string {
         return 'log(' + this._appendSql(valueSource, params, false) + ')'
     }
@@ -1044,20 +1047,30 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         return 'atn2(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false) + ')'
     }
     override _minimumBetweenTwoValues(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        const argumentType = this._getMathArgumentType(columnType, columnTypeName, value)
-        const argumentTypeName = this._getMathArgumentTypeName(columnType, columnTypeName, value)
-        if (this._connectionConfiguration.compatibilityVersion >= 16_000_000) {
-            return 'least(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, argumentType, argumentTypeName, typeAdapter, false) + ')'
-        }
-        return 'iif(' + this._appendSql(valueSource, params, false) + ' < ' + this._appendValue(value, params, argumentType, argumentTypeName, typeAdapter, false) + ', ' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, argumentType, argumentTypeName, typeAdapter, false) + ')'
+        // maxValue(x) — the SMALLER of the two. Native `least` / `greatest` and the `iif`
+        // emulation (the `_minAndMaxValueSelection` override below) both IGNORE a NULL
+        // operand, contradicting the optional type the library declares; the poison CASE
+        // built by the base wraps the version-appropriate inner so a NULL operand poisons
+        // the result (it also fixes the `<2022` iif's operand-order asymmetry).
+        // `maxValueFunction` is the user opt-in.
+        return this._minAndMaxValueBetweenTwoValuesPoisoningNull(params, valueSource, value, columnType, columnTypeName, typeAdapter, this._connectionConfiguration.maxValueFunction, 'least')
     }
     override _maximumBetweenTwoValues(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        const argumentType = this._getMathArgumentType(columnType, columnTypeName, value)
-        const argumentTypeName = this._getMathArgumentTypeName(columnType, columnTypeName, value)
+        // minValue(x) — the LARGER of the two. Native `greatest` / the `iif` emulation IGNORE
+        // a NULL operand; the base's poison CASE wraps the version-appropriate inner so a NULL
+        // operand poisons the result. `minValueFunction` is the user opt-in.
+        return this._minAndMaxValueBetweenTwoValuesPoisoningNull(params, valueSource, value, columnType, columnTypeName, typeAdapter, this._connectionConfiguration.minValueFunction, 'greatest')
+    }
+    override _minAndMaxValueSelection(params: any[], valueSource: ToSql, value: any, argumentType: ValueType, argumentTypeName: string, typeAdapter: TypeAdapter | undefined, functionName: string): string {
         if (this._connectionConfiguration.compatibilityVersion >= 16_000_000) {
-            return 'greatest(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, argumentType, argumentTypeName, typeAdapter, false) + ')'
+            // SQL Server 2022+ has native LEAST / GREATEST — the coherent base form.
+            return super._minAndMaxValueSelection(params, valueSource, value, argumentType, argumentTypeName, typeAdapter, functionName)
         }
-        return 'iif(' + this._appendSql(valueSource, params, false) + ' > ' + this._appendValue(value, params, argumentType, argumentTypeName, typeAdapter, false) + ', ' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, argumentType, argumentTypeName, typeAdapter, false) + ')'
+        // Below SQL Server 2022 `least` / `greatest` do not exist, so emulate them with
+        // `iif`. The comparison follows the function: `least` keeps the smaller (`<`),
+        // `greatest` the larger (`>`).
+        const operator = functionName === 'least' ? '<' : '>'
+        return 'iif(' + this._appendSql(valueSource, params, false) + ' ' + operator + ' ' + this._appendValue(value, params, argumentType, argumentTypeName, typeAdapter, false) + ', ' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, argumentType, argumentTypeName, typeAdapter, false) + ')'
     }
     override _getDate(params: any[], valueSource: ToSql): string {
         return 'datepart(day, ' + this._appendSql(valueSource, params, false) + ')'
@@ -1124,18 +1137,6 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         } else {
             return 'string_agg(distinct ' + this._appendSqlMaybeUuid(value, params) + ', ' + this._appendUnsafeLiteralValue(separator, params) + ')'
         }
-    }
-    override _in(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        if (Array.isArray(value) && value.length <= 0) {
-            return this._falseValueForCondition
-        }
-        return super._in(params, valueSource, value, columnType, columnTypeName, typeAdapter)
-    }
-    override _notIn(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        if (Array.isArray(value) && value.length <= 0) {
-            return this._trueValueForCondition
-        }
-        return super._notIn(params, valueSource, value, columnType, columnTypeName, typeAdapter)
     }
     override _substrToEnd(params: any[], valueSource: ToSql, value: any, _columnType: ValueType, _columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         if (typeof value === 'number' && value < 0) {

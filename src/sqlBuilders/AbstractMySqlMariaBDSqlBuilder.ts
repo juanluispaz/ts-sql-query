@@ -69,7 +69,8 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
             orderByColumns += this._appendRawFragment(customization.beforeOrderByItems, params)
         }
 
-        for (const entry of orderBy) {
+        for (let i = 0, length = orderBy.length; i < length; i++) {
+            const entry = orderBy[i]!
             if (orderByColumns) {
                 orderByColumns += ', '
             }
@@ -157,7 +158,8 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
             orderByColumns += this._appendRawFragment(customization.beforeOrderByItems, params)
         }
 
-        for (const entry of orderBy) {
+        for (let i = 0, length = orderBy.length; i < length; i++) {
+            const entry = orderBy[i]!
             if (orderByColumns) {
                 orderByColumns += ', '
             }

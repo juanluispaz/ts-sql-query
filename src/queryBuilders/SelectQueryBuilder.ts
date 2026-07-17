@@ -159,20 +159,27 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
                         throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'invalid result column' }, 'The result column must be a ValueSource')
                     }
 
-                    return values.map((value) => {
+                    const length = values.length
+                    const output = new Array(length)
+                    for (let i = 0; i < length; i++) {
+                        let value = values[i]
                         if (value === undefined) {
                             value = null
                         }
-                        return this.__transformValueFromDB(valueSource, value)
-                    })
+                        output[i] = this.__transformValueFromDB(valueSource, value)
+                    }
+                    return output
                 }).catch((e) => {
                     throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
                 })
             } else {
                 result = this.__sqlBuilder._queryRunner.executeSelectManyRows(this.__query, this.__params).then((rows) => {
-                    return rows.map((row, index) => {
-                        return this.__transformRow(row, index)
-                    })
+                    const length = rows.length
+                    const output = new Array(length)
+                    for (let index = 0; index < length; index++) {
+                        output[index] = this.__transformRow(rows[index], index)
+                    }
+                    return output
                 }).catch((e) => {
                     throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
                 })
@@ -1546,16 +1553,20 @@ export class CompoundSelectQueryBuilder extends AbstractSelect implements ToSql,
 
         if (firstQuery.__subSelectUsing && secondQuery.__subSelectUsing) {
             const subSelectUsing: Array<AnyTableOrView> = []
-            firstQuery.__subSelectUsing.forEach(value => {
+            const firstSubSelectUsing = firstQuery.__subSelectUsing
+            for (let i = 0, length = firstSubSelectUsing.length; i < length; i++) {
+                const value = firstSubSelectUsing[i]!
                 if (!subSelectUsing.includes(value)) {
                     subSelectUsing.push(value)
                 }
-            })
-            secondQuery.__subSelectUsing.forEach(value => {
+            }
+            const secondSubSelectUsing = secondQuery.__subSelectUsing
+            for (let i = 0, length = secondSubSelectUsing.length; i < length; i++) {
+                const value = secondSubSelectUsing[i]!
                 if (!subSelectUsing.includes(value)) {
                     subSelectUsing.push(value)
                 }
-            })
+            }
             this.__subSelectUsing = subSelectUsing
         } else {
             this.__subSelectUsing = firstQuery.__subSelectUsing || secondQuery.__subSelectUsing

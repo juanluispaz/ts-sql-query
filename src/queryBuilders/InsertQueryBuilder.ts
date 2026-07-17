@@ -121,7 +121,10 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                     const columnTypeName = idColumnPrivate.__valueTypeName
                     const defaultTypeAdapter = this.__sqlBuilder._defaultTypeAdapter
                     if (typeAdapter) {
-                        return rows.map((row, index) => {
+                        const length = rows.length
+                        const output = new Array(length)
+                        for (let index = 0; index < length; index++) {
+                            const row = rows[index]
                             let result
                             try {
                                 result = typeAdapter.transformValueFromDB(row, columnTypeName, defaultTypeAdapter)
@@ -138,11 +141,15 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                             if (result === null || result === undefined) {
                                 throw new TsSqlProcessingError({ reason: 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE', value: result, typeName: idColumnPrivate.__valueTypeName, rowIndex: index }, 'Expected a value as result of the insert returning last inserted id, but null or undefined value was found')
                             }
-                            return result
-                        })
+                            output[index] = result
+                        }
+                        return output
                     } else {
-                        return rows.map((row, index) => {
-                            let result 
+                        const length = rows.length
+                        const output = new Array(length)
+                        for (let index = 0; index < length; index++) {
+                            const row = rows[index]
+                            let result
                             try {
                                 result = defaultTypeAdapter.transformValueFromDB(row, columnTypeName)
                             } catch(e) {
@@ -158,8 +165,9 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                             if (result === null || result === undefined) {
                                 throw new TsSqlProcessingError({ reason: 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE', value: result, typeName: idColumnPrivate.__valueTypeName, rowIndex: index }, 'Expected a value as result of the insert returning last inserted id, but null or undefined value was found')
                             }
-                            return result
-                        })
+                            output[index] = result
+                        }
+                        return output
                     }
                 }).catch((e) => {
                     throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
@@ -300,20 +308,27 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                         throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'invalid result column' }, 'The result column must be a ValueSource')
                     }
 
-                    return values.map((value) => {
+                    const length = values.length
+                    const output = new Array(length)
+                    for (let i = 0; i < length; i++) {
+                        let value = values[i]
                         if (value === undefined) {
                             value = null
                         }
-                        return this.__transformValueFromDB(valueSource, value)
-                    })
+                        output[i] = this.__transformValueFromDB(valueSource, value)
+                    }
+                    return output
                 }).catch((e) => {
                     throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
                 })
             } else {
                 result = this.__sqlBuilder._queryRunner.executeInsertReturningManyRows(this.__query, this.__params).then((rows) => {
-                    return rows.map((row, index) => {
-                        return this.__transformRow(row, index)
-                    })
+                    const length = rows.length
+                    const output = new Array(length)
+                    for (let index = 0; index < length; index++) {
+                        output[index] = this.__transformRow(rows[index], index)
+                    }
+                    return output
                 }).catch((e) => {
                     throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
                 })

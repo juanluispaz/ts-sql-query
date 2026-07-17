@@ -268,7 +268,8 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             orderByColumns += this._appendRawFragment(customization.beforeOrderByItems, params)
         }
 
-        for (const entry of orderBy) {
+        for (let i = 0, length = orderBy.length; i < length; i++) {
+            const entry = orderBy[i]!
             if (orderByColumns) {
                 orderByColumns += ', '
             }
@@ -630,7 +631,8 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         if (!orderBy) {
             return false
         }
-        for (const entry of orderBy) {
+        for (let i = 0, length = orderBy.length; i < length; i++) {
+            const entry = orderBy[i]!
             const order = entry.order
             if (order === 'asc nulls last' || order === 'desc nulls first'
                 || order === 'asc nulls last insensitive' || order === 'desc nulls first insensitive') {

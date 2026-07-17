@@ -37,13 +37,19 @@ export abstract class AbstractQueryRunner implements QueryRunner {
         })
     }
     executeSelectOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
-        return this.executeQueryReturning(query, params).then((rows) => rows.map((row) => {
-            const columns = Object.getOwnPropertyNames(row)
-            if (columns.length > 1) {
-                throw new TsSqlProcessingError({ reason: 'ONLY_ONE_COLUMN_EXPECTED' }, 'Too many columns, expected only one column')
+        return this.executeQueryReturning(query, params).then((rows) => {
+            const length = rows.length
+            const output = new Array(length)
+            for (let i = 0; i < length; i++) {
+                const row = rows[i]
+                const columns = Object.getOwnPropertyNames(row)
+                if (columns.length > 1) {
+                    throw new TsSqlProcessingError({ reason: 'ONLY_ONE_COLUMN_EXPECTED' }, 'Too many columns, expected only one column')
+                }
+                output[i] = row[columns[0]!] // Value in the row of the first column without care about the name
             }
-            return row[columns[0]!] // Value in the row of the first column without care about the name
-        }))
+            return output
+        })
     }
     executeInsert(query: string, params: any[] = []): Promise<number> {
         return this.executeMutation(query, params)
@@ -66,13 +72,17 @@ export abstract class AbstractQueryRunner implements QueryRunner {
     }
     executeInsertReturningMultipleLastInsertedId(query: string, params: any[] = []): Promise<any> {
         return this.executeMutationReturning(query, params).then((rows) => {
-            return rows.map((row) => {
+            const length = rows.length
+            const output = new Array(length)
+            for (let i = 0; i < length; i++) {
+                const row = rows[i]
                 const columns = Object.getOwnPropertyNames(row)
                 if (columns.length > 1) {
                     throw new TsSqlProcessingError({ reason: 'ONLY_ONE_COLUMN_EXPECTED' }, 'Too many columns, expected only one column')
                 }
-                return row[columns[0]!] // Value in the row of the first column without care about the name
-            })
+                output[i] = row[columns[0]!] // Value in the row of the first column without care about the name
+            }
+            return output
         })
     }
     executeInsertReturningOneRow(query: string, params: any[] = []): Promise<any> {
@@ -103,13 +113,19 @@ export abstract class AbstractQueryRunner implements QueryRunner {
         })
     }
     executeInsertReturningOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
-        return this.executeMutationReturning(query, params).then((rows) => rows.map((row) => {
-            const columns = Object.getOwnPropertyNames(row)
-            if (columns.length > 1) {
-                throw new TsSqlProcessingError({ reason: 'ONLY_ONE_COLUMN_EXPECTED' }, 'Too many columns, expected only one column')
+        return this.executeMutationReturning(query, params).then((rows) => {
+            const length = rows.length
+            const output = new Array(length)
+            for (let i = 0; i < length; i++) {
+                const row = rows[i]
+                const columns = Object.getOwnPropertyNames(row)
+                if (columns.length > 1) {
+                    throw new TsSqlProcessingError({ reason: 'ONLY_ONE_COLUMN_EXPECTED' }, 'Too many columns, expected only one column')
+                }
+                output[i] = row[columns[0]!] // Value in the row of the first column without care about the name
             }
-            return row[columns[0]!] // Value in the row of the first column without care about the name
-        }))
+            return output
+        })
     }
     executeUpdate(query: string, params: any[] = []): Promise<number> {
         return this.executeMutation(query, params)
@@ -142,13 +158,19 @@ export abstract class AbstractQueryRunner implements QueryRunner {
         })
     }
     executeUpdateReturningOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
-        return this.executeMutationReturning(query, params).then((rows) => rows.map((row) => {
-            const columns = Object.getOwnPropertyNames(row)
-            if (columns.length > 1) {
-                throw new TsSqlProcessingError({ reason: 'ONLY_ONE_COLUMN_EXPECTED' }, 'Too many columns, expected only one column')
+        return this.executeMutationReturning(query, params).then((rows) => {
+            const length = rows.length
+            const output = new Array(length)
+            for (let i = 0; i < length; i++) {
+                const row = rows[i]
+                const columns = Object.getOwnPropertyNames(row)
+                if (columns.length > 1) {
+                    throw new TsSqlProcessingError({ reason: 'ONLY_ONE_COLUMN_EXPECTED' }, 'Too many columns, expected only one column')
+                }
+                output[i] = row[columns[0]!] // Value in the row of the first column without care about the name
             }
-            return row[columns[0]!] // Value in the row of the first column without care about the name
-        }))
+            return output
+        })
     }
     executeDelete(query: string, params: any[] = []): Promise<number> {
         return this.executeMutation(query, params)
@@ -181,13 +203,19 @@ export abstract class AbstractQueryRunner implements QueryRunner {
         })
     }
     executeDeleteReturningOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
-        return this.executeMutationReturning(query, params).then((rows) => rows.map((row) => {
-            const columns = Object.getOwnPropertyNames(row)
-            if (columns.length > 1) {
-                throw new TsSqlProcessingError({ reason: 'ONLY_ONE_COLUMN_EXPECTED' }, 'Too many columns, expected only one column')
+        return this.executeMutationReturning(query, params).then((rows) => {
+            const length = rows.length
+            const output = new Array(length)
+            for (let i = 0; i < length; i++) {
+                const row = rows[i]
+                const columns = Object.getOwnPropertyNames(row)
+                if (columns.length > 1) {
+                    throw new TsSqlProcessingError({ reason: 'ONLY_ONE_COLUMN_EXPECTED' }, 'Too many columns, expected only one column')
+                }
+                output[i] = row[columns[0]!] // Value in the row of the first column without care about the name
             }
-            return row[columns[0]!] // Value in the row of the first column without care about the name
-        }))
+            return output
+        })
     }
     executeProcedure(query: string, params: any[] = []): Promise<void> {
         return this.executeMutation(query, params).then(() => undefined)

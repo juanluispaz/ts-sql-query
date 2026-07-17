@@ -180,21 +180,28 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
                         throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'invalid result column' }, 'The result column must be a ValueSource')
                     }
 
-                    return values.map((value) => {
+                    const length = values.length
+                    const output = new Array(length)
+                    for (let i = 0; i < length; i++) {
+                        let value = values[i]
                         if (value === undefined) {
                             value = null
                         }
-                        return this.__transformValueFromDB(valueSource, value)
-                    })
+                        output[i] = this.__transformValueFromDB(valueSource, value)
+                    }
+                    return output
                 }).catch((e) => {
                     throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
                 })
             } else {
                 this.__sqlBuilder._resetUnique()
                 result = this.__sqlBuilder._queryRunner.executeUpdateReturningManyRows(this.__query, this.__params).then((rows) => {
-                    return rows.map((row, index) => {
-                        return this.__transformRow(row, index)
-                    })
+                    const length = rows.length
+                    const output = new Array(length)
+                    for (let index = 0; index < length; index++) {
+                        output[index] = this.__transformRow(rows[index], index)
+                    }
+                    return output
                 }).catch((e) => {
                     throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
                 })

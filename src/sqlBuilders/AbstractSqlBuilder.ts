@@ -886,11 +886,11 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (oldFakeNameOf) {
             if (requiredTablesOrViews) {
                 const newFakeNameOf = new Set<AnyTableOrView>()
-                requiredTablesOrViews.forEach(v => {
+                for (const v of requiredTablesOrViews) {
                     if (oldFakeNameOf.has(v)) {
                         newFakeNameOf.add(v)
                     }
-                })
+                }
                 if (newFakeNameOf.size > 0) {
                     this._setFakeNamesOf(params, newFakeNameOf)
                 } else {
@@ -1108,7 +1108,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
             orderByColumns += this._appendRawFragment(customization.beforeOrderByItems, params)
         }
 
-        for (const entry of orderBy) {
+        for (let i = 0, length = orderBy.length; i < length; i++) {
+            const entry = orderBy[i]!
             if (orderByColumns) {
                 orderByColumns += ', '
             }
@@ -1318,7 +1319,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (collation === '') {
             return false // the insensitive term is ignored entirely, nothing renders as an expression
         }
-        for (const entry of orderBy) {
+        for (let i = 0, length = orderBy.length; i < length; i++) {
+            const entry = orderBy[i]!
             const order = entry.order
             if (!order || order.indexOf('insensitive') < 0) {
                 continue
@@ -1363,7 +1365,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (this._supportFunctionInCompoundOrderBy()) {
             return false // the lenient engines accept the expression inline, no wrapper needed
         }
-        for (const entry of orderBy) {
+        for (let i = 0, length = orderBy.length; i < length; i++) {
+            const entry = orderBy[i]!
             const expression = entry.expression
             if (isValueSource(expression)) {
                 return true

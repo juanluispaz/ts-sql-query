@@ -267,9 +267,9 @@ export function getInnerObjetRuleToApply(sqlBuilder: HasIsValue, columns: QueryC
                 if (initialSize !== valueSourceRequiredTables.size) {
                     alwaysSameRequiredTablesSize = false
                 } else {
-                    valueSourceRequiredTables.forEach(table => {
+                    for (const table of valueSourceRequiredTables) {
                         firstRequiredTables.add(table)
-                    })
+                    }
                     if (initialSize !== firstRequiredTables.size) {
                         alwaysSameRequiredTablesSize = false
                     }
@@ -279,11 +279,11 @@ export function getInnerObjetRuleToApply(sqlBuilder: HasIsValue, columns: QueryC
 
         // Evaluate rule 2: all from the same left join ignoring inner objects
         let onlyOuterJoin = true
-        firstRequiredTables.forEach(table => {
+        for (const table of firstRequiredTables) {
             if (!__getTableOrViewPrivate(table).__forUseInLeftJoin) {
                 onlyOuterJoin = false
             }
-        })
+        }
         if (firstRequiredTables.size <= 0) {
             onlyOuterJoin = false
         }

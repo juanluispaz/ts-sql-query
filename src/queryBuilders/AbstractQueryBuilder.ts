@@ -273,9 +273,9 @@ export class AbstractQueryBuilder {
                         if (initialSize !== valueSourceRequiredTables.size) {
                             alwaysSameRequiredTablesSize = false
                         } else {
-                            valueSourceRequiredTables.forEach(table => {
+                            for (const table of valueSourceRequiredTables) {
                                 firstRequiredTables.add(table)
-                            })
+                            }
                             if (initialSize !== firstRequiredTables.size) {
                                 alwaysSameRequiredTablesSize = false
                             }
@@ -305,11 +305,11 @@ export class AbstractQueryBuilder {
 
         // Rule 2
         let onlyOuterJoin = true
-        firstRequiredTables.forEach(table => {
+        for (const table of firstRequiredTables) {
             if (!__getTableOrViewPrivate(table).__forUseInLeftJoin) {
                 onlyOuterJoin = false
             }
-        })
+        }
         if (firstRequiredTables.size <= 0) {
             onlyOuterJoin = false
         }

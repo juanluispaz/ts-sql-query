@@ -5,8 +5,9 @@
 > DEFINITIONS imply but the suite lacks". The user invokes it with a one-line
 > prompt of the form **"read `test/TYPE_AUDIT_RUNBOOK.md` and run the next
 > missing-tests audit"**. Each session emits a working report,
-> `test/MISSING_TESTS_AUDIT_<N>.md` — a **transient artifact** the user
-> consumes and then deletes; treat it as **not** an input to the next round
+> `test/MISSING_TESTS_AUDIT_<N>.md` — a working report. **The agent never
+> deletes it, or any prior report; removing them is the user's call alone.**
+> Treat it as **not** an input to the next round
 > (older reports may still be on disk — inherit no verdict from them).
 > **This runbook is the durable memory.** Everything a
 > future round needs — the standard, the degeneracy bar, the surface
@@ -81,9 +82,9 @@ audit is only as good as the rules the discovery agents carry.
    is the floor every finding must clear: a "finding" that cannot become such
    a test is not a finding (see §4, degenerate-by-non-validatability).
 3. **No prior report is required reading.** The `MISSING_TESTS_AUDIT_<N>.md`
-   reports are transient — the user consumes and deletes them — so never depend
-   on one being present; but **older ones are often still on disk**, so do not
-   assume their absence either. Two consequences: **(a) derive the round number**
+   reports are the user's to remove (the agent never deletes them) — so never
+   depend on one being present; but **older ones are often still on disk**, so do
+   not assume their absence either. Two consequences: **(a) derive the round number**
    `N` as one past the highest `MISSING_TESTS_AUDIT_*.md` index present (or `_1`
    if none) — that file is where you write this round's report; **(b)** the
    durable knowledge a report would carry is already folded into this runbook
@@ -146,7 +147,14 @@ surface list in **this** file is a snapshot.
    repeatedly produced a clean §A cluster that several agents converge on
    independently — e.g. a fix that made a table-bound `orderBy` on a recursive
    result a compile error left the *no-table* value-source/raw-fragment arms
-   untested everywhere.)
+   untested everywhere.) **Also scan the round's freshly-implemented tests for a
+   BAKED-IN bug** — when the prior round's backlog just landed, a characterization
+   test can bake in the very bug it was meant to document: a test whose
+   `expected`/`toEqual` value contradicts its own `assertType<Exact>` (omits a key
+   the type marks required, uses `null` where the type says `undefined`, keeps a
+   container the type drops) is asserting the bug as correct. The **type is ground
+   truth**; diff each just-added `assertType`+`toEqual` pair's key-presence /
+   null-ness, and probe the boundary row if they disagree.
 
 **Maintenance contract.** If the **degeneracy bar** (§4), the **scope** (§5),
 or the **surface decomposition** (§6) is refined by the user during a session,
@@ -976,6 +984,18 @@ technique that catches it:
   no-result contract, **mock the boundary value it defends against** (`mockNext(null)`) and
   read the resolved result; do not reason "the type says non-null, so it must throw" (the
   runtime analogue of the type-self-consistency ≠ runtime-soundness oracle below).
+- **The impl diverges from a normative spec `src/` itself carries — and the tests pin the
+  divergence, so the suite is green.** Some surfaces ship their own rules as prose next to the types
+  that implement them (the projection-rule header; dialect config contracts). Where one exists, **the
+  spec is the oracle, not the suite**: a test can only pin *observed* behaviour, so a test asserting the
+  current type/emission is exactly what a baked-in divergence looks like — and "a prior round ratified
+  this representation" is a statement about the pin, never about the spec. *Technique:* read the spec
+  first and derive what each rule demands of the output; check the impl against **that**; then locate the
+  sibling configuration where the impl *does* honour the rule — the contrast between the honouring and
+  the diverging path localises the defect (typically one shared transform that a guard short-circuits on
+  one path but not the other, so the same declared marker renders two different shapes). A surface whose
+  spec says "all four rules mark such leaves optional" while three of the four rules emit a required key
+  is a defect no per-surface enumeration will report, because every test agrees with the code.
 
 ### False positives & misclassified boundaries this method has produced — and the oracles that refute them
 
@@ -984,6 +1004,20 @@ A maximalist bar surfaces real bugs; it also surfaces **plausible-but-wrong** ca
 *classification* is wrong). It can also **wrongly REFUTE a real bug** — the inverse error, the
 most dangerous one, because the finding then never gets filed. Keeping all three prevents
 re-chasing / re-dismissing them and sharpens the oracles:
+
+- **A base-class method that every concrete subclass overrides is NOT automatically dead / OUT
+  (an inverse-error: a real bug mislabeled unreachable).** When a defect sits in an abstract base
+  and every subclass overrides that method, the reflex is to file it OUT ("no matrix cell reaches
+  the base"). Check FIRST whether the base is a **designated base dialect / default** — a base meant
+  to be a correct, usable implementation that subclasses extend *minimally*, not an unreachable
+  scaffold. If it is, its divergence from a subclass is a **real bug** (the base emits wrong output),
+  and the wall-to-wall overrides are often the **design-debt symptom**: a per-dialect bug-fix applied
+  to each subclass instead of the base. The reproducing test is not absent, only **masked** — removing
+  the redundant override lets the base's own dialect cell exercise it. *Technique:* before filing a
+  base-class defect OUT, establish whether the base is a real dialect/default (subclass overrides carry
+  genuinely distinct output, and one subclass is *meant* to reduce to the base) or a pure abstract;
+  only the latter is OUT. The domain fact that settles it usually lives with the maintainer, not in the
+  types — ask / surface it rather than assuming "overridden everywhere ⇒ dead".
 
 - **A compile-repro that confirms a type matches its HYPOTHESIS does NOT establish the type
   matches the RUNTIME — the "type-self-consistency ≠ runtime-soundness" oracle (a FALSE-NEGATIVE
@@ -1003,6 +1037,18 @@ re-chasing / re-dismissing them and sharpens the oracles:
   reachable runtime input omits/nulls it (or vice-versa), the type is unsound and it IS a bug — even
   when the compile-repro "confirmed" the type. Do not close a result-optionality candidate on a
   type check alone; the type and the value must be probed **together**.
+  - **Corollary — a result-shape TYPE is sound only for the runtime it was written against; a fix
+    that reuses one shape across two builder paths must be probed on EACH path.** When a fix retypes
+    a *shared* projection shape consumed by more than one builder (e.g. an object-projection element
+    type used by both `aggregateAsArray` and its inline `forUseAsInline*Value` twin; a projection
+    carried before vs after a `.union()`), enumerate every consuming path and runtime-probe each — a
+    type correct for a *dropping* projector (one that removes a rule-1/rule-2 element on a null
+    gate/miss) is unsound for a *non-dropping* twin (one that keeps the element present-`null`), and a
+    runtime flag propagated to one builder-clone (the recursive builder copies its projection flag)
+    can be silently absent on a sibling clone (the compound `union`/`intersect`/`except` builders do
+    not). The fix's own regression test almost always lands on the path where the two shapes coincide
+    (e.g. an own-table optional leaf, where dropping and non-dropping agree), hiding the divergent
+    path — so audit the fix's *other* consumers, not the one it shipped a test for.
 
 - **`disallowIfNoValueWhen` "drops the `MISSING_KEYS` narrowing" — FALSE POSITIVE
   (working as intended).** A round's parity sweep + INSERT agent both flagged, and a
@@ -1160,7 +1206,14 @@ or does the composition remove/replace it?**
   path (a sub-agent once "found" `position`/`pad*`/`trunc` that don't exist).
   Enumerate only what the source declares.
 - **Inherit no prior verdict.** Each round re-derives coverage from the current
-  files. "Covered last round" is checked again, not assumed.
+  files. "Covered last round" is checked again, not assumed. **This binds hardest on a prior
+  round's DEFECT verdicts, not just its coverage claims** — an item a previous report closed as
+  *cosmetic / dormant / OUT / not-a-bug*, or that a memory records as *ratified / already tested*, is a
+  label, not evidence, and it is precisely where a real defect survives round after round (a
+  base-dialect typo dismissed because "every dialect overrides it"; a projector representation
+  dismissed because a prior round pinned it). Re-derive such an item against the **norms and the
+  emission** before repeating its verdict; the cost is minutes, and the prior label is what made it
+  invisible.
 - **Maximalism is the standing target; prefer excess by default.** Total
   coverage of every reachable typed path *and variant* is the ambition (see
   "The standard we hold" in the header), and a long report is the expected

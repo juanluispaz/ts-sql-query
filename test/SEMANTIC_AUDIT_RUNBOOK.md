@@ -307,7 +307,12 @@ For every candidate, in this order:
 
 ## The report
 
-`SEMANTIC_AUDIT_<N>.md`, transient (not kept in the repo). Per finding:
+`SEMANTIC_AUDIT_<N>.md`. **Never delete a report — not this one, and not an
+earlier round's.** They are the durable record of what was probed and why, they
+cost real re-validation to reproduce, and an untracked one is easily lost for
+good (not in git, only in a snapshot). Removing them is the maintainer's call,
+never the agent's — even when a closed item's `BUGS.md` entry is deleted, leave
+the report that entry came from in place. Per finding:
 
 - **The promise** — declared type / JS semantics / documented contract, quoted.
 - **The request** — the emitted SQL, verbatim.

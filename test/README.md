@@ -99,7 +99,7 @@ whose emitted SQL / result type / value is wrong).
 | The unit (type-path) + the COVERED evidence bar | [`TYPE_AUDIT_RUNBOOK.md` § The unit](./TYPE_AUDIT_RUNBOOK.md#the-unit-the-type-path) |
 | The degeneracy bar (output-coincidence ≠ coverage) | [`TYPE_AUDIT_RUNBOOK.md` § The degeneracy bar](./TYPE_AUDIT_RUNBOOK.md#the-degeneracy-bar) |
 | Where the bugs hide (recurring themes to hunt) | [`TYPE_AUDIT_RUNBOOK.md` § Recurring themes](./TYPE_AUDIT_RUNBOOK.md#recurring-themes) |
-| The per-round findings (the audit's output — a transient working artifact, not kept in the repo) | `MISSING_TESTS_AUDIT_<N>.md` |
+| The per-round findings (the audit's output — a working report; only the user removes it, never the agent) | `MISSING_TESTS_AUDIT_<N>.md` |
 | Turning a finding into a baked, propagated test (the generation half) | [`COVERAGE_RUNBOOK.md`](./COVERAGE_RUNBOOK.md) §5 onward (identical regardless of how the gap was found) |
 
 ## … audit where the library and the engine quietly disagree (the semantic audit)
@@ -120,7 +120,7 @@ defects across 5 dialects, every one years old.
 | The highest-yield question (*which dialects hand-spell one concept, and do they agree?*) | [`SEMANTIC_AUDIT_RUNBOOK.md` § The four lenses](./SEMANTIC_AUDIT_RUNBOOK.md#the-four-lenses) |
 | Fingerprints to grep for (a string `expected` on a numeric leaf, a rationalising comment, `Number(...)` laundering, a loose `toBeCloseTo`) | [`SEMANTIC_AUDIT_RUNBOOK.md` § Fingerprints](./SEMANTIC_AUDIT_RUNBOOK.md#fingerprints-that-have-paid-off) |
 | **Where the round before you was wrong** (inherited verdicts, false filed premises, load-bearing "excess") | [`SEMANTIC_AUDIT_RUNBOOK.md` § Where the round before you was wrong](./SEMANTIC_AUDIT_RUNBOOK.md#where-the-round-before-you-was-wrong) |
-| The per-round findings (transient, not kept in the repo) | `SEMANTIC_AUDIT_<N>.md` |
+| The per-round findings (a working report; only the user removes it, never the agent) | `SEMANTIC_AUDIT_<N>.md` |
 
 ### … find context fast (the searcher)
 

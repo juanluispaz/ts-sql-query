@@ -658,7 +658,7 @@ describe(ctx.label, () => {
                 t:   tProjectRelease.publishedAt.getTime(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from published_at) as "y", extract(month from published_at) - 1 as "mo", extract(day from published_at) as "d", mod(trunc(published_at) - trunc(published_at, 'IW') + 1, 7) as "dow", extract(hour from published_at) as "h", extract(minute from published_at) as "m", trunc(extract(second from published_at)) as "s", to_number(to_char(published_at, 'FF3')) as "ms", extract(day from(sys_extract_utc(published_at) - to_timestamp('1970-01-01', 'YYYY-MM-DD'))) * 86400000 + to_number(to_char(sys_extract_utc(published_at), 'SSSSSFF3')) as "t" from project_release where id = :0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from published_at) as "y", extract(month from published_at) - 1 as "mo", extract(day from published_at) as "d", mod(trunc(published_at) - trunc(published_at, 'IW') + 1, 7) as "dow", extract(hour from published_at) as "h", extract(minute from published_at) as "m", trunc(extract(second from published_at)) as "s", to_number(to_char(published_at, 'FF3')) as "ms", (cast(published_at as date) - date '1970-01-01') * 86400000 + to_number(to_char(published_at, 'FF3')) as "t" from project_release where id = :0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -727,7 +727,7 @@ describe(ctx.label, () => {
                 t:   vReleaseOverview.publishStampPlain.getTime(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from published_stamp_plain) as "y", extract(month from published_stamp_plain) - 1 as "mo", extract(day from published_stamp_plain) as "d", mod(trunc(published_stamp_plain) - trunc(published_stamp_plain, 'IW') + 1, 7) as "dow", extract(hour from published_stamp_plain) as "h", extract(minute from published_stamp_plain) as "m", trunc(extract(second from published_stamp_plain)) as "s", to_number(to_char(published_stamp_plain, 'FF3')) as "ms", extract(day from(sys_extract_utc(published_stamp_plain) - to_timestamp('1970-01-01', 'YYYY-MM-DD'))) * 86400000 + to_number(to_char(sys_extract_utc(published_stamp_plain), 'SSSSSFF3')) as "t" from release_overview where id = :0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from published_stamp_plain) as "y", extract(month from published_stamp_plain) - 1 as "mo", extract(day from published_stamp_plain) as "d", mod(trunc(published_stamp_plain) - trunc(published_stamp_plain, 'IW') + 1, 7) as "dow", extract(hour from published_stamp_plain) as "h", extract(minute from published_stamp_plain) as "m", trunc(extract(second from published_stamp_plain)) as "s", to_number(to_char(published_stamp_plain, 'FF3')) as "ms", (cast(published_stamp_plain as date) - date '1970-01-01') * 86400000 + to_number(to_char(published_stamp_plain, 'FF3')) as "t" from release_overview where id = :0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -759,7 +759,7 @@ describe(ctx.label, () => {
                 t:   vReleaseOverview.publishStamp.getTime(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from published_stamp) as "y", extract(month from published_stamp) - 1 as "mo", extract(day from published_stamp) as "d", mod(trunc(published_stamp) - trunc(published_stamp, 'IW') + 1, 7) as "dow", extract(hour from published_stamp) as "h", extract(minute from published_stamp) as "m", trunc(extract(second from published_stamp)) as "s", to_number(to_char(published_stamp, 'FF3')) as "ms", extract(day from(sys_extract_utc(published_stamp) - to_timestamp('1970-01-01', 'YYYY-MM-DD'))) * 86400000 + to_number(to_char(sys_extract_utc(published_stamp), 'SSSSSFF3')) as "t" from release_overview where id = :0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from published_stamp) as "y", extract(month from published_stamp) - 1 as "mo", extract(day from published_stamp) as "d", mod(trunc(published_stamp) - trunc(published_stamp, 'IW') + 1, 7) as "dow", extract(hour from published_stamp) as "h", extract(minute from published_stamp) as "m", trunc(extract(second from published_stamp)) as "s", to_number(to_char(published_stamp, 'FF3')) as "ms", (cast(published_stamp as date) - date '1970-01-01') * 86400000 + to_number(to_char(published_stamp, 'FF3')) as "t" from release_overview where id = :0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -831,7 +831,7 @@ describe(ctx.label, () => {
                     t:   vProjectOverview.archivedAt.getTime(),
                 })
                 .executeSelectMany()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from archived_at) as "y", extract(month from archived_at) - 1 as "mo", extract(day from archived_at) as "d", mod(trunc(archived_at) - trunc(archived_at, 'IW') + 1, 7) as "dow", extract(hour from archived_at) as "h", extract(minute from archived_at) as "m", trunc(extract(second from archived_at)) as "s", to_number(to_char(archived_at, 'FF3')) as "ms", extract(day from(sys_extract_utc(archived_at) - to_timestamp('1970-01-01', 'YYYY-MM-DD'))) * 86400000 + to_number(to_char(sys_extract_utc(archived_at), 'SSSSSFF3')) as "t" from project_overview where id = :0"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from archived_at) as "y", extract(month from archived_at) - 1 as "mo", extract(day from archived_at) as "d", mod(trunc(archived_at) - trunc(archived_at, 'IW') + 1, 7) as "dow", extract(hour from archived_at) as "h", extract(minute from archived_at) as "m", trunc(extract(second from archived_at)) as "s", to_number(to_char(archived_at, 'FF3')) as "ms", (cast(archived_at as date) - date '1970-01-01') * 86400000 + to_number(to_char(archived_at, 'FF3')) as "t" from project_overview where id = :0"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

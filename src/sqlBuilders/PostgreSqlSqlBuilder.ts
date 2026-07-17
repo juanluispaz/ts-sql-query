@@ -12,11 +12,6 @@ import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 
 export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
     postgreSql: true = true
-    constructor() {
-        super()
-        this._operationsThatNeedParenthesis._getMonth = true
-        this._operationsThatNeedParenthesis._getMilliseconds = true
-    }
     override _isReservedKeyword(word: string): boolean {
         return word.toUpperCase() in reservedWords
     }
@@ -442,47 +437,26 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
             return 'string_agg(distinct ' + this._appendSql(value, params, false) + ', ' + this._appendValue(separator, params, 'string', 'string', undefined, false) + ')'
         }
     }
-    override _getTime(params: any[], valueSource: ToSql): string {
-        return 'round(extract(epoch from ' + this._appendSqlForDatePartArgument(valueSource, params) + ') * 1000)'
-    }
-    override _getDate(params: any[], valueSource: ToSql): string {
-        return 'extract(day from ' + this._appendSqlForDatePartArgument(valueSource, params) + ')'
-    }
-    override _getFullYear(params: any[], valueSource: ToSql): string {
-        return 'extract(year from ' + this._appendSqlForDatePartArgument(valueSource, params) + ')'
-    }
-    override _getMonth(params: any[], valueSource: ToSql): string {
-        return 'extract(month from ' + this._appendSqlForDatePartArgument(valueSource, params) + ') - 1'
-    }
-    override _getDay(params: any[], valueSource: ToSql): string {
-        return 'extract(dow from ' + this._appendSqlForDatePartArgument(valueSource, params) + ')'
-    }
-    override _getHours(params: any[], valueSource: ToSql): string {
-        return 'extract(hour from ' + this._appendSqlForDatePartArgument(valueSource, params) + ')'
-    }
-    override _getMinutes(params: any[], valueSource: ToSql): string {
-        return 'extract(minute from ' + this._appendSqlForDatePartArgument(valueSource, params) + ')'
-    }
-    override _getSeconds(params: any[], valueSource: ToSql): string {
-        // `extract(second …)` yields a numeric that INCLUDES the fraction (45.9996), and
-        // `numeric::integer` rounds away from zero — so the bare cast reports 46 for
-        // :45.9996 and 60 for :59.9996, a value this method's declared type (and the
-        // JavaScript accessor it mirrors) cannot hold. Truncate first, as every other
-        // dialect's spelling does.
-        return 'trunc(extract(second from ' + this._appendSqlForDatePartArgument(valueSource, params) + '))::integer'
-    }
-    override _getMilliseconds(params: any[], valueSource: ToSql): string {
-        // Same rounding cast as `_getSeconds`: `extract(millisecond …)` includes the
-        // sub-millisecond fraction, so :45.9996 rounds up to 46000, and the `% 1000`
-        // then wraps it to 0 instead of 999.
-        return 'trunc(extract(millisecond from ' + this._appendSqlForDatePartArgument(valueSource, params) + '))::integer % 1000'
-    }
-    _appendSqlForDatePartArgument(valueSource: ToSql, params: any[]): string {
-        if (isValueSource(valueSource) && __getValueSourcePrivate(valueSource).isConstValue()) {
-            return this._appendSql(valueSource, params, true)
+    // `substr()` with a negative start does not count from the end on this dialect, and where
+    // it does the out-of-range case still diverges from JS. `right()` / `left()` are exactly
+    // `String.prototype.substr`'s negative-start semantics, clamp included. Only the negative
+    // arms are overridden; the rest of the family is the base's.
+    override _substrToEnd(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        if (typeof value === 'number' && value < 0) {
+            return 'right(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(-value, params, 'int', 'int', typeAdapter, false) + ')'
         }
-        return this._appendSql(valueSource, params, false)
+        return super._substrToEnd(params, valueSource, value, columnType, columnTypeName, typeAdapter)
     }
+    override _substr(params: any[], valueSource: ToSql, value: any, value2: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        value2 = this._clampSubstrCount(value2)
+        if (typeof value === 'number' && value < 0) {
+            return 'left(right(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(-value, params, 'int', 'int', typeAdapter, false) + '), ' + this._appendValue(value2, params, 'int', 'int', typeAdapter, false) + ')'
+        }
+        return super._substr(params, valueSource, value, value2, columnType, columnTypeName, typeAdapter)
+    }
+    // The date-part family (`_getTime` / `_getMonth` / `_getDay` / …) lives in
+    // AbstractSqlBuilder, written in this dialect's form, and PostgreSQL reaches it
+    // unmodified — do not re-add overrides here; change the base instead.
 }
 
 // Source: https://www.postgresql.org/docs/12/sql-keywords-appendix.html (version: 12, only the ones marked as reserved by postgreSql)

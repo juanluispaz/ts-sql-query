@@ -90,7 +90,7 @@ describe(ctx.label, () => {
                 t:  ts.getTime(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select year(?) as \`y\`, month(?) - 1 as mo, hour(?) as \`h\`, round(unix_timestamp(?) * 1000) as \`t\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select year(?) as \`y\`, month(?) - 1 as mo, hour(?) as \`h\`, round(timestampdiff(microsecond, '1970-01-01 00:00:00', ?) / 1000) as \`t\`"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2024-01-15T12:34:56.000Z,
@@ -100,6 +100,39 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{ y: number; mo: number; h: number; t: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('const-localdatetime-pre-epoch-gettime', async () => {
+        // getTime() outside the 1970..today window every other test sits in. 1969-12-30 12:00
+        // is -129600000; 1969-12-31 12:00 is -43200000 — the last day before the epoch, where
+        // a signed day count added to an unsigned time-of-day comes out sign-flipped; the
+        // .500 case keeps a sub-second term pointing forward while the total is negative; and
+        // 3002 sits above the upper bound of a seconds-since-epoch reading.
+        const pre = ctx.conn.const(new Date('1969-12-30T12:00:00Z'), 'localDateTime')
+        const eve = ctx.conn.const(new Date('1969-12-31T12:00:00Z'), 'localDateTime')
+        const sub = ctx.conn.const(new Date('1969-12-30T12:00:00.500Z'), 'localDateTime')
+        const far = ctx.conn.const(new Date('3002-01-01T00:00:00Z'), 'localDateTime')
+        const expected = [{ pre: -129600000, eve: -43200000, sub: -129599500, far: Date.UTC(3002, 0, 1) }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFromNoTable()
+            .select({
+                pre: pre.getTime(),
+                eve: eve.getTime(),
+                sub: sub.getTime(),
+                far: far.getTime(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select round(timestampdiff(microsecond, '1970-01-01 00:00:00', ?) / 1000) as pre, round(timestampdiff(microsecond, '1970-01-01 00:00:00', ?) / 1000) as eve, round(timestampdiff(microsecond, '1970-01-01 00:00:00', ?) / 1000) as sub, round(timestampdiff(microsecond, '1970-01-01 00:00:00', ?) / 1000) as far"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1969-12-30T12:00:00.000Z,
+            1969-12-31T12:00:00.000Z,
+            1969-12-30T12:00:00.500Z,
+            3002-01-01T00:00:00.000Z,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ pre: number; eve: number; sub: number; far: number }>>>()
         expect(rows).toEqual(expected)
     })
 
@@ -413,7 +446,7 @@ describe(ctx.label, () => {
                 t:   ts.getTime(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select year(?) as \`y\`, month(?) - 1 as mo, dayofmonth(?) as \`d\`, dayofweek(?) - 1 as dow, hour(?) as \`h\`, minute(?) as \`m\`, second(?) as \`s\`, floor(microsecond(?) / 1000) as ms, round(unix_timestamp(?) * 1000) as \`t\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select year(?) as \`y\`, month(?) - 1 as mo, dayofmonth(?) as \`d\`, dayofweek(?) - 1 as dow, hour(?) as \`h\`, minute(?) as \`m\`, second(?) as \`s\`, floor(microsecond(?) / 1000) as ms, round(timestampdiff(microsecond, '1970-01-01 00:00:00', ?) / 1000) as \`t\`"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2024-01-15T12:34:56.000Z,

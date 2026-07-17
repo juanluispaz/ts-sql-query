@@ -131,6 +131,22 @@ When a value is returned from the database that is different from the defined st
     - By default, this unexpected UNIX time is understood as the number of seconds from the beginning of the UNIX time (*1970-01-01*).
     - If you set this property to *true*, you force to treat this UNIX time as the number of milliseconds from the beginning of the UNIX time (*1970-01-01*).
 
+## Case-insensitive operations fold ASCII only
+
+SQLite's built-in `lower()` / `upper()` fold the 26 ASCII letters and leave every other character untouched — `lower('CAFÉ')` is `cafÉ`, not `café`. The standard SQLite builds shipped by the npm drivers do not include ICU, so this is what your application gets out of the box.
+
+This affects **every `*Insensitive` operation**. Unless you set `insensitiveCollation`, the library implements them as `lower(a) like lower(b)`, so on SQLite:
+
+```ts
+tCustomer.lastName.containsInsensitive('é')   // does NOT match a last name containing 'É'
+```
+
+The call is typed and the SQL is valid — the query simply returns fewer rows than the data contains.
+
+**Setting `insensitiveCollation: 'NOCASE'` does not fix this** — SQLite's `NOCASE` collation is also ASCII-only. Without an ICU-enabled SQLite there is no configuration that makes non-ASCII case folding work, so if your data is non-ASCII and you need case-insensitive matching, either normalise the case in your application before storing/querying, or deploy an ICU build and use a collation it provides.
+
+Note that `.length()` is **not** affected: it counts characters correctly on SQLite, including non-ASCII ones.
+
 ## UUID strategies
 
 `ts-sql-query` offers you different strategies to handle UUIDs in Sqlite:

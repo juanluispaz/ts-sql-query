@@ -17,7 +17,9 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         this._operationsThatNeedParenthesis._concat = false
         this._operationsThatNeedParenthesis._is = true
         this._operationsThatNeedParenthesis._getDate = true
-        this._operationsThatNeedParenthesis._getMonth = true
+        // `_getMilliseconds` is overridden below as a self-contained call, so it never
+        // needs the wrapping the base's trailing-`% 1000` form asks for.
+        this._operationsThatNeedParenthesis._getMilliseconds = false
     }
     /**
      * Compatibility version from which the engine accepts DOUBLE as a cast target
@@ -101,10 +103,12 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
                     orderByColumns += this._appendOrderByColumnAliasInsensitive(entry, query, params) + ' desc'
                     break
                 case 'asc nulls last insensitive':
-                    orderByColumns += this._appendOrderByColumnAlias(entry, query, params) + ' is null, ' + this._appendOrderByColumnAlias(entry, query, params) + ' asc'
+                    // Only the sort term is folded: the `is null` operand is a boolean
+                    // nulls-ordering emulation, so lowercasing it would be pointless work.
+                    orderByColumns += this._appendOrderByColumnAlias(entry, query, params) + ' is null, ' + this._appendOrderByColumnAliasInsensitive(entry, query, params) + ' asc'
                     break
                 case 'desc nulls first insensitive':
-                    orderByColumns += this._appendOrderByColumnAlias(entry, query, params) + ' is not null, ' + this._appendOrderByColumnAlias(entry, query, params) + ' desc'
+                    orderByColumns += this._appendOrderByColumnAlias(entry, query, params) + ' is not null, ' + this._appendOrderByColumnAliasInsensitive(entry, query, params) + ' desc'
                     break
                 default:
                     throw new TsSqlProcessingError({ reason: 'INVALID_ORDER_BY_ORDERING', column: this._appendOrderByColumnAlias(entry, query, params), ordering: order }, 'Invalid order by: ' + order)
@@ -487,6 +491,30 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
             return 'lower(' + this._appendSql(valueSource, params, false) + ") not like concat('%', lower(" +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + "), '%')"
         }
     }
+    // `substr()` with a negative start does not count from the end on this dialect, and where
+    // it does the out-of-range case still diverges from JS. `right()` / `left()` are exactly
+    // `String.prototype.substr`'s negative-start semantics, clamp included. Only the negative
+    // arms are overridden; the rest of the family is the base's.
+    override _substrToEnd(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        if (typeof value === 'number' && value < 0) {
+            return 'right(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(-value, params, 'int', 'int', typeAdapter, false) + ')'
+        }
+        return super._substrToEnd(params, valueSource, value, columnType, columnTypeName, typeAdapter)
+    }
+    override _substr(params: any[], valueSource: ToSql, value: any, value2: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        value2 = this._clampSubstrCount(value2)
+        if (typeof value === 'number' && value < 0) {
+            return 'left(right(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(-value, params, 'int', 'int', typeAdapter, false) + '), ' + this._appendValue(value2, params, 'int', 'int', typeAdapter, false) + ')'
+        }
+        return super._substr(params, valueSource, value, value2, columnType, columnTypeName, typeAdapter)
+    }
+    override _length(params: any[], valueSource: ToSql): string {
+        // On this dialect family `length()` counts BYTES, not characters: it answers 5 for
+        // 'café' and 6 for '日本' under utf8mb4. `char_length()` is the character-counting
+        // one, and `.length()` mirrors JS's `String.length`, so characters is the contract.
+        // Do not "simplify" this override away — the base's `length()` is the byte one here.
+        return 'char_length(' + this._appendSql(valueSource, params, false) + ')'
+    }
     override _concat(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         let result = 'concat('
         if (isValueSource(valueSource)) {
@@ -537,7 +565,20 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         return 'dayofmonth(' + this._appendSql(valueSource, params, false) + ')'
     }
     override _getTime(params: any[], valueSource: ToSql): string {
-        return 'round(unix_timestamp(' + this._appendSql(valueSource, params, false) + ') * 1000)'
+        // `unix_timestamp()` is documented over 1970-01-01 onwards only: outside that range
+        // it answers 0 on MySQL and NULL on MariaDB — silently, with no error — so a
+        // pre-epoch or year-3002 instant came back wrong. `timestampdiff` has no such range.
+        //
+        // This also happens to be session-time-zone independent, where `unix_timestamp()`
+        // resolved its argument against the session zone. That is a SIDE EFFECT of fixing
+        // the range, NOT a timezone fix, and it does NOT make `getTime()` timezone-safe:
+        // the dominant drift is that `transformValueFromDB` parses a wall clock in the
+        // HOST's zone while the SQL side resolves it in the ENGINE's zone. That one affects
+        // all six dialects equally, cannot be fixed in SQL (the engine cannot know the
+        // host's zone), and is a deployment-configuration matter — see the chapter in
+        // docs/configuration/time-zones.md. Do not read `timestampdiff` here as the
+        // timezone fix.
+        return "round(timestampdiff(microsecond, '1970-01-01 00:00:00', " + this._appendSql(valueSource, params, false) + ') / 1000)'
     }
     override _getFullYear(params: any[], valueSource: ToSql): string {
         return 'year(' + this._appendSql(valueSource, params, false) + ')'

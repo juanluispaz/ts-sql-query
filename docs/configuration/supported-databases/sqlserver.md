@@ -44,7 +44,7 @@ Recognized breakpoints:
 - `compatibilityVersion >= 16_000_000` (SQL Server 2022): `minValue(...)` / `maxValue(...)` emit the native `LEAST(a, b)` / `GREATEST(a, b)` functions added in SQL Server 2022, instead of a `IIF(a < b, a, b)` emulation that evaluates each argument twice.
 - `compatibilityVersion >= 17_000_000` (SQL Server 2025):
     - [`aggregateAsArray`](../../queries/aggregate-as-object-array.md) and `aggregateAsArrayOfOneColumn` emit the native `JSON_ARRAYAGG` / `JSON_OBJECT` aggregates instead of a `string_agg`/`string_escape`-based emulation. The `aggregateAsArrayDistinct` / `aggregateAsArrayOfOneColumnDistinct` variants always use the emulation regardless of `compatibilityVersion`, because `JSON_ARRAYAGG` does not accept `DISTINCT`.
-    - `substringToEnd(...)` / `substrToEnd(...)` emit `substring(x, start + 1)` (relying on the now-optional `length` argument) instead of `substring(x, start + 1, len(x) - start)`.
+    - `substringToEnd(...)` / `substrToEnd(...)` emit `substring(x, start + 1)` (relying on the now-optional `length` argument) instead of `substring(x, start + 1, 2147483647)`, which is how earlier versions spell "to the end of the string". Both forms return the same value.
     - `currentDate()` emits the native `CURRENT_DATE` keyword introduced in SQL Server 2025, which returns a `date` value. On earlier versions it emits `cast(getdate() as date)` — also a proper `date`, matching the [`currentDate()`](../../api/connection.md) public API contract (the previous implementation emitted `getdate()`, which returns a `datetime` with the time portion).
 
 On older SQL Server versions, set `compatibilityVersion` to your actual version so the right emulation is chosen automatically. It is recommended to keep this value in sync with your real database version so future ts-sql-query releases that gate additional features on it pick the right behavior automatically.
@@ -56,6 +56,19 @@ class DBConnection extends SqlServerConnection<'DBConnection'> {
     protected override compatibilityVersion = 16_000_000
 }
 ```
+
+## `replaceAll` depends on your collation
+
+`.replaceAll(search, replacement)` mirrors JavaScript's `String.replaceAll`, which is case-**sensitive**: `'ABCabc'.replaceAll('abc', 'X')` is `'ABCX'`.
+
+SQL Server's `REPLACE()` instead resolves its search argument under the **collation** of the value being searched, and the common defaults (including `SQL_Latin1_General_CP1_CI_AS`) are case-insensitive:
+
+```sql
+replace('ABCabc', 'abc', 'X')                               -- XX     <- both occurrences
+replace('ABCabc' collate Latin1_General_CS_AS, 'abc', 'X')  -- ABCX
+```
+
+So `.replaceAll('abc', 'X')` returns `XX` here, where JavaScript returns `'ABCX'`. The library does not force a collation on the operand: that would tax every query and silently override a deliberate database-level choice. If you need JavaScript's case-sensitive semantics, apply a case-sensitive collation to the column or the expression yourself.
 
 ## UUID management
 

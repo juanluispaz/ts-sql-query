@@ -15,8 +15,6 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     sqlite: true = true
     constructor() {
         super()
-        this._operationsThatNeedParenthesis._getMonth = true
-        this._operationsThatNeedParenthesis._getMilliseconds = true
     }
     _getDateTimeFormat(type: SqliteDateTimeFormatType): SqliteDateTimeFormat {
         return this._connectionConfiguration.getDateTimeFormat!(type) as any

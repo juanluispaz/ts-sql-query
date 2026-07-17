@@ -91,7 +91,7 @@ describe(ctx.label, () => {
                 t:  ts.getTime(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from :0) as "y", extract(month from :1) - 1 as "mo", extract(hour from :2) as "h", extract(day from(sys_extract_utc(:3) - to_timestamp('1970-01-01', 'YYYY-MM-DD'))) * 86400000 + to_number(to_char(sys_extract_utc(:4), 'SSSSSFF3')) as "t" from dual"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from :0) as "y", extract(month from :1) - 1 as "mo", extract(hour from :2) as "h", (cast(:3 as date) - date '1970-01-01') * 86400000 + to_number(to_char(:4, 'FF3')) as "t" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2024-01-15T12:34:56.000Z,
@@ -102,6 +102,43 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{ y: number; mo: number; h: number; t: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('const-localdatetime-pre-epoch-gettime', async () => {
+        // getTime() outside the 1970..today window every other test sits in. 1969-12-30 12:00
+        // is -129600000; 1969-12-31 12:00 is -43200000 — the last day before the epoch, where
+        // a signed day count added to an unsigned time-of-day comes out sign-flipped; the
+        // .500 case keeps a sub-second term pointing forward while the total is negative; and
+        // 3002 sits above the upper bound of a seconds-since-epoch reading.
+        const pre = ctx.conn.const(new Date('1969-12-30T12:00:00Z'), 'localDateTime')
+        const eve = ctx.conn.const(new Date('1969-12-31T12:00:00Z'), 'localDateTime')
+        const sub = ctx.conn.const(new Date('1969-12-30T12:00:00.500Z'), 'localDateTime')
+        const far = ctx.conn.const(new Date('3002-01-01T00:00:00Z'), 'localDateTime')
+        const expected = [{ pre: -129600000, eve: -43200000, sub: -129599500, far: Date.UTC(3002, 0, 1) }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFromNoTable()
+            .select({
+                pre: pre.getTime(),
+                eve: eve.getTime(),
+                sub: sub.getTime(),
+                far: far.getTime(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (cast(:0 as date) - date '1970-01-01') * 86400000 + to_number(to_char(:1, 'FF3')) as "pre", (cast(:2 as date) - date '1970-01-01') * 86400000 + to_number(to_char(:3, 'FF3')) as "eve", (cast(:4 as date) - date '1970-01-01') * 86400000 + to_number(to_char(:5, 'FF3')) as "sub", (cast(:6 as date) - date '1970-01-01') * 86400000 + to_number(to_char(:7, 'FF3')) as "far" from dual"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1969-12-30T12:00:00.000Z,
+            1969-12-30T12:00:00.000Z,
+            1969-12-31T12:00:00.000Z,
+            1969-12-31T12:00:00.000Z,
+            1969-12-30T12:00:00.500Z,
+            1969-12-30T12:00:00.500Z,
+            3002-01-01T00:00:00.000Z,
+            3002-01-01T00:00:00.000Z,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ pre: number; eve: number; sub: number; far: number }>>>()
         expect(rows).toEqual(expected)
     })
 
@@ -417,7 +454,7 @@ describe(ctx.label, () => {
                 t:   ts.getTime(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from :0) as "y", extract(month from :1) - 1 as "mo", extract(day from :2) as "d", mod(trunc(:3) - trunc(:4, 'IW') + 1, 7) as "dow", extract(hour from :5) as "h", extract(minute from :6) as "m", trunc(extract(second from :7)) as "s", to_number(to_char(:8, 'FF3')) as "ms", extract(day from(sys_extract_utc(:9) - to_timestamp('1970-01-01', 'YYYY-MM-DD'))) * 86400000 + to_number(to_char(sys_extract_utc(:10), 'SSSSSFF3')) as "t" from dual"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select extract(year from :0) as "y", extract(month from :1) - 1 as "mo", extract(day from :2) as "d", mod(trunc(:3) - trunc(:4, 'IW') + 1, 7) as "dow", extract(hour from :5) as "h", extract(minute from :6) as "m", trunc(extract(second from :7)) as "s", to_number(to_char(:8, 'FF3')) as "ms", (cast(:9 as date) - date '1970-01-01') * 86400000 + to_number(to_char(:10, 'FF3')) as "t" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2024-01-15T12:34:56.000Z,

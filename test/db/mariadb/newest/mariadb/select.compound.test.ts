@@ -661,14 +661,14 @@ describe(ctx.label, () => {
         // 'asc nulls last insensitive'
         ctx.mockNext(ascOrder)
         const r4 = await compound().orderBy('label', 'asc nulls last insensitive').executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project union select title as label from issue order by label is null, label asc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project union select title as label from issue order by label is null, lower(label) asc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         expect(r4).toEqual(ascOrder)
 
         // 'desc nulls first insensitive'
         ctx.mockNext(descOrder)
         const r5 = await compound().orderBy('label', 'desc nulls first insensitive').executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project union select title as label from issue order by label is not null, label desc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as label from project union select title as label from issue order by label is not null, lower(label) desc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         expect(r5).toEqual(descOrder)
 

@@ -4709,8 +4709,8 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push(`select iif(id > @0, id, @1) as idAtLeast, iif(id < @2, id, @3) as idAtMost, substring(first_name, @4, len(first_name) - @5) as nameFromIndex, substring(last_name, @6, len(last_name) - @7) as nameFromIndex2 from customer`)
-    expectedParams.push(`[5,5,100,100,3,2,3,2]`)
+    expectedQuery.push(`select iif(id > @0, id, @1) as idAtLeast, iif(id < @2, id, @3) as idAtMost, substring(first_name, @4, 2147483647) as nameFromIndex, substring(last_name, @5, 2147483647) as nameFromIndex2 from customer`)
+    expectedParams.push(`[5,5,100,100,3,3]`)
     expectedType.push(`selectManyRows`)
 
     /* *** Example ****************************************************************/

@@ -236,7 +236,7 @@ describe(ctx.label, () => {
             .select({ id: tProjectReview.id, len: tProjectReview.reviewerCode.length() })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, length(reviewer_code) as len from project_review where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, char_length(reviewer_code) as len from project_review where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

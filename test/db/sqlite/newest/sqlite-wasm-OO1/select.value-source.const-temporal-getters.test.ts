@@ -103,6 +103,39 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
+    test('const-localdatetime-pre-epoch-gettime', async () => {
+        // getTime() outside the 1970..today window every other test sits in. 1969-12-30 12:00
+        // is -129600000; 1969-12-31 12:00 is -43200000 — the last day before the epoch, where
+        // a signed day count added to an unsigned time-of-day comes out sign-flipped; the
+        // .500 case keeps a sub-second term pointing forward while the total is negative; and
+        // 3002 sits above the upper bound of a seconds-since-epoch reading.
+        const pre = ctx.conn.const(new Date('1969-12-30T12:00:00Z'), 'localDateTime')
+        const eve = ctx.conn.const(new Date('1969-12-31T12:00:00Z'), 'localDateTime')
+        const sub = ctx.conn.const(new Date('1969-12-30T12:00:00.500Z'), 'localDateTime')
+        const far = ctx.conn.const(new Date('3002-01-01T00:00:00Z'), 'localDateTime')
+        const expected = [{ pre: -129600000, eve: -43200000, sub: -129599500, far: Date.UTC(3002, 0, 1) }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFromNoTable()
+            .select({
+                pre: pre.getTime(),
+                eve: eve.getTime(),
+                sub: sub.getTime(),
+                far: far.getTime(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select round(unixepoch(?, 'subsec') * 1000) as pre, round(unixepoch(?, 'subsec') * 1000) as eve, round(unixepoch(?, 'subsec') * 1000) as sub, round(unixepoch(?, 'subsec') * 1000) as far"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "1969-12-30 12:00:00",
+            "1969-12-31 12:00:00",
+            "1969-12-30 12:00:00.500",
+            "3002-01-01 00:00:00",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ pre: number; eve: number; sub: number; far: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
     test('const-localtime-milliseconds', async () => {
         // getMilliseconds on a `const(..., 'localTime')` — the sub-second arm of
         // the const-cast surface. 12:34:56 has a zero millisecond component, so

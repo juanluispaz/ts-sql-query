@@ -71,6 +71,21 @@ class DBConnection extends MySqlConnection<'DBConnection'> {
 }
 ```
 
+## `stringConcat` truncates long results
+
+`stringConcat` is emitted as `GROUP_CONCAT()`, which **silently truncates** its result at the session's `group_concat_max_len` — **1024 bytes by default**. It raises a warning, never an error, so the value arrives as a clean but incomplete string:
+
+```
+LENGTH(GROUP_CONCAT(6 x 200 chars)) = 1024      -- expected 1205
+SHOW WARNINGS -> Warning 1260 "Row 6 was cut by GROUP_CONCAT()"
+```
+
+There is no alternative function on this engine (`STRING_AGG` does not exist), so the limit is inherent to the aggregate and the library cannot work around it. It is session configuration your application owns — raise it on the connection if you aggregate long strings:
+
+```js
+pool.on('connection', c => c.query('SET SESSION group_concat_max_len = 1000000'))
+```
+
 ## Rounding behavior
 
 MySQL's native `ROUND` function applies **different tie-breaking rules** depending on whether its argument is an exact-value or an approximate-value number. Per the [MySQL manual](https://dev.mysql.com/doc/refman/en/mathematical-functions.html#function_round):

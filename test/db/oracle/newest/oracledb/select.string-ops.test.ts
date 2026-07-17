@@ -4,8 +4,16 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tAppUser, tIssue, tProjectReview, vReleaseOverview, tIssueWorklog } from '../../domain/connection.js'
+import { DBConnection, tAppUser, tIssue, tProjectReview, vReleaseOverview, tIssueWorklog } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+
+// A connection that keeps the empty string as itself instead of mapping it to null, so a
+// slice that legitimately yields '' can be asserted as ''.
+class EmptyStringConnection extends DBConnection {
+    protected override allowEmptyString = true
+}
+
+void EmptyStringConnection
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -189,6 +197,57 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
+    test('length-non-ascii', async () => {
+        // `.length()` mirrors JS's `String.length`, which counts CHARACTERS: 'café' is
+        // 4 characters held in 5 utf8 bytes, and '日本' is 2 characters held in 6 — so a
+        // byte-counting emission answers 5 and 6 here instead of 4 and 2.
+        const expected = [{ accented: 4, cjk: 2 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFromNoTable()
+            .select({
+                accented: ctx.conn.const('café', 'string').length(),
+                cjk:      ctx.conn.const('日本', 'string').length(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select length(:0) as "accented", length(:1) as "cjk" from dual"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "café",
+            "日本",
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ accented: number; cjk: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('length-and-substr-keep-trailing-spaces', async () => {
+        // Trailing blanks are part of the string: 'Draft  ' is 7 characters, and slicing from
+        // index 0 returns it whole. A length that excludes trailing blanks answers 5 here and,
+        // where that same length feeds a slice, amputates them from the result too.
+        const padded = ctx.conn.const('Draft  ', 'string')
+        const expected = [{ len: 7, whole: 'Draft  ', tail: 'aft  ' }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFromNoTable()
+            .select({
+                len:   padded.length(),
+                whole: padded.substrToEnd(0),
+                tail:  padded.substrToEnd(2),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select length(:0) as "len", substr(:1, :2) as "whole", substr(:3, :4) as "tail" from dual"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "Draft  ",
+            "Draft  ",
+            1,
+            "Draft  ",
+            3,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ len: number; whole: string; tail: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
     test('trim', async () => {
         const expected = [{ id: 1, t: 'Ada Lovelace' }]
         ctx.mockNext(expected)
@@ -340,6 +399,93 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
+    test('negative-index-follows-javascript', async () => {
+        // The one thing that separates JS's two slicing methods is the negative index:
+        // 'abcdef'.substr(-2) is 'ef' (counted from the end) while 'abcdef'.substring(-2) is
+        // 'abcdef' (the index clamps to 0). Out of range, substr clamps too: .substr(-10) is
+        // the whole string. And substring SWAPS its arguments when start > end, so
+        // .substring(2, 0) is a legal call meaning .substring(0, 2) -> 'ab'.
+        const s = ctx.conn.const('abcdef', 'string')
+        const expected = [{
+            lastChar: 'f', fromEnd: 'ef', fromEndFar: 'abcdef', fromEndCount: 'e', fromEndFarCount: 'ab',
+            clamped: 'abcdef', clampedEnd: 'abc', swapped: 'ab',
+        }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFromNoTable()
+            .select({
+                lastChar:        s.substrToEnd(-1),
+                fromEnd:         s.substrToEnd(-2),
+                fromEndFar:      s.substrToEnd(-10),
+                fromEndCount:    s.substr(-2, 1),
+                fromEndFarCount: s.substr(-10, 2),
+                clamped:         s.substringToEnd(-2),
+                clampedEnd:      s.substring(-2, 3),
+                swapped:         s.substring(2, 0),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select substr(:0, :1) as "lastChar", substr(:2, greatest(:3, -length(:4))) as "fromEnd", substr(:5, greatest(:6, -length(:7))) as "fromEndFar", substr(:8, greatest(:9, -length(:10)), :11) as "fromEndCount", substr(:12, greatest(:13, -length(:14)), :15) as "fromEndFarCount", substr(:16, :17) as "clamped", substr(:18, :19, :20) as "clampedEnd", substr(:21, :22, :23) as "swapped" from dual"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "abcdef",
+            -1,
+            "abcdef",
+            -2,
+            "abcdef",
+            "abcdef",
+            -10,
+            "abcdef",
+            "abcdef",
+            -2,
+            "abcdef",
+            1,
+            "abcdef",
+            -10,
+            "abcdef",
+            2,
+            "abcdef",
+            1,
+            "abcdef",
+            1,
+            3,
+            "abcdef",
+            1,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{
+            lastChar: string; fromEnd: string; fromEndFar: string; fromEndCount: string; fromEndFarCount: string
+            clamped: string; clampedEnd: string; swapped: string
+        }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    // NOT-APPLICABLE: this engine has no empty string — '' IS NULL here — so a slice that
+    // yields '' comes back as null and allowEmptyString cannot make it read as ''. The clamp
+    // itself is emitted and exercised by `negative-index-follows-javascript` above.
+    /*
+    test('negative-count-clamps-to-empty-string', async () => {
+        // JS clamps a negative count to 0, so 'abcdef'.substr(2, -1) and .substr(-2, -1) are
+        // both ''. SQL has no such rule: a negative length is either rejected outright or read
+        // as "all but the last |n| characters", which is a different string. The connection
+        // opts into allowEmptyString so the '' survives the read as itself, instead of being
+        // mapped to null the way the default treats every empty string.
+        const conn = new EmptyStringConnection(ctx.conn.queryRunner)
+        const s = conn.const('abcdef', 'string')
+        const expected = [{ fromStart: '', fromEnd: '' }]
+        ctx.mockNext(expected)
+        const result = await conn.selectFromNoTable()
+            .select({
+                fromStart: s.substr(2, -1),
+                fromEnd:   s.substr(-2, -1),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot()
+        expect(ctx.lastParams).toMatchInlineSnapshot()
+        assertType<Exact<typeof result, Array<{ fromStart: string; fromEnd: string }>>>()
+        expect(result).toEqual(expected)
+    })
+    */
+
     test('substring-with-value-source-start', async () => {
         // `.substring(valueSource, end)` — start is a column ref, not a literal.
         // issue 1: title='Update hero copy', priority=2 → substring(2, 5) = 'dat'.
@@ -402,11 +548,9 @@ describe(ctx.label, () => {
             .executeSelectMany()
         assertType<Exact<typeof result, Array<{ id: number; sub: string }>>>()
         expect(result).toEqual(expected)
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", substr(title, :0, priority - :1) as "sub" from issue where id = :2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", substr(title, 1, priority) as "sub" from issue where id = :0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            1,
-            0,
             1,
           ]
         `)

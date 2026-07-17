@@ -138,6 +138,7 @@ nav:
     - Connection: configuration/connection.md
     - Mapping: configuration/mapping.md
     - Column types: configuration/column-types.md
+    - Time zones: configuration/time-zones.md
     - Supported databases:
       - MariaDB: configuration/supported-databases/mariadb.md
       - MySQL: configuration/supported-databases/mysql.md

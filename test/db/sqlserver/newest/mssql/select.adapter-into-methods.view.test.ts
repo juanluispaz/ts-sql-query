@@ -263,7 +263,7 @@ describe(ctx.label, () => {
             .select({ id: vReleaseOverview.id, len: vReleaseOverview.versionBracketed.length() })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, len(version_bracketed) as len from release_overview where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, len(version_bracketed + '.') - 1 as len from release_overview where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -509,7 +509,7 @@ describe(ctx.label, () => {
             .select({ id: vReleaseOverview.id, len: vReleaseOverview.channelBracketed.length() })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, len(channel_bracketed) as len from release_overview where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, len(channel_bracketed + '.') - 1 as len from release_overview where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

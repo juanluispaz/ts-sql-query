@@ -16,8 +16,12 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     sqlServer: true = true
     constructor() {
         super()
-        this._operationsThatNeedParenthesis._getMonth = true
         this._operationsThatNeedParenthesis._getDay = true
+        // `_getMilliseconds` is overridden below as a self-contained call, so it never
+        // needs the wrapping the base's trailing-`% 1000` form asks for.
+        this._operationsThatNeedParenthesis._getMilliseconds = false
+        // `_length` is the only dialect's spelling that is not a bare call: it ends in `- 1`.
+        this._operationsThatNeedParenthesis._length = true
     }
     override _appendRawColumnName(column: DBColumn, params: any[]): string {
         const columnPrivate = __getColumnPrivate(column)
@@ -1008,7 +1012,12 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         return result
     }
     override _length(params: any[], valueSource: ToSql): string {
-        return 'len(' + this._appendSql(valueSource, params, false) + ')'
+        // T-SQL's `len()` EXCLUDES trailing blanks — `len('Draft  ')` is 5, not 7 — while
+        // `.length()` mirrors JS's `String.length`, which counts them. Appending a non-blank
+        // character makes the trailing blanks interior, and the `- 1` takes it back off.
+        // `datalength()` is not an option: it answers bytes, so it doubles under `nvarchar`.
+        // NULL propagates through the concat, so a NULL receiver still answers NULL.
+        return "len(" + this._appendSql(valueSource, params, false) + " + '.') - 1"
     }
     override _ceil(params: any[], valueSource: ToSql): string {
         // T-SQL spells the ceiling function `CEILING`, not `CEIL`.
@@ -1133,6 +1142,12 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         return super._notIn(params, valueSource, value, columnType, columnTypeName, typeAdapter)
     }
     override _substrToEnd(params: any[], valueSource: ToSql, value: any, _columnType: ValueType, _columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        if (typeof value === 'number' && value < 0) {
+            // `substring()` has no negative-start semantics at all on this dialect — it just
+            // reads a negative start as 1. `right()` is exactly `String.prototype.substr`'s
+            // negative start, out-of-range clamp included, and it needs no version gate.
+            return 'right(' + this._appendSqlMaybeUuid(valueSource, params) + ', ' + this._appendValue(-value, params, 'int', 'int', typeAdapter, false) + ')'
+        }
         if (this._connectionConfiguration.compatibilityVersion >= 17_000_000) {
             if (typeof value === 'number') {
                 return 'substring(' + this._appendSqlMaybeUuid(valueSource, params) + ', ' + this._appendValue(value + 1, params, 'int', 'int', typeAdapter, false) + ')'
@@ -1140,13 +1155,24 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
                 return 'substring(' + this._appendSqlMaybeUuid(valueSource, params) + ', ' + this._appendValueParenthesis(value, params, 'int', 'int', typeAdapter, false) + ' + 1)'
             }
         }
+        // Pre-2025 `substring()` has no 2-argument form, so "to the end" is spelled with a
+        // max-int length. `len(x) - value` would be wrong twice over: `len()` drops trailing
+        // blanks (amputating them from the result), and it goes negative once the start index
+        // runs past the end, which SQL Server rejects outright instead of answering ''.
+        // Both arms must agree with the >= 17_000_000 arm above on the VALUE, not just be
+        // valid SQL.
         if (typeof value === 'number') {
-            return 'substring(' + this._appendSqlMaybeUuid(valueSource, params) + ', ' + this._appendValue(value + 1, params, 'int', 'int', typeAdapter, false) + ', len(' + this._appendSql(valueSource, params, false) +  ') - ' + this._appendValue(value, params, 'int', 'int', typeAdapter, false) +  ')'
+            return 'substring(' + this._appendSqlMaybeUuid(valueSource, params) + ', ' + this._appendValue(value + 1, params, 'int', 'int', typeAdapter, false) + ', 2147483647)'
         } else {
-            return 'substring(' + this._appendSqlMaybeUuid(valueSource, params) + ', ' + this._appendValueParenthesis(value, params, 'int', 'int', typeAdapter, false) + ' + 1, len(' + this._appendSql(valueSource, params, false) +  ') - ' + this._appendValue(value, params, 'int', 'int', typeAdapter, false) +  ')'
+            return 'substring(' + this._appendSqlMaybeUuid(valueSource, params) + ', ' + this._appendValueParenthesis(value, params, 'int', 'int', typeAdapter, false) + ' + 1, 2147483647)'
         }
     }
     override _substringToEnd(params: any[], valueSource: ToSql, value: any, _columnType: ValueType, _columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        // `String.prototype.substring` clamps a negative index to 0 rather than counting from
+        // the end, so the clamp lands before the `+ 1` and the SQL is a plain start-of-string.
+        if (typeof value === 'number' && value < 0) {
+            value = 0
+        }
         if (this._connectionConfiguration.compatibilityVersion >= 17_000_000) {
             if (typeof value === 'number') {
                 return 'substring(' + this._appendSqlMaybeUuid(valueSource, params) + ', ' + this._appendValue(value + 1, params, 'int', 'int', typeAdapter, false) + ')'
@@ -1154,13 +1180,23 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
                 return 'substring(' + this._appendSqlMaybeUuid(valueSource, params) + ', ' + this._appendValueParenthesis(value, params, 'int', 'int', typeAdapter, false) + ' + 1)'
             }
         }
+        // Pre-2025 `substring()` has no 2-argument form, so "to the end" is spelled with a
+        // max-int length. `len(x) - value` would be wrong twice over: `len()` drops trailing
+        // blanks (amputating them from the result), and it goes negative once the start index
+        // runs past the end, which SQL Server rejects outright instead of answering ''.
+        // Both arms must agree with the >= 17_000_000 arm above on the VALUE, not just be
+        // valid SQL.
         if (typeof value === 'number') {
-            return 'substring(' + this._appendSqlMaybeUuid(valueSource, params) + ', ' + this._appendValue(value + 1, params, 'int', 'int', typeAdapter, false) + ', len(' + this._appendSql(valueSource, params, false) +  ') - ' + this._appendValue(value, params, 'int', 'int', typeAdapter, false) +  ')'
+            return 'substring(' + this._appendSqlMaybeUuid(valueSource, params) + ', ' + this._appendValue(value + 1, params, 'int', 'int', typeAdapter, false) + ', 2147483647)'
         } else {
-            return 'substring(' + this._appendSqlMaybeUuid(valueSource, params) + ', ' + this._appendValueParenthesis(value, params, 'int', 'int', typeAdapter, false) + ' + 1, len(' + this._appendSql(valueSource, params, false) +  ') - ' + this._appendValue(value, params, 'int', 'int', typeAdapter, false) +  ')'
+            return 'substring(' + this._appendSqlMaybeUuid(valueSource, params) + ', ' + this._appendValueParenthesis(value, params, 'int', 'int', typeAdapter, false) + ' + 1, 2147483647)'
         }
     }
     override _substr(params: any[], valueSource: ToSql, value: any, value2: any, _columnType: ValueType, _columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        value2 = this._clampSubstrCount(value2)
+        if (typeof value === 'number' && value < 0) {
+            return 'left(right(' + this._appendSqlMaybeUuid(valueSource, params) + ', ' + this._appendValue(-value, params, 'int', 'int', typeAdapter, false) + '), ' + this._appendValue(value2, params, 'int', 'int', typeAdapter, false) + ')'
+        }
         if (typeof value === 'number') {
             return 'substring(' + this._appendSqlMaybeUuid(valueSource, params) + ', ' + this._appendValue(value + 1, params, 'int', 'int', typeAdapter, false) + ', ' + this._appendValue(value2, params, 'int', 'int', typeAdapter, false) + ')'
         } else {
@@ -1169,11 +1205,17 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     }
     override _substring(params: any[], valueSource: ToSql, value: any, value2: any, _columnType: ValueType, _columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         if (typeof value === 'number' && typeof value2 === 'number') {
-            const count = value2 - value
-            return 'substring(' + this._appendSqlMaybeUuid(valueSource, params) + ', ' + this._appendValue(value + 1, params, 'int', 'int', typeAdapter, false) + ', ' + this._appendValue(count, params, 'int', 'int', typeAdapter, false) + ')'
+            // `String.prototype.substring` clamps both indexes to 0 and SWAPS them when
+            // start > end, so `substring(2, 0)` is a legal call meaning `substring(0, 2)`.
+            const [start, end] = this._clampAndOrderSubstringBounds(value, value2)
+            return 'substring(' + this._appendSqlMaybeUuid(valueSource, params) + ', ' + this._appendValue(start + 1, params, 'int', 'int', typeAdapter, false) + ', ' + this._appendValue(end - start, params, 'int', 'int', typeAdapter, false) + ')'
         }
         if (typeof value === 'number') {
-            return 'substring(' + this._appendSqlMaybeUuid(valueSource, params) + ', ' + this._appendValue(value + 1, params, 'int', 'int', typeAdapter, false) + ', ' + this._appendValue(value2, params, 'int', 'int', typeAdapter, false) + ' - ' + this._appendValue(value, params, 'int', 'int', typeAdapter, false) + ')'
+            const start = value < 0 ? 0 : value
+            if (start === 0) {
+                return 'substring(' + this._appendSqlMaybeUuid(valueSource, params) + ', 1, ' + this._appendValue(value2, params, 'int', 'int', typeAdapter, false) + ')'
+            }
+            return 'substring(' + this._appendSqlMaybeUuid(valueSource, params) + ', ' + this._appendValue(start + 1, params, 'int', 'int', typeAdapter, false) + ', ' + this._appendValue(value2, params, 'int', 'int', typeAdapter, false) + ' - ' + this._appendValue(start, params, 'int', 'int', typeAdapter, false) + ')'
         } else {
             return 'substring(' + this._appendSqlMaybeUuid(valueSource, params) + ', ' + this._appendValueParenthesis(value, params, 'int', 'int', typeAdapter, false) + ' + 1, ' + this._appendValue(value2, params, 'int', 'int', typeAdapter, false) + ' - ' + this._appendValue(value, params, 'int', 'int', typeAdapter, false) + ')'
         }

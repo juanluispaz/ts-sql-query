@@ -110,7 +110,7 @@ describe(ctx.label, () => {
             .select({ id: tIssue.id, title: tIssue.title })
             .orderBy('title', 'asc nulls last insensitive')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title from issue order by title is null, title asc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title from issue order by title is null, lower(title) asc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
     })
 
@@ -120,7 +120,7 @@ describe(ctx.label, () => {
             .select({ id: tIssue.id, title: tIssue.title })
             .orderBy('title', 'desc nulls first insensitive')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title from issue order by title is not null, title desc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title from issue order by title is not null, lower(title) desc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
     })
 
@@ -342,7 +342,7 @@ describe(ctx.label, () => {
             .select({ id: tIssue.id, title: tIssue.title })
             .orderBy(tIssue.title, 'asc nulls last insensitive')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title from issue order by issue.title is null, issue.title asc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title from issue order by issue.title is null, lower(issue.title) asc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
     })
 
@@ -352,7 +352,7 @@ describe(ctx.label, () => {
             .select({ id: tIssue.id, title: tIssue.title })
             .orderBy(tIssue.title, 'desc nulls first insensitive')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title from issue order by issue.title is not null, issue.title desc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title from issue order by issue.title is not null, lower(issue.title) desc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
     })
 

@@ -50,7 +50,13 @@ export class AbstractSqlBuilder implements SqlBuilder {
             _multiply: true,
             _divide: true,
             _modulo: true,
-            _fragment: true
+            _fragment: true,
+            // The date-part family below is written in PostgreSQL's form, and PostgreSQL is
+            // the dialect that reaches it (it declares no override of its own). Both of these
+            // emit a trailing operator (`- 1`, `% 1000`), so they need wrapping when embedded.
+            // A dialect whose override is a self-contained call sets these back to false.
+            _getMonth: true,
+            _getMilliseconds: true
         }
     }
     _generateUnique(): number {
@@ -3096,40 +3102,58 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _tan(params: any[], valueSource: ToSql): string {
         return 'tan(' + this._appendSql(valueSource, params, false) + ')'
     }
+    // The date-part family. PostgreSQL is the dialect that reaches it — it declares no
+    // override of its own — so this family is written in PostgreSQL's form: the
+    // `_appendSqlForDatePartArgument` receiver, the `::integer` casts, and `_getMonth`'s
+    // `- 1`. Every other dialect overrides all of it. Keep it in step with PostgreSQL:
+    // it is not dead code, it is the code PostgreSQL runs.
     _getDate(params: any[], valueSource: ToSql): string {
-        return 'extract(day from ' + this._appendSql(valueSource, params, false) + ')'
+        return 'extract(day from ' + this._appendSqlForDatePartArgument(valueSource, params) + ')'
     }
     _getTime(params: any[], valueSource: ToSql): string {
         // Mirrors `Date.getTime()`, so the result is in MILLISECONDS. `extract(epoch …)`
         // answers in seconds, including the fractional part.
-        return 'round(extract(epoch from ' + this._appendSql(valueSource, params, false) + ') * 1000)'
+        return 'round(extract(epoch from ' + this._appendSqlForDatePartArgument(valueSource, params) + ') * 1000)'
     }
     _getFullYear(params: any[], valueSource: ToSql): string {
-        return 'extract(year from ' + this._appendSql(valueSource, params, false) + ')'
+        return 'extract(year from ' + this._appendSqlForDatePartArgument(valueSource, params) + ')'
     }
     _getMonth(params: any[], valueSource: ToSql): string {
-        return 'extract(month from ' + this._appendSql(valueSource, params, false) + ')'
+        // Mirrors `Date.getMonth()`, which is 0-based, while `extract(month …)` is 1-based.
+        // The `- 1` is why `_operationsThatNeedParenthesis._getMonth` is registered.
+        return 'extract(month from ' + this._appendSqlForDatePartArgument(valueSource, params) + ') - 1'
     }
     _getDay(params: any[], valueSource: ToSql): string {
-        return 'extract(dow from ' + this._appendSql(valueSource, params, false) + ')'
+        // `dow` (day of week, 0-based from Sunday) matches `Date.getDay()`. It is a
+        // PostgreSQL-only field name — a dialect without it must override this.
+        return 'extract(dow from ' + this._appendSqlForDatePartArgument(valueSource, params) + ')'
     }
     _getHours(params: any[], valueSource: ToSql): string {
-        return 'extract(hour from ' + this._appendSql(valueSource, params, false) + ')'
+        return 'extract(hour from ' + this._appendSqlForDatePartArgument(valueSource, params) + ')'
     }
     _getMinutes(params: any[], valueSource: ToSql): string {
-        return 'extract(minute from ' + this._appendSql(valueSource, params, false) + ')'
+        return 'extract(minute from ' + this._appendSqlForDatePartArgument(valueSource, params) + ')'
     }
     _getSeconds(params: any[], valueSource: ToSql): string {
-        // Mirrors `Date.getSeconds()`: an integer 0-59. `extract(second …)` includes the
-        // sub-second fraction, so it must be truncated — never rounded, or :59.6 would
-        // report a 60th second.
-        return 'trunc(extract(second from ' + this._appendSql(valueSource, params, false) + '))'
+        // `extract(second …)` yields a numeric that INCLUDES the fraction (45.9996), and
+        // `numeric::integer` rounds away from zero — so the bare cast reports 46 for
+        // :45.9996 and 60 for :59.9996, a value this method's declared type (and the
+        // JS `Date.getSeconds()` contract, an integer 0-59) does not allow.
+        return 'trunc(extract(second from ' + this._appendSqlForDatePartArgument(valueSource, params) + '))::integer'
     }
     _getMilliseconds(params: any[], valueSource: ToSql): string {
-        // Mirrors `Date.getMilliseconds()`: an integer 0-999. `extract(millisecond …)`
-        // answers seconds * 1000 + milliseconds, fraction included, so the sub-millisecond
-        // part is truncated away and the seconds are dropped by the modulo.
-        return 'trunc(extract(millisecond from ' + this._appendSql(valueSource, params, false) + ')) % 1000'
+        // Same rounding cast as `_getSeconds`: `extract(millisecond …)` includes the
+        // sub-millisecond fraction, so :45.9996 rounds up to 46000, and the `% 1000`
+        // then wraps it to 0 instead of 999.
+        return 'trunc(extract(millisecond from ' + this._appendSqlForDatePartArgument(valueSource, params) + '))::integer % 1000'
+    }
+    _appendSqlForDatePartArgument(valueSource: ToSql, params: any[]): string {
+        // A const receiver is forced to carry its type cast: an untyped placeholder inside
+        // `extract(... from $1)` has no type for the engine to resolve.
+        if (isValueSource(valueSource) && __getValueSourcePrivate(valueSource).isConstValue()) {
+            return this._appendSql(valueSource, params, true)
+        }
+        return this._appendSql(valueSource, params, false)
     }
     _asString(params: any[], valueSource: ToSql): string {
         // Transform an uuid to string
@@ -3222,8 +3246,28 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _concat(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         return this._appendSqlParenthesisExcluding(valueSource, params, '_concat', false) + ' || ' + this._appendValueParenthesisExcluding(value, params, columnType, columnTypeName, typeAdapter, '_concat', false)
     }
+    // The substr/substring family. These mirror the two JavaScript methods of the same
+    // names, which differ ONLY in how they treat a negative index:
+    //   'abcdef'.substr(-2)    === 'ef'       (counts from the end)
+    //   'abcdef'.substring(-2) === 'abcdef'   (clamps the index to 0)
+    // The `+ 1` below converts JS's 0-based index to SQL's 1-based one. It is correct for a
+    // NON-NEGATIVE index only: for a negative one JS and SQL already agree on the meaning,
+    // so adding 1 shifts the answer by a character. Each negative case is therefore resolved
+    // HERE, at build time, where the sign of a literal is known and the emitted SQL stays as
+    // clean as the common path's.
+    //
+    // This family is written in SQLite's form, and SQLite is the dialect that reaches it —
+    // every other dialect overrides the negative arms with its own idiom.
+    //
+    // A value-source index cannot be resolved at build time (the sign is unknown until the
+    // query runs) and keeps the `+ 1`: see LIMITATIONS.md.
     _substrToEnd(params: any[], valueSource: ToSql, value: any, _columnType: ValueType, _columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         if (typeof value === 'number') {
+            if (value < 0) {
+                // SQLite counts a negative start from the end and clamps an out-of-range one
+                // to the whole string, which is exactly `String.prototype.substr`.
+                return 'substr(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, 'int', 'int', typeAdapter, false) + ')'
+            }
             return 'substr(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value + 1, params, 'int', 'int', typeAdapter, false) + ')'
         } else {
             return 'substr(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValueParenthesis(value, params, 'int', 'int', typeAdapter, false) + ' + 1)'
@@ -3231,7 +3275,11 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     _substringToEnd(params: any[], valueSource: ToSql, value: any, _columnType: ValueType, _columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         if (typeof value === 'number') {
-            return 'substr(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value + 1, params, 'int', 'int', typeAdapter, false) + ')'
+            // `String.prototype.substring` clamps a negative index to 0 — unlike `substr`,
+            // it never counts from the end — so the clamp is applied before the `+ 1` and
+            // the emitted SQL is the same one a 0 would have produced.
+            const start = value < 0 ? 0 : value
+            return 'substr(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(start + 1, params, 'int', 'int', typeAdapter, false) + ')'
         } else {
             return 'substr(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValueParenthesis(value, params, 'int', 'int', typeAdapter, false) + ' + 1)'
         }
@@ -3334,8 +3382,31 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return 'atan2(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false) + ')'
     }
     // SqlFunction2
+    /**
+     * `String.prototype.substr` clamps a negative count to 0 (`'abcdef'.substr(2, -1)` is
+     * `''`), while SQL either rejects a negative length outright (PostgreSQL: "negative
+     * substring length not allowed") or reads it as something else entirely (`left(x, -1)`
+     * means "all but the last character"). A literal count is clamped here, at build time.
+     * A value-source count keeps its own value: see LIMITATIONS.md.
+     */
+    _clampSubstrCount(count: any): any {
+        if (typeof count === 'number' && count < 0) {
+            return 0
+        }
+        return count
+    }
     _substr(params: any[], valueSource: ToSql, value: any, value2: any, _columnType: ValueType, _columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        value2 = this._clampSubstrCount(value2)
         if (typeof value === 'number') {
+            if (value < 0) {
+                // The 3-argument form does NOT clamp an out-of-range negative start the way
+                // the 2-argument one does: `substr('abcdef', -10, 2)` is '' here, where JS
+                // clamps the start to 0 and answers 'ab'. So the tail is taken with the
+                // 2-argument form — which clamps — and the count applied to that tail. This
+                // nests rather than guarding with `max(start, -length(x))` so the receiver is
+                // still referenced ONCE: a guard would emit it (and bind it) twice.
+                return 'substr(substr(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, 'int', 'int', typeAdapter, false) + '), 1, ' + this._appendValue(value2, params, 'int', 'int', typeAdapter, false) + ')'
+            }
             return 'substr(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value + 1, params, 'int', 'int', typeAdapter, false) + ', ' + this._appendValue(value2, params, 'int', 'int', typeAdapter, false) + ')'
         } else {
             return 'substr(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValueParenthesis(value, params, 'int', 'int', typeAdapter, false) + ' + 1, ' + this._appendValue(value2, params, 'int', 'int', typeAdapter, false) + ')'
@@ -3343,14 +3414,31 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     _substring(params: any[], valueSource: ToSql, value: any, value2: any, _columnType: ValueType, _columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         if (typeof value === 'number' && typeof value2 === 'number') {
-            const count = value2 - value
-            return 'substr(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value + 1, params, 'int', 'int', typeAdapter, false) + ', ' + this._appendValue(count, params, 'int', 'int', typeAdapter, false) + ')'
+            // `String.prototype.substring` clamps both indexes to 0 and SWAPS them when
+            // start > end: `'abcdef'.substring(2, 0)` is 'ab', not an error. Emitting the
+            // arguments as given produced a negative length, which PostgreSQL rejects
+            // outright ("negative substring length not allowed") — a crash on a legal call.
+            const [start, end] = this._clampAndOrderSubstringBounds(value, value2)
+            return 'substr(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(start + 1, params, 'int', 'int', typeAdapter, false) + ', ' + this._appendValue(end - start, params, 'int', 'int', typeAdapter, false) + ')'
         }
         if (typeof value === 'number') {
-            return 'substr(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value + 1, params, 'int', 'int', typeAdapter, false) + ', ' + this._appendValue(value2, params, 'int', 'int', typeAdapter, false) + ' - ' + this._appendValue(value, params, 'int', 'int', typeAdapter, false) + ')'
+            const start = value < 0 ? 0 : value
+            if (start === 0) {
+                return 'substr(' + this._appendSql(valueSource, params, false) + ', 1, ' + this._appendValue(value2, params, 'int', 'int', typeAdapter, false) + ')'
+            }
+            return 'substr(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(start + 1, params, 'int', 'int', typeAdapter, false) + ', ' + this._appendValue(value2, params, 'int', 'int', typeAdapter, false) + ' - ' + this._appendValue(start, params, 'int', 'int', typeAdapter, false) + ')'
         } else {
             return 'substr(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValueParenthesis(value, params, 'int', 'int', typeAdapter, false) + ' + 1, ' + this._appendValue(value2, params, 'int', 'int', typeAdapter, false) + ' - ' + this._appendValue(value, params, 'int', 'int', typeAdapter, false) + ')'
         }
+    }
+    /**
+     * `String.prototype.substring`'s index handling: each index is clamped to 0, and the two
+     * are swapped when start > end. Both indexes must be known at build time.
+     */
+    _clampAndOrderSubstringBounds(start: number, end: number): [number, number] {
+        const s = start < 0 ? 0 : start
+        const e = end < 0 ? 0 : end
+        return s > e ? [e, s] : [s, e]
     }
     _replaceAll(params: any[], valueSource: ToSql, value: any, value2: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         return 'replace(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, false) + ', ' + this._appendValue(value2, params, columnType, columnTypeName, typeAdapter, false) + ')'

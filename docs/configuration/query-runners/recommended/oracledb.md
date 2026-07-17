@@ -157,7 +157,7 @@ async function main() {
     oracledb.fetchTypeHandler = function(metaData) {
         // A NUMBER wider than 15 digits (or of unknown precision) can't round-trip
         // through a JavaScript number; fetch it as a string instead.
-        if (metaData.dbType === oracledb.DB_TYPE_NUMBER && (metaData.precision === 0 || metaData.precision > 15)) {
+        if (metaData.dbType === oracledb.DB_TYPE_NUMBER && (!metaData.precision || metaData.precision > 15)) {
             return { type: oracledb.STRING };
         }
         return undefined;

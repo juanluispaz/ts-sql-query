@@ -154,7 +154,7 @@ describe(ctx.label, () => {
                 t:  tOrganization.createdAt.getTime(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round(unix_timestamp(created_at) * 1000) as \`t\` from organization where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round(timestampdiff(microsecond, '1970-01-01 00:00:00', created_at) / 1000) as \`t\` from organization where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -278,7 +278,7 @@ describe(ctx.label, () => {
                 before: tProjectRelease.releasedOn.lessThan(new Date(Date.UTC(2024, 1, 1, 10, 0, 0))),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select year(released_on) as \`y\`, hour(cutoff_time) as \`h\`, round(unix_timestamp(signed_off_at) * 1000) as \`t\`, released_on < ? as \`before\` from project_release where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select year(released_on) as \`y\`, hour(cutoff_time) as \`h\`, round(timestampdiff(microsecond, '1970-01-01 00:00:00', signed_off_at) / 1000) as \`t\`, released_on < ? as \`before\` from project_release where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2024-02-01T10:00:00.000Z,
@@ -689,7 +689,7 @@ describe(ctx.label, () => {
                     t:   tProject.archivedAt.getTime(),
                 })
                 .executeSelectMany()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select year(archived_at) as \`y\`, month(archived_at) - 1 as mo, dayofmonth(archived_at) as \`d\`, dayofweek(archived_at) - 1 as dow, hour(archived_at) as \`h\`, minute(archived_at) as \`m\`, second(archived_at) as \`s\`, floor(microsecond(archived_at) / 1000) as ms, round(unix_timestamp(archived_at) * 1000) as \`t\` from project where id = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select year(archived_at) as \`y\`, month(archived_at) - 1 as mo, dayofmonth(archived_at) as \`d\`, dayofweek(archived_at) - 1 as dow, hour(archived_at) as \`h\`, minute(archived_at) as \`m\`, second(archived_at) as \`s\`, floor(microsecond(archived_at) / 1000) as ms, round(timestampdiff(microsecond, '1970-01-01 00:00:00', archived_at) / 1000) as \`t\` from project where id = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -760,7 +760,7 @@ describe(ctx.label, () => {
                 t:   vReleaseOverview.signedOffAt.getTime(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select year(signed_off_at) as \`y\`, month(signed_off_at) - 1 as mo, dayofmonth(signed_off_at) as \`d\`, dayofweek(signed_off_at) - 1 as dow, hour(signed_off_at) as \`h\`, minute(signed_off_at) as \`m\`, second(signed_off_at) as \`s\`, floor(microsecond(signed_off_at) / 1000) as ms, round(unix_timestamp(signed_off_at) * 1000) as \`t\` from release_overview where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select year(signed_off_at) as \`y\`, month(signed_off_at) - 1 as mo, dayofmonth(signed_off_at) as \`d\`, dayofweek(signed_off_at) - 1 as dow, hour(signed_off_at) as \`h\`, minute(signed_off_at) as \`m\`, second(signed_off_at) as \`s\`, floor(microsecond(signed_off_at) / 1000) as ms, round(timestampdiff(microsecond, '1970-01-01 00:00:00', signed_off_at) / 1000) as \`t\` from release_overview where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

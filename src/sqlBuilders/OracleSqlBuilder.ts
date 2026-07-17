@@ -17,7 +17,9 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     constructor() {
         super()
         this._operationsThatNeedParenthesis._getTime = true
-        this._operationsThatNeedParenthesis._getMonth = true
+        // `_getMilliseconds` is overridden below as a self-contained call, so it never
+        // needs the wrapping the base's trailing-`% 1000` form asks for.
+        this._operationsThatNeedParenthesis._getMilliseconds = false
         this._operationsThatNeedParenthesis._getDay = true
         this._operationsThatNeedParenthesis._negate = true
         // _cot is emitted as the compound expression `1 / tan(x)` (Oracle
@@ -1039,8 +1041,49 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     override _getDate(params: any[], valueSource: ToSql): string {
         return 'extract(day from ' + this._appendSql(valueSource, params, false) + ')'
     }
+    // Oracle counts a negative start from the end like JS, but answers '' once the start runs
+    // past the beginning of the string, where JS clamps it and returns the whole string.
+    // `greatest(start, -length(x))` is that clamp, and it costs one extra reference to the
+    // receiver — the only way to express it here: Oracle has no `right()`, its 2-argument
+    // `substr` does not clamp (so the tail cannot be taken first and sliced), and
+    // `regexp_substr(x, '.{1,n}$')` — which would reference the receiver once — anchors `$`
+    // BEFORE a trailing newline, silently truncating any value that ends in one.
+    //
+    // A start of -1 needs no clamp at all: an Oracle string that is not NULL has at least one
+    // character (the empty string IS NULL here), so `greatest(-1, -length(x))` is always -1.
+    private _substrNegativeStart(params: any[], valueSource: ToSql, value: number, typeAdapter: TypeAdapter | undefined): string {
+        if (value === -1) {
+            return this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, 'int', 'int', typeAdapter, false)
+        }
+        return this._appendSql(valueSource, params, false) + ', greatest(' + this._appendValue(value, params, 'int', 'int', typeAdapter, false) + ', -length(' + this._appendSql(valueSource, params, false) + '))'
+    }
+    override _substrToEnd(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        if (typeof value === 'number' && value < 0) {
+            return 'substr(' + this._substrNegativeStart(params, valueSource, value, typeAdapter) + ')'
+        }
+        return super._substrToEnd(params, valueSource, value, columnType, columnTypeName, typeAdapter)
+    }
+    override _substr(params: any[], valueSource: ToSql, value: any, value2: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        value2 = this._clampSubstrCount(value2)
+        if (typeof value === 'number' && value < 0) {
+            return 'substr(' + this._substrNegativeStart(params, valueSource, value, typeAdapter) + ', ' + this._appendValue(value2, params, 'int', 'int', typeAdapter, false) + ')'
+        }
+        return super._substr(params, valueSource, value, value2, columnType, columnTypeName, typeAdapter)
+    }
     override _getTime(params: any[], valueSource: ToSql): string {
-        return "extract(day from(sys_extract_utc(" + this._appendSql(valueSource, params, false) + ") - to_timestamp('1970-01-01', 'YYYY-MM-DD'))) * 86400000 + to_number(to_char(sys_extract_utc(" + this._appendSql(valueSource, params, false) + "), 'SSSSSFF3'))"
+        // Date subtraction yields a SIGNED fractional day count, which is what makes this
+        // correct below the epoch. The previous form added a signed day count to an
+        // always-positive time-of-day, so pre-1970 instants came out a day off and, within
+        // the last day before the epoch, with the sign flipped. The sub-second term always
+        // adds forward in time, which is correct on both sides of the epoch.
+        //
+        // Dropping `sys_extract_utc` also makes this session-time-zone independent, but that
+        // is a SIDE EFFECT of fixing the range, NOT a timezone fix, and it does NOT make
+        // `getTime()` timezone-safe: the dominant drift is that `transformValueFromDB` parses
+        // a wall clock in the HOST's zone while the SQL side resolves it in the ENGINE's
+        // zone. That affects all six dialects equally and cannot be fixed in SQL — see
+        // docs/configuration/time-zones.md.
+        return "(cast(" + this._appendSql(valueSource, params, false) + " as date) - date '1970-01-01') * 86400000 + to_number(to_char(" + this._appendSql(valueSource, params, false) + ", 'FF3'))"
     }
     override _getFullYear(params: any[], valueSource: ToSql): string {
         return 'extract(year from ' + this._appendSql(valueSource, params, false) + ')'

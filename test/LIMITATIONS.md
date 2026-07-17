@@ -574,3 +574,109 @@ whose driver is exact by default — which is what validates the library's own
 emission. Enabling the options above in those five `runners.ts` would let the
 test run there too, at the cost of the cells no longer reflecting a default
 setup; that is a suite-design call, not a library one.
+
+## SQLite's `lower()` / `upper()` fold ASCII only, and `NOCASE` does not rescue them
+
+SQLite's built-in `lower()` / `upper()` only fold the 26 ASCII letters; every
+other code point passes through untouched. Verified against a real engine:
+`lower('CAFÉ')` → `cafÉ`, `upper('café')` → `CAFé`, and therefore
+`'CAFÉ' LIKE 'café'` → `0`. Every SQLite driver in this matrix is a non-ICU
+build, which is also what a user gets from the stock npm packages.
+
+This **cascades into the whole `*Insensitive` family**. With
+`insensitiveCollation` unset (the default), `equalsInsensitive` /
+`containsInsensitive` / `startsWithInsensitive` / … all fall through to
+`lower(a) like lower(b)`, so on SQLite `.containsInsensitive('é')` does not
+match `'É'` — a fully typed call silently returning fewer rows.
+
+**Setting `insensitiveCollation: 'NOCASE'` does not help**: SQLite's `NOCASE`
+collation is *also* ASCII-only. Without an ICU build there is no escape through
+`lower()` **or** through a collation, so this is not something the user can
+configure their way out of — it is a property of the deployed SQLite. The
+library emits the same SQL every other dialect gets; the engine folds less.
+
+**What this means for tests**: the matrix asserts case folding with ASCII data
+(`'Ada Lovelace'` → `'ADA LOVELACE'`), where SQLite agrees with everyone else.
+A non-ASCII insensitive assertion would have to be gated on SQLite, so the
+non-ASCII coverage in `select.string-ops.test.ts` stays on `.length()`, which
+*is* character-correct on SQLite.
+
+## SQL Server's `replace()` is collation-sensitive; the other five dialects are not
+
+`.replaceAll(search, replacement)` mirrors JS's `String.replaceAll`, which is
+case-**sensitive**: `'ABCabc'.replaceAll('abc', 'X')` is `'ABCX'`. Five dialects
+match it. SQL Server's `REPLACE()` resolves its search argument under the
+column's collation, and the usual deployments (including this matrix's
+`SQL_Latin1_General_CP1_CI_AS` and the common `*_CI_AS` defaults) are
+case-insensitive, so it replaces **both** occurrences:
+
+```
+mssql  replace('ABCabc','abc','X')                              = XX      <- both
+       replace('ABCabc' collate Latin1_General_CS_AS,'abc','X')  = ABCX
+pg     replace('ABCabc','abc','X')                              = ABCX
+mysql  REPLACE('ABCabc','abc','X')                              = ABCX
+```
+
+The library emits one spelling (`replace(...)`, the `AbstractSqlBuilder`
+default, no override anywhere) — correctness here depends on a collation the
+application owns, exactly like the `bigint`/driver case below. Forcing a
+`collate` on every `replaceAll` would tax every query and override a deliberate
+database-level choice, so the library leaves it alone.
+
+**What this means for tests**: the matrix replaces `'@'` — a character with no
+case — so the six dialects agree. An assertion that distinguishes them would
+have to be SQL-Server-gated.
+
+## `stringConcat` truncates at `group_concat_max_len` on MySQL / MariaDB
+
+`GROUP_CONCAT()` silently truncates its result at the session's
+`group_concat_max_len`, which defaults to **1024 bytes**. Verified against a
+real engine:
+
+```
+mysql  @@group_concat_max_len = 1024
+       LENGTH(GROUP_CONCAT(6 x 200 chars)) = 1024      (expected 1205)
+       SHOW WARNINGS -> Warning 1260 "Row 6 was cut by GROUP_CONCAT()"
+```
+
+It is a **warning, never an error**: the declared type is `StringValueSource`
+→ `string`, and the caller gets a cleanly truncated string with no signal.
+Oracle (`ORA-01489`) and SQL Server error loudly instead; PostgreSQL and SQLite
+are unlimited. MySQL has no `STRING_AGG`, so `GROUP_CONCAT` is the only vehicle
+and the limit is inherent to it — **there is no library-side fix**.
+
+This is the same shape as the `bigint` case below: session configuration the
+application owns, not something the library should reach into the connection to
+change.
+
+```js
+pool.on('connection', c => c.query('SET SESSION group_concat_max_len = 1000000'))
+```
+
+**Why the suite can't see it**: the aggregate tests concatenate three names
+(~40 bytes), far under the limit.
+
+## A negative `substr` / `substring` index is only resolved when it is a literal
+
+The four slicing methods mirror JS, where a negative index means "from the end"
+for `substr` and "clamp to 0" for `substring`. Both are resolved **at build
+time** (see `AbstractSqlBuilder._substrToEnd` and its per-dialect overrides), so
+they need the sign of the index to be known while the SQL is built — which is
+true for a number literal and false for a value source:
+
+```ts
+tIssue.title.substrToEnd(-2)              // resolved: emits the dialect's from-the-end idiom
+tIssue.title.substrToEnd(tIssue.priority) // NOT resolved: assumed non-negative
+```
+
+With a **value-source index** the library keeps the `<index> + 1` conversion,
+which is correct for a non-negative index and wrong for a negative one. Closing
+this would mean emitting `case when <index> < 0 then … else <index> + 1 end`
+around every slicing call — taxing the majority of queries, which never pass a
+negative index, to cover an exotic one. The author ruled against paying that
+cost on the common path.
+
+**What this means for tests**: the negative-index coverage in
+`select.string-ops.test.ts` (`negative-index-follows-javascript`) uses literals.
+A value-source index carrying a negative value at runtime is outside the
+contract.

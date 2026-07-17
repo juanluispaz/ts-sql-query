@@ -123,13 +123,11 @@ surface list in **this** file is a snapshot.
 1. `npm run tests:audit` — the authoritative per-database cell/test counts for
    today's matrix. Reference cell is still `postgres/newest/pg/` unless this
    prints otherwise.
-2. `npm run tests:index` (~30 s) — the semantic index, for coverage-checking
+2. `npm run tests:index` — the semantic index, for coverage-checking
    and reachability later. (Discovery itself is raw reading; the index is not
    needed for it — so if the build fails, don't block the fan-out; grep +
-   compile-repro are the authoritative §7 verifiers anyway.) **Gotcha:** the
-   indexer can exceed the default V8 heap (~4 GB) on a large matrix / recent
-   Node and abort with `Ineffective mark-compacts near heap limit`; rebuild with
-   a raised heap — `NODE_OPTIONS="--max-old-space-size=12288" npm run tests:index`.
+   compile-repro are the authoritative §7 verifiers anyway. On a failed build,
+   `scripts/tests-index.sh --help` documents the fallbacks.)
 3. Re-read `domain/connection.ts` — fixtures change between rounds (this round
    may add the columns a prior round's §B asked for, which converts §B items to
    covered or to §A).

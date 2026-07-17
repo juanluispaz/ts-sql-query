@@ -680,3 +680,57 @@ cost on the common path.
 `select.string-ops.test.ts` (`negative-index-follows-javascript`) uses literals.
 A value-source index carrying a negative value at runtime is outside the
 contract.
+
+## `.length()` on SQL Server under-reports a string that is exactly at its column's maximum length
+
+`.length()` mirrors JS `String.length`, which counts trailing blanks; T-SQL's
+`LEN()` excludes them (`len('Draft  ')` is 5, not 7). The library bridges the gap
+in `SqlServerSqlBuilder._length` by appending a sentinel character and subtracting
+it back: `len(<x> + '.') - 1`. This is correct for every normal string.
+
+It fails at **one exact extreme**: a value whose length already equals its
+column's declared maximum. T-SQL string `+` on two **non-`max`** character types
+caps the result at the type's declared maximum and silently truncates the
+overflow, so for a value at the cap the appended `.` is dropped, `len` returns the
+maximum, and `- 1` yields **maximum − 1**:
+
+```
+declare @x8000 varchar(8000) = REPLICATE('a', 8000);
+  LEN(@x8000 + '.') - 1 = 7999     LEN(@x8000) = 8000     -- true length 8000
+declare @x4000 nvarchar(4000) = REPLICATE(N'a', 4000);
+  LEN(@x4000 + N'.') - 1 = 3999    LEN(@x4000) = 4000
+```
+
+(Under `tedious`, a bound `const` string of exactly 4000 characters is sent as
+`nvarchar(4000)`, so it reaches this without even a column at the cap.)
+
+**Why the default is a limitation and not a bug to fix.** The value has to be
+*exactly* at the bounded type's maximum for the defect to appear — one precise
+extreme, not a range. A fully-correct form exists —
+`len(cast(<x> as varchar(max)) + '.') - 1`, verified to give 8000 / 7 / 4 for the
+cases above — but the author ruled against carrying the extra cast on every
+`.length()` call to cover only the max-length case: documenting the edge is
+preferred over complicating the common query. The trailing-blank handling that the
+sentinel provides is correct for every string shorter than the column's maximum.
+
+**The opt-out — `usePlatformDependentLength`.** A connection flag (default `false`),
+in the same spirit as `usePlatformDependentRound`, lets a user trade the
+JS-faithful default for SQL Server's **native `len(x)`**. With it set, the builder
+emits a bare `len(<x>)`:
+
+- the max-length edge disappears (`len(REPLICATE('a', 8000))` = 8000, correct), and
+  the query is lighter (no sentinel);
+- but trailing blanks are **excluded** again (`len('Draft  ')` = 5, T-SQL's native
+  semantics, diverging from JS `String.length`).
+
+So it is a genuine trade, not a strict improvement: it is the right choice for an
+application whose SQL Server columns hold max-length values and whose data does not
+depend on trailing blanks. An application needing both trailing-blank fidelity *and*
+correctness at the exact maximum has no single form that serves it (the
+`varchar(max)` cast would, at a cost the default declined) — a vanishingly rare
+combination (a value exactly at the cap that also ends in significant spaces).
+
+**What this means for tests**: no fixture holds a max-length string, so the matrix
+cannot express the default's edge. Do not add one to "fix" the default — it is a
+documented edge with an opt-out, not a regression. The opt-out's `len(x)` emission
+is snapshot-lockable on any string.

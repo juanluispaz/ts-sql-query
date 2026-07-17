@@ -93,8 +93,6 @@ yours.
    re-litigate belongs **in a code comment**, next to the code it explains. Each
    entry names what must be recorded that way under *Record in the code*.
 
----
-
 ## Coverage gaps carried over (not bugs — no entry to fix)
 
 These are **not** defects and there is nothing in `src/` to change. They are the
@@ -102,44 +100,7 @@ places where a fix that landed has **no test holding it down**, so a regression
 would be silent. Kept here because the loudest lesson of the round that fixed
 them was that a defect survives exactly as long as no fixture can express it.
 
-### `sqrt(4)` and `cbrt(8)` are exact — assert them with `toBe`
-
-`Math.sqrt(4) === 2` and `Math.cbrt(8) === 2` are both **exactly** true in
-IEEE-754, yet the matrix pins them with `toBeCloseTo(2, 10)`. `toBeCloseTo` on a
-value the engine can only return exactly asserts less than it could: it says
-"near 2" where "is 2" is available and true.
-
-Not urgent — `n=10` already catches every defect this suite has seen (the
-tightening round proved every engine sustains it). Worth doing when someone is
-in these files anyway: `select.numeric-ops.test.ts` and
-`select.value-source.custom-numeric.test.ts`, all 17 cells. Check each candidate
-against the engine first — `cbrt(4)` is *not* exact (`4.999999999999999` for
-`cbrt(125)` on MySQL / SQLite), so only the values that round-trip exactly may
-become `toBe`.
-
-### The microsecond coverage gap
-
-The date-part truncation defects fixed in this round are only **half covered**.
-`const-localdatetime-subsecond-getters-truncate`
-(`select.value-source.const-temporal-getters.test.ts`, all 17 cells) locks the
-sub-second contract with `:59.999` and `:01.001` — plain millisecond instants,
-which a JavaScript `Date` expresses exactly — and it does catch the two worst:
-PostgreSQL reporting a 60th second, and SQLite losing the millisecond of
-`:01.001`.
-
-But **a JS `Date` has millisecond precision, so no test written through the
-public API can reach the sub-millisecond cases**: PostgreSQL's
-`getMilliseconds()` rounding `.9996` up to `0`, and MySQL / MariaDB's returning
-`1000` for `999600 µs`. Both are fixed, neither is locked. Those instants can
-only enter through a **column** holding microseconds — which is exactly how they
-arise in the wild, since `created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP` stores
-microseconds on PostgreSQL and Oracle.
-
-Closing it needs a fixture change, not a test-only one: `TIMESTAMP` /
-`DATETIME(6)` columns seeded with sub-millisecond values. Note the column types
-differ — MySQL / MariaDB `DATETIME` holds **whole seconds** and SQL Server
-`DATETIME` ~3.33 ms, so the schemas would need `DATETIME(6)` / `DATETIME2(7)`
-before any such fixture can hold the value.
+*(none)*
 
 ## Common bug shapes (for the fixing agent)
 

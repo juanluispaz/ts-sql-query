@@ -13,6 +13,7 @@ DROP TABLE IF EXISTS invoice;
 DROP TABLE IF EXISTS ledger_entry;
 DROP TABLE IF EXISTS issue_worklog;
 DROP TABLE IF EXISTS col_matrix;
+DROP TABLE IF EXISTS temporal_precision;
 DROP TABLE IF EXISTS country;
 DROP TABLE IF EXISTS issue;
 DROP TABLE IF EXISTS project;
@@ -285,6 +286,15 @@ CREATE TABLE col_matrix (
     m_time TIME NOT NULL,
     m_datetime DATETIME NOT NULL,
     m_str VARCHAR(64) NOT NULL
+);
+
+-- temporal_precision: a localDateTime column (DATETIME, text) seeded with a
+-- sub-millisecond instant (12:30:59.999600). SQLite datetime has only millisecond
+-- resolution, so the microseconds truncate naturally; getSeconds() reads 59 and
+-- getMilliseconds() reads 999. Caller-provided int PK.
+CREATE TABLE temporal_precision (
+    id INTEGER PRIMARY KEY,
+    micro_stamp DATETIME NOT NULL
 );
 
 CREATE VIEW col_matrix_view AS

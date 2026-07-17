@@ -171,7 +171,7 @@ describe(ctx.label, () => {
             const row = result[0]!
             const e = expected[0]!
             expect(row.id).toBe(e.id)
-            expect(row.sq).toBeCloseTo(e.sq, 5)
+            expect(row.sq).toBe(e.sq)  // sqrt(4) = 2 exactly (IEEE-754), unlike the irrational neighbours
             expect(row.cb).toBeCloseTo(e.cb, 5)
             expect(row.e).toBeCloseTo(e.e, 5)
             expect(row.l).toBeCloseTo(e.l, 5)

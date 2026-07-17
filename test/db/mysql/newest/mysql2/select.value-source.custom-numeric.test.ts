@@ -167,7 +167,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ id: number; sq: number; cb: number; e: number; l: number; l10: number }>>>()
         if (ctx.realDbEnabled) {
             const row = result[0]!
-            expect(row.sq).toBeCloseTo(2, 5)
+            expect(row.sq).toBe(2)  // sqrt(4) = 2 exactly (IEEE-754), unlike the irrational neighbours
             // MySQL emulates cbrt as `sign(x) * power(abs(x), 1.0e0 / 3.0e0)`.
             // The exponent marker keeps the divisor a DOUBLE: spelled `1.0 / 3.0`
             // it is a DECIMAL division truncated to div_precision_increment

@@ -14,6 +14,7 @@ DROP TABLE IF EXISTS invoice CASCADE;
 DROP TABLE IF EXISTS ledger_entry CASCADE;
 DROP TABLE IF EXISTS issue_worklog CASCADE;
 DROP TABLE IF EXISTS col_matrix CASCADE;
+DROP TABLE IF EXISTS temporal_precision CASCADE;
 DROP TABLE IF EXISTS country CASCADE;
 DROP TABLE IF EXISTS issue CASCADE;
 DROP TABLE IF EXISTS project CASCADE;
@@ -346,6 +347,17 @@ CREATE TABLE col_matrix (
     m_time TIME NOT NULL,
     m_datetime TIMESTAMP NOT NULL,
     m_str VARCHAR(64) NOT NULL
+);
+
+-- temporal_precision: a single microsecond-precision localDateTime column. Its
+-- seed instant (12:30:59.999600) cannot be reached by the const-based subsecond
+-- test — a JS Date only carries milliseconds — so this column is the only way to
+-- lock the date-part getters' SQL-side truncation on a real microsecond value:
+-- getSeconds() must stay 59 (not round to 60) and getMilliseconds() must stay 999
+-- (not round to 1000, nor wrap to 0). Caller-provided int PK keeps reset trivial.
+CREATE TABLE temporal_precision (
+    id INTEGER PRIMARY KEY,
+    micro_stamp TIMESTAMP NOT NULL
 );
 
 -- View side of col_matrix — surfaces the same per-kind read marshalling through

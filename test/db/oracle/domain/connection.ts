@@ -1049,6 +1049,17 @@ export const tCountry = new class TCountry extends Table<DBConnection, 'TCountry
     constructor() { super('country') }
 }()
 
+// A single microsecond-precision localDateTime column. Its seed instant carries
+// sub-millisecond fractional seconds (999600 µs) that no const receiver can reach
+// — a JS Date only holds milliseconds — so it drives the plain-column arm of the
+// date-part getters' sub-second truncation (see the temporal_precision comment in
+// schema.sql). Exercised by select.value-source.column-temporal-subsecond-getters.
+export const tTemporalPrecision = new class TTemporalPrecision extends Table<DBConnection, 'TTemporalPrecision'> {
+    id         = this.primaryKey('id', 'int')
+    microStamp = this.column('micro_stamp', 'localDateTime')
+    constructor() { super('temporal_precision') }
+}()
+
 // Time-tracking worklog: surfaces the date-only / time-only / nullable
 // bigint / nullable plain-boolean / optional-with-default / plain-enum
 // column kinds the original four tables don't expose.

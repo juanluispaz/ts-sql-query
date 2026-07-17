@@ -162,7 +162,7 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ id: number; sq: number; cb: number; e: number; l: number; l10: number }>>>()
         if (ctx.realDbEnabled) {
             expect(result[0]!.id).toBe(1)
-            expect(result[0]!.sq).toBeCloseTo(2, 5)
+            expect(result[0]!.sq).toBe(2)  // sqrt(4) = 2 exactly (IEEE-754), unlike the irrational neighbours
             expect(result[0]!.cb).toBeCloseTo(Math.cbrt(4), 10)
             expect(result[0]!.e).toBeCloseTo(Math.exp(4), 5)
             expect(result[0]!.l).toBeCloseTo(Math.log(4), 5)

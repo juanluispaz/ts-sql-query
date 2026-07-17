@@ -81,3 +81,7 @@ INSERT INTO release_draft (id, title, stage, channel, min_version, budget, targe
 -- NUMBER(1) (1), m_time a TIMESTAMP on 1970-01-01 (localTime). Temporal seeds
 -- mirror select.column-factory-types.test.ts.
 INSERT INTO col_matrix (id, m_int, m_bigint, m_double, m_bool, m_uuid, m_date, m_time, m_datetime, m_str) VALUES (1, 42, 5000, 3.5, 1, UUID_TO_RAW('0a8f9c1e-1111-4222-8333-444455556666'), DATE '2024-03-04', TIMESTAMP '1970-01-01 09:15:00', TIMESTAMP '2024-01-14 12:30:00', 'hello');
+-- temporal_precision: a sub-millisecond instant (999600 µs) a JS Date cannot
+-- express. getSeconds() reads 59, getMilliseconds() reads 999.
+INSERT INTO temporal_precision (id, micro_stamp) VALUES
+    (1, TIMESTAMP '2024-01-15 12:30:59.999600');

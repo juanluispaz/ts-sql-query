@@ -14,6 +14,7 @@ IF OBJECT_ID('invoice', 'U') IS NOT NULL DROP TABLE invoice;
 IF OBJECT_ID('ledger_entry', 'U') IS NOT NULL DROP TABLE ledger_entry;
 IF OBJECT_ID('issue_worklog', 'U') IS NOT NULL DROP TABLE issue_worklog;
 IF OBJECT_ID('col_matrix', 'U') IS NOT NULL DROP TABLE col_matrix;
+IF OBJECT_ID('temporal_precision', 'U') IS NOT NULL DROP TABLE temporal_precision;
 IF OBJECT_ID('country', 'U') IS NOT NULL DROP TABLE country;
 IF OBJECT_ID('issue', 'U') IS NOT NULL DROP TABLE issue;
 IF OBJECT_ID('project', 'U') IS NOT NULL DROP TABLE project;
@@ -364,6 +365,17 @@ CREATE TABLE col_matrix (
     m_time TIME NOT NULL,
     m_datetime DATETIME NOT NULL,
     m_str VARCHAR(64) NOT NULL
+);
+GO
+
+-- temporal_precision: a microsecond-precision localDateTime column (DATETIME2(7))
+-- seeded with a sub-millisecond instant (12:30:59.999600) that a JS Date cannot
+-- express. Locks the date-part getters' SQL-side truncation on a real microsecond
+-- value: getSeconds() must stay 59 (not round to 60) and getMilliseconds() must
+-- stay 999 (datepart(millisecond), not a round up to 1000). Int PK, no identity.
+CREATE TABLE temporal_precision (
+    id INT PRIMARY KEY,
+    micro_stamp DATETIME2(7) NOT NULL
 );
 GO
 

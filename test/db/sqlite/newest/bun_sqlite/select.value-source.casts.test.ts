@@ -226,14 +226,19 @@ describe(ctx.label, () => {
 
 
     test('asBigint-on-double-keeps-bigint-arithmetic-exact', async () => {
-        // The cast `asBigint()` emits is what keeps the arithmetic exact: computed in
-        // floating point, an operand beyond 2^53 loses its last digits and the result
-        // comes back integral — so the value reaching the caller is a clean, wrong
-        // bigint rather than an error. 2 + 9007199254740993 is the first sum a double
-        // cannot represent.
+        // The emitted `cast(... as integer)` makes the engine compute
+        // `2 + 9007199254740993` in 64-bit INTEGER space, not floating point, so
+        // the sum is exactly 9007199254740995 — the first result past 2^53.
+        // Whether the caller receives it intact then depends on the driver's
+        // reader: by default this driver hands integers back as a JS `number`
+        // (rounding the sum, or — node:sqlite — throwing on it; see
+        // LIMITATIONS.md), so it takes the driver's exact-integer mode
+        // (`ctx.withSafeIntegers()`) to read the sum back as a `bigint`. The
+        // library's `bigint` arm passes that through untouched, while the `int`
+        // column `id` narrows safely back to a plain `1`.
         const expected = [{ id: 1, big: 9007199254740995n }]
         ctx.mockNext(expected)
-        const result = await ctx.conn.selectFrom(tIssue)
+        const run = (conn: typeof ctx.conn) => conn.selectFrom(tIssue)
             .where(tIssue.id.equals(1))
             .select({
                 id:  tIssue.id,
@@ -241,15 +246,27 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(round(cast(priority as real)) as integer) + ? as big from issue where id = ?"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            9007199254740993n,
-            1,
-          ]
-        `)
-        assertType<Exact<typeof result, Array<{ id: number; big: bigint }>>>()
-        expect(result).toEqual(expected)
+        if (ctx.realDbEnabled && ctx.withSafeIntegers) {
+            // Real engine: the shared connection's default reader can't surface
+            // this value as a Number, so read it through a second connection in
+            // the driver's exact-integer mode.
+            const exact = await run(await ctx.withSafeIntegers())
+            assertType<Exact<typeof exact, Array<{ id: number; big: bigint }>>>()
+            expect(exact).toEqual(expected)
+        } else {
+            // Mock mode: the emission is reader-independent — assert SQL + params
+            // + type here (every cell hits this branch under the mock).
+            const result = await run(ctx.conn)
+            assertType<Exact<typeof result, Array<{ id: number; big: bigint }>>>()
+            expect(result).toEqual(expected)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(round(cast(priority as real)) as integer) + ? as big from issue where id = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                9007199254740993n,
+                1,
+              ]
+            `)
+        }
     })
 
 })

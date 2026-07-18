@@ -121,6 +121,23 @@ export interface SqliteTestContext extends TestContext<DBConnection> {
         treatUnexpectedStringDateTimeAsUTC?: boolean
         unexpectedUnixDateTimeAreMilliseconds?: boolean
     }): DBConnection
+    /**
+     * A `DBConnection` backed by a SECOND runner over the SAME shared
+     * in-memory db, but with the driver's reader put into exact-integer mode
+     * (`safeIntegers` on bun:sqlite / better-sqlite3, `setReadBigInts` on
+     * node:sqlite), so an integer past 2^53 arrives as an exact `bigint`
+     * instead of a rounded `number` (or — node:sqlite — instead of the
+     * `RangeError` the default reader throws). The mode is enabled PER
+     * STATEMENT, so `ctx.conn`'s default `number` reads are untouched and the
+     * two connections coexist on the shared fixture.
+     *
+     * Present ONLY on the native SQLite connectors whose driver exposes the
+     * toggle — bun:sqlite, better-sqlite3, node:sqlite. Absent on `sqlite3`
+     * (no exact-integer API) and sqlite-wasm. Meant to be called in real-DB
+     * mode; under the mock the driver's reader is irrelevant (the mock hands
+     * the value back verbatim), so callers guard on `ctx.realDbEnabled`.
+     */
+    withSafeIntegers?(): Promise<DBConnection>
 }
 
 /**
@@ -129,9 +146,13 @@ export interface SqliteTestContext extends TestContext<DBConnection> {
  * `ctx.conn.queryRunner` (the shared interceptor) — `ctx.up()` must
  * have run before any helper is called.
  */
-function decorateSqliteContext(base: TestContext<DBConnection>): SqliteTestContext {
+function decorateSqliteContext(
+    base: TestContext<DBConnection>,
+    createExactIntegerConnection?: () => Promise<DBConnection>,
+): SqliteTestContext {
     return Object.assign(base, {
         exampleInsensitiveCollation: 'NOCASE',
+        ...(createExactIntegerConnection ? { withSafeIntegers: createExactIntegerConnection } : {}),
         withInsensitiveCollation(collation: string | undefined): DBConnection {
             class C extends DBConnection {
                 protected override insensitiveCollation: string | undefined = collation
@@ -226,6 +247,31 @@ async function getOrCreateBunSqliteDb(): Promise<import('bun:sqlite').Database> 
     return sharedBunSqliteDb
 }
 
+// A second connection whose reader surfaces integers past 2^53 as an exact
+// `bigint` instead of a rounded `number` (see LIMITATIONS.md § "Reading an
+// integer beyond 2^53 exactly ..."). bun-types exposes `safeIntegers` only as a
+// Database CONSTRUCTOR option, and the flag is db-wide — every integer column,
+// `id` included, then reads back as `bigint` — so this uses a DEDICATED
+// exact-reading db (seeded like the shared one) rather than flipping the shared
+// fixture every other test reads as `number`. The `int` column `id` narrows
+// safely back from `1n` to `1` in `transformValueFromDB`.
+let sharedBunSqliteExactDb: import('bun:sqlite').Database | null = null
+async function getOrCreateBunSqliteExactDb(): Promise<import('bun:sqlite').Database> {
+    if (sharedBunSqliteExactDb === null) {
+        const { Database } = await import('bun:sqlite')
+        const db = new Database(':memory:', { safeIntegers: true })
+        const { schema, seed } = await readSchemaAndSeed()
+        for (const stmt of splitStatements(schema)) db.exec(stmt)
+        for (const stmt of splitStatements(seed)) db.exec(stmt)
+        sharedBunSqliteExactDb = db
+    }
+    return sharedBunSqliteExactDb
+}
+async function createBunSqliteExactIntegerConnection(): Promise<DBConnection> {
+    const { BunSqliteQueryRunner } = await import('../../../src/queryRunners/BunSqliteQueryRunner.js')
+    return new DBConnection(new BunSqliteQueryRunner(await getOrCreateBunSqliteExactDb()))
+}
+
 export function createBunSqliteTestContext(spec: BunSqliteTestSpec): SqliteTestContext {
     // In-process, but the connector module itself can only load under Bun.
     // Under node+vitest we keep the mock branch and never touch bun:sqlite.
@@ -263,7 +309,7 @@ export function createBunSqliteTestContext(spec: BunSqliteTestSpec): SqliteTestC
         buildConnection(interceptor, compatibilityVersion) {
             return new DBConnection(interceptor, compatibilityVersion)
         },
-    }))
+    }), createBunSqliteExactIntegerConnection)
 }
 
 // ---- better-sqlite3 (in-process, Node-only — does not load under Bun) ---
@@ -283,6 +329,31 @@ async function getOrCreateBetterSqlite3Db(): Promise<import('better-sqlite3').Da
         registerBetterSqlite3UuidFunctions(sharedBetterSqlite3Db)
     }
     return sharedBetterSqlite3Db
+}
+
+// See `createBunSqliteExactIntegerConnection`. better-sqlite3 exposes the same
+// per-statement `safeIntegers(true)` toggle, but it caches prepared statements
+// by SQL text, so we restore the flag in a `finally` to leave the shared cache
+// as `ctx.conn`'s default `number` reads expect it.
+async function createBetterSqlite3ExactIntegerConnection(): Promise<DBConnection> {
+    const { BetterSqlite3QueryRunner } = await import('../../../src/queryRunners/BetterSqlite3QueryRunner.js')
+    const db = await getOrCreateBetterSqlite3Db()
+    class ExactIntegerRunner extends BetterSqlite3QueryRunner {
+        protected override executeQueryReturning(query: string, params: any[]): Promise<any[]> {
+            try {
+                const stmt = this.connection.prepare(query)
+                stmt.safeIntegers(true)
+                try {
+                    return this.promise.resolve(stmt.all(params))
+                } finally {
+                    stmt.safeIntegers(false)
+                }
+            } catch (e) {
+                return this.promise.reject(e)
+            }
+        }
+    }
+    return new DBConnection(new ExactIntegerRunner(db))
 }
 
 export function createBetterSqlite3TestContext(spec: SqliteTestSpec): SqliteTestContext {
@@ -319,7 +390,7 @@ export function createBetterSqlite3TestContext(spec: SqliteTestSpec): SqliteTest
         buildConnection(interceptor, compatibilityVersion) {
             return new DBConnection(interceptor, compatibilityVersion)
         },
-    }))
+    }), createBetterSqlite3ExactIntegerConnection)
 }
 
 // ---- node:sqlite (in-process, Node 22.5+) -------------------------------
@@ -373,7 +444,7 @@ export function createNodeSqliteTestContext(spec: SqliteTestSpec): SqliteTestCon
         buildConnection(interceptor, compatibilityVersion) {
             return new DBConnection(interceptor, compatibilityVersion)
         },
-    }))
+    }), createNodeSqliteExactIntegerConnection)
 }
 
 let sharedNodeSqliteDb: import('node:sqlite').DatabaseSync | null = null
@@ -385,6 +456,29 @@ async function getOrCreateNodeSqliteDb(): Promise<import('node:sqlite').Database
         registerNodeSqliteUuidFunctions(sharedNodeSqliteDb)
     }
     return sharedNodeSqliteDb
+}
+
+// See `createBunSqliteExactIntegerConnection`. node:sqlite's toggle is
+// `setReadBigInts(true)` on the statement (there is no db-wide form); its
+// default reader THROWS a RangeError on an integer past 2^53 rather than
+// rounding, so this exact-integer path is the only way node:sqlite surfaces the
+// value at all. `prepare()` returns a fresh statement each call, so no restore
+// is needed.
+async function createNodeSqliteExactIntegerConnection(): Promise<DBConnection> {
+    const { NodeSqliteQueryRunner } = await import('../../../src/queryRunners/NodeSqliteQueryRunner.js')
+    const db = await getOrCreateNodeSqliteDb()
+    class ExactIntegerRunner extends NodeSqliteQueryRunner {
+        protected override executeQueryReturning(query: string, params: any[]): Promise<any[]> {
+            try {
+                const stmt = this.connection.prepare(query)
+                stmt.setReadBigInts(true)
+                return this.promise.resolve(stmt.all(...params))
+            } catch (e) {
+                return this.promise.reject(e)
+            }
+        }
+    }
+    return new DBConnection(new ExactIntegerRunner(db))
 }
 
 // ---- sqlite3 (in-process, async, universal) -----------------------------

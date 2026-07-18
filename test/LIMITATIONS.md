@@ -562,18 +562,48 @@ The library does not touch the connection object the application hands it.
 | `bun_sqlite`, `bun_sql_sqlite` | `safeIntegers` in the configuration |
 | **`sqlite3`** | **no option exists** — the driver has no exact-integer API at all, and it is deprecated (its own page already warns that it loses precision past `MAX_SAFE_INTEGER`) |
 
-**Why the suite can't validate it**: the matrix builds its connections with the
-drivers' defaults (see each cell's `runners.ts`), which is deliberate — it is
-what an application gets out of the box. So the test
+**How the suite validates it — and the two cells it can't.** The test
 `asBigint-on-double-keeps-bigint-arithmetic-exact`
-(`select.value-source.casts.test.ts`) is commented out with a
-`// TODO[LIMITATION]` in the five cells whose driver rounds
-(`mysql/newest/mysql2`, `oracle/newest/oracledb`,
-`sqlite/newest/{better-sqlite3, sqlite3, node_sqlite}`) and runs in the twelve
-whose driver is exact by default — which is what validates the library's own
-emission. Enabling the options above in those five `runners.ts` would let the
-test run there too, at the cost of the cells no longer reflecting a default
-setup; that is a suite-design call, not a library one.
+(`select.value-source.casts.test.ts`) computes `2 + 9007199254740993`
+(= 9007199254740995, the first sum past 2^53) and asserts the caller gets the
+exact `bigint`. It reaches that value two ways, by connector:
+
+- **Default reader already exact** — PostgreSQL, SQL Server, MariaDB and
+  sqlite-wasm read wide integers exactly out of the box (e.g.
+  `postgres/newest/pg`, where node-postgres returns the `bigint` column as a
+  string that `BigInt(...)` reconstructs), so the test runs straight through the
+  shared `ctx.conn` under `--docker` / `--wasm`.
+- **Native SQLite whose default reader rounds or throws** — `bun:sqlite` and
+  `better-sqlite3` round `9007199254740995` to a clean-but-wrong
+  `9007199254740996`; `node:sqlite` throws a `RangeError` past 2^53. These three
+  read the value through a **second, opt-in connection** returned by
+  `ctx.withSafeIntegers()` (see [`runners.ts`](db/sqlite/runners.ts)), which
+  turns the driver's exact-integer mode (`safeIntegers` / `setReadBigInts`) on
+  **per statement**. That per-statement scope matters: the mode is otherwise
+  all-or-nothing — it makes the driver hand back **every** integer column as
+  `bigint` (so `id` would arrive as `1n`) — and the in-memory db is a singleton
+  shared across every test file, so a db-wide flip would corrupt every other
+  test's `number` reads. Enabling it per statement lets this one test read the
+  sum exactly while the shared connection keeps its defaults. This is the real-DB
+  validation of the **driver-returns-a-JS-`bigint`** path —
+  `transformValueFromDB`'s `bigint` arm passing it through, the `int` arm
+  narrowing `1n` back to `1` — which the string-returning default-exact
+  connectors never exercise.
+
+The two config layers are kept distinct on purpose: the `config.*` tests pin
+*ts-sql-query connection-level* config (`insensitiveCollation`, `uuidStrategy`,
+the datetime format) through the sanctioned `withXxx` factories over the shared
+driver connection, whereas `withSafeIntegers()` reaches the *driver-level* reader
+and so returns a separate connection.
+
+**What stays uncovered** is only `mysql/newest/mysql2`, `oracle/newest/oracledb`
+and `sqlite/newest/sqlite3`, where the test is commented out with a
+`// TODO[LIMITATION]`: mysql2 (`supportBigNumbers`) and oracledb
+(`fetchTypeHandler`) would need **connection / fetch config** the matrix
+deliberately builds with defaults, and the deprecated `sqlite3` driver has **no
+exact-integer API at all**. Wiring the two configurable ones would let the test
+run there too, at the cost of those cells no longer reflecting a default setup;
+that is a suite-design call, not a library one.
 
 ## SQLite's `lower()` / `upper()` fold ASCII only, and `NOCASE` does not rescue them
 

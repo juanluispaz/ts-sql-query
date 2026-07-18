@@ -208,7 +208,7 @@ The executed query is:
     select 
         company.id as "id", 
         company.name as "name", 
-        json_arrayagg(customer.first_name || :0 || customer.last_name) as "customers" 
+        json_arrayagg(case when customer.first_name is null or customer.last_name is null then null else customer.first_name || :0 || customer.last_name end) as "customers" 
     from company 
     left join customer on customer.company_id = company.id 
     where company.id = :1 

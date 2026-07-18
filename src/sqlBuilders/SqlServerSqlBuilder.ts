@@ -842,13 +842,16 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     // T-SQL concatenates with `+`, not `||`. That is the only thing the affix patterns
     // needed from this dialect, so the predicates themselves ride the base's shapes; only
     // the insensitive ones stay overridden below, for their uuid receiver arm.
-    override _likePatternStartingWith(term: string, fold: boolean): string {
+    override _likePatternStartingWith(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, fold: boolean): string {
+        const term = this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false)
         return fold ? 'lower(' + term + " + '%')" : '(' + term + " + '%')"
     }
-    override _likePatternEndingWith(term: string, fold: boolean): string {
+    override _likePatternEndingWith(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, fold: boolean): string {
+        const term = this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false)
         return fold ? "lower('%' + " + term + ')' : "('%' + " + term + ')'
     }
-    override _likePatternContaining(term: string, fold: boolean): string {
+    override _likePatternContaining(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, fold: boolean): string {
+        const term = this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false)
         return fold ? "lower('%' + " + term + " + '%')" : "('%' + " + term + " + '%')"
     }
     override _startsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {

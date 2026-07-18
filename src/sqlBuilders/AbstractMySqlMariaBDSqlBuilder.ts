@@ -419,13 +419,16 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
     // assumed): concatenation is the n-ary `concat(...)` function. It stands alone, so the
     // pattern needs no wrapping parenthesis, and the insensitive arm folds the term inside
     // the call rather than folding the whole pattern.
-    override _likePatternStartingWith(term: string, fold: boolean): string {
+    override _likePatternStartingWith(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, fold: boolean): string {
+        const term = this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false)
         return fold ? 'concat(lower(' + term + "), '%')" : 'concat(' + term + ", '%')"
     }
-    override _likePatternEndingWith(term: string, fold: boolean): string {
+    override _likePatternEndingWith(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, fold: boolean): string {
+        const term = this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false)
         return fold ? "concat('%', lower(" + term + '))' : "concat('%', " + term + ')'
     }
-    override _likePatternContaining(term: string, fold: boolean): string {
+    override _likePatternContaining(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, fold: boolean): string {
+        const term = this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false)
         return fold ? "concat('%', lower(" + term + "), '%')" : "concat('%', " + term + ", '%')"
     }
     override _startsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {

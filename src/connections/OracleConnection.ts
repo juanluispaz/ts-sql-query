@@ -15,19 +15,38 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
     protected uuidStrategy: 'string' | 'custom-functions' | 'built-in' = 'built-in'
 
     /**
-     * Name of a null-propagating concatenation function to emit instead of `||`.
+     * Keep Oracle's native NULL handling for concatenation (`.concat(...)` and the affix
+     * predicates `startsWith` / `endsWith` / `contains` and their `Insensitive` variants).
      *
      * Oracle's `||` treats NULL as the empty string, so `'x' || null` is `'x'` where every
      * other supported database answers NULL. That makes `concat` return a present string
      * where its declared type says the result is optional, and — worse — it makes an affix
-     * predicate built on a NULL term (`startsWith` / `endsWith` / `contains`) collapse to
-     * `like '%'` and match the whole table instead of nothing.
+     * predicate built on a NULL term collapse to `like '%'` and match the whole table
+     * instead of nothing. By default (`false`) the library wraps the concatenation in a
+     * `CASE` so a NULL operand poisons the result, matching the declared type and the other
+     * dialects (MySQL / MariaDB propagate through `concat(...)`, PostgreSQL / SQLite through
+     * `||`, SQL Server through `+`). Only operands that can be NULL at build time are
+     * null-checked, so a concatenation of required operands is still the bare `||`.
      *
-     * Left unset (the default) the builder emits Oracle's own `||` and its own semantics:
-     * an Oracle developer expects them, and nothing is paid for a case most applications
-     * never hit. Set it to the name of a function you created and every concatenation the
-     * builder emits — `concat` and the affix patterns alike — goes through it, which is
-     * what makes the behaviour match the other databases. The two always move together.
+     * Setting this flag to `true` keeps the bare native `||`, which reads NULL as the empty
+     * string. Prefer {@link concatFunction} if you want NULL propagation without the
+     * operand-repeating `CASE`.
+     */
+    protected ignoreNullInConcat: boolean = false
+
+    /**
+     * Name of a null-propagating concatenation function to emit instead of the default
+     * NULL-poisoning `CASE`, so the operand is not repeated (the same trade-off
+     * {@link minValueFunction} makes on other dialects). Preferred over the `CASE` when set.
+     *
+     * By default (unset, and with {@link ignoreNullInConcat} left `false`) the builder wraps
+     * every concatenation it emits — `concat` and the affix patterns alike — in a `CASE` that
+     * propagates a NULL operand, matching the other databases. That `CASE` repeats the operand
+     * (once in the null check, once in the `||`); free for a column, but not for an expensive
+     * value-source receiver. Set this to the name of a function you created and every
+     * concatenation goes through `func(a, b)` instead, each operand appearing once. `concat`
+     * and the affix predicates always move together: a `startsWith` that propagates NULL while
+     * `concat` does not would only relocate the inconsistency.
      *
      * The name is yours: pass whatever you called it, package-qualified if it lives in a
      * package (which it must, if you want the overloads that keep CLOB values from being

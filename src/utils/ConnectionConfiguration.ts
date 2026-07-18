@@ -10,5 +10,6 @@ export interface ConnectionConfiguration {
     ignoreNullInMinAndMaxValue?: boolean
     minValueFunction?: string
     maxValueFunction?: string
+    ignoreNullInConcat?: boolean
     concatFunction?: string
 }

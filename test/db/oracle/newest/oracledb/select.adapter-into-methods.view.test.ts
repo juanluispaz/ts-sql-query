@@ -462,7 +462,7 @@ describe(ctx.label, () => {
             .select({ id: vReleaseOverview.id, cc: vReleaseOverview.channelBracketed.concat('!') })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", channel_bracketed || :0 as "cc" from release_overview where id = :1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", case when channel_bracketed is null then null else channel_bracketed || :0 end as "cc" from release_overview where id = :1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "!",

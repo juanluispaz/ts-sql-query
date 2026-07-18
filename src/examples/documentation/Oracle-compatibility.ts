@@ -2542,7 +2542,7 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push(`select company.id as "id", company.name as "name", json_arrayagg(customer.first_name || :0 || customer.last_name) as "customers" from company left join customer on customer.company_id = company.id where company.id = :1 group by company.id`)
+    expectedQuery.push(`select company.id as "id", company.name as "name", json_arrayagg(case when customer.first_name is null or customer.last_name is null then null else customer.first_name || :0 || customer.last_name end) as "customers" from company left join customer on customer.company_id = company.id where company.id = :1 group by company.id`)
     expectedParams.push(`[" ",1]`)
     expectedType.push(`selectOneRow`)
 
@@ -4003,7 +4003,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push(`select company.id as "id", company.name as "name", favouriteCustomer.first_name || :0 || favouriteCustomer.last_name as "favouriteCustomer.name" from company left outer join customer favouriteCustomer on company.parent_id = favouriteCustomer.id where exists(select id as "result" from customer where lower(first_name || :1 || last_name) like lower('%' || :2 || '%') escape '\\') and company.parent_id = :3`)
+    expectedQuery.push(`select company.id as "id", company.name as "name", case when favouriteCustomer.first_name is null or favouriteCustomer.last_name is null then null else favouriteCustomer.first_name || :0 || favouriteCustomer.last_name end as "favouriteCustomer.name" from company left outer join customer favouriteCustomer on company.parent_id = favouriteCustomer.id where exists(select id as "result" from customer where lower(first_name || :1 || last_name) like lower('%' || :2 || '%') escape '\\') and company.parent_id = :3`)
     expectedParams.push(`[" "," ","smith",23]`)
     expectedType.push(`selectManyRows`)
 

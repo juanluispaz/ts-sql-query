@@ -61,21 +61,44 @@ Oracle reads NULL as the empty string when concatenating, so `'x' || null` is `'
 '[' || NULL || 'x' || ']'   -- [x]         and  (NULL || 'x') IS NULL  ->  false
 ```
 
-This is Oracle's documented behaviour and an Oracle developer expects it, so **ts-sql-query emits `||` and leaves it alone by default**. It surfaces in two places, and the second one is why the option below exists:
+Every other supported database returns NULL when a concatenation operand is NULL, and that is also what ts-sql-query's type declares: `tIssue.body.concat('!')` on an optional `body` is typed `string | undefined`. Left as Oracle's bare `||` this diverges in two places, and the second is the reason it matters:
 
-- **`concat`** returns a present string where its declared type says the result is optional. `tIssue.body.concat('!')` on a row whose `body` is NULL types as `string | undefined`, and you get `'!'`.
-- **The affix predicates** — `startsWith`, `endsWith`, `contains` and their `Insensitive` variants — build their LIKE pattern by concatenation, so a NULL search term makes the pattern `'%'` and **the filter matches every row instead of none**:
+- **`concat`** returns a present string where the declared type says the result is optional — `tIssue.body.concat('!')` on a NULL `body` would give `'!'` instead of NULL.
+- **The affix predicates** — `startsWith`, `endsWith`, `contains` and their `Insensitive` variants — build their LIKE pattern by concatenation, so a NULL search term would make the pattern `'%'` and **the filter would match every row instead of none**:
 
 ```sql
 -- rows 'Alpha', 'Beta';  .startsWith(<null term>)
 s like (NULL || '%')   ->   s like '%'   ->   both rows
 ```
 
-A filter that silently returns the whole table is a different order of problem from a `concat` that answers `'!'`, and it is the reason you might want to opt out of Oracle's semantics here.
+**To match the declared type and the other databases, ts-sql-query wraps concatenation in a `CASE` that returns NULL when an operand is NULL** (`concat` and the affix predicates alike — they always move together, since a `startsWith` that propagated NULL while `concat` did not would only relocate the inconsistency):
 
-### Making concatenation propagate NULL
+```sql
+-- tIssue.body.concat('!')       (body optional)
+case when "body" is null then null else "body" || :0 end
+-- title.startsWith(body)        (body optional term) — the pattern is NULL when body is NULL
+title like (case when "body" is null then null else "body" || '%' end) escape '\'
+```
 
-Set `concatFunction` to the name of a function you created, and **every** concatenation the builder emits — `concat` and the affix patterns alike — goes through it instead of `||`:
+Only the leanest check the build-time optionality needs is emitted: a concatenation whose operands are all **required** stays the bare `||` (`title || :0`), and a chain null-checks only the operands that can be NULL, once, sharing a single `CASE` (`case when body is null then null else body || :0 || :1 end`).
+
+### Keeping Oracle's native ignore-NULL behavior
+
+If you prefer Oracle's own semantics — a NULL operand read as the empty string rather than propagated — set `ignoreNullInConcat = true`:
+
+```typescriptreact
+import { OracleConnection } from "ts-sql-query/connections/OracleConnection";
+
+class DBConnection extends OracleConnection<'DBConnection'> {
+    protected override ignoreNullInConcat = true
+}
+```
+
+`concat` and the affix predicates then emit the bare native `||` again (`"body" || :0`, `title like ("body" || '%')`).
+
+### Propagating NULL through a function instead of a `CASE`
+
+The default `CASE` repeats each optional operand (once in the null check, once in `||`) — free for a column, but not for an expensive value-source receiver. Set `concatFunction` to the name of a null-propagating function you created and **every** concatenation the builder emits — `concat` and the affix patterns alike — goes through `func(a, b)` instead, each operand appearing once:
 
 ```typescriptreact
 import { OracleConnection } from "ts-sql-query/connections/OracleConnection";
@@ -85,7 +108,7 @@ class DBConnection extends OracleConnection<'DBConnection'> {
 }
 ```
 
-The name is yours; the one above is only what this page's example calls it. The two halves always move together: a `startsWith` that propagates NULL while `concat` does not would just move the inconsistency somewhere else.
+The name is yours; the one above is only what this page's example calls it.
 
 !!! warning "It must be a package, not a standalone function"
 
@@ -125,16 +148,16 @@ CREATE OR REPLACE PACKAGE BODY string_util AS
 END string_util;
 ```
 
-With the option set, the emitted SQL calls it on both halves:
+With the option set, the emitted SQL calls it on both halves, each operand appearing once:
 
 ```sql
 select string_util.concat_strict("body", :0) as "tagged" from issue where id = :1
 select id from issue where title like string_util.concat_strict(:0, '%') escape '\'
 ```
 
-!!! tip "Leave it unset unless you need it"
+!!! tip "Which of the three to pick"
 
-    The default costs nothing and gives an Oracle developer the semantics they expect. Reach for the option when the application is portable across databases and a NULL reaching a `concat` or an affix filter would go unnoticed — which is exactly when the whole-table match above becomes a bug you find in production rather than in a test.
+    Leave both options unset and the default `CASE` matches the declared type and the other databases — the right choice for a portable application, where a NULL reaching a `concat` or an affix filter would otherwise go unnoticed until the whole-table match above surfaces as a production bug. Reach for `concatFunction` when you want that same NULL propagation but the repeated operand is expensive enough to matter. Reach for `ignoreNullInConcat` only when you specifically want Oracle's native ignore-NULL semantics back.
 
 ## UUID strategies
 

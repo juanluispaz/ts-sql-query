@@ -73,7 +73,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .selectOneColumn(tIssue.externalRef.asString().concat(tIssue.externalRef.asString()))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select raw_to_uuid(external_ref) || raw_to_uuid(external_ref) as "result" from issue where id = :0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select case when raw_to_uuid(external_ref) is null or raw_to_uuid(external_ref) is null then null else raw_to_uuid(external_ref) || raw_to_uuid(external_ref) end as "result" from issue where id = :0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -353,7 +353,7 @@ describe(ctx.label, () => {
         const ref = await ctx.conn.selectFrom(inner)
             .selectOneColumn(inner.ref.concat('-x'))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with w_uuid as (select raw_to_uuid(external_ref) as "ref" from issue where id = :0) select "ref" || :1 as "result" from w_uuid"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with w_uuid as (select raw_to_uuid(external_ref) as "ref" from issue where id = :0) select case when "ref" is null then null else "ref" || :1 end as "result" from w_uuid"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

@@ -785,7 +785,7 @@ describe(ctx.label, () => {
                 r:  tIssue.body.concat('!'),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", title || "body" as "j", "body" || :0 as "r" from issue where id = :1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", case when "body" is null then null else title || "body" end as "j", case when "body" is null then null else "body" || :0 end as "r" from issue where id = :1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "!",

@@ -12,6 +12,16 @@ import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import { __getValueSourcePrivate } from '../expressions/values.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 
+/**
+ * Minimal view of a `_concat` operation node (a `SqlOperation1ValueSource`) so the builder
+ * can walk a concat chain down to its atomic operands. Only reached after `operationOf(node)
+ * === '_concat'` has confirmed the shape.
+ */
+interface ConcatNode {
+    __valueSource: AnyValueSource
+    __value: unknown
+}
+
 export class OracleSqlBuilder extends AbstractSqlBuilder {
     oracle: true = true
     constructor() {
@@ -90,28 +100,36 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         const strategy = this._getUuidStrategy()
         return strategy === 'custom-functions' || strategy === 'built-in'
     }
-    // Oracle's `||` treats NULL as the empty string, so it neither returns NULL from a
-    // concat nor lets an affix predicate on a NULL term match nothing — see
-    // `OracleConnection.concatFunction`. When the connection names a null-propagating
-    // function, it replaces `||` in EVERY concatenation the builder emits: `_concat` and
-    // the affix patterns are the same seam on purpose, since a `startsWith` that
-    // propagates NULL while `concat` does not would just move the inconsistency.
+    // Oracle's `||` treats NULL as the empty string, so `'x' || null` is `'x'` where every
+    // other supported database answers NULL. This surfaces twice — a `concat` that returns a
+    // present string where its declared type says optional, and (the worse half) an affix
+    // predicate built on a NULL term collapsing to `like '%'`, matching the whole table
+    // instead of nothing. `_concat` and the affix patterns are ONE seam on purpose: a
+    // `startsWith` that propagates NULL while `concat` does not would only relocate the
+    // inconsistency. There are three modes, chosen per call:
     //
-    // A cheaper-looking alternative gets proposed every time this code is read, so:
-    // guarding the affix predicates with `term is not null and x like (term || '%')` was
-    // measured and IS correct, and it was rejected on purpose. It taxes every affix
-    // predicate — including the overwhelming majority whose term is never null — to cover
-    // an extreme case; it silently changes `||`'s meaning in one place, which an Oracle
-    // developer does not expect; and it would fix the predicates while leaving `concat`
-    // diverging, so the library would contradict itself. Do not re-add it.
-    // `_concat` is registered as needing parenthesis because `a || b` is an operator, and
-    // an operator embedded in a larger expression must be wrapped. The opt-in function is
-    // not an operator: `f(a, b)` already stands alone, so wrapping it would only emit
-    // `(f(a, b))`. The registration lives in the constructor, which runs before the
-    // connection hands the builder its configuration, so the decision cannot be made
-    // there — it is made here, per call, and costs one property read when the option is
-    // unset (the default). MySQL / MariaDB reach the same conclusion in their constructor
-    // instead, because their concat is always a function.
+    //   - `concatFunction` set → route through the user's null-propagating function
+    //     (`_concatSql` emits `f(a, b)`; the affix methods below nest it). It poisons NULL
+    //     itself and does not repeat the operand.
+    //   - `ignoreNullInConcat` set → keep the bare native `||` (Oracle's own semantics).
+    //   - default (neither) → EMULATE NULL propagation with a poison `CASE`, gated by
+    //     build-time optionality so a concatenation of required operands is still bare `||`.
+    //     `_concat` below builds the flat form (`case when <optional atomic operands> is
+    //     null then null else a || b || c end`); the affix methods wrap their pattern the
+    //     same way. This matches the other dialects and the declared (optional) type — the
+    //     stance min/max already takes for PostgreSQL / SQL Server.
+    //
+    // The poison repeats each optional operand (once in the null check, once in the value) —
+    // free for a column, and the `concatFunction` opt-in exists for the rare expensive
+    // receiver. Each appearance is its OWN emission (a fresh append / escape), because the
+    // library never reuses a bind placeholder: an operand that carries a parameter is bound
+    // once per appearance, exactly as min/max does (e.g. `substr(:8, …, -length(:10), :11)`).
+    //
+    // `_needParenthesis` keeps `_concat` as needing parenthesis (the native `a || b` and the
+    // poison `case … end` are both operators/expressions that must be wrapped when embedded);
+    // only the `concatFunction` form is exempt, since `f(a, b)` already stands alone. The
+    // decision is made here per call because the connection hands the builder its
+    // configuration after the constructor runs; the cost is one property read when unset.
     override _needParenthesis(value: any): boolean {
         if (this._connectionConfiguration.concatFunction && operationOf(value) === '_concat') {
             return false
@@ -131,30 +149,114 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         }
         return super._concatSql(left, right)
     }
-    override _likePatternStartingWith(term: string, fold: boolean): string {
-        const concatFunction = this._connectionConfiguration.concatFunction
-        if (!concatFunction) {
-            return super._likePatternStartingWith(term, fold)
+    override _concat(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        // Re-entrancy: a chain-internal `_concat` node (its receiver was recorded below while
+        // the enclosing top node built its value part) must render as the bare native join,
+        // NOT wrap in its own `CASE` — the whole chain shares ONE poison `CASE` at the top.
+        const plainNodes = (params as any)._oracleConcatPlainReceivers as Set<unknown> | undefined
+        if (plainNodes && plainNodes.has(valueSource)) {
+            return super._concat(params, valueSource, value, columnType, columnTypeName, typeAdapter)
         }
-        const sql = concatFunction + '(' + term + ", '%')"
-        return fold ? 'lower(' + sql + ')' : sql
+        const configuration = this._connectionConfiguration
+        // Function opt-in and native opt-out both go through `_concatSql` (super): the
+        // function propagates NULL itself, the native `||` is the deliberate opt-out. Neither
+        // needs the poison `CASE`.
+        if (configuration.concatFunction || configuration.ignoreNullInConcat) {
+            return super._concat(params, valueSource, value, columnType, columnTypeName, typeAdapter)
+        }
+        // Default: emulate NULL propagation. Flatten the concat tree to its atomic operands so
+        // the null check is `a is null or b is null or …` (Oracle's `(a || b) is null` is only
+        // true when BOTH are null, so the whole chain has to be checked operand by operand),
+        // and record the chain-internal concat nodes so the value part renders as a plain join.
+        const optionalOperands: any[] = []
+        const chainReceivers: unknown[] = []
+        const collect = (node: any): void => {
+            if (operationOf(node) === '_concat') {
+                const receiver = (node as unknown as ConcatNode).__valueSource
+                chainReceivers.push(receiver)
+                collect(receiver)
+                collect((node as unknown as ConcatNode).__value)
+            } else if (this._isOptionalValue(node)) {
+                optionalOperands.push(node)
+            }
+        }
+        collect(valueSource)
+        collect(value)
+        if (optionalOperands.length <= 0) {
+            // Nothing can be NULL at build time: the bare native join, no `CASE`.
+            return super._concat(params, valueSource, value, columnType, columnTypeName, typeAdapter)
+        }
+        // The null check is built first so its parameters precede the value part's.
+        const nullCheck = optionalOperands.map((operand) => this._isNull(params, operand)).join(' or ')
+        const suppressed = this._oracleConcatPlainReceivers(params)
+        chainReceivers.forEach((receiver) => suppressed.add(receiver))
+        let valueSql: string
+        try {
+            valueSql = super._concat(params, valueSource, value, columnType, columnTypeName, typeAdapter)
+        } finally {
+            chainReceivers.forEach((receiver) => suppressed.delete(receiver))
+        }
+        return 'case when ' + nullCheck + ' then null else ' + valueSql + ' end'
     }
-    override _likePatternEndingWith(term: string, fold: boolean): string {
-        const concatFunction = this._connectionConfiguration.concatFunction
-        if (!concatFunction) {
-            return super._likePatternEndingWith(term, fold)
+    // The set of concat receivers whose node must render as the bare native join while the
+    // enclosing top `_concat` builds its value part (see `_concat`). Non-enumerable so it
+    // never leaks into the bind array `params` is.
+    private _oracleConcatPlainReceivers(params: any[]): Set<unknown> {
+        let set = (params as any)._oracleConcatPlainReceivers as Set<unknown> | undefined
+        if (!set) {
+            set = new Set()
+            Object.defineProperty(params, '_oracleConcatPlainReceivers', { value: set, writable: false, enumerable: false, configurable: true })
         }
-        const sql = concatFunction + "('%', " + term + ')'
-        return fold ? 'lower(' + sql + ')' : sql
+        return set
     }
-    override _likePatternContaining(term: string, fold: boolean): string {
+    override _likePatternStartingWith(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, fold: boolean): string {
         const concatFunction = this._connectionConfiguration.concatFunction
-        if (!concatFunction) {
-            return super._likePatternContaining(term, fold)
+        if (concatFunction) {
+            const term = this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false)
+            const sql = concatFunction + '(' + term + ", '%')"
+            return fold ? 'lower(' + sql + ')' : sql
         }
-        // The function is binary, so gluing both wildcards nests: `f(f('%', term), '%')`.
-        const sql = concatFunction + '(' + concatFunction + "('%', " + term + "), '%')"
-        return fold ? 'lower(' + sql + ')' : sql
+        if (this._connectionConfiguration.ignoreNullInConcat || !this._isOptionalValue(value)) {
+            return super._likePatternStartingWith(params, value, columnType, columnTypeName, typeAdapter, fold)
+        }
+        return this._poisonAffixPattern(params, value, columnType, columnTypeName, typeAdapter, fold, (term) => term + " || '%'")
+    }
+    override _likePatternEndingWith(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, fold: boolean): string {
+        const concatFunction = this._connectionConfiguration.concatFunction
+        if (concatFunction) {
+            const term = this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false)
+            const sql = concatFunction + "('%', " + term + ')'
+            return fold ? 'lower(' + sql + ')' : sql
+        }
+        if (this._connectionConfiguration.ignoreNullInConcat || !this._isOptionalValue(value)) {
+            return super._likePatternEndingWith(params, value, columnType, columnTypeName, typeAdapter, fold)
+        }
+        return this._poisonAffixPattern(params, value, columnType, columnTypeName, typeAdapter, fold, (term) => "'%' || " + term)
+    }
+    override _likePatternContaining(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, fold: boolean): string {
+        const concatFunction = this._connectionConfiguration.concatFunction
+        if (concatFunction) {
+            // The function is binary, so gluing both wildcards nests: `f(f('%', term), '%')`.
+            const term = this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false)
+            const sql = concatFunction + '(' + concatFunction + "('%', " + term + "), '%')"
+            return fold ? 'lower(' + sql + ')' : sql
+        }
+        if (this._connectionConfiguration.ignoreNullInConcat || !this._isOptionalValue(value)) {
+            return super._likePatternContaining(params, value, columnType, columnTypeName, typeAdapter, fold)
+        }
+        return this._poisonAffixPattern(params, value, columnType, columnTypeName, typeAdapter, fold, (term) => "'%' || " + term + " || '%'")
+    }
+    // Default-mode affix pattern for an OPTIONAL term: propagate the NULL Oracle's `||` would
+    // swallow, so the predicate matches nothing (as it does on every other dialect) instead of
+    // the whole table. `glue` places the wildcards around one escaped term. The term is escaped
+    // TWICE — once for the null check, once for the pattern — because it must be re-emitted, not
+    // a reused placeholder (see the header comment): `case when <term> is null then null else
+    // <glue(term)> end`.
+    private _poisonAffixPattern(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, fold: boolean, glue: (term: string) => string): string {
+        const check = this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false)
+        const term = this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false)
+        const sql = 'case when ' + check + ' is null then null else ' + glue(term) + ' end'
+        return fold ? 'lower(' + sql + ')' : '(' + sql + ')'
     }
     override _isReservedKeyword(word: string): boolean {
         return word.toUpperCase() in reservedWords

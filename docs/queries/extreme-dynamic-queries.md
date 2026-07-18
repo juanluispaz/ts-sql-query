@@ -1444,7 +1444,7 @@ The executed query is:
     select 
         company.id as "id", 
         company.name as "name", 
-        favouriteCustomer.first_name || :0 || favouriteCustomer.last_name as "favouriteCustomer.name" 
+        case when favouriteCustomer.first_name is null or favouriteCustomer.last_name is null then null else favouriteCustomer.first_name || :0 || favouriteCustomer.last_name end as "favouriteCustomer.name" 
     from company 
     left outer join customer favouriteCustomer on company.parent_id = favouriteCustomer.id 
     where 

@@ -631,32 +631,6 @@ A non-ASCII insensitive assertion would have to be gated on SQLite, so the
 non-ASCII coverage in `select.string-ops.test.ts` stays on `.length()`, which
 *is* character-correct on SQLite.
 
-## SQL Server's `replace()` is collation-sensitive; the other five dialects are not
-
-`.replaceAll(search, replacement)` mirrors JS's `String.replaceAll`, which is
-case-**sensitive**: `'ABCabc'.replaceAll('abc', 'X')` is `'ABCX'`. Five dialects
-match it. SQL Server's `REPLACE()` resolves its search argument under the
-column's collation, and the usual deployments (including this matrix's
-`SQL_Latin1_General_CP1_CI_AS` and the common `*_CI_AS` defaults) are
-case-insensitive, so it replaces **both** occurrences:
-
-```
-mssql  replace('ABCabc','abc','X')                              = XX      <- both
-       replace('ABCabc' collate Latin1_General_CS_AS,'abc','X')  = ABCX
-pg     replace('ABCabc','abc','X')                              = ABCX
-mysql  REPLACE('ABCabc','abc','X')                              = ABCX
-```
-
-The library emits one spelling (`replace(...)`, the `AbstractSqlBuilder`
-default, no override anywhere) — correctness here depends on a collation the
-application owns, exactly like the `bigint`/driver case below. Forcing a
-`collate` on every `replaceAll` would tax every query and override a deliberate
-database-level choice, so the library leaves it alone.
-
-**What this means for tests**: the matrix replaces `'@'` — a character with no
-case — so the six dialects agree. An assertion that distinguishes them would
-have to be SQL-Server-gated.
-
 ## `stringConcat` truncates at `group_concat_max_len` on MySQL / MariaDB
 
 `GROUP_CONCAT()` silently truncates its result at the session's

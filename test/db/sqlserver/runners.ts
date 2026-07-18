@@ -79,6 +79,21 @@ function decorateSqlServerContext(base: TestContext<DBConnection>): SqlServerTes
 
 const DATABASE = 'sqlserver'
 
+// `mssql` is a CommonJS package. Under a native-ESM loader (tsx / node — the
+// runtime the docker pre-warm uses) its `module.exports` lands on the interop
+// namespace's `default` binding, so `sql.ConnectionPool` reads `undefined` and
+// `new sql.ConnectionPool(...)` throws "sql.ConnectionPool is not a
+// constructor". Vitest's and bun's CJS interop hoist the members onto the
+// namespace object directly, so the same code worked under those runtimes — the
+// failure only ever showed up in the tsx-launched pre-warm. Normalise to
+// `.default` when present so every loader resolves the class + type helpers
+// (`NVarChar`, `Int`, …) the same way. Keep it a dynamic import — the module
+// must stay lazy so this file parses with docker off.
+async function loadMssql(): Promise<typeof import('mssql')> {
+    const mod = await import('mssql')
+    return ((mod as any).default ?? mod) as typeof import('mssql')
+}
+
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const SCHEMA_PATH = resolve(__dirname, './domain/schema.sql')
 const SEED_PATH = resolve(__dirname, './domain/seed.sql')
@@ -139,7 +154,7 @@ async function validateOrResetForReuse(host: string, port: number): Promise<void
     // Single connection scoped to `master`. `sp_getapplock` with
     // session lock owner is connection-scoped, so we hold one pool
     // (max=1) for the entire validate-and-maybe-reset sequence.
-    const sql = await import('mssql')
+    const sql = await loadMssql()
     const masterPool = await connectWithRetry(sql, {
         server: host, port,
         user: 'sa', password: SA_PASSWORD,
@@ -309,7 +324,7 @@ async function applyResetAndSeedOnPool(pool: import('mssql').ConnectionPool): Pr
 // borrow from the runner's pool — see `onReseed` below.
 async function bootstrapWorkerDbSchemaAndSeed(host: string, port: number): Promise<string> {
     const workerDb = workerName(BASE_WORKER_DB_NAME)
-    const sql = await import('mssql')
+    const sql = await loadMssql()
     if (!workerDbEnsured) {
         // SQL Server logs "ready for client connections" before the SA
         // login is actually usable (the SA password is materialised a
@@ -382,7 +397,7 @@ export function createMssqlPoolTestContext(spec: MssqlTestSpec): SqlServerTestCo
     const connector = spec.label.split(' / ')[1] ?? ''
     const realDbEnabled = isRealDbEnabled(DATABASE, /* needsDocker */ true, version, connector)
     const buildRunner = memoizeSharedRunner(async (params: { host: string; port: number; workerDb: string }) => {
-        const sql = await import('mssql')
+        const sql = await loadMssql()
         const { MssqlPoolQueryRunner } = await import('../../../src/queryRunners/MssqlPoolQueryRunner.js')
         // Use the same retry helper that already guards the
         // admin/master pool — under 12-worker parallelism several

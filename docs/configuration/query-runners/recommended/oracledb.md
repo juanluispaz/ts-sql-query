@@ -167,3 +167,32 @@ async function main() {
     Without it the driver reads every `NUMBER` as a JavaScript `number`, so an out-of-range value comes back rounded — silently, since the rounded value is still an integer. With it, the driver hands those columns over as strings and ts-sql-query converts them to the type the column declares (`bigint` stays exact, `int` raises `INVALID_VALUE_RECEIVED_FROM_DATABASE` if it truly doesn't fit). Narrow columns keep coming back as `number`, so nothing else changes.
 
     The handler can also be passed per query, or scoped by `metaData.name` if you prefer to name the columns explicitly.
+
+## Running a statement on each new connection
+
+Some settings are properties of the **database session**, not of the query — the [session time zone](../../time-zones.md#per-database) and the [session collation](../../collations.md#on-the-connection-the-session-collation). To pin them without touching your schema, run the statement **once per connection**, when the pool opens it. oracledb pools take a `sessionCallback` for exactly this — it fires on each brand-new connection (and can be told to re-run when a connection is returned tagged for a different value):
+
+```typescriptreact
+import oracledb from 'oracledb';
+
+const poolPromise = oracledb.createPool({
+    user: 'user',
+    password: 'pwd',
+    connectString: 'localhost/XEPDB1',
+    sessionCallback: (connection, _requestedTag, callback) => {
+        // Runs once per newly created pooled connection.
+        connection.execute(`
+            BEGIN
+                -- Session time zone (see the Time zones page)
+                EXECUTE IMMEDIATE q'[ALTER SESSION SET TIME_ZONE = 'UTC']';
+                -- Session collation: make comparisons case-insensitive session-wide
+                -- (see the Collations page). Omit if you don't need it.
+                EXECUTE IMMEDIATE 'ALTER SESSION SET NLS_COMP = LINGUISTIC';
+                EXECUTE IMMEDIATE 'ALTER SESSION SET NLS_SORT = BINARY_CI';
+            END;
+        `, [], (err) => callback(err));
+    }
+});
+```
+
+The time-zone statement is what the [Time zones page](../../time-zones.md#the-databases-zone) recommends aligning on connect; the `NLS_COMP` / `NLS_SORT` pair is the [session collation](../../collations.md#on-the-connection-the-session-collation) — on Oracle it reaches every comparison (`equals` / `like` / `distinct` / `order`), so it is the one engine where a pool-level collation is fully effective. Prefer a server / database already configured the way you want, and use this hook when you cannot change it.

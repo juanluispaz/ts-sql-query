@@ -302,7 +302,7 @@ describe(ctx.label, () => {
                 t:  tAppUser.email.replaceAll('@', '-'),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", replace(email, :0, :1) as "t" from app_user where id = :2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", replace(email collate BINARY, :0 collate BINARY, :1) collate USING_NLS_COMP as "t" from app_user where id = :2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "@",
@@ -626,7 +626,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(2))
             .select({ id: tIssue.id, t: tIssue.title.replaceAll(tIssue.body, tIssue.title) })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", replace(title, "body", title) as "t" from issue where id = :0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", replace(title collate BINARY, "body" collate BINARY, title) collate USING_NLS_COMP as "t" from issue where id = :0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -653,7 +653,7 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .select({ id: tIssue.id, t: tIssue.title.replaceAll(tIssue.body, tIssue.title) })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", replace(title, "body", title) as "t" from issue where id = :0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", replace(title collate BINARY, "body" collate BINARY, title) collate USING_NLS_COMP as "t" from issue where id = :0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -815,7 +815,7 @@ describe(ctx.label, () => {
                 vsc: tAppUser.email.replaceAll(tAppUser.fullName, '-'),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", replace(email, :0, full_name) as "cvs", replace(email, full_name, :1) as "vsc" from app_user where id = :2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", replace(email collate BINARY, :0 collate BINARY, full_name) collate USING_NLS_COMP as "cvs", replace(email collate BINARY, full_name collate BINARY, :1) collate USING_NLS_COMP as "vsc" from app_user where id = :2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "@",
@@ -847,7 +847,7 @@ describe(ctx.label, () => {
                 vs: tAppUser.email.replaceAllIfValue(tAppUser.fullName, '-'),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", replace(email, :0, full_name) as "sv", replace(email, full_name, :1) as "vs" from app_user where id = :2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", replace(email collate BINARY, :0 collate BINARY, full_name) collate USING_NLS_COMP as "sv", replace(email collate BINARY, full_name collate BINARY, :1) collate USING_NLS_COMP as "vs" from app_user where id = :2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "@",
@@ -982,7 +982,7 @@ describe(ctx.label, () => {
                 ra: tIssue.body.replaceAll('e', 'E'),
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", trim("body") as "tr", substr("body", :0, :1) as "s2", substr("body", :2) as "se", replace("body", :3, :4) as "ra" from issue where id = :5"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", trim("body") as "tr", substr("body", :0, :1) as "s2", substr("body", :2) as "se", replace("body" collate BINARY, :3 collate BINARY, :4) collate USING_NLS_COMP as "ra" from issue where id = :5"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

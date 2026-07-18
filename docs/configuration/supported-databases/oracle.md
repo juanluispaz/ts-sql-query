@@ -159,6 +159,43 @@ select id from issue where title like string_util.concat_strict(:0, '%') escape 
 
     Leave both options unset and the default `CASE` matches the declared type and the other databases — the right choice for a portable application, where a NULL reaching a `concat` or an affix filter would otherwise go unnoticed until the whole-table match above surfaces as a production bug. Reach for `concatFunction` when you want that same NULL propagation but the repeated operand is expensive enough to matter. Reach for `ignoreNullInConcat` only when you specifically want Oracle's native ignore-NULL semantics back.
 
+## Collations & case sensitivity
+
+Oracle's default collation is **`BINARY`** — case- and accent-**sensitive**, the JavaScript-sensible default, so no configuration is needed unless you want the insensitive direction. The plain string operations follow the session collation; the `*Insensitive` operations force case-insensitivity over it. Oracle has a **full session collation lever** (`ALTER SESSION SET NLS_COMP = LINGUISTIC; NLS_SORT = <coll>`), which flips `equals` / `like` / `distinct` / `order` session-wide; you can also force a collation per value with `.collate('<name>')` or connection-wide with `insensitiveCollation`. See the dedicated [Collations & case sensitivity](../collations.md) page and the [Oracle tab](../collations.md#per-database) for the collation names (e.g. `binary_ci`, `binary_ai`).
+
+### `replaceAll` and collation
+
+`.replaceAll(search, replacement)` mirrors JavaScript's `String.replaceAll`, which is case-**sensitive**. Oracle's `REPLACE()` resolves its search argument under the **session collation**, so on a database configured case-insensitive (`NLS_COMP = LINGUISTIC` with a `_CI` / `_AI` sort) a bare `replace('ABCabc', 'abc', 'X')` returns `'XX'`, corrupting the value:
+
+```sql
+replace('ABCabc', 'abc', 'X')                                                      -- XX (under a CI session)
+replace('ABCabc' collate BINARY, 'abc' collate BINARY, 'X') collate USING_NLS_COMP -- ABCX
+```
+
+To prevent that, ts-sql-query forces a binary / code-point collation on the match operands **by default** (`BINARY`) and resets the result to `USING_NLS_COMP` so the forced collation does not leak into a chained comparison. `replaceAll` is therefore code-point exact whatever the session collation. The collation is controlled by the **`replaceCollation`** property:
+
+```typescriptreact
+import { OracleConnection } from "ts-sql-query/connections/OracleConnection";
+
+class DBConnection extends OracleConnection<'DBConnection'> {
+    override replaceCollation = '' // opt out — follow the session collation
+}
+```
+
+Set it to another collation name to force a different one, or to the empty string (`''`) to opt out and emit the bare native `replace(...)`.
+
+For a deliberately **case-insensitive** replace, use [`.replaceAllInsensitive(...)`](../collations.md#replaceallinsensitive-the-insensitive-twin) instead. Because Oracle's default is case-sensitive, it forces a case-insensitive collation on the operands: `insensitiveCollation` when it names one, otherwise the **`replaceInsensitiveCollation`** property, which defaults to Oracle's neutral `BINARY_CI`:
+
+```ts
+import { OracleConnection } from "ts-sql-query/connections/OracleConnection";
+
+class DBConnection extends OracleConnection<'DBConnection'> {
+    protected override replaceInsensitiveCollation = 'BINARY_AI' // also fold accents; '' opts out
+}
+```
+
+Set `replaceInsensitiveCollation` (or `insensitiveCollation`) to `''` to opt out to the bare native `replace(...)`. Full detail on the [Collations page](../collations.md#replacecollation-sql-server-and-oracle).
+
 ## UUID strategies
 
 `ts-sql-query` provides different strategies to handle UUID values in Oracle. These strategies control how UUID values are represented in JavaScript and stored in the database. In every case, UUIDs are exchanged as `string` at the JavaScript layer.

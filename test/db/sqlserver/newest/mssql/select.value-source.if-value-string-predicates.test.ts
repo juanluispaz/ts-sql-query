@@ -228,7 +228,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(status, @0, @1) as masked from issue order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(status collate Latin1_General_BIN2, @0 collate Latin1_General_BIN2, @1) collate DATABASE_DEFAULT as masked from issue order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "o",

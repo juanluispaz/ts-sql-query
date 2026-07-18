@@ -239,7 +239,7 @@ describe(ctx.label, () => {
             .select({ id: vReleaseOverview.id, rp: vReleaseOverview.versionBracketed.replaceAll('.', '_') })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(version_bracketed, @0, @1) as rp from release_overview where id = @2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(version_bracketed collate Latin1_General_BIN2, @0 collate Latin1_General_BIN2, @1) collate DATABASE_DEFAULT as rp from release_overview where id = @2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             ".",
@@ -485,7 +485,7 @@ describe(ctx.label, () => {
             .select({ id: vReleaseOverview.id, rp: vReleaseOverview.channelBracketed.replaceAll('a', 'A') })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(channel_bracketed, @0, @1) as rp from release_overview where id = @2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(channel_bracketed collate Latin1_General_BIN2, @0 collate Latin1_General_BIN2, @1) collate DATABASE_DEFAULT as rp from release_overview where id = @2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "a",

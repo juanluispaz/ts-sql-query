@@ -435,7 +435,7 @@ describe(ctx.label, () => {
             .select({ id: tProjectReview.id, rp: tProjectReview.reviewerCode.replaceAll('-', '_') })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(reviewer_code, @0, @1) as rp from project_review where id = @2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(reviewer_code collate Latin1_General_BIN2, @0 collate Latin1_General_BIN2, @1) collate DATABASE_DEFAULT as rp from project_review where id = @2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "-",
@@ -504,7 +504,7 @@ describe(ctx.label, () => {
             .where(tProjectReview.id.equals(1))
             .select({ id: tProjectReview.id, rp: tProjectReview.reviewerCode.replaceAllIfValue('-', '_') })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(reviewer_code, @0, @1) as rp from project_review where id = @2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(reviewer_code collate Latin1_General_BIN2, @0 collate Latin1_General_BIN2, @1) collate DATABASE_DEFAULT as rp from project_review where id = @2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "-",
@@ -528,7 +528,7 @@ describe(ctx.label, () => {
             .where(tProjectReview.id.equals(1))
             .select({ id: tProjectReview.id, rp: tProjectReview.reviewerCode.replaceAll('R', tProjectReview.reviewerCode) })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(reviewer_code, @0, reviewer_code) as rp from project_review where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(reviewer_code collate Latin1_General_BIN2, @0 collate Latin1_General_BIN2, reviewer_code) collate DATABASE_DEFAULT as rp from project_review where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "R",

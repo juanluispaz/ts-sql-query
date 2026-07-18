@@ -55,6 +55,47 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
     protected concatFunction?: string
 
     /**
+     * Collation forced on the **match** operands of `.replaceAll(...)`.
+     *
+     * Oracle's `REPLACE` honours the session collation, so on a database configured
+     * case-insensitive (`NLS_COMP=LINGUISTIC` with a `..._CI` / `..._AI` sort)
+     * `'ABCabc'.replaceAll('abc', 'X')` matches **both** cases and returns `'XX'`, corrupting the
+     * value. By default the library pins the **binary/code-point** collation (`BINARY`) so
+     * `replaceAll` is case-sensitive whichever collation the session uses, and resets the result
+     * with `collate USING_NLS_COMP` so the forced collation does not leak into a chained comparison:
+     *
+     * ```sql
+     * replace(<src> collate BINARY, <from> collate BINARY, <to>) collate USING_NLS_COMP
+     * ```
+     *
+     * Set it to another collation name to force a different one, or to the **empty string**
+     * `''` to opt out entirely and emit the bare native `replace(<src>, <from>, <to>)` (which
+     * follows the session collation — case-sensitive by default, `BINARY`, on Oracle).
+     */
+    protected replaceCollation: string = 'BINARY'
+
+    /**
+     * Collation forced on the **match** operands of `.replaceAllInsensitive(...)`.
+     *
+     * Oracle's default collation is case-sensitive (`BINARY`), so a bare `replace()` would not
+     * fold case — `.replaceAllInsensitive(...)` needs a case-insensitive collation forced on the
+     * operands. When {@link insensitiveCollation} names a collation, that one is used (so a shared
+     * language collation carries over); otherwise this value is forced, defaulting to Oracle's
+     * neutral case-insensitive `BINARY_CI`, with a `USING_NLS_COMP` reset so it does not leak
+     * downstream:
+     *
+     * ```sql
+     * replace(<src> collate BINARY_CI, <from> collate BINARY_CI, <to>) collate USING_NLS_COMP
+     * ```
+     *
+     * Set it to another collation name to force a different one (e.g. `BINARY_AI` to also fold
+     * accents), or to the **empty string** `''` to opt out and emit the bare native
+     * `replace(<src>, <from>, <to>)` (which follows the session collation — case-sensitive by
+     * default on Oracle). Setting {@link insensitiveCollation} to `''` opts out the same way.
+     */
+    protected replaceInsensitiveCollation: string = 'BINARY_CI'
+
+    /**
      * Minimum Oracle Database version the generated SQL must support, encoded as
      * `major * 1_000_000 + minor * 1_000 + patch` (e.g. `23_009_000` for Oracle
      * Database 23.9). Defaults to `Number.POSITIVE_INFINITY` (latest). Recognized

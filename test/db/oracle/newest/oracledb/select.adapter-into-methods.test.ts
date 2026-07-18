@@ -435,7 +435,7 @@ describe(ctx.label, () => {
             .select({ id: tProjectReview.id, rp: tProjectReview.reviewerCode.replaceAll('-', '_') })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", replace(reviewer_code, :0, :1) as "rp" from project_review where id = :2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", replace(reviewer_code collate BINARY, :0 collate BINARY, :1) collate USING_NLS_COMP as "rp" from project_review where id = :2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "-",
@@ -504,7 +504,7 @@ describe(ctx.label, () => {
             .where(tProjectReview.id.equals(1))
             .select({ id: tProjectReview.id, rp: tProjectReview.reviewerCode.replaceAllIfValue('-', '_') })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", replace(reviewer_code, :0, :1) as "rp" from project_review where id = :2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", replace(reviewer_code collate BINARY, :0 collate BINARY, :1) collate USING_NLS_COMP as "rp" from project_review where id = :2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "-",
@@ -528,7 +528,7 @@ describe(ctx.label, () => {
             .where(tProjectReview.id.equals(1))
             .select({ id: tProjectReview.id, rp: tProjectReview.reviewerCode.replaceAll('R', tProjectReview.reviewerCode) })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", replace(reviewer_code, :0, reviewer_code) as "rp" from project_review where id = :1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", replace(reviewer_code collate BINARY, :0 collate BINARY, reviewer_code) collate USING_NLS_COMP as "rp" from project_review where id = :1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "R",

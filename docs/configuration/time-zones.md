@@ -350,7 +350,7 @@ process.env.TZ = 'UTC'
 
 ### The database's zone
 
-Prefer a server that already runs in UTC. Where the engine has a session zone (every one except SQL Server and SQLite), you can also set it per connection — run the statement from the **Per database** tabs above when the connection is opened, so every connection in the pool gets it.
+Prefer a server that already runs in UTC. Where the engine has a session zone (every one except SQL Server and SQLite), you can also set it per connection — run the statement from the **Per database** tabs above when the connection is opened, so every connection in the pool gets it. The hook is driver-specific: see [oracledb](query-runners/recommended/oracledb.md#running-a-statement-on-each-new-connection) (`sessionCallback`) and [pg](query-runners/recommended/pg.md#running-a-statement-on-each-new-connection) (`pool.on('connect', …)`) for the concrete code — the same hook where you would set a [session collation](collations.md#on-the-connection-the-session-collation).
 
 ### The database's zone in Docker
 

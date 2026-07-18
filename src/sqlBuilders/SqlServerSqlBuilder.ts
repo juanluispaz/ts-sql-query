@@ -839,6 +839,30 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             return "replace(replace(replace(" + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast) + ", '[', '[[]'), '%', '[%]'), '_', '[_]')"
         }
     }
+    override _replaceAll(params: any[], valueSource: ToSql, value: any, value2: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        // SQL Server's `REPLACE` honours the column/database collation, so on the default
+        // case-insensitive collation `replaceAll('abc', 'X')` on `'ABCabc'` matches both cases
+        // and corrupts the value. Force `replaceCollation` (the binary/code-point collation the
+        // `SqlServerConnection` defaults to) on the match operands and reset the result to
+        // `DATABASE_DEFAULT` so the forced collation does not leak downstream. An empty (or unset)
+        // `replaceCollation` opts out to the native `replace`.
+        const collation = this._connectionConfiguration.replaceCollation
+        if (!collation) {
+            return super._replaceAll(params, valueSource, value, value2, columnType, columnTypeName, typeAdapter)
+        }
+        return 'replace(' + this._appendSqlParenthesis(valueSource, params, false) + ' collate ' + collation + ', ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false) + ' collate ' + collation + ', ' + this._appendValue(value2, params, columnType, columnTypeName, typeAdapter, false) + ') collate DATABASE_DEFAULT'
+    }
+    override _replaceAllInsensitive(params: any[], valueSource: ToSql, value: any, value2: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        // SQL Server's `REPLACE` folds case under a case-insensitive collation. With
+        // `insensitiveCollation` set, force it (accent support via a `..._CI_AI` name) and reset
+        // to `DATABASE_DEFAULT`. Unset (or ''), emit the bare `replace(...)` and lean on the DB
+        // default collation, which is case-insensitive on a standard SQL Server.
+        const collation = this._connectionConfiguration.insensitiveCollation
+        if (collation) {
+            return 'replace(' + this._appendSqlParenthesis(valueSource, params, false) + ' collate ' + collation + ', ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false) + ' collate ' + collation + ', ' + this._appendValue(value2, params, columnType, columnTypeName, typeAdapter, false) + ') collate DATABASE_DEFAULT'
+        }
+        return 'replace(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, false) + ', ' + this._appendValue(value2, params, columnType, columnTypeName, typeAdapter, false) + ')'
+    }
     // T-SQL concatenates with `+`, not `||`. That is the only thing the affix patterns
     // needed from this dialect, so the predicates themselves ride the base's shapes; only
     // the insensitive ones stay overridden below, for their uuid receiver arm.

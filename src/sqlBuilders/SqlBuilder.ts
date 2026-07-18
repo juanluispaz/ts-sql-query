@@ -380,6 +380,7 @@ export interface SqlBoolean0 {
 
 export interface SqlFunction0 {
     // String
+    _collate(params: any[], valueSource: ToSql, collation: string): string
     _toLowerCase(params: any[], valueSource: ToSql): string
     _toUpperCase(params: any[], valueSource: ToSql): string
     _length(params: any[], valueSource: ToSql): string
@@ -461,6 +462,7 @@ export interface SqlFunction2 {
     _substr(params: any[], valueSource: ToSql, value: any, value2: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
     _substring(params: any[], valueSource: ToSql, value: any, value2: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
     _replaceAll(params: any[], valueSource: ToSql, value: any, value2: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _replaceAllInsensitive(params: any[], valueSource: ToSql, value: any, value2: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
 }
 
 export interface SqlSequenceOperation {

@@ -108,6 +108,24 @@ const tCustomer = new class TCustomer extends Table<DBConnection, 'TCustomer'> {
 
 Set `compatibilityVersion` to your MariaDB version (or leave the default) so the rest of the SQL is emitted accordingly. There is no fallback below 10.3 — the server simply does not recognise the `SEQUENCE` syntax, so don't expose sequences when targeting older versions.
 
+## Collations & case sensitivity
+
+MariaDB's default collation (`utf8mb4_uca1400_ai_ci`) is case- **and accent-insensitive** — so `equals` / `contains` / `like` fold both case and accents out of the box, where PostgreSQL, Oracle and SQLite would not. The plain string operations follow that configured collation; the `*Insensitive` operations force case-insensitivity over it. To force the *case-sensitive* direction, use a binary collation (`utf8mb4_bin`) with `.collate('<name>')` per value or on the column — the `SET collation_connection` session variable does **not** retarget a column comparison. `REPLACE` ignores collation on MariaDB, so `replaceAll` is byte-wise case-sensitive with nothing to configure; for a case-insensitive replace use [`.replaceAllInsensitive(...)`](../collations.md#replaceallinsensitive-the-insensitive-twin). See the dedicated [Collations & case sensitivity](../collations.md) page and the [MySQL / MariaDB tab](../collations.md#per-database).
+
+!!! warning "Validate the case sensitivity, then configure the connection"
+
+    The case- and accent-insensitive (`_ai_ci`) default is common but **not guaranteed** — a database or column can be created with a binary (`utf8mb4_bin`) or case-sensitive collation, and a deployment you don't control may differ. Confirm it rather than assuming: `SELECT @@collation_database` for the database default, or `SHOW FULL COLUMNS FROM your_table` per column (the `Collation` column).
+
+    If it **is** case-insensitive, tell ts-sql-query so it generates the leanest SQL: set **`insensitiveCollation = ''`** on the connection. The `*Insensitive` operations then trust the column's collation and drop the redundant `lower(a) = lower(b)` — which also defeats indexes — emitting the bare comparison the already-CI column folds correctly:
+
+    ```ts
+    class DBConnection extends MariaDBConnection<'DBConnection'> {
+        override insensitiveCollation = '' // the database is already case-insensitive — trust it
+    }
+    ```
+
+    Note too that the **plain** operations already fold case (and accents) here — `.equals(...)` behaves like `.equalsInsensitive(...)`. Where a query needs a case-sensitive comparison, force it with `.collate('utf8mb4_bin')`.
+
 ## UUID strategies
 
 `ts-sql-query` provides different strategies to handle UUID values in MariaDB. These strategies control how UUID values are represented in JavaScript and stored in the database.

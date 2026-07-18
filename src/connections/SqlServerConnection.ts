@@ -87,6 +87,27 @@ export abstract class SqlServerConnection<NAME extends string> extends AbstractA
      */
     protected maxValueFunction?: string
 
+    /**
+     * Collation forced on the **match** operands of `.replaceAll(...)`.
+     *
+     * SQL Server's `REPLACE` honours the column/database collation, so on a
+     * case-insensitive database (the default `..._CI_AS` collation) `'ABCabc'.replaceAll('abc', 'X')`
+     * matches **both** cases and returns `'XX'`, corrupting the value. By default the library
+     * pins a **binary/code-point** collation (`Latin1_General_BIN2`, which compares raw code
+     * points for `varchar` and `nvarchar` alike despite the culture prefix) so `replaceAll` is
+     * case-sensitive whichever collation the database uses, and resets the result with
+     * `collate DATABASE_DEFAULT` so the forced collation does not leak into a chained comparison:
+     *
+     * ```sql
+     * replace(<src> collate Latin1_General_BIN2, <from> collate Latin1_General_BIN2, <to>) collate DATABASE_DEFAULT
+     * ```
+     *
+     * Set it to another collation name to force a different one, or to the **empty string**
+     * `''` to opt out entirely and emit the bare native `replace(<src>, <from>, <to>)` (which
+     * follows the database collation — case-insensitive by default on SQL Server).
+     */
+    protected replaceCollation: string = 'Latin1_General_BIN2'
+
     constructor(queryRunner: QueryRunner, sqlBuilder = new SqlServerSqlBuilder()) {
         super(queryRunner, sqlBuilder)
         queryRunner.useDatabase('sqlServer')

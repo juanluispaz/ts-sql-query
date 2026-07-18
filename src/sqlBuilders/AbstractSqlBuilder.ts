@@ -56,7 +56,11 @@ export class AbstractSqlBuilder implements SqlBuilder {
             // emit a trailing operator (`- 1`, `% 1000`), so they need wrapping when embedded.
             // A dialect whose override is a self-contained call sets these back to false.
             _getMonth: true,
-            _getMilliseconds: true
+            _getMilliseconds: true,
+            // `<x> collate <name>` binds looser than the operators it is embedded in, so it
+            // needs wrapping when used as an operand (`(x collate name) = …`). The receiver's
+            // own parenthesis is handled by `_appendSqlParenthesis` inside `_collate`.
+            _collate: true
         }
     }
     _generateUnique(): number {
@@ -3061,6 +3065,14 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return 'not ' + sql
     }
+    _collate(params: any[], valueSource: ToSql, collation: string): string {
+        // `<expr> collate <name>`. The receiver is parenthesised only when it needs it
+        // (`_appendSqlParenthesis`), and the whole `collate` expression is wrapped when it is
+        // embedded as an operand via `_operationsThatNeedParenthesis._collate` — no hard-coded
+        // parenthesis. Uniform across dialects except PostgreSQL, which quotes the collation
+        // name (see `PostgreSqlSqlBuilder._collate`).
+        return this._appendSqlParenthesis(valueSource, params, false) + ' collate ' + collation
+    }
     _toLowerCase(params: any[], valueSource: ToSql): string {
         return 'lower(' + this._appendSql(valueSource, params, false) + ')'
     }
@@ -3604,6 +3616,40 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     _replaceAll(params: any[], valueSource: ToSql, value: any, value2: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         return 'replace(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, false) + ', ' + this._appendValue(value2, params, columnType, columnTypeName, typeAdapter, false) + ')'
+    }
+    /**
+     * Case-insensitive `replaceAll`. The base form is the SQLite behaviour: emit the
+     * configured UDF (`replaceAllInsensitiveFunction`) when the connection names one, and
+     * otherwise fall back to plain case-sensitive `replace(...)` — documented, never an
+     * error. The engines whose `REPLACE`/`REGEXP_REPLACE` can fold case override this:
+     * SQL Server / Oracle (collation-driven), MySQL / MariaDB / PostgreSQL (regex-driven).
+     */
+    _replaceAllInsensitive(params: any[], valueSource: ToSql, value: any, value2: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        const fn = this._connectionConfiguration.replaceAllInsensitiveFunction
+        if (fn) {
+            return fn + '(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, false) + ', ' + this._appendValue(value2, params, columnType, columnTypeName, typeAdapter, false) + ')'
+        }
+        return this._replaceAll(params, valueSource, value, value2, columnType, columnTypeName, typeAdapter)
+    }
+    /**
+     * Escape a search term for use as a regular-expression pattern in the regex-driven
+     * `replaceAllInsensitive` engines (MySQL / MariaDB / PostgreSQL). Mirrors
+     * `_escapeLikeWildcard`: a known string literal is escaped in JS at build time (the
+     * regex metacharacter set) and bound as a parameter; a value source is escaped at the
+     * SQL level with nested `replace(...)`. The backslash is escaped first so the
+     * backslashes added for the other metacharacters are not doubled again.
+     */
+    _escapeRegexpForReplace(value: any, params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
+        if (typeof value === 'string') {
+            return this._appendValue(value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), params, columnType, columnTypeName, typeAdapter, forceTypeCast)
+        }
+        let sql = this._appendValue(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast)
+        sql = "replace(" + sql + ", '\\', '\\\\')"
+        const metachars = '.*+?^${}()|[]'
+        for (const ch of metachars) {
+            sql = "replace(" + sql + ", '" + ch + "', '\\" + ch + "')"
+        }
+        return sql
     }
     _buildCallProcedure(params: any[], procedureName: string, procedureParams: AnyValueSource[]): string {
         let result = 'call ' + this._escape(procedureName, false) + '('

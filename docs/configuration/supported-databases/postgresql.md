@@ -163,6 +163,10 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
 
     You can also enforce type casting using the `ForceTypeCast` adapter provided in `ts-sql-query/TypeAdapter`. For more advanced usage, see the section on [Global type adapter](../column-types.md#global-type-adapter).
 
+## Collations & case sensitivity
+
+PostgreSQL's default collation is case- and accent-**sensitive** (deterministic) — the JavaScript-sensible default, so no configuration is needed unless you want the insensitive direction. The plain string operations follow the configured collation; the `*Insensitive` operations force case-insensitivity over it. To go insensitive, PostgreSQL uses native `ILIKE` for `LIKE`, and — for equality / `DISTINCT` / `GROUP BY` — a **non-deterministic** ICU collation you create once and name in `insensitiveCollation` or `.collate('<name>')`. PostgreSQL has no session collation, so the column / database collation or a per-expression `COLLATE` (`.collate()`) is how you retarget a comparison. See the dedicated [Collations & case sensitivity](../collations.md) page and the [PostgreSQL tab](../collations.md#per-database) for the `CREATE COLLATION … (deterministic = false)` recipe.
+
 ## UUID handling
 
 PostgreSQL has a native `uuid` data type (available since PostgreSQL 8.3, present in every supported version), and `ts-sql-query` maps the `uuid` column type to it directly — no extension or conversion function is required. The `uuid` type compares values byte-by-byte, so a UUID v7 stored there keeps its chronological ordering on the primary-key index.

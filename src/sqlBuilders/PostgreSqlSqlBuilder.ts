@@ -147,6 +147,20 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         // fails with "column does not exist". Verified against the real engine.
         return false
     }
+    override _collate(params: any[], valueSource: ToSql, collation: string): string {
+        // PostgreSQL collation identifiers are case-folded to lowercase unless quoted —
+        // the built-in `"C"` / `"POSIX"` / `"ucs_basic"` and any mixed-case ICU name
+        // resolve only with the quotes, exactly as the `insensitiveCollation` path already
+        // emits `collate "<name>"`. Parenthesis handling matches the base (`_collate` is
+        // registered in `_operationsThatNeedParenthesis`).
+        return this._appendSqlParenthesis(valueSource, params, false) + ' collate "' + collation + '"'
+    }
+    override _replaceAllInsensitive(params: any[], valueSource: ToSql, value: any, value2: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        // PostgreSQL's `REPLACE` ignores collation; fold case with `regexp_replace(..., 'gi')`.
+        // The `'gi'` flag is **case-only** — it cannot honour `insensitiveCollation`, a language
+        // collation, or accents (a documented per-engine limitation). `g` replaces every match.
+        return 'regexp_replace(' + this._appendSql(valueSource, params, false) + ', ' + this._escapeRegexpForReplace(value, params, columnType, columnTypeName, typeAdapter, false) + ', ' + this._appendValue(value2, params, columnType, columnTypeName, typeAdapter, false) + ", 'gi')"
+    }
     override _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayDistinct: boolean, params: any[], query: SelectData | undefined): string {
         if (aggregatedArrayDistinct && !isValueSource(aggregatedArrayColumns)) {
             // PostgreSQL's `json` type has no equality operator on any

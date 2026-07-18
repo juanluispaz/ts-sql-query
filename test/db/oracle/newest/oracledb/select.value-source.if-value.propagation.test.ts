@@ -198,7 +198,7 @@ describe(ctx.label, () => {
                 .where(tProject.id.equals(1))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = replace(name, :0, :1) where id = :2"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = replace(name collate BINARY, :0 collate BINARY, :1) collate USING_NLS_COMP where id = :2"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "site",

@@ -83,3 +83,20 @@ async function main() {
 !!! warning
 
     If you want to allow to have nested transactions you must create the instance as `new PgQueryRunner(pgConnection, {allowNestedTransactions: true})` 
+
+## Running a statement on each new connection
+
+Some settings are properties of the **database session**, not of the query — notably the [session time zone](../../time-zones.md#per-database). To pin it without touching your schema, run the statement **once per connection**, when the pool opens it. The `pg` pool emits a `connect` event on each brand-new client for exactly this:
+
+```ts
+import { Pool } from 'pg';
+
+const pool = new Pool({ /* … */ });
+
+pool.on('connect', (client) => {
+    // Runs once per newly created pooled connection.
+    client.query("SET TIME ZONE 'UTC'"); // session time zone — see the Time zones page
+});
+```
+
+This is what the [Time zones page](../../time-zones.md#the-databases-zone) recommends aligning on connect. PostgreSQL has **no session collation** (unlike Oracle), so a case-insensitive comparison is set on the column / database collation or per value with [`.collate()`](../../collations.md#collate-force-a-collation-per-value) instead — see the [Collations page](../../collations.md#on-the-connection-the-session-collation).

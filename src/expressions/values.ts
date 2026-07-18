@@ -736,6 +736,23 @@ export interface StringValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/
     notContainsInsensitive(value: string): BooleanValueSource<SOURCE, OPTIONAL_TYPE>
     notContainsInsensitive<VALUE extends IStringValueSource<any, any>>(value: VALUE): BooleanValueSource<SOURCE | VALUE[typeof source], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     // SqlFunction0
+    /**
+     * Emits `(<this> collate <collation>)`, forcing a specific collation on this string
+     * expression. The result is a `StringValueSource` of the same type, usable on either
+     * operand of a comparison, on a projected/grouped/ordered column, or as a `replaceAll`
+     * argument. `collation` is a raw dialect collation name (like `insensitiveCollation`),
+     * so it is not portable across databases.
+     *
+     * Use it to force case-/accent-sensitivity in either direction on a single expression
+     * — e.g. `.collate('Latin1_General_BIN2')` (SQL Server) for a binary comparison, or
+     * `.collate('utf8mb4_0900_as_ci')` (MySQL) for case-insensitive-accent-sensitive.
+     *
+     * Two engine caveats (see the Collations documentation page): on PostgreSQL, forcing
+     * case-insensitive *equality* needs a **non-deterministic** collation object; and on
+     * SQLite `.collate()` governs `=`/`DISTINCT`/`ORDER BY`/`min`/`max` but **not** `LIKE`
+     * (SQLite's `LIKE` ignores the operand collation).
+     */
+    collate(collation: string): StringValueSource<SOURCE, OPTIONAL_TYPE>
     toLowerCase(): StringValueSource<SOURCE, OPTIONAL_TYPE>
     toUpperCase(): StringValueSource<SOURCE, OPTIONAL_TYPE>
     length(): NumberValueSource<SOURCE, OPTIONAL_TYPE>
@@ -767,6 +784,13 @@ export interface StringValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/
     replaceAll<VALUE2 extends IStringValueSource<any, any>>(findString: string, replaceWith: VALUE2): StringValueSource<SOURCE | VALUE2[typeof source], MergeOptional<OPTIONAL_TYPE, VALUE2[typeof optionalType]>>
     replaceAll<VALUE extends IStringValueSource<any, any>>(findString: VALUE, replaceWith: string): StringValueSource<SOURCE | VALUE[typeof source], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     replaceAll<VALUE extends IStringValueSource<any, any>, VALUE2 extends IStringValueSource<any, any>>(findString: VALUE, replaceWith: VALUE2): StringValueSource<SOURCE | VALUE[typeof source] | VALUE2[typeof source], MergeOptional<MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>, VALUE2[typeof optionalType]>>
+    replaceAllInsensitiveIfValue(findString: string | null | undefined, replaceWith: string | null | undefined): StringValueSource<SOURCE, OPTIONAL_TYPE>
+    replaceAllInsensitiveIfValue<VALUE2 extends IStringValueSource<any, any>>(findString: string | null | undefined, replaceWith: VALUE2): StringValueSource<SOURCE | VALUE2[typeof source], MergeOptional<OPTIONAL_TYPE, VALUE2[typeof optionalType]>>
+    replaceAllInsensitiveIfValue<VALUE extends IStringValueSource<any, any>>(findString: VALUE, replaceWith: string | null | undefined): StringValueSource<SOURCE | VALUE[typeof source], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    replaceAllInsensitive(findString: string, replaceWith: string): StringValueSource<SOURCE, OPTIONAL_TYPE>
+    replaceAllInsensitive<VALUE2 extends IStringValueSource<any, any>>(findString: string, replaceWith: VALUE2): StringValueSource<SOURCE | VALUE2[typeof source], MergeOptional<OPTIONAL_TYPE, VALUE2[typeof optionalType]>>
+    replaceAllInsensitive<VALUE extends IStringValueSource<any, any>>(findString: VALUE, replaceWith: string): StringValueSource<SOURCE | VALUE[typeof source], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    replaceAllInsensitive<VALUE extends IStringValueSource<any, any>, VALUE2 extends IStringValueSource<any, any>>(findString: VALUE, replaceWith: VALUE2): StringValueSource<SOURCE | VALUE[typeof source] | VALUE2[typeof source], MergeOptional<MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>, VALUE2[typeof optionalType]>>
     // Redefined methods
     valueWhenNull(value: string): StringValueSource<SOURCE, 'required'>
     valueWhenNull<VALUE extends IValueSource<any, string, this[typeof typeName], any>>(value: VALUE): StringValueSource<SOURCE | VALUE[typeof source], VALUE[typeof optionalType]>

@@ -18,6 +18,24 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
 
     protected uuidStrategy: 'string' | 'uuid-extension' = 'uuid-extension'
 
+    /**
+     * Name of a scalar SQL function to call for `.replaceAllInsensitive(...)`.
+     *
+     * SQLite has no case-insensitive `REPLACE` and no built-in `regexp_replace`, so the
+     * library can only offer an insensitive replace through a user-defined function you
+     * register on the connection. Set this to that function's name and the builder emits
+     * `<name>(src, from, to)`; leave it unset (the default) and `.replaceAllInsensitive(...)`
+     * falls back to a plain, **case-sensitive** `replace(src, from, to)` — documented, never an
+     * error.
+     *
+     * The three connectors that expose a JS user-function API can register it:
+     * `better-sqlite3` / `node:sqlite` via `db.function(name, (s, f, t) => …)`, `sqlite-wasm`
+     * via `db.createFunction`. The `sqlite3`, `bun:sqlite` and `bun:sql` connectors have no such
+     * API, so on them `.replaceAllInsensitive(...)` stays case-sensitive. See the Collations page
+     * of the documentation for the JS implementation to register per connector.
+     */
+    protected replaceAllInsensitiveFunction?: string
+
     constructor(queryRunner: QueryRunner, sqlBuilder = new SqliteSqlBuilder()) {
         super(queryRunner, sqlBuilder)
         queryRunner.useDatabase('sqlite')

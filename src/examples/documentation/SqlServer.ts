@@ -4764,6 +4764,45 @@ async function main() {
 
     assertEquals(customerMath, result)
 
+    /* *** Preparation ************************************************************/
+
+    result = []
+    expectedResult.push(result)
+    expectedQuery.push(`select id as id from customer where (first_name collate Latin1_General_BIN2) = @0`)
+    expectedParams.push(`["ADA"]`)
+    expectedType.push(`selectManyRows`)
+
+    /* *** Example ****************************************************************/
+
+    // Force a case-sensitive (code-point) comparison on a single value with .collate(...)
+    const caseSensitiveMatch = await connection.selectFrom(tCustomer)
+        .where(tCustomer.firstName.collate('Latin1_General_BIN2').equals('ADA'))
+        .select({ id: tCustomer.id })
+        .executeSelectMany()
+
+    assertEquals(caseSensitiveMatch, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = [{ id: 1, cleaned: 'redacted' }]
+    expectedResult.push(result)
+    expectedQuery.push(`select id as id, replace(first_name, @0, @1) as cleaned from customer where id = @2`)
+    expectedParams.push(`["secret","redacted",1]`)
+    expectedType.push(`selectManyRows`)
+
+    /* *** Example ****************************************************************/
+
+    // Case-insensitive replace with .replaceAllInsensitive(...)
+    const cleaned = await connection.selectFrom(tCustomer)
+        .where(tCustomer.id.equals(1))
+        .select({
+            id: tCustomer.id,
+            cleaned: tCustomer.firstName.replaceAllInsensitive('secret', 'redacted'),
+        })
+        .executeSelectMany()
+
+    assertEquals(cleaned, result)
+
 }
 
 main().then(() => {

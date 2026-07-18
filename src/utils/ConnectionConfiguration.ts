@@ -12,4 +12,7 @@ export interface ConnectionConfiguration {
     maxValueFunction?: string
     ignoreNullInConcat?: boolean
     concatFunction?: string
+    replaceCollation?: string | undefined
+    replaceInsensitiveCollation?: string | undefined
+    replaceAllInsensitiveFunction?: string | undefined
 }

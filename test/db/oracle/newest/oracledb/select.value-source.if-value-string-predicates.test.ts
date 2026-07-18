@@ -228,7 +228,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", replace(status, :0, :1) as "masked" from issue order by "id""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", replace(status collate BINARY, :0 collate BINARY, :1) collate USING_NLS_COMP as "masked" from issue order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "o",

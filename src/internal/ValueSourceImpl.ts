@@ -419,6 +419,9 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
         return result
     }
     // String
+    collate(collation: any): any {
+        return new SqlOperationCollateValueSource(this, collation, this.__valueType, this.__valueTypeName, this.__optionalType, this.__typeAdapter)
+    }
     toLowerCase(): any {
         return new SqlOperation0ValueSource('_toLowerCase', this, this.__valueType, this.__valueTypeName, this.__optionalType, this.__typeAdapter)
     }
@@ -723,6 +726,12 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
     replaceAll(findString: any, replaceWith: any): any {
         return new SqlOperation2ValueSource('_replaceAll', this, findString, replaceWith, this.__valueType, this.__valueTypeName, getOptionalType3(this, findString, replaceWith), getTypeAdapter3(this, findString, replaceWith))
     }
+    replaceAllInsensitiveIfValue(findString: any, replaceWith: any): any {
+        return new SqlOperation2ValueSourceIfValueOrIgnore('_replaceAllInsensitive', this, findString, replaceWith, this.__valueType, this.__valueTypeName, getOptionalType3(this, findString, replaceWith), getTypeAdapter3(this, findString, replaceWith))
+    }
+    replaceAllInsensitive(findString: any, replaceWith: any): any {
+        return new SqlOperation2ValueSource('_replaceAllInsensitive', this, findString, replaceWith, this.__valueType, this.__valueTypeName, getOptionalType3(this, findString, replaceWith), getTypeAdapter3(this, findString, replaceWith))
+    }
     // Oracle recursive
     __prior(): any {
         return new SqlOperation0ValueSource('_prior', this, this.__valueType, this.__valueTypeName, this.__optionalType, this.__typeAdapter)
@@ -948,15 +957,53 @@ export class SqlOperationConstValueSource extends ValueSourceImpl implements Has
 
 export class SqlOperation0ValueSource extends ValueSourceImpl implements HasOperation {
     __valueSource: ValueSourceImpl
-    __operation: keyof SqlFunction0 | keyof SqlBoolean0
+    // `_collate` is excluded: it takes an extra collation argument and is carried by the
+    // dedicated `SqlOperationCollateValueSource`, not by this single-operand dispatcher.
+    __operation: Exclude<keyof SqlFunction0, '_collate'> | keyof SqlBoolean0
 
-    constructor(operation: keyof SqlFunction0 | keyof SqlBoolean0, valueSource: ValueSourceImpl, valueType: ValueType, valueTypeName: string, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
+    constructor(operation: Exclude<keyof SqlFunction0, '_collate'> | keyof SqlBoolean0, valueSource: ValueSourceImpl, valueType: ValueType, valueTypeName: string, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
         super(valueType, valueTypeName, optionalType, typeAdapter)
         this.__valueSource = valueSource
         this.__operation = operation
     }
     __toSql(sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
         return sqlBuilder[this.__operation](params, this.__valueSource)
+    }
+    override __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
+        this.__valueSource.__addWiths(sqlBuilder, withs)
+    }
+    override __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
+        this.__valueSource.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
+    }
+    override __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
+        this.__valueSource.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
+    }
+    override __getOldValues(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+        return this.__valueSource.__getOldValues(sqlBuilder)
+    }
+    override __getValuesForInsert(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+        return this.__valueSource.__getValuesForInsert(sqlBuilder)
+    }
+    override __isAllowed(sqlBuilder: HasIsValue): boolean {
+        return this.__valueSource.__isAllowed(sqlBuilder)
+    }
+    override __hasAggregation(sqlBuilder: HasIsValue): boolean {
+        return this.__valueSource.__hasAggregation(sqlBuilder)
+    }
+}
+
+export class SqlOperationCollateValueSource extends ValueSourceImpl implements HasOperation {
+    __valueSource: ValueSourceImpl
+    __operation: keyof SqlFunction0 = '_collate'
+    __collation: string
+
+    constructor(valueSource: ValueSourceImpl, collation: string, valueType: ValueType, valueTypeName: string, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
+        super(valueType, valueTypeName, optionalType, typeAdapter)
+        this.__valueSource = valueSource
+        this.__collation = collation
+    }
+    __toSql(sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
+        return sqlBuilder._collate(params, this.__valueSource, this.__collation)
     }
     override __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
         this.__valueSource.__addWiths(sqlBuilder, withs)

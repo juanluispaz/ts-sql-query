@@ -225,6 +225,7 @@ interface StringValueSource extends ComparableValueSource<string, 'string'> {
     trimLeft(): StringValueSource
     trimRight(): StringValueSource
     reverse(): StringValueSource
+    collate(collation: string): StringValueSource
     concatIfValue(value: string | null | undefined): StringValueSource
     concat(value: string | this): StringValueSource
     substrToEnd(start: number | NumberValueSource): StringValueSource
@@ -233,6 +234,8 @@ interface StringValueSource extends ComparableValueSource<string, 'string'> {
     substring(start: number | NumberValueSource, end: number | NumberValueSource): StringValueSource
     replaceAllIfValue(findString: string | null | undefined, replaceWith: string | null | undefined): StringValueSource
     replaceAll(findString: string | this, replaceWith: string | this): StringValueSource
+    replaceAllInsensitiveIfValue(findString: string | null | undefined, replaceWith: string | null | undefined): StringValueSource
+    replaceAllInsensitive(findString: string | this, replaceWith: string | this): StringValueSource
 }
 ```
 

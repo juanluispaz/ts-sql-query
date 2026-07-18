@@ -258,6 +258,35 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         const sql = 'case when ' + check + ' is null then null else ' + glue(term) + ' end'
         return fold ? 'lower(' + sql + ')' : '(' + sql + ')'
     }
+    override _replaceAll(params: any[], valueSource: ToSql, value: any, value2: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        // Oracle's `REPLACE` honours the session collation, so on a database configured
+        // case-insensitive (`NLS_COMP=LINGUISTIC` + a CI sort) `replaceAll('abc', 'X')` on
+        // `'ABCabc'` matches both cases and corrupts the value. Force `replaceCollation` (the
+        // binary/code-point collation the `OracleConnection` defaults to) on the match operands
+        // and reset the result to `USING_NLS_COMP` so the forced collation does not leak
+        // downstream. An empty (or unset) `replaceCollation` opts out to the native `replace`.
+        const collation = this._connectionConfiguration.replaceCollation
+        if (!collation) {
+            return super._replaceAll(params, valueSource, value, value2, columnType, columnTypeName, typeAdapter)
+        }
+        return 'replace(' + this._appendSqlParenthesis(valueSource, params, false) + ' collate ' + collation + ', ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false) + ' collate ' + collation + ', ' + this._appendValue(value2, params, columnType, columnTypeName, typeAdapter, false) + ') collate USING_NLS_COMP'
+    }
+    override _replaceAllInsensitive(params: any[], valueSource: ToSql, value: any, value2: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        // Oracle's `REPLACE` folds case under a case-insensitive collation. Force a CI collation on
+        // the match operands: `insensitiveCollation` when it names one (so a shared language
+        // collation carries over), otherwise the configurable `replaceInsensitiveCollation` (which
+        // the `OracleConnection` defaults to Oracle's neutral `BINARY_CI`, since its default is
+        // case-sensitive). Either config set to `''` opts out to the bare native `replace` (trust
+        // the session collation). The result is reset with `USING_NLS_COMP`.
+        let collation = this._connectionConfiguration.insensitiveCollation
+        if (collation === undefined) {
+            collation = this._connectionConfiguration.replaceInsensitiveCollation
+        }
+        if (!collation) {
+            return super._replaceAll(params, valueSource, value, value2, columnType, columnTypeName, typeAdapter)
+        }
+        return 'replace(' + this._appendSqlParenthesis(valueSource, params, false) + ' collate ' + collation + ', ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false) + ' collate ' + collation + ', ' + this._appendValue(value2, params, columnType, columnTypeName, typeAdapter, false) + ') collate USING_NLS_COMP'
+    }
     override _isReservedKeyword(word: string): boolean {
         return word.toUpperCase() in reservedWords
     }

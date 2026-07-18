@@ -132,18 +132,44 @@ select dbo.greatest_strict(estimated_hours, @0) as floored, dbo.least_strict(est
 
     The default `CASE` matches the declared type on every database and only pays a repeated operand for a value-source receiver. Reach for `ignoreNullInMinAndMaxValue` when you specifically want SQL Server's ignore-NULL semantics, or for `minValueFunction` / `maxValueFunction` when the repeated operand is expensive enough to matter. The row aggregate `min(col)` / `max(col)` over rows is a different function — it ignores NULL on every database by standard SQL — and is unaffected by any of these.
 
-## `replaceAll` depends on your collation
+## Collations & case sensitivity
 
-`.replaceAll(search, replacement)` mirrors JavaScript's `String.replaceAll`, which is case-**sensitive**: `'ABCabc'.replaceAll('abc', 'X')` is `'ABCX'`.
+SQL Server's default collation (`SQL_Latin1_General_CP1_CI_AS`) is **case-insensitive**, accent-sensitive — so `equals` / `contains` / `like` fold case out of the box, where PostgreSQL, Oracle and SQLite would not. The plain string operations follow that configured collation; the `*Insensitive` operations force case-insensitivity over it. SQL Server has **no session collation**, so to force a different collation you use `.collate('<name>')` per value, `insensitiveCollation` connection-wide, or the column / database collation. See the dedicated [Collations & case sensitivity](../collations.md) page and the [SQL Server tab](../collations.md#per-database) for the collation names to use.
 
-SQL Server's `REPLACE()` instead resolves its search argument under the **collation** of the value being searched, and the common defaults (including `SQL_Latin1_General_CP1_CI_AS`) are case-insensitive:
+!!! warning "Validate the case sensitivity, then configure the connection"
+
+    The case-insensitive (`_CI_`) default is common but **not guaranteed** — a database or column can be created with a case-sensitive (`_CS_`) or binary collation, and a deployment you don't control may differ. Confirm it rather than assuming: `SELECT DATABASEPROPERTYEX(DB_NAME(), 'Collation')` for the database default, or `sys.columns` / `COLLATIONPROPERTY` per column.
+
+    If it **is** case-insensitive, tell ts-sql-query so it generates the leanest SQL: set **`insensitiveCollation = ''`** on the connection. The `*Insensitive` operations then trust the column's collation and drop the redundant `lower(a) = lower(b)` — which also defeats indexes — emitting the bare comparison the already-CI column folds correctly:
+
+    ```ts
+    class DBConnection extends SqlServerConnection<'DBConnection'> {
+        override insensitiveCollation = '' // the database is already case-insensitive — trust it
+    }
+    ```
+
+    Note too that the **plain** operations already fold case here — `.equals(...)` behaves like `.equalsInsensitive(...)`. Where a query needs a case-sensitive comparison, force it with `.collate('Latin1_General_BIN2')`.
+
+### `replaceAll` and collation
+
+`.replaceAll(search, replacement)` mirrors JavaScript's `String.replaceAll`, which is case-**sensitive**: `'ABCabc'.replaceAll('abc', 'X')` is `'ABCX'`. SQL Server's `REPLACE()`, however, resolves its search argument under the **collation** of the value being searched, and the default collation is case-insensitive — so a bare `replace('ABCabc', 'abc', 'X')` returns `'XX'`, corrupting the value:
 
 ```sql
-replace('ABCabc', 'abc', 'X')                               -- XX     <- both occurrences
-replace('ABCabc' collate Latin1_General_CS_AS, 'abc', 'X')  -- ABCX
+replace('ABCabc', 'abc', 'X')                                                                                   -- XX    <- both cases matched
+replace('ABCabc' collate Latin1_General_BIN2, 'abc' collate Latin1_General_BIN2, 'X') collate DATABASE_DEFAULT  -- ABCX
 ```
 
-So `.replaceAll('abc', 'X')` returns `XX` here, where JavaScript returns `'ABCX'`. The library does not force a collation on the operand: that would tax every query and silently override a deliberate database-level choice. If you need JavaScript's case-sensitive semantics, apply a case-sensitive collation to the column or the expression yourself.
+To prevent that, ts-sql-query forces a binary / code-point collation on the match operands **by default** (`Latin1_General_BIN2`) and resets the result to `DATABASE_DEFAULT` so the forced collation does not leak into a chained comparison. `replaceAll` is therefore case-sensitive whatever the database collation. The collation is controlled by the **`replaceCollation`** property:
+
+```typescriptreact
+import { SqlServerConnection } from "ts-sql-query/connections/SqlServerConnection";
+
+class DBConnection extends SqlServerConnection<'DBConnection'> {
+    override replaceCollation = '' // opt out — follow the database collation (case-insensitive by default)
+}
+```
+
+Set it to another collation name to force a different one, or to the empty string (`''`) to opt out and emit the bare native `replace(...)`. For a deliberately **case-insensitive** replace, use [`.replaceAllInsensitive(...)`](../collations.md#replaceallinsensitive-the-insensitive-twin) instead. Full detail on the [Collations page](../collations.md#replacecollation-sql-server-and-oracle).
 
 ## UUID management
 

@@ -86,6 +86,24 @@ There is no alternative function on this engine (`STRING_AGG` does not exist), s
 pool.on('connection', c => c.query('SET SESSION group_concat_max_len = 1000000'))
 ```
 
+## Collations & case sensitivity
+
+MySQL's default collation (`utf8mb4_0900_ai_ci`) is case- **and accent-insensitive** — so `equals` / `contains` / `like` fold both case and accents out of the box, where PostgreSQL, Oracle and SQLite would not. The plain string operations follow that configured collation; the `*Insensitive` operations force case-insensitivity over it. To force the *case-sensitive* direction, use a binary collation (`utf8mb4_bin`) with `.collate('<name>')` per value or on the column — the `SET collation_connection` session variable does **not** retarget a column comparison. `REPLACE` ignores collation on MySQL, so `replaceAll` is byte-wise case-sensitive with nothing to configure; for a case-insensitive replace use [`.replaceAllInsensitive(...)`](../collations.md#replaceallinsensitive-the-insensitive-twin). See the dedicated [Collations & case sensitivity](../collations.md) page and the [MySQL / MariaDB tab](../collations.md#per-database).
+
+!!! warning "Validate the case sensitivity, then configure the connection"
+
+    The case- and accent-insensitive (`_ai_ci`) default is common but **not guaranteed** — a database or column can be created with a binary (`utf8mb4_bin`) or case-sensitive collation, and a deployment you don't control may differ. Confirm it rather than assuming: `SELECT @@collation_database` for the database default, or `SHOW FULL COLUMNS FROM your_table` per column (the `Collation` column).
+
+    If it **is** case-insensitive, tell ts-sql-query so it generates the leanest SQL: set **`insensitiveCollation = ''`** on the connection. The `*Insensitive` operations then trust the column's collation and drop the redundant `lower(a) = lower(b)` — which also defeats indexes — emitting the bare comparison the already-CI column folds correctly:
+
+    ```ts
+    class DBConnection extends MySqlConnection<'DBConnection'> {
+        override insensitiveCollation = '' // the database is already case-insensitive — trust it
+    }
+    ```
+
+    Note too that the **plain** operations already fold case (and accents) here — `.equals(...)` behaves like `.equalsInsensitive(...)`. Where a query needs a case-sensitive comparison, force it with `.collate('utf8mb4_bin')`.
+
 ## Rounding behavior
 
 MySQL's native `ROUND` function applies **different tie-breaking rules** depending on whether its argument is an exact-value or an approximate-value number. Per the [MySQL manual](https://dev.mysql.com/doc/refman/en/mathematical-functions.html#function_round):

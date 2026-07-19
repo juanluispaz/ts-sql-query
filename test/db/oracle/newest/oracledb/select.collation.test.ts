@@ -120,6 +120,48 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
+    // ── uuid receivers ────────────────────────────────────────────────
+    // `uuid.asString().replaceAll(...)` / `.replaceAllInsensitive(...)` must produce valid SQL
+    // and round-trip on every dialect — replacing the whole uuid by itself yields 'X'. SQL
+    // Server needs an explicit convert-before-collate for a uuid receiver/operand; this dialect
+    // needs no special handling.
+    test('replaceAll on a uuid receiver converts before collate', async () => {
+        const s = tIssue.externalRef.asString()
+        const expected = [{ id: 1, v: 'X' }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({ id: tIssue.id, v: s.replaceAll(s, 'X') })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", replace(raw_to_uuid(external_ref) collate BINARY, raw_to_uuid(external_ref) collate BINARY, :0) collate USING_NLS_COMP as "v" from issue where id = :1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "X",
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; v?: string }>>>()
+        expect(result).toEqual(expected)
+    })
+    test('replaceAllInsensitive on a uuid receiver converts before collate', async () => {
+        const s = tIssue.externalRef.asString()
+        const expected = [{ id: 1, v: 'X' }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({ id: tIssue.id, v: s.replaceAllInsensitive(s, 'X') })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", replace(raw_to_uuid(external_ref) collate BINARY_CI, raw_to_uuid(external_ref) collate BINARY_CI, :0) collate USING_NLS_COMP as "v" from issue where id = :1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "X",
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; v?: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
     // ── Fork D: replaceAllInsensitive ──────────────────────────────────
     // Oracle's default is case-sensitive, so with no `insensitiveCollation` the
     // library forces Oracle's neutral BINARY_CI (+ USING_NLS_COMP reset) to make

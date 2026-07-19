@@ -125,6 +125,52 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
+    // ── uuid receivers ────────────────────────────────────────────────
+    // `uuid.asString().replaceAll(...)` / `.replaceAllInsensitive(...)` must produce valid SQL
+    // and round-trip on every dialect — replacing the whole uuid by itself yields 'X' whatever
+    // the stored casing. On SQL Server a uuid receiver/operand is a `uniqueidentifier`, which
+    // rejects a `collate` clause ("Expression type uniqueidentifier is invalid for COLLATE
+    // clause"), so the forced-collation replace converts it to nvarchar(36) BEFORE the collate,
+    // like the rest of the string API. `replaceAllInsensitive`'s collate branch (which only fires
+    // when `insensitiveCollation` is set) needs the same convert.
+    test('replaceAll on a uuid receiver converts before collate', async () => {
+        const s = tIssue.externalRef.asString()
+        const expected = [{ id: 1, v: 'X' }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({ id: tIssue.id, v: s.replaceAll(s, 'X') })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(convert(nvarchar(36), external_ref) collate Latin1_General_BIN2, convert(nvarchar(36), external_ref) collate Latin1_General_BIN2, @0) collate DATABASE_DEFAULT as [v] from issue where id = @1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "X",
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; v?: string }>>>()
+        expect(result).toEqual(expected)
+    })
+    test('replaceAllInsensitive on a uuid receiver converts before collate', async () => {
+        const collated = new InsensitiveReplaceConnection(ctx.conn.queryRunner)
+        const s = tIssue.externalRef.asString()
+        const expected = [{ id: 1, v: 'X' }]
+        ctx.mockNext(expected)
+        const result = await collated.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({ id: tIssue.id, v: s.replaceAllInsensitive(s, 'X') })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(convert(nvarchar(36), external_ref) collate Latin1_General_CI_AI, convert(nvarchar(36), external_ref) collate Latin1_General_CI_AI, @0) collate DATABASE_DEFAULT as [v] from issue where id = @1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "X",
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; v?: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
     // ── Fork D: replaceAllInsensitive ──────────────────────────────────
     // With no `insensitiveCollation`, SQL Server emits the bare `replace(...)`
     // and leans on the CI database default, folding both cases → 'XX'.

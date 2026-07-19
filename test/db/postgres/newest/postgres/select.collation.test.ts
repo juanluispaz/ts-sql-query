@@ -97,6 +97,48 @@ describe(ctx.label, () => {
     })
     */
 
+    // ── uuid receivers ────────────────────────────────────────────────
+    // `uuid.asString().replaceAll(...)` / `.replaceAllInsensitive(...)` must produce valid SQL
+    // and round-trip on every dialect — replacing the whole uuid by itself yields 'X'. SQL
+    // Server needs an explicit convert-before-collate for a uuid receiver/operand; this dialect
+    // needs no special handling.
+    test('replaceAll on a uuid receiver converts before collate', async () => {
+        const s = tIssue.externalRef.asString()
+        const expected = [{ id: 1, v: 'X' }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({ id: tIssue.id, v: s.replaceAll(s, 'X') })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(external_ref::text, external_ref::text, $1) as "v" from issue where id = $2"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "X",
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; v?: string }>>>()
+        expect(result).toEqual(expected)
+    })
+    test('replaceAllInsensitive on a uuid receiver converts before collate', async () => {
+        const s = tIssue.externalRef.asString()
+        const expected = [{ id: 1, v: 'X' }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({ id: tIssue.id, v: s.replaceAllInsensitive(s, 'X') })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, regexp_replace(external_ref::text, replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(external_ref::text, '\\', '\\\\'), '.', '\\.'), '*', '\\*'), '+', '\\+'), '?', '\\?'), '^', '\\^'), '$', '\\$'), '{', '\\{'), '}', '\\}'), '(', '\\('), ')', '\\)'), '|', '\\|'), '[', '\\['), ']', '\\]'), $1, 'gi') as "v" from issue where id = $2"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "X",
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; v?: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
     // ── Fork D: replaceAllInsensitive ──────────────────────────────────
     // `regexp_replace(src, <esc from>, to, 'gi')` — the `'gi'` flag folds case
     // (only), replacing every match. 'ABCabc' → both 'ABC' and 'abc' → 'XX'.

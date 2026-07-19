@@ -115,6 +115,26 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             return this._appendSql(value, params, false)
         }
     }
+    _appendSqlMaybeUuidParenthesis(value: ToSql | AnyValueSource, params: any[]): string {
+        // Parenthesis-aware variant of `_appendSqlMaybeUuid` for the operands a forced
+        // `collate` is applied to (the `replaceAll` / `replaceAllInsensitive` match operands).
+        // SQL Server rejects `collate` on a `uniqueidentifier` ("Expression type
+        // uniqueidentifier is invalid for COLLATE clause"), so a uuid receiver must be
+        // converted to nvarchar(36) FIRST, like the rest of the string API. The `convert(...)`
+        // call is self-delimiting, so it needs no extra parenthesis before the trailing collate.
+        if (this._isUuid(value)) {
+            return 'convert(nvarchar(36), ' + this._appendSql(value, params, false) + ')'
+        }
+        return this._appendSqlParenthesis(value, params, false)
+    }
+    _appendValueMaybeUuidParenthesis(value: any, params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        // Same as `_appendSqlMaybeUuidParenthesis`, but for a value operand that may be a raw
+        // literal (routed through `_appendValue`) rather than a `ToSql`.
+        if (this._isUuid(value)) {
+            return 'convert(nvarchar(36), ' + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, false) + ')'
+        }
+        return this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false)
+    }
     override _appendConditionParam(value: any, params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
         if (__isBooleanValueType(columnType)) {
             if (isColumn(value)) {
@@ -863,7 +883,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         if (!collation) {
             return super._replaceAll(params, valueSource, value, value2, columnType, columnTypeName, typeAdapter)
         }
-        return 'replace(' + this._appendSqlParenthesis(valueSource, params, false) + ' collate ' + collation + ', ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false) + ' collate ' + collation + ', ' + this._appendValue(value2, params, columnType, columnTypeName, typeAdapter, false) + ') collate DATABASE_DEFAULT'
+        return 'replace(' + this._appendSqlMaybeUuidParenthesis(valueSource, params) + ' collate ' + collation + ', ' + this._appendValueMaybeUuidParenthesis(value, params, columnType, columnTypeName, typeAdapter) + ' collate ' + collation + ', ' + this._appendValue(value2, params, columnType, columnTypeName, typeAdapter, false) + ') collate DATABASE_DEFAULT'
     }
     override _replaceAllInsensitive(params: any[], valueSource: ToSql, value: any, value2: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         // SQL Server's `REPLACE` folds case under a case-insensitive collation. With
@@ -872,7 +892,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         // default collation, which is case-insensitive on a standard SQL Server.
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
-            return 'replace(' + this._appendSqlParenthesis(valueSource, params, false) + ' collate ' + collation + ', ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false) + ' collate ' + collation + ', ' + this._appendValue(value2, params, columnType, columnTypeName, typeAdapter, false) + ') collate DATABASE_DEFAULT'
+            return 'replace(' + this._appendSqlMaybeUuidParenthesis(valueSource, params) + ' collate ' + collation + ', ' + this._appendValueMaybeUuidParenthesis(value, params, columnType, columnTypeName, typeAdapter) + ' collate ' + collation + ', ' + this._appendValue(value2, params, columnType, columnTypeName, typeAdapter, false) + ') collate DATABASE_DEFAULT'
         }
         return 'replace(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, false) + ', ' + this._appendValue(value2, params, columnType, columnTypeName, typeAdapter, false) + ')'
     }

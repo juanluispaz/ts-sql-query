@@ -105,6 +105,48 @@ describe(ctx.label, () => {
     })
     */
 
+    // ── uuid receivers ────────────────────────────────────────────────
+    // `uuid.asString().replaceAll(...)` / `.replaceAllInsensitive(...)` must produce valid SQL
+    // and round-trip on every dialect — replacing the whole uuid by itself yields 'X'. SQL
+    // Server needs an explicit convert-before-collate for a uuid receiver/operand; this dialect
+    // needs no special handling.
+    test('replaceAll on a uuid receiver converts before collate', async () => {
+        const s = tIssue.externalRef.asString()
+        const expected = [{ id: 1, v: 'X' }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({ id: tIssue.id, v: s.replaceAll(s, 'X') })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(external_ref, external_ref, ?) as "v" from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "X",
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; v?: string }>>>()
+        expect(result).toEqual(expected)
+    })
+    test('replaceAllInsensitive on a uuid receiver converts before collate', async () => {
+        const s = tIssue.externalRef.asString()
+        const expected = [{ id: 1, v: 'X' }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({ id: tIssue.id, v: s.replaceAllInsensitive(s, 'X') })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(external_ref, external_ref, ?) as "v" from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "X",
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; v?: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
     // ── Fork D: replaceAllInsensitive ──────────────────────────────────
     // With no `replaceAllInsensitiveFunction` configured, SQLite falls back to a
     // plain case-sensitive `replace(...)` (documented, never an error). 'ABCabc'

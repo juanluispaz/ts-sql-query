@@ -51,10 +51,21 @@ import { DBConnection } from './domain/connection.js'
 //     Relying on the built-ins is therefore not portable.
 // uuid_str / uuid_blob are NULL-safe (return NULL on NULL input), mirroring
 // the real uuid extension.
+// The user-registered case-insensitive replace a connection names via
+// `replaceAllInsensitiveFunction`. SQLite's native `replace(...)` is
+// case-sensitive; this UDF folds case (like the docs' recommended implementation)
+// so `config.insensitive-collation.test.ts` can run the `fn(?, ?, ?)` emission
+// END-TO-END on the connectors that can register functions.
+function ciReplace(source: string | null, find: string | null, replacement: string | null): string | null {
+    if (source == null || find == null || replacement == null) return source
+    const escaped = find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    return source.replace(new RegExp(escaped, 'gi'), replacement)
+}
 function registerBetterSqlite3UuidFunctions(db: import('better-sqlite3').Database): void {
     db.function('uuid', uuidv7 as (_: unknown) => unknown)
     db.function('uuid_str', ((blob: Uint8Array | null) => blob == null ? null : uuidStringify(blob)) as (_: unknown) => unknown)
     db.function('uuid_blob', ((uuid: string | null) => uuid == null ? null : Buffer.from(uuidParse(uuid))) as (_: unknown) => unknown)
+    db.function('ci_replace', ciReplace as (_: unknown) => unknown)
 }
 function registerNodeSqliteUuidFunctions(db: import('node:sqlite').DatabaseSync): void {
     // `DatabaseSync.function` only exists from Node 24; on Node 22 the
@@ -65,6 +76,7 @@ function registerNodeSqliteUuidFunctions(db: import('node:sqlite').DatabaseSync)
     fnCapable.function('uuid', () => uuidv7())
     fnCapable.function('uuid_str', (blob: Uint8Array | null) => blob == null ? null : uuidStringify(blob))
     fnCapable.function('uuid_blob', (uuid: string | null) => uuid == null ? null : Buffer.from(uuidParse(uuid)))
+    fnCapable.function('ci_replace', (s: string | null, f: string | null, r: string | null) => ciReplace(s, f, r))
 }
 function registerSqlite3WasmOO1UuidFunctions(db: import('@sqlite.org/sqlite-wasm').Database): void {
     // The OO1 user-defined-function API: `createFunction(name, (ctxPtr, ...args))`.
@@ -72,6 +84,7 @@ function registerSqlite3WasmOO1UuidFunctions(db: import('@sqlite.org/sqlite-wasm
     db.createFunction('uuid', () => uuidv7())
     db.createFunction('uuid_str', (_ctxPtr, blob) => blob == null ? null : uuidStringify(blob as Uint8Array))
     db.createFunction('uuid_blob', (_ctxPtr, uuid) => uuid == null ? null : uuidParse(uuid as string))
+    db.createFunction('ci_replace', (_ctxPtr, s, f, r) => ciReplace(s as string | null, f as string | null, r as string | null))
 }
 
 /**
@@ -103,6 +116,14 @@ export interface SqliteTestContext extends TestContext<DBConnection> {
     readonly exampleInsensitiveCollation: string
     /** A `DBConnection` whose `insensitiveCollation` is pinned to `collation`. */
     withInsensitiveCollation(collation: string | undefined): DBConnection
+    /**
+     * A `DBConnection` whose `replaceAllInsensitiveFunction` is pinned to
+     * `functionName` — the SQLite-only knob that routes `replaceAllInsensitive`
+     * through a user-registered UDF (e.g. `ci_replace`, registered above for the
+     * function-capable connectors) instead of the case-sensitive `replace(...)`
+     * fallback.
+     */
+    withReplaceAllInsensitiveFunction(functionName: string): DBConnection
     /** A `DBConnection` whose `uuidStrategy` is pinned to `strategy`. */
     withUuidStrategy(strategy: 'string' | 'uuid-extension'): DBConnection
     /** A `DBConnection` whose `getDateTimeFormat()` is pinned to `format`. */
@@ -156,6 +177,12 @@ function decorateSqliteContext(
         withInsensitiveCollation(collation: string | undefined): DBConnection {
             class C extends DBConnection {
                 protected override insensitiveCollation: string | undefined = collation
+            }
+            return new C(base.conn.queryRunner)
+        },
+        withReplaceAllInsensitiveFunction(functionName: string): DBConnection {
+            class C extends DBConnection {
+                protected override replaceAllInsensitiveFunction = functionName
             }
             return new C(base.conn.queryRunner)
         },

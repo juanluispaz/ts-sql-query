@@ -58,6 +58,12 @@ export interface OracleTestContext extends TestContext<DBConnection> {
     readonly exampleInsensitiveCollation: string
     /** A `DBConnection` whose `insensitiveCollation` is pinned to `collation`. */
     withInsensitiveCollation(collation: string | undefined): DBConnection
+    /**
+     * A `DBConnection` whose `replaceInsensitiveCollation` is pinned to
+     * `collation` — the Oracle-only knob for how `replaceAllInsensitive`
+     * collates each operand (`''` opts out to a bare `replace(...)`).
+     */
+    withReplaceInsensitiveCollation(collation: string): DBConnection
     /** A `DBConnection` whose `uuidStrategy` is pinned to `strategy`. */
     withUuidStrategy(strategy: 'string' | 'custom-functions' | 'built-in'): DBConnection
 }
@@ -74,6 +80,12 @@ function decorateOracleContext(base: TestContext<DBConnection>): OracleTestConte
         withInsensitiveCollation(collation: string | undefined): DBConnection {
             class C extends DBConnection {
                 protected override insensitiveCollation: string | undefined = collation
+            }
+            return new C(base.conn.queryRunner)
+        },
+        withReplaceInsensitiveCollation(collation: string): DBConnection {
+            class C extends DBConnection {
+                protected override replaceInsensitiveCollation = collation
             }
             return new C(base.conn.queryRunner)
         },

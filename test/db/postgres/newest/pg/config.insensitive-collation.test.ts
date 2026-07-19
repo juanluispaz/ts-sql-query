@@ -216,44 +216,5 @@ describe(ctx.label, () => {
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email ilike (replace(replace(replace(full_name, '\\', '\\\\'), '%', '\\%'), '_', '\\_') || '%')"`)
     })
-    // NOT-APPLICABLE: replaceAllInsensitive collation knobs (replaceInsensitiveCollation / Oracle insensitiveCollation opt-out) are Oracle-only
-    /*
-    test('replaceInsensitiveCollation opt-out emits bare replace', async () => {
-        // `replaceInsensitiveCollation = ''` opts out — `replaceAllInsensitive`
-        // drops the per-operand `collate BINARY_CI` (and the trailing USING_NLS_COMP reset)
-        // and emits the bare native `replace(...)`, which follows the session collation.
-        const conn = new ReplaceCollationOptOutConnection(ctx.conn.queryRunner)
-        await conn.selectFromNoTable()
-            .select({ v: conn.const('ABCabc', 'string').replaceAllInsensitive('abc', 'X') })
-            .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot()
-    })
-    */
-    // NOT-APPLICABLE: replaceAllInsensitive collation knobs (replaceInsensitiveCollation / Oracle insensitiveCollation opt-out) are Oracle-only
-    /*
-    test('insensitiveCollation opt-out also emits bare replace', async () => {
-        // setting `insensitiveCollation = ''` opts `replaceAllInsensitive` out the
-        // same way — a distinct config guard arm reaching the same bare-replace
-        // emission (the SqlBuilder falls back to `replaceInsensitiveCollation`, then
-        // `insensitiveCollation`; an empty value on either disables the collate).
-        const conn = new InsensitiveCollationOptOutConnection(ctx.conn.queryRunner)
-        await conn.selectFromNoTable()
-            .select({ v: conn.const('ABCabc', 'string').replaceAllInsensitive('abc', 'X') })
-            .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot()
-    })
-    */
-    // NOT-APPLICABLE: replaceAllInsensitive collation knobs (replaceInsensitiveCollation / Oracle insensitiveCollation opt-out) are Oracle-only
-    /*
-    test('replaceInsensitiveCollation alternate collation', async () => {
-        // `replaceInsensitiveCollation = 'BINARY_AI'` (accent-insensitive) forces a
-        // DIFFERENT collation name than the default BINARY_CI — the same branch, a
-        // different collation string on each operand.
-        const conn = new AlternateReplaceCollationConnection(ctx.conn.queryRunner)
-        await conn.selectFromNoTable()
-            .select({ v: conn.const('ABCabc', 'string').replaceAllInsensitive('abc', 'X') })
-            .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot()
-    })
-    */
+
 })

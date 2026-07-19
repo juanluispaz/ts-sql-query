@@ -19,21 +19,8 @@
 // guard needed.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
-import { DBConnection, tAppUser } from '../../domain/connection.js'
+import { tAppUser } from '../../domain/connection.js'
 import { ctx } from './setup.js'
-
-// Oracle-only knobs for how `replaceAllInsensitive` collates. The default
-// `replaceInsensitiveCollation = 'BINARY_CI'` collates each operand (see
-// select.collation.test.ts); these subclasses exercise the opt-out and alternate arms.
-class ReplaceCollationOptOutConnection extends DBConnection {
-    protected override replaceInsensitiveCollation = ''
-}
-class InsensitiveCollationOptOutConnection extends DBConnection {
-    protected override insensitiveCollation = ''
-}
-class AlternateReplaceCollationConnection extends DBConnection {
-    protected override replaceInsensitiveCollation = 'BINARY_AI'
-}
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -233,7 +220,7 @@ describe(ctx.label, () => {
         // `replaceInsensitiveCollation = ''` opts out — `replaceAllInsensitive`
         // drops the per-operand `collate BINARY_CI` (and the trailing USING_NLS_COMP reset)
         // and emits the bare native `replace(...)`, which follows the session collation.
-        const conn = new ReplaceCollationOptOutConnection(ctx.conn.queryRunner)
+        const conn = ctx.withReplaceInsensitiveCollation('')
         await conn.selectFromNoTable()
             .select({ v: conn.const('ABCabc', 'string').replaceAllInsensitive('abc', 'X') })
             .executeSelectMany()
@@ -245,7 +232,7 @@ describe(ctx.label, () => {
         // same way — a distinct config guard arm reaching the same bare-replace
         // emission (the SqlBuilder falls back to `replaceInsensitiveCollation`, then
         // `insensitiveCollation`; an empty value on either disables the collate).
-        const conn = new InsensitiveCollationOptOutConnection(ctx.conn.queryRunner)
+        const conn = ctx.withInsensitiveCollation('')
         await conn.selectFromNoTable()
             .select({ v: conn.const('ABCabc', 'string').replaceAllInsensitive('abc', 'X') })
             .executeSelectMany()
@@ -256,7 +243,7 @@ describe(ctx.label, () => {
         // `replaceInsensitiveCollation = 'BINARY_AI'` (accent-insensitive) forces a
         // DIFFERENT collation name than the default BINARY_CI — the same branch, a
         // different collation string on each operand.
-        const conn = new AlternateReplaceCollationConnection(ctx.conn.queryRunner)
+        const conn = ctx.withReplaceInsensitiveCollation('BINARY_AI')
         await conn.selectFromNoTable()
             .select({ v: conn.const('ABCabc', 'string').replaceAllInsensitive('abc', 'X') })
             .executeSelectMany()

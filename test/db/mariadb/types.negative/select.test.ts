@@ -218,6 +218,46 @@ function _typeNegatives() {
         // @ts-expect-error an aggregate SQL fragment cannot appear in WHERE
         connection.aggregateFragmentWithType('int', 'optional').sql`sum(${tIssue.priority})`.greaterThan(1)
     )
+    // Rule: the aggregate marker SURVIVES arithmetic — `sum(...).add(1)` is still
+    // an aggregate expression, so an aggregate-arithmetic predicate is rejected in
+    // WHERE just like the bare aggregate (the brand does not drop through `.add()`).
+    void connection.selectFrom(tIssue).where(
+        // @ts-expect-error an aggregate-arithmetic expression cannot appear in WHERE
+        connection.sum(tIssue.priority).add(1).greaterThan(1)
+    )
+
+    // Rule: an aggregate is rejected in WHERE even when composed via `.and()` onto a
+    // legal predicate — the aggregate marker propagates through the boolean combinator,
+    // so the whole `.and(...)` expression is aggregate-tainted and WHERE rejects it.
+    void connection.selectFrom(tIssue).where(
+        // @ts-expect-error an .and()-composed predicate carrying an aggregate cannot appear in WHERE
+        tIssue.id.greaterThan(0).and(connection.count(tIssue.id).greaterThan(1))
+    )
+
+    // Rule: `countAll()` is an aggregate too, so it is rejected in WHERE.
+    void connection.selectFrom(tIssue).where(
+        // @ts-expect-error countAll() is an aggregate and cannot appear in WHERE
+        connection.countAll().greaterThan(1)
+    )
+
+    // Rule: the OBJECT-form `aggregateAsArray({...})` carries the aggregate marker
+    // (the array-of-one-column form is locked above); it is rejected in GROUP BY.
+    void connection.selectFrom(tIssue).groupBy(
+        // @ts-expect-error aggregateAsArray({...}) is an aggregate and cannot appear in GROUP BY
+        connection.aggregateAsArray({ p: tIssue.priority })
+    )
+
+    // Rule (exactOptionalPropertyTypes): an optional
+    // leaf inside an optional nested object types as `meta?: { archivedAt?: Date }` —
+    // NOT `... | undefined`. So an explicit `undefined` assignment to the optional key
+    // is rejected (the key must be OMITTED, not set to undefined).
+    void connection.selectFrom(tProject)
+        .select({ id: tProject.id, meta: { archivedAt: tProject.archivedAt } })
+        .executeSelectOne()
+        .then((row) => {
+            // @ts-expect-error exactOptionalPropertyTypes: `meta?: {...}` rejects an explicit `undefined`
+            row.meta = undefined
+        })
 
     // Rule: MariaDB does not allow outer references inside a compound
     // subquery's FROM, so forUseAsInlineAggregatedArrayValue() is typed `never`

@@ -3,7 +3,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tOrganization, tProject } from '../../domain/connection.js'
+import { tIssue, tOrganization, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -85,4 +85,37 @@ describe(ctx.label, () => {
         })
     })
 
+    test('update-from-minmax-poison-case-qualifies-operands', async () => {
+        // A minValue/maxValue poison CASE in an UPDATE … FROM SET value: because a FROM
+        // table is present, the target's own columns are TABLE-QUALIFIED, so the poison
+        // CASE guards `issue.assignee_id` / `issue.parent_id`. assignee_id is set to the both-optional
+        // `maxValue(parentId)` over issue 1 (project 1); parent_id is NULL → the SET
+        // poisons to NULL, which we read back.
+        await ctx.withRollback(async () => {
+            ctx.mockNext(1)
+            const affected = await ctx.conn.update(tIssue)
+                .from(tProject)
+                .set({ assigneeId: tIssue.assigneeId.maxValue(tIssue.parentId) })
+                .where(tIssue.projectId.equals(tProject.id))
+                    .and(tIssue.id.equals(1))
+                .executeUpdate()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set assignee_id = case when issue.assignee_id is null or issue.parent_id is null then null else least(issue.assignee_id, issue.parent_id) end from project where issue.project_id = project.id and issue.id = @0"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(1)
+
+            ctx.mockNext({ id: 1 })
+            const row = await ctx.conn.selectFrom(tIssue)
+                .where(tIssue.id.equals(1))
+                .select({ id: tIssue.id, assigneeId: tIssue.assigneeId })
+                .executeSelectOne()
+            expect(row).toEqual({ id: 1 })
+            expect('assigneeId' in row).toBe(false)
+        })
+    })
 })

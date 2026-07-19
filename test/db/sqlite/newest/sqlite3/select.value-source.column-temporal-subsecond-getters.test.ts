@@ -11,7 +11,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tTemporalPrecision } from '../../domain/connection.js'
+import { tReleaseDraft, tTemporalPrecision } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -36,6 +36,119 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof rows, Array<{ s: number; ms: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+    test('column-microstamp-gettime-rounds-up', async () => {
+        // getTime() is the sole SUB-SECOND-SENSITIVE getter (extract-epoch × 1000),
+        // unlike the truncating getSeconds/getMilliseconds siblings above which read a
+        // component. On the µs-precision micro_stamp (2024-01-15 12:30:59.999600) the
+        // epoch-ms lands on the boundary 1705321860000 (12:31:00.000, PostgreSQL's
+        // `round(... * 1000)` rounds the .9996 ms term UP) or 1705321859999 (engines that
+        // truncate the sub-ms term, e.g. SQLite). The instant is the same; the ±1 ms is
+        // the engine's sub-millisecond rounding. Result type: required `number`.
+        ctx.mockNext([{ t: Date.UTC(2024, 0, 15, 12, 31, 0) }])
+        const rows = await ctx.conn.selectFrom(tTemporalPrecision)
+            .where(tTemporalPrecision.id.equals(1))
+            .select({
+                t: tTemporalPrecision.microStamp.getTime(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select round(unixepoch(micro_stamp, 'subsec') * 1000) as "t" from temporal_precision where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ t: number }>>>()
+        // ±1 ms tolerance across engines' sub-millisecond rounding of the 999600 µs term.
+        expect(Math.abs(rows[0]!.t - Date.UTC(2024, 0, 15, 12, 31, 0))).toBeLessThanOrEqual(1)
+    })
+    test('column-shifthour-adapter-datetime-getters-drop-adapter', async () => {
+        // All 9 getters on shiftedStamp (customLocalDateTime + shiftHourAdapter),
+        // DEFAULT '2024-06-01 10:00:00' (a Saturday). getHours() reports the RAW 10,
+        // NOT the adapter-shifted 11 — the adapter is dropped at the getter. So year
+        // 2024, month 5 (June, JS 0-indexed), date 1, day-of-week 6, hours 10,
+        // minutes 0, seconds 0, milliseconds 0, and getTime() = the raw
+        // 2024-06-01 10:00:00 epoch (NOT the +1h 11:00:00). Every leaf is a required
+        // unbranded `number`.
+        const expected = [{
+            y: 2024, mo: 5, d: 1, dow: 6, h: 10, m: 0, s: 0, ms: 0,
+            t: Date.UTC(2024, 5, 1, 10, 0, 0),
+        }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tReleaseDraft)
+            .where(tReleaseDraft.id.equals(1))
+            .select({
+                y:   tReleaseDraft.shiftedStamp.getFullYear(),
+                mo:  tReleaseDraft.shiftedStamp.getMonth(),
+                d:   tReleaseDraft.shiftedStamp.getDate(),
+                dow: tReleaseDraft.shiftedStamp.getDay(),
+                h:   tReleaseDraft.shiftedStamp.getHours(),
+                m:   tReleaseDraft.shiftedStamp.getMinutes(),
+                s:   tReleaseDraft.shiftedStamp.getSeconds(),
+                ms:  tReleaseDraft.shiftedStamp.getMilliseconds(),
+                t:   tReleaseDraft.shiftedStamp.getTime(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%Y', shifted_stamp) as integer) as "y", cast(strftime('%m', shifted_stamp) as integer) - 1 as mo, cast(strftime('%d', shifted_stamp) as integer) as "d", cast(strftime('%w',shifted_stamp) as integer) as dow, cast(strftime('%H', shifted_stamp) as integer) as "h", cast(strftime('%M', shifted_stamp) as integer) as "m", cast(strftime('%S', shifted_stamp) as integer) as "s", cast(round(strftime('%f', shifted_stamp) * 1000) as integer) % 1000 as ms, round(unixepoch(shifted_stamp, 'subsec') * 1000) as "t" from release_draft where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ y: number; mo: number; d: number; dow: number; h: number; m: number; s: number; ms: number; t: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+    test('column-shifthour-adapter-date-getters-drop-adapter', async () => {
+        // The 4 LocalDate getters on shiftedReleaseDay (customLocalDate +
+        // shiftHourAdapter), DEFAULT '2025-03-01' (a Saturday). The getter drops the
+        // adapter and reports the raw date components: year 2025, month 2 (March, JS
+        // 0-indexed), date 1, day-of-week 6. Every leaf is a required unbranded
+        // `number`.
+        const expected = [{ y: 2025, mo: 2, d: 1, dow: 6 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tReleaseDraft)
+            .where(tReleaseDraft.id.equals(1))
+            .select({
+                y:   tReleaseDraft.shiftedReleaseDay.getFullYear(),
+                mo:  tReleaseDraft.shiftedReleaseDay.getMonth(),
+                d:   tReleaseDraft.shiftedReleaseDay.getDate(),
+                dow: tReleaseDraft.shiftedReleaseDay.getDay(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%Y', shifted_release_day) as integer) as "y", cast(strftime('%m', shifted_release_day) as integer) - 1 as mo, cast(strftime('%d', shifted_release_day) as integer) as "d", cast(strftime('%w',shifted_release_day) as integer) as dow from release_draft where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ y: number; mo: number; d: number; dow: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+    test('column-shifthour-adapter-time-getters-drop-adapter', async () => {
+        // The 4 LocalTime getters on shiftedCutoff (customLocalTime +
+        // shiftHourAdapter), DEFAULT '09:00:00'. getHours() reports the RAW 9, NOT
+        // the adapter-shifted 10 — the adapter is dropped at the getter. So hours 9,
+        // minutes 0, seconds 0, milliseconds 0. Every leaf is a required unbranded
+        // `number`.
+        const expected = [{ h: 9, m: 0, s: 0, ms: 0 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tReleaseDraft)
+            .where(tReleaseDraft.id.equals(1))
+            .select({
+                h:  tReleaseDraft.shiftedCutoff.getHours(),
+                m:  tReleaseDraft.shiftedCutoff.getMinutes(),
+                s:  tReleaseDraft.shiftedCutoff.getSeconds(),
+                ms: tReleaseDraft.shiftedCutoff.getMilliseconds(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%H', shifted_cutoff) as integer) as "h", cast(strftime('%M', shifted_cutoff) as integer) as "m", cast(strftime('%S', shifted_cutoff) as integer) as "s", cast(round(strftime('%f', shifted_cutoff) * 1000) as integer) % 1000 as ms from release_draft where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ h: number; m: number; s: number; ms: number }>>>()
         expect(rows).toEqual(expected)
     })
 })

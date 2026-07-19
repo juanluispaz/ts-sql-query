@@ -108,27 +108,26 @@ The existing `docs:select/aggregate-and-group-by` and
 `docs:select/with-clause` tests follow the conservative shape; do the
 same in any new aggregate test.
 
-## Aggregate functions are not flagged as aggregates in the type system
+## The library does not auto-rewrite a misplaced aggregate predicate into HAVING
 
-The library exposes `count(...)`, `sum(...)`, `avg(...)`, etc., but
-the TypeScript surface treats them as ordinary value expressions —
-there is no separate "AggregateValueSource" type. Two consequences:
+Aggregates now **are** flagged in the type system: `count(...)`, `sum(...)`,
+`average(...)`, etc. carry an `NAggregate` source brand (`NSourceAllowingAggregate`),
+and the brand **survives arithmetic and comparison** — so
+`connection.sum(tFoo.priority).add(1).greaterThan(1)` (an aggregate-arithmetic
+expression) is a **compile error** in `where(...)`, `groupBy(...)` and a join
+`on(...)`, not just a bare `count()`. There is no brand-drop residual.
 
-1. **An aggregate can land where it isn't legal.** The type system
-   does NOT prevent you from putting `connection.count(tFoo.id)` in a
-   `where(...)` clause; the engine will reject it at runtime ("aggregate
-   functions are not allowed in WHERE", or the dialect's equivalent).
-   The library has no way of knowing.
-2. **The library cannot derive a `HAVING` requirement from the
-   query shape.** You must place aggregate predicates in `.having(...)`
-   yourself; `.where(...)` won't be rewritten for you.
+The remaining limitation is narrower:
 
-**What this means for tests** — never put an aggregate in `where`,
-even when the snippet you are porting from the docs page seems to. If
-you need a predicate on an aggregate, use `.having(...)`. If the
-runtime cell rejects something a mock cell accepted (because the mock
-doesn't execute the SQL), it is almost always this case. Treat as
-"test author error", not as a bug.
+- **The library cannot derive a `HAVING` requirement from the query
+  shape.** You must place aggregate predicates in `.having(...)` yourself;
+  a misplaced aggregate is rejected at compile time, but `.where(...)` is
+  never *rewritten* into `.having(...)` for you.
+
+**What this means for tests** — if you need a predicate on an aggregate,
+use `.having(...)`. An aggregate in `where`/`groupBy`/`on` no longer reaches
+the engine at all — the TypeScript surface rejects it — so it is a compile
+error to fix, not a runtime "aggregate not allowed in WHERE" to characterize.
 
 ## MariaDB UPDATE ... RETURNING requires MariaDB 13.0.1+ — `mariadb:latest` still ships 12.x
 

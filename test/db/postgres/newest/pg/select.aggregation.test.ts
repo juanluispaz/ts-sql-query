@@ -546,4 +546,59 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, { sd?: number; avd?: number }>>()
         expect(result).toEqual({ sd: 6, avd: 2 })
     })
+
+    test('aggregate-arithmetic-expression-as-select-column', async () => {
+        // An aggregate used as an ARITHMETIC EXPRESSION in a SELECT column:
+        // `sum(priority).add(1)`. The whole-table sum of the four priorities
+        // {2, 1, 3, 2} is 8; `.add(1)` makes the single-row result 9. The
+        // aggregate is optional (an empty set aggregates to NULL) and adding a
+        // required constant preserves that optionality, so the leaf is
+        // `x?: number`.
+        ctx.mockNext({ x: 9 })
+        const result = await ctx.conn.selectFrom(tIssue)
+            .select({ x: ctx.conn.sum(tIssue.priority).add(1) })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum(priority) + $1 as "x" from issue"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, { x?: number }>>()
+        expect(result.x).toBe(9)
+    })
+
+    test('aggregate-arithmetic-expression-in-order-by', async () => {
+        // An aggregate ARITHMETIC EXPRESSION used as an ORDER BY term of a
+        // grouped query: `orderBy(sum(priority).add(1))`. Grouping the four
+        // issues by project, the summed priorities are project 1 {2,1}=3,
+        // project 2 {3}=3, project 3 {2}=2. Ordering by sum+1 ascending puts
+        // project 3 (2) first, then projects 1 and 2 (both 3); the secondary
+        // `orderBy('projectId')` breaks that tie deterministically so the value
+        // assertion is stable across mock and real DB. `sum` is optional, so
+        // `total` surfaces as `total?: number`.
+        const expected = [
+            { projectId: 3, total: 2 },
+            { projectId: 1, total: 3 },
+            { projectId: 2, total: 3 },
+        ]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .select({
+                projectId: tIssue.projectId,
+                total:     ctx.conn.sum(tIssue.priority),
+            })
+            .groupBy('projectId')
+            .orderBy(ctx.conn.sum(tIssue.priority).add(1))
+            .orderBy('projectId')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", sum(priority) as total from issue group by project_id order by sum(issue.priority) + $1, "projectId""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ projectId: number; total?: number }>>>()
+        expect(result).toEqual(expected)
+    })
 })

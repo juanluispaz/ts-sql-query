@@ -10,6 +10,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
+import { tAppUser, tIssue } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -265,6 +266,284 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof result, Array<{ v: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    // ── Fork A: .collate() in other operand / clause positions ──────────
+    // `.collate()` on the RHS OPERAND of a comparison (every Fork-A test above
+    // collates the LHS receiver). The operand is self-parenthesised: `$1 = ($2 collate
+    // "C")`. 'abc' = ('ABC' collate C) is case-sensitive → false.
+    test('collate on the right-hand operand of a comparison', async () => {
+        const expected = [{ v: false }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFromNoTable()
+            .select({ v: ctx.conn.const('abc', 'string').equals(ctx.conn.const('ABC', 'string').collate('C')) })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 = ($2 collate "C") as "v""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "abc",
+            "ABC",
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ v: boolean }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    // `.collate()` on the operand under EACH comparison operator other than equals.
+    // Each self-parenthesises `(col collate "C")` the same way; this pins the emission
+    // across the operator family in one query. Values over the caseless constants are
+    // deterministic under the code-point "C" collation.
+    test('collate operand under the comparison-operator family', async () => {
+        const expected = [{
+            ne: true, lt: false, gt: true, le: false, ge: true,
+            bt: true, i: false, ino: true,
+        }]
+        ctx.mockNext(expected)
+        const lhs = () => ctx.conn.const('abc', 'string')
+        const rhs = () => ctx.conn.const('ABC', 'string').collate('C')
+        const result = await ctx.conn.selectFromNoTable()
+            .select({
+                ne:    lhs().notEquals(rhs()),
+                lt:    lhs().lessThan(rhs()),
+                gt:    lhs().greaterThan(rhs()),
+                le:    lhs().lessOrEqual(rhs()),
+                ge:    lhs().greaterOrEqual(rhs()),
+                bt:    lhs().between(rhs(), ctx.conn.const('zzz', 'string')),
+                i:     lhs().is(rhs()),
+                ino:   lhs().isNot(rhs()),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 <> ($2 collate "C") as ne, $3 < ($4 collate "C") as lt, $5 > ($6 collate "C") as gt, $7 <= ($8 collate "C") as le, $9 >= ($10 collate "C") as ge, $11 between ($12 collate "C") and $13 as bt, $14 is not distinct from ($15 collate "C") as "i", $16 is distinct from ($17 collate "C") as ino"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "abc",
+            "ABC",
+            "abc",
+            "ABC",
+            "abc",
+            "ABC",
+            "abc",
+            "ABC",
+            "abc",
+            "ABC",
+            "abc",
+            "ABC",
+            "zzz",
+            "abc",
+            "ABC",
+            "abc",
+            "ABC",
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{
+            ne: boolean; lt: boolean; gt: boolean; le: boolean; ge: boolean
+            bt: boolean; i: boolean; ino: boolean
+        }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    // `.collate()` as a GROUP BY column → `group by full_name collate "C"`.
+    test('collate as a group-by column', async () => {
+        const expected = [
+            { name: 'Ada Lovelace', n: 1 },
+            { name: 'Alan Turing', n: 1 },
+            { name: 'Grace Hopper', n: 1 },
+        ]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tAppUser)
+            .select({ name: tAppUser.fullName.collate('C'), n: ctx.conn.count(tAppUser.id) })
+            .groupBy(tAppUser.fullName.collate('C'))
+            .orderBy('name')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select full_name collate "C" as name, count(id) as "n" from app_user group by full_name collate "C" order by name"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ name: string; n: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    // `.collate()` as an ORDER BY column (explicit value-source method, distinct
+    // from the `orderBy(col, 'insensitive')` config path) → `order by app_user.full_name
+    // collate "C"`.
+    test('collate as an order-by column', async () => {
+        const expected = [
+            { id: 1, fullName: 'Ada Lovelace' },
+            { id: 3, fullName: 'Alan Turing' },
+            { id: 2, fullName: 'Grace Hopper' },
+        ]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tAppUser)
+            .select({ id: tAppUser.id, fullName: tAppUser.fullName })
+            .orderBy(tAppUser.fullName.collate('C'))
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, full_name as "fullName" from app_user order by app_user.full_name collate "C""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ id: number; fullName: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    // `.collate()` as a `replaceAll` ARGUMENT (a collated value-source find operand)
+    // → `replace(email, (full_name collate "C"), $1)`. No user's full_name is a substring
+    // of their email, so every email is returned unchanged.
+    test('collate as a replaceAll argument', async () => {
+        const expected = [
+            { id: 1, v: 'ada@acme.test' },
+            { id: 2, v: 'grace@acme.test' },
+            { id: 3, v: 'alan@globex.test' },
+        ]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tAppUser)
+            .select({ id: tAppUser.id, v: tAppUser.email.replaceAll(tAppUser.fullName.collate('C'), 'X') })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(email, full_name collate "C", $1) as "v" from app_user order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "X",
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; v: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    // `.collate()` on an OPTIONAL receiver keeps the receiver optional → `v?: string`,
+    // and a NULL row reads ABSENT under the default projector. `tIssue.body` is an
+    // optionalColumn string. issue 1 body NULL → `v` absent; issue 2 body present → the
+    // collated value.
+    test('collate on an optional receiver stays optional', async () => {
+        const expected = [
+            { id: 1 },
+            { id: 2, v: 'Use new tokens' },
+        ]
+        ctx.mockNext([{ id: 1, v: null }, { id: 2, v: 'Use new tokens' }])
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.projectId.equals(1))
+            .select({ id: tIssue.id, v: tIssue.body.collate('C') })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, body collate "C" as "v" from issue where project_id = $1 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; v?: string }>>>()
+        expect(result).toEqual(expected)
+        expect('v' in result[0]!).toBe(false)
+    })
+
+    // ── Fork D: replaceAllInsensitive with VALUE-SOURCE operands ─────────
+    // Every replaceAllInsensitive test above passes CONST string operands, so the library
+    // regex-escapes them at BUILD time. A VALUE-SOURCE operand's text is unknown at build
+    // time, so the escape must happen at RUNTIME (the else-branch — PG/MySQL/MariaDB build
+    // a nested `replace(...)` to escape the search/replacement in SQL). These pin that
+    // else-branch. The search term matches the source in the same case ('abc' in
+    // 'ZabcZabc'), so the result coincides whether the engine folds case (PG regexp 'gi')
+    // or not (SQLite's case-sensitive replace fallback) — what differs is the emission,
+    // which the per-dialect snapshot pins.
+    // value-source FIND operand.
+    test('replaceAllInsensitive with a value-source find operand', async () => {
+        const expected = [{ v: 'ZXZX' }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFromNoTable()
+            .select({ v: ctx.conn.const('ZabcZabc', 'string').replaceAllInsensitive(ctx.conn.const('abc', 'string'), 'X') })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select regexp_replace($1, replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace($2, '\\', '\\\\'), '.', '\\.'), '*', '\\*'), '+', '\\+'), '?', '\\?'), '^', '\\^'), '$', '\\$'), '{', '\\{'), '}', '\\}'), '(', '\\('), ')', '\\)'), '|', '\\|'), '[', '\\['), ']', '\\]'), $3, 'gi') as "v""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "ZabcZabc",
+            "abc",
+            "X",
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ v: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    // value-source REPLACEMENT operand (the replacement-escape else-branch).
+    test('replaceAllInsensitive with a value-source replacement operand', async () => {
+        const expected = [{ v: 'ZYZY' }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFromNoTable()
+            .select({ v: ctx.conn.const('ZabcZabc', 'string').replaceAllInsensitive('abc', ctx.conn.const('Y', 'string')) })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select regexp_replace($1, $2, replace($3, '\\', '\\\\'), 'gi') as "v""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "ZabcZabc",
+            "abc",
+            "Y",
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ v: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    // BOTH operands value sources (both escape else-branches + optionality merge).
+    test('replaceAllInsensitive with both operands value sources', async () => {
+        const expected = [{ v: 'ZWZW' }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFromNoTable()
+            .select({ v: ctx.conn.const('ZabcZabc', 'string').replaceAllInsensitive(ctx.conn.const('abc', 'string'), ctx.conn.const('W', 'string')) })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select regexp_replace($1, replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace($2, '\\', '\\\\'), '.', '\\.'), '*', '\\*'), '+', '\\+'), '?', '\\?'), '^', '\\^'), '$', '\\$'), '{', '\\{'), '}', '\\}'), '(', '\\('), ')', '\\)'), '|', '\\|'), '[', '\\['), ']', '\\]'), replace($3, '\\', '\\\\'), 'gi') as "v""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "ZabcZabc",
+            "abc",
+            "W",
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ v: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    // `replaceAllInsensitiveIfValue` PRESENT-value arms (a value-source paired with
+    // a present string, both directions). The elide-when-absent arm is covered above; here
+    // both arguments are present so the transform applies.
+    test('replaceAllInsensitiveIfValue present-value arms with a value-source operand', async () => {
+        const expected = [{ vfind: 'ZXZX', vrepl: 'ZYZY' }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFromNoTable()
+            .select({
+                vfind: ctx.conn.const('ZabcZabc', 'string').replaceAllInsensitiveIfValue(ctx.conn.const('abc', 'string'), 'X'),
+                vrepl: ctx.conn.const('ZabcZabc', 'string').replaceAllInsensitiveIfValue('abc', ctx.conn.const('Y', 'string')),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select regexp_replace($1, replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace($2, '\\', '\\\\'), '.', '\\.'), '*', '\\*'), '+', '\\+'), '?', '\\?'), '^', '\\^'), '$', '\\$'), '{', '\\{'), '}', '\\}'), '(', '\\('), ')', '\\)'), '|', '\\|'), '[', '\\['), ']', '\\]'), $3, 'gi') as vfind, regexp_replace($4, $5, replace($6, '\\', '\\\\'), 'gi') as vrepl"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "ZabcZabc",
+            "abc",
+            "X",
+            "ZabcZabc",
+            "abc",
+            "Y",
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ vfind: string; vrepl: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    // `.collate()` on a LIKE receiver. The emission wraps the collated receiver
+    // `(? collate "C") like ?` uniformly, but the ENGINE behaviour diverges: on most
+    // engines the collation drives the LIKE, while SQLite's LIKE IGNORES the collate
+    // (documented boundary) — so each cell asserts its own engine's value. PG's "C" is
+    // case-sensitive, so 'ABC' collate "C" LIKE 'abc%' is false.
+    test('collate on a like receiver', async () => {
+        const expected = [{ v: false }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFromNoTable()
+            .select({ v: ctx.conn.const('ABC', 'string').collate('C').like('abc%') })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ($1 collate "C") like $2 as "v""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "ABC",
+            "abc%",
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ v: boolean }>>>()
         expect(result).toEqual(expected)
     })
 

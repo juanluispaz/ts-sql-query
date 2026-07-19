@@ -4,8 +4,8 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tProjectRelease, tReleaseDraft, type ReleaseStage } from '../../domain/connection.js'
-import type { ReleaseChannel } from '../../domain/connection.js'
+import { tIssue, tProjectRelease, tReleaseDraft } from '../../domain/connection.js'
+import type { ReleaseChannel, ReleaseStage } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -372,6 +372,45 @@ describe(ctx.label, () => {
             assertType<Exact<typeof bodies, Array<string | null>>>()
             const sortedBodies = [...bodies].sort((a, b) => (a === null ? -1 : b === null ? 1 : a.localeCompare(b)))
             expect(sortedBodies).toEqual([null, 'Use new tokens'])
+        })
+    })
+    test('delete-returning-nested-object-optional-leaf-default', async () => {
+        // object-form RETURNING whose nested `meta` group holds a SINGLE OPTIONAL
+        // leaf (`body`, an optionalColumn) under the DEFAULT projector → `meta?: { body?: string }` (tIssue is a leaf table, so the delete is FK-safe). Two boundary
+        // rows: issue 2 (body present) → `meta` + `body` present; issue 1 (body NULL) →
+        // `meta` absent.
+        await ctx.withRollback(async () => {
+            ctx.mockNext({ id: 2, 'meta.body': 'Use new tokens' })
+            const present = await ctx.conn.deleteFrom(tIssue)
+                .where(tIssue.id.equals(2))
+                .returning({
+                    id:   tIssue.id,
+                    meta: { body: tIssue.body },
+                })
+                .executeDeleteOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where id = ? returning id as id, body as "meta.body""`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                2,
+              ]
+            `)
+            assertType<Exact<typeof present, { id: number; meta?: { body?: string } }>>()
+            expect(present.id).toBe(2)
+            expect('meta' in present).toBe(true)
+            expect(present.meta).toEqual({ body: 'Use new tokens' })
+
+            ctx.mockNext({ id: 1, 'meta.body': null })
+            const absent = await ctx.conn.deleteFrom(tIssue)
+                .where(tIssue.id.equals(1))
+                .returning({
+                    id:   tIssue.id,
+                    meta: { body: tIssue.body },
+                })
+                .executeDeleteOne()
+            assertType<Exact<typeof absent, { id: number; meta?: { body?: string } }>>()
+            expect(absent.id).toBe(1)
+            expect('meta' in absent).toBe(false)
         })
     })
 })

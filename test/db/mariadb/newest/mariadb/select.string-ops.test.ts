@@ -1072,4 +1072,69 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { id: number; t: string }>>()
         expect(row).toEqual(expected)
     })
+    test('affix-predicates-with-a-value-source-term', async () => {
+        // the affix predicates (contains / endsWith / notContains) reached with a
+        // VALUE-SOURCE (optional column) term instead of a string literal. The needle renders as the column expression inside
+        // the `(... || '%')` affix; on engines whose concat poisons on NULL (Oracle) the
+        // whole affix is wrapped in a NULL-guard CASE, which the per-dialect snapshot pins.
+        // The optional needle makes each result optional. issue 1 body NULL → absent; issue
+        // 2 body 'Use new tokens', title 'Redesign navbar' → contains=false, endsWith=false,
+        // notContains=true.
+        const expected = [
+            { id: 1 },
+            { id: 2, ct: false, ew: false, nc: true },
+        ]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.projectId.equals(1))
+            .select({
+                id: tIssue.id,
+                ct: tIssue.title.contains(tIssue.body),
+                ew: tIssue.title.endsWith(tIssue.body),
+                nc: tIssue.title.notContains(tIssue.body),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title like concat('%', replace(replace(replace(\`body\`, '\\\\', '\\\\\\\\'), '%', '\\\\%'), '_', '\\\\_'), '%') as ct, title like concat('%', replace(replace(replace(\`body\`, '\\\\', '\\\\\\\\'), '%', '\\\\%'), '_', '\\\\_')) as ew, title not like concat('%', replace(replace(replace(\`body\`, '\\\\', '\\\\\\\\'), '%', '\\\\%'), '_', '\\\\_'), '%') as nc from issue where project_id = ? order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; ct?: boolean; ew?: boolean; nc?: boolean }>>>()
+        expect(result).toEqual(expected)
+    })
+    test('uuid-as-string-string-methods', async () => {
+        // string methods on a `uuid.asString()` value. `length`/`toUpperCase`/`toLowerCase` route the stringified
+        // uuid through the plain string operators; on SQL Server the uuid needs an implicit
+        // convert (pinned by the per-dialect snapshot). external_ref is optional, so each
+        // result is optional; issue 1's uuid is the 36-char lowercase value. (`reverse` is
+        // excluded — SQLite has no REVERSE function.)
+        const uuid = '0a8f9c1e-1111-4222-8333-444455556666'
+        const expected = [{
+            id: 1,
+            len: 36,
+            up:  uuid.toUpperCase(),
+            lo:  uuid.toLowerCase(),
+        }]
+        ctx.mockNext(expected)
+        const s = tIssue.externalRef.asString()
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id:  tIssue.id,
+                len: s.length(),
+                up:  s.toUpperCase(),
+                lo:  s.toLowerCase(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, char_length(external_ref) as len, upper(external_ref) as up, lower(external_ref) as lo from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; len?: number; up?: string; lo?: string }>>>()
+        expect(result).toEqual(expected)
+    })
 })

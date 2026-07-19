@@ -419,4 +419,44 @@ describe(ctx.label, () => {
         })
     })
     */
+    // NOT-APPLICABLE: MySQL has no RETURNING
+    /*
+    test('update-returning-nested-object-optional-leaf-default', async () => {
+        // object-form RETURNING whose nested `meta` group holds a SINGLE OPTIONAL
+        // leaf (`archivedAt`) under the DEFAULT projector → `meta?: { archivedAt?: Date }`. Two boundary rows: project 4 (archived_at present) → `meta` + `archivedAt`
+        // present; project 1 (archived_at NULL) → `meta` absent.
+        await ctx.withRollback(async () => {
+            ctx.mockNext({ id: 4, 'meta.archivedAt': new Date(Date.UTC(2024, 5, 15, 8, 30, 0)) })
+            const present = await ctx.conn.update(tProject)
+                .set({ name: 'Legacy app v2' })
+                .where(tProject.id.equals(4))
+                .returning({
+                    id:   tProject.id,
+                    meta: { archivedAt: tProject.archivedAt },
+                })
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof present, { id: number; meta?: { archivedAt?: Date } }>>()
+            expect(present.id).toBe(4)
+            expect('meta' in present).toBe(true)
+            expect(present.meta && 'archivedAt' in present.meta).toBe(true)
+            expect(present.meta!.archivedAt).toBeInstanceOf(Date)
+
+            ctx.mockNext({ id: 1, 'meta.archivedAt': null })
+            const absent = await ctx.conn.update(tProject)
+                .set({ name: 'Marketing site v2' })
+                .where(tProject.id.equals(1))
+                .returning({
+                    id:   tProject.id,
+                    meta: { archivedAt: tProject.archivedAt },
+                })
+                .executeUpdateOne()
+            assertType<Exact<typeof absent, { id: number; meta?: { archivedAt?: Date } }>>()
+            expect(absent.id).toBe(1)
+            expect('meta' in absent).toBe(false)
+        })
+    })
+    */
 })

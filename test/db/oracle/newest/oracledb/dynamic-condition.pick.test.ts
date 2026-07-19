@@ -655,4 +655,93 @@ describe(ctx.label, () => {
         expect('body' in rows[0]!).toBe(true)
         expect(rows[0]!.body).toBe(null)
     })
+    test('pick/dynamic-pick-optional-leaf-default-projector-drops-null-key', async () => {
+        // a `dynamicPick` of an OPTIONAL column (`body`) under the DEFAULT
+        // projector (no `projectingOptionalValuesAsNullable`). The picked leaf types as
+        // `body?: string` and, per the default optionals-as-undefined projector, a NULL
+        // value DROPS the key entirely (contrast the present-null nullable sibling above).
+        // issue 1 body NULL → `body` absent; issue 2 body present → `body` present.
+        const expected = [
+            { id: 1 },
+            { id: 2, body: 'Use new tokens' },
+        ]
+        ctx.mockNext([{ id: 1, body: null }, { id: 2, body: 'Use new tokens' }])
+        const availableFields = {
+            id:    tIssue.id,
+            title: tIssue.title,
+            body:  tIssue.body,
+        }
+        const picked = dynamicPick(availableFields, { body: true }, ['id'])
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.projectId.equals(1))
+            .select(picked)
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", "body" as "body" from issue where project_id = :0 order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            id:     number
+            title?: string
+            body?:  string
+        }>>>()
+        expect(rows).toEqual(expected)
+        // Issue 1's null body is ABSENT under the default projector (not present-null).
+        expect('body' in rows[0]!).toBe(false)
+        expect('body' in rows[1]!).toBe(true)
+    })
+    test('pick/expand-type-projected-as-nullable-from-page-paths', async () => {
+        // the nullable projector's `{ data, count }` PAGE passthrough overload of
+        // `expandTypeProjectedAsNullableFromDynamicPickPaths` — the array overload is
+        // covered by `pick/expand-type-projected-as-nullable-passthrough`; this pins the
+        // page passthrough. Sibling of `pick/expand-type-from-page-paths`, but through
+        // the nullable reshape (optional-value leaves surface present-as-`T | null`).
+        // Runtime passthrough: the helper returns its `result` argument unchanged, only
+        // retyping it.
+        const availableFields = { id: tIssue.id, title: tIssue.title, body: tIssue.body }
+        const picked = dynamicPickPaths(availableFields, ['title'], ['id'])
+
+        ctx.mockNext([{ id: 1, title: 'Update hero copy' }])
+        ctx.mockNext(1)
+        const page = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select(picked)
+            .limit(10)
+            .offset(0)
+            .executeSelectPage()
+        const expanded = expandTypeProjectedAsNullableFromDynamicPickPaths(availableFields, ['title'], page, ['id'])
+
+        assertType<Extends<typeof expanded, {
+            data:  Array<{ id: number; title?: string; body?: string | null }>
+            count: number
+        }>>()
+        // Runtime passthrough: the helper returns its `result` argument as-is.
+        expect(expanded).toBe(page)
+        expect(expanded.count).toBe(1)
+        expect(expanded.data).toEqual([{ id: 1, title: 'Update hero copy' }])
+    })
+    test('pick/expand-type-projected-as-nullable-from-one-paths', async () => {
+        // the nullable projector's ONE passthrough overload (a `RESULT | null`).
+        // Sibling of `pick/expand-type-from-one-paths`: piping an `executeSelectOne()`
+        // result through `expandTypeProjectedAsNullableFromDynamicPickPaths` reshapes the
+        // type to the nullable-projected picked object. Runtime passthrough.
+        const availableFields = { id: tIssue.id, title: tIssue.title, body: tIssue.body }
+        const picked = dynamicPickPaths(availableFields, ['title'], ['id'])
+
+        ctx.mockNext({ id: 1, title: 'Update hero copy' })
+        const one = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select(picked)
+            .executeSelectOne()
+        const expanded = expandTypeProjectedAsNullableFromDynamicPickPaths(availableFields, ['title'], one, ['id'])
+
+        assertType<Extends<typeof expanded, { id: number; title?: string; body?: string | null } | null>>()
+        // Runtime passthrough.
+        expect(expanded).toBe(one)
+        expect(expanded).toEqual({ id: 1, title: 'Update hero copy' })
+    })
 })

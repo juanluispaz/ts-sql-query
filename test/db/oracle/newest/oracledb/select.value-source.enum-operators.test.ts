@@ -188,4 +188,54 @@ describe(ctx.label, () => {
         `)
         expect(notInRows).toEqual(expectedNotIn)
     })
+    test('enum-value-when-null-value-source-operand', async () => {
+        // `valueWhenNull` with a value-source operand on an enum leaf. The operand `activityCustomKind`
+        // is a REQUIRED enum virtual column (`lower(activity)`), so the overload adopts
+        // ITS `required` optionality and the result stays a required `WorklogActivity`.
+        // `activity` is never null, so the coalesce always yields the column's own
+        // lowercase value: coding(1) / review(2) / meeting(3).
+        const expected = [
+            { id: 1, a: 'coding'  },
+            { id: 2, a: 'review'  },
+            { id: 3, a: 'meeting' },
+        ]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssueWorklog)
+            .select({
+                id: tIssueWorklog.id,
+                a:  tIssueWorklog.activity.valueWhenNull(tIssueWorklog.activityCustomKind),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", nvl(activity, lower(activity)) as "a" from issue_worklog order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ id: number; a: WorklogActivity }>>>()
+        expect(rows).toEqual(expected)
+    })
+    test('enum-null-if-value-value-source-operand', async () => {
+        // `nullIfValue` with a value-source operand on an enum leaf.
+        // `nullIfValue` always widens the result to optional (`a?: WorklogActivity`).
+        // The operand `activityCustomKind` renders `lower(activity)`, and every seeded
+        // activity is already lowercase, so `nullif(activity, lower(activity))` is NULL
+        // on every row — the optional leaf is dropped from each result under the default projector.
+        const expected = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        ctx.mockNext([
+            { id: 1, a: null },
+            { id: 2, a: null },
+            { id: 3, a: null },
+        ])
+        const rows = await ctx.conn.selectFrom(tIssueWorklog)
+            .select({
+                id: tIssueWorklog.id,
+                a:  tIssueWorklog.activity.nullIfValue(tIssueWorklog.activityCustomKind),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", nullif(activity, lower(activity)) as "a" from issue_worklog order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ id: number; a?: WorklogActivity }>>>()
+        expect(rows).toEqual(expected)
+    })
 })

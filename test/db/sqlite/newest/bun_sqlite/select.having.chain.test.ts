@@ -179,4 +179,99 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
+    test('having-with-aggregate-arithmetic-expression', async () => {
+        // A HAVING predicate built from an aggregate ARITHMETIC EXPRESSION:
+        // `having(count(id).multiply(2).greaterThan(6))` — i.e. keep groups
+        // whose doubled row count exceeds 6 (count > 3). Grouping the four
+        // issues by project gives counts project 1 → 2, project 2 → 1,
+        // project 3 → 1; the largest doubled count is 4, so no group survives
+        // and the result is empty. This still pins the aggregate-arithmetic
+        // emission in HAVING and that the predicate genuinely filters (the
+        // empty array is the true answer on a real DB too).
+        const expected: Array<{ projectId: number; total: number }> = []
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .select({
+                projectId: tIssue.projectId,
+                total:     ctx.conn.count(tIssue.id),
+            })
+            .groupBy('projectId')
+            .having(ctx.conn.count(tIssue.id).multiply(2).greaterThan(6))
+            .orderBy('projectId')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, count(id) as total from issue group by project_id having (count(id) * ?) > ? order by projectId"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+            6,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ projectId: number; total: number }>>>()
+        expect(result).toEqual(expected)
+    })
+    test('having-over-sum-average-min-aggregates', async () => {
+        // HAVING predicates over `sum` / `average` / `min` (only `count` / `max`
+        // are exercised in a HAVING elsewhere). Grouping the four issues by
+        // project, the priority stats are project 1 {2,1}: sum 3, avg 1.5,
+        // min 1; project 2 {3}: sum 3, avg 3, min 3; project 3 {2}: sum 2,
+        // avg 2, min 2. The AND-chained predicate
+        // `sum >= 3 AND avg > 1.5 AND min >= 2` is satisfied only by project 2
+        // (project 1 fails the avg bound, project 3 fails the sum bound), whose
+        // group count is 1.
+        const expected = [{ projectId: 2, total: 1 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .select({
+                projectId: tIssue.projectId,
+                total:     ctx.conn.count(tIssue.id),
+            })
+            .groupBy('projectId')
+            .having(ctx.conn.sum(tIssue.priority).greaterOrEqual(3))
+                .and(ctx.conn.average(tIssue.priority).greaterThan(1.5))
+                .and(ctx.conn.min(tIssue.priority).greaterOrEqual(2))
+            .orderBy('projectId')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, count(id) as total from issue group by project_id having sum(priority) >= ? and avg(cast(priority as real)) > ? and min(priority) >= ? order by projectId"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+            1.5,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ projectId: number; total: number }>>>()
+        expect(result).toEqual(expected)
+    })
+    test('having-over-string-concat-aggregate', async () => {
+        // A HAVING predicate over the `stringConcat` aggregate. Grouping the
+        // four issues by project, the concatenated statuses are project 1
+        // {open, in_progress}, project 2 {open}, project 3 {closed}. The
+        // predicate `stringConcat(status).contains('open')` keeps projects 1
+        // and 2 and drops project 3 ('closed' has no 'open' substring); the
+        // containment test is order-independent, so the engine-defined
+        // aggregation order does not affect the result. Group counts are
+        // project 1 → 2, project 2 → 1.
+        const expected = [
+            { projectId: 1, total: 2 },
+            { projectId: 2, total: 1 },
+        ]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .select({
+                projectId: tIssue.projectId,
+                total:     ctx.conn.count(tIssue.id),
+            })
+            .groupBy('projectId')
+            .having(ctx.conn.stringConcat(tIssue.status).contains('open'))
+            .orderBy('projectId')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as projectId, count(id) as total from issue group by project_id having group_concat(status) like ('%' || ? || '%') escape '\\' order by projectId"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "open",
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ projectId: number; total: number }>>>()
+        expect(result).toEqual(expected)
+    })
 })

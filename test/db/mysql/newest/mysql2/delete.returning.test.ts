@@ -373,4 +373,42 @@ describe(ctx.label, () => {
         })
     })
     */
+    // NOT-APPLICABLE: MySQL has no RETURNING
+    /*
+    test('delete-returning-nested-object-optional-leaf-default', async () => {
+        // object-form RETURNING whose nested `meta` group holds a SINGLE OPTIONAL
+        // leaf (`body`, an optionalColumn) under the DEFAULT projector → `meta?: { body?: string }` (tIssue is a leaf table, so the delete is FK-safe). Two boundary
+        // rows: issue 2 (body present) → `meta` + `body` present; issue 1 (body NULL) →
+        // `meta` absent.
+        await ctx.withRollback(async () => {
+            ctx.mockNext({ id: 2, 'meta.body': 'Use new tokens' })
+            const present = await ctx.conn.deleteFrom(tIssue)
+                .where(tIssue.id.equals(2))
+                .returning({
+                    id:   tIssue.id,
+                    meta: { body: tIssue.body },
+                })
+                .executeDeleteOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof present, { id: number; meta?: { body?: string } }>>()
+            expect(present.id).toBe(2)
+            expect('meta' in present).toBe(true)
+            expect(present.meta).toEqual({ body: 'Use new tokens' })
+
+            ctx.mockNext({ id: 1, 'meta.body': null })
+            const absent = await ctx.conn.deleteFrom(tIssue)
+                .where(tIssue.id.equals(1))
+                .returning({
+                    id:   tIssue.id,
+                    meta: { body: tIssue.body },
+                })
+                .executeDeleteOne()
+            assertType<Exact<typeof absent, { id: number; meta?: { body?: string } }>>()
+            expect(absent.id).toBe(1)
+            expect('meta' in absent).toBe(false)
+        })
+    })
+    */
 })

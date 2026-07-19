@@ -4,7 +4,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tOrganization, tReleaseDraft, type ReleaseStage } from '../../domain/connection.js'
+import { tIssue, tOrganization, tProject, tReleaseDraft, type ReleaseStage } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -424,6 +424,49 @@ describe(ctx.label, () => {
             assertType<Exact<typeof bodies, Array<string | null>>>()
             const sortedBodies = [...bodies].sort((a, b) => (a === null ? -1 : b === null ? 1 : a.localeCompare(b)))
             expect(sortedBodies).toEqual([null, 'Use new tokens'])
+        })
+    })
+
+    test('update-returning-nested-object-optional-leaf-default', async () => {
+        // object-form RETURNING whose nested `meta` group holds a SINGLE OPTIONAL
+        // leaf (`archivedAt`) under the DEFAULT projector → `meta?: { archivedAt?: Date }`. Two boundary rows: project 4 (archived_at present) → `meta` + `archivedAt`
+        // present; project 1 (archived_at NULL) → `meta` absent.
+        await ctx.withRollback(async () => {
+            ctx.mockNext({ id: 4, 'meta.archivedAt': new Date(Date.UTC(2024, 5, 15, 8, 30, 0)) })
+            const present = await ctx.conn.update(tProject)
+                .set({ name: 'Legacy app v2' })
+                .where(tProject.id.equals(4))
+                .returning({
+                    id:   tProject.id,
+                    meta: { archivedAt: tProject.archivedAt },
+                })
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = $1 where id = $2 returning id as id, archived_at as "meta.archivedAt""`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Legacy app v2",
+                4,
+              ]
+            `)
+            assertType<Exact<typeof present, { id: number; meta?: { archivedAt?: Date } }>>()
+            expect(present.id).toBe(4)
+            expect('meta' in present).toBe(true)
+            expect(present.meta && 'archivedAt' in present.meta).toBe(true)
+            expect(present.meta!.archivedAt).toBeInstanceOf(Date)
+
+            ctx.mockNext({ id: 1, 'meta.archivedAt': null })
+            const absent = await ctx.conn.update(tProject)
+                .set({ name: 'Marketing site v2' })
+                .where(tProject.id.equals(1))
+                .returning({
+                    id:   tProject.id,
+                    meta: { archivedAt: tProject.archivedAt },
+                })
+                .executeUpdateOne()
+            assertType<Exact<typeof absent, { id: number; meta?: { archivedAt?: Date } }>>()
+            expect(absent.id).toBe(1)
+            expect('meta' in absent).toBe(false)
         })
     })
 })

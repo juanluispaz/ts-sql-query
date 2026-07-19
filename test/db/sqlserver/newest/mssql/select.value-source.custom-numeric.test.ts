@@ -1345,4 +1345,118 @@ describe(ctx.label, () => {
         }
     })
 
+    test('custom-numeric/minmax-optional-customdouble-receiver-poisons', async () => {
+        // Receiver-optional poison CASE on a customDouble receiver: `budget`
+        // ('Money', optional, no per-column adapter). The plain-number operand overload
+        // returns app type `number`, so the leaf is `?: number` (Money's app type is
+        // number). Draft 1 has budget = 1500.5 → minValue(100)=greatest(1500.5,100)=1500.5,
+        // maxValue(100)=least(1500.5,100)=100; draft 2 has NULL budget → both poison to
+        // NULL (keys absent). The receiver-only poison guards a single operand.
+        const expected = [
+            { id: 1, mn: 1500.5, mx: 100 },
+            { id: 2 },
+        ]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tReleaseDraft)
+            .select({
+                id: tReleaseDraft.id,
+                mn: tReleaseDraft.budget.minValue(100),
+                mx: tReleaseDraft.budget.maxValue(100),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, case when budget is null then null else greatest(budget, @0) end as mn, case when budget is null then null else least(budget, @1) end as mx from release_draft order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            100,
+            100,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; mn?: number; mx?: number }>>>()
+        expect(result).toEqual(expected)
+    })
+    test('custom-numeric/minmax-operand-optional-customint-keeps-brand', async () => {
+        // Operand-optional poison CASE on a customInt: `releaseOrdinal` is a
+        // REQUIRED branded ReleaseTag view column (id, read +1000 via plusOffsetAdapter);
+        // `optionalReleaseOrdinal` is its OPTIONAL branded sibling. The value-source
+        // overload keeps the ReleaseTag brand and merges the operand's optionality → the
+        // leaf is `?: ReleaseTag`. The result reads through the receiver's plusOffsetAdapter
+        // (+1000). Release 1 has both present → greatest/least(1,1)=1 → 1001; release 2 has
+        // NULL optional_release_ordinal → poison (keys absent).
+        // The result reads through plusOffsetAdapter (+1000), so the mock is primed with
+        // the raw greatest/least output and the assertion expects it +1000. release 2 has
+        // NULL optional_release_ordinal → poison; releases 1 and 3 clamp to 1001/1003.
+        const expected = [
+            { id: 1, mn: 1001 as ReleaseTag, mx: 1001 as ReleaseTag },
+            { id: 2 },
+            { id: 3, mn: 1003 as ReleaseTag, mx: 1003 as ReleaseTag },
+        ]
+        ctx.mockNext([{ id: 1, mn: 1, mx: 1 }, { id: 2 }, { id: 3, mn: 3, mx: 3 }])
+        const result = await ctx.conn.selectFrom(vReleaseOverview)
+            .select({
+                id: vReleaseOverview.id,
+                mn: vReleaseOverview.releaseOrdinal.minValue(vReleaseOverview.optionalReleaseOrdinal),
+                mx: vReleaseOverview.releaseOrdinal.maxValue(vReleaseOverview.optionalReleaseOrdinal),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, case when optional_release_ordinal is null then null else greatest(release_ordinal, optional_release_ordinal) end as mn, case when optional_release_ordinal is null then null else least(release_ordinal, optional_release_ordinal) end as mx from release_overview order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ id: number; mn?: ReleaseTag; mx?: ReleaseTag }>>>()
+        expect(result).toEqual(expected)
+    })
+    test('custom-numeric/minmax-both-optional-customint-keeps-brand', async () => {
+        // Both-optional poison CASE on a customInt: `optionalReleaseOrdinal` on
+        // both sides → the guard checks both operands joined by `or`, and the brand +
+        // optionality both propagate → `?: ReleaseTag`. Release 1 present (1001); release 2
+        // NULL → poison (keys absent). Closes the customInt both-optional poison arm.
+        // The result reads through plusOffsetAdapter (+1000), so the mock is primed with
+        // the raw greatest/least output and the assertion expects it +1000. release 2 has
+        // NULL optional_release_ordinal → poison; releases 1 and 3 clamp to 1001/1003.
+        const expected = [
+            { id: 1, mn: 1001 as ReleaseTag, mx: 1001 as ReleaseTag },
+            { id: 2 },
+            { id: 3, mn: 1003 as ReleaseTag, mx: 1003 as ReleaseTag },
+        ]
+        ctx.mockNext([{ id: 1, mn: 1, mx: 1 }, { id: 2 }, { id: 3, mn: 3, mx: 3 }])
+        const result = await ctx.conn.selectFrom(vReleaseOverview)
+            .select({
+                id: vReleaseOverview.id,
+                mn: vReleaseOverview.optionalReleaseOrdinal.minValue(vReleaseOverview.optionalReleaseOrdinal),
+                mx: vReleaseOverview.optionalReleaseOrdinal.maxValue(vReleaseOverview.optionalReleaseOrdinal),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, case when optional_release_ordinal is null or optional_release_ordinal is null then null else greatest(optional_release_ordinal, optional_release_ordinal) end as mn, case when optional_release_ordinal is null or optional_release_ordinal is null then null else least(optional_release_ordinal, optional_release_ordinal) end as mx from release_overview order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ id: number; mn?: ReleaseTag; mx?: ReleaseTag }>>>()
+        expect(result).toEqual(expected)
+    })
+    test('custom-numeric/minmax-both-required-customint-value-source-keeps-brand', async () => {
+        // A same-brand VALUE-SOURCE operand on a REQUIRED customInt receiver keeps the
+        // ReleaseTag brand with no poison CASE (both operands required): the emitted SQL is
+        // a bare greatest/least over two column refs and the leaf stays `ReleaseTag`.
+        // release_ordinal reads +1000 → release 1 = 1001,
+        // release 2 = 1002.
+        // The result reads through plusOffsetAdapter (+1000), so the mock is primed with
+        // the raw greatest/least output (1, 2, 3) and the assertion expects 1001/1002/1003.
+        const expected = [
+            { id: 1, mn: 1001 as ReleaseTag, mx: 1001 as ReleaseTag },
+            { id: 2, mn: 1002 as ReleaseTag, mx: 1002 as ReleaseTag },
+            { id: 3, mn: 1003 as ReleaseTag, mx: 1003 as ReleaseTag },
+        ]
+        ctx.mockNext([{ id: 1, mn: 1, mx: 1 }, { id: 2, mn: 2, mx: 2 }, { id: 3, mn: 3, mx: 3 }])
+        const result = await ctx.conn.selectFrom(vReleaseOverview)
+            .select({
+                id: vReleaseOverview.id,
+                mn: vReleaseOverview.releaseOrdinal.minValue(vReleaseOverview.releaseOrdinal),
+                mx: vReleaseOverview.releaseOrdinal.maxValue(vReleaseOverview.releaseOrdinal),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, greatest(release_ordinal, release_ordinal) as mn, least(release_ordinal, release_ordinal) as mx from release_overview order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ id: number; mn: ReleaseTag; mx: ReleaseTag }>>>()
+        expect(result).toEqual(expected)
+    })
 })

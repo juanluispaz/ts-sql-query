@@ -483,4 +483,40 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ label: string }>>>()
         expect(result).toEqual(expected)
     })
+
+    test('customize-compound-directly-executed-with-query-hooks-are-a-no-op-boundary', async () => {
+        // the boundary pin on a directly-executed COMPOUND with no CTE in play.
+        // `beforeWithQuery` / `afterWithQuery` render only from a WITH-view's OWN
+        // customization (`_buildWith`); the compound root is not itself a with-view, so
+        // the hooks have no attachment point and are silently dropped. Distinct from
+        // `customize-compound-with-query-hooks-wrap-cte`, whose left arm reads a CTE (a
+        // `with` clause exists there, yet the compound-root hooks still don't attach);
+        // here there is no `with` clause at all. Projects {1,2} ∪ {3} → 3 rows.
+        const expected = [{ id: 1 }, { id: 2 }, { id: 3 }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+        const result = await connection.selectFrom(tProject).where(tProject.id.in([1, 2])).select({ id: tProject.id })
+            .union(connection.selectFrom(tProject).where(tProject.id.equals(3)).select({ id: tProject.id }))
+            .orderBy('id')
+            .customizeQuery({
+                beforeWithQuery: connection.rawFragment`/* wq-before */`,
+                afterWithQuery:  connection.rawFragment`/* wq-after */`,
+            })
+            .executeSelectMany()
+
+        // The exact snapshot below has NO `with` clause and no trace of the with-query
+        // hooks (`/* wq-before */` / `/* wq-after */`) — a directly-executed compound is not
+        // a CTE body, so the hooks have no attachment point (the no-op boundary, pinned by
+        // the full SQL).
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project where id in ($1, $2) union select id as id from project where id = $3 order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+            3,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+        expect(result).toEqual(expected)
+    })
 })

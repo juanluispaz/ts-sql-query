@@ -11,7 +11,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue } from '../../domain/connection.js'
+import { tIssue, tIssueWorklog, vReleaseOverview } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -170,6 +170,115 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof result, Array<{ id: number; floored?: number; capped?: number }>>>()
+        expect(result).toEqual(expected)
+    })
+    test('minValue-maxValue-both-optional-int-poisons-with-or', async () => {
+        // BOTH operands optional (assignee_id and parent_id are optionalColumn int) →
+        // the poison CASE guards BOTH operands joined by `or`
+        // (`case when a is null or b is null then null else greatest(a,b) end`). The
+        // result stays optional (`?: number`). parent_id is NULL for every seeded issue,
+        // so both operators poison to NULL on every row (each `mn`/`mx` key is absent).
+        const expected = [
+            { id: 1 },
+            { id: 2 },
+            { id: 3 },
+            { id: 4 },
+        ]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .select({
+                id: tIssue.id,
+                mn: tIssue.assigneeId.minValue(tIssue.parentId),
+                mx: tIssue.assigneeId.maxValue(tIssue.parentId),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, max(assignee_id, parent_id) as mn, min(assignee_id, parent_id) as mx from issue order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ id: number; mn?: number; mx?: number }>>>()
+        expect(result).toEqual(expected)
+        for (const row of result) {
+            expect('mn' in row).toBe(false)
+            expect('mx' in row).toBe(false)
+        }
+    })
+    test('minValue-maxValue-both-optional-bigint-poisons-with-or', async () => {
+        // The both-optional poison CASE on the BIGINT arm: duration_ms and its optional
+        // bigint virtual sibling are both optionalColumn bigint, so the result carries
+        // `bigint` (not number) and the guard checks both operands. worklog 2 has NULL
+        // duration_ms → poison NULL there; worklogs 1 and 3 clamp to their own value.
+        const expected = [
+            { id: 1, mn: 5400000n, mx: 5400000n },
+            { id: 2 },
+            { id: 3, mn: 1800000n, mx: 1800000n },
+        ]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssueWorklog)
+            .select({
+                id: tIssueWorklog.id,
+                mn: tIssueWorklog.durationMs.minValue(tIssueWorklog.bigintVirtualOptional),
+                mx: tIssueWorklog.durationMs.maxValue(tIssueWorklog.bigintVirtualOptional),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, max(duration_ms, duration_ms) as mn, min(duration_ms, duration_ms) as mx from issue_worklog order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ id: number; mn?: bigint; mx?: bigint }>>>()
+        expect(result).toEqual(expected)
+    })
+    test('minValue-maxValue-both-optional-double-poisons-with-or', async () => {
+        // The both-optional poison CASE on the DOUBLE arm: avg_rating and its optional
+        // double virtual sibling are both optional double, so the result carries
+        // `number` and the guard checks both operands. release 2 has NULL avg_rating →
+        // poison NULL there; releases 1 and 3 clamp to their own value.
+        const expected = [
+            { id: 1, mn: 4.5, mx: 4.5 },
+            { id: 2 },
+            { id: 3, mn: 3, mx: 3 },
+        ]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(vReleaseOverview)
+            .select({
+                id: vReleaseOverview.id,
+                mn: vReleaseOverview.avgRating.minValue(vReleaseOverview.doubleVirtualOptional),
+                mx: vReleaseOverview.avgRating.maxValue(vReleaseOverview.doubleVirtualOptional),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, max(avg_rating, avg_rating) as mn, min(avg_rating, avg_rating) as mx from release_overview order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ id: number; mn?: number; mx?: number }>>>()
+        expect(result).toEqual(expected)
+    })
+    test('minValue-maxValue-operand-optional-int-poisons-single-guard', async () => {
+        // Receiver REQUIRED (priority), operand OPTIONAL (assignee_id) → the poison CASE
+        // guards only the OPTIONAL operand (`case when assignee_id is null then null else
+        // greatest(priority, assignee_id) end`), a single-guard emission distinct from the
+        // both-optional `or` form above. The result is optional because the operand is.
+        // Seeded (priority, assignee_id): (2,1), (1,2), (3,NULL), (2,3). minValue floors
+        // priority at assignee → 2,2,NULL,3; maxValue caps → 1,1,NULL,2.
+        const expected = [
+            { id: 1, mn: 2, mx: 1 },
+            { id: 2, mn: 2, mx: 1 },
+            { id: 3 },
+            { id: 4, mn: 3, mx: 2 },
+        ]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .select({
+                id: tIssue.id,
+                mn: tIssue.priority.minValue(tIssue.assigneeId),
+                mx: tIssue.priority.maxValue(tIssue.assigneeId),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, max(priority, assignee_id) as mn, min(priority, assignee_id) as mx from issue order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ id: number; mn?: number; mx?: number }>>>()
         expect(result).toEqual(expected)
     })
 })

@@ -881,4 +881,82 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
+    test('customize-recursive-execute-select-page-count-strips-order-by-hooks', async () => {
+        // A recursive select consumed via `executeSelectPage`, whose
+        // `customizeQuery({ beforeOrderByItems, afterOrderByItems })` supplies the
+        // ENTIRE ORDER BY (there is no explicit `.orderBy(...)`). The data query renders
+        // the hooks as its `order by`; the count query must NOT. Load-bearing:
+        // `_buildSelectOrderBy` re-emits an ORDER BY from those hooks whenever the
+        // query's `__orderBy` is absent, so it is `__dropPaginationForCount` stripping
+        // the hooks from the count's customization copy that keeps the `result_for_count`
+        // wrap orderless — otherwise the count would carry an ORDER BY built purely from
+        // the hooks. All seeded issues leave `parent_id` NULL, so the recursion adds
+        // nothing to the anchor (project 1 → issues 1, 2); the count is the total.
+        const dataRows = [{ id: 1 }, { id: 2 }]
+        ctx.mockNext(dataRows)
+        ctx.mockNext(2)
+        const connection = ctx.conn
+        const page = await connection.selectFrom(tIssue)
+            .where(tIssue.projectId.equals(1))
+            .select({ id: tIssue.id, parentId: tIssue.parentId })
+            .recursiveUnionAllOn((parent) => tIssue.id.equals(parent.parentId))
+            .customizeQuery({
+                beforeOrderByItems: connection.rawFragment`id asc`,
+                afterOrderByItems:  connection.rawFragment`parentId asc`,
+            })
+            .executeSelectPage()
+
+        expect(ctx.history.length).toBe(2)
+        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, parent_id as parentId from issue where project_id = $1 union all select issue.id as id, issue.parent_id as parentId from issue join recursive_select_1 on issue.id = recursive_select_1.parentId) select id as id, parentId as "parentId" from recursive_select_1 order by id asc, parentId asc"`)
+        expect(ctx.history[0]!.params).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        expect(ctx.history[1]!.sql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, parent_id as parentId from issue where project_id = $1 union all select issue.id as id, issue.parent_id as parentId from issue join recursive_select_1 on issue.id = recursive_select_1.parentId), result_for_count as (select id as id, parentId as parentId from recursive_select_1) select count(*) from result_for_count"`)
+        expect(ctx.history[1]!.params).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        // The data-query snapshot (history[0]) carries `order by id asc, parentId asc` from
+        // the hooks; the count-query snapshot (history[1]) has NO order by — the strip is
+        // pinned exactly by the two snapshots above.
+        assertType<Exact<typeof page, {
+            data:  Array<{ id: number; parentId?: number }>
+            count: number
+        }>>()
+        expect(page.count).toBe(2)
+        expect(page.data).toEqual(dataRows)
+    })
+    test('customize-select-plain-with-query-hooks-are-a-no-op-boundary', async () => {
+        // `beforeWithQuery` / `afterWithQuery` are type-accepted on a plain
+        // select's `customizeQuery`, but `_buildWith` renders them only from a WITH-view's
+        // OWN customization. A directly-executed plain select is not a CTE body, so the
+        // hooks have no attachment point and are silently dropped — the correct
+        // NOT-APPLICABLE boundary. (They DO render once the query is consumed as a CTE via
+        // `.forUseInQueryAs(...)`, wrapping the CTE parens — see
+        // `customize-select-before-with-query-and-after-with-query-wrap-cte`.)
+        ctx.mockNext([{ id: 1 }])
+        const connection = ctx.conn
+        const result = await connection.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ id: tProject.id })
+            .customizeQuery({
+                beforeWithQuery: connection.rawFragment`/* wq-before */`,
+                afterWithQuery:  connection.rawFragment`/* wq-after */`,
+            })
+            .executeSelectMany()
+
+        // The exact snapshot below carries NO trace of the with-query hooks (`/* wq-before
+        // */` / `/* wq-after */`) — the no-op boundary is pinned by the full SQL.
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from project where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+        expect(result).toEqual([{ id: 1 }])
+    })
 })

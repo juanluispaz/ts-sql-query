@@ -441,4 +441,78 @@ describe(ctx.label, () => {
             else expect(row.id).toBeGreaterThan(4)
         })
     })
+    test('insert-returning-nested-object-optional-leaf-default', async () => {
+        // Object-form RETURNING whose nested `meta` group holds a SINGLE OPTIONAL leaf
+        // (`archivedAt`, an optionalColumn) under the DEFAULT projector. Because every leaf
+        // in the group is optional, the group itself is optional AND its leaf is optional:
+        // `meta?: { archivedAt?: Date }`. Two boundary rows: an insert WITH archivedAt set → `meta`
+        // present + `archivedAt` present; an insert leaving it unset → `meta` absent.
+        await ctx.withRollback(async () => {
+            const archivedAt = new Date(Date.UTC(2024, 5, 15, 8, 30, 0))
+            ctx.mockNext({ id: 100, 'meta.archivedAt': archivedAt })
+            const present = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, name: 'Archived demo', slug: 'archived-demo', archivedAt })
+                .returning({
+                    id:   tProject.id,
+                    meta: { archivedAt: tProject.archivedAt },
+                })
+                .executeInsertOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug, archived_at) values ($1, $2, $3, $4) returning id as id, archived_at as "meta.archivedAt""`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "Archived demo",
+                "archived-demo",
+                2024-06-15T08:30:00.000Z,
+              ]
+            `)
+            assertType<Exact<typeof present, { id: number; meta?: { archivedAt?: Date } }>>()
+            expect('meta' in present).toBe(true)
+            expect(present.meta && 'archivedAt' in present.meta).toBe(true)
+            expect(present.meta!.archivedAt).toBeInstanceOf(Date)
+
+            ctx.mockNext({ id: 101, 'meta.archivedAt': null })
+            const absent = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, name: 'Unarchived demo', slug: 'unarchived-demo' })
+                .returning({
+                    id:   tProject.id,
+                    meta: { archivedAt: tProject.archivedAt },
+                })
+                .executeInsertOne()
+            assertType<Exact<typeof absent, { id: number; meta?: { archivedAt?: Date } }>>()
+            expect('meta' in absent).toBe(false)
+        })
+    })
+    test('insert-on-conflict-do-nothing-returning-nested-object-optional-leaf-default', async () => {
+        // the same optional-leaf-inside-optional-object shape on the ON CONFLICT DO
+        // NOTHING optional-returning path → `({ id: number; meta?: { archivedAt?: Date } } |
+        // null)` (the suppressed-insert `| null` arm from `executeInsertNoneOrOne`). No key
+        // collides, so a row comes back; archivedAt is left unset → `meta` absent.
+        ctx.mockNext({ id: 100, 'meta.archivedAt': null })
+        await ctx.withRollback(async () => {
+            const inserted = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, name: 'On-conflict optional-leaf', slug: 'on-conflict-optional-leaf' })
+                .onConflictDoNothing()
+                .returning({
+                    id:   tProject.id,
+                    meta: { archivedAt: tProject.archivedAt },
+                })
+                .executeInsertNoneOrOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values ($1, $2, $3) on conflict do nothing returning id as id, archived_at as "meta.archivedAt""`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "On-conflict optional-leaf",
+                "on-conflict-optional-leaf",
+              ]
+            `)
+            assertType<Exact<typeof inserted, { id: number; meta?: { archivedAt?: Date } } | null>>()
+            expect(inserted).not.toBeNull()
+            expect('meta' in inserted!).toBe(false)
+            if (!ctx.realDbEnabled) expect(inserted!.id).toBe(100)
+            else expect(inserted!.id).toBeGreaterThan(4)
+        })
+    })
 })

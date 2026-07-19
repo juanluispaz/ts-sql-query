@@ -1223,9 +1223,18 @@ export class AbstractSqlBuilder implements SqlBuilder {
             ? this._appendOrderByColumnSourceAsInSelect(entry, query, params)
             : this._appendOrderByColumnAlias(entry, query, params)
         if (collation) {
-            return wrapped + ' collate ' + collation
+            return this._appendInsensitiveOrderByCollateReceiver(wrapped, entry, query) + ' collate ' + collation
         }
         return 'lower(' + wrapped + ')'
+    }
+    /**
+     * The receiver a forced `collate` is applied to by `_appendOrderByColumnAliasInsensitive`.
+     * The base returns the already-rendered expression unchanged; SQL Server overrides it to
+     * convert a `uniqueidentifier` order-by column to `nvarchar(36)` first, since `collate` on a
+     * bare `uniqueidentifier` is rejected there — the same treatment its string API applies.
+     */
+    _appendInsensitiveOrderByCollateReceiver(wrapped: string, _entry: OrderByEntry, _query: SelectData): string {
+        return wrapped
     }
     /**
      * Render the order-by entry's underlying source expression as it appears in

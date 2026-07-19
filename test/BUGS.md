@@ -73,40 +73,7 @@ entry says under *Current workaround in the suite* why the matrix can't see it.
 A `none` there is not "nothing to do": it means no test would notice a
 regression either.
 
-## SQL Server: a forced `collate` on a `uuid.asString()` expression emits `<uniqueidentifier> collate <name>` (rejected) — beyond the already-fixed `replaceAll`
-
-**Where**: SQL Server rejects `collate` applied to a `uniqueidentifier` (*"Expression type
-uniqueidentifier is invalid for COLLATE clause"*). The `8b14165a` fix converted the uuid receiver +
-match operand to `nvarchar(36)` before `collate` in `SqlServerSqlBuilder._replaceAll` /
-`_replaceAllInsensitive`, but the **other** forced-collate paths still apply `collate` to a bare
-`uniqueidentifier` (each inherits the base `AbstractSqlBuilder`, no SqlServer override / no uuid convert):
-- `AbstractSqlBuilder._collate` — **no SqlServer override** — `uuid.asString().collate('X')`.
-- `AbstractSqlBuilder._equalsInsensitive` / `_notEqualsInsensitive` / `_likeInsensitive` /
-  `_notLikeInsensitive` — a uuid **value operand** when `insensitiveCollation` is set.
-- `AbstractSqlBuilder._appendOrderByColumnAliasInsensitive` — an insensitive `orderBy` on a projected
-  `uuid.asString()` alias when `insensitiveCollation` is set.
-
-**Reproduction** (all `--docker` confirmed on `sqlserver/newest/mssql`):
-- **C1a (default-reachable, always fails)**: `tIssue.externalRef.asString().collate('Latin1_General_BIN2')`
-  → `select external_ref collate Latin1_General_BIN2 …` → rejected.
-- **C1b (latent — needs a set `insensitiveCollation`)**: `.select({ ref: externalRef.asString() }).orderBy('ref', 'insensitive')`
-  → `… order by external_ref collate Latin1_General_CI_AI` → rejected.
-- **C3 (latent — set `insensitiveCollation`)**: `const('x','string').equalsInsensitive(tIssue.externalRef.asString())`
-  → `… @0 = external_ref collate Latin1_General_CI_AI …` → rejected.
-  (Under the DEFAULT unset `insensitiveCollation`, C1b/C3 instead emit `lower(external_ref)`, which
-  SQL Server ACCEPTS — implicit uniqueidentifier→string conversion for a function argument — so those
-  two are latent, only reached once a collation is configured.)
-- **NOT a bug (confirmed OK by probe):** `replaceAll(find, uuidReplaceWith)` leaves the replacement
-  operand (`value2`) bare in the collate-context `replace(…, …, external_ref)` — `replace()` implicitly
-  converts a bare uniqueidentifier argument, so this succeeds; the `8b14165a` fix correctly left it bare.
-
-**Fix direction**: extend the existing `_appendSqlMaybeUuidParenthesis` / `_appendValueMaybeUuidParenthesis`
-convert-before-collate treatment to every forced-collate site — a SqlServer `_collate` override, the
-insensitive-comparison collate operand paths, and the insensitive order-by-alias collate path.
-
-**Current workaround in the suite**: none — these paths are untested (§A CS-1/CS-2/CS-3 in
-`MISSING_TESTS_AUDIT_54.md`; when written, wrap `// TODO[BUG]` referencing this entry). No existing test
-would notice a regression. C1a is default-reachable; C1b/C3 need a set `insensitiveCollation`.
+*(none)*
 
 ## Coverage gaps carried over (not bugs — no entry to fix)
 

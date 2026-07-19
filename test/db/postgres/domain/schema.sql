@@ -22,6 +22,16 @@ DROP TABLE IF EXISTS app_user CASCADE;
 DROP TABLE IF EXISTS organization CASCADE;
 
 DROP TABLE IF EXISTS release_draft;
+
+-- Non-deterministic ICU collation backing the case-insensitive levers on this dialect
+-- (`insensitiveCollation` and per-value `.collate()` case-insensitive equality). PostgreSQL's
+-- built-in collations are deterministic — they byte-tiebreak on equality — so a case-insensitive
+-- EQUALITY needs a non-deterministic collation object; `und-u-ks-level2` folds case (keeps accents).
+-- Non-deterministic collations are NOT supported by LIKE on PostgreSQL, so the insensitive-LIKE
+-- levers over a forced collation remain NOT-APPLICABLE here.
+DROP COLLATION IF EXISTS case_insensitive;
+CREATE COLLATION case_insensitive (provider = icu, locale = 'und-u-ks-level2', deterministic = false);
+
 CREATE TABLE organization (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,

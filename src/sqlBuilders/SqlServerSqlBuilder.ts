@@ -989,6 +989,74 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             return 'lower(' + this._appendSql(valueSource, params, false) + ") not like lower('%' + " +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + " + '%')"
         }
     }
+    // A forced `collate` on a bare `uniqueidentifier` is rejected ("Expression type
+    // uniqueidentifier is invalid for COLLATE clause"), so every SQL Server path that applies
+    // one to a possibly-uuid operand must convert it to nvarchar(36) FIRST — the same treatment
+    // `_replaceAll`/`_replaceAllInsensitive` already give their match operands. The four
+    // non-affix insensitive comparisons below apply the `collate` to their RIGHT (value)
+    // operand (`<left> = <value> collate <name>`, `<left> like <value> collate <name>`), so a
+    // uuid VALUE (`uuid.asString()`) is routed through `_appendValueMaybeUuidParenthesis`. The
+    // left operand carries no `collate` (an implicit uniqueidentifier conversion handles the
+    // comparison), and the no-collation arms emit a bare comparison or `lower(...)` — both of
+    // which SQL Server accepts on a uniqueidentifier — so those are left to the base.
+    override _equalsInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        const collation = this._connectionConfiguration.insensitiveCollation
+        if (collation) {
+            return this._appendSqlParenthesis(valueSource, params, false) + ' = ' + this._appendValueMaybeUuidParenthesis(value, params, columnType, columnTypeName, typeAdapter) + ' collate ' + collation
+        }
+        return super._equalsInsensitive(params, valueSource, value, columnType, columnTypeName, typeAdapter)
+    }
+    override _notEqualsInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        const collation = this._connectionConfiguration.insensitiveCollation
+        if (collation) {
+            return this._appendSqlParenthesis(valueSource, params, false) + ' <> ' + this._appendValueMaybeUuidParenthesis(value, params, columnType, columnTypeName, typeAdapter) + ' collate ' + collation
+        }
+        return super._notEqualsInsensitive(params, valueSource, value, columnType, columnTypeName, typeAdapter)
+    }
+    override _likeInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        const collation = this._connectionConfiguration.insensitiveCollation
+        if (collation) {
+            return this._appendSqlParenthesis(valueSource, params, false) + ' like ' + this._appendValueMaybeUuidParenthesis(value, params, columnType, columnTypeName, typeAdapter) + ' collate ' + collation + this._likeEscape
+        }
+        return super._likeInsensitive(params, valueSource, value, columnType, columnTypeName, typeAdapter)
+    }
+    override _notLikeInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        const collation = this._connectionConfiguration.insensitiveCollation
+        if (collation) {
+            return this._appendSqlParenthesis(valueSource, params, false) + ' not like ' + this._appendValueMaybeUuidParenthesis(value, params, columnType, columnTypeName, typeAdapter) + ' collate ' + collation + this._likeEscape
+        }
+        return super._notLikeInsensitive(params, valueSource, value, columnType, columnTypeName, typeAdapter)
+    }
+    // `<expr> collate <name>`: the base has no SQL Server override, so a uuid receiver
+    // (`uuid.asString().collate(...)`) would emit `<uniqueidentifier> collate <name>` and be
+    // rejected. Convert it first via `_appendSqlMaybeUuidParenthesis`, which reproduces the
+    // base's `_appendSqlParenthesis` for a non-uuid receiver (so only the uuid case changes).
+    override _collate(params: any[], valueSource: ToSql, collation: string): string {
+        return this._appendSqlMaybeUuidParenthesis(valueSource, params) + ' collate ' + collation
+    }
+    // The forced `collate` an insensitive `orderBy` applies to a projected `uuid.asString()`
+    // alias hits the same rejection; convert the (already-rendered) receiver when the ordered
+    // column is a uuid.
+    override _appendInsensitiveOrderByCollateReceiver(wrapped: string, entry: OrderByEntry, query: SelectData): string {
+        if (this._isUuidOrderByColumn(entry, query)) {
+            return 'convert(nvarchar(36), ' + wrapped + ')'
+        }
+        return wrapped
+    }
+    _isUuidOrderByColumn(entry: OrderByEntry, query: SelectData): boolean {
+        const expression = entry.expression
+        if (typeof expression === 'string') {
+            const column = getQueryColumn(query.__columns, expression)
+            if (!column) {
+                return false
+            }
+            return this._isUuid(column)
+        } else if (isValueSource(expression)) {
+            return this._isUuid(expression)
+        } else {
+            return false
+        }
+    }
     override _trim(params: any[], valueSource: ToSql): string {
         return 'trim(' + this._appendSqlMaybeUuid(valueSource, params) + ')'
     }

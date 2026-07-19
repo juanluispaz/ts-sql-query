@@ -584,4 +584,73 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ v: boolean }>>>()
         expect(result).toEqual(expected)
     })
+
+    // ── uuid × forced collation ────────────────────────────────────────
+    // A forced `collate` on a uuid must emit valid SQL and round-trip — the forced-collate
+    // sites beyond `replaceAll` above: a direct `.collate()` on a projected uuid, an insensitive
+    // `orderBy` over a projected uuid alias, and an insensitive comparison whose uuid VALUE
+    // operand carries the forced collation. The uuid is rendered per this dialect's `asString()`.
+    test('collate on a uuid receiver converts before collate', async () => {
+        const expected = [{ id: 1, v: '0A8F9C1E-1111-4222-8333-444455556666' }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({ id: tIssue.id, v: tIssue.externalRef.asString().collate('Latin1_General_BIN2') })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, convert(nvarchar(36), external_ref) collate Latin1_General_BIN2 as [v] from issue where id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; v?: string }>>>()
+        expect(result).toEqual(expected)
+    })
+    test('insensitive orderBy on a uuid alias converts before collate', async () => {
+        const collated = ctx.withInsensitiveCollation(ctx.exampleInsensitiveCollation)
+        const expected = [
+            { id: 1, ref: '0A8F9C1E-1111-4222-8333-444455556666' },
+            { id: 2, ref: '7B3E9D20-2222-4C55-9B66-DDDD00009999' },
+        ]
+        ctx.mockNext(expected)
+        const result = await collated.selectFrom(tIssue)
+            .where(tIssue.externalRef.isNotNull())
+            .select({ id: tIssue.id, ref: tIssue.externalRef.asString() })
+            .orderBy('ref', 'insensitive')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, external_ref as [ref] from issue where external_ref is not null order by convert(nvarchar(36), external_ref) collate Latin1_General_CI_AS"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ id: number; ref?: string }>>>()
+        expect(result).toEqual(expected)
+    })
+    test('insensitive comparison with a uuid value operand converts before collate', async () => {
+        const collated = ctx.withInsensitiveCollation(ctx.exampleInsensitiveCollation)
+        const expected = [{ eq: false, ne: true, lk: false, nl: true }]
+        ctx.mockNext(expected)
+        const result = await collated.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                eq: collated.const('x', 'string').equalsInsensitive(tIssue.externalRef.asString()),
+                ne: collated.const('x', 'string').notEqualsInsensitive(tIssue.externalRef.asString()),
+                lk: collated.const('x', 'string').likeInsensitive(tIssue.externalRef.asString()),
+                nl: collated.const('x', 'string').notLikeInsensitive(tIssue.externalRef.asString()),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(case when @0 = convert(nvarchar(36), external_ref) collate Latin1_General_CI_AS then 1 when not (@1 = convert(nvarchar(36), external_ref) collate Latin1_General_CI_AS) then 0 else null end as bit) as eq, cast(case when @2 <> convert(nvarchar(36), external_ref) collate Latin1_General_CI_AS then 1 when not (@3 <> convert(nvarchar(36), external_ref) collate Latin1_General_CI_AS) then 0 else null end as bit) as ne, cast(case when @4 like convert(nvarchar(36), external_ref) collate Latin1_General_CI_AS then 1 when not @5 like convert(nvarchar(36), external_ref) collate Latin1_General_CI_AS then 0 else null end as bit) as lk, cast(case when @6 not like convert(nvarchar(36), external_ref) collate Latin1_General_CI_AS then 1 when not @7 not like convert(nvarchar(36), external_ref) collate Latin1_General_CI_AS then 0 else null end as bit) as nl from issue where id = @8"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ eq?: boolean; ne?: boolean; lk?: boolean; nl?: boolean }>>>()
+        expect(result).toEqual(expected)
+    })
 })

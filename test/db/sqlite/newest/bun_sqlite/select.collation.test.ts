@@ -547,4 +547,69 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ v: boolean }>>>()
         expect(result).toEqual(expected)
     })
+
+    // ── uuid × forced collation ────────────────────────────────────────
+    // A forced `collate` on a uuid must emit valid SQL and round-trip — the forced-collate
+    // sites beyond `replaceAll` above: a direct `.collate()` on a projected uuid, an insensitive
+    // `orderBy` over a projected uuid alias, and an insensitive comparison whose uuid VALUE
+    // operand carries the forced collation. The uuid is rendered per this dialect's `asString()`.
+    test('collate on a uuid receiver converts before collate', async () => {
+        const expected = [{ id: 1, v: '0a8f9c1e-1111-4222-8333-444455556666' }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({ id: tIssue.id, v: tIssue.externalRef.asString().collate('BINARY') })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, external_ref collate BINARY as "v" from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; v?: string }>>>()
+        expect(result).toEqual(expected)
+    })
+    test('insensitive orderBy on a uuid alias converts before collate', async () => {
+        const collated = ctx.withInsensitiveCollation(ctx.exampleInsensitiveCollation)
+        const expected = [
+            { id: 1, ref: '0a8f9c1e-1111-4222-8333-444455556666' },
+            { id: 2, ref: '7b3e9d20-2222-4c55-9b66-dddd00009999' },
+        ]
+        ctx.mockNext(expected)
+        const result = await collated.selectFrom(tIssue)
+            .where(tIssue.externalRef.isNotNull())
+            .select({ id: tIssue.id, ref: tIssue.externalRef.asString() })
+            .orderBy('ref', 'insensitive')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, external_ref as ref from issue where external_ref is not null order by ref collate NOCASE"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ id: number; ref?: string }>>>()
+        expect(result).toEqual(expected)
+    })
+    test('insensitive comparison with a uuid value operand converts before collate', async () => {
+        const collated = ctx.withInsensitiveCollation(ctx.exampleInsensitiveCollation)
+        const expected = [{ eq: false, ne: true, lk: false, nl: true }]
+        ctx.mockNext(expected)
+        const result = await collated.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                eq: collated.const('x', 'string').equalsInsensitive(tIssue.externalRef.asString()),
+                ne: collated.const('x', 'string').notEqualsInsensitive(tIssue.externalRef.asString()),
+                lk: collated.const('x', 'string').likeInsensitive(tIssue.externalRef.asString()),
+                nl: collated.const('x', 'string').notLikeInsensitive(tIssue.externalRef.asString()),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? = external_ref collate NOCASE as eq, ? <> external_ref collate NOCASE as ne, ? like external_ref collate NOCASE escape '\\' as lk, ? not like external_ref collate NOCASE escape '\\' as nl from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "x",
+            "x",
+            "x",
+            "x",
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ eq?: boolean; ne?: boolean; lk?: boolean; nl?: boolean }>>>()
+        expect(result).toEqual(expected)
+    })
 })

@@ -73,7 +73,30 @@ entry says under *Current workaround in the suite* why the matrix can't see it.
 A `none` there is not "nothing to do": it means no test would notice a
 regression either.
 
-*(none)*
+## SQL Server: `replaceAll` / `replaceAllInsensitive` on a `uuid.asString()` receiver emit `<uniqueidentifier> collate <name>` (rejected)
+
+**Where**: `SqlServerSqlBuilder._replaceAll` (the `replaceCollation` branch) and
+`SqlServerSqlBuilder._replaceAllInsensitive` (its `insensitiveCollation` branch). Both render the
+receiver via `_appendSqlParenthesis` / `_appendSql` and apply `collate <name>` to it **without**
+converting a uuid receiver to `nvarchar(36)` first — unlike the rest of the SqlServer string API
+(`trim` / `length` / `toUpperCase` / `toLowerCase` / `reverse` / `substr` / `concat` / `stringConcat`
+/ `valueWhenNull`), which route a uuid receiver through `_appendSqlMaybeUuid`. This is the sibling the
+`523a2673` uuid-string fix left out (it wrapped every string *function* but not the two `collate`-forcing
+`replace` branches).
+**Reproduction**: on `sqlserver/newest/mssql`, `tIssue.externalRef.asString().replaceAll('a', 'b')`
+emits `replace(external_ref collate Latin1_General_BIN2, @0 collate Latin1_General_BIN2, @1) collate
+DATABASE_DEFAULT`. Real SQL Server rejects it (`--docker` confirmed):
+`Expression type uniqueidentifier is invalid for COLLATE clause`. Note `replaceAllInsensitive` with the
+**default** (unset) `insensitiveCollation` takes the bare `replace(external_ref, @0, @1)` branch, which
+SUCCEEDS — a bare `uniqueidentifier` implicitly converts as a `replace` argument — so the defect is
+specifically the `COLLATE`-on-uniqueidentifier clause; its `collate` branch (when `insensitiveCollation`
+is set) has the same defect. Fix direction: convert the uuid receiver (and a uuid value operand) to
+`nvarchar(36)` **before** applying `collate`, matching `_appendSqlMaybeUuid`.
+**Current workaround in the suite**: none yet — the `uuid.asString() × replaceAll` and
+`× replaceAllInsensitive` paths are untested (they are §A items STR-UUID-7/8 in
+`MISSING_TESTS_AUDIT_53.md`; when written they should be wrapped `// TODO[BUG]` referencing this entry).
+No existing test would notice a regression. The sibling string methods (length / upper / lower / reverse
+/ trim / substr / concat / stringConcat / valueWhenNull) DO convert the uuid and are real-validated.
 
 ## Coverage gaps carried over (not bugs — no entry to fix)
 

@@ -139,6 +139,28 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
+    // `replaceAll` with a value-source uuid REPLACEMENT (`value2`, the 3rd arg): replacing the whole
+    // uuid string by itself is the identity, so the value round-trips as the stored uuid (rendered per
+    // this dialect's `asString()`). The forced-collation engines convert the receiver/find before the
+    // collate but leave `value2` bare, relying on the engine's implicit uniqueidentifier→string convert.
+    test('replaceAll on a uuid receiver with a uuid replacement leaves the replacement bare', async () => {
+        const s = tIssue.externalRef.asString()
+        const expected = [{ id: 1, v: '0a8f9c1e-1111-4222-8333-444455556666' }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({ id: tIssue.id, v: s.replaceAll(s, s) })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(external_ref::text, external_ref::text, external_ref::text) as "v" from issue where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; v?: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
     // ── Fork D: replaceAllInsensitive ──────────────────────────────────
     // `regexp_replace(src, <esc from>, to, 'gi')` — the `'gi'` flag folds case
     // (only), replacing every match. 'ABCabc' → both 'ABC' and 'abc' → 'XX'.

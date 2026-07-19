@@ -959,4 +959,65 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ id: number }>>>()
         expect(result).toEqual([{ id: 1 }])
     })
+
+    test('customize-select-plain-inline-value-renders-query-hooks-but-drops-with-query-hooks', async () => {
+        // The inline-value sibling of the plain no-op boundary above: a PLAIN
+        // (non-recursive, non-CTE) select consumed as an INLINE VALUE renders
+        // `beforeQuery` / `afterQuery` — they bracket the inline `(select …)` — but the
+        // `beforeWithQuery` / `afterWithQuery` hooks leave NO trace: an inline value has
+        // no WITH clause to attach them to, so they are silently dropped (the correct
+        // NOT-APPLICABLE boundary). Pinned for BOTH inline entry points:
+        // `forUseAsInlineQueryValue` (scalar) and `forUseAsInlineAggregatedArrayValue`.
+        const connection = ctx.conn
+        const hooks = () => ({
+            beforeQuery:     connection.rawFragment`/* head */ `,
+            afterQuery:      connection.rawFragment` /* tail */`,
+            beforeWithQuery: connection.rawFragment`/* wq-before */`,
+            afterWithQuery:  connection.rawFragment`/* wq-after */`,
+        })
+
+        // Scalar inline value: `/* head */`…`/* tail */` bracket the inner `(select …)`;
+        // NO `/* wq-before */` / `/* wq-after */` anywhere in the SQL.
+        ctx.mockNext([{ id: 1, n: 2 }])
+        const scalar = connection.subSelectUsing(tProject)
+            .from(tIssue)
+            .where(tIssue.projectId.equals(tProject.id))
+            .selectOneColumn(connection.countAll())
+            .customizeQuery(hooks())
+            .forUseAsInlineQueryValue()
+        const scalarResult = await connection.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ id: tProject.id, n: scalar })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (/* head */  select count(*) as result from issue where project_id = project.id  /* tail */) as "n" from project where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof scalarResult, Array<{ id: number; n?: number }>>>()
+        expect(scalarResult).toEqual([{ id: 1, n: 2 }])
+
+        // Aggregated-array inline value: same boundary — the query hooks render around
+        // the inner select, the with-query hooks are dropped.
+        ctx.mockNext([{ id: 1, issues: [{ iid: 1 }, { iid: 2 }] }])
+        const arr = connection.subSelectUsing(tProject)
+            .from(tIssue)
+            .where(tIssue.projectId.equals(tProject.id))
+            .select({ iid: tIssue.id })
+            .customizeQuery(hooks())
+            .forUseAsInlineAggregatedArrayValue()
+        const arrResult = await connection.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ id: tProject.id, issues: arr })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (/* head */  select json_group_array(json_object('iid', id)) from issue where project_id = project.id  /* tail */) as issues from project where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof arrResult, Array<{ id: number; issues: Array<{ iid: number }> }>>>()
+        expect(arrResult).toEqual([{ id: 1, issues: [{ iid: 1 }, { iid: 2 }] }])
+    })
 })

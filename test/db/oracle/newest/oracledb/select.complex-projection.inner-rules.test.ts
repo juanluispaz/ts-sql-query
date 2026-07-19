@@ -566,6 +566,102 @@ describe(ctx.label, () => {
         // not present-as-undefined (which `toEqual` would also accept).
         expect('iss' in rows[1]!).toBe(false)
     })
+    test('plain-select-rule-2-same-left-join-object-with-optional-operator-leaf-default-as-undefined', async () => {
+        // A rule-2 nested object whose leaves are OPERATORS over the same left
+        // join (not bare columns): `idPlus` = `id.add(1)` is an originallyRequired
+        // operator leaf (its only column is the originallyRequired `id`), while
+        // `combo` = `id.add(assigneeId)` combines the required `id` with the
+        // OPTIONAL `assigneeId`, so the operator's optionality merges to optional.
+        // Rule 2 keeps `idPlus` required and demotes `combo` to `combo?: number`;
+        // the whole object is `grp?` (dropped on a join miss). Projects 2, 3 have
+        // an issue (hit): issue 3 (project 2) has assignee_id NULL, so `combo` is
+        // ABSENT there; issue 4 (project 3) has assignee_id 3, so `combo` is 4+3=7.
+        // Project 4 has no issue, so the join misses and `grp` is dropped.
+        const expected = [
+            { pid: 2, grp: { idPlus: 4 } },
+            { pid: 3, grp: { idPlus: 5, combo: 7 } },
+            { pid: 4 },
+        ]
+        ctx.mockNext([
+            { pid: 2, 'grp.idPlus': 4, 'grp.combo': null },
+            { pid: 3, 'grp.idPlus': 5, 'grp.combo': 7 },
+            { pid: 4, 'grp.idPlus': null, 'grp.combo': null },
+        ])
+        const tIssueLeft = tIssue.forUseInLeftJoin()
+        const rows = await ctx.conn.selectFrom(tProject)
+            .leftJoin(tIssueLeft).on(tIssueLeft.projectId.equals(tProject.id))
+            .where(tProject.id.in([2, 3, 4]))
+            .select({
+                pid: tProject.id,
+                grp: { idPlus: tIssueLeft.id.add(1), combo: tIssueLeft.id.add(tIssueLeft.assigneeId) },
+            })
+            .orderBy('pid')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as "pid", issue.id + :0 as "grp.idPlus", issue.id + issue.assignee_id as "grp.combo" from project left join issue on issue.project_id = project.id where project.id in (:1, :2, :3) order by "pid""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+            3,
+            4,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            pid: number
+            grp?: { idPlus: number; combo?: number }
+        }>>>()
+        expect(rows).toEqual(expected)
+        // `combo` is null on the hit row whose optional column is null -> the
+        // default asUndefined projector DROPS the key (assert absence, not
+        // present-undefined), and the join-miss row DROPS the whole object.
+        expect('combo' in rows[0]!.grp!).toBe(false)
+        expect('grp' in rows[2]!).toBe(false)
+    })
+
+    test('plain-select-rule-2-same-left-join-object-with-optional-operator-leaf-as-nullable', async () => {
+        // The `projectingOptionalValuesAsNullable()` twin of the operator-leaf
+        // rule-2 object above: `idPlus` stays required-when-present, the optional
+        // operator leaf `combo` flips to `number | null`, and the whole object is
+        // `{...} | null` (null only when the join misses). Same seed: issue 3
+        // (project 2) has assignee_id NULL so `combo` is null; issue 4 (project 3)
+        // gives `combo` = 7; project 4 misses so `grp` is null.
+        const expected = [
+            { pid: 2, grp: { idPlus: 4, combo: null } },
+            { pid: 3, grp: { idPlus: 5, combo: 7 } },
+            { pid: 4, grp: null },
+        ]
+        ctx.mockNext([
+            { pid: 2, 'grp.idPlus': 4, 'grp.combo': null },
+            { pid: 3, 'grp.idPlus': 5, 'grp.combo': 7 },
+            { pid: 4, 'grp.idPlus': null, 'grp.combo': null },
+        ])
+        const tIssueLeft = tIssue.forUseInLeftJoin()
+        const rows = await ctx.conn.selectFrom(tProject)
+            .leftJoin(tIssueLeft).on(tIssueLeft.projectId.equals(tProject.id))
+            .where(tProject.id.in([2, 3, 4]))
+            .select({
+                pid: tProject.id,
+                grp: { idPlus: tIssueLeft.id.add(1), combo: tIssueLeft.id.add(tIssueLeft.assigneeId) },
+            })
+            .projectingOptionalValuesAsNullable()
+            .orderBy('pid')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as "pid", issue.id + :0 as "grp.idPlus", issue.id + issue.assignee_id as "grp.combo" from project left join issue on issue.project_id = project.id where project.id in (:1, :2, :3) order by "pid""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+            3,
+            4,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            pid: number
+            grp: { idPlus: number; combo: number | null } | null
+        }>>>()
+        expect(rows).toEqual(expected)
+    })
+
     test('rule-1-mixing-required-in-optional-object-with-own-required-leaf', async () => {
         // A nested object mixing a `requiredInOptionalObject` leaf (`gate`,
         // status.asRequiredInOptionalObject()) with an OWN-required leaf (`ownId`,

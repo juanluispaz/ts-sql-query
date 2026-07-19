@@ -285,6 +285,68 @@ describe(ctx.label, () => {
     })
     */
 
+    // NOT-APPLICABLE: Oracle has no INSERT … ON CONFLICT and ReturningFromSelect excludes Oracle.
+    /*
+    test('insert-from-select-on-conflict-returning-object-none-or-one-and-many', async () => {
+        // from-select + on-conflict + the OBJECT `returning({...})` shape via the OPTIONAL
+        // execute paths `executeInsertNoneOrOne()` (-> `{...} | null`) and `executeInsertMany()`
+        // (-> `Array<{...}>`). A from-select insert has a dynamic row count, so `executeInsertOne`
+        // is NOT on its typed surface (`ExecutableInsertReturningOptional` drops it). The source
+        // matches no rows (org 99999), so the none-or-one resolves `null` and the many resolves [].
+        await ctx.withRollback(async () => {
+            const source = () => ctx.conn.selectFrom(tProject)
+                .where(tProject.organizationId.equals(99999))
+                .select({ organizationId: tProject.organizationId, slug: tProject.slug, name: tProject.name })
+
+            ctx.mockNext(null)
+            const noneOrOne = await ctx.conn.insertInto(tProject)
+                .from(source())
+                .onConflictDoNothing()
+                .returning({ id: tProject.id, name: tProject.name })
+                .executeInsertNoneOrOne()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) select organization_id as "organizationId", slug as "slug", name as "name" from project where organization_id = :0 on conflict do nothing returning id, name into :1, :2"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                99999,
+                {
+                  "as": "id",
+                  "dir": 3003,
+                },
+                {
+                  "as": "name",
+                  "dir": 3003,
+                },
+              ]
+            `)
+            assertType<Exact<typeof noneOrOne, { id: number; name: string } | null>>()
+            expect(noneOrOne).toBeNull()
+
+            ctx.mockNext([])
+            const many = await ctx.conn.insertInto(tProject)
+                .from(source())
+                .onConflictDoNothing()
+                .returning({ id: tProject.id, name: tProject.name })
+                .executeInsertMany()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) select organization_id as "organizationId", slug as "slug", name as "name" from project where organization_id = :0 on conflict do nothing returning id, name into :1, :2"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                99999,
+                {
+                  "as": "id",
+                  "dir": 3003,
+                },
+                {
+                  "as": "name",
+                  "dir": 3003,
+                },
+              ]
+            `)
+            assertType<Exact<typeof many, Array<{ id: number; name: string }>>>()
+            expect(many).toEqual([])
+        })
+    })
+    */
+
     // NOT-APPLICABLE: Oracle has no INSERT … ON CONFLICT (uses MERGE), so onConflictDoUpdateSet is not typed on the from-select insert
     /*
     test('insert-from-select-bare-on-conflict-do-update-set', async () => {

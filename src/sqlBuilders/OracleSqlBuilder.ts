@@ -10,6 +10,7 @@ import type { DBColumn } from '../utils/Column.js'
 import { isColumn, __getColumnOfObject, __getColumnPrivate } from '../utils/Column.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import { __getValueSourcePrivate } from '../expressions/values.js'
+import { SqlOperation1ValueSourceIfValueOrIgnore } from '../internal/ValueSourceImpl.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 
 /**
@@ -197,7 +198,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     // bare join with the param array untouched.
     private _appendConcatNullCheck(params: any[], valueSource: any, value: any): string {
         let left: string
-        if (operationOf(valueSource) === '_concat') {
+        if (this._isConcatChainNode(valueSource)) {
             const node = valueSource as unknown as ConcatNode
             left = this._appendConcatNullCheck(params, node.__valueSource, node.__value)
         } else if (this._isOptionalValue(valueSource)) {
@@ -206,7 +207,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             left = ''
         }
         let right: string
-        if (operationOf(value) === '_concat') {
+        if (this._isConcatChainNode(value)) {
             const node = value as ConcatNode
             right = this._appendConcatNullCheck(params, node.__valueSource, node.__value)
         } else if (this._isOptionalValue(value)) {
@@ -232,14 +233,14 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     // right operand is appended with the LEFT operand's value type.
     private _concatChainSql(params: any[], valueSource: ToSql, value: any): string {
         let left: string
-        if (operationOf(valueSource) === '_concat') {
+        if (this._isConcatChainNode(valueSource)) {
             const node = valueSource as unknown as ConcatNode
             left = this._concatChainSql(params, node.__valueSource as unknown as ToSql, node.__value)
         } else {
             left = this._appendSqlParenthesisExcluding(valueSource, params, '_concat', false)
         }
         let right: string
-        if (operationOf(value) === '_concat') {
+        if (this._isConcatChainNode(value)) {
             const node = value as ConcatNode
             right = this._concatChainSql(params, node.__valueSource as unknown as ToSql, node.__value)
         } else {
@@ -247,6 +248,27 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             right = this._appendValueParenthesisExcluding(value, params, leftPrivate.__valueType, leftPrivate.__valueTypeName, leftPrivate.__typeAdapter, '_concat', false)
         }
         return this._concatSql(left, right)
+    }
+    // Whether a node is a concat-CHAIN node the two walks above descend into, rather than a
+    // leaf. Every `_concat` operation node is — EXCEPT a `.concatIfValue()` whose value is
+    // ABSENT (`null` / `undefined` / `''` under `allowEmptyString:false`). That node carries
+    // `__operation === '_concat'` even when its value is ignored, but it is a NO-OP that renders
+    // as just its receiver: its `__toSql` short-circuits to `__valueSource` (see
+    // `SqlOperation1ValueSourceIfValueOrIgnore.__toSql`). So the walks must treat it as a LEAF
+    // and let `__toSql` drop the dead operand. Descending into it (the pre-fix `operationOf(...)
+    // === '_concat'` check did) processed its dead operand, which emitted a spurious bound param
+    // for the ignored value and — for an `undefined`/`null` value — crashed `_isNull` on the
+    // missing operand. This only surfaced when the `concatIfValue` was NESTED under a further
+    // `.concat()`; the outermost case is resolved by `__toSql` before `_concat` runs. Mirrors
+    // `_appendMaybeInnerConcat` on MySQL/MariaDB, which skips the ignored operand the same way.
+    private _isConcatChainNode(node: any): boolean {
+        if (operationOf(node) !== '_concat') {
+            return false
+        }
+        if (node instanceof SqlOperation1ValueSourceIfValueOrIgnore && !this._isValue(node.__value)) {
+            return false
+        }
+        return true
     }
     override _likePatternStartingWith(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, fold: boolean): string {
         const concatFunction = this._connectionConfiguration.concatFunction

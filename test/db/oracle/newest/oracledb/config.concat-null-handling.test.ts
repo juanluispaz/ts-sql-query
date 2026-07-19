@@ -100,6 +100,53 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
+    test('default: a nested concatIfValue with an ignored value drops the dead operand', async () => {
+        // `title.concatIfValue('').concat(body)`: the `''` is ignored (allowEmptyString:false), so
+        // `concatIfValue('')` is a no-op that renders as just `title`. Nested under a further
+        // `.concat(body)`, the structural concat walk treats that ignored node as a LEAF, so the
+        // emitted chain is `title || "body"` with NO bound param for the dropped `''` — matching
+        // every other dialect. (The pre-fix walk descended into the dead operand and emitted
+        // `title || :0 || "body"` with `:0` bound to ''.) `body` is nullable, so a poison CASE
+        // guards it. Issue 2 has body='Use new tokens', title='Redesign navbar'.
+        const expected = [{ id: 2, v: 'Redesign navbarUse new tokens' }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(2))
+            .select({ id: tIssue.id, v: tIssue.title.concatIfValue('').concat(tIssue.body) })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", case when "body" is null then null else title || "body" end as "v" from issue where id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; v?: string }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('default: a nested concatIfValue(undefined) does not crash the concat walk', async () => {
+        // `title.concatIfValue(undefined).concat(title)`: `undefined` is ignored, so `concatIfValue`
+        // is a no-op rendering as just `title`, and the chain is `title || title`. Both operands are
+        // required, so no poison CASE. The pre-fix walk fed the ignored `undefined` to `_isNull` and
+        // threw `Cannot read properties of undefined (reading '__toSql')` on this type-checkable query.
+        const expected = [{ id: 2, v: 'Redesign navbarRedesign navbar' }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(2))
+            .select({ id: tIssue.id, v: tIssue.title.concatIfValue(undefined).concat(tIssue.title) })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", title || title as "v" from issue where id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        // `concatIfValue` preserves the receiver's optionality (`title` is required), and
+        // `.concat(title)` merges two required operands, so the result column is required.
+        assertType<Exact<typeof rows, Array<{ id: number; v: string }>>>()
+        expect(rows).toEqual(expected)
+    })
+
     test('default: a wrapped nested concat that reuses a receiver keeps its own poison CASE', async () => {
         // Regression guard: `body.concat(title).concat(body.concat(optionalConst(null)).valueWhenNull('Z'))`
         // reuses the nullable `body` column as the receiver of BOTH the outer chain AND an

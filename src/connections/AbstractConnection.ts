@@ -1225,10 +1225,19 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                     return value
                 }
                 if (typeof value === 'string') {
-                    if (!/^-?\d+$/g.test(value)) {
+                    // Accept and strip a trailing `.0+` (fractional zeros only), symmetric to the
+                    // `int` arm above, so an integer an engine serialises with a REAL-affinity
+                    // suffix (SQLite renders an integer-valued REAL expression as `4.0` inside a
+                    // JSON aggregate) marshals as the integer instead of throwing. A genuine
+                    // fractional part (`4.5`) still fails the regex and throws — an integer type
+                    // is not fractional. Return the CLEANED string (`"4.0"` -> `"4"`) so a
+                    // downstream `BigInt(...)` doesn't choke on the fractional zeros. `stringInt`
+                    // has no public producer today (vestigial type), but the three integer arms
+                    // are kept uniform — this is defensive.
+                    if (!/^-?\d+(\.0+)?$/g.test(value)) {
                         throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid stringInt value received from the db: ' + value)
                     }
-                    return value
+                    return value.replace(/\.0+$/, '')
                 }
                 if (typeof value === 'bigint') {
                     const result = Number(value)
@@ -1256,8 +1265,14 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                     return BigInt(value)
                 }
                 if (typeof value === 'string') {
+                    // Strip a trailing `.0+` (fractional zeros only) before parsing, symmetric to
+                    // the `int` arm: `BigInt('4.0')` throws, so a `bigint` leaf an engine serialises
+                    // with a REAL-affinity suffix (SQLite renders an integer-valued REAL expression
+                    // as `4.0` inside a JSON aggregate) would otherwise be refused. A genuine
+                    // fractional part (`4.5`) leaves the string untouched and still fails `BigInt`,
+                    // so it throws — an integer type is not fractional.
                     try {
-                        return BigInt(value)
+                        return BigInt(value.replace(/\.0+$/, ''))
                     } catch {
                         throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid bigint value received from the db: ' + value)
                     }

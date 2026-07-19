@@ -190,6 +190,24 @@ describe(ctx.label, () => {
         expect(await fromDbReason(tIssue.viewCount, 9007199254740996)).toBe('PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE')
     })
 
+    test('marshalling/from-db-validation/bigint-from-trailing-dot-zero-string', async () => {
+        // A `bigint` leaf an engine serialises with a fractional-zero suffix (SQLite renders an
+        // integer-valued REAL expression as `4.0` inside a JSON aggregate) arrives as `"4.0"`.
+        // `BigInt('4.0')` throws, so the marshaller strips a trailing `.0+` (fractional zeros
+        // only) before parsing — symmetric to the `int` arm, which already tolerated it.
+        if (ctx.realDbEnabled) return
+        expect(await fromDbValue(tIssue.viewCount, '4.0')).toBe(4n)
+        expect(await fromDbValue(tIssue.viewCount, '4.00')).toBe(4n)
+        expect(await fromDbValue(tIssue.viewCount, '-0.0')).toBe(0n)
+    })
+
+    test('marshalling/from-db-validation/bigint-from-fractional-string-throws', async () => {
+        // A genuine fractional part is NOT an integer: `"4.5"` still fails `BigInt` and throws,
+        // so stripping the fractional-zero suffix never lets a real decimal through.
+        if (ctx.realDbEnabled) return
+        expect(await fromDbReason(tIssue.viewCount, '4.5')).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')
+    })
+
     test('marshalling/from-db-validation/double-from-string', async () => {
         if (ctx.realDbEnabled) return
         expect(await fromDbValue(tIssue.estimatedHours, '4.5')).toBe(4.5)

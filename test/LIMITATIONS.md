@@ -538,17 +538,22 @@ the symmetric placeholder in every other cell). Reactivate by adding the
 dialect-agnostic unit test described above if a home for lib-only unit
 tests is introduced.
 
-## Reading an integer beyond 2^53 exactly is the driver's configuration, not the library's
+## Reading an integer beyond 2^53: exact when the driver is configured for it, a loud error otherwise
 
 `bigint` columns and any arithmetic that grows past `Number.MAX_SAFE_INTEGER`
-(`9_007_199_254_740_991`) come back **rounded** on several connectors, because
-their driver reads every integer as a JavaScript `number` by default. The
-rounded value is still an integer, so `transformValueFromDB`'s `bigint` arm
-coerces it happily and the caller gets a **clean, wrong `bigint`** — no error.
+(`9_007_199_254_740_991`) arrive **rounded** on several connectors, because their
+driver reads every integer as a JavaScript `number` by default. The library
+cannot recover a value the driver already rounded, but it no longer accepts it
+silently: `transformValueFromDB`'s integer arms (`int`, `bigint`, `stringInt`)
+reject a `number` outside the safe-integer range with
+`PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE` rather than return a clean, **wrong**
+value. So every connector either returns the exact integer or throws — no path
+returns a silently-corrupted one.
 
-**This is a deliberate library position, not a defect.** v2 explicitly *removed*
-the forced `safeIntegers(true)` from `BetterSqlite3QueryRunner` so every SQLite
-runner behaves the same way, and left the choice to the application — see the
+**Making it exact is the application's driver configuration, not the library's.**
+v2 explicitly *removed* the forced `safeIntegers(true)` from
+`BetterSqlite3QueryRunner` so every SQLite runner behaves the same way, and left
+the choice to the application — see the
 *Safe Integers* note on each driver's page under
 [`docs/configuration/query-runners/`](../docs/configuration/query-runners/).
 The library does not touch the connection object the application hands it.
@@ -562,33 +567,37 @@ The library does not touch the connection object the application hands it.
 | `bun_sqlite`, `bun_sql_sqlite` | `safeIntegers` in the configuration |
 | **`sqlite3`** | **no option exists** — the driver has no exact-integer API at all, and it is deprecated (its own page already warns that it loses precision past `MAX_SAFE_INTEGER`) |
 
-**How the suite validates it — and the two cells it can't.** The test
+**How the suite validates it.** The test
 `asBigint-on-double-keeps-bigint-arithmetic-exact`
 (`select.value-source.casts.test.ts`) computes `2 + 9007199254740993`
-(= 9007199254740995, the first sum past 2^53) and asserts the caller gets the
-exact `bigint`. It reaches that value two ways, by connector:
+(= 9007199254740995, the first sum past 2^53). It reaches one of two outcomes by
+connector, and asserts whichever applies:
 
 - **Default reader already exact** — PostgreSQL, SQL Server, MariaDB and
   sqlite-wasm read wide integers exactly out of the box (e.g.
   `postgres/newest/pg`, where node-postgres returns the `bigint` column as a
-  string that `BigInt(...)` reconstructs), so the test runs straight through the
-  shared `ctx.conn` under `--docker` / `--wasm`.
-- **Native SQLite whose default reader rounds or throws** — `bun:sqlite` and
-  `better-sqlite3` round `9007199254740995` to a clean-but-wrong
-  `9007199254740996`; `node:sqlite` throws a `RangeError` past 2^53. These three
-  read the value through a **second, opt-in connection** returned by
+  string that `BigInt(...)` reconstructs), so the test asserts the exact `bigint`
+  straight through the shared `ctx.conn` under `--docker` / `--wasm`.
+- **Native SQLite behind an opt-in exact reader** — `bun:sqlite` and
+  `better-sqlite3` round `9007199254740995` to `9007199254740996` and
+  `node:sqlite` throws a `RangeError` past 2^53 by default, so the test reads the
+  value through a **second, opt-in connection** returned by
   `ctx.withSafeIntegers()` (see [`runners.ts`](db/sqlite/runners.ts)), which
   turns the driver's exact-integer mode (`safeIntegers` / `setReadBigInts`) on
-  **per statement**. That per-statement scope matters: the mode is otherwise
-  all-or-nothing — it makes the driver hand back **every** integer column as
-  `bigint` (so `id` would arrive as `1n`) — and the in-memory db is a singleton
-  shared across every test file, so a db-wide flip would corrupt every other
-  test's `number` reads. Enabling it per statement lets this one test read the
-  sum exactly while the shared connection keeps its defaults. This is the real-DB
-  validation of the **driver-returns-a-JS-`bigint`** path —
-  `transformValueFromDB`'s `bigint` arm passing it through, the `int` arm
-  narrowing `1n` back to `1` — which the string-returning default-exact
-  connectors never exercise.
+  **per statement** and asserts the exact `bigint`. That per-statement scope
+  matters: the mode is otherwise all-or-nothing — it makes the driver hand back
+  **every** integer column as `bigint` (so `id` would arrive as `1n`) — and the
+  in-memory db is a singleton shared across every test file, so a db-wide flip
+  would corrupt every other test's `number` reads.
+- **Reader rounds and stays that way** — on `mysql2` (no `supportBigNumbers`),
+  `oracledb` (no `fetchTypeHandler`) and the deprecated `sqlite3` (no
+  exact-integer API), the sum arrives as a rounded `number`, so the same test
+  asserts the marshaller **throws** `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE`
+  instead of returning a clean-but-wrong `bigint`. The mock is seeded with the
+  rounded number the real driver returns, so mock and real agree. Wiring
+  `supportBigNumbers` / `fetchTypeHandler` on the two configurable ones would flip
+  them into the exact branch, at the cost of those cells no longer reflecting a
+  default setup; that is a suite-design call, not a library one.
 
 The two config layers are kept distinct on purpose: the `config.*` tests pin
 *ts-sql-query connection-level* config (`insensitiveCollation`, `uuidStrategy`,
@@ -596,14 +605,22 @@ the datetime format) through the sanctioned `withXxx` factories over the shared
 driver connection, whereas `withSafeIntegers()` reaches the *driver-level* reader
 and so returns a separate connection.
 
-**What stays uncovered** is only `mysql/newest/mysql2`, `oracle/newest/oracledb`
-and `sqlite/newest/sqlite3`, where the test is commented out with a
-`// TODO[LIMITATION]`: mysql2 (`supportBigNumbers`) and oracledb
-(`fetchTypeHandler`) would need **connection / fetch config** the matrix
-deliberately builds with defaults, and the deprecated `sqlite3` driver has **no
-exact-integer API at all**. Wiring the two configurable ones would let the test
-run there too, at the cost of those cells no longer reflecting a default setup;
-that is a suite-design call, not a library one.
+**The default reader is also validated on a plain column read** — not just the
+arithmetic form above. `marshalling/bigint-column-scalar-read-past-2p53`
+(`select.value-marshalling.test.ts`) writes `9007199254740993` into the `bigint`
+`view_count` column and reads it back **directly as a scalar column** (outside any
+JSON aggregate) through the shared `ctx.conn`, i.e. the driver's default reader.
+Every connector asserts its default-reader outcome: the exact-by-default readers
+return the value intact, and every rounding reader (`mysql2`, `oracledb`,
+`sqlite3`, `better-sqlite3`, `bun:sqlite`) raises
+`PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE`. `node:sqlite` is special — its
+driver *refuses* to return the value (a `RangeError`) rather than rounding it; the
+library **normalizes that driver error to the same
+`PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE`** (see `NodeSqliteErrorMapper`), so
+the reason is uniform across every connector. The `sqlite3` cell is best-effort:
+that deprecated driver has no exact-integer mode and rounds the value on write and
+on read, so the column can never round-trip — the read simply throws, which is the
+honest outcome (never a silently-wrong value).
 
 ## SQLite's `lower()` / `upper()` fold ASCII only, and `NOCASE` does not rescue them
 

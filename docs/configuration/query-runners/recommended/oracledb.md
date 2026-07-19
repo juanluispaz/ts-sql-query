@@ -164,7 +164,7 @@ async function main() {
     };
     ```
 
-    Without it the driver reads every `NUMBER` as a JavaScript `number`, so an out-of-range value comes back rounded — silently, since the rounded value is still an integer. With it, the driver hands those columns over as strings and ts-sql-query converts them to the type the column declares (`bigint` stays exact, `int` raises `INVALID_VALUE_RECEIVED_FROM_DATABASE` if it truly doesn't fit). Narrow columns keep coming back as `number`, so nothing else changes.
+    Without it the driver reads every `NUMBER` as a JavaScript `number`, so an out-of-range value comes back rounded; ts-sql-query rejects that rounded number with `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE` rather than hand back a silently-wrong value. With it, the driver hands those columns over as strings and ts-sql-query converts them to the type the column declares (`bigint` stays exact, `int` raises `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE` if the exact value doesn't fit — read it as `bigint`). Narrow columns keep coming back as `number`, so nothing else changes.
 
     The handler can also be passed per query, or scoped by `metaData.name` if you prefer to name the columns explicitly.
 

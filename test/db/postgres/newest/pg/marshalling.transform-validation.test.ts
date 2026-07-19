@@ -145,6 +145,27 @@ describe(ctx.label, () => {
         expect(await fromDbReason(tIssue.priority, '1.5')).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')
     })
 
+    test('marshalling/from-db-validation/int-from-number-over-safe-range-throws', async () => {
+        // A number beyond the safe integer range arrived for an int column: it is already
+        // rounded, so the marshaller refuses it rather than return a silently-wrong int. This
+        // is the number-route half of the guard the string/bigint routes below already had, so
+        // every route now reaches the same PRECISION_LOST verdict (homogeneous read).
+        if (ctx.realDbEnabled) return
+        expect(await fromDbReason(tIssue.priority, 9007199254740996)).toBe('PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE')
+    })
+
+    test('marshalling/from-db-validation/int-from-string-over-safe-range-throws', async () => {
+        // Exact digits that exceed the safe integer range for int: read the column as bigint.
+        if (ctx.realDbEnabled) return
+        expect(await fromDbReason(tIssue.priority, '9007199254740993')).toBe('PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE')
+    })
+
+    test('marshalling/from-db-validation/int-from-bigint-over-safe-range-throws', async () => {
+        // A bigint whose value exceeds the safe integer range for int: read the column as bigint.
+        if (ctx.realDbEnabled) return
+        expect(await fromDbReason(tIssue.priority, 9007199254740993n)).toBe('PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE')
+    })
+
     test('marshalling/from-db-validation/bigint-from-number', async () => {
         if (ctx.realDbEnabled) return
         expect(await fromDbValue(tIssue.viewCount, 7)).toBe(7n)
@@ -160,6 +181,15 @@ describe(ctx.label, () => {
         expect(await fromDbReason(tIssue.viewCount, 'not-a-number')).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')
     })
 
+    test('marshalling/from-db-validation/bigint-from-number-over-safe-range-throws', async () => {
+        // A bigint delivered as a rounded JS number (the driver's big-integer mode is off, or a
+        // bigint travelled through a JSON aggregate as a bare number): precision is already
+        // lost, so the marshaller throws instead of minting a clean-but-wrong bigint via
+        // BigInt(value). The string/bigint routes above stay exact; only this route can lose it.
+        if (ctx.realDbEnabled) return
+        expect(await fromDbReason(tIssue.viewCount, 9007199254740996)).toBe('PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE')
+    })
+
     test('marshalling/from-db-validation/double-from-string', async () => {
         if (ctx.realDbEnabled) return
         expect(await fromDbValue(tIssue.estimatedHours, '4.5')).toBe(4.5)
@@ -168,6 +198,17 @@ describe(ctx.label, () => {
     test('marshalling/from-db-validation/double-invalid-string-throws', async () => {
         if (ctx.realDbEnabled) return
         expect(await fromDbReason(tIssue.estimatedHours, 'abc')).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')
+    })
+
+    test('marshalling/from-db-validation/double-from-scientific-string', async () => {
+        // A large/small double renders in scientific notation inside a JSON aggregate
+        // (PostgreSQL emits e.g. `1.5e-08` / `1e+20`; SQL Server's compat convert style 3 too),
+        // reaching the marshaller as a string; both exponent signs — and the leading-dot form a
+        // driver may hand back without a leading zero — parse to the exact double.
+        if (ctx.realDbEnabled) return
+        expect(await fromDbValue(tIssue.estimatedHours, '1.5e-08')).toBe(1.5e-8)
+        expect(await fromDbValue(tIssue.estimatedHours, '1e+20')).toBe(1e20)
+        expect(await fromDbValue(tIssue.estimatedHours, '.5')).toBe(0.5)
     })
 
     test('marshalling/from-db-validation/boolean-from-number', async () => {

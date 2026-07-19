@@ -383,7 +383,7 @@ describe(ctx.label, () => {
             .groupBy('pid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, json_agg(json_build_object('title', issue.title, 'body', issue.body)) as issues from project inner join issue on issue.project_id = project.id where project.id = $1 group by project.id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, (json_agg(json_build_object('title', issue.title, 'body', issue.body)))::text as issues from project inner join issue on issue.project_id = project.id where project.id = $1 group by project.id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -428,7 +428,7 @@ describe(ctx.label, () => {
             .groupBy('pid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, json_agg(json_build_object('title', issue.title, 'body', issue.body)) as issues from project inner join issue on issue.project_id = project.id where project.id = $1 group by project.id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, (json_agg(json_build_object('title', issue.title, 'body', issue.body)))::text as issues from project inner join issue on issue.project_id = project.id where project.id = $1 group by project.id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

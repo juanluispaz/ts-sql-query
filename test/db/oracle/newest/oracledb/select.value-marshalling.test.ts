@@ -22,6 +22,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
+import { TsSqlError } from '../../../../../src/TsSqlError.js'
 import { tIssue } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
@@ -172,6 +173,54 @@ describe(ctx.label, () => {
             `)
             assertType<Exact<typeof row, { id: number; ref?: string }>>()
             expect(row).toEqual(expected)
+        })
+    })
+
+    test('marshalling/bigint-column-scalar-read-past-2p53', async () => {
+        // A bigint column value beyond 2^53 read DIRECTLY as a scalar column (not inside a JSON
+        // aggregate) through the driver's DEFAULT reader. 9007199254740993 is the first odd integer
+        // a double cannot represent.
+        // oracledb hands wide NUMBER columns back as a rounded JavaScript number (no
+        // fetchTypeHandler installed), so the exact value is already lost; the marshaller refuses
+        // it with PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE rather than a clean-but-wrong bigint.
+        // The mock seeds the same rounded number the real driver returns, so mock and real agree.
+        await ctx.withRollback(async () => {
+            ctx.mockNext(1)
+            await ctx.conn.update(tIssue).set({ viewCount: 9007199254740993n }).where(tIssue.id.equals(1)).executeUpdate()
+
+            ctx.mockNext({ views: 9007199254740996 })
+            let err: unknown
+            try {
+                await ctx.conn.selectFrom(tIssue)
+                    .where(tIssue.id.equals(1))
+                    .select({ views: tIssue.viewCount })
+                    .executeSelectOne()
+            } catch (e) {
+                err = e
+            }
+            expect(err).toBeInstanceOf(TsSqlError)
+            expect((err as TsSqlError).errorReason.reason).toBe('PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE')
+        })
+    })
+
+    test('marshalling/double-scientific-scalar-roundtrip', async () => {
+        // A double of small magnitude read DIRECTLY as a scalar column (not via a JSON aggregate).
+        // Drivers hand a `double` column back as a JS number, so this exercises the number path
+        // and confirms a scientific-magnitude value survives a plain select on every connector.
+        // (The scientific-STRING form only arises in a JSON aggregate — covered by
+        // select.aggregate-as-array.value-type-coverage — or under the mock — covered by
+        // marshalling.transform-validation.)
+        await ctx.withRollback(async () => {
+            ctx.mockNext(1)
+            await ctx.conn.update(tIssue).set({ estimatedHours: 1.5e-8 }).where(tIssue.id.equals(1)).executeUpdate()
+
+            ctx.mockNext({ hours: 1.5e-8 })
+            const row = await ctx.conn.selectFrom(tIssue)
+                .where(tIssue.id.equals(1))
+                .select({ hours: tIssue.estimatedHours })
+                .executeSelectOne()
+            assertType<Exact<typeof row, { hours?: number }>>()
+            expect(row.hours).toBe(1.5e-8)
         })
     })
 })

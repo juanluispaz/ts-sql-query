@@ -388,7 +388,7 @@ describe(ctx.label, () => {
             .select({ names })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select json_arrayagg(a_1_.result) from (/* compound-head */  select name as result from project where id = ? union select name as result from project where id = ?  /* compound-tail */) as a_1_) as names"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast((select json_arrayagg(a_1_.result) from (/* compound-head */  select name as result from project where id = ? union select name as result from project where id = ?  /* compound-tail */) as a_1_) as char) as names"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

@@ -37,7 +37,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select /*+ tag(agg) */  project_id as pid, json_agg(json_build_object('id', id, 'title', title)) as issues from issue where project_id = $1 group by project_id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select /*+ tag(agg) */  project_id as pid, (json_agg(json_build_object('id', id, 'title', title)))::text as issues from issue where project_id = $1 group by project_id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

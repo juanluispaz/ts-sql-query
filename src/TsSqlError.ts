@@ -80,7 +80,16 @@ export type TsSqlErrorReason =
       { reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value: unknown, typeName: string, 
         rowIndex?: number | undefined, columnPath?: string | undefined }
     | /** Detected a mandatory value received from the database but it is absent (sql null) */
-      { reason: 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE', value: unknown, typeName: string, 
+      { reason: 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE', value: unknown, typeName: string,
+        rowIndex?: number | undefined, columnPath?: string | undefined }
+    | /** A numeric value received from the database cannot be represented in the requested
+          integer type without losing precision. Two causes reach here, both reported the same
+          way (inspect `value`): the driver already handed the value over as a rounded JavaScript
+          `number` outside the safe integer range — enable the driver's big-integer / fetch-as-string
+          mode so it arrives exactly — or the exact value exceeds the safe integer range of the
+          target `int` — read the column as `bigint`. Never raised for `double` values, which are
+          approximate by definition. */
+      { reason: 'PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE', value: unknown, typeName: string,
         rowIndex?: number | undefined, columnPath?: string | undefined }
     | /** Invalid JSON received from the database */
       { reason: 'INVALID_JSON_RECEIVED_FROM_DATABASE', value: unknown, typeName: string, 

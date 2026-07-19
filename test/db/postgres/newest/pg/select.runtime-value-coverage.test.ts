@@ -98,7 +98,7 @@ describe(ctx.label, () => {
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, (select json_agg(json_build_object('id', a_1_.id, 'name', a_1_.name)) from (select id as id, name as name from project where organization_id = organization.id and name = $1 order by id) as a_1_) as projects from organization where id = $2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, ((select json_agg(json_build_object('id', a_1_.id, 'name', a_1_.name)) from (select id as id, name as name from project where organization_id = organization.id and name = $1 order by id) as a_1_))::text as projects from organization where id = $2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "__no-such-project__",
@@ -163,7 +163,7 @@ describe(ctx.label, () => {
             .groupBy('pid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, json_agg(json_build_object('marker', project.slug, 'issue.id', issue.id, 'issue.title', issue.title)) as issues from project left join issue on issue.project_id = project.id where project.id = $1 group by project.id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, (json_agg(json_build_object('marker', project.slug, 'issue.id', issue.id, 'issue.title', issue.title)))::text as issues from project left join issue on issue.project_id = project.id where project.id = $1 group by project.id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             4,
@@ -199,7 +199,7 @@ describe(ctx.label, () => {
             .groupBy('pid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, json_agg(json_build_object('marker', project.slug, 'issue.id', issue.id, 'issue.title', issue.title)) as issues from project left join issue on issue.project_id = project.id where project.id = $1 group by project.id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, (json_agg(json_build_object('marker', project.slug, 'issue.id', issue.id, 'issue.title', issue.title)))::text as issues from project left join issue on issue.project_id = project.id where project.id = $1 group by project.id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             4,
@@ -235,7 +235,7 @@ describe(ctx.label, () => {
             .groupBy('pid')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, json_agg(json_build_object('marker', project.slug, 'issue.id', issue.id)) as issues from project left join issue on issue.project_id = project.id where project.id = $1 group by project.id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, (json_agg(json_build_object('marker', project.slug, 'issue.id', issue.id)))::text as issues from project left join issue on issue.project_id = project.id where project.id = $1 group by project.id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             4,

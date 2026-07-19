@@ -15,6 +15,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
+import { TsSqlError } from '../../../../../src/TsSqlError.js'
 import { tIssue } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
@@ -225,24 +226,27 @@ describe(ctx.label, () => {
     })
 
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — the emitted SQL computes the sum exactly, but oracledb reads every NUMBER as a JavaScript number unless a `fetchTypeHandler` fetches the wide ones as strings, which this suite does not install, so 9007199254740995 arrives rounded to 9007199254740996: an integral value the bigint marshaller accepts, i.e. a clean but wrong bigint.
-    /*
     test('asBigint-on-double-keeps-bigint-arithmetic-exact', async () => {
-        // The cast `asBigint()` emits is what keeps the arithmetic exact: computed in
-        // floating point, an operand beyond 2^53 loses its last digits and the result
-        // comes back integral — so the value reaching the caller is a clean, wrong
-        // bigint rather than an error. 2 + 9007199254740993 is the first sum a double
-        // cannot represent.
-        const expected = [{ id: 1, big: 9007199254740995n }]
-        ctx.mockNext(expected)
-        const result = await ctx.conn.selectFrom(tIssue)
-            .where(tIssue.id.equals(1))
-            .select({
-                id:  tIssue.id,
-                big: tIssue.priority.asDouble().asBigint().add(9007199254740993n),
-            })
-            .executeSelectMany()
-
+        // Same name as the lossless cells (audit symmetry), opposite outcome. oracledb reads
+        // every NUMBER as a JavaScript number unless a `fetchTypeHandler` fetches the wide ones
+        // as strings (this suite installs none), so the exact sum 9007199254740995 comes back
+        // rounded to 9007199254740996. The marshaller refuses that rounded number rather than
+        // return a clean-but-wrong bigint: PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE. The
+        // mock is seeded with the same rounded number the real driver returns, so they agree.
+        // 2 + 9007199254740993 is the first sum a double cannot represent.
+        ctx.mockNext([{ id: 1, big: 9007199254740996 }])
+        let err: unknown
+        try {
+            await ctx.conn.selectFrom(tIssue)
+                .where(tIssue.id.equals(1))
+                .select({
+                    id:  tIssue.id,
+                    big: tIssue.priority.asDouble().asBigint().add(9007199254740993n),
+                })
+                .executeSelectMany()
+        } catch (e) {
+            err = e
+        }
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", cast(round(cast(priority as float)) as number(38)) + :0 as "big" from issue where id = :1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
@@ -250,9 +254,8 @@ describe(ctx.label, () => {
             1,
           ]
         `)
-        assertType<Exact<typeof result, Array<{ id: number; big: bigint }>>>()
-        expect(result).toEqual(expected)
+        expect(err).toBeInstanceOf(TsSqlError)
+        expect((err as TsSqlError).errorReason.reason).toBe('PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE')
     })
-    */
 
 })

@@ -32,7 +32,7 @@ export class AbstractQueryBuilder {
             }
         } catch(e) {
             if (e instanceof TsSqlError) {
-                if (e.errorReason.reason === 'INVALID_VALUE_RECEIVED_FROM_DATABASE' || e.errorReason.reason === 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE') {
+                if (e.errorReason.reason === 'INVALID_VALUE_RECEIVED_FROM_DATABASE' || e.errorReason.reason === 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE' || e.errorReason.reason === 'PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE') {
                     e.errorReason.rowIndex = index
                     e.errorReason.columnPath = column
                 }
@@ -107,7 +107,7 @@ export class AbstractQueryBuilder {
         let json = value
         if (typeof value === 'string') {
             try {
-                json = JSON.parse(value)
+                json = parseJsonPreservingNumbers(value)
             } catch (e) {
                 let errorMessage = 'Invalid JSON string coming from the database for the column `' + errorPrefix + '`'
                 if (index !== undefined) {
@@ -484,4 +484,33 @@ export function  __setQueryMetadata(source: Error, params: any[], queryMetadata?
             configurable: true
         })
     }
+}
+
+/**
+ * Parse an aggregated-array JSON document **without losing numeric precision**.
+ *
+ * `JSON.parse` decodes every number token as an IEEE-754 double, so a `bigint` past 2^53
+ * (`9007199254740993` → `…992`) is corrupted, and a plain reviver can't help because it only
+ * sees the *already-rounded* `value`. The ES2023 reviver's third argument fixes exactly this:
+ * `context.source` is the **raw source text** of each primitive, so returning it for a number
+ * hands the marshaller the exact original digits as a string. The library then decodes each
+ * leaf by its known type, and every numeric arm (`bigint` → `BigInt(str)`, `int` / `double`
+ * → `+str`) already accepts a string, so the digits survive the round-trip. Everything else
+ * (strings, booleans, `null`, structure) is untouched. Available on every runtime this library
+ * targets (Node >= 22, Bun); the `context.source` guard degrades to the plain (rounding) parse
+ * rather than throwing on a hypothetical runtime without it.
+ *
+ * This is deliberately a JS-side fix: the database already builds correct JSON, the loss is
+ * purely the parse. The one value it cannot recover is one the connector already decoded into
+ * a JS number for us (node-postgres / mysql2 / mariadb decode a `json` column before we see
+ * it) — those dialects cast the aggregate to text in the SqlBuilder so the raw string reaches
+ * here (see `_finalizeAggregatedArrayResult`).
+ */
+export function parseJsonPreservingNumbers(text: string): any {
+    return JSON.parse(text, (_key: string, value: unknown, context?: { source?: string }): unknown => {
+        if (typeof value === 'number' && typeof context?.source === 'string') {
+            return context.source
+        }
+        return value
+    })
 }

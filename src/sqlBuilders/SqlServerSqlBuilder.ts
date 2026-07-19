@@ -22,6 +22,19 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         this._operationsThatNeedParenthesis._getMilliseconds = false
         // `_length` is the only dialect's spelling that is not a bare call: it ends in `- 1`.
         this._operationsThatNeedParenthesis._length = true
+        // `_replaceAll`/`_replaceAllInsensitive` append a trailing `collate DATABASE_DEFAULT`
+        // reset (see those overrides) whenever `replaceCollation`/`insensitiveCollation` forces
+        // a collation. That trailing `collate` binds looser than the operators — and than an
+        // outer `replace`'s own forced collation — that embed it, so the whole expression must
+        // be wrapped when used as an operand. Without this, chaining (`replaceAll().replaceAll()`,
+        // `replaceAll().collate()`, `replaceAll().replaceAllInsensitive()`) emits two adjacent
+        // `collate` clauses — `... collate DATABASE_DEFAULT collate Latin1_General_BIN2` — which
+        // SQL Server rejects (`Msg 156: Incorrect syntax near the keyword 'collate'`). A
+        // PARENTHESISED double collate is valid, so this is only registered on the dialects that
+        // add the reset (SQL Server + Oracle), never on the base (MySQL/MariaDB/PostgreSQL/SQLite
+        // emit a bare `replace(...)` with no trailing collate, so wrapping it would only add noise).
+        this._operationsThatNeedParenthesis._replaceAll = true
+        this._operationsThatNeedParenthesis._replaceAllInsensitive = true
     }
     override _appendRawColumnName(column: DBColumn, params: any[]): string {
         const columnPrivate = __getColumnPrivate(column)
@@ -1357,13 +1370,23 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         switch(type) {
         case 'boolean':
         case 'int':
-        case 'double':
             result = 'convert(nvarchar, ' + this._appendSql(valueSource, params, false) + ')'
+            break
+        case 'double':
+            // FINDING B: this manual `string_agg` JSON builder (SQL Server compat < 17M) is the
+            // one path where the DB itself truncates a `float` before the JSON is even formed —
+            // a styleless convert keeps only ≤6 significant figures. Style 3 is the only convert
+            // style that round-trips a float exactly. It emits scientific notation, a valid
+            // (unquoted) JSON number, so the lossless number parser preserves the digits.
+            result = 'convert(nvarchar, ' + this._appendSql(valueSource, params, false) + ', 3)'
             break
         case 'bigint':
         case 'customInt':
-        case 'customDouble':
             result = `'"' + convert(nvarchar, ` + this._appendSql(valueSource, params, false) + `) + '"'`
+            break
+        case 'customDouble':
+            // A quoted float leaf: the same lossless style-3 form as `double` (finding B).
+            result = `'"' + convert(nvarchar, ` + this._appendSql(valueSource, params, false) + `, 3) + '"'`
             break
         case 'uuid':
         case 'customUuid':
@@ -1444,13 +1467,20 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         switch(type) {
         case 'boolean':
         case 'int':
-        case 'double':
             result = 'convert(nvarchar, a_' + aggregateId + '_.' + this._escape(prop, true) + ')'
+            break
+        case 'double':
+            // FINDING B: style 3 is the only lossless float→text convert (styleless keeps
+            // ≤6 significant figures). Scientific notation is a valid unquoted JSON number.
+            result = 'convert(nvarchar, a_' + aggregateId + '_.' + this._escape(prop, true) + ', 3)'
             break
         case 'bigint':
         case 'customInt':
-        case 'customDouble':
             result = `'"' + convert(nvarchar, a_` + aggregateId + `_.` + this._escape(prop, true) + `) + '"'`
+            break
+        case 'customDouble':
+            // Quoted float leaf, lossless style-3 form (see `_appendJsonValueForAggregate`).
+            result = `'"' + convert(nvarchar, a_` + aggregateId + `_.` + this._escape(prop, true) + `, 3) + '"'`
             break
         case 'uuid':
         case 'customUuid':

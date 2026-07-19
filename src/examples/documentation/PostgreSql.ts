@@ -2592,7 +2592,7 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push(`select id as id, name as name, (select json_agg(json_build_object('id', id, 'firstName', first_name, 'lastName', last_name)) as result from customer where company_id = company.id) as customers from company where id = $1`)
+    expectedQuery.push(`select id as id, name as name, ((select json_agg(json_build_object('id', id, 'firstName', first_name, 'lastName', last_name)) as result from customer where company_id = company.id))::text as customers from company where id = $1`)
     expectedParams.push(`[1]`)
     expectedType.push(`selectOneRow`)
 
@@ -2630,7 +2630,7 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push(`select company.id as id, company.name as name, json_agg(json_build_object('id', customer.id, 'firstName', customer.first_name, 'lastName', customer.last_name)) as customers from company left join customer on customer.company_id = company.id where company.id = $1 group by company.id`)
+    expectedQuery.push(`select company.id as id, company.name as name, (json_agg(json_build_object('id', customer.id, 'firstName', customer.first_name, 'lastName', customer.last_name)))::text as customers from company left join customer on customer.company_id = company.id where company.id = $1 group by company.id`)
     expectedParams.push(`[1]`)
     expectedType.push(`selectOneRow`)
 
@@ -2665,7 +2665,7 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push(`select id as id, name as name, (select json_agg(first_name || $1 || last_name) as result from customer where company_id = company.id) as customers from company where id = $2`)
+    expectedQuery.push(`select id as id, name as name, ((select json_agg(first_name || $1 || last_name) as result from customer where company_id = company.id))::text as customers from company where id = $2`)
     expectedParams.push(`[" ",1]`)
     expectedType.push(`selectOneRow`)
 
@@ -2699,7 +2699,7 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push(`select company.id as id, company.name as name, json_agg(customer.first_name || $1 || customer.last_name) as customers from company left join customer on customer.company_id = company.id where company.id = $2 group by company.id`)
+    expectedQuery.push(`select company.id as id, company.name as name, (json_agg(customer.first_name || $1 || customer.last_name))::text as customers from company left join customer on customer.company_id = company.id where company.id = $2 group by company.id`)
     expectedParams.push(`[" ",1]`)
     expectedType.push(`selectOneRow`)
 
@@ -2809,7 +2809,7 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push(`select id as id, name as name, (select json_agg(json_build_object('id', id, 'firstName', first_name, 'lastName', last_name)) from customer where company_id = company.id) as customers from company where id = $1`)
+    expectedQuery.push(`select id as id, name as name, ((select json_agg(json_build_object('id', id, 'firstName', first_name, 'lastName', last_name)) from customer where company_id = company.id))::text as customers from company where id = $1`)
     expectedParams.push(`[1]`)
     expectedType.push(`selectOneRow`)
 
@@ -2847,7 +2847,7 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push(`select id as id, name as name, (select json_agg(json_build_object('id', a_1_.id, 'firstName', a_1_.firstName, 'lastName', a_1_.lastName)) from (select id as id, first_name as firstName, last_name as lastName from customer where company_id = company.id order by id) as a_1_) as customers from company where id = $1`)
+    expectedQuery.push(`select id as id, name as name, ((select json_agg(json_build_object('id', a_1_.id, 'firstName', a_1_.firstName, 'lastName', a_1_.lastName)) from (select id as id, first_name as firstName, last_name as lastName from customer where company_id = company.id order by id) as a_1_))::text as customers from company where id = $1`)
     expectedParams.push(`[1]`)
     expectedType.push(`selectOneRow`)
 
@@ -2886,7 +2886,7 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push(`select id as id, name as name, (select json_agg(first_name || $1 || last_name) from customer where company_id = company.id) as customers from company where id = $2`)
+    expectedQuery.push(`select id as id, name as name, ((select json_agg(first_name || $1 || last_name) from customer where company_id = company.id))::text as customers from company where id = $2`)
     expectedParams.push(`[" ",1]`)
     expectedType.push(`selectOneRow`)
 
@@ -2920,7 +2920,7 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push(`select id as id, name as name, (select json_agg(a_1_.result) from (select first_name || $1 || last_name as result from customer where company_id = company.id order by result) as a_1_) as customers from company where id = $2`)
+    expectedQuery.push(`select id as id, name as name, ((select json_agg(a_1_.result) from (select first_name || $1 || last_name as result from customer where company_id = company.id order by result) as a_1_))::text as customers from company where id = $2`)
     expectedParams.push(`[" ",1]`)
     expectedType.push(`selectOneRow`)
 
@@ -2955,7 +2955,7 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push(`select id as id, name as name, (select json_agg(json_build_object('id', a_1_.id, 'firstName', a_1_.firstName, 'lastName', a_1_.lastName)) from (select id as id, first_name as firstName, last_name as lastName from customer where company_id = company.id union select id as id, first_name as firstName, last_name as lastName from customer where company_id = company.id) as a_1_) as customers from company where id = $1`)
+    expectedQuery.push(`select id as id, name as name, ((select json_agg(json_build_object('id', a_1_.id, 'firstName', a_1_.firstName, 'lastName', a_1_.lastName)) from (select id as id, first_name as firstName, last_name as lastName from customer where company_id = company.id union select id as id, first_name as firstName, last_name as lastName from customer where company_id = company.id) as a_1_))::text as customers from company where id = $1`)
     expectedParams.push(`[1]`)
     expectedType.push(`selectOneRow`)
 
@@ -3001,7 +3001,7 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push(`select id as id, name as name, (select json_agg(json_build_object('id', a_1_.id, 'firstName', a_1_.firstName, 'lastName', a_1_.lastName)) from (select id as id, first_name as firstName, last_name as lastName from customer where company_id = company.id union select id as id, first_name as firstName, last_name as lastName from customer where company_id = company.id order by id) as a_1_) as customers from company where id = $1`)
+    expectedQuery.push(`select id as id, name as name, ((select json_agg(json_build_object('id', a_1_.id, 'firstName', a_1_.firstName, 'lastName', a_1_.lastName)) from (select id as id, first_name as firstName, last_name as lastName from customer where company_id = company.id union select id as id, first_name as firstName, last_name as lastName from customer where company_id = company.id order by id) as a_1_))::text as customers from company where id = $1`)
     expectedParams.push(`[1]`)
     expectedType.push(`selectOneRow`)
 
@@ -3047,7 +3047,7 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push(`select id as id, name as name, (select json_agg(a_1_.result) from (select first_name || $1 || last_name as result from customer where company_id = company.id union select first_name || $2 || last_name as result from customer where company_id = company.id) as a_1_) as customers from company where id = $3`)
+    expectedQuery.push(`select id as id, name as name, ((select json_agg(a_1_.result) from (select first_name || $1 || last_name as result from customer where company_id = company.id union select first_name || $2 || last_name as result from customer where company_id = company.id) as a_1_))::text as customers from company where id = $3`)
     expectedParams.push(`[" "," ",1]`)
     expectedType.push(`selectOneRow`)
 
@@ -3086,7 +3086,7 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push(`select id as id, name as name, (select json_agg(a_1_.result) from (select first_name || $1 || last_name as result from customer where company_id = company.id union select first_name || $2 || last_name as result from customer where company_id = company.id order by result) as a_1_) as customers from company where id = $3`)
+    expectedQuery.push(`select id as id, name as name, ((select json_agg(a_1_.result) from (select first_name || $1 || last_name as result from customer where company_id = company.id union select first_name || $2 || last_name as result from customer where company_id = company.id order by result) as a_1_))::text as customers from company where id = $3`)
     expectedParams.push(`[" "," ",1]`)
     expectedType.push(`selectOneRow`)
 
@@ -3125,7 +3125,7 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push(`select id as id, name as name, parent_id as "parentId", (with recursive recursive_select_1 as (select parentCompany.id as id, parentCompany.name as name, parentCompany.parent_id as parentId from company as parentCompany where parentCompany.id = company.parent_id union all select parentCompany.id as id, parentCompany.name as name, parentCompany.parent_id as parentId from company as parentCompany join recursive_select_1 on recursive_select_1.parentId = parentCompany.id) select json_agg(json_build_object('id', id, 'name', name, 'parentId', parentId)) from recursive_select_1) as parents from company where id = $1`)
+    expectedQuery.push(`select id as id, name as name, parent_id as "parentId", ((with recursive recursive_select_1 as (select parentCompany.id as id, parentCompany.name as name, parentCompany.parent_id as parentId from company as parentCompany where parentCompany.id = company.parent_id union all select parentCompany.id as id, parentCompany.name as name, parentCompany.parent_id as parentId from company as parentCompany join recursive_select_1 on recursive_select_1.parentId = parentCompany.id) select json_agg(json_build_object('id', id, 'name', name, 'parentId', parentId)) from recursive_select_1))::text as parents from company where id = $1`)
     expectedParams.push(`[10]`)
     expectedType.push(`selectOneRow`)
 
@@ -3170,7 +3170,7 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push(`with recursive recursive_select_1 as (select parentCompany.id as id, parentCompany.name as name, parentCompany.parent_id as parentId from company as parentCompany where parentCompany.id = $1 union all select parentCompany.id as id, parentCompany.name as name, parentCompany.parent_id as parentId from company as parentCompany join recursive_select_1 on recursive_select_1.parentId = parentCompany.id) select id as id, name as name, parent_id as "parentId", (select json_agg(json_build_object('id', id, 'name', name, 'parentId', parentId)) from recursive_select_1) as parents from company where id = $2`)
+    expectedQuery.push(`with recursive recursive_select_1 as (select parentCompany.id as id, parentCompany.name as name, parentCompany.parent_id as parentId from company as parentCompany where parentCompany.id = $1 union all select parentCompany.id as id, parentCompany.name as name, parentCompany.parent_id as parentId from company as parentCompany join recursive_select_1 on recursive_select_1.parentId = parentCompany.id) select id as id, name as name, parent_id as "parentId", ((select json_agg(json_build_object('id', id, 'name', name, 'parentId', parentId)) from recursive_select_1))::text as parents from company where id = $2`)
     expectedParams.push(`[9,10]`)
     expectedType.push(`selectOneRow`)
 
@@ -3268,7 +3268,7 @@ async function main() {
 
     result = { records: [{ id: '89bf68fc-7002-11ec-90d6-0242ac120003', title: 'My voice memo' }] }
     expectedResult.push(result)
-    expectedQuery.push(`select (select json_agg(json_build_object('id', id, 'title', title)) from record where id::text like ('%' || $1 || '%')) as records`)
+    expectedQuery.push(`select ((select json_agg(json_build_object('id', id, 'title', title)) from record where id::text like ('%' || $1 || '%')))::text as records`)
     expectedParams.push(`["7002"]`)
     expectedType.push(`selectOneRow`)
 
@@ -3294,7 +3294,7 @@ async function main() {
 
     result = { records: [{ id: '89bf68fc-7002-11ec-90d6-0242ac120003', title: 'My voice memo' }] }
     expectedResult.push(result)
-    expectedQuery.push(`select (select json_agg(json_build_object('id', a_1_.id, 'title', a_1_.title)) from (select id as id, title as title from record where id::text like ('%' || $1 || '%') order by id) as a_1_) as records`)
+    expectedQuery.push(`select ((select json_agg(json_build_object('id', a_1_.id, 'title', a_1_.title)) from (select id as id, title as title from record where id::text like ('%' || $1 || '%') order by id) as a_1_))::text as records`)
     expectedParams.push(`["7002"]`)
     expectedType.push(`selectOneRow`)
 
@@ -3321,7 +3321,7 @@ async function main() {
 
     result = { records: [{ id: '89bf68fc-7002-11ec-90d6-0242ac120003', title: 'My voice memo' }] }
     expectedResult.push(result)
-    expectedQuery.push(`select json_agg(json_build_object('id', id, 'title', title)) as records from record where id::text like ('%' || $1 || '%')`)
+    expectedQuery.push(`select (json_agg(json_build_object('id', id, 'title', title)))::text as records from record where id::text like ('%' || $1 || '%')`)
     expectedParams.push(`["7002"]`)
     expectedType.push(`selectOneRow`)
 
@@ -4779,7 +4779,7 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push(`select id as id, name as name, parent_id as "parentId", (select json_agg(json_build_object('id', id, 'firstName', first_name, 'lastName', last_name, 'birthday', birthday)) as result from customer where company_id = company.id) as customers from company where id = $1`)
+    expectedQuery.push(`select id as id, name as name, parent_id as "parentId", ((select json_agg(json_build_object('id', id, 'firstName', first_name, 'lastName', last_name, 'birthday', birthday)) as result from customer where company_id = company.id))::text as customers from company where id = $1`)
     expectedParams.push(`[1]`)
     expectedType.push(`selectOneRow`)
 
@@ -4842,7 +4842,7 @@ async function main() {
             { id: 3, firstName: 'Jane', lastName: 'Doe' }
         ]
     })
-    expectedQuery.push(`select id as id, name as name, parent_id as "parentId", (select json_agg(json_build_object('id', id, 'firstName', first_name, 'lastName', last_name, 'birthday', birthday)) as result from customer where company_id = company.id) as customers from company where id = $1`)
+    expectedQuery.push(`select id as id, name as name, parent_id as "parentId", ((select json_agg(json_build_object('id', id, 'firstName', first_name, 'lastName', last_name, 'birthday', birthday)) as result from customer where company_id = company.id))::text as customers from company where id = $1`)
     expectedParams.push(`[1]`)
     expectedType.push(`selectOneRow`)
 

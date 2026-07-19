@@ -725,7 +725,7 @@ describe(ctx.label, () => {
             .select({ id: tProject.id, tree })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as /* warmup */ (select id as result from issue where id = ? union all select issue.id as result from issue join recursive_select_1 on issue.parent_id = recursive_select_1.result) /* end-of-with */ select id as id, (/* head */  select /* hint */ /* cols */  json_arrayagg(result) from recursive_select_1  /* tail */) as tree from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as /* warmup */ (select id as result from issue where id = ? union all select issue.id as result from issue join recursive_select_1 on issue.parent_id = recursive_select_1.result) /* end-of-with */ select id as id, cast((/* head */  select /* hint */ /* cols */  json_arrayagg(result) from recursive_select_1  /* tail */) as char) as tree from project where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -837,7 +837,7 @@ describe(ctx.label, () => {
             .select({ id: tProject.id, tree })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as result from issue where id = ? union all select issue.id as result from issue join recursive_select_1 on issue.parent_id = recursive_select_1.result) select id as id, (select /* hint */ /* cols */  json_arrayagg(result order by result) from recursive_select_1 window w1 as (partition by result)) as tree from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as result from issue where id = ? union all select issue.id as result from issue join recursive_select_1 on issue.parent_id = recursive_select_1.result) select id as id, cast((select /* hint */ /* cols */  json_arrayagg(result order by result) from recursive_select_1 window w1 as (partition by result)) as char) as tree from project where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -870,7 +870,7 @@ describe(ctx.label, () => {
             .select({ id: tProject.id, tree })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as result from issue where id = ? union all select issue.id as result from issue join recursive_select_1 on issue.parent_id = recursive_select_1.result) select id as id, (select json_arrayagg(result order by result) from recursive_select_1) as tree from project where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as result from issue where id = ? union all select issue.id as result from issue join recursive_select_1 on issue.parent_id = recursive_select_1.result) select id as id, cast((select json_arrayagg(result order by result) from recursive_select_1) as char) as tree from project where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

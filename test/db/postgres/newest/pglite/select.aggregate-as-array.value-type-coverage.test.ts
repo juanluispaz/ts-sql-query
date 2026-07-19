@@ -11,7 +11,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tProject, tProjectReview, vReleaseOverview, type ReleaseTag } from '../../domain/connection.js'
+import { tIssue, tIssueWorklog, tProject, tProjectReview, vReleaseOverview, type ReleaseTag } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -37,7 +37,7 @@ describe(ctx.label, () => {
             .groupBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, json_agg((project.published = 't')) as published from issue left join project on project.id = issue.project_id where issue.id = $1 group by issue.id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, (json_agg((project.published = 't')))::text as published from issue left join project on project.id = issue.project_id where issue.id = $1 group by issue.id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -71,7 +71,7 @@ describe(ctx.label, () => {
             .groupBy('projectId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", json_agg(created_at) as "createdAts" from issue where project_id = $1 group by project_id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", (json_agg(created_at))::text as "createdAts" from issue where project_id = $1 group by project_id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -85,6 +85,35 @@ describe(ctx.label, () => {
             expect(rows.length).toBeGreaterThan(0)
             expect(Array.isArray(rows[0]!.createdAts)).toBe(true)
         }
+    })
+
+    test('aggregate-of-local-date-column-as-array', async () => {
+        // A `localDate` leaf in the JSON aggregate. Oracle serialises a `DATE` there WITH a
+        // midnight time — "2024-03-04T00:00:00" — not the bare "2024-03-04" the other dialects
+        // emit, so the `localDate` marshaller must tolerate the time component (else it built an
+        // Invalid Date and threw). `tIssueWorklog.workDate` is `localDate`; worklogs 1 and 3 both
+        // belong to issue 1 (2024-03-04 and 2024-03-06).
+        ctx.mockNext([{ issueId: 1, dates: [new Date('2024-03-04T00:00:00Z'), new Date('2024-03-06T00:00:00Z')] }])
+        const rows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.issueId.equals(1))
+            .select({
+                issueId: tIssueWorklog.issueId,
+                dates:   ctx.conn.aggregateAsArrayOfOneColumn(tIssueWorklog.workDate),
+            })
+            .groupBy('issueId')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue_id as "issueId", (json_agg(work_date))::text as dates from issue_worklog where issue_id = $1 group by issue_id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ issueId: number; dates: Date[] }>>>()
+        expect(rows.length).toBe(1)
+        expect(Array.isArray(rows[0]!.dates)).toBe(true)
+        const sorted = [...rows[0]!.dates].sort((a, b) => a.getTime() - b.getTime())
+        expect(sorted.map(d => d.getUTCFullYear() + '-' + (d.getUTCMonth() + 1) + '-' + d.getUTCDate())).toEqual(['2024-3-4', '2024-3-6'])
     })
 
     test('aggregate-of-optional-local-date-time-column-as-array', async () => {
@@ -108,7 +137,7 @@ describe(ctx.label, () => {
             .groupBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, json_agg(project.archived_at) as "archivedAts" from issue left join project on project.id = issue.project_id where issue.id = $1 group by issue.id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, (json_agg(project.archived_at))::text as "archivedAts" from issue left join project on project.id = issue.project_id where issue.id = $1 group by issue.id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -124,10 +153,14 @@ describe(ctx.label, () => {
     })
 
     test('aggregate-of-bigint-column-as-array', async () => {
-        // Exercises the `bigint` value type in the JSON aggregate (a
-        // bigint doesn't fit in a JSON int reliably, so dialects with a
-        // per-type switch convert it); the exact form is pinned by the
-        // snapshot below. `tIssue.viewCount` is `bigint`.
+        // Exercises the `bigint` value type in the JSON aggregate. Every number in
+        // a JSON document is an IEEE-754 double once parsed, so the two seeded
+        // values are BEYOND 2^53 (both odd, so a plain JSON number would round each
+        // to the wrong even neighbour). The library reads the aggregate as a raw
+        // JSON string and parses it WITHOUT rounding — numbers become strings, which
+        // the `bigint` marshaller re-reads exactly via BigInt(string) — so the digits
+        // survive; the exact SQL is pinned by the snapshot below. `tIssue.viewCount`
+        // is `bigint`.
         //
         // The seed leaves `view_count` at its `0n` default, which would
         // make the asserted aggregate trivially `[0n, 0n]`. We UPDATE
@@ -139,11 +172,11 @@ describe(ctx.label, () => {
         // comparing to be insensitive to the per-dialect ordering.
         await ctx.withRollback(async () => {
             ctx.mockNext(1)
-            await ctx.conn.update(tIssue).set({ viewCount: 100n }).where(tIssue.id.equals(1)).executeUpdate()
+            await ctx.conn.update(tIssue).set({ viewCount: 9007199254740993n }).where(tIssue.id.equals(1)).executeUpdate()
             ctx.mockNext(1)
-            await ctx.conn.update(tIssue).set({ viewCount: 200n }).where(tIssue.id.equals(2)).executeUpdate()
+            await ctx.conn.update(tIssue).set({ viewCount: 9007199254740995n }).where(tIssue.id.equals(2)).executeUpdate()
 
-            ctx.mockNext([{ projectId: 1, views: [100n, 200n] }])
+            ctx.mockNext([{ projectId: 1, views: [9007199254740993n, 9007199254740995n] }])
             const rows = await ctx.conn.selectFrom(tIssue)
                 .where(tIssue.projectId.equals(1))
                 .select({
@@ -153,7 +186,7 @@ describe(ctx.label, () => {
                 .groupBy('projectId')
                 .executeSelectMany()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", json_agg(view_count) as views from issue where project_id = $1 group by project_id"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", (json_agg(view_count))::text as views from issue where project_id = $1 group by project_id"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -161,7 +194,7 @@ describe(ctx.label, () => {
             `)
             assertType<Exact<typeof rows, Array<{ projectId: number; views: bigint[] }>>>()
             const sorted = rows.map(r => ({ ...r, views: [...r.views].sort((a, b) => Number(a - b)) }))
-            expect(sorted).toEqual([{ projectId: 1, views: [100n, 200n] }])
+            expect(sorted).toEqual([{ projectId: 1, views: [9007199254740993n, 9007199254740995n] }])
         })
     })
 
@@ -196,7 +229,7 @@ describe(ctx.label, () => {
                 .groupBy('projectId')
                 .executeSelectMany()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", json_agg(estimated_hours) as hours from issue where project_id = $1 group by project_id"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", (json_agg(estimated_hours))::text as hours from issue where project_id = $1 group by project_id"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -205,6 +238,35 @@ describe(ctx.label, () => {
             assertType<Exact<typeof rows, Array<{ projectId: number; hours: number[] }>>>()
             const sorted = rows.map(r => ({ ...r, hours: [...r.hours].sort((a, b) => a - b) }))
             expect(sorted).toEqual([{ projectId: 1, hours: [4.5, 12.0] }])
+        })
+    })
+
+    test('aggregate-of-scientific-double-column-as-array', async () => {
+        // A double of small magnitude renders in SCIENTIFIC notation inside the JSON aggregate
+        // (e.g. `1.5e-08`, `2.5e-10`) on every engine here. finding A reads the aggregate as raw
+        // text, so the value reaches the `double` marshaller as a scientific-notation STRING,
+        // which `+value` parses back exactly — the sibling above pins the emitted SQL. Values are
+        // kept small on purpose: a very large double (e.g. `6e23`) does not round-trip through
+        // sqlite-wasm's JSON, an engine limitation unrelated to the marshaller.
+        await ctx.withRollback(async () => {
+            ctx.mockNext(1)
+            await ctx.conn.update(tIssue).set({ estimatedHours: 1.5e-8 }).where(tIssue.id.equals(1)).executeUpdate()
+            ctx.mockNext(1)
+            await ctx.conn.update(tIssue).set({ estimatedHours: 2.5e-10 }).where(tIssue.id.equals(2)).executeUpdate()
+
+            ctx.mockNext([{ projectId: 1, hours: [1.5e-8, 2.5e-10] }])
+            const rows = await ctx.conn.selectFrom(tIssue)
+                .where(tIssue.projectId.equals(1))
+                .select({
+                    projectId: tIssue.projectId,
+                    hours:     ctx.conn.aggregateAsArrayOfOneColumn(tIssue.estimatedHours),
+                })
+                .groupBy('projectId')
+                .executeSelectMany()
+
+            assertType<Exact<typeof rows, Array<{ projectId: number; hours: number[] }>>>()
+            const sorted = rows.map(r => ({ ...r, hours: [...r.hours].sort((a, b) => a - b) }))
+            expect(sorted).toEqual([{ projectId: 1, hours: [2.5e-10, 1.5e-8] }])
         })
     })
 
@@ -246,7 +308,7 @@ describe(ctx.label, () => {
                 .groupBy('projectId')
                 .executeSelectMany()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", json_agg(external_ref) as refs from issue where project_id = $1 group by project_id"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", (json_agg(external_ref))::text as refs from issue where project_id = $1 group by project_id"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -316,7 +378,7 @@ describe(ctx.label, () => {
                 .groupBy('projectId')
                 .executeSelectMany()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", json_agg(json_build_object('views', view_count, 'externalRef', external_ref, 'estimatedHours', estimated_hours)) as issues from issue where project_id = $1 group by project_id"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", (json_agg(json_build_object('views', view_count, 'externalRef', external_ref, 'estimatedHours', estimated_hours)))::text as issues from issue where project_id = $1 group by project_id"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -372,7 +434,7 @@ describe(ctx.label, () => {
             .groupBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, json_agg(json_build_object('published', (project.published = 't'), 'createdAt', project.created_at)) as projects from issue left join project on project.id = issue.project_id where issue.id = $1 group by issue.id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, (json_agg(json_build_object('published', (project.published = 't'), 'createdAt', project.created_at)))::text as projects from issue left join project on project.id = issue.project_id where issue.id = $1 group by issue.id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -413,7 +475,7 @@ describe(ctx.label, () => {
             .groupBy('projectId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", json_agg(json_build_object('score', score, 'reviewer', reviewer_code)) as reviews from project_review where project_id = $1 group by project_id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", (json_agg(json_build_object('score', score, 'reviewer', reviewer_code)))::text as reviews from project_review where project_id = $1 group by project_id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -447,7 +509,7 @@ describe(ctx.label, () => {
                 .groupBy('projectId')
                 .executeSelectMany()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", json_agg(estimated_hours) as hours from issue where project_id = $1 group by project_id"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", (json_agg(estimated_hours))::text as hours from issue where project_id = $1 group by project_id"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -474,7 +536,7 @@ describe(ctx.label, () => {
             .groupBy('projectId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", json_agg(optional_release_ordinal) as ords from release_overview where project_id = $1 group by project_id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", (json_agg(optional_release_ordinal))::text as ords from release_overview where project_id = $1 group by project_id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

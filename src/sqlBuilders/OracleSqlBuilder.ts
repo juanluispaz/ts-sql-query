@@ -36,6 +36,19 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         // has no native COT function), so it must be parenthesised when used
         // as an operand of another operation.
         this._operationsThatNeedParenthesis._cot = true
+        // `_replaceAll`/`_replaceAllInsensitive` append a trailing `collate USING_NLS_COMP`
+        // reset (see those overrides) whenever `replaceCollation`/`insensitiveCollation` forces
+        // a collation. That trailing `collate` binds looser than the operators — and than an
+        // outer `replace`'s own forced collation — that embed it, so the whole expression must
+        // be wrapped when used as an operand. Without this, chaining (`replaceAll().replaceAll()`,
+        // `replaceAll().collate()`, `replaceAll().replaceAllInsensitive()`) emits two adjacent
+        // `collate` clauses — `... collate USING_NLS_COMP collate BINARY` — which Oracle rejects
+        // (`ORA-00907: missing right parenthesis`). A PARENTHESISED double collate is valid, so
+        // this is only registered on the dialects that add the reset (Oracle + SQL Server), never
+        // on the base (MySQL/MariaDB/PostgreSQL/SQLite emit a bare `replace(...)` with no trailing
+        // collate, so wrapping it would only add noise).
+        this._operationsThatNeedParenthesis._replaceAll = true
+        this._operationsThatNeedParenthesis._replaceAllInsensitive = true
     }
 
     override _cot(params: any[], valueSource: ToSql): string {
@@ -150,13 +163,6 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         return super._concatSql(left, right)
     }
     override _concat(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        // Re-entrancy: a chain-internal `_concat` node (its receiver was recorded below while
-        // the enclosing top node built its value part) must render as the bare native join,
-        // NOT wrap in its own `CASE` — the whole chain shares ONE poison `CASE` at the top.
-        const plainNodes = (params as any)._oracleConcatPlainReceivers as Set<unknown> | undefined
-        if (plainNodes && plainNodes.has(valueSource)) {
-            return super._concat(params, valueSource, value, columnType, columnTypeName, typeAdapter)
-        }
         const configuration = this._connectionConfiguration
         // Function opt-in and native opt-out both go through `_concatSql` (super): the
         // function propagates NULL itself, the native `||` is the deliberate opt-out. Neither
@@ -164,50 +170,83 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         if (configuration.concatFunction || configuration.ignoreNullInConcat) {
             return super._concat(params, valueSource, value, columnType, columnTypeName, typeAdapter)
         }
-        // Default: emulate NULL propagation. Flatten the concat tree to its atomic operands so
-        // the null check is `a is null or b is null or …` (Oracle's `(a || b) is null` is only
-        // true when BOTH are null, so the whole chain has to be checked operand by operand),
-        // and record the chain-internal concat nodes so the value part renders as a plain join.
-        const optionalOperands: any[] = []
-        const chainReceivers: unknown[] = []
-        const collect = (node: any): void => {
-            if (operationOf(node) === '_concat') {
-                const receiver = (node as unknown as ConcatNode).__valueSource
-                chainReceivers.push(receiver)
-                collect(receiver)
-                collect((node as unknown as ConcatNode).__value)
-            } else if (this._isOptionalValue(node)) {
-                optionalOperands.push(node)
-            }
-        }
-        collect(valueSource)
-        collect(value)
-        if (optionalOperands.length <= 0) {
-            // Nothing can be NULL at build time: the bare native join, no `CASE`.
+        // Default: emulate NULL propagation, following the same shape as the base's min/max
+        // poisoning (`_minAndMaxValueBetweenTwoValuesPoisoningNull`): `case when <null check>
+        // then null else <value> end`, where the value part is built by a SEPARATE method
+        // (`_concatChainSql`) that does no null handling. Oracle's `||` reads NULL as '', so
+        // `a || b` is NULL only when BOTH are — the whole chain must be null-checked operand by
+        // operand. `_appendConcatNullCheck` walks the chain building that `<a> is null or …` check
+        // over the build-time-optional leaves and appending their params as it goes (so those
+        // params precede the value part's). An empty check means nothing can be NULL at build time
+        // — and, by the same token, no param was appended — so the bare native join is emitted with
+        // no `CASE`. A concat wrapped in another operation (e.g. `valueWhenNull`) is a single leaf
+        // here, so it keeps its own `CASE` (see `_concatChainSql`).
+        const nullCheck = this._appendConcatNullCheck(params, valueSource, value)
+        if (!nullCheck) {
             return super._concat(params, valueSource, value, columnType, columnTypeName, typeAdapter)
         }
-        // The null check is built first so its parameters precede the value part's.
-        const nullCheck = optionalOperands.map((operand) => this._isNull(params, operand)).join(' or ')
-        const suppressed = this._oracleConcatPlainReceivers(params)
-        chainReceivers.forEach((receiver) => suppressed.add(receiver))
-        let valueSql: string
-        try {
-            valueSql = super._concat(params, valueSource, value, columnType, columnTypeName, typeAdapter)
-        } finally {
-            chainReceivers.forEach((receiver) => suppressed.delete(receiver))
-        }
-        return 'case when ' + nullCheck + ' then null else ' + valueSql + ' end'
+        return 'case when ' + nullCheck + ' then null else ' + this._concatChainSql(params, valueSource, value) + ' end'
     }
-    // The set of concat receivers whose node must render as the bare native join while the
-    // enclosing top `_concat` builds its value part (see `_concat`). Non-enumerable so it
-    // never leaks into the bind array `params` is.
-    private _oracleConcatPlainReceivers(params: any[]): Set<unknown> {
-        let set = (params as any)._oracleConcatPlainReceivers as Set<unknown> | undefined
-        if (!set) {
-            set = new Set()
-            Object.defineProperty(params, '_oracleConcatPlainReceivers', { value: set, writable: false, enumerable: false, configurable: true })
+    // Builds the poison `CASE`'s null check for a concat chain: `<a> is null or <b> is null or …`
+    // over the build-time-optional atomic leaves, appending each leaf's params as it goes. It walks
+    // the concat operands directly, mirroring `_concatChainSql`: a `_concat` operand is descended
+    // into; any other operand is a leaf, checked when it is optional (a nullable column,
+    // `optionalConst(null)`, a `valueWhenNull`-wrapped concat, …). Building the check straight from
+    // the walk avoids collecting the leaves into an intermediate array first. Returns '' when
+    // nothing is optional — and in that case appends NO param, so the caller can fall back to the
+    // bare join with the param array untouched.
+    private _appendConcatNullCheck(params: any[], valueSource: any, value: any): string {
+        let left: string
+        if (operationOf(valueSource) === '_concat') {
+            const node = valueSource as unknown as ConcatNode
+            left = this._appendConcatNullCheck(params, node.__valueSource, node.__value)
+        } else if (this._isOptionalValue(valueSource)) {
+            left = this._isNull(params, valueSource)
+        } else {
+            left = ''
         }
-        return set
+        let right: string
+        if (operationOf(value) === '_concat') {
+            const node = value as ConcatNode
+            right = this._appendConcatNullCheck(params, node.__valueSource, node.__value)
+        } else if (this._isOptionalValue(value)) {
+            right = this._isNull(params, value)
+        } else {
+            right = ''
+        }
+        if (!left) {
+            return right
+        }
+        if (!right) {
+            return left
+        }
+        return left + ' or ' + right
+    }
+    // The flat native join of a concat chain with NO null handling — the concat analog of the
+    // base's `_minAndMaxValueSelection`, used for the value branch of the poison `CASE` in
+    // `_concat`. It walks the concat operands DIRECTLY (recursing on a `_concat` operand rather
+    // than dispatching to the public `_concat`), so the whole chain stays ONE flat `a || b || …`
+    // instead of a nested `CASE` per `||`. Every non-concat operand goes through the normal
+    // append, so a concat wrapped in another operation reaches the public `_concat` and keeps
+    // its own `CASE`. Types are threaded exactly as the operation node's `__toSql` does: the
+    // right operand is appended with the LEFT operand's value type.
+    private _concatChainSql(params: any[], valueSource: ToSql, value: any): string {
+        let left: string
+        if (operationOf(valueSource) === '_concat') {
+            const node = valueSource as unknown as ConcatNode
+            left = this._concatChainSql(params, node.__valueSource as unknown as ToSql, node.__value)
+        } else {
+            left = this._appendSqlParenthesisExcluding(valueSource, params, '_concat', false)
+        }
+        let right: string
+        if (operationOf(value) === '_concat') {
+            const node = value as ConcatNode
+            right = this._concatChainSql(params, node.__valueSource as unknown as ToSql, node.__value)
+        } else {
+            const leftPrivate = __getValueSourcePrivate(valueSource as unknown as AnyValueSource)
+            right = this._appendValueParenthesisExcluding(value, params, leftPrivate.__valueType, leftPrivate.__valueTypeName, leftPrivate.__typeAdapter, '_concat', false)
+        }
+        return this._concatSql(left, right)
     }
     override _likePatternStartingWith(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, fold: boolean): string {
         const concatFunction = this._connectionConfiguration.concatFunction

@@ -54,11 +54,11 @@ The executed query is:
     select 
         company.id as id, 
         company.name as name, 
-        json_arrayagg(json_object(
+        cast(json_arrayagg(json_object(
             'id', customer.id, 
             'firstName', customer.first_name, 
             'lastName', customer.last_name
-        )) as customers 
+        )) as char) as customers 
     from company 
     left join customer on customer.company_id = company.id 
     where company.id = ? 
@@ -69,11 +69,11 @@ The executed query is:
     select 
         company.id as id, 
         company.`name` as `name`, 
-        json_arrayagg(json_object(
+        cast(json_arrayagg(json_object(
             'id', customer.id, 
             'firstName', customer.first_name, 
             'lastName', customer.last_name
-        )) as customers 
+        )) as char) as customers 
     from company 
     left join customer on customer.company_id = company.id 
     where company.id = ? 
@@ -99,11 +99,11 @@ The executed query is:
     select 
         company.id as id, 
         company.name as name, 
-        json_agg(json_build_object(
+        (json_agg(json_build_object(
             'id', customer.id, 
             'firstName', customer.first_name, 
             'lastName', customer.last_name
-        )) as customers 
+        )))::text as customers 
     from company 
     left join customer on customer.company_id = company.id 
     where company.id = $1 
@@ -186,7 +186,7 @@ The executed query is:
     select 
         company.id as id, 
         company.name as name, 
-        json_arrayagg(concat(customer.first_name, ?, customer.last_name)) as customers 
+        cast(json_arrayagg(concat(customer.first_name, ?, customer.last_name)) as char) as customers 
     from company 
     left join customer on customer.company_id = company.id 
     where company.id = ? 
@@ -197,7 +197,7 @@ The executed query is:
     select 
         company.id as id, 
         company.`name` as `name`, 
-        json_arrayagg(concat(customer.first_name, ?, customer.last_name)) as customers 
+        cast(json_arrayagg(concat(customer.first_name, ?, customer.last_name)) as char) as customers 
     from company 
     left join customer on customer.company_id = company.id 
     where company.id = ? 
@@ -219,7 +219,7 @@ The executed query is:
     select 
         company.id as id, 
         company.name as name, 
-        json_agg(customer.first_name || $1 || customer.last_name) as customers 
+        (json_agg(customer.first_name || $1 || customer.last_name))::text as customers 
     from company 
     left join customer on customer.company_id = company.id 
     where company.id = $2 
@@ -293,7 +293,7 @@ The executed query is:
     select 
         id as id, 
         name as name, 
-        (
+        cast((
             select json_arrayagg(json_object(
                 'id', id, 
                 'firstName', first_name, 
@@ -301,7 +301,7 @@ The executed query is:
             ) order by id) 
             from customer 
             where company_id = company.id
-        ) as customers 
+        ) as char) as customers 
         from company 
         where id = ?
     ```
@@ -310,7 +310,7 @@ The executed query is:
     select 
         id as id, 
         `name` as `name`, 
-        (
+        cast((
             select json_arrayagg(json_object(
                 'id', a_1_.id, 
                 'firstName', a_1_.firstName, 
@@ -326,7 +326,7 @@ The executed query is:
                 order by id 
                 limit 2147483647
             ) as a_1_
-        ) as customers 
+        ) as char) as customers 
     from company 
     where id = ?
     ```
@@ -360,7 +360,7 @@ The executed query is:
     select 
         id as id, 
         name as name, 
-        (
+        ((
             select json_agg(json_build_object(
                 'id', a_1_.id, 
                 'firstName', a_1_.firstName,
@@ -375,7 +375,7 @@ The executed query is:
                 where company_id = company.id 
                 order by id
             ) as a_1_
-        ) as customers 
+        ))::text as customers 
     from company 
     where id = $1
     ```
@@ -469,11 +469,11 @@ The executed query is:
     select 
         id as id, 
         name as name, 
-        (
+        cast((
             select json_arrayagg(concat(first_name, ?, last_name) order by concat(first_name, ?, last_name)) 
             from customer 
             where company_id = company.id
-        ) as customers 
+        ) as char) as customers 
     from company 
     where id = ?
     ```
@@ -482,7 +482,7 @@ The executed query is:
     select 
         id as id, 
         `name` as `name`, 
-        (
+        cast((
             select json_arrayagg(a_1_.result) 
             from (
                 select concat(first_name, ?, last_name) as result 
@@ -491,7 +491,7 @@ The executed query is:
                 order by result 
                 limit 2147483647
             ) as a_1_
-        ) as customers 
+        ) as char) as customers 
         from company 
         where id = ?
     ```
@@ -517,7 +517,7 @@ The executed query is:
     select 
         id as id, 
         name as name, 
-        (
+        ((
             select json_agg(a_1_.result) 
             from (
                 select first_name || $1 || last_name as result 
@@ -525,7 +525,7 @@ The executed query is:
                 where company_id = company.id 
                 order by result
             ) as a_1_
-        ) as customers 
+        ))::text as customers 
         from company 
         where id = $2
     ```
@@ -629,7 +629,7 @@ The executed query is:
         id as id, 
         `name` as `name`, 
         parent_id as parentId, 
-        (
+        cast((
             with recursive 
                 recursive_select_1 as (
                     select 
@@ -654,7 +654,7 @@ The executed query is:
                 'parentId', parentId
             )) 
             from recursive_select_1
-        ) as parents 
+        ) as char) as parents 
     from company 
     where id = ?
     ```
@@ -674,7 +674,7 @@ The executed query is:
         id as id, 
         name as name, 
         parent_id as "parentId", 
-        (
+        ((
             with recursive 
                 recursive_select_1 as (
                     select 
@@ -699,7 +699,7 @@ The executed query is:
                 'parentId', parentId
             )) 
             from recursive_select_1
-        ) as parents 
+        ))::text as parents 
     from company 
     where id = $1
     ```

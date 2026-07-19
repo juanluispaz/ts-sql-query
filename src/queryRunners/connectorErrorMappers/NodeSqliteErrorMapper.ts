@@ -112,7 +112,15 @@ function getNodeSqliteDriverErrorReason(error: NodeSqliteError): TsSqlErrorReaso
         if (isNodeSqliteConfigurationMessage(normalizedMessage)) {
             return { reason: 'SQL_CONFIGURATION_ERROR', configurationErrorType: 'runtime parameter', databaseErrorCode, databaseErrorMessage }
         }
-        if (upper.includes('TOO LARGE TO BE REPRESENTED AS A JAVASCRIPT NUMBER') || upper.includes('OUT OF RANGE')) {
+        if (upper.includes('TOO LARGE TO BE REPRESENTED AS A JAVASCRIPT NUMBER')) {
+            // node:sqlite's default reader (readBigInts off) refuses to hand back an integer
+            // beyond the safe range rather than rounding it — the same precision loss the value
+            // marshaller detects on drivers that round, reported with the same reason so a read
+            // past 2^53 surfaces uniformly across every connector. typeName is unknown at this
+            // layer (the failing column type never reached the marshaller).
+            return { reason: 'PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE', value: extractOutOfRangeValue(message), typeName: '' }
+        }
+        if (upper.includes('OUT OF RANGE')) {
             return { reason: 'SQL_INVALID_VALUE', errorType: 'out of range', databaseErrorCode, databaseErrorMessage }
         }
     }
@@ -231,4 +239,11 @@ function extractParameterIndex(message: string): number | undefined {
     }
     const index = Number(match[1])
     return Number.isFinite(index) ? index : undefined
+}
+
+function extractOutOfRangeValue(message: string): string | undefined {
+    // "Value is too large to be represented as a JavaScript number: 9007199254740993"
+    // — kept as a string so the digits beyond 2^53 survive (a JS number would round them).
+    const match = /:\s*(-?\d+)\s*$/.exec(message)
+    return match?.[1]
 }

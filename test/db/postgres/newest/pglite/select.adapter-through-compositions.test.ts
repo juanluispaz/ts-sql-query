@@ -62,7 +62,7 @@ describe(ctx.label, () => {
             .select({ id: tProject.id, scores })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, (select json_agg(score) from project_review where project_id = project.id) as scores from project where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ((select json_agg(score) from project_review where project_id = project.id))::text as scores from project where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

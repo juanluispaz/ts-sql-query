@@ -572,8 +572,26 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _appendColumnAlias(name: string, _params: any[]): string {
         return this._escape(name, true)
     }
-    _appendColumnValue(value: AnyValueSource, params: any[], _isOutermostQuery: boolean): string {
-        return this._appendSql(value, params, false)
+    _appendColumnValue(value: AnyValueSource, params: any[], isOutermostQuery: boolean): string {
+        const sql = this._appendSql(value, params, false)
+        // An aggregated-array column is a JSON document. On the dialects whose connector
+        // decodes a `json` column into a JS value (rounding every integer past 2^53) before
+        // the library ever sees it, finalise the OUTERMOST such column to text — so the raw
+        // JSON string reaches the lossless parser (`parseJsonPreservingNumbers`) instead of a
+        // pre-rounded object. Only the outermost column is finalised: a nested aggregate lives
+        // *inside* its parent's JSON and must stay a JSON array, not become a quoted string.
+        // On the connectors that already hand the aggregate back as text (Oracle, SQL Server,
+        // SQLite) `_finalizeAggregatedArrayResult` is the identity, so their SQL is untouched.
+        if (isOutermostQuery && isValueSource(value) && __getValueSourcePrivate(value).__valueType === 'aggregatedArray') {
+            return this._finalizeAggregatedArrayResult(sql)
+        }
+        return sql
+    }
+    // See `_appendColumnValue`. Identity by default (Oracle / SQL Server / SQLite connectors
+    // return the aggregate as a raw string already); overridden on PostgreSQL and MySQL/MariaDB,
+    // whose connectors pre-parse a JSON column.
+    _finalizeAggregatedArrayResult(sql: string): string {
+        return sql
     }
     _buildWith(withData: WithQueryData, params: any[]): string {
         let withs = withData.__withs
@@ -3650,6 +3668,25 @@ export class AbstractSqlBuilder implements SqlBuilder {
             sql = "replace(" + sql + ", '" + ch + "', '\\" + ch + "')"
         }
         return sql
+    }
+    /**
+     * Escape the REPLACEMENT string of the regex-driven `replaceAllInsensitive`
+     * (PostgreSQL / MySQL / MariaDB) — the twin of {@link _escapeRegexpForReplace} for the
+     * search term. In `regexp_replace(src, pattern, replacement, …)` the replacement is NOT
+     * literal the way `replaceAll`'s is: on PostgreSQL and MariaDB a backslash starts a
+     * substitution (`\1` is a backreference, `\&` the whole match); MySQL's ICU engine adds
+     * `$` (`$0` / `$1`). Left unescaped, a `\` (or `$`) in the user's replacement is
+     * interpreted, so `replaceAllInsensitive` would diverge from `replaceAll` (always literal)
+     * and from its case-sensitive twin. Escaping keeps the replacement literal on both.
+     * Base = PostgreSQL / MariaDB: only the backslash is a metacharacter. MySQL adds `$`.
+     * Mirrors {@link _escapeRegexpForReplace}: a string literal is escaped in JS at build time
+     * (bound as a param); a value source is escaped at the SQL level with nested `replace`.
+     */
+    _escapeRegexpReplacement(value: any, params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
+        if (typeof value === 'string') {
+            return this._appendValue(value.replace(/\\/g, '\\\\'), params, columnType, columnTypeName, typeAdapter, forceTypeCast)
+        }
+        return "replace(" + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast) + ", '\\', '\\\\')"
     }
     _buildCallProcedure(params: any[], procedureName: string, procedureParams: AnyValueSource[]): string {
         let result = 'call ' + this._escape(procedureName, false) + '('

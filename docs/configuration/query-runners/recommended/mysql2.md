@@ -103,6 +103,6 @@ async function doYourLogic(connection: DBConnection) {
     });
     ```
 
-    Without it the driver reads every integer as a JavaScript `number`, so an out-of-range value comes back rounded — silently, since the rounded value is still an integer. With it, the driver hands those values over as strings and ts-sql-query converts them to the type the column declares (`bigint` stays exact, `int` raises `INVALID_VALUE_RECEIVED_FROM_DATABASE` if it truly doesn't fit). Values within the safe range keep coming back as `number`, so nothing else changes.
+    Without it the driver reads every integer as a JavaScript `number`, so an out-of-range value comes back rounded; ts-sql-query rejects that rounded number with `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE` rather than hand back a silently-wrong value. With it, the driver hands those values over as strings and ts-sql-query converts them to the type the column declares (`bigint` stays exact, `int` raises `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE` if the exact value doesn't fit — read it as `bigint`). Values within the safe range keep coming back as `number`, so nothing else changes.
 
     Add `bigNumberStrings: true` as well only if you want *every* integer as a string, not just the out-of-range ones.

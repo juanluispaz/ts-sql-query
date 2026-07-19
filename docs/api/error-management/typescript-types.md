@@ -83,6 +83,11 @@ type TsSqlErrorReason =
     | /** Detected a mandatory value received from the database but it is absent (sql null) */
       { reason: 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE', value: unknown, typeName: string, 
         rowIndex?: number | undefined, columnPath?: string | undefined }
+    | /** A numeric value received from the database cannot be represented in the requested
+          integer type without losing precision (the driver returned a rounded number, or the
+          exact value exceeds the target type's safe integer range) */
+      { reason: 'PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE', value: unknown, typeName: string,
+        rowIndex?: number | undefined, columnPath?: string | undefined }
     | /** Invalid JSON received from the database */
       { reason: 'INVALID_JSON_RECEIVED_FROM_DATABASE', value: unknown, typeName: string, 
         rowIndex?: number | undefined, columnPath?: string | undefined }

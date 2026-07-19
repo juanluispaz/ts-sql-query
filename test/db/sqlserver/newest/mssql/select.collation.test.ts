@@ -188,6 +188,28 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
+    test('replaceAllInsensitive escapes a regex-metacharacter replacement', async () => {
+        // The replacement is treated LITERALLY (like `replaceAll` / JS String.replaceAll), even
+        // though it contains regex-substitution metacharacters: `\1` (a backreference shape) and
+        // `$0` (a group-reference shape). The library escapes them wherever the engine would
+        // otherwise interpret them, so every 'mas' becomes the literal 'a\1$0b'.
+        const expected = [{ v: 'Xa\\1$0bXa\\1$0b' }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFromNoTable()
+            .select({ v: ctx.conn.const('XmasXmas', 'string').replaceAllInsensitive('mas', 'a\\1$0b') })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select replace(@0, @1, @2) as [v]"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "XmasXmas",
+            "mas",
+            "a\\1$0b",
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ v: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
     test('replaceAllInsensitiveIfValue elides the transform when an argument is absent', async () => {
         const missing: string | undefined = undefined
         const expected = [{ v: 'ABCabc' }]
@@ -204,4 +226,88 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ v: string }>>>()
         expect(result).toEqual(expected)
     })
+
+    // ── C2: chained replace parenthesises the inner result ─────────────
+    // When a collation is forced, `replaceAll`/`replaceAllInsensitive` append a
+    // trailing `collate <reset>` to their result. That trailing `collate` binds
+    // looser than an embedding operator (and than an outer replace's own forced
+    // collation), so a chained replace must parenthesise the inner result: without
+    // the wrap, two adjacent `collate` clauses would be emitted and the engine would
+    // reject the statement.
+    test('chained replaceAll parenthesises the inner replace', async () => {
+        const expected = [{ v: 'YCX' }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFromNoTable()
+            .select({ v: ctx.conn.const('ABCabc', 'string').replaceAll('abc', 'X').replaceAll('AB', 'Y') })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select replace((replace(@0 collate Latin1_General_BIN2, @1 collate Latin1_General_BIN2, @2) collate DATABASE_DEFAULT) collate Latin1_General_BIN2, @3 collate Latin1_General_BIN2, @4) collate DATABASE_DEFAULT as [v]"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "ABCabc",
+            "abc",
+            "X",
+            "AB",
+            "Y",
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ v: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('replaceAll then collate parenthesises the inner replace', async () => {
+        const expected = [{ v: 'ABCX' }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFromNoTable()
+            .select({ v: ctx.conn.const('ABCabc', 'string').replaceAll('abc', 'X').collate('Latin1_General_BIN2') })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (replace(@0 collate Latin1_General_BIN2, @1 collate Latin1_General_BIN2, @2) collate DATABASE_DEFAULT) collate Latin1_General_BIN2 as [v]"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "ABCabc",
+            "abc",
+            "X",
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ v: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('replaceAll then replaceAllInsensitive parenthesises the inner replace', async () => {
+        const expected = [{ v: 'ABCX' }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFromNoTable()
+            .select({ v: ctx.conn.const('ABCabc', 'string').replaceAll('abc', 'X').replaceAllInsensitive('qz', 'Y') })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select replace(replace(@0 collate Latin1_General_BIN2, @1 collate Latin1_General_BIN2, @2) collate DATABASE_DEFAULT, @3, @4) as [v]"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "ABCabc",
+            "abc",
+            "X",
+            "qz",
+            "Y",
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ v: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('replaceAllInsensitive then collate parenthesises the inner replace', async () => {
+        const expected = [{ v: 'ABCabc' }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFromNoTable()
+            .select({ v: ctx.conn.const('ABCabc', 'string').replaceAllInsensitive('qz', 'X').collate('Latin1_General_BIN2') })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (replace(@0, @1, @2)) collate Latin1_General_BIN2 as [v]"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "ABCabc",
+            "qz",
+            "X",
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ v: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
 })

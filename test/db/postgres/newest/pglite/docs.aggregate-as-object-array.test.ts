@@ -49,7 +49,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization.id as id, organization.name as name, json_agg(json_build_object('id', project.id, 'name', project.name)) as projects from organization left join project on project.organization_id = organization.id and project.archived_at is null where organization.id = $1 group by organization.id, organization.name"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization.id as id, organization.name as name, (json_agg(json_build_object('id', project.id, 'name', project.name)))::text as projects from organization left join project on project.organization_id = organization.id and project.archived_at is null where organization.id = $1 group by organization.id, organization.name"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -88,7 +88,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization.id as id, organization.name as name, json_agg(project.name) as "projectNames" from organization left join project on project.organization_id = organization.id where organization.id = $1 group by organization.id, organization.name"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization.id as id, organization.name as name, (json_agg(project.name))::text as "projectNames" from organization left join project on project.organization_id = organization.id where organization.id = $1 group by organization.id, organization.name"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -140,7 +140,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, (select json_agg(json_build_object('id', a_1_.id, 'name', a_1_.name)) from (select id as id, name as name from project where organization_id = organization.id and archived_at is null order by id) as a_1_) as projects from organization where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, ((select json_agg(json_build_object('id', a_1_.id, 'name', a_1_.name)) from (select id as id, name as name from project where organization_id = organization.id and archived_at is null order by id) as a_1_))::text as projects from organization where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -183,7 +183,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, (select json_agg(a_1_.result) from (select name as result from project where organization_id = organization.id order by result) as a_1_) as "projectNames" from organization where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, ((select json_agg(a_1_.result) from (select name as result from project where organization_id = organization.id order by result) as a_1_))::text as "projectNames" from organization where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -219,7 +219,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, project.name as name, json_agg(distinct issue.priority) as priorities from project left join issue on issue.project_id = project.id where project.id = $1 group by project.id, project.name"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, project.name as name, (json_agg(distinct issue.priority))::text as priorities from project left join issue on issue.project_id = project.id where project.id = $1 group by project.id, project.name"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -270,7 +270,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title, parent_id as "parentId", (with recursive recursive_select_1 as (select parentIssue.id as id, parentIssue.title as title, parentIssue.parent_id as parentId from issue as parentIssue where parentIssue.id = issue.parent_id union all select parentIssue.id as id, parentIssue.title as title, parentIssue.parent_id as parentId from issue as parentIssue join recursive_select_1 on recursive_select_1.parentId = parentIssue.id) select json_agg(json_build_object('id', id, 'title', title, 'parentId', parentId)) from recursive_select_1) as ancestors from issue where id = $1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title, parent_id as "parentId", ((with recursive recursive_select_1 as (select parentIssue.id as id, parentIssue.title as title, parentIssue.parent_id as parentId from issue as parentIssue where parentIssue.id = issue.parent_id union all select parentIssue.id as id, parentIssue.title as title, parentIssue.parent_id as parentId from issue as parentIssue join recursive_select_1 on recursive_select_1.parentId = parentIssue.id) select json_agg(json_build_object('id', id, 'title', title, 'parentId', parentId)) from recursive_select_1))::text as ancestors from issue where id = $1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

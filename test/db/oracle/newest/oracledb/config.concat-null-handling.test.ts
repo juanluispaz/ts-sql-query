@@ -100,6 +100,38 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
+    test('default: a wrapped nested concat that reuses a receiver keeps its own poison CASE', async () => {
+        // Regression guard: `body.concat(title).concat(body.concat(optionalConst(null)).valueWhenNull('Z'))`
+        // reuses the nullable `body` column as the receiver of BOTH the outer chain AND an
+        // INDEPENDENT nested concat (wrapped in `valueWhenNull`, so it is absent from the outer
+        // null-check). The nested concat must keep its OWN poison `CASE` in the value branch — its
+        // inner NULL operand poisons it to NULL, so `valueWhenNull` yields 'Z'. Suppressing the
+        // `CASE` by the shared receiver (instead of the concat node) rendered it bare (`body || :n`),
+        // so issue 2 got `body` a second time ('…Use new tokens') instead of the 'Z' default.
+        // Issue 2 has body='Use new tokens', title='Redesign navbar'.
+        const nested = tIssue.body.concat(ctx.conn.optionalConst(null, 'string')).valueWhenNull('Z')
+        const expected = [{ id: 2, v: 'Use new tokensRedesign navbarZ' }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(2))
+            .select({ id: tIssue.id, v: tIssue.body.concat(tIssue.title).concat(nested) })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", case when "body" is null or nvl(case when "body" is null or :0 is null then null else "body" || :1 end, :2) is null then null else "body" || title || nvl(case when "body" is null or :3 is null then null else "body" || :4 end, :5) end as "v" from issue where id = :6"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            null,
+            null,
+            "Z",
+            null,
+            null,
+            "Z",
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; v?: string }>>>()
+        expect(rows).toEqual(expected)
+    })
+
     test('default: an affix predicate on an optional term matches no NULL-term row', async () => {
         // `title.startsWith(body)` on issue 1, whose `body` is NULL. The poisoned pattern is NULL,
         // so `title like NULL` excludes the row — what every other database does. Oracle's bare

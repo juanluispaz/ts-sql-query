@@ -2623,7 +2623,7 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push(`select id as id, name as name, (select json_arrayagg(json_object('id', id, 'firstName', first_name, 'lastName', last_name)) as result from customer where company_id = company.id) as customers from company where id = ?`)
+    expectedQuery.push(`select id as id, name as name, cast((select json_arrayagg(json_object('id', id, 'firstName', first_name, 'lastName', last_name)) as result from customer where company_id = company.id) as char) as customers from company where id = ?`)
     expectedParams.push(`[1]`)
     expectedType.push(`selectOneRow`)
 
@@ -2661,7 +2661,7 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push(`select company.id as id, company.name as name, json_arrayagg(json_object('id', customer.id, 'firstName', customer.first_name, 'lastName', customer.last_name)) as customers from company left join customer on customer.company_id = company.id where company.id = ? group by company.id`)
+    expectedQuery.push(`select company.id as id, company.name as name, cast(json_arrayagg(json_object('id', customer.id, 'firstName', customer.first_name, 'lastName', customer.last_name)) as char) as customers from company left join customer on customer.company_id = company.id where company.id = ? group by company.id`)
     expectedParams.push(`[1]`)
     expectedType.push(`selectOneRow`)
 
@@ -2696,7 +2696,7 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push(`select id as id, name as name, (select json_arrayagg(concat(first_name, ?, last_name)) as result from customer where company_id = company.id) as customers from company where id = ?`)
+    expectedQuery.push(`select id as id, name as name, cast((select json_arrayagg(concat(first_name, ?, last_name)) as result from customer where company_id = company.id) as char) as customers from company where id = ?`)
     expectedParams.push(`[" ",1]`)
     expectedType.push(`selectOneRow`)
 
@@ -2730,7 +2730,7 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push(`select company.id as id, company.name as name, json_arrayagg(concat(customer.first_name, ?, customer.last_name)) as customers from company left join customer on customer.company_id = company.id where company.id = ? group by company.id`)
+    expectedQuery.push(`select company.id as id, company.name as name, cast(json_arrayagg(concat(customer.first_name, ?, customer.last_name)) as char) as customers from company left join customer on customer.company_id = company.id where company.id = ? group by company.id`)
     expectedParams.push(`[" ",1]`)
     expectedType.push(`selectOneRow`)
 
@@ -2842,7 +2842,7 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push("select id as id, name as name, (select json_arrayagg(json_object('id', id, 'firstName', first_name, 'lastName', last_name)) from customer where company_id = company.id) as customers from company where id = ?")
+    expectedQuery.push("select id as id, name as name, cast((select json_arrayagg(json_object('id', id, 'firstName', first_name, 'lastName', last_name)) from customer where company_id = company.id) as char) as customers from company where id = ?")
     expectedParams.push(`[1]`)
     expectedType.push(`selectOneRow`)
 
@@ -2880,7 +2880,7 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push("select id as id, name as name, (select json_arrayagg(json_object('id', id, 'firstName', first_name, 'lastName', last_name) order by id) from customer where company_id = company.id) as customers from company where id = ?")
+    expectedQuery.push("select id as id, name as name, cast((select json_arrayagg(json_object('id', id, 'firstName', first_name, 'lastName', last_name) order by id) from customer where company_id = company.id) as char) as customers from company where id = ?")
     expectedParams.push(`[1]`)
     expectedType.push(`selectOneRow`)
 
@@ -2919,7 +2919,7 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push("select id as id, name as name, (select json_arrayagg(concat(first_name, ?, last_name)) from customer where company_id = company.id) as customers from company where id = ?")
+    expectedQuery.push("select id as id, name as name, cast((select json_arrayagg(concat(first_name, ?, last_name)) from customer where company_id = company.id) as char) as customers from company where id = ?")
     expectedParams.push(`[" ",1]`)
     expectedType.push(`selectOneRow`)
 
@@ -2953,7 +2953,7 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push("select id as id, name as name, (select json_arrayagg(concat(first_name, ?, last_name) order by concat(first_name, ?, last_name)) from customer where company_id = company.id) as customers from company where id = ?")
+    expectedQuery.push("select id as id, name as name, cast((select json_arrayagg(concat(first_name, ?, last_name) order by concat(first_name, ?, last_name)) from customer where company_id = company.id) as char) as customers from company where id = ?")
     expectedParams.push(`[" "," ",1]`)
     expectedType.push(`selectOneRow`)
 
@@ -2988,7 +2988,7 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push("select id as id, name as name, (select json_arrayagg(json_object('id', a_1_.id, 'firstName', a_1_.firstName, 'lastName', a_1_.lastName)) from (select id as id, first_name as firstName, last_name as lastName from customer where company_id = ? union select id as id, first_name as firstName, last_name as lastName from customer where company_id = ?) as a_1_) as customers from company where id = ?")
+    expectedQuery.push("select id as id, name as name, cast((select json_arrayagg(json_object('id', a_1_.id, 'firstName', a_1_.firstName, 'lastName', a_1_.lastName)) from (select id as id, first_name as firstName, last_name as lastName from customer where company_id = ? union select id as id, first_name as firstName, last_name as lastName from customer where company_id = ?) as a_1_) as char) as customers from company where id = ?")
     expectedParams.push(`[1,1,1]`)
     expectedType.push(`selectOneRow`)
 
@@ -3036,7 +3036,7 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push("select id as id, name as name, (select json_arrayagg(json_object('id', a_1_.id, 'firstName', a_1_.firstName, 'lastName', a_1_.lastName)) from (select id as id, first_name as firstName, last_name as lastName from customer where company_id = ? union select id as id, first_name as firstName, last_name as lastName from customer where company_id = ? order by id limit 2147483647) as a_1_) as customers from company where id = ?")
+    expectedQuery.push("select id as id, name as name, cast((select json_arrayagg(json_object('id', a_1_.id, 'firstName', a_1_.firstName, 'lastName', a_1_.lastName)) from (select id as id, first_name as firstName, last_name as lastName from customer where company_id = ? union select id as id, first_name as firstName, last_name as lastName from customer where company_id = ? order by id limit 2147483647) as a_1_) as char) as customers from company where id = ?")
     expectedParams.push(`[1,1,1]`)
     expectedType.push(`selectOneRow`)
 
@@ -3084,7 +3084,7 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push("select id as id, name as name, (select json_arrayagg(a_1_.result) from (select concat(first_name, ?, last_name) as result from customer where company_id = ? union select concat(first_name, ?, last_name) as result from customer where company_id = ?) as a_1_) as customers from company where id = ?")
+    expectedQuery.push("select id as id, name as name, cast((select json_arrayagg(a_1_.result) from (select concat(first_name, ?, last_name) as result from customer where company_id = ? union select concat(first_name, ?, last_name) as result from customer where company_id = ?) as a_1_) as char) as customers from company where id = ?")
     expectedParams.push(`[" ",1," ",1,1]`)
     expectedType.push(`selectOneRow`)
 
@@ -3125,7 +3125,7 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push("select id as id, name as name, (select json_arrayagg(a_1_.result) from (select concat(first_name, ?, last_name) as result from customer where company_id = ? union select concat(first_name, ?, last_name) as result from customer where company_id = ? order by result limit 2147483647) as a_1_) as customers from company where id = ?")
+    expectedQuery.push("select id as id, name as name, cast((select json_arrayagg(a_1_.result) from (select concat(first_name, ?, last_name) as result from customer where company_id = ? union select concat(first_name, ?, last_name) as result from customer where company_id = ? order by result limit 2147483647) as a_1_) as char) as customers from company where id = ?")
     expectedParams.push(`[" ",1," ",1,1]`)
     expectedType.push(`selectOneRow`)
 
@@ -3211,7 +3211,7 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push("with recursive recursive_select_1 as (select parentCompany.id as id, parentCompany.name as name, parentCompany.parent_id as parentId from company as parentCompany where parentCompany.id = ? union all select parentCompany.id as id, parentCompany.name as name, parentCompany.parent_id as parentId from company as parentCompany join recursive_select_1 on recursive_select_1.parentId = parentCompany.id) select id as id, name as name, parent_id as parentId, (select json_arrayagg(json_object('id', id, 'name', name, 'parentId', parentId)) from recursive_select_1) as parents from company where id = ?")
+    expectedQuery.push("with recursive recursive_select_1 as (select parentCompany.id as id, parentCompany.name as name, parentCompany.parent_id as parentId from company as parentCompany where parentCompany.id = ? union all select parentCompany.id as id, parentCompany.name as name, parentCompany.parent_id as parentId from company as parentCompany join recursive_select_1 on recursive_select_1.parentId = parentCompany.id) select id as id, name as name, parent_id as parentId, cast((select json_arrayagg(json_object('id', id, 'name', name, 'parentId', parentId)) from recursive_select_1) as char) as parents from company where id = ?")
     expectedParams.push(`[9,10]`)
     expectedType.push(`selectOneRow`)
 
@@ -3309,7 +3309,7 @@ async function main() {
 
     result = { records: [{ id: '89bf68fc-7002-11ec-90d6-0242ac120003', title: 'My voice memo' }] }
     expectedResult.push(result)
-    expectedQuery.push(`select (select json_arrayagg(json_object('id', id, 'title', title)) from record where id like concat('%', ?, '%')) as records`)
+    expectedQuery.push(`select cast((select json_arrayagg(json_object('id', id, 'title', title)) from record where id like concat('%', ?, '%')) as char) as records`)
     expectedParams.push(`["7002"]`)
     expectedType.push(`selectOneRow`)
 
@@ -3335,7 +3335,7 @@ async function main() {
 
     result = { records: [{ id: '89bf68fc-7002-11ec-90d6-0242ac120003', title: 'My voice memo' }] }
     expectedResult.push(result)
-    expectedQuery.push(`select (select json_arrayagg(json_object('id', id, 'title', title) order by id) from record where id like concat('%', ?, '%')) as records`)
+    expectedQuery.push(`select cast((select json_arrayagg(json_object('id', id, 'title', title) order by id) from record where id like concat('%', ?, '%')) as char) as records`)
     expectedParams.push(`["7002"]`)
     expectedType.push(`selectOneRow`)
 
@@ -3362,7 +3362,7 @@ async function main() {
 
     result = { records: [{ id: '89bf68fc-7002-11ec-90d6-0242ac120003', title: 'My voice memo' }] }
     expectedResult.push(result)
-    expectedQuery.push(`select json_arrayagg(json_object('id', id, 'title', title)) as records from record where id like concat('%', ?, '%')`)
+    expectedQuery.push(`select cast(json_arrayagg(json_object('id', id, 'title', title)) as char) as records from record where id like concat('%', ?, '%')`)
     expectedParams.push(`["7002"]`)
     expectedType.push(`selectOneRow`)
 
@@ -4814,7 +4814,7 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push(`select id as id, name as name, parent_id as parentId, (select json_arrayagg(json_object('id', id, 'firstName', first_name, 'lastName', last_name, 'birthday', birthday)) as result from customer where company_id = company.id) as customers from company where id = ?`)
+    expectedQuery.push(`select id as id, name as name, parent_id as parentId, cast((select json_arrayagg(json_object('id', id, 'firstName', first_name, 'lastName', last_name, 'birthday', birthday)) as result from customer where company_id = company.id) as char) as customers from company where id = ?`)
     expectedParams.push(`[1]`)
     expectedType.push(`selectOneRow`)
 
@@ -4877,7 +4877,7 @@ async function main() {
             { id: 3, firstName: 'Jane', lastName: 'Doe' }
         ]
     })
-    expectedQuery.push(`select id as id, name as name, parent_id as parentId, (select json_arrayagg(json_object('id', id, 'firstName', first_name, 'lastName', last_name, 'birthday', birthday)) as result from customer where company_id = company.id) as customers from company where id = ?`)
+    expectedQuery.push(`select id as id, name as name, parent_id as parentId, cast((select json_arrayagg(json_object('id', id, 'firstName', first_name, 'lastName', last_name, 'birthday', birthday)) as result from customer where company_id = company.id) as char) as customers from company where id = ?`)
     expectedParams.push(`[1]`)
     expectedType.push(`selectOneRow`)
 

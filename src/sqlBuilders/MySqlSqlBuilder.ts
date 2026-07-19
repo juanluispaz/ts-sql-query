@@ -106,7 +106,9 @@ export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
                 return 'bin_to_uuid(' + this._appendSql(value, params, false) + ')'
             }
         }
-        return this._appendSql(value, params, false)
+        // Delegate to the base so an outermost aggregated-array column is finalised to text
+        // (`cast(... as char)`) — mysql2 pre-parses a JSON column and rounds bigints otherwise.
+        return super._appendColumnValue(value, params, isOutermostQuery)
     }
     override _asString(params: any[], valueSource: ToSql): string {
         // Transform an uuid to string
@@ -115,6 +117,21 @@ export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
             return this._appendSql(valueSource, params, false)
         }
         return 'bin_to_uuid(' + this._appendSql(valueSource, params, false) + ')'
+    }
+    override _escapeRegexpReplacement(value: any, params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
+        // MySQL's `REGEXP_REPLACE` uses the ICU engine, whose replacement treats BOTH `$`
+        // (group references `$0` / `$1`) and `\` as metacharacters — unlike MariaDB/PostgreSQL,
+        // where only `\` is special. Escape both with a leading backslash (`$` → `\$`,
+        // `\` → `\\`) so the replacement stays literal, matching `replaceAll`.
+        if (typeof value === 'string') {
+            return this._appendValue(value.replace(/[\\$]/g, '\\$&'), params, columnType, columnTypeName, typeAdapter, forceTypeCast)
+        }
+        // Value source: escape the backslash first (doubled for the MySQL string literal), then
+        // the dollar, so the backslash added for `$` is not doubled again.
+        let sql = this._appendValue(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast)
+        sql = "replace(" + sql + ", '\\\\', '\\\\\\\\')"
+        sql = "replace(" + sql + ", '$', '\\\\$')"
+        return sql
     }
     override _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayDistinct: boolean, params: any[], _query: SelectData | undefined): string {
         const distict = aggregatedArrayDistinct ? 'distinct ' : ''

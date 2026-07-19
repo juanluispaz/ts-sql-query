@@ -64,6 +64,7 @@ Native SQL reasons can include `databaseErrorCode`, `databaseErrorNumber`, and `
 | `INVALID_VALUE_TO_SEND_TO_DATABASE` | `value`, `typeName`, `rowIndex`, `columnPath` |
 | `INVALID_VALUE_RECEIVED_FROM_DATABASE` | `value`, `typeName`, `rowIndex`, `columnPath` |
 | `MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE` | `value`, `typeName`, `rowIndex`, `columnPath` |
+| `PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE` | `value`, `typeName`, `rowIndex`, `columnPath` |
 | `INVALID_JSON_RECEIVED_FROM_DATABASE` | `value`, `typeName`, `rowIndex`, `columnPath` |
 | `DISALLOWED` | `message`, `functionName` |
 | `NESTED_TRANSACTION_NOT_SUPPORTED` | optional database metadata |

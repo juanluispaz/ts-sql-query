@@ -322,7 +322,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFromNoTable()
             .select({ statuses: statusArray })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select json_agg(a_1_.result) from (select status as result from issue where status = $1 union select status as result from issue where status = $2) as a_1_) as statuses"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ((select json_agg(a_1_.result) from (select status as result from issue where status = $1 union select status as result from issue where status = $2) as a_1_))::text as statuses"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",

@@ -90,7 +90,7 @@ describe(ctx.label, () => {
             .groupBy('projectId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", json_agg(version) as versions, json_agg(channel) as channels from project_release where project_id = $1 group by project_id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", (json_agg(version))::text as versions, (json_agg(channel))::text as channels from project_release where project_id = $1 group by project_id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -122,7 +122,7 @@ describe(ctx.label, () => {
             .groupBy('issueId')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue_id as "issueId", json_agg(activity) as activities from issue_worklog where issue_id = $1 group by issue_id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue_id as "issueId", (json_agg(activity))::text as activities from issue_worklog where issue_id = $1 group by issue_id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

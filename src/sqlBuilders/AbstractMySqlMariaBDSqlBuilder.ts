@@ -431,6 +431,16 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         }
         return sql
     }
+    override _escapeRegexpReplacement(value: any, params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
+        // MariaDB (like PostgreSQL) treats only the backslash as a replacement metacharacter.
+        // The JS-literal escape matches the base (the escaped term is bound as a param, so it
+        // has no string-literal quirk); only the value-source path needs MySQL/MariaDB's
+        // backslash doubling inside a string literal (see `_escapeRegexpForReplace`).
+        if (typeof value === 'string') {
+            return this._appendValue(value.replace(/\\/g, '\\\\'), params, columnType, columnTypeName, typeAdapter, forceTypeCast)
+        }
+        return "replace(" + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast) + ", '\\\\', '\\\\\\\\')"
+    }
     override _replaceAllInsensitive(params: any[], valueSource: ToSql, value: any, value2: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         // MySQL/MariaDB `REPLACE` ignores collation, so fold case with `REGEXP_REPLACE`, whose
         // operands' collation governs the match (case + accent). The default collation is already
@@ -438,9 +448,9 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         // (regex-escaped) search term. `REGEXP_REPLACE` needs MySQL 8.0+ / MariaDB 10.0.5+.
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
-            return 'regexp_replace(' + this._appendSqlParenthesis(valueSource, params, false) + ' collate ' + collation + ', ' + this._escapeRegexpForReplace(value, params, columnType, columnTypeName, typeAdapter, false) + ' collate ' + collation + ', ' + this._appendValue(value2, params, columnType, columnTypeName, typeAdapter, false) + ')'
+            return 'regexp_replace(' + this._appendSqlParenthesis(valueSource, params, false) + ' collate ' + collation + ', ' + this._escapeRegexpForReplace(value, params, columnType, columnTypeName, typeAdapter, false) + ' collate ' + collation + ', ' + this._escapeRegexpReplacement(value2, params, columnType, columnTypeName, typeAdapter, false) + ')'
         }
-        return 'regexp_replace(' + this._appendSql(valueSource, params, false) + ', ' + this._escapeRegexpForReplace(value, params, columnType, columnTypeName, typeAdapter, false) + ', ' + this._appendValue(value2, params, columnType, columnTypeName, typeAdapter, false) + ')'
+        return 'regexp_replace(' + this._appendSql(valueSource, params, false) + ', ' + this._escapeRegexpForReplace(value, params, columnType, columnTypeName, typeAdapter, false) + ', ' + this._escapeRegexpReplacement(value2, params, columnType, columnTypeName, typeAdapter, false) + ')'
     }
     // This dialect family has no `||` operator by default (`PIPES_AS_CONCAT` is not
     // assumed): concatenation is the n-ary `concat(...)` function. It stands alone, so the
@@ -652,6 +662,12 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
     }
     override _random(_params: any): string {
         return 'rand()'
+    }
+    override _finalizeAggregatedArrayResult(sql: string): string {
+        // mysql2 / mariadb decode a JSON column into a JS value, rounding every integer past
+        // 2^53, before the library sees it. Casting the aggregate to `char` makes the driver
+        // hand back the raw JSON string, which `parseJsonPreservingNumbers` decodes losslessly.
+        return 'cast(' + sql + ' as char)'
     }
     override _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayDistinct: boolean, params: any[], _query: SelectData | undefined): string {
         const distict = aggregatedArrayDistinct ? 'distinct ' : ''

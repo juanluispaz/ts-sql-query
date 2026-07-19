@@ -325,7 +325,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFromNoTable()
             .select({ statuses: statusArray })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select json_arrayagg(a_1_.result) from (select \`status\` as result from issue where \`status\` = ? union select \`status\` as result from issue where \`status\` = ?) as a_1_) as statuses"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast((select json_arrayagg(a_1_.result) from (select \`status\` as result from issue where \`status\` = ? union select \`status\` as result from issue where \`status\` = ?) as a_1_) as char) as statuses"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "open",

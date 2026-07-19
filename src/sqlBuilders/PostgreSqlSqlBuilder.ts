@@ -159,7 +159,14 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         // PostgreSQL's `REPLACE` ignores collation; fold case with `regexp_replace(..., 'gi')`.
         // The `'gi'` flag is **case-only** — it cannot honour `insensitiveCollation`, a language
         // collation, or accents (a documented per-engine limitation). `g` replaces every match.
-        return 'regexp_replace(' + this._appendSql(valueSource, params, false) + ', ' + this._escapeRegexpForReplace(value, params, columnType, columnTypeName, typeAdapter, false) + ', ' + this._appendValue(value2, params, columnType, columnTypeName, typeAdapter, false) + ", 'gi')"
+        return 'regexp_replace(' + this._appendSql(valueSource, params, false) + ', ' + this._escapeRegexpForReplace(value, params, columnType, columnTypeName, typeAdapter, false) + ', ' + this._escapeRegexpReplacement(value2, params, columnType, columnTypeName, typeAdapter, false) + ", 'gi')"
+    }
+    override _finalizeAggregatedArrayResult(sql: string): string {
+        // node-postgres / postgres / pglite decode a `json` column with `JSON.parse`, rounding
+        // every integer past 2^53, before the library sees it. Casting the aggregate to `text`
+        // — a no-op reinterpret, since a `json` value is stored as text — makes the driver hand
+        // back the raw JSON string, which `parseJsonPreservingNumbers` then decodes losslessly.
+        return '(' + sql + ')::text'
     }
     override _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayDistinct: boolean, params: any[], query: SelectData | undefined): string {
         if (aggregatedArrayDistinct && !isValueSource(aggregatedArrayColumns)) {

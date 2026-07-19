@@ -1201,7 +1201,7 @@ describe(ctx.label, () => {
                 projectStats,
             })
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\`, (select json_arrayagg(json_object('id', a_1_.id, 'count', a_1_.count)) from (select project.id as id, count(issue.id) as count from project inner join issue on issue.project_id = project.id where project.organization_id = \`organization\`.id group by project.id order by id limit 2147483647) as a_1_) as projectStats from \`organization\` where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\`, cast((select json_arrayagg(json_object('id', a_1_.id, 'count', a_1_.count)) from (select project.id as id, count(issue.id) as count from project inner join issue on issue.project_id = project.id where project.organization_id = \`organization\`.id group by project.id order by id limit 2147483647) as a_1_) as char) as projectStats from \`organization\` where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

@@ -49,7 +49,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`organization\`.id as id, \`organization\`.\`name\` as \`name\`, json_arrayagg(json_object('id', project.id, 'name', project.\`name\`)) as projects from \`organization\` left join project on project.organization_id = \`organization\`.id and project.archived_at is null where \`organization\`.id = ? group by \`organization\`.id, \`organization\`.\`name\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`organization\`.id as id, \`organization\`.\`name\` as \`name\`, cast(json_arrayagg(json_object('id', project.id, 'name', project.\`name\`)) as char) as projects from \`organization\` left join project on project.organization_id = \`organization\`.id and project.archived_at is null where \`organization\`.id = ? group by \`organization\`.id, \`organization\`.\`name\`"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -88,7 +88,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`organization\`.id as id, \`organization\`.\`name\` as \`name\`, json_arrayagg(project.\`name\`) as projectNames from \`organization\` left join project on project.organization_id = \`organization\`.id where \`organization\`.id = ? group by \`organization\`.id, \`organization\`.\`name\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`organization\`.id as id, \`organization\`.\`name\` as \`name\`, cast(json_arrayagg(project.\`name\`) as char) as projectNames from \`organization\` left join project on project.organization_id = \`organization\`.id where \`organization\`.id = ? group by \`organization\`.id, \`organization\`.\`name\`"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -140,7 +140,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\`, (select json_arrayagg(json_object('id', a_1_.id, 'name', a_1_.\`name\`)) from (select id as id, \`name\` as \`name\` from project where organization_id = \`organization\`.id and archived_at is null order by id limit 2147483647) as a_1_) as projects from \`organization\` where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\`, cast((select json_arrayagg(json_object('id', a_1_.id, 'name', a_1_.\`name\`)) from (select id as id, \`name\` as \`name\` from project where organization_id = \`organization\`.id and archived_at is null order by id limit 2147483647) as a_1_) as char) as projects from \`organization\` where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -183,7 +183,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\`, (select json_arrayagg(a_1_.result) from (select \`name\` as result from project where organization_id = \`organization\`.id order by result limit 2147483647) as a_1_) as projectNames from \`organization\` where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\`, cast((select json_arrayagg(a_1_.result) from (select \`name\` as result from project where organization_id = \`organization\`.id order by result limit 2147483647) as a_1_) as char) as projectNames from \`organization\` where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -270,7 +270,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title, parent_id as parentId, (with recursive recursive_select_1 as (select parentIssue.id as id, parentIssue.title as title, parentIssue.parent_id as parentId from issue as parentIssue where parentIssue.id = issue.parent_id union all select parentIssue.id as id, parentIssue.title as title, parentIssue.parent_id as parentId from issue as parentIssue join recursive_select_1 on recursive_select_1.parentId = parentIssue.id) select json_arrayagg(json_object('id', id, 'title', title, 'parentId', parentId)) from recursive_select_1) as ancestors from issue where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, title as title, parent_id as parentId, cast((with recursive recursive_select_1 as (select parentIssue.id as id, parentIssue.title as title, parentIssue.parent_id as parentId from issue as parentIssue where parentIssue.id = issue.parent_id union all select parentIssue.id as id, parentIssue.title as title, parentIssue.parent_id as parentId from issue as parentIssue join recursive_select_1 on recursive_select_1.parentId = parentIssue.id) select json_arrayagg(json_object('id', id, 'title', title, 'parentId', parentId)) from recursive_select_1) as char) as ancestors from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

@@ -1181,22 +1181,32 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                     if (!Number.isInteger(value)) {
                         throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid int value received from the db: ' + value)
                     }
+                    // An integer beyond the safe range arrived as a rounded JavaScript number:
+                    // the exact value is already gone. Refuse it the same way the string/bigint
+                    // arms below do, so every route reaches the same verdict (homogeneous read).
+                    if (!Number.isSafeInteger(value)) {
+                        throw new TsSqlProcessingError({ reason: 'PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE', value, typeName: type }, 'Precision lost reading an int value from the db: the driver returned ' + value + ' as a rounded JavaScript number outside the safe integer range. Read the column as bigint, or enable the driver big-integer mode.')
+                    }
                     return value
                 }
                 if (typeof value === 'string') {
-                    if (!/^(-?\d+)$/g.test(value)) {
+                    // Accept a trailing `.0` (SQLite serialises an integer *expression* such as
+                    // `priority + 1` as `3.0` in a JSON aggregate — the lossless parser keeps
+                    // that as the string `"3.0"`, and the `number` arm above already treats an
+                    // integral float as an int via `Number.isInteger`, so the string arm matches).
+                    if (!/^-?\d+(\.0+)?$/g.test(value)) {
                         throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid int value received from the db: ' + value)
                     }
                     const result = +value
                     if (!Number.isSafeInteger(result)) {
-                        throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Unnoticed precition lost transforming a string to int number. Value: ' + value)
+                        throw new TsSqlProcessingError({ reason: 'PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE', value, typeName: type }, 'Precision lost reading an int value from the db: ' + value + ' exceeds the JavaScript safe integer range. Read the column as bigint.')
                     }
                     return result
                 }
                 if (typeof value === 'bigint') {
                     const result = Number(value)
                     if (!Number.isSafeInteger(result)) {
-                        throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Unnoticed precition lost transforming a bigint to int number. Value: ' + value)
+                        throw new TsSqlProcessingError({ reason: 'PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE', value, typeName: type }, 'Precision lost reading an int value from the db: the bigint ' + value + ' exceeds the JavaScript safe integer range. Read the column as bigint.')
                     }
                     return result
                 }
@@ -1205,6 +1215,12 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                 if (typeof value === 'number') {
                     if (!Number.isInteger(value)) {
                         throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid stringInt value received from the db: ' + value)
+                    }
+                    // A `stringInt` exists to preserve integers beyond the safe range as a string;
+                    // a rounded JavaScript number already lost that precision and cannot degrade
+                    // back to the exact string, so refuse it rather than return a wrong value.
+                    if (!Number.isSafeInteger(value)) {
+                        throw new TsSqlProcessingError({ reason: 'PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE', value, typeName: type }, 'Precision lost reading a stringInt value from the db: the driver returned ' + value + ' as a rounded JavaScript number outside the safe integer range. Enable the driver big-integer mode so the value arrives as a string.')
                     }
                     return value
                 }
@@ -1227,6 +1243,16 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                     if (!Number.isInteger(value)) {
                         throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid bigint value received from the db: ' + value)
                     }
+                    // A number that is an integer but not a SAFE integer has already lost
+                    // precision before it reached here: the driver handed the value over as a
+                    // rounded JavaScript number (its big-integer / fetch-as-string mode is off),
+                    // or a bigint travelled through a JSON aggregate as a bare JSON number that
+                    // JSON.parse rounded (the emission side quotes bigint leaves precisely so the
+                    // aggregate path never hits this — finding A). `BigInt(value)` would mint a
+                    // clean but WRONG bigint; throw instead so no route corrupts silently.
+                    if (!Number.isSafeInteger(value)) {
+                        throw new TsSqlProcessingError({ reason: 'PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE', value, typeName: type }, 'Precision lost reading a bigint value from the db: the driver returned ' + value + ' as a rounded JavaScript number outside the safe integer range. Enable the driver big-integer / fetch-as-string mode so the value arrives exactly.')
+                    }
                     return BigInt(value)
                 }
                 if (typeof value === 'string') {
@@ -1245,7 +1271,14 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                     return value
                 }
                 if (typeof value === 'string') {
-                    if (!/^(-?\d+(\.\d+)?|NaN|-?Infinity)$/g.test(value)) {
+                    // Accept scientific notation and the leading-dot form (`.5`). Scientific is how
+                    // a lossless float→text arrives: SQL Server's `convert(nvarchar, x, 3)` — the
+                    // only lossless float conversion, used by the compat JSON-aggregate fallback —
+                    // emits e.g. `1.2345678900000000e+002`, which travels back as a JSON number and
+                    // is restored exactly by the lossless parser (finding A/B). The leading-dot form
+                    // is defensive for a scalar number a driver may render without a leading zero.
+                    // `+value` parses every accepted form back to the exact double.
+                    if (!/^(-?(\d+(\.\d+)?|\.\d+)([eE][-+]?\d+)?|NaN|-?Infinity)$/g.test(value)) {
                         throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid double value received from the db: ' + value)
                     }
                     const result = +value
@@ -1260,7 +1293,8 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                     return value
                 }
                 if (typeof value === 'string') {
-                    if (!/^(-?\d+(\.\d+)?|NaN|-?Infinity)$/g.test(value)) {
+                    // Same numeric-text grammar as `double` above (scientific + leading-dot).
+                    if (!/^(-?(\d+(\.\d+)?|\.\d+)([eE][-+]?\d+)?|NaN|-?Infinity)$/g.test(value)) {
                         throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid stringDouble value received from the db: ' + value)
                     }
                     return value
@@ -1290,7 +1324,16 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                     result = new Date(Date.UTC(value.getFullYear(), value.getMonth(), value.getDate()))
                     result.setUTCMinutes(600)
                 } else if (typeof value === 'string') {
-                    result = new Date(value + ' 00:00') // If time is omited, UTC timezone will be used instead the local one
+                    // A localDate is date-only, but some engines serialise it WITH a time
+                    // component: Oracle's `DATE` inside a JSON aggregate comes back as
+                    // "2024-01-15T00:00:00", not the bare "2024-01-15" the other dialects emit.
+                    // Appending ' 00:00' to the full datetime would produce an Invalid Date, so
+                    // keep only the date part. A bare date has no separator and is used as-is —
+                    // no substring is allocated on that common path; only a datetime pays for one.
+                    let sep = value.indexOf('T')
+                    if (sep < 0) sep = value.indexOf(' ')
+                    const dateOnly = sep < 0 ? value : value.slice(0, sep)
+                    result = new Date(dateOnly + ' 00:00') // If time is omited, UTC timezone will be used instead the local one
                     // This time fix works in almost every timezone (from -10 to +13, but not +14, -11, -12, almost uninhabited)
                     result = new Date(Date.UTC(result.getFullYear(), result.getMonth(), result.getDate()))
                     result.setUTCMinutes(600)
@@ -1393,7 +1436,10 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                     return value
                 }
                 if (typeof value === 'string') {
-                    if (!/^(-?\d+(\.\d+)?|NaN|-?Infinity)$/g.test(value)) {
+                    // Accept scientific notation and the leading-dot form, symmetric with the
+                    // `stringDouble` read path: a value the database can hand back this way can
+                    // also be sent this way.
+                    if (!/^(-?(\d+(\.\d+)?|\.\d+)([eE][-+]?\d+)?|NaN|-?Infinity)$/g.test(value)) {
                         throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid stringDouble value to send to the db: ' + value)
                     }
                     return value

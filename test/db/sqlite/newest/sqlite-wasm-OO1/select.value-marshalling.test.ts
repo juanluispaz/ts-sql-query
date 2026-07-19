@@ -165,4 +165,45 @@ describe(ctx.label, () => {
             expect(row).toEqual(expected)
         })
     })
+
+    test('marshalling/bigint-column-scalar-read-past-2p53', async () => {
+        // A bigint column value beyond 2^53 read DIRECTLY as a scalar column (not inside a JSON
+        // aggregate) through the driver's DEFAULT reader. 9007199254740993 is the first odd
+        // integer a double cannot represent. This connector's default reader returns wide
+        // integers exactly, so the value round-trips intact. The mock seeds the same exact value
+        // the real driver returns, so mock and real agree.
+        await ctx.withRollback(async () => {
+            ctx.mockNext(1)
+            await ctx.conn.update(tIssue).set({ viewCount: 9007199254740993n }).where(tIssue.id.equals(1)).executeUpdate()
+
+            ctx.mockNext({ views: 9007199254740993n })
+            const row = await ctx.conn.selectFrom(tIssue)
+                .where(tIssue.id.equals(1))
+                .select({ views: tIssue.viewCount })
+                .executeSelectOne()
+            assertType<Exact<typeof row, { views: bigint }>>()
+            expect(row.views).toBe(9007199254740993n)
+        })
+    })
+
+    test('marshalling/double-scientific-scalar-roundtrip', async () => {
+        // A double of small magnitude read DIRECTLY as a scalar column (not via a JSON aggregate).
+        // Drivers hand a `double` column back as a JS number, so this exercises the number path
+        // and confirms a scientific-magnitude value survives a plain select on every connector.
+        // (The scientific-STRING form only arises in a JSON aggregate — covered by
+        // select.aggregate-as-array.value-type-coverage — or under the mock — covered by
+        // marshalling.transform-validation.)
+        await ctx.withRollback(async () => {
+            ctx.mockNext(1)
+            await ctx.conn.update(tIssue).set({ estimatedHours: 1.5e-8 }).where(tIssue.id.equals(1)).executeUpdate()
+
+            ctx.mockNext({ hours: 1.5e-8 })
+            const row = await ctx.conn.selectFrom(tIssue)
+                .where(tIssue.id.equals(1))
+                .select({ hours: tIssue.estimatedHours })
+                .executeSelectOne()
+            assertType<Exact<typeof row, { hours?: number }>>()
+            expect(row.hours).toBe(1.5e-8)
+        })
+    })
 })

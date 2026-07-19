@@ -72,7 +72,7 @@ describe(ctx.label, () => {
             .groupBy('id')
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, json_arrayagg(issue.title) as titles from project left join issue on issue.project_id = project.id and issue.priority = ? where project.id = ? group by project.id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, cast(json_arrayagg(issue.title) as char) as titles from project left join issue on issue.project_id = project.id and issue.priority = ? where project.id = ? group by project.id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             99,
@@ -106,7 +106,7 @@ describe(ctx.label, () => {
             .groupBy('id')
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, json_arrayagg(json_object('id', issue.id, 'title', issue.title)) as issues from project left join issue on issue.project_id = project.id and issue.priority = ? where project.id = ? group by project.id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, cast(json_arrayagg(json_object('id', issue.id, 'title', issue.title)) as char) as issues from project left join issue on issue.project_id = project.id and issue.priority = ? where project.id = ? group by project.id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             99,

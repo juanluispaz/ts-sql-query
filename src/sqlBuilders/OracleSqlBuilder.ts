@@ -1169,7 +1169,10 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         const idColumn = query.__idColumn
         if (idColumn) {
             this._setContainsInsertReturningClause(params, true)
-            return ' returning ' + this._appendSql(idColumn, params, false) + ' into ' + this._queryRunner.addOutParam(params, '') // Empty name for the out params, no special name is requiered
+            const idColumnSql = this._appendSql(idColumn, params, false)
+            const placeholder = this._queryRunner.addOutParam(params, '') // Empty name for the out params, no special name is requiered
+            this._registerOutBindColumnType(params, placeholder, __getValueSourcePrivate(idColumn).__valueType)
+            return ' returning ' + idColumnSql + ' into ' + placeholder
         }
 
         const result = this._buildQueryReturning(query.__columns, params)
@@ -1200,13 +1203,31 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             if (requireComma) {
                 result += ', '
             }
-            result +=  this._queryRunner.addOutParam(params, property)
+            const placeholder = this._queryRunner.addOutParam(params, property)
+            this._registerOutBindColumnType(params, placeholder, __getValueSourcePrivate(columns[property]!).__valueType)
+            result += placeholder
             requireComma = true
         }
         if (!result) {
             return ''
         }
         return ' returning ' + result
+    }
+    /**
+     * Record a RETURNING OUT bind's column value type as non-enumerable metadata on the params
+     * array, keyed by the bind's placeholder (`:<index>`). `OracleDBQueryRunner` reads it to declare
+     * a temporal OUT bind so the driver returns a `Date` instead of oracledb's default OUT-bind
+     * string form. This is the same mechanism `SqlServerSqlBuilder._appendParam` uses to carry a
+     * parameter's type to its runner — non-enumerable so it never surfaces in the params snapshot,
+     * and no change to the shared `addOutParam` signature.
+     */
+    private _registerOutBindColumnType(params: any[], placeholder: string, columnType: ValueType): void {
+        Object.defineProperty(params, placeholder, {
+            value: columnType,
+            writable: true,
+            enumerable: false,
+            configurable: true
+        })
     }
     override _isNull(params: any[], valueSource: ToSql): string {
         if (isColumn(valueSource)) {

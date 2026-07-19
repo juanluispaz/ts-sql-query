@@ -978,6 +978,19 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     override _trimRight(params: any[], valueSource: ToSql): string {
         return 'rtrim(' + this._appendSqlMaybeUuid(valueSource, params) + ')'
     }
+    override _toLowerCase(params: any[], valueSource: ToSql): string {
+        // A `uuid.asString()` receiver is still a `uniqueidentifier` column, which T-SQL
+        // refuses to feed to a string function ("The data types uniqueidentifier and
+        // varchar are incompatible in the add operator" once it flows into an operator);
+        // convert it to nvarchar first, exactly as `trim`/`substring`/`stringConcat` do.
+        return 'lower(' + this._appendSqlMaybeUuid(valueSource, params) + ')'
+    }
+    override _toUpperCase(params: any[], valueSource: ToSql): string {
+        return 'upper(' + this._appendSqlMaybeUuid(valueSource, params) + ')'
+    }
+    override _reverse(params: any[], valueSource: ToSql): string {
+        return 'reverse(' + this._appendSqlMaybeUuid(valueSource, params) + ')'
+    }
     override _currentDate(): string {
         if (this._connectionConfiguration.compatibilityVersion >= 17_000_000) {
             return 'current_date'
@@ -1030,7 +1043,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             // `String.length`. This also removes the max-length edge of the sentinel form
             // below (a value exactly at its column's declared maximum). A genuine trade,
             // not a strict improvement; see the flag's JSDoc on SqlServerConnection.
-            return 'len(' + this._appendSql(valueSource, params, false) + ')'
+            return 'len(' + this._appendSqlMaybeUuid(valueSource, params) + ')'
         }
         // T-SQL's `len()` EXCLUDES trailing blanks — `len('Draft  ')` is 5, not 7 — while
         // `.length()` mirrors JS's `String.length`, which counts them. Appending a non-blank
@@ -1040,7 +1053,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         // Edge (documented in LIMITATIONS.md, opt-out above): for a value exactly at its
         // column's declared maximum, T-SQL string `+` on two non-`max` char types caps the
         // concat at the maximum and drops the sentinel, so this returns maximum − 1.
-        return "len(" + this._appendSql(valueSource, params, false) + " + '.') - 1"
+        return "len(" + this._appendSqlMaybeUuid(valueSource, params) + " + '.') - 1"
     }
     override _ceil(params: any[], valueSource: ToSql): string {
         // T-SQL spells the ceiling function `CEILING`, not `CEIL`.

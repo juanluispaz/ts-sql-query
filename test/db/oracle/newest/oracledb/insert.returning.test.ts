@@ -519,8 +519,6 @@ describe(ctx.label, () => {
             else expect(row.id).toBeGreaterThan(4)
         })
     })
-    // TODO[BUG]: see test/BUGS.md — Oracle localDateTime RETURNING marshalling fails
-    /*
     test('insert-returning-nested-object-optional-leaf-default', async () => {
         // Object-form RETURNING whose nested `meta` group holds a SINGLE OPTIONAL leaf
         // (`archivedAt`, an optionalColumn) under the DEFAULT projector. Because every leaf
@@ -572,7 +570,6 @@ describe(ctx.label, () => {
             expect('meta' in absent).toBe(false)
         })
     })
-    */
     // NOT-APPLICABLE: Oracle has no INSERT…ON CONFLICT (uses MERGE)
     /*
     test('insert-on-conflict-do-nothing-returning-nested-object-optional-leaf-default', async () => {

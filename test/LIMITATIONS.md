@@ -221,6 +221,23 @@ unused), and the params array already carries bind descriptors
 is a refactor of its own, out of scope for test work. Until then the
 library deliberately does not declare bind types.
 
+**Update — the public-interface blocker is now gone (future refactor).** The
+Oracle `localDateTime`-via-`RETURNING` fix introduced a way to carry a column's
+type to the runner **without** changing `addParam` / `addOutParam`:
+`OracleSqlBuilder._registerOutBindColumnType` records the type as a
+**non-enumerable** property on the `params` array keyed by the bind's placeholder
+(`:<index>`), and `OracleDBQueryRunner.resolveOutBindTypes` reads it back and
+declares the bind — the same mechanism `SqlServerSqlBuilder._appendParam` already
+uses for **IN** params (`params['@'+N]` → `MssqlPoolQueryRunner.getType`). So the
+reason this stayed a limitation no longer holds. A future refactor can close it
+by registering each IN param's type in `OracleSqlBuilder._appendParam` (where
+`columnType` is in scope; `_appendParam` is already overridden there for the
+`uuid_to_raw` wrap) and, in the runner's three `connection.execute` paths,
+wrapping each IN value as `{ val, type, dir: BIND_IN }` — with a `ValueType →
+oracledb type` map mirroring `MssqlPoolQueryRunner.predefinedTypes` and its
+`inferType` fallback. That lets `stmtCacheSize` be restored to the driver default
+and closes this entry. Deferred by choice, not blocked.
+
 **Exposure — very unlikely outside this suite.** Reaching it needs ALL of
 the following at once:
 

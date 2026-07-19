@@ -4,7 +4,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tOrganization, tReleaseDraft, type ReleaseStage } from '../../domain/connection.js'
+import { tIssue, tOrganization, tProject, tReleaseDraft, type ReleaseStage } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -531,8 +531,6 @@ describe(ctx.label, () => {
             expect(sortedBodies).toEqual([null, 'Use new tokens'])
         })
     })
-    // TODO[BUG]: see test/BUGS.md — Oracle localDateTime RETURNING marshalling fails
-    /*
     test('update-returning-nested-object-optional-leaf-default', async () => {
         // object-form RETURNING whose nested `meta` group holds a SINGLE OPTIONAL
         // leaf (`archivedAt`) under the DEFAULT projector → `meta?: { archivedAt?: Date }`. Two boundary rows: project 4 (archived_at present) → `meta` + `archivedAt`
@@ -583,5 +581,4 @@ describe(ctx.label, () => {
             expect('meta' in absent).toBe(false)
         })
     })
-    */
 })

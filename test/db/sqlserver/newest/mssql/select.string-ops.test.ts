@@ -1105,8 +1105,6 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ id: number; ct?: boolean; ew?: boolean; nc?: boolean }>>>()
         expect(result).toEqual(expected)
     })
-    // TODO[BUG]: see test/BUGS.md — SQL Server uuid.asString() string methods emit bare uniqueidentifier (no convert)
-    /*
     test('uuid-as-string-string-methods', async () => {
         // string methods on a `uuid.asString()` value. `length`/`toUpperCase`/`toLowerCase` route the stringified
         // uuid through the plain string operators; on SQL Server the uuid needs an implicit
@@ -1131,7 +1129,7 @@ describe(ctx.label, () => {
                 lo:  s.toLowerCase(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, len(external_ref + '.') - 1 as len, upper(external_ref) as up, lower(external_ref) as lo from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, len(convert(nvarchar(36), external_ref) + '.') - 1 as len, upper(convert(nvarchar(36), external_ref)) as up, lower(convert(nvarchar(36), external_ref)) as lo from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -1140,5 +1138,4 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ id: number; len?: number; up?: string; lo?: string }>>>()
         expect(result).toEqual(expected)
     })
-    */
 })

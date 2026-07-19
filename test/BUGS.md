@@ -73,37 +73,7 @@ entry says under *Current workaround in the suite* why the matrix can't see it.
 A `none` there is not "nothing to do": it means no test would notice a
 regression either.
 
-## Oracle: a `localDateTime` column read back through RETURNING fails to marshal
-
-**Where**: OracleDB RETURNING read path (the value the `oracledb` driver returns
-for a `TIMESTAMP` via `RETURNING … INTO` / outBinds) vs the plain-SELECT read
-path in `AbstractConnection.transformValueFromDB` / the Oracle query runner.
-**Reproduction**: `insert.returning.test.ts` › `insert-returning-nested-object-optional-leaf-default`
-and `update.returning.test.ts` › `update-returning-nested-object-optional-leaf-default`
-in `oracle/newest/oracledb`. Inserting/updating a `tProject` row
-whose optional `archivedAt` (localDateTime) is set and RETURNING it throws
-`INVALID_VALUE_RECEIVED_FROM_DATABASE: Invalid localDateTime value received from
-the db: 15-JUN-24 08.30.00.000000 AM`. A plain SELECT of the same column marshals
-fine — only the RETURNING path returns the timestamp as an NLS-formatted string
-the localDateTime marshaller can't parse. (The string-leaf twin `delete-returning-nested-object-optional-leaf-default` on
-`delete.returning.test.ts` passes on Oracle, isolating the fault to temporal RETURNING.)
-**Current workaround in the suite**: those two tests are wrapped `// TODO[BUG]` in
-`oracle/newest/oracledb` only; the projector shape is real-validated on
-postgres / sqlite / sqlserver / mariadb and mock-validated on Oracle.
-
-## SQL Server: string methods on `uuid.asString()` emit the bare `uniqueidentifier` (no convert)
-
-**Where**: `SqlServerSqlBuilder._appendSqlMaybeUuid` (wraps `trim`/`ltrim`/`rtrim`
-and `string_agg` in a convert, but NOT `length`/`toUpperCase`/`toLowerCase`/etc.).
-**Reproduction**: `select.string-ops.test.ts` › `uuid-as-string-string-methods`
- in `sqlserver/newest/mssql`. `tIssue.externalRef.asString().length()` /
-`.toUpperCase()` / `.toLowerCase()` emit the bare `uniqueidentifier` column, and
-SQL Server rejects it: `The data types uniqueidentifier and varchar are
-incompatible in the add operator.` (The covered `trim`/`substring`/`stringConcat`
-methods DO get a convert, so the miss is the un-wrapped string operators.)
-**Current workaround in the suite**: that test is wrapped `// TODO[BUG]` in
-`sqlserver/newest/mssql` only; the methods are real-validated on the other
-five dialects.
+*(none)*
 
 ## Coverage gaps carried over (not bugs — no entry to fix)
 

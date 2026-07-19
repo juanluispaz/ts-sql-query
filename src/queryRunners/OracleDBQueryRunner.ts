@@ -1,5 +1,5 @@
 import type { BeginTransactionOpts, CommitOpts, DatabaseType, RollbackOpts } from './QueryRunner.js'
-import type { Connection } from 'oracledb'
+import type { Connection, DbType } from 'oracledb'
 import oracleDb from 'oracledb'
 import { DelegatedSetTransactionQueryRunner } from './DelegatedSetTransactionQueryRunner.js'
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
@@ -49,9 +49,53 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
         })
     }
     protected override executeMutationReturning(query: string, params: any[] = []): Promise<any[]> {
-        return this.connection.execute(query, params).then((result) => {
+        return this.connection.execute(query, this.resolveOutBindTypes(params)).then((result) => {
             return this.processOutBinds(params, result.outBinds)
         })
+    }
+    private resolveOutBindTypes(params: any[]): any[] {
+        // OracleSqlBuilder records each RETURNING OUT bind's column value type as a non-enumerable
+        // property on the params array keyed by the bind's placeholder (`:<index>`) — the same
+        // mechanism SqlServerSqlBuilder._appendParam uses to carry a parameter's type to its runner,
+        // non-enumerable so it never surfaces in the params snapshot. Here, only in the array handed
+        // to the driver, a temporal column's OUT bind is given its oracledb DbType. The original
+        // array — used by processOutBinds and captured for the snapshot — is left untouched; the
+        // copy is made lazily only when there is a type to resolve.
+        let resolved: any[] | undefined = undefined
+        for (let i = 0, length = params.length; i < length; i++) {
+            const param = params[i]
+            if (!param || typeof param !== 'object' || param.dir !== oracleDb.BIND_OUT) {
+                continue
+            }
+            const dbType = this.oracleOutBindDbType((params as any)[':' + i])
+            if (dbType === undefined) {
+                continue
+            }
+            if (!resolved) {
+                resolved = params.slice()
+            }
+            resolved[i] = { ...param, type: dbType }
+        }
+        return resolved ?? params
+    }
+    // The oracledb DbType to declare on a RETURNING OUT bind so a temporal column comes back as a Date
+    // instead of oracledb's default OUT-bind string form (an NLS-formatted timestamp the temporal
+    // marshallers cannot parse). A non-temporal column returns undefined: its string default marshals
+    // back fine, so it is left undeclared.
+    private oracleOutBindDbType(columnType: unknown): DbType | undefined {
+        switch (columnType) {
+            case 'localDate':
+            case 'customLocalDate':
+                return oracleDb.DB_TYPE_DATE
+            case 'localTime':
+            case 'customLocalTime':
+            case 'localDateTime':
+            case 'customLocalDateTime':
+                // Oracle has no TIME type, so a localTime is carried in a TIMESTAMP too.
+                return oracleDb.DB_TYPE_TIMESTAMP
+            default:
+                return undefined
+        }
     }
     doBeginTransaction(_opts: BeginTransactionOpts): Promise<void> {
         // Oracle automatically begins the transaction, but the level must set in a query

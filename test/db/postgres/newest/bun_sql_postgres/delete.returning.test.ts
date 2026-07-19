@@ -4,7 +4,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tProjectRelease, tReleaseDraft } from '../../domain/connection.js'
+import { tIssue, tProject, tProjectRelease, tProjectReview, tReleaseDraft } from '../../domain/connection.js'
 import type { ReleaseChannel, ReleaseStage } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
@@ -410,6 +410,118 @@ describe(ctx.label, () => {
             assertType<Exact<typeof absent, { id: number; meta?: { body?: string } }>>()
             expect(absent.id).toBe(1)
             expect('meta' in absent).toBe(false)
+        })
+    })
+
+    test('delete-returning-temporal-plain-kinds-round-trip', async () => {
+        // RETURNING the plain temporal kinds (localDate + localTime) on DELETE. The row
+        // is read with SELECT BEFORE the delete; the DELETE RETURNING value must marshal
+        // identically (SELECT == RETURNING) — the delete side of the fix.
+        await ctx.withRollback(async () => {
+            ctx.mockNext({ reviewDate: new Date(Date.UTC(2024, 4, 20)), reviewTime: new Date(Date.UTC(1970, 0, 1, 14, 30, 45)) })
+            const before = await ctx.conn.selectFrom(tProjectReview)
+                .where(tProjectReview.id.equals(1))
+                .select({ reviewDate: tProjectReview.reviewDate, reviewTime: tProjectReview.reviewTime })
+                .executeSelectOne()
+
+            ctx.mockNext({ reviewDate: new Date(Date.UTC(2024, 4, 20)), reviewTime: new Date(Date.UTC(1970, 0, 1, 14, 30, 45)) })
+            const ret = await ctx.conn.deleteFrom(tProjectReview)
+                .where(tProjectReview.id.equals(1))
+                .returning({ reviewDate: tProjectReview.reviewDate, reviewTime: tProjectReview.reviewTime })
+                .executeDeleteOne()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from project_review where id = $1 returning review_date as "reviewDate", review_time as "reviewTime""`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof ret, { reviewDate?: Date; reviewTime: Date }>>()
+            expect(ret.reviewTime).toBeInstanceOf(Date)
+            expect(ret.reviewDate).toBeInstanceOf(Date)
+            expect(ret.reviewDate).toEqual(before.reviewDate)
+            expect(ret.reviewTime).toEqual(before.reviewTime)
+        })
+    })
+
+    test('delete-returning-temporal-custom-kinds-round-trip', async () => {
+        // RETURNING the branded custom temporal kinds on DELETE. Read BEFORE the delete;
+        // SELECT == DELETE RETURNING.
+        await ctx.withRollback(async () => {
+            ctx.mockNext({ releasedOn: new Date(Date.UTC(2024, 0, 15)), cutoffTime: new Date(Date.UTC(1970, 0, 1, 17, 0, 0)), publishedAt: new Date(Date.UTC(2024, 0, 16, 9, 0, 0)) })
+            const before = await ctx.conn.selectFrom(tProjectRelease)
+                .where(tProjectRelease.id.equals(1))
+                .select({ releasedOn: tProjectRelease.releasedOn, cutoffTime: tProjectRelease.cutoffTime, publishedAt: tProjectRelease.publishedAt })
+                .executeSelectOne()
+
+            ctx.mockNext({ releasedOn: new Date(Date.UTC(2024, 0, 15)), cutoffTime: new Date(Date.UTC(1970, 0, 1, 17, 0, 0)), publishedAt: new Date(Date.UTC(2024, 0, 16, 9, 0, 0)) })
+            const ret = await ctx.conn.deleteFrom(tProjectRelease)
+                .where(tProjectRelease.id.equals(1))
+                .returning({
+                    releasedOn:  tProjectRelease.releasedOn,
+                    cutoffTime:  tProjectRelease.cutoffTime,
+                    publishedAt: tProjectRelease.publishedAt,
+                })
+                .executeDeleteOne()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from project_release where id = $1 returning released_on as "releasedOn", cutoff_time as "cutoffTime", published_at as "publishedAt""`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof ret, { releasedOn: Date; cutoffTime: Date; publishedAt: Date }>>()
+            expect(ret.releasedOn).toBeInstanceOf(Date)
+            expect(ret.cutoffTime).toBeInstanceOf(Date)
+            expect(ret.publishedAt).toBeInstanceOf(Date)
+            expect(ret.releasedOn).toEqual(before.releasedOn)
+            expect(ret.cutoffTime).toEqual(before.cutoffTime)
+            expect(ret.publishedAt).toEqual(before.publishedAt)
+        })
+    })
+
+    test('delete-returning-localdatetime-round-trip', async () => {
+        // RETURNING a plain localDateTime (archivedAt) on DELETE — the localDateTime
+        // kind on the DELETE side (project 4 carries archived_at; it has no child rows).
+        // Read BEFORE the delete; SELECT == DELETE RETURNING.
+        await ctx.withRollback(async () => {
+            ctx.mockNext({ archivedAt: new Date(Date.UTC(2024, 5, 15, 8, 30, 0)) })
+            const before = await ctx.conn.selectFrom(tProject)
+                .where(tProject.id.equals(4))
+                .select({ archivedAt: tProject.archivedAt })
+                .executeSelectOne()
+
+            ctx.mockNext({ archivedAt: new Date(Date.UTC(2024, 5, 15, 8, 30, 0)) })
+            const ret = await ctx.conn.deleteFrom(tProject)
+                .where(tProject.id.equals(4))
+                .returning({ archivedAt: tProject.archivedAt })
+                .executeDeleteOne()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from project where id = $1 returning archived_at as "archivedAt""`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                4,
+              ]
+            `)
+            assertType<Exact<typeof ret, { archivedAt?: Date }>>()
+            expect(ret.archivedAt).toBeInstanceOf(Date)
+            expect(ret.archivedAt).toEqual(before.archivedAt)
+        })
+    })
+
+    test('delete-returning-one-column-temporal-real-value', async () => {
+        // `returningOneColumn(<localTime>)` on DELETE returns a REAL (non-null) Date.
+        await ctx.withRollback(async () => {
+            ctx.mockNext(new Date(Date.UTC(1970, 0, 1, 14, 30, 45)))
+            const v = await ctx.conn.deleteFrom(tProjectReview)
+                .where(tProjectReview.id.equals(1))
+                .returningOneColumn(tProjectReview.reviewTime)
+                .executeDeleteOne()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from project_review where id = $1 returning review_time as result"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof v, Date>>()
+            expect(v).toBeInstanceOf(Date)
         })
     })
 })

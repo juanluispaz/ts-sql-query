@@ -34,6 +34,11 @@ import { TsSqlError } from '../../../../../src/TsSqlError.js'
 import { tCountry, tIssue, tOrganization, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
+function reasonOf(e: unknown): string | undefined {
+    if (e instanceof TsSqlError) return e.errorReason.reason
+    return undefined
+}
+
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
     afterAll(() => ctx.down(), ctx.timeoutMs)
@@ -765,4 +770,51 @@ describe(ctx.label, () => {
         })
     })
 
+
+    // The two result-value guards on the one-column (`returningOneColumn`) branch
+    // of `executeInsertOne()` — the INSERT twins of the UPDATE/DELETE gates in
+    // update.returning.execute-shapes / delete.returning.execute-shapes. Both are
+    // mock-only BY CONSTRUCTION: a real driver never hands back the offending shape
+    // for the projected column of a row it actually inserted, so the injection is
+    // only possible through the mock and the body early-returns on the real DB.
+    test('insert-returning-one-column-throws-invalid-value-on-wrong-typed-value', async () => {
+        // The one-column value is PRESENT but of a shape the required-`int`
+        // column (`priority`) can't accept (a non-integer `1.5`), so
+        // `transformValueFromDB` rejects it with INVALID_VALUE_RECEIVED_FROM_DATABASE
+        // (distinct from the NO_RESULT / MANDATORY_VALUE gates). The mock hands the
+        // scalar back directly on the one-column path.
+        if (ctx.realDbEnabled) return
+        ctx.mockNext(1.5)
+        let caught: unknown
+        try {
+            await ctx.conn.insertInto(tIssue)
+                .values({ projectId: 1, number: 1, title: 'Gate probe', status: 'open', priority: 5 })
+                .returningOneColumn(tIssue.priority)
+                .executeInsertOne()
+        } catch (e) {
+            caught = e
+        }
+        expect(reasonOf(caught)).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')
+    })
+
+    test('insert-returning-one-column-throws-mandatory-value-on-present-null', async () => {
+        // The one-column value is PRESENT but null on a required column
+        // (`status`). `transformValueFromDB` coerces null->null and the
+        // required-column result-gate then rejects it with
+        // MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE. A `null` scalar is
+        // distinct from the `undefined` "no row" sentinel that fires NO_RESULT, so
+        // the mock reaches the value-gate.
+        if (ctx.realDbEnabled) return
+        ctx.mockNext(null)
+        let caught: unknown
+        try {
+            await ctx.conn.insertInto(tIssue)
+                .values({ projectId: 1, number: 1, title: 'Gate probe', status: 'open', priority: 5 })
+                .returningOneColumn(tIssue.status)
+                .executeInsertOne()
+        } catch (e) {
+            caught = e
+        }
+        expect(reasonOf(caught)).toBe('MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE')
+    })
 })

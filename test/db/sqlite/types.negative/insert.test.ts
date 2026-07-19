@@ -150,6 +150,30 @@ function _typeNegatives() {
     // accept the same required column (ColumnsForSetOf includes required columns).
     void connection.update(tIssue).set({ title: 'x' }).ignoreIfHasValue('title')
     void connection.update(tIssue).set({ title: 'x' }).ignoreIfHasNoValue('title')
+
+    // Rule: `extendShape({...})` on the shaped on-conflict dynamic set returns a
+    // DE-EXECUTED node on purpose — the freshly-mapped key must be staged by a
+    // following `.set(...)` before the insert is executable, so a bare
+    // `.executeInsert()` right after `extendShape` must NOT typecheck. This pins
+    // the intentional de-execution against a future change that re-adds `& NEXT`.
+    // Control: with the intervening `.set({ archived: null })` the insert executes.
+    void connection.insertInto(tProject)
+        .shapedAs({ orgId: 'organizationId', projectName: 'name', projectSlug: 'slug' })
+        .set({ orgId: 1, projectName: 'a', projectSlug: 'b' })
+        .onConflictOn(tProject.organizationId, tProject.slug)
+        .doUpdateDynamicSet({ projectName: 'Reactivated' })
+        .extendShape({ archived: 'archivedAt' })
+        .set({ archived: null })
+        .executeInsert()
+    // Guard: without the intervening `.set(...)`, the de-executed node exposes no executeInsert.
+    void connection.insertInto(tProject)
+        .shapedAs({ orgId: 'organizationId', projectName: 'name', projectSlug: 'slug' })
+        .set({ orgId: 1, projectName: 'a', projectSlug: 'b' })
+        .onConflictOn(tProject.organizationId, tProject.slug)
+        .doUpdateDynamicSet({ projectName: 'Reactivated' })
+        .extendShape({ archived: 'archivedAt' })
+        // @ts-expect-error extendShape de-executes the shaped on-conflict node; a bare executeInsert (no intervening set) is not allowed
+        .executeInsert()
 }
 
 test('insert-negative-types', () => {

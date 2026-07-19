@@ -4,7 +4,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tOrganization, tProject, tReleaseDraft, type ReleaseStage } from '../../domain/connection.js'
+import { tIssue, tOrganization, tProject, tProjectRelease, tProjectReview, tReleaseDraft, type ReleaseStage } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -579,6 +579,132 @@ describe(ctx.label, () => {
             assertType<Exact<typeof absent, { id: number; meta?: { archivedAt?: Date } }>>()
             expect(absent.id).toBe(1)
             expect('meta' in absent).toBe(false)
+        })
+    })
+
+    test('update-returning-temporal-plain-kinds-round-trip', async () => {
+        // RETURNING the plain temporal kinds (localDate + localTime) on UPDATE, then
+        // reading the same row back — RETURNING == SELECT for the updated row.
+        await ctx.withRollback(async () => {
+            const reviewDate = new Date(Date.UTC(2026, 8, 9))
+            const reviewTime = new Date(Date.UTC(1970, 0, 1, 7, 5, 0))
+            ctx.mockNext({ reviewDate, reviewTime })
+            const ret = await ctx.conn.update(tProjectReview)
+                .set({ reviewDate, reviewTime })
+                .where(tProjectReview.id.equals(1))
+                .returning({ reviewDate: tProjectReview.reviewDate, reviewTime: tProjectReview.reviewTime })
+                .executeUpdateOne()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project_review set review_date = :0, review_time = :1 where id = :2 returning review_date, review_time into :3, :4"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                2026-09-09T00:00:00.000Z,
+                1970-01-01T07:05:00.000Z,
+                1,
+                {
+                  "as": "reviewDate",
+                  "dir": 3003,
+                },
+                {
+                  "as": "reviewTime",
+                  "dir": 3003,
+                },
+              ]
+            `)
+            assertType<Exact<typeof ret, { reviewDate?: Date; reviewTime: Date }>>()
+            expect(ret.reviewTime).toBeInstanceOf(Date)
+            expect(ret.reviewDate).toBeInstanceOf(Date)
+
+            ctx.mockNext({ reviewDate, reviewTime })
+            const sel = await ctx.conn.selectFrom(tProjectReview)
+                .where(tProjectReview.id.equals(1))
+                .select({ reviewDate: tProjectReview.reviewDate, reviewTime: tProjectReview.reviewTime })
+                .executeSelectOne()
+            expect(ret.reviewDate).toEqual(sel.reviewDate)
+            expect(ret.reviewTime).toEqual(sel.reviewTime)
+        })
+    })
+
+    test('update-returning-temporal-custom-kinds-round-trip', async () => {
+        // RETURNING the branded custom temporal kinds on UPDATE — customLocalDate,
+        // customLocalTime, customLocalDateTime — then reading the same row back.
+        await ctx.withRollback(async () => {
+            const releasedOn = new Date(Date.UTC(2026, 3, 4))
+            const cutoffTime = new Date(Date.UTC(1970, 0, 1, 22, 10, 0))
+            const publishedAt = new Date(Date.UTC(2026, 3, 5, 6, 20, 0))
+            ctx.mockNext({ releasedOn, cutoffTime, publishedAt })
+            const ret = await ctx.conn.update(tProjectRelease)
+                .set({ releasedOn, cutoffTime, publishedAt })
+                .where(tProjectRelease.id.equals(1))
+                .returning({
+                    releasedOn:  tProjectRelease.releasedOn,
+                    cutoffTime:  tProjectRelease.cutoffTime,
+                    publishedAt: tProjectRelease.publishedAt,
+                })
+                .executeUpdateOne()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project_release set released_on = :0, cutoff_time = :1, published_at = :2 where id = :3 returning released_on, cutoff_time, published_at into :4, :5, :6"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                2026-04-04T00:00:00.000Z,
+                1970-01-01T22:10:00.000Z,
+                2026-04-05T06:20:00.000Z,
+                1,
+                {
+                  "as": "releasedOn",
+                  "dir": 3003,
+                },
+                {
+                  "as": "cutoffTime",
+                  "dir": 3003,
+                },
+                {
+                  "as": "publishedAt",
+                  "dir": 3003,
+                },
+              ]
+            `)
+            assertType<Exact<typeof ret, { releasedOn: Date; cutoffTime: Date; publishedAt: Date }>>()
+            expect(ret.releasedOn).toBeInstanceOf(Date)
+            expect(ret.cutoffTime).toBeInstanceOf(Date)
+            expect(ret.publishedAt).toBeInstanceOf(Date)
+
+            ctx.mockNext({ releasedOn, cutoffTime, publishedAt })
+            const sel = await ctx.conn.selectFrom(tProjectRelease)
+                .where(tProjectRelease.id.equals(1))
+                .select({
+                    releasedOn:  tProjectRelease.releasedOn,
+                    cutoffTime:  tProjectRelease.cutoffTime,
+                    publishedAt: tProjectRelease.publishedAt,
+                })
+                .executeSelectOne()
+            expect(ret.releasedOn).toEqual(sel.releasedOn)
+            expect(ret.cutoffTime).toEqual(sel.cutoffTime)
+            expect(ret.publishedAt).toEqual(sel.publishedAt)
+        })
+    })
+
+    test('update-returning-one-column-temporal-real-value', async () => {
+        // `returningOneColumn(<localTime>)` on UPDATE returns a REAL (non-null) Date.
+        await ctx.withRollback(async () => {
+            const reviewTime = new Date(Date.UTC(1970, 0, 1, 13, 45, 0))
+            ctx.mockNext(reviewTime)
+            const v = await ctx.conn.update(tProjectReview)
+                .set({ reviewTime })
+                .where(tProjectReview.id.equals(1))
+                .returningOneColumn(tProjectReview.reviewTime)
+                .executeUpdateOne()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project_review set review_time = :0 where id = :1 returning review_time into :2"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1970-01-01T13:45:00.000Z,
+                1,
+                {
+                  "as": "result",
+                  "dir": 3003,
+                },
+              ]
+            `)
+            assertType<Exact<typeof v, Date>>()
+            expect(v).toBeInstanceOf(Date)
         })
     })
 })

@@ -13,7 +13,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tProject } from '../../domain/connection.js'
+import { tIssue, tProject, tProjectReview } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -1614,4 +1614,41 @@ describe(ctx.label, () => {
         expect(result[0]!.tree[0]!.parentId).toBe(null)
     })
 
+
+    test('recursive-union-all-re-projects-value-transforming-adapter-column-round-trip', async () => {
+        // A value-transforming adapter column (`score`, scaled-tenth: DB stores x10,
+        // app reads /10) projected through a `recursiveUnionAll` and read back out. The
+        // recursive arm never matches (id = parent.id + 1000), so only the anchor row
+        // survives; the adapter must survive the recursive column rebuilds so the DB
+        // 850 for review 1 round-trips to 85.
+        const expected = [{ id: 1, score: 85 }]
+        ctx.mockNext([{ id: 1, score: 850 }])
+        const connection = ctx.conn
+
+        const result = await connection.selectFrom(tProjectReview)
+            .where(tProjectReview.id.equals(1))
+            .select({
+                id:    tProjectReview.id,
+                score: tProjectReview.score,
+            })
+            .recursiveUnionAll((parent) => {
+                return connection.selectFrom(tProjectReview)
+                    .join(parent).on(tProjectReview.id.equals(parent.id.add(1000)))
+                    .select({
+                        id:    tProjectReview.id,
+                        score: tProjectReview.score,
+                    })
+            })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, score as score from project_review where id = $1 union all select project_review.id as id, project_review.score as score from project_review join recursive_select_1 on project_review.id = (recursive_select_1.id + $2)) select id as id, score as score from recursive_select_1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            1000,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; score: number }>>>()
+        expect(result).toEqual(expected)
+    })
 })

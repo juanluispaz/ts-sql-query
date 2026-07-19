@@ -1546,4 +1546,37 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ label: string }>>>()
         expect(result).toEqual(expected)
     })
+
+    test('compound-order-by-value-source-collate-secondary', async () => {
+        // `.collate(name)` on a no-table value source as a compound ORDER BY term:
+        // a benign constant secondary key after `orderBy('label')`, so the result
+        // stays deterministic (label asc) while the collated expression pins the
+        // compound-order-by emission — the path that must emit the `collate` on the
+        // value source rather than drop or misplace it.
+        const expected = [
+            { label: 'Document /v2/users' },
+            { label: 'Internal tools' },
+            { label: 'Legacy app' },
+            { label: 'Marketing site' },
+            { label: 'Migrate to ESM' },
+            { label: 'Public API' },
+            { label: 'Redesign navbar' },
+            { label: 'Update hero copy' },
+        ]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tProject)
+            .select({ label: tProject.name })
+            .union(ctx.conn.selectFrom(tIssue).select({ label: tIssue.title }))
+            .orderBy('label')
+            .orderBy(ctx.conn.const('a', 'string').collate('BINARY'))
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select * from (select name as label from project union select title as label from issue) as o_1_ order by label, ? collate BINARY"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "a",
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ label: string }>>>()
+        expect(result).toEqual(expected)
+    })
 })

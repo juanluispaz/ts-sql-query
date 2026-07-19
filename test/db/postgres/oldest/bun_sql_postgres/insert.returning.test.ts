@@ -8,7 +8,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tOrganization, tProject } from '../../domain/connection.js'
+import { tOrganization, tProject, tProjectRelease, tProjectReview } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -513,6 +513,120 @@ describe(ctx.label, () => {
             expect('meta' in inserted!).toBe(false)
             if (!ctx.realDbEnabled) expect(inserted!.id).toBe(100)
             else expect(inserted!.id).toBeGreaterThan(4)
+        })
+    })
+
+    test('insert-returning-temporal-plain-kinds-round-trip', async () => {
+        // RETURNING the plain temporal kinds — localDate (reviewDate, optional) and
+        // localTime (reviewTime, required) — on INSERT, then reading the same row back
+        // with SELECT. The exact instant a date-only value reads back at is engine /
+        // session-tz dependent, so the fix contract is pinned as RETURNING == SELECT
+        // (the RETURNING value marshals identically to a plain read) rather than against
+        // the inserted literal.
+        await ctx.withRollback(async () => {
+            const reviewDate = new Date(Date.UTC(2024, 5, 15))
+            const reviewTime = new Date(Date.UTC(1970, 0, 1, 9, 30, 0))
+            ctx.mockNext({ id: 900, reviewDate, reviewTime })
+            const ret = await ctx.conn.insertInto(tProjectReview)
+                .values({ projectId: 1, reviewerCode: 'R-Z9', score: 90, reviewDate, reviewTime })
+                .returning({ id: tProjectReview.id, reviewDate: tProjectReview.reviewDate, reviewTime: tProjectReview.reviewTime })
+                .executeInsertOne()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project_review (project_id, reviewer_code, score, review_date, review_time) values ($1, $2, $3, $4, $5) returning id as id, review_date as "reviewDate", review_time as "reviewTime""`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "R-Z9",
+                900,
+                "2024-06-15T00:00:00.000Z",
+                "09:30:00",
+              ]
+            `)
+            assertType<Exact<typeof ret, { id: number; reviewDate?: Date; reviewTime: Date }>>()
+            expect(ret.reviewTime).toBeInstanceOf(Date)
+            expect(ret.reviewDate).toBeInstanceOf(Date)
+
+            ctx.mockNext({ reviewDate, reviewTime })
+            const sel = await ctx.conn.selectFrom(tProjectReview)
+                .where(tProjectReview.id.equals(ret.id))
+                .select({ reviewDate: tProjectReview.reviewDate, reviewTime: tProjectReview.reviewTime })
+                .executeSelectOne()
+            expect(ret.reviewDate).toEqual(sel.reviewDate)
+            expect(ret.reviewTime).toEqual(sel.reviewTime)
+        })
+    })
+
+    test('insert-returning-temporal-custom-kinds-round-trip', async () => {
+        // RETURNING the branded custom temporal kinds on INSERT — customLocalDate
+        // (releasedOn), customLocalTime (cutoffTime), customLocalDateTime (publishedAt)
+        // — then reading the same row back. Same RETURNING == SELECT contract; the
+        // custom kinds erase to plain `Date` on read.
+        await ctx.withRollback(async () => {
+            const releasedOn = new Date(Date.UTC(2025, 2, 10))
+            const cutoffTime = new Date(Date.UTC(1970, 0, 1, 18, 45, 0))
+            const publishedAt = new Date(Date.UTC(2025, 2, 11, 8, 15, 0))
+            ctx.mockNext({ id: 910, releasedOn, cutoffTime, publishedAt })
+            const ret = await ctx.conn.insertInto(tProjectRelease)
+                .values({ projectId: 1, version: '9.9.9-ret', channel: 'beta', releasedOn, cutoffTime, publishedAt })
+                .returning({
+                    id:          tProjectRelease.id,
+                    releasedOn:  tProjectRelease.releasedOn,
+                    cutoffTime:  tProjectRelease.cutoffTime,
+                    publishedAt: tProjectRelease.publishedAt,
+                })
+                .executeInsertOne()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project_release (project_id, version, channel, released_on, cutoff_time, published_at) values ($1, $2, $3, $4, $5, $6) returning id as id, released_on as "releasedOn", cutoff_time as "cutoffTime", published_at as "publishedAt""`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "9.9.9-ret",
+                "beta",
+                "2025-03-10T00:00:00.000Z",
+                "18:45:00",
+                "2025-03-11T08:15:00.000Z",
+              ]
+            `)
+            assertType<Exact<typeof ret, { id: number; releasedOn: Date; cutoffTime: Date; publishedAt: Date }>>()
+            expect(ret.releasedOn).toBeInstanceOf(Date)
+            expect(ret.cutoffTime).toBeInstanceOf(Date)
+            expect(ret.publishedAt).toBeInstanceOf(Date)
+
+            ctx.mockNext({ releasedOn, cutoffTime, publishedAt })
+            const sel = await ctx.conn.selectFrom(tProjectRelease)
+                .where(tProjectRelease.id.equals(ret.id))
+                .select({
+                    releasedOn:  tProjectRelease.releasedOn,
+                    cutoffTime:  tProjectRelease.cutoffTime,
+                    publishedAt: tProjectRelease.publishedAt,
+                })
+                .executeSelectOne()
+            expect(ret.releasedOn).toEqual(sel.releasedOn)
+            expect(ret.cutoffTime).toEqual(sel.cutoffTime)
+            expect(ret.publishedAt).toEqual(sel.publishedAt)
+        })
+    })
+
+    test('insert-returning-one-column-temporal-real-value', async () => {
+        // `returningOneColumn(<localTime>)` on INSERT returns a REAL (non-null) Date —
+        // the scalar temporal RETURNING branch (the existing scalar returning test uses
+        // a nullable column that marshals regardless of the fix).
+        await ctx.withRollback(async () => {
+            const reviewTime = new Date(Date.UTC(1970, 0, 1, 11, 15, 0))
+            ctx.mockNext(reviewTime)
+            const v = await ctx.conn.insertInto(tProjectReview)
+                .values({ projectId: 1, reviewerCode: 'R-Z8', score: 70, reviewTime })
+                .returningOneColumn(tProjectReview.reviewTime)
+                .executeInsertOne()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project_review (project_id, reviewer_code, score, review_time) values ($1, $2, $3, $4) returning review_time as result"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "R-Z8",
+                700,
+                "11:15:00",
+              ]
+            `)
+            assertType<Exact<typeof v, Date>>()
+            expect(v).toBeInstanceOf(Date)
         })
     })
 })

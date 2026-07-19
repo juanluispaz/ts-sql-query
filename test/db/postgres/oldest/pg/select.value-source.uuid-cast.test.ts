@@ -656,4 +656,124 @@ describe(ctx.label, () => {
         assertType<Exact<typeof key, string | null>>()
         expect(key).toEqual(SIGNING_KEY1)
     })
+
+    // -- uuid.asString() string-method fan-out --
+    // The remaining StringValueSource methods on a uuid-derived receiver: each
+    // converts the receiver before the string function (bare text elsewhere). Values
+    // are pinned against seeded issue 1 (REF1); the negative-index substr forms land
+    // in the all-digit tail, so they stay case-invariant across dialects.
+    test('uuid-asString-reverse', async () => {
+        const expected = [...REF1].reverse().join('')
+        ctx.mockNext(expected)
+        const ref = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .selectOneColumn(tIssue.externalRef.asString().reverse())
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select reverse(external_ref::text) as result from issue where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof ref, string | null>>()
+        expect(ref).toEqual(expected)
+    })
+
+    test('uuid-asString-trimLeft', async () => {
+        // trimLeft leaves the caseless uuid unchanged; SQL Server converts the
+        // uniqueidentifier receiver before the trim.
+        ctx.mockNext(REF1)
+        const ref = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .selectOneColumn(tIssue.externalRef.asString().trimLeft())
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ltrim(external_ref::text) as result from issue where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof ref, string | null>>()
+        expect(ref).toEqual(REF1)
+    })
+
+    test('uuid-asString-trimRight', async () => {
+        // trimRight leaves the caseless uuid unchanged; SQL Server converts the
+        // uniqueidentifier receiver before the trim.
+        ctx.mockNext(REF1)
+        const ref = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .selectOneColumn(tIssue.externalRef.asString().trimRight())
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select rtrim(external_ref::text) as result from issue where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof ref, string | null>>()
+        expect(ref).toEqual(REF1)
+    })
+
+    test('uuid-asString-substr-negative-start', async () => {
+        // `.substr(-8, 4)` — JS from-end start with a count → SQL Server's distinct
+        // `left(right(..., 8), 4)` override. The window is the all-digit tail, so the
+        // value is case-invariant across dialects.
+        const expected = REF1.slice(-8, -4)
+        ctx.mockNext(expected)
+        const ref = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .selectOneColumn(tIssue.externalRef.asString().substr(-8, 4))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select left(right(external_ref::text, $1), $2) as result from issue where id = $3"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            8,
+            4,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof ref, string | null>>()
+        expect(ref).toEqual(expected)
+    })
+
+    test('uuid-asString-substrToEnd-negative-start', async () => {
+        // `.substrToEnd(-6)` — JS from-end, no count → `right(..., 6)`. The last 6
+        // chars are digits, so the value is case-invariant.
+        const expected = REF1.slice(-6)
+        ctx.mockNext(expected)
+        const ref = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .selectOneColumn(tIssue.externalRef.asString().substrToEnd(-6))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select right(external_ref::text, $1) as result from issue where id = $2"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            6,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof ref, string | null>>()
+        expect(ref).toEqual(expected)
+    })
+
+    test('uuid-asString-substringToEnd', async () => {
+        // `.substringToEnd(24)` — SQL-style 0-based start. Index 24+ is the all-digit
+        // tail, so the value is case-invariant.
+        const expected = REF1.substring(24)
+        ctx.mockNext(expected)
+        const ref = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .selectOneColumn(tIssue.externalRef.asString().substringToEnd(24))
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select substr(external_ref::text, $1) as result from issue where id = $2"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            25,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof ref, string | null>>()
+        expect(ref).toEqual(expected)
+    })
 })

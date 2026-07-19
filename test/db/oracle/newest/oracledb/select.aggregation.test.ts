@@ -597,4 +597,44 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ projectId: number; total?: number }>>>()
         expect(result).toEqual(expected)
     })
+
+    test('grouped-scalar-aggregates-in-plain-nested-object', async () => {
+        // A plain nested object whose leaves are SCALAR aggregates in a grouped
+        // select: `count(id)` (required — count optionality is decoupled from input)
+        // keeps the `stats` object present, while `max(assignee_id)` (optional over a
+        // nullable column) is `hi?`. Emitted as dotted-alias scalar columns
+        // (`count(id) as "stats.total"`), distinct from json_build_object. Project 2's
+        // only issue has a NULL assignee, so its `hi` is absent under the default
+        // projector while `stats`/`total` remain.
+        const expected = [
+            { projectId: 1, stats: { total: 2, hi: 2 } },
+            { projectId: 2, stats: { total: 1 } },
+            { projectId: 3, stats: { total: 1, hi: 3 } },
+        ]
+        ctx.mockNext([
+            { projectId: 1, 'stats.total': 2, 'stats.hi': 2 },
+            { projectId: 2, 'stats.total': 1, 'stats.hi': null },
+            { projectId: 3, 'stats.total': 1, 'stats.hi': 3 },
+        ])
+        const result = await ctx.conn.selectFrom(tIssue)
+            .select({
+                projectId: tIssue.projectId,
+                stats: {
+                    total: ctx.conn.count(tIssue.id),
+                    hi:    ctx.conn.max(tIssue.assigneeId),
+                },
+            })
+            .groupBy('projectId')
+            .orderBy('projectId')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as "projectId", count(id) as "stats.total", max(assignee_id) as "stats.hi" from issue group by project_id order by "projectId""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{
+            projectId: number
+            stats: { total: number; hi?: number }
+        }>>>()
+        expect(result).toEqual(expected)
+        // Project 2's optional max is null → `hi` absent (not present-undefined).
+        expect('hi' in result[1]!.stats).toBe(false)
+    })
 })

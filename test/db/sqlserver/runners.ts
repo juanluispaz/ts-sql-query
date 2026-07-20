@@ -120,7 +120,8 @@ type StartedContainer = {
 // reuse-lookup-then-create dance in testcontainers (which holds only an
 // in-process lock) doesn't spawn duplicate containers under cold start.
 const containers = createContainerRegistry<StartedContainer>(async (image) => {
-    if (image !== newestImage(DATABASE)) {
+    const isVersionSpecific = image !== newestImage(DATABASE)
+    if (isVersionSpecific) {
         console.error(`[docker-version] ${DATABASE}: using ${image}`)
     }
     const { GenericContainer, Wait } = await import('testcontainers')
@@ -132,6 +133,15 @@ const containers = createContainerRegistry<StartedContainer>(async (image) => {
         })
         .withExposedPorts(1433)
         .withWaitStrategy(Wait.forLogMessage(/SQL Server is now ready for client connections/, 1))
+    if (isVersionSpecific) {
+        // The older SQL Server images (2019 / 2022, reached only under
+        // `--docker-version closest`) crash on boot under arm64 (qemu) emulation
+        // as the default non-root `mssql` user: they cannot create `/.system`
+        // (`Permission denied`). Running as root fixes it and is harmless for a
+        // throwaway test container. The newest (2025) image boots fine as the
+        // default user, so this stays scoped to the version-specific images.
+        builder.withUser('root')
+    }
     if (reuseEnabled()) builder.withReuse()
     const started = (await builder.start()) as unknown as StartedContainer
     // Runs once per process per image. Validates the schema/seed hash against

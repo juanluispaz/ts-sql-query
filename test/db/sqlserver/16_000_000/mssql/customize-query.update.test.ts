@@ -1,0 +1,183 @@
+// Exhaustive coverage of `customizeQuery({...})` hooks on UPDATE.
+// The docs page exercises `afterUpdateKeyword` + `afterQuery`; this
+// file fills the gap with `beforeQuery` plus variants where the
+// fragment interpolates bound values and column references - which
+// drives `__registerRequiredColumn`/`__addWiths` on the UPDATE
+// builder.
+
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
+import { assertType, type Exact } from '../../../../lib/assertType.js'
+import { tIssue, tOrganization, tProject } from '../../domain/connection.js'
+import { ctx } from './setup.js'
+
+describe(ctx.label, () => {
+    beforeAll(() => ctx.up(), ctx.timeoutMs)
+    afterAll(() => ctx.down(), ctx.timeoutMs)
+    beforeEach(() => { ctx.reset() })
+
+    test('customize-update-before-query-emits-leading-comment', async () => {
+        // `beforeQuery` lands ahead of the UPDATE keyword - a marker
+        // a proxy can read before parsing the statement.
+        ctx.mockNext(1)
+        const connection = ctx.conn
+        await ctx.withRollback(async () => {
+            const affected = await connection.update(tProject)
+                .set({ name: 'Marketing site (renamed)' })
+                .where(tProject.id.equals(1))
+                .customizeQuery({
+                    beforeQuery: connection.rawFragment`/* op=rename */ `,
+                })
+                .executeUpdate()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* op=rename */  update project set name = @0 where id = @1"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Marketing site (renamed)",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+        })
+    })
+
+    test('customize-update-hook-fragment-with-column-reference', async () => {
+        // Column reference inside the hook fragment - drives
+        // `__registerRequiredColumn` on the UPDATE builder.
+        ctx.mockNext(1)
+        const connection = ctx.conn
+        await ctx.withRollback(async () => {
+            const affected = await connection.update(tIssue)
+                .set({ status: 'closed' })
+                .where(tIssue.id.equals(1))
+                .customizeQuery({
+                    afterQuery: connection.rawFragment` /* keyed-by ${tIssue.projectId} */`,
+                })
+                .executeUpdate()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = @0 where id = @1  /* keyed-by project_id */"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "closed",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+        })
+    })
+
+    test('customize-update-all-hooks-combined', async () => {
+        // The three RawFragment hooks applied together; the snapshot
+        // documents exactly where each lands relative to the UPDATE.
+        ctx.mockNext(1)
+        const connection = ctx.conn
+        await ctx.withRollback(async () => {
+            const affected = await connection.update(tProject)
+                .set({ name: 'Mobile app (v2)' })
+                .where(tProject.id.equals(1))
+                .customizeQuery({
+                    beforeQuery:        connection.rawFragment`/* head */ `,
+                    afterUpdateKeyword: connection.rawFragment`/*+ hint */`,
+                    afterQuery:         connection.rawFragment` /* tail */`,
+                })
+                .executeUpdate()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  update /*+ hint */ project set name = @0 where id = @1  /* tail */"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Mobile app (v2)",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+        })
+    })
+
+    test('customize-update-returning-object-with-hooks', async () => {
+        // The object-RETURNING + `customizeQuery` arm on UPDATE: `.returning({...})`
+        // yields a composable customizable executable, so the customize hook
+        // lands on the same statement while the RETURNING result type (an
+        // object) is preserved. Issue 1's title is patched and read back; the
+        // keyed id and the new title are deterministic in both modes.
+        const expected = { id: 1, title: 'Patched hero copy' }
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+        await ctx.withRollback(async () => {
+            const row = await connection.update(tIssue)
+                .set({ title: 'Patched hero copy' })
+                .where(tIssue.id.equals(1))
+                .returning({ id: tIssue.id, title: tIssue.title })
+                .customizeQuery({ afterUpdateKeyword: connection.rawFragment`/*+ hint */` })
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update /*+ hint */ issue set title = @0 output inserted.id as id, inserted.title as title where id = @1"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Patched hero copy",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof row, { id: number; title: string }>>()
+            expect(row).toEqual(expected)
+        })
+    })
+    test('customize-update-returning-one-column-with-hooks', async () => {
+        // The single-column RETURNING + `customizeQuery` arm on UPDATE:
+        // `.returningOneColumn(col)` yields a composable customizable executable,
+        // so the customize hook lands on the same statement while the SCALAR
+        // RETURNING result type survives the hook. Issue 1's status is patched and
+        // read back; the keyed id and the new status are deterministic in both
+        // modes.
+        ctx.mockNext('reviewed')
+        const connection = ctx.conn
+        await ctx.withRollback(async () => {
+            const status = await connection.update(tIssue)
+                .set({ status: 'reviewed' })
+                .where(tIssue.id.equals(1))
+                .returningOneColumn(tIssue.status)
+                .customizeQuery({ afterUpdateKeyword: connection.rawFragment`/*+ hint */` })
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update /*+ hint */ issue set status = @0 output inserted.status as [result] where id = @1"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "reviewed",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof status, string>>()
+            expect(status).toBe('reviewed')
+        })
+    })
+
+    test('customize-update-from-with-hooks', async () => {
+        // The three RawFragment hooks on an UPDATE … FROM: the fragments land
+        // around the update keyword and after the whole statement, alongside the
+        // FROM clause. The `and(organization.id = 99999)` filter matches no row, so
+        // nothing is mutated.
+        ctx.mockNext(0)
+        const connection = ctx.conn
+        await ctx.withRollback(async () => {
+            const affected = await connection.update(tProject)
+                .from(tOrganization)
+                .set({ name: tOrganization.name })
+                .where(tProject.organizationId.equals(tOrganization.id))
+                .and(tOrganization.id.equals(99999))
+                .customizeQuery({
+                    beforeQuery:        connection.rawFragment`/* head */ `,
+                    afterUpdateKeyword: connection.rawFragment`/*+ hint */`,
+                    afterQuery:         connection.rawFragment` /* tail */`,
+                })
+                .executeUpdate()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  update /*+ hint */ project set name = organization.name from organization where project.organization_id = organization.id and organization.id = @0  /* tail */"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                99999,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            if (!ctx.realDbEnabled) expect(affected).toBe(0)
+            else expect(typeof affected).toBe('number')
+        })
+    })
+})

@@ -787,10 +787,10 @@ describe(ctx.label, () => {
     // whose element carries a rule-1 (requiredInOptionalObject gate) leaf or a rule-2
     // (left-join originallyRequired) leaf. The inline aggregate runtime is NON-DROPPING,
     // so each element is KEPT; under the default projector a null gate / left-join leaf
-    // is ABSENT (dropped) rather than surfacing present-null. This is the R40/R41-sensitive
-    // seam: the compound re-projection must carry the inline element's DEFAULT projection
-    // (optionals-as-undefined) into the merged array — matching a standalone inline
-    // aggregate over the same rule-1/rule-2 leaf.
+    // is ABSENT (dropped) rather than surfacing present-null. The compound re-projection
+    // must carry the inline element's DEFAULT projection (optionals-as-undefined) into
+    // the merged array — matching a standalone inline aggregate over the same
+    // rule-1/rule-2 leaf.
 
     test('inline-compound-union-rule-1-gate-leaf-default-drops-gate', async () => {
         // A UNION consumed inline, DEFAULT projector. Each arm projects `{ ref, assigneeId }`

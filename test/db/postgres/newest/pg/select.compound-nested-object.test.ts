@@ -389,11 +389,10 @@ describe(ctx.label, () => {
         expect(rows).toEqual(expected)
     })
 
-    // Missing twins of the compound nested-object paths: the DEFAULT rule-3 (the
-    // existing one is nullable-only), a NULLABLE depth-3, a NULLABLE left-join
-    // object, the unionAll before-op variants of the left-join and rule-1 defaults,
-    // and — the R40/R41-sensitive case — a UNION ALL of aggregate arms whose element
-    // carries an OPTIONAL leaf under projectingOptionalValuesAsNullable().
+    // Compound nested-object paths: a DEFAULT rule-3 object, a NULLABLE depth-3, a
+    // NULLABLE left-join object, the unionAll before-op variants of the left-join and
+    // rule-1 defaults, and a UNION ALL of aggregate arms whose element carries an
+    // OPTIONAL leaf under projectingOptionalValuesAsNullable().
 
     test('union-of-rule-3-required-object-with-optional-leaf-default', async () => {
         // The DEFAULT-projector twin of the rule-3 nullable compound test above: each

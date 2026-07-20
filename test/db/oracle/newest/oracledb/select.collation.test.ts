@@ -1,12 +1,10 @@
 // Collation levers on cased data (the matrix's fixture data is caseless `@`,
 // so these tests use explicit cased constants like 'ABCabc' to pin the new
-// behaviour): `.collate()` (Fork A), `replaceAll`'s code-point default
-// (Fork C — Oracle's REPLACE honours the session collation, corrupting only
-// when the session is configured CI), and `replaceAllInsensitive` (Fork D —
-// collation-driven, forcing Oracle's neutral BINARY_CI when unconfigured).
-// The emitted SQL matches the probed transcripts in
-// test/SEMANTIC_AUDIT_COLLATION_REPORT.md. The test-name set is shared across
-// every dialect cell.
+// behaviour): `.collate()`, `replaceAll`'s code-point default (Oracle's
+// REPLACE honours the session collation, corrupting only when the session is
+// configured CI), and `replaceAllInsensitive` (collation-driven, forcing
+// Oracle's neutral BINARY_CI when unconfigured). The test-name set is shared
+// across every dialect cell.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -25,7 +23,7 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // ── Fork A: .collate() ─────────────────────────────────────────────
+    // ── .collate() ─────────────────────────────────────────────────────
     test('collate forces case-sensitive equality', async () => {
         const expected = [{ v: false }]
         ctx.mockNext(expected)
@@ -76,7 +74,7 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-    // ── Fork C: replaceAll (default code-point) ────────────────────────
+    // ── replaceAll (default code-point) ────────────────────────────────
     // `replaceCollation` defaults to `BINARY`, pinned on the match operands with
     // a USING_NLS_COMP reset, so `replaceAll` is code-point exact whatever the
     // session collation. 'ABCabc' → 'ABCX'.
@@ -184,7 +182,7 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-    // ── Fork D: replaceAllInsensitive ──────────────────────────────────
+    // ── replaceAllInsensitive ──────────────────────────────────────────
     // Oracle's default is case-sensitive, so with no `insensitiveCollation` the
     // library forces Oracle's neutral BINARY_CI (+ USING_NLS_COMP reset) to make
     // the replace fold case. 'ABCabc' → 'XX'.
@@ -286,7 +284,7 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-    // ── C2: chained replace parenthesises the inner result ─────────────
+    // ── chained replace parenthesises the inner result ─────────────────
     // When a collation is forced, `replaceAll`/`replaceAllInsensitive` append a
     // trailing `collate <reset>` to their result. That trailing `collate` binds
     // looser than an embedding operator (and than an outer replace's own forced

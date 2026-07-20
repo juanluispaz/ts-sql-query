@@ -1,14 +1,11 @@
 // Collation levers on cased data (the matrix's fixture data is caseless `@`,
 // so these tests use explicit cased constants like 'ABCabc' to pin the new
-// behaviour): `.collate()` (Fork A — built-in BINARY/NOCASE), `replaceAll`
-// (Fork C — inert on SQLite, whose REPLACE ignores collation), and
-// `replaceAllInsensitive` (Fork D — a configurable UDF name, falling back to a
-// plain case-sensitive `replace` when unset; the UDF-configured emission is
-// documented, not matrix-tested, since the function is user-registered). The
-// emitted SQL matches the probed transcripts in
-// test/SEMANTIC_AUDIT_COLLATION_REPORT.md. The test-name set is shared across
-// every dialect cell; the ones a dialect cannot run are kept commented for
-// symmetry.
+// behaviour): `.collate()` (built-in BINARY/NOCASE), `replaceAll` (inert on
+// SQLite, whose REPLACE ignores collation), and `replaceAllInsensitive` (a
+// configurable UDF name, falling back to a plain case-sensitive `replace` when
+// unset; the UDF-configured emission is documented, not matrix-tested, since
+// the function is user-registered). The test-name set is shared across every
+// dialect cell; the ones a dialect cannot run are kept commented for symmetry.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -20,7 +17,7 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // ── Fork A: .collate() ─────────────────────────────────────────────
+    // ── .collate() ─────────────────────────────────────────────────────
     // The built-in BINARY collation is code-point (case-sensitive): 'ABC' <> 'abc'.
     test('collate forces case-sensitive equality', async () => {
         const expected = [{ v: false }]
@@ -74,7 +71,7 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-    // ── Fork C: replaceAll ─────────────────────────────────────────────
+    // ── replaceAll ─────────────────────────────────────────────────────
     // SQLite's REPLACE ignores collation (byte-wise case-sensitive), so the plain
     // native `replace(...)` is emitted. 'ABCabc' → 'ABCX'.
     test('replaceAll on cased data', async () => {
@@ -169,7 +166,7 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-    // ── Fork D: replaceAllInsensitive ──────────────────────────────────
+    // ── replaceAllInsensitive ──────────────────────────────────────────
     // With no `replaceAllInsensitiveFunction` configured, SQLite falls back to a
     // plain case-sensitive `replace(...)` (documented, never an error). 'ABCabc'
     // → only 'abc' matches → 'ABCX'.
@@ -260,7 +257,7 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-    // ── C2: chained replace nests without an extra parenthesis ─────────
+    // ── chained replace nests without an extra parenthesis ─────────────
     // This dialect's `replaceAll`/`replaceAllInsensitive` emit a bare replace with no
     // trailing collation reset, so a chained replace simply nests — the source needs
     // no wrapping (the parenthesisation guard is specific to the collation-reset

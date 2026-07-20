@@ -144,8 +144,8 @@ describe(ctx.label, () => {
     })
 
     test('table-customization: two-param customization threads two bound params', async () => {
-        // `withTwoParams` is the P2 overload of createTableOrViewCustomization
-        // (withSqlHint is P0, withMinIdFilter is P1). Its factory takes two
+        // `withTwoParams` is the two-parameter overload of createTableOrViewCustomization
+        // (withSqlHint takes none, withMinIdFilter takes one). Its factory takes two
         // runtime ints and threads each into the derived-table predicate as a
         // real bound placeholder (`<pN> >= 0`, constant-true, keeping every row),
         // so both params ride ahead of any outer WHERE param.
@@ -168,8 +168,8 @@ describe(ctx.label, () => {
     })
 
     test('table-customization: three-param customization threads three bound params', async () => {
-        // `withThreeParams` is the P3 overload of createTableOrViewCustomization
-        // (withSqlHint is P0, withMinIdFilter is P1). Its factory takes three
+        // `withThreeParams` is the three-parameter overload of createTableOrViewCustomization
+        // (withSqlHint takes none, withMinIdFilter takes one). Its factory takes three
         // runtime ints and threads each into the derived-table predicate as a
         // real bound placeholder (`<pN> >= 0`, constant-true, keeping every row),
         // so all three params ride ahead of any outer WHERE param.
@@ -193,7 +193,7 @@ describe(ctx.label, () => {
     })
 
     test('table-customization: four-param customization threads four bound params', async () => {
-        // The P4 overload — four bound int params in the derived-table predicate.
+        // Four bound int params in the derived-table predicate.
         const expected = [{ id: 1 }, { id: 2 }]
         ctx.mockNext(expected)
         const tOrgFiltered = ctx.conn.withFourParams(tOrganization.as('o'), 'tOrgFiltered', 0, 0, 0, 0)
@@ -215,7 +215,7 @@ describe(ctx.label, () => {
     })
 
     test('table-customization: five-param customization threads five bound params', async () => {
-        // The P5 overload — five bound int params in the derived-table predicate.
+        // Five bound int params in the derived-table predicate.
         const expected = [{ id: 1 }, { id: 2 }]
         ctx.mockNext(expected)
         const tOrgFiltered = ctx.conn.withFiveParams(tOrganization.as('o'), 'tOrgFiltered', 0, 0, 0, 0, 0)

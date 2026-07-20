@@ -1748,7 +1748,7 @@ describe(ctx.label, () => {
     // paths emit identical SQL at runtime; the annotation only changes which
     // type alias validates the filter shape.
 
-    // -- B1 bigint (tIssueWorklog.durationMs, a nullable bigint) --------------
+    // -- bigint (tIssueWorklog.durationMs, a nullable bigint) -----------------
     test('dyn/bigint-descriptor-equalable-ops', async () => {
         type Filter = DynamicCondition<{ id: 'int', durationMs: 'bigint' }>
         const filter: Filter = { durationMs: { equals: 10n, notEquals: 20n, is: 30n, isNot: 40n, in: [1n, 2n], notIn: [9n] } }
@@ -1980,7 +1980,7 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
     })
 
-    // -- B2 double (tIssue.estimatedHours, a nullable double) -----------------
+    // -- double (tIssue.estimatedHours, a nullable double) --------------------
     test('dyn/double-descriptor-equalable-ops', async () => {
         type Filter = DynamicCondition<{ id: 'int', estimatedHours: 'double' }>
         const filter: Filter = { estimatedHours: { equals: 2.5, notEquals: 3.5, is: 4.5, in: [1.5, 2.5], notIn: [9.5] } }
@@ -2579,7 +2579,7 @@ describe(ctx.label, () => {
     // `asString()` rewrite (useAsStringInUuid) on the direct side, exactly as the
     // dynamic dispatcher does.
 
-    // -- B3 string raw-comparable (tIssue.title) ------------------------------
+    // -- string raw-comparable (tIssue.title) ---------------------------------
     test('dyn/string-descriptor-comparable-notin', async () => {
         type Filter = DynamicCondition<{ id: 'int', title: 'string' }>
         const filter: Filter = { title: { lessThan: 'm', greaterThan: 'a', lessOrEqual: 'z', greaterOrEqual: 'b', notIn: ['zzz', 'yyy'] } }
@@ -2737,7 +2737,7 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
     })
 
-    // -- B6 localDate (tIssueWorklog.workDate) --------------------------------
+    // -- localDate (tIssueWorklog.workDate) -----------------------------------
     test('dyn/localdate-descriptor-ops', async () => {
         type Filter = DynamicCondition<{ id: 'int', workDate: 'localDate' }>
         const d1 = new Date(Date.UTC(2024, 0, 1)), d2 = new Date(Date.UTC(2024, 3, 1)), d3 = new Date(Date.UTC(2024, 6, 1))
@@ -2925,7 +2925,7 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
     })
 
-    // -- B7 localTime (tIssueWorklog.startedAt) -------------------------------
+    // -- localTime (tIssueWorklog.startedAt) ----------------------------------
     test('dyn/localtime-descriptor-ops', async () => {
         type Filter = DynamicCondition<{ id: 'int', startedAt: 'localTime' }>
         const t1 = new Date(Date.UTC(1970, 0, 1, 8, 0, 0)), t2 = new Date(Date.UTC(1970, 0, 1, 12, 0, 0)), t3 = new Date(Date.UTC(1970, 0, 1, 17, 0, 0))
@@ -3113,7 +3113,7 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
     })
 
-    // -- B8 localDateTime (tIssue.createdAt) ----------------------------------
+    // -- localDateTime (tIssue.createdAt) -------------------------------------
     test('dyn/localdatetime-descriptor-ops', async () => {
         type Filter = DynamicCondition<{ id: 'int', createdAt: 'localDateTime' }>
         const s1 = new Date('2020-01-01T00:00:00.000Z'), s2 = new Date('2021-06-15T12:00:00.000Z'), s3 = new Date('2022-12-31T23:00:00.000Z')
@@ -3309,7 +3309,7 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
     })
 
-    // -- B9 customInt (tIssueWorklog.costCents, branded 'Cents') --------------
+    // -- customInt (tIssueWorklog.costCents, branded 'Cents') -----------------
     test('dyn/customint-descriptor-ops', async () => {
         type Filter = DynamicCondition<{ id: 'int', costCents: ['customInt', number] }>
         const filter: Filter = { costCents: { equals: 10, notEquals: 20, is: 30, isNot: 40, in: [1, 2], notIn: [9], lessOrEqual: 100, greaterOrEqual: 5, isNull: true, isNotNull: true } }
@@ -4558,7 +4558,7 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
     })
 
-    // -- B4 uuid (tIssue.externalRef) -----------------------------------------
+    // -- uuid (tIssue.externalRef) --------------------------------------------
     // Core ops (equals/comparable/nullable) dispatch directly on the uuid value
     // source; the like/affix/insensitive family routes through the `asString()`
     // text rewrite (useAsStringInUuid), matched on the direct side.
@@ -4912,7 +4912,7 @@ describe(ctx.label, () => {
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
     })
 
-    // -- B5 customUuid (tProjectRelease.signingKey, branded 'SigningKey') -----
+    // -- customUuid (tProjectRelease.signingKey, branded 'SigningKey') --------
     test('dyn/customuuid-descriptor-core-ops', async () => {
         type Filter = DynamicCondition<{ id: 'int', signingKey: ['customUuid', string] }>
         const u1 = '0a8f9c1e-1111-4222-8333-444455556661', u2 = '0a8f9c1e-1111-4222-8333-444455556662', u3 = '0a8f9c1e-1111-4222-8333-444455556663'

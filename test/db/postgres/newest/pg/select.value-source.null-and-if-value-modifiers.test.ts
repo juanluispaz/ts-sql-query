@@ -1628,7 +1628,7 @@ describe(ctx.label, () => {
         expect(row2).toEqual(expected2)
     })
 
-    // ==== Round-44 BOOLIF surface — custom-boolean receiver × Nullable family.
+    // ==== Custom-boolean receiver × Nullable family.
     // valueWhenNull / nullIfValue with a literal boolean arg on the REQUIRED
     // custom-boolean adapters (verified 'Y'/'N', published 't'/'f', invoiced 1/0),
     // and the modifier trio (asRequiredInOptionalObject / onlyWhenOrNull /

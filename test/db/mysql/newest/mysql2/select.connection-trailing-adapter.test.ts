@@ -597,13 +597,13 @@ describe(ctx.label, () => {
     // uuid bracket, boolean negate, Date +1h); the mock queues the RAW value and
     // the test asserts the TRANSFORMED value.
 
-    // ── B1: const(value, 'localDate' | 'enum', adapter) ─────────────────
+    // ── const(value, 'localDate' | 'enum', adapter) ─────────────────────
     // localDate through the trailing adapter — a Date marshaller shifted +1h on
     // read. A non-null localDate const echoed back is not round-trippable on
     // every driver (some return a non-ISO format the marshaller rejects — see
     // select.value-source.required-const.test.ts), so the shifted value is
     // asserted mock-only and the presence-as-Date structurally on the real DB.
-    // ── B1: const/optionalConst(value, 'customX', typeName, adapter2) ────
+    // ── const/optionalConst(value, 'customX', typeName, adapter2) ────────
     // The custom-kind overloads park the trailing TypeAdapter in the `adapter2`
     // slot (4th positional, after the typeName). One const + optionalConst per
     // remaining custom kind, each routing its base marshaller through the adapter.
@@ -668,7 +668,7 @@ describe(ctx.label, () => {
         expect(v).toBe('[' + UUID_LOWER + ']')
     })
 
-    // ── B3: fragmentWithType(kind, required, adapter) — remaining kinds ──
+    // ── fragmentWithType(kind, required, adapter) — remaining kinds ──────
     // A typed fragment carrying the adapter, interpolating a same-kind const so
     // the projected value is deterministic and table-free. required + optional
     // per kind; the optional flag only widens the leaf type (same SQL).
@@ -1011,7 +1011,7 @@ describe(ctx.label, () => {
         expect(v).toEqual(new Date(Date.UTC(2024, 0, 14, 13, 30, 0)))
     })
 
-    // ── B3: aggregateFragmentWithType(kind, required, adapter) — kinds ───
+    // ── aggregateFragmentWithType(kind, required, adapter) — kinds ───────
     // The aggregate dispatcher parks the adapter in the `adapter2` slot after the
     // positional shift (a different runtime branch than fragmentWithType). Each
     // aggregates a real seed column of a compatible base type. The number kinds

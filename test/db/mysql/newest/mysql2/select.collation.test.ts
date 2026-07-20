@@ -1,12 +1,10 @@
 // Collation levers on cased data (the matrix's fixture data is caseless `@`,
 // so these tests use explicit cased constants like 'ABCabc' to pin the new
-// behaviour): `.collate()` (Fork A), `replaceAll` (Fork C — inert on MySQL,
-// whose REPLACE ignores collation), and `replaceAllInsensitive` (Fork D —
-// regex-driven via REGEXP_REPLACE, whose operand collation governs the fold).
-// The emitted SQL matches the probed transcripts in
-// test/SEMANTIC_AUDIT_COLLATION_REPORT.md. The test-name set is shared across
-// every dialect cell; the ones a dialect cannot run are kept commented for
-// symmetry.
+// behaviour): `.collate()`, `replaceAll` (inert on MySQL, whose REPLACE
+// ignores collation), and `replaceAllInsensitive` (regex-driven via
+// REGEXP_REPLACE, whose operand collation governs the fold). The test-name
+// set is shared across every dialect cell; the ones a dialect cannot run are
+// kept commented for symmetry.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -23,7 +21,7 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // ── Fork A: .collate() ─────────────────────────────────────────────
+    // ── .collate() ─────────────────────────────────────────────────────
     // MySQL's default collation is case- and accent-insensitive; forcing the
     // binary `utf8mb4_bin` makes 'ABC' <> 'abc'.
     test('collate forces case-sensitive equality', async () => {
@@ -78,7 +76,7 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-    // ── Fork C: replaceAll ─────────────────────────────────────────────
+    // ── replaceAll ─────────────────────────────────────────────────────
     // MySQL's REPLACE ignores collation (byte-wise case-sensitive), so the plain
     // native `replace(...)` is emitted. 'ABCabc' → 'ABCX'.
     test('replaceAll on cased data', async () => {
@@ -173,7 +171,7 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-    // ── Fork D: replaceAllInsensitive ──────────────────────────────────
+    // ── replaceAllInsensitive ──────────────────────────────────────────
     // REGEXP_REPLACE folds under the default (case-insensitive) collation, so
     // both 'ABC' and 'abc' are replaced → 'XX'.
     test('replaceAllInsensitive on cased data', async () => {
@@ -274,7 +272,7 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-    // ── C2: chained replace nests without an extra parenthesis ─────────
+    // ── chained replace nests without an extra parenthesis ─────────────
     // This dialect's `replaceAll`/`replaceAllInsensitive` emit a bare replace with no
     // trailing collation reset, so a chained replace simply nests — the source needs
     // no wrapping (the parenthesisation guard is specific to the collation-reset

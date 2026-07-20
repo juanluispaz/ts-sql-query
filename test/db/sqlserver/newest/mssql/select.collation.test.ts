@@ -1,11 +1,9 @@
 // Collation levers on cased data (the matrix's fixture data is caseless `@`,
 // so these tests use explicit cased constants like 'ABCabc' to pin the new
-// behaviour): `.collate()` (Fork A), `replaceAll`'s code-point default
-// (Fork C — SQL Server's REPLACE honours the collation, so the default `_CI`
-// collation would corrupt the value without it), and `replaceAllInsensitive`
-// (Fork D — collation-driven). The emitted SQL matches the probed transcripts
-// in test/SEMANTIC_AUDIT_COLLATION_REPORT.md. The test-name set is shared
-// across every dialect cell.
+// behaviour): `.collate()`, `replaceAll`'s code-point default (SQL Server's
+// REPLACE honours the collation, so the default `_CI` collation would corrupt
+// the value without it), and `replaceAllInsensitive` (collation-driven). The
+// test-name set is shared across every dialect cell.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -26,7 +24,7 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // ── Fork A: .collate() ─────────────────────────────────────────────
+    // ── .collate() ─────────────────────────────────────────────────────
     // `Latin1_General_BIN2` is a binary/code-point collation: forcing it makes
     // 'ABC' <> 'abc' even though SQL Server's default collation is CI.
     test('collate forces case-sensitive equality', async () => {
@@ -81,7 +79,7 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-    // ── Fork C: replaceAll (default code-point) ────────────────────────
+    // ── replaceAll (default code-point) ────────────────────────────────
     // By default `replaceCollation` pins `Latin1_General_BIN2` on the match
     // operands and resets the result to DATABASE_DEFAULT, so `replaceAll` is
     // case-sensitive even on the CI database: 'ABCabc' → 'ABCX'.
@@ -193,7 +191,7 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-    // ── Fork D: replaceAllInsensitive ──────────────────────────────────
+    // ── replaceAllInsensitive ──────────────────────────────────────────
     // With no `insensitiveCollation`, SQL Server emits the bare `replace(...)`
     // and leans on the CI database default, folding both cases → 'XX'.
     test('replaceAllInsensitive on cased data', async () => {
@@ -295,7 +293,7 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-    // ── C2: chained replace parenthesises the inner result ─────────────
+    // ── chained replace parenthesises the inner result ─────────────────
     // When a collation is forced, `replaceAll`/`replaceAllInsensitive` append a
     // trailing `collate <reset>` to their result. That trailing `collate` binds
     // looser than an embedding operator (and than an outer replace's own forced

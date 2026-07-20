@@ -140,7 +140,7 @@ describe(ctx.label, () => {
     }
 
     test('values-as-intersect-arm', async () => {
-        // U1 — a `selectFrom(Values)` as the SEED arm of an INTERSECT. The
+        // A `selectFrom(Values)` as the SEED arm of an INTERSECT. The
         // values id list {1,2,99} intersected with the real project ids
         // {1,2,3,4} keeps the ids present in both → {1,2}. The values view's
         // `WITH idList(id) AS (values ...)` must hoist to the top of the
@@ -171,7 +171,7 @@ describe(ctx.label, () => {
     })
 
     test('values-as-except-arm', async () => {
-        // U2 — a `selectFrom(Values)` as the SEED arm of an EXCEPT (emitted as
+        // A `selectFrom(Values)` as the SEED arm of an EXCEPT (emitted as
         // `minus` on Oracle). The values id list {1,2,99} minus the real
         // project ids {1,2,3,4} drops the ids that are projects → {99}. The
         // values view's WITH clause hoists to the top of the compound.
@@ -201,7 +201,7 @@ describe(ctx.label, () => {
     })
 
     test('values-as-union-all-arm-preserves-duplicates', async () => {
-        // U3 — a `selectFrom(Values)` as the SEED arm of a UNION ALL. The values
+        // A `selectFrom(Values)` as the SEED arm of a UNION ALL. The values
         // id list {1,2} union-all project 1's id keeps the duplicate 1 → three
         // rows [1,1,2] once ordered. The values view's WITH clause hoists to the
         // top of the compound.
@@ -231,7 +231,7 @@ describe(ctx.label, () => {
     })
 
     test('values-as-non-seed-trailing-union-arm', async () => {
-        // U4 — a `Values` used as the NON-seed (trailing) arm of a UNION: the
+        // A `Values` used as the NON-seed (trailing) arm of a UNION: the
         // seed is a real table (`project`) and the values view is the 2nd arm.
         // Its `WITH idList(id) AS (values ...)` must still hoist to the top of
         // the compound even though it is not the first arm. Projects {1,2} union
@@ -264,7 +264,7 @@ describe(ctx.label, () => {
     })
 
     test('values-source-with-limit', async () => {
-        // U5 — `LIMIT` over a `selectFrom(Values)`. The id list {1,2,3} ordered
+        // `LIMIT` over a `selectFrom(Values)`. The id list {1,2,3} ordered
         // ascending and capped at 2 returns the first two rows.
         const expected = [{ id: 1 }, { id: 2 }]
         ctx.mockNext(expected)
@@ -291,7 +291,7 @@ describe(ctx.label, () => {
     })
 
     test('values-source-with-limit-and-offset', async () => {
-        // U6 — `LIMIT` + `OFFSET` over a `selectFrom(Values)`. The id list
+        // `LIMIT` + `OFFSET` over a `selectFrom(Values)`. The id list
         // {1,2,3} ordered ascending, offset 1 + limit 1 returns the middle row.
         const expected = [{ id: 2 }]
         ctx.mockNext(expected)
@@ -320,7 +320,7 @@ describe(ctx.label, () => {
     })
 
     test('values-source-count-aggregate', async () => {
-        // U7 — an aggregate (`count`) over a `selectFrom(Values)`. The id list
+        // An aggregate (`count`) over a `selectFrom(Values)`. The id list
         // {1,2,3} has three non-null ids, so `count(id)` is 3.
         const expected = [{ total: 3 }]
         ctx.mockNext(expected)
@@ -344,7 +344,7 @@ describe(ctx.label, () => {
     })
 
     test('values-source-group-by', async () => {
-        // U8 — `GROUP BY` over a `selectFrom(Values)`. Grouping the rows by
+        // `GROUP BY` over a `selectFrom(Values)`. Grouping the rows by
         // their `grp` tag and counting each group: group 'a' has two rows, group
         // 'b' has one.
         const expected = [{ grp: 'a', total: 2 }, { grp: 'b', total: 1 }]
@@ -374,7 +374,7 @@ describe(ctx.label, () => {
     })
 
     test('values-sourced-scalar-inline-equals-operand', async () => {
-        // U9 — a `Values` fed to `selectOneColumn(...).forUseAsInlineQueryValue()`
+        // A `Values` fed to `selectOneColumn(...).forUseAsInlineQueryValue()`
         // and used as the operand of a column `.equals(...)` in a WHERE. The
         // inline subquery picks the project id tagged 'primary' (1), so the outer
         // filter reduces to `project.id = (subquery)` → project 1. The values

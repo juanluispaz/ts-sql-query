@@ -809,8 +809,8 @@ describe(ctx.label, () => {
     */
 
     // NOT-APPLICABLE: MySQL has no RETURNING, so returningLastInsertedId() is not typed
-    //                 on the conflict do-nothing / degrade path (as the R43 sibling).
-    //                 MariaDB, which supports RETURNING, runs both live.
+    //                 on the conflict do-nothing / degrade path. MariaDB, which
+    //                 supports RETURNING, runs both live.
     /*
     test('empty-on-conflict-update-set-degrade-on-colliding-row-throws-mandatory-value-not-received', async () => {
         // Emptying the update-set degrades to the conflict no-op (`insert ignore …`); the
@@ -839,8 +839,8 @@ describe(ctx.label, () => {
     */
 
     // NOT-APPLICABLE: MySQL has no RETURNING, so returningLastInsertedId() is not typed
-    //                 on the conflict do-nothing / degrade path (as the R43 sibling).
-    //                 MariaDB, which supports RETURNING, runs both live.
+    //                 on the conflict do-nothing / degrade path. MariaDB, which
+    //                 supports RETURNING, runs both live.
     /*
     test('conflict-do-nothing-returning-last-inserted-id-on-colliding-row-resolves-null', async () => {
         // The control twin for the degrade throw above: a plain

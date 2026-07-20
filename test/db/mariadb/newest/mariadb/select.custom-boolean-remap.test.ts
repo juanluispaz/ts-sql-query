@@ -792,9 +792,8 @@ describe(ctx.label, () => {
         `)
         expect(rows).toEqual(expected)
     })
-    // ==== Round-44 BOOLIF surface — required-string isNull/isNotNull remap,
-    // custom-boolean *IfValue receivers (fire + elide), the remaining elide
-    // branches, paren nesting, and double-remap and/or. ====
+    // ==== Custom-boolean isNull/isNotNull remap, *IfValue receivers (fire + elide),
+    // the remaining elide branches, paren nesting, and double-remap and/or. ====
 
     // ── Group 1: isNull / isNotNull on the REQUIRED-string custom-boolean
     // adapters (verified 'Y'/'N', published 't'/'f'). The receiver remaps to the

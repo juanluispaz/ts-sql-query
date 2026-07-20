@@ -4,14 +4,14 @@
 // FROM-clause customization (a `/*+ hint */` comment prepended via
 // `_rawFragmentTableName` + `_rawFragmentTableAlias`); here it is driven as:
 //
-//   A6 — a LEFT JOIN target (`withSqlHint(t).forUseInLeftJoin()`): the
+//   - a LEFT JOIN target (`withSqlHint(t).forUseInLeftJoin()`): the
 //        customized table participates as the optional side of a left join,
 //        so its columns widen to optional and the hint comment renders on
 //        the joined (customized) side.
-//   A7 — a source INSIDE A COMPOUND ARM (one arm of a UNION): the
+//   - a source INSIDE A COMPOUND ARM (one arm of a UNION): the
 //        customized FROM renders inside the first union branch while the
 //        second branch is a plain table.
-//   A8 — an `update(...)` / `deleteFrom(...)` TARGET: the customized
+//   - an `update(...)` / `deleteFrom(...)` TARGET: the customized
 //        wrapper drives the mutation's primary table, so the hint comment
 //        renders in the UPDATE/DELETE statement's table position.
 //

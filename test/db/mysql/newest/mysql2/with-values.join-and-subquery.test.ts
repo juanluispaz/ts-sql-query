@@ -3,16 +3,16 @@
 // view.basic / select.view-column-types tests only ever drive a Values /
 // View through `selectFrom(...)` or `leftJoin(...)`; this file closes:
 //
-//   A2 — INNER `.innerJoin(view)`: a View as the REQUIRED side of an inner
+//   - INNER `.innerJoin(view)`: a View as the REQUIRED side of an inner
 //        join (columns stay required / non-widened, unlike the leftJoin
 //        arm which widens them to optional).
-//   A3 — INNER `.innerJoin(values)`: an inline `Values` as the REQUIRED
+//   - INNER `.innerJoin(values)`: an inline `Values` as the REQUIRED
 //        side of an inner join (same required, non-widened projection).
-//   A4 — a `Values` fed to `forUseAsInlineQueryValue()` nested inside an
+//   - a `Values` fed to `forUseAsInlineQueryValue()` nested inside an
 //        inner SELECT: the values view feeds an inline scalar subquery, so
 //        its `WITH name(cols) AS (values ...)` clause must bubble up
 //        (`__addWiths` / `__registerTableOrView`) to the OUTER query.
-//   A5 — the same WITH-hoisting for a `View` fed to
+//   - the same WITH-hoisting for a `View` fed to
 //        `forUseAsInlineQueryValue()` nested inside an inner SELECT.
 //
 // `Values` is typed on every dialect under test (the `Values.create(...)`

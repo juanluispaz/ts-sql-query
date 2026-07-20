@@ -104,6 +104,36 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     override _supportCollateInCompoundOrderBy(): boolean {
         return true
     }
+    override _needsCompoundNullsEmulationOrderByWrap(query: SelectData): boolean {
+        // Below SQLite 3.30 there is no native `nulls first` / `nulls last`, so the
+        // `asc nulls last` / `desc nulls first` modes (and their insensitive
+        // variants) are emulated with an `<col> is null` term (see
+        // `_buildSelectOrderBy`). That expression is illegal inside a compound
+        // ORDER BY — SQLite rejects it with "ORDER BY term does not match any
+        // column in the result set" — so the compound must be wrapped as
+        // `select * from (<compound>)` and the ordering applied on the plain
+        // wrapper. From 3.30 the native syntax is emitted inline and needs no
+        // wrapper; the other NULLs modes render as a plain `asc` / `desc`.
+        if (this._connectionConfiguration.compatibilityVersion >= 3_030_000) {
+            return false
+        }
+        if (query.__type !== 'compound') {
+            return false
+        }
+        const orderBy = query.__orderBy
+        if (!orderBy) {
+            return false
+        }
+        for (let i = 0, length = orderBy.length; i < length; i++) {
+            const entry = orderBy[i]!
+            const order = entry.order
+            if (order === 'asc nulls last' || order === 'desc nulls first'
+                || order === 'asc nulls last insensitive' || order === 'desc nulls first insensitive') {
+                return true
+            }
+        }
+        return false
+    }
     override _buildSelectOrderBy(query: SelectData, params: any[]): string {
         if (this._connectionConfiguration.compatibilityVersion >= 3_030_000) {
             return super._buildSelectOrderBy(query, params)

@@ -46,7 +46,12 @@ export class BunSqlSqliteQueryRunner extends AbstractBunSqlQueryRunner {
         }
 
         const sql = this.transaction || this.lowLevelTransaction || this.connection
-        return sql.unsafe(query, params).then((result) => result.lastInsertRowid)
+        // A suppressed `on conflict do nothing` inserts no row; `lastInsertRowid`
+        // then still holds the previous statement's id, so fall back to null (the
+        // same absence the RETURNING path reports) when nothing was inserted. The
+        // affected-row count is reliable here because this branch never carries a
+        // RETURNING clause (the count-0 Bun quirk only affects INSERT … RETURNING).
+        return sql.unsafe(query, params).then((result) => result.count === 0 ? null : result.lastInsertRowid)
     }
     override addParam(params: any[], value: any): string {
         params.push(value)

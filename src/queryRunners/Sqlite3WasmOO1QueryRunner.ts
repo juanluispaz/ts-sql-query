@@ -61,6 +61,12 @@ export class Sqlite3WasmOO1QueryRunner extends SqlTransactionQueryRunner {
 
         try {
             this.connection.exec({sql: query, bind: params})
+            // A suppressed `on conflict do nothing` inserts no row; `last_insert_rowid()`
+            // then still holds the previous statement's id, so fall back to null (the
+            // same absence the RETURNING path reports) when nothing was inserted.
+            if (this.connection.changes() === 0) {
+                return this.promise.resolve(null)
+            }
             const id = this.connection.selectValue('select last_insert_rowid()')
             return this.promise.resolve(id)
         } catch (e) {

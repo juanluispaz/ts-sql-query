@@ -1,0 +1,346 @@
+// Behavioral coverage of joins: innerJoin (already in select.basic but
+// repeated for depth), leftJoin, multiple-table join, and join-with-alias.
+
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
+import { assertType, type Exact } from '../../../../lib/assertType.js'
+import { tAppUser, tIssue, tOrganization, tProject } from '../../domain/connection.js'
+import { ctx } from './setup.js'
+
+describe(ctx.label, () => {
+    beforeAll(() => ctx.up(), ctx.timeoutMs)
+    afterAll(() => ctx.down(), ctx.timeoutMs)
+    beforeEach(() => { ctx.reset() })
+
+    test('inner-join-with-where', async () => {
+        const expected = [
+            { id: 1, projectName: 'Marketing site' },
+            { id: 2, projectName: 'Marketing site' },
+        ]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .innerJoin(tProject).on(tProject.id.equals(tIssue.projectId))
+            .where(tProject.organizationId.equals(1))
+              .and(tIssue.projectId.equals(1))
+            .select({
+                id:          tIssue.id,
+                projectName: tProject.name,
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, project.name as projectName from issue inner join project on project.id = issue.project_id where project.organization_id = ? and issue.project_id = ? order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{
+            id:          number
+            projectName: string
+        }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('left-join-may-be-null', async () => {
+        // Issue 3 (Migrate to ESM) has assignee_id = NULL. The library
+        // strips null-valued optional columns from the result object, so
+        // the row comes back as `{ id: 3 }` (no `assigneeName` key) rather
+        // than `{ id: 3, assigneeName: null }`.
+        const expected = [{ id: 3 }]
+        ctx.mockNext([{ id: 3, assigneeName: null }])
+        const assignee = tAppUser.forUseInLeftJoin()
+        const result = await ctx.conn.selectFrom(tIssue)
+            .leftJoin(assignee).on(assignee.id.equals(tIssue.assigneeId))
+            .where(tIssue.assigneeId.isNull())
+            .select({
+                id:           tIssue.id,
+                assigneeName: assignee.fullName,
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, app_user.full_name as assigneeName from issue left join app_user on app_user.id = issue.assignee_id where issue.assignee_id is null order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{
+            id:            number
+            assigneeName?: string
+        }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('three-table-join', async () => {
+        const expected = [
+            { issueId: 1, projectName: 'Marketing site', orgName: 'Acme Corp' },
+            { issueId: 2, projectName: 'Marketing site', orgName: 'Acme Corp' },
+            { issueId: 3, projectName: 'Internal tools', orgName: 'Acme Corp' },
+            { issueId: 4, projectName: 'Public API',     orgName: 'Globex Ltd' },
+        ]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .innerJoin(tProject).on(tProject.id.equals(tIssue.projectId))
+            .innerJoin(tOrganization).on(tOrganization.id.equals(tProject.organizationId))
+            .select({
+                issueId:     tIssue.id,
+                projectName: tProject.name,
+                orgName:     tOrganization.name,
+            })
+            .orderBy('issueId')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as issueId, project.name as projectName, organization.name as orgName from issue inner join project on project.id = issue.project_id inner join organization on organization.id = project.organization_id order by issueId"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{
+            issueId:     number
+            projectName: string
+            orgName:     string
+        }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('join-with-alias', async () => {
+        // Self-join on parent_id. No seeded issue has a parent_id, so the
+        // inner join matches nothing.
+        const expected: Array<{ id: number; child: string }> = []
+        ctx.mockNext(expected)
+        const parent = tIssue.as('parent')
+        const child  = tIssue.as('child')
+        const result = await ctx.conn.selectFrom(parent)
+            .innerJoin(child).on(child.parentId.equals(parent.id))
+            .select({
+                id:    parent.id,
+                child: child.title,
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select parent.id as id, child.title as child from issue as parent inner join issue as child on child.parent_id = parent.id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{
+            id:    number
+            child: string
+        }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('left-join-with-dynamic-on-builds-join-condition', async () => {
+        // `leftJoin(...).dynamicOn()` opens an empty JOIN predicate that the
+        // following `.and(...)` accumulates into the ON clause — the SELECT
+        // builder's `dynamicOn` (the DELETE/UPDATE builders' dynamicOn is
+        // covered in delete.join / update.join). Issue 1 is assigned to
+        // app_user 1 (Ada Lovelace), so the join matches.
+        const expected = { id: 1, assigneeName: 'Ada Lovelace' }
+        ctx.mockNext(expected)
+        const assignee = tAppUser.forUseInLeftJoin()
+        const row = await ctx.conn.selectFrom(tIssue)
+            .leftJoin(assignee).dynamicOn()
+                .and(assignee.id.equals(tIssue.assigneeId))
+            .where(tIssue.id.equals(1))
+            .select({
+                id:           tIssue.id,
+                assigneeName: assignee.fullName,
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, app_user.full_name as assigneeName from issue left join app_user on app_user.id = issue.assignee_id where issue.id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; assigneeName?: string }>>()
+        expect(row).toEqual(expected)
+    })
+    test('left-join-with-dynamic-on-or-accumulates-disjunction', async () => {
+        // The `.or(...)` arm of the SELECT join's dynamic-ON predicate (the
+        // sibling of the `.and(...)` arm above). `dynamicOn()` opens an empty
+        // JOIN predicate; the first `.and(...)` seeds it and the following
+        // `.or(...)` accumulates a disjunction into the ON clause. The second
+        // disjunct (`assignee.id = 0`) never matches any seeded app_user, so
+        // the join behaves like the plain assignee match: issue 1 is assigned
+        // to app_user 1 (Ada Lovelace).
+        const expected = { id: 1, assigneeName: 'Ada Lovelace' }
+        ctx.mockNext(expected)
+        const assignee = tAppUser.forUseInLeftJoin()
+        const row = await ctx.conn.selectFrom(tIssue)
+            .leftJoin(assignee).dynamicOn()
+                .and(assignee.id.equals(tIssue.assigneeId))
+                .or(assignee.id.equals(0))
+            .where(tIssue.id.equals(1))
+            .select({
+                id:           tIssue.id,
+                assigneeName: assignee.fullName,
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, app_user.full_name as assigneeName from issue left join app_user on app_user.id = issue.assignee_id or app_user.id = ? where issue.id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            0,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; assigneeName?: string }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('select-cross-join-comma-from', async () => {
+        // `.from(t2)` after `selectFrom(t1)` adds the second table to the
+        // FROM as a comma-join (cross join), correlated by the WHERE
+        // predicate. Project 1 (Marketing site) belongs to organization 1
+        // (Acme Corp).
+        const expected = { projectName: 'Marketing site', orgName: 'Acme Corp' }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tProject)
+            .from(tOrganization)
+            .where(tProject.organizationId.equals(tOrganization.id))
+              .and(tProject.id.equals(1))
+            .select({
+                projectName: tProject.name,
+                orgName:     tOrganization.name,
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.name as projectName, organization.name as orgName from project, organization where project.organization_id = organization.id and project.id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { projectName: string; orgName: string }>>()
+        expect(row).toEqual(expected)
+    })
+
+
+    test('select-cross-join-comma-from-three-tables', async () => {
+        // Two chained `.from(...)` calls after `selectFrom(t1)` — the second
+        // `.from(...)` overload — add a third table to the comma-join (cross
+        // join), all correlated by the WHERE predicate. project 1 (Marketing
+        // site) belongs to organization 1 (Acme Corp) and owns issue 1 (Update
+        // hero copy).
+        const expected = { projectName: 'Marketing site', orgName: 'Acme Corp', issueTitle: 'Update hero copy' }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tProject)
+            .from(tOrganization)
+            .from(tIssue)
+            .where(tProject.organizationId.equals(tOrganization.id))
+              .and(tIssue.projectId.equals(tProject.id))
+              .and(tProject.id.equals(1))
+              .and(tIssue.id.equals(1))
+            .select({
+                projectName: tProject.name,
+                orgName:     tOrganization.name,
+                issueTitle:  tIssue.title,
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.name as projectName, organization.name as orgName, issue.title as issueTitle from project, organization, issue where project.organization_id = organization.id and issue.project_id = project.id and project.id = ? and issue.id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { projectName: string; orgName: string; issueTitle: string }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('plain-join-emits-bare-join-keyword', async () => {
+        // The bare `.join(...)` fluent method (NOT `.innerJoin(...)`) emits a
+        // plain ` join ` keyword — SQL's inner-join synonym. Filtered to
+        // organization 1 (Acme Corp), whose projects are 1 (Marketing site)
+        // and 2 (Internal tools): issues 1 and 2 belong to project 1, issue 3
+        // to project 2. Issue 4 (project 3, organization 2) is excluded.
+        const expected = [
+            { id: 1, projectName: 'Marketing site' },
+            { id: 2, projectName: 'Marketing site' },
+            { id: 3, projectName: 'Internal tools' },
+        ]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .join(tProject).on(tProject.id.equals(tIssue.projectId))
+            .where(tProject.organizationId.equals(1))
+            .select({
+                id:          tIssue.id,
+                projectName: tProject.name,
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, project.name as projectName from issue join project on project.id = issue.project_id where project.organization_id = ? order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{
+            id:          number
+            projectName: string
+        }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('inner-join-with-dynamic-on-builds-join-condition', async () => {
+        // `innerJoin(...).dynamicOn()` opens an empty INNER JOIN predicate that
+        // the following `.and(...)` accumulates into the ON clause. Issue 1
+        // belongs to project 1 (Marketing site).
+        const expected = { id: 1, projectName: 'Marketing site' }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tIssue)
+            .innerJoin(tProject).dynamicOn()
+                .and(tProject.id.equals(tIssue.projectId))
+            .where(tIssue.id.equals(1))
+            .select({
+                id:          tIssue.id,
+                projectName: tProject.name,
+            })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, project.name as projectName from issue inner join project on project.id = issue.project_id where issue.id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; projectName: string }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('inner-join-with-dynamic-on-or-seeds-join-condition', async () => {
+        // The `.or(...)` SEEDING arm of the SELECT inner-join's dynamic-ON predicate:
+        // `innerJoin(...).dynamicOn()` opens an empty predicate and the FIRST `.or(...)`
+        // seeds it. On an empty predicate a seeding `.or(...)` renders the bare
+        // condition (the `.and(...)` seeding arm and the `.and().or()` accumulation on a
+        // leftJoin are covered above). Issue 1 belongs to project 1 (Marketing site).
+        const expected = { id: 1, projectName: 'Marketing site' }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tIssue)
+            .innerJoin(tProject).dynamicOn()
+                .or(tProject.id.equals(tIssue.projectId))
+            .where(tIssue.id.equals(1))
+            .select({ id: tIssue.id, projectName: tProject.name })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, project.name as projectName from issue inner join project on project.id = issue.project_id where issue.id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; projectName: string }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('optional-join-emitted-when-column-referenced', async () => {
+        // The INCLUDED branch of `optionalJoin(other).on(...)` — the docs test covers
+        // the elided branch (no column of `other` referenced); here a column of the
+        // optionally-joined table IS selected, so the join is emitted. Issue 1 belongs
+        // to project 1 (Marketing site).
+        const expected = { id: 1, projectName: 'Marketing site' }
+        ctx.mockNext(expected)
+        const row = await ctx.conn.selectFrom(tIssue)
+            .optionalJoin(tProject).on(tProject.id.equals(tIssue.projectId))
+            .where(tIssue.id.equals(1))
+            .select({ id: tIssue.id, projectName: tProject.name })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id, project.name as projectName from issue join project on project.id = issue.project_id where issue.id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; projectName: string }>>()
+        expect(row).toEqual(expected)
+    })
+})

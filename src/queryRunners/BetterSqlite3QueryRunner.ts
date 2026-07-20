@@ -59,7 +59,11 @@ export class BetterSqlite3QueryRunner extends SqlTransactionQueryRunner {
         }
 
         try {
-            return this.promise.resolve(this.connection.prepare(query).run(params).lastInsertRowid)
+            const result = this.connection.prepare(query).run(params)
+            // A suppressed `on conflict do nothing` inserts no row; `lastInsertRowid`
+            // then still holds the previous statement's id, so fall back to null (the
+            // same absence the RETURNING path reports) when nothing was inserted.
+            return this.promise.resolve(result.changes === 0 ? null : result.lastInsertRowid)
         } catch (e) {
             return this.promise.reject(e)
         }

@@ -73,7 +73,11 @@ export class Sqlite3QueryRunner extends SqlTransactionQueryRunner {
                 if (error) {
                     reject(error)
                 } else {
-                    resolve(this.lastID)
+                    // A suppressed `on conflict do nothing` inserts no row; `lastID`
+                    // then still holds the previous statement's id, so fall back to
+                    // null (the same absence the RETURNING path reports) when nothing
+                    // was inserted.
+                    resolve(this.changes === 0 ? null : this.lastID)
                 }
             })
         })

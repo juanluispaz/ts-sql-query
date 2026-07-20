@@ -1,0 +1,272 @@
+// Coverage of the numeric cast surface on value sources. Each cast
+// lands on a distinct `_asXxx` operator; the dialect renders the
+// concrete SQL — the snapshots are the source of truth for that
+// per-dialect rendering.
+//
+//   - `.asDouble()`             → cast to a floating-point type
+//   - `.asInt()` on a double    → `round(...)` cast to an integer type
+//   - `.asBigint()` on a double → `round(...)` cast to an integer type
+//   - `.asInt()` / `.asBigint()` on an int — typed-only noop in SQL
+//
+// `.asString()` is only typed on UUID/CustomUuid value sources, so it
+// is not exercised here; the seed schema has no UUID column. The wider
+// `_asString` path is covered indirectly through aggregation tests
+// (`select.aggregation*` for UUID dialects when added).
+
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
+import { assertType, type Exact } from '../../../../lib/assertType.js'
+import { tIssue } from '../../domain/connection.js'
+import { ctx } from './setup.js'
+
+describe(ctx.label, () => {
+    beforeAll(() => ctx.up(), ctx.timeoutMs)
+    afterAll(() => ctx.down(), ctx.timeoutMs)
+    beforeEach(() => { ctx.reset() })
+
+    test('asDouble-on-int-emits-cast', async () => {
+        // `.asDouble()` always emits an explicit cast to the dialect's
+        // floating-point type (pinned by the snapshot below).
+        const expected = [{ id: 1, d: 2.0 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                d:  tIssue.priority.asDouble(),
+            })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(priority as real) as "d" from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; d: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('asInt-on-int-is-noop-in-sql', async () => {
+        // `.asInt()` on an already-int column emits no `cast(...)` —
+        // the library returns a NoopValueSource. The snapshot proves
+        // the SQL is identical to selecting the plain column.
+        const expected = [{ id: 1, p: 2 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                p:  tIssue.priority.asInt(),
+            })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority as "p" from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; p: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('asBigint-on-int-is-noop-in-sql', async () => {
+        // Same noop-in-SQL behaviour as `.asInt()` — the cast only
+        // shifts the TS-level value type to `bigint`. The mock returns
+        // a plain number; we only assert SQL shape and the TS surface.
+        ctx.mockNext([{ id: 1, p: 2 }])
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                p:  tIssue.priority.asBigint(),
+            })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority as "p" from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; p: bigint }>>>()
+    })
+
+    test('asInt-on-double-uses-round', async () => {
+        // When the source is a double, `.asInt()` is "unsafe" and the
+        // library emits `round(...)` to make the conversion explicit.
+        // Build a double via `.divide(...)` (which always upcasts) and
+        // then cast back: priority(id=1)=2 / 3 = 0.666... → round → 1.
+        const expected = [{ id: 1, rounded: 1 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id:      tIssue.id,
+                rounded: tIssue.priority.divide(3).asInt(),
+            })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(round(cast(priority as real) / ?) as integer) as rounded from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; rounded: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('asBigint-on-double-uses-round', async () => {
+        // Mirror of the above — same `_round` operator emitted when
+        // the source is a double, just with a `bigint` TS-level type.
+        ctx.mockNext([{ id: 1, rounded: 1 }])
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id:      tIssue.id,
+                rounded: tIssue.priority.divide(3).asBigint(),
+            })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(round(cast(priority as real) / ?) as integer) as rounded from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; rounded: bigint }>>>()
+    })
+
+    test('asDouble-chain-roundtrips-int', async () => {
+        // `.asDouble().asInt()` on an int column: the first cast goes
+        // through a real `_asDouble` operator (renders as
+        // `cast(... as real)` on sqlite), the second emits `round(...)`
+        // because the source is now typed `double`.
+        const expected = [{ id: 1, p: 2 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                p:  tIssue.priority.asDouble().asInt(),
+            })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(round(cast(priority as real)) as integer) as "p" from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; p: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('asDouble-on-nullable-column-keeps-optional', async () => {
+        // `assigneeId` is `optionalColumn`, so the cast inherits the
+        // optional flag. The TS result type still allows the property
+        // to be absent under optional-as-undefined projection.
+        ctx.mockNext([{ id: 1, a: 7.0 }, { id: 3 }])
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.in([1, 3]))
+            .select({
+                id: tIssue.id,
+                a:  tIssue.assigneeId.asDouble(),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(assignee_id as real) as "a" from issue where id in (?, ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            3,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; a?: number }>>>()
+    })
+    test('asBigint-on-double-chained-into-bigint-op', async () => {
+        // A DOUBLE value's `.asBigint()` feeding downstream BIGINT ops. The
+        // receiver is `priority.asDouble()` (int→double, priority(id=1)=2 → 2.0);
+        // `.asBigint()` on a double rounds back to an integer
+        // (`round((priority::float)::numeric)`), and the `.add(2n)` /
+        // `.modulo(2n)` ops wrap that rounded expression. priority(1)=2 → asBigint
+        // 2 → add(2n)=4n, modulo(2n)=0n. Required receiver → required `bigint`
+        // leaves.
+        const expected = [{ id: 1, a: 4n, m: 0n }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                a:  tIssue.priority.asDouble().asBigint().add(2n),
+                m:  tIssue.priority.asDouble().asBigint().modulo(2n),
+            })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(round(cast(priority as real)) as integer) + ? as "a", cast(round(cast(priority as real)) as integer) % ? as "m" from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2n,
+            2n,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; a: bigint; m: bigint }>>>()
+        if (ctx.realDbEnabled) {
+            expect(BigInt(result[0]!.a)).toBe(4n)
+            expect(BigInt(result[0]!.m)).toBe(0n)
+        } else {
+            expect(result).toEqual(expected)
+        }
+    })
+
+
+    test('asBigint-on-double-keeps-bigint-arithmetic-exact', async () => {
+        // The emitted `cast(... as integer)` makes the engine compute
+        // `2 + 9007199254740993` in 64-bit INTEGER space, not floating point, so
+        // the sum is exactly 9007199254740995 — the first result past 2^53.
+        // Whether the caller receives it intact then depends on the driver's
+        // reader: by default this driver hands integers back as a JS `number`
+        // (rounding the sum, or — node:sqlite — throwing on it; see
+        // LIMITATIONS.md), so it takes the driver's exact-integer mode
+        // (`ctx.withSafeIntegers()`) to read the sum back as a `bigint`. The
+        // library's `bigint` arm passes that through untouched, while the `int`
+        // column `id` narrows safely back to a plain `1`.
+        const expected = [{ id: 1, big: 9007199254740995n }]
+        ctx.mockNext(expected)
+        const run = (conn: typeof ctx.conn) => conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id:  tIssue.id,
+                big: tIssue.priority.asDouble().asBigint().add(9007199254740993n),
+            })
+            .executeSelectMany()
+
+        if (ctx.realDbEnabled && ctx.withSafeIntegers) {
+            // Real engine: the shared connection's default reader can't surface
+            // this value as a Number, so read it through a second connection in
+            // the driver's exact-integer mode.
+            const exact = await run(await ctx.withSafeIntegers())
+            assertType<Exact<typeof exact, Array<{ id: number; big: bigint }>>>()
+            expect(exact).toEqual(expected)
+        } else {
+            // Mock mode: the emission is reader-independent — assert SQL + params
+            // + type here (every cell hits this branch under the mock).
+            const result = await run(ctx.conn)
+            assertType<Exact<typeof result, Array<{ id: number; big: bigint }>>>()
+            expect(result).toEqual(expected)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast(round(cast(priority as real)) as integer) + ? as big from issue where id = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                9007199254740993n,
+                1,
+              ]
+            `)
+        }
+    })
+
+})

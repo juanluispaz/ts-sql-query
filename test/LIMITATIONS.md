@@ -863,6 +863,38 @@ platform-dependent case was left `NOT-APPLICABLE`; the difference here is that t
 UDF is the **library's own** and three sibling SQLite runners register it, so it
 reads as a per-runner limitation. Worth a second look if the taxonomy line moves.)*
 
+## MySQL 8.0 drops the constant operand in `col IN (<const>, <subquery>)` for a TIME column
+
+Verified against a real `mysql:8.0` (8.0.46) container: a `TIME` column compared
+with `col IN (<time-const>, (<subquery returning TIME>))` **excludes** the row that
+matches the constant when the list also contains a subquery — the constant operand
+is effectively dropped:
+
+```
+started_at = '09:15:00'                                     -> matches worklog 1
+started_at IN ('09:15:00','10:30:00')                       -> 1,3
+started_at IN ('09:15:00', (SELECT ... WHERE id=3))         -> 3        (1 lost!)
+started_at IN (CAST('09:15:00' AS TIME), (SELECT ...))      -> 3        (not a coercion issue)
+started_at = '09:15:00' OR started_at = (SELECT ...)        -> 1,3      (OR form is fine)
+```
+
+Only the `TIME` type is affected (the `int` / `string` / `localDate` /
+`localDateTime` / `custom*` variants of the same `inN(const, subquery)` test all
+pass); it is a server-side type-aggregation quirk in MySQL 8.0's evaluation of
+`IN(...)` when the list mixes a constant with a subquery. **MySQL 9 evaluates it
+correctly** (the `newest` cell, on `mysql:9`, returns both rows). The library emits
+correct, standard SQL identical to `newest` — this is purely the older server.
+
+**What this means for tests** — per this file's engine-support policy, "the lib
+emits SQL the older server evaluates differently" is a deployment limitation, not a
+library bug. The `localTime-in-n-mixed-const-and-value-source` and
+`customLocalTime-in-n-mixed-const-and-value-source` tests in
+`select.value-source.equality-comparison-by-type.test.ts` are commented with
+`TODO[LIMITATION]` (full canonical body preserved) on the sub-`newest` MySQL cells
+(`8_000_017`, `8_000_000`, `oldest`), whose `--docker-version closest` image is
+MySQL 8.0 / 5.7. They run live on `newest` (MySQL 9). The SQL these tests assert is
+version-independent and fully covered by the `newest` cell.
+
 ## `replaceAllInsensitive` does not honour `insensitiveCollation` on PostgreSQL / SQLite
 
 Both `replaceAllInsensitive` and the `insensitiveCollation` connection config are

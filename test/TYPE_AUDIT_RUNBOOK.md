@@ -468,6 +468,27 @@ in a value-present position). Enforce degeneracy-by-non-validatability hard on i
 compile-time relationship with no runtime/value surface is a negative-type test (OUT), not
 a finding.
 
+**Pruning the fan-out as surfaces saturate — a per-surface enumerator may be dropped once it
+returns 0 unique §A, gated on its owning `src` being unchanged.** As rounds mature, most
+per-surface *leaf* enumerators (the Connection API, boolean/if-value, the equality/comparison
+base grid, column factories + Values/View, the dynamic base, custom-numeric brand keep/erase,
+the SELECT builder fluent surface) reach true saturation and keep returning 0. The user may
+scope a round to **skip** these — do not re-run a saturated enumerator every round out of habit.
+**But the drop is valid only against the `src` the surface was audited against.** Gate each
+excluded surface on its owning `src` path in the `§0.5` pre-flight `git log`: a commit touching
+that path (e.g. `src/connections/*` for the Connection API, `src/Table.ts`/`View.ts`/`Values.ts`
+for column factories, `src/dynamic/*` for dynamic, the leaf interfaces in `values.ts` for a
+value-source family) **re-arms** the surface as that round's highest-value target (the
+just-changed-type-surface rule, §0.5 step 5). Record the exclude list + each surface's `src`
+trigger in the round's report so the next round's pre-flight can honour it mechanically.
+**Never drop the permanent agents**: the parity sweep, the two seam critics (mutation +
+select/CTE), F9-TYPEVAR, and the recently-changed-src agent stay in *every* round even when
+they return 0 defects — in the mature phase the marginal bug lives at the seams and the freshly
+-changed src, so those are the top targets by design (they still corroborate the round's clusters
+even with nothing of their own to file). Total coverage is reached when the KEEP list is
+implemented and a round re-verifies it saturated with no new src — at which point the fan-out
+collapses to just the permanent agents + whatever src changed.
+
 **The table is the address, not the brief.** A one-line surface name *routes* an
 agent; it does not make it thorough. Before launching, **the coordinator opens
 each surface's named src** and seeds the agent with a specific instruction —

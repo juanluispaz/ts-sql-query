@@ -8,7 +8,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tOrganization, tProject, tProjectRelease, tProjectReview } from '../../domain/connection.js'
+import { tIssue, tOrganization, tProject, tProjectRelease, tProjectReview } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -350,6 +350,48 @@ describe(ctx.label, () => {
             `)
             assertType<Exact<typeof names, string[]>>()
             expect(names.slice().sort()).toEqual(['Conflict one-column A', 'Conflict one-column B'])
+        })
+    })
+
+    test('insert-returning-one-column-many-coerces-undefined-to-null', async () => {
+        // `returningOneColumn(<optional col>)` consumed by `executeInsertMany()`
+        // maps each returned scalar, coercing a driver-returned `undefined` element
+        // to `null` (the per-element coercion line a single-row path never hits) —
+        // the INSERT twin of the update/delete `...coerces-undefined-to-null` tests.
+        // The mock primes `[undefined, 'Use new tokens']` to force that path; on a
+        // real engine the two inserted bodies come back (issue A left NULL, issue B
+        // set). The element type stays `string | null`.
+        const expectedMock = [undefined, 'Use new tokens']
+        ctx.mockNext(expectedMock)
+        await ctx.withRollback(async () => {
+            const bodies = await ctx.conn.insertInto(tIssue)
+                .values([
+                    { projectId: 1, number: 9001, title: 'Coerce A', status: 'open', priority: 1 },
+                    { projectId: 1, number: 9002, title: 'Coerce B', status: 'open', priority: 1, body: 'Use new tokens' },
+                ])
+                .returningOneColumn(tIssue.body)
+                .executeInsertMany()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority, \`body\`) values (?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?) returning \`body\` as result"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                9001,
+                "Coerce A",
+                "open",
+                1,
+                null,
+                1,
+                9002,
+                "Coerce B",
+                "open",
+                1,
+                "Use new tokens",
+              ]
+            `)
+            assertType<Exact<typeof bodies, Array<string | null>>>()
+            const sorted = [...bodies].sort((a, b) => (a === null ? -1 : b === null ? 1 : a.localeCompare(b)))
+            expect(sorted).toEqual([null, 'Use new tokens'])
         })
     })
 

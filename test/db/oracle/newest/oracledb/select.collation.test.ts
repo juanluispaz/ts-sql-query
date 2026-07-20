@@ -666,4 +666,48 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ eq?: boolean; ne?: boolean; lk?: boolean; nl?: boolean }>>>()
         expect(result).toEqual(expected)
     })
+
+    test('insensitive affix predicates with a uuid value operand convert before collate', async () => {
+        // The affix-insensitive predicates (startsWith / endsWith / contains and
+        // their negations) with a uuid VALUE operand under a set
+        // insensitiveCollation. The forced collation lands on the like-pattern
+        // built from the uuid (rendered per this dialect's `asString()`), which is
+        // a string, so the SQL stays valid and round-trips. The receiver 'x'
+        // matches none of the patterns, so every positive predicate is false and
+        // every negated one true, independent of the collation.
+        const collated = ctx.withInsensitiveCollation(ctx.exampleInsensitiveCollation)
+        const expected = [{ starts: false, notStarts: true, ends: false, notEnds: true, contains: false, notContains: true }]
+        ctx.mockNext(expected)
+        const result = await collated.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                starts:      collated.const('x', 'string').startsWithInsensitive(tIssue.externalRef.asString()),
+                notStarts:   collated.const('x', 'string').notStartsWithInsensitive(tIssue.externalRef.asString()),
+                ends:        collated.const('x', 'string').endsWithInsensitive(tIssue.externalRef.asString()),
+                notEnds:     collated.const('x', 'string').notEndsWithInsensitive(tIssue.externalRef.asString()),
+                contains:    collated.const('x', 'string').containsInsensitive(tIssue.externalRef.asString()),
+                notContains: collated.const('x', 'string').notContainsInsensitive(tIssue.externalRef.asString()),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select case when :0 like (case when replace(replace(replace(raw_to_uuid(external_ref), '\\', '\\\\'), '%', '\\%'), '_', '\\_') is null then null else replace(replace(replace(raw_to_uuid(external_ref), '\\', '\\\\'), '%', '\\%'), '_', '\\_') || '%' end) collate BINARY_CI escape '\\' then 1 when not :1 like (case when replace(replace(replace(raw_to_uuid(external_ref), '\\', '\\\\'), '%', '\\%'), '_', '\\_') is null then null else replace(replace(replace(raw_to_uuid(external_ref), '\\', '\\\\'), '%', '\\%'), '_', '\\_') || '%' end) collate BINARY_CI escape '\\' then 0 else null end as "starts", case when :2 not like (case when replace(replace(replace(raw_to_uuid(external_ref), '\\', '\\\\'), '%', '\\%'), '_', '\\_') is null then null else replace(replace(replace(raw_to_uuid(external_ref), '\\', '\\\\'), '%', '\\%'), '_', '\\_') || '%' end) collate BINARY_CI escape '\\' then 1 when not :3 not like (case when replace(replace(replace(raw_to_uuid(external_ref), '\\', '\\\\'), '%', '\\%'), '_', '\\_') is null then null else replace(replace(replace(raw_to_uuid(external_ref), '\\', '\\\\'), '%', '\\%'), '_', '\\_') || '%' end) collate BINARY_CI escape '\\' then 0 else null end as "notStarts", case when :4 like (case when replace(replace(replace(raw_to_uuid(external_ref), '\\', '\\\\'), '%', '\\%'), '_', '\\_') is null then null else '%' || replace(replace(replace(raw_to_uuid(external_ref), '\\', '\\\\'), '%', '\\%'), '_', '\\_') end) collate BINARY_CI escape '\\' then 1 when not :5 like (case when replace(replace(replace(raw_to_uuid(external_ref), '\\', '\\\\'), '%', '\\%'), '_', '\\_') is null then null else '%' || replace(replace(replace(raw_to_uuid(external_ref), '\\', '\\\\'), '%', '\\%'), '_', '\\_') end) collate BINARY_CI escape '\\' then 0 else null end as "ends", case when :6 not like (case when replace(replace(replace(raw_to_uuid(external_ref), '\\', '\\\\'), '%', '\\%'), '_', '\\_') is null then null else '%' || replace(replace(replace(raw_to_uuid(external_ref), '\\', '\\\\'), '%', '\\%'), '_', '\\_') end) collate BINARY_CI escape '\\' then 1 when not :7 not like (case when replace(replace(replace(raw_to_uuid(external_ref), '\\', '\\\\'), '%', '\\%'), '_', '\\_') is null then null else '%' || replace(replace(replace(raw_to_uuid(external_ref), '\\', '\\\\'), '%', '\\%'), '_', '\\_') end) collate BINARY_CI escape '\\' then 0 else null end as "notEnds", case when :8 like (case when replace(replace(replace(raw_to_uuid(external_ref), '\\', '\\\\'), '%', '\\%'), '_', '\\_') is null then null else '%' || replace(replace(replace(raw_to_uuid(external_ref), '\\', '\\\\'), '%', '\\%'), '_', '\\_') || '%' end) collate BINARY_CI escape '\\' then 1 when not :9 like (case when replace(replace(replace(raw_to_uuid(external_ref), '\\', '\\\\'), '%', '\\%'), '_', '\\_') is null then null else '%' || replace(replace(replace(raw_to_uuid(external_ref), '\\', '\\\\'), '%', '\\%'), '_', '\\_') || '%' end) collate BINARY_CI escape '\\' then 0 else null end as "contains", case when :10 not like (case when replace(replace(replace(raw_to_uuid(external_ref), '\\', '\\\\'), '%', '\\%'), '_', '\\_') is null then null else '%' || replace(replace(replace(raw_to_uuid(external_ref), '\\', '\\\\'), '%', '\\%'), '_', '\\_') || '%' end) collate BINARY_CI escape '\\' then 1 when not :11 not like (case when replace(replace(replace(raw_to_uuid(external_ref), '\\', '\\\\'), '%', '\\%'), '_', '\\_') is null then null else '%' || replace(replace(replace(raw_to_uuid(external_ref), '\\', '\\\\'), '%', '\\%'), '_', '\\_') || '%' end) collate BINARY_CI escape '\\' then 0 else null end as "notContains" from issue where id = :12"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ starts?: boolean; notStarts?: boolean; ends?: boolean; notEnds?: boolean; contains?: boolean; notContains?: boolean }>>>()
+        expect(result).toEqual(expected)
+    })
 })

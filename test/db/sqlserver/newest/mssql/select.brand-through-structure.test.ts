@@ -212,4 +212,62 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { pid: number; version?: string; versionUpper?: string }>>()
         expect(row).toEqual(expected)
     })
+
+    test('recursive-union-all-preserves-custom-brand', async () => {
+        // `recursiveUnionAll(...)` carries the anchor's branded value type onto the
+        // recursive result: `channel` (custom) stays the `ReleaseChannel` union
+        // instead of widening to `string`. The recursive arm can never match — its
+        // join is `project_release.id = parent.id + 1000` and no release has such an
+        // id — so the traversal returns only the anchor: release 1 (project 1's
+        // 'stable' 1.2.0).
+        const connection = ctx.conn
+        const expected = [{ id: 1, channel: 'stable' as ReleaseChannel }]
+        ctx.mockNext(expected)
+        const rows = await connection.selectFrom(tProjectRelease)
+            .where(tProjectRelease.id.equals(1))
+            .select({ id: tProjectRelease.id, channel: tProjectRelease.channel })
+            .recursiveUnionAll((parent) =>
+                connection.selectFrom(tProjectRelease)
+                    .join(parent).on(tProjectRelease.id.equals(parent.id.add(1000)))
+                    .select({ id: tProjectRelease.id, channel: tProjectRelease.channel }))
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive_select_1 as (select id as id, channel as channel from project_release where id = @0 union all select project_release.id as id, project_release.channel as channel from project_release join recursive_select_1 on project_release.id = (recursive_select_1.id + @1)) select id as id, channel as channel from recursive_select_1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            1000,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; channel: ReleaseChannel }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('recursive-union-all-preserves-enum-brand', async () => {
+        // The enum-brand sibling: `activity` (enum) stays the `WorklogActivity`
+        // union through `recursiveUnionAll(...)`. Same never-matching recursive arm
+        // (`issue_worklog.id = parent.id + 1000`), so the result is just the anchor:
+        // worklog 1 (the 'coding' entry).
+        const connection = ctx.conn
+        const expected = [{ id: 1, activity: 'coding' as WorklogActivity }]
+        ctx.mockNext(expected)
+        const rows = await connection.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .select({ id: tIssueWorklog.id, activity: tIssueWorklog.activity })
+            .recursiveUnionAll((parent) =>
+                connection.selectFrom(tIssueWorklog)
+                    .join(parent).on(tIssueWorklog.id.equals(parent.id.add(1000)))
+                    .select({ id: tIssueWorklog.id, activity: tIssueWorklog.activity }))
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive_select_1 as (select id as id, activity as activity from issue_worklog where id = @0 union all select issue_worklog.id as id, issue_worklog.activity as activity from issue_worklog join recursive_select_1 on issue_worklog.id = (recursive_select_1.id + @1)) select id as id, activity as activity from recursive_select_1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            1000,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; activity: WorklogActivity }>>>()
+        expect(rows).toEqual(expected)
+    })
 })

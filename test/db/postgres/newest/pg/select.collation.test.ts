@@ -686,4 +686,41 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ eq?: boolean; ne?: boolean; lk?: boolean; nl?: boolean }>>>()
         expect(result).toEqual(expected)
     })
+    test('insensitive affix predicates with a uuid value operand convert before collate', async () => {
+        // The affix-insensitive predicates (startsWith / endsWith / contains and
+        // their negations) with a uuid VALUE operand under a set
+        // insensitiveCollation. The forced collation lands on the like-pattern
+        // built from the uuid (rendered per this dialect's `asString()`), which is
+        // a string, so the SQL stays valid and round-trips. The receiver 'x'
+        // matches none of the patterns, so every positive predicate is false and
+        // every negated one true, independent of the collation.
+        const collated = ctx.withInsensitiveCollation(ctx.exampleInsensitiveCollation)
+        const expected = [{ starts: false, notStarts: true, ends: false, notEnds: true, contains: false, notContains: true }]
+        ctx.mockNext(expected)
+        const result = await collated.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                starts:      collated.const('x', 'string').startsWithInsensitive(tIssue.externalRef.asString()),
+                notStarts:   collated.const('x', 'string').notStartsWithInsensitive(tIssue.externalRef.asString()),
+                ends:        collated.const('x', 'string').endsWithInsensitive(tIssue.externalRef.asString()),
+                notEnds:     collated.const('x', 'string').notEndsWithInsensitive(tIssue.externalRef.asString()),
+                contains:    collated.const('x', 'string').containsInsensitive(tIssue.externalRef.asString()),
+                notContains: collated.const('x', 'string').notContainsInsensitive(tIssue.externalRef.asString()),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 ilike (replace(replace(replace(external_ref::text, '\\', '\\\\'), '%', '\\%'), '_', '\\_') || '%') collate "C" as starts, $2 not ilike (replace(replace(replace(external_ref::text, '\\', '\\\\'), '%', '\\%'), '_', '\\_') || '%') collate "C" as "notStarts", $3 ilike ('%' || replace(replace(replace(external_ref::text, '\\', '\\\\'), '%', '\\%'), '_', '\\_')) collate "C" as ends, $4 not ilike ('%' || replace(replace(replace(external_ref::text, '\\', '\\\\'), '%', '\\%'), '_', '\\_')) collate "C" as "notEnds", $5 ilike ('%' || replace(replace(replace(external_ref::text, '\\', '\\\\'), '%', '\\%'), '_', '\\_') || '%') collate "C" as contains, $6 not ilike ('%' || replace(replace(replace(external_ref::text, '\\', '\\\\'), '%', '\\%'), '_', '\\_') || '%') collate "C" as "notContains" from issue where id = $7"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            "x",
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ starts?: boolean; notStarts?: boolean; ends?: boolean; notEnds?: boolean; contains?: boolean; notContains?: boolean }>>>()
+        expect(result).toEqual(expected)
+    })
 })

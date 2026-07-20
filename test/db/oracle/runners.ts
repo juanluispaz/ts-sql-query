@@ -111,7 +111,22 @@ const SEED_PATH = resolve(__dirname, './domain/seed.sql')
 const RESET_PATH = resolve(__dirname, './domain/reset.sql')
 
 const ORACLE_PASSWORD = 'OracleTestPass1!'
-const SERVICE_NAME = 'FREEPDB1'
+
+// The Oracle service name depends on the image: gvenzl/oracle-free (23ai,
+// newest) registers `FREEPDB1`, but gvenzl/oracle-xe (pre-23ai, used by the
+// `oldest` folder under `--docker-version closest`) registers `XEPDB1` — an
+// oracle-xe container rejects a `FREEPDB1` connectString with NJS-518. Deriving
+// the name from the resolved image keeps every connectString correct without a
+// per-call constant. A normal run resolves one oracle image per process
+// (all-newest under `--docker-version latest`, or the single version under
+// `closest`, guardrailed to ≤1 version/engine), so the value is stable
+// process-wide.
+function isOracleXeImage(image: string): boolean {
+    return image.startsWith('gvenzl/oracle-xe')
+}
+function serviceNameForImage(image: string): string {
+    return isOracleXeImage(image) ? 'XEPDB1' : 'FREEPDB1'
+}
 // Oracle has no separate "database" concept per test — each user owns a
 // schema. The per-worker test "database" is therefore a per-worker user,
 // and the meta "database" is its own user (META_DB_NAME / META_PASSWORD)
@@ -153,11 +168,11 @@ const containers = createContainerRegistry<StartedContainer>(async (image) => {
     // the meta user and, when stale, drops every per-worker user (and the
     // meta user) so they get rebuilt cleanly. `DBMS_LOCK.request`
     // serialises this across workers running in parallel processes.
-    await validateOrResetForReuse(started.getHost(), started.getMappedPort(1521))
+    await validateOrResetForReuse(started.getHost(), started.getMappedPort(1521), serviceNameForImage(image))
     return started
 })
 
-async function validateOrResetForReuse(host: string, port: number): Promise<void> {
+async function validateOrResetForReuse(host: string, port: number, serviceName: string): Promise<void> {
     const [schemaSql, seedSql] = await Promise.all([
         readFile(SCHEMA_PATH, 'utf8'),
         readFile(SEED_PATH, 'utf8'),
@@ -173,7 +188,7 @@ async function validateOrResetForReuse(host: string, port: number): Promise<void
     const conn = await oracledb.getConnection({
         user: 'system',
         password: ORACLE_PASSWORD,
-        connectString: `${host}:${port}/${SERVICE_NAME}`,
+        connectString: `${host}:${port}/${serviceName}`,
     })
     try {
         await conn.execute(
@@ -244,7 +259,7 @@ async function validateOrResetForReuse(host: string, port: number): Promise<void
             const metaConn = await oracledb.getConnection({
                 user: META_DB_NAME,
                 password: META_PASSWORD,
-                connectString: `${host}:${port}/${SERVICE_NAME}`,
+                connectString: `${host}:${port}/${serviceName}`,
             })
             try {
                 await metaConn.execute(
@@ -326,13 +341,14 @@ function stripSqlLineComments(sql: string): string {
 // calls skip the system connection.
 let workerUserEnsured = false
 
-async function ensureWorkerUserExists(host: string, port: number, workerUser: string): Promise<void> {
+async function ensureWorkerUserExists(host: string, port: number, workerUser: string, image: string): Promise<void> {
     if (workerUserEnsured) return
+    const serviceName = serviceNameForImage(image)
     const oracledb = (await import('oracledb')).default
     const sys = await oracledb.getConnection({
         user: 'system',
         password: ORACLE_PASSWORD,
-        connectString: `${host}:${port}/${SERVICE_NAME}`,
+        connectString: `${host}:${port}/${serviceName}`,
     })
     try {
         const res = await sys.execute<{ COUNT: number }>(
@@ -352,6 +368,17 @@ async function ensureWorkerUserExists(host: string, port: number, workerUser: st
             } catch (err: any) {
                 if (err?.errorNum !== 1920) throw err
             }
+        }
+        // gvenzl/oracle-xe (pre-23ai): its RESOURCE role does NOT include
+        // CREATE VIEW, so the shared domain's `CREATE OR REPLACE VIEW …`
+        // statements fail with ORA-01031 during schema apply. oracle-free
+        // (23ai) creates those views fine under RESOURCE alone, so the grant
+        // is only needed — and only issued — on oracle-xe. Idempotent, so it
+        // also repairs a worker user carried over (without the grant) in a
+        // reused container.
+        if (isOracleXeImage(image)) {
+            await sys.execute(`GRANT CREATE VIEW TO ${workerUser}`)
+            await sys.commit()
         }
     } finally {
         await sys.close()
@@ -391,21 +418,70 @@ async function applyResetAndSeedToOpenedConnection(conn: import('oracledb').Conn
     await conn.commit()
 }
 
+// Oracle 23ai (gvenzl/oracle-free, `newest`) ships built-in UUID_TO_RAW /
+// RAW_TO_UUID; pre-23ai (gvenzl/oracle-xe, `oldest` under
+// `--docker-version closest`) does NOT, so the shared seed's `UUID_TO_RAW(...)`
+// and the library's emitted `raw_to_uuid(...)` would fail. On oracle-xe the
+// runner creates these as user-defined functions in the worker schema before
+// applying schema/seed; Oracle resolves the names case-insensitively, so they
+// stand in for the missing built-ins. Canonical (non-reordering) bodies from
+// docs/configuration/supported-databases/oracle.md § UUID utility functions —
+// the 16 bytes are stored as-is (accepts any hex, including the v4 uuids in the
+// seed), and the read wraps in `lower(...)` so the output matches Oracle 23ai's
+// lowercase built-in and the same value assertions pass on both images. The
+// `raw_to_uuid` NULL guard is required beyond the docs snippet: Oracle's `||`
+// reads NULL as '' so an unguarded body would return '----' for a NULL RAW
+// (breaking the NULL rows), whereas the 23ai built-in returns NULL. Kept
+// out of the shared schema.sql/seed.sql so `newest` keeps its real built-ins.
+// One blank-line-separated CREATE per block so `splitStatements` emits each as
+// its own statement (its CREATE FUNCTION branch keeps the PL/SQL body intact).
+const ORACLE_XE_UUID_FUNCTIONS_SQL = `
+CREATE OR REPLACE FUNCTION uuid_to_raw(uuid IN char) RETURN raw AS
+BEGIN
+    RETURN HEXTORAW(REPLACE(uuid, '-'));
+END uuid_to_raw;
+
+CREATE OR REPLACE FUNCTION raw_to_uuid(raw_uuid IN raw) RETURN char IS
+    hex_text char(32);
+BEGIN
+    IF raw_uuid IS NULL THEN RETURN NULL; END IF;
+    hex_text := RAWTOHEX(raw_uuid);
+    RETURN lower(SUBSTR(hex_text, 1, 8) || '-' ||
+                 SUBSTR(hex_text, 9, 4) || '-' ||
+                 SUBSTR(hex_text, 13, 4) || '-' ||
+                 SUBSTR(hex_text, 17, 4) || '-' ||
+                 SUBSTR(hex_text, 21));
+END raw_to_uuid;
+`
+
+async function applyUuidCompatFunctions(conn: import('oracledb').Connection): Promise<void> {
+    for (const stmt of splitStatements(ORACLE_XE_UUID_FUNCTIONS_SQL)) {
+        await conn.execute(stmt)
+    }
+    await conn.commit()
+}
+
 // First-time setup: the runner's pool does not exist yet because the worker
 // user must be created before the pool can authenticate against it. This
 // path opens a one-shot direct connection to bootstrap the schema/seed.
 // Subsequent reseeds borrow from the runner's pool — see `onReseed` below.
-async function bootstrapWorkerUserSchemaAndSeed(host: string, port: number): Promise<string> {
+async function bootstrapWorkerUserSchemaAndSeed(host: string, port: number, image: string): Promise<string> {
+    const serviceName = serviceNameForImage(image)
     const workerUser = workerName(BASE_ORACLE_USER)
-    await ensureWorkerUserExists(host, port, workerUser)
+    await ensureWorkerUserExists(host, port, workerUser, image)
 
     const oracledb = (await import('oracledb')).default
     const conn = await oracledb.getConnection({
         user: workerUser,
         password: APP_PASSWORD,
-        connectString: `${host}:${port}/${SERVICE_NAME}`,
+        connectString: `${host}:${port}/${serviceName}`,
     })
     try {
+        // Create the UUID compat functions BEFORE schema/seed so the seed's
+        // UUID_TO_RAW resolves. oracle-free (23ai) keeps its real built-ins.
+        if (isOracleXeImage(image)) {
+            await applyUuidCompatFunctions(conn)
+        }
         await applySchemaAndSeedToOpenedConnection(conn)
     } finally {
         await conn.close()
@@ -426,13 +502,14 @@ export function createOracleDBPoolTestContext(spec: OracleTestSpec): OracleTestC
     const connector = spec.label.split(' / ')[1] ?? ''
     const realDbEnabled = isRealDbEnabled(DATABASE, /* needsDocker */ true, version, connector)
     const image = imageForCell(DATABASE, version, realDbEnabled)
+    const serviceName = serviceNameForImage(image)
     const buildRunner = memoizeSharedRunner(async (params: { host: string; port: number; workerUser: string }) => {
         const oracledb = (await import('oracledb')).default
         const { OracleDBPoolQueryRunner } = await import('../../../src/queryRunners/OracleDBPoolQueryRunner.js')
         const pool = await oracledb.createPool({
             user: params.workerUser,
             password: APP_PASSWORD,
-            connectString: `${params.host}:${params.port}/${SERVICE_NAME}`,
+            connectString: `${params.host}:${params.port}/${serviceName}`,
             // Open connections lazily (poolMin 0) instead of eagerly establishing
             // one per worker at createPool time. With ~12 workers that is 12
             // simultaneous Oracle auth handshakes against the shared instance at
@@ -490,7 +567,7 @@ export function createOracleDBPoolTestContext(spec: OracleTestSpec): OracleTestC
             const container = await containers.getFor(image).acquire()
             const host = container.getHost()
             const port = container.getMappedPort(1521)
-            const workerUser = await bootstrapWorkerUserSchemaAndSeed(host, port)
+            const workerUser = await bootstrapWorkerUserSchemaAndSeed(host, port, image)
             // `forceNew` rebuilds a fresh runner (clean transaction state) when
             // the harness discards a connection poisoned by a failed commit.
             return await buildRunner({ host, port, workerUser }, forceNew)

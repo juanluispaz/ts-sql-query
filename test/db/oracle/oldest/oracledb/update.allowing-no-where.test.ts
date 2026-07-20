@@ -1,0 +1,213 @@
+// Coverage of `connection.updateAllowingNoWhere(...)`
+// the explicit opt-in that lets an UPDATE reach the driver without a
+// WHERE clause. The regular `connection.update(...)` throws when the
+// sentence ends without a WHERE (the safety guard documented in
+// docs/queries/update.md); `updateAllowingNoWhere` relaxes that guard.
+//
+// Both tests mutate, so they run inside `ctx.withRollback(...)` — the
+// no-WHERE UPDATE touches every seeded issue and the rollback keeps the
+// cell clean. The seeded issues all have `parent_id` NULL and `status`
+// is a plain column, so updating all rows trips no FK constraint on any
+// engine.
+
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
+import { assertType, type Exact } from '../../../../lib/assertType.js'
+import { tOrganization, tIssue, tProject } from '../../domain/connection.js'
+import { ctx } from './setup.js'
+
+// tOrganization / tProject are used only by the from/join tests commented out below.
+void tOrganization; void tProject
+
+describe(ctx.label, () => {
+    beforeAll(() => ctx.up(), ctx.timeoutMs)
+    afterAll(() => ctx.down(), ctx.timeoutMs)
+    beforeEach(() => { ctx.reset() })
+
+    test('update-allowing-no-where-touches-all-rows', async () => {
+        // No WHERE at all: the sentence would be rejected by the regular
+        // `update(...)` path; `updateAllowingNoWhere` lets it through and
+        // every seeded issue is updated.
+        ctx.mockNext(4)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.updateAllowingNoWhere(tIssue)
+                .set({ status: 'archived' })
+                .executeUpdate()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = :0"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "archived",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(4)
+        })
+    })
+
+    test('update-allowing-no-where-still-honors-a-supplied-where', async () => {
+        // The "allowing" variant only relaxes the guard — supplying a
+        // WHERE is still valid and emits the predicate as usual.
+        ctx.mockNext(4)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.updateAllowingNoWhere(tIssue)
+                .set({ status: 'archived' })
+                .where(tIssue.priority.greaterOrEqual(1))
+                .executeUpdate()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = :0 where priority >= :1"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "archived",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(4)
+        })
+    })
+
+    // TODO[LIMITATION]: see LIMITATIONS.md — Oracle multi-table UPDATE…FROM / DELETE…USING
+    // requires Oracle Database 23ai; earlier Oracle (this cell) rejects the FROM/USING keyword
+    // at the parser (ORA-00933). Emission is the same standard form on all versions by design.
+    /*
+    test('update-allowing-no-where-from-with-a-correlated-join', async () => {
+        // The `.from()` limb of the AllowingNoWhere join/from/using quartet (the
+        // twin of `update(...).from(...)`): a CORRELATED UPDATE...FROM reachable on
+        // the guard-relaxed builder. Each issue's status is stamped from its
+        // project's slug, joined by the FK — the FROM table is genuinely used (in
+        // both the SET and the join predicate). Every issue has a project, so all
+        // 4 rows are updated once.
+        ctx.mockNext(4)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.updateAllowingNoWhere(tIssue)
+                .from(tProject)
+                .set({ status: tProject.slug })
+                .where(tProject.id.equals(tIssue.projectId))
+                .executeUpdate()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set issue.status = project.slug from project where project.id = issue.project_id"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(4)
+        })
+    })
+    */
+
+    // TODO[LIMITATION]: see LIMITATIONS.md — Oracle multi-table UPDATE…FROM / DELETE…USING
+    // requires Oracle Database 23ai; earlier Oracle (this cell) rejects the FROM/USING keyword
+    // at the parser (ORA-00933). Emission is the same standard form on all versions by design.
+    /*
+    test('update-allowing-no-where-from-then-left-join-touches-all-rows', async () => {
+        // The LEFT-join limb of the AllowingNoWhere from/join family: an
+        // `updateAllowingNoWhere(t).from(j).leftJoin(k).on(...)` reachable on the
+        // guard-relaxed builder. Each issue's status is stamped from its project's
+        // organization name (left-joined off the FROM project) with the project slug
+        // as a coalesce fallback. The FROM project is correlated to the target issue
+        // by FK, so each issue matches exactly one source row (a stable many:1
+        // update — a bare cross-join would be a non-deterministic multi-match). Every
+        // issue has a project and every project an organization, so all 4 update.
+        ctx.mockNext(4)
+        await ctx.withRollback(async () => {
+            const tOrg = tOrganization.forUseInLeftJoin()
+            const affected = await ctx.conn.updateAllowingNoWhere(tIssue)
+                .from(tProject)
+                .leftJoin(tOrg).on(tOrg.id.equals(tProject.organizationId))
+                .set({ status: tOrg.name.valueWhenNull(tProject.slug) })
+                .where(tProject.id.equals(tIssue.projectId))
+                .executeUpdate()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set issue.status = nvl("organization".name, project.slug) from project left join "organization" on "organization".id = project.organization_id where project.id = issue.project_id"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+            assertType<Exact<typeof affected, number>>()
+            if (ctx.realDbEnabled) expect(typeof affected).toBe('number')
+            else expect(affected).toBe(4)
+        })
+    })
+    */
+
+    test('update-allowing-no-where-dynamic-set-touches-all-rows', async () => {
+        // `dynamicSet({...})` on the allowing-no-where builder is executable
+        // with no WHERE, so it updates every seeded issue. The paired
+        // `.set({...})` form is built but not executed — its query and params
+        // are compared instead.
+        ctx.mockNext(4)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.updateAllowingNoWhere(tIssue)
+                .dynamicSet({ status: 'archived' })
+                .executeUpdate()
+            const dynamicSql = ctx.lastSql
+            const dynamicParams = ctx.lastParams
+
+            const viaSet = ctx.conn.updateAllowingNoWhere(tIssue).set({ status: 'archived' })
+            expect(viaSet.query()).toBe(dynamicSql)
+            expect(viaSet.params()).toEqual(dynamicParams)
+
+            expect(dynamicSql).toMatchInlineSnapshot(`"update issue set status = :0"`)
+            expect(dynamicParams).toMatchInlineSnapshot(`
+              [
+                "archived",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(4)
+        })
+    })
+
+    test('update-allowing-no-where-set-if-value-skips-empty-and-touches-all-rows', async () => {
+        // `setIfValue({...})` on the allowing-no-where builder needs no WHERE.
+        // The value gate drops `body: undefined`, so only `status` reaches the
+        // SET clause; with no WHERE every seeded issue is updated.
+        ctx.mockNext(4)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.updateAllowingNoWhere(tIssue)
+                .setIfValue({ status: 'archived', body: undefined })
+                .executeUpdate()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = :0"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "archived",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(4)
+        })
+    })
+    test('update-allowing-no-where-returning-touches-all-rows', async () => {
+        // With no WHERE the UPDATE touches every seeded issue and RETURNING reads
+        // each affected row back. The returned order is not guaranteed, so rows
+        // are sorted by id before comparing.
+        const expected = [
+            { id: 1, status: 'archived' },
+            { id: 2, status: 'archived' },
+            { id: 3, status: 'archived' },
+            { id: 4, status: 'archived' },
+        ]
+        await ctx.withRollback(async () => {
+            ctx.mockNext(expected)
+            const rows = await ctx.conn.updateAllowingNoWhere(tIssue)
+                .set({ status: 'archived' })
+                .returning({ id: tIssue.id, status: tIssue.status })
+                .executeUpdateMany()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = :0 returning id, status into :1, :2"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "archived",
+                {
+                  "as": "id",
+                  "dir": 3003,
+                },
+                {
+                  "as": "status",
+                  "dir": 3003,
+                },
+              ]
+            `)
+            assertType<Exact<typeof rows, Array<{ id: number; status: string }>>>()
+            const sorted = [...rows].sort((a, b) => a.id - b.id)
+            expect(sorted).toEqual(expected)
+        })
+    })
+
+})

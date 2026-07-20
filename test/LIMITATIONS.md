@@ -186,6 +186,47 @@ library emits the SQL (no type-level narrowing) and a future MariaDB
 release could accept this shape. Re-probe against the real engine before
 reactivating.
 
+## Oracle multi-table `UPDATE … FROM` / `DELETE … USING` requires Oracle Database 23ai
+
+Oracle added the ANSI `UPDATE … FROM` and `DELETE … USING` forms in
+[Oracle Database 23ai](https://docs.oracle.com/en/database/oracle/oracle-database/23/sqlrf/UPDATE.html);
+earlier releases reject the `FROM` / `USING` keyword at the parser with
+`ORA-00933: SQL command not properly ended`. The methods
+`connection.update(t).from(...)` and `connection.deleteFrom(t).using(...)`
+(including a `.innerJoin` / `.leftJoin` chained *after* `from` / `using`)
+are exposed on `OracleConnection` for **all** versions and documented as
+requiring 23ai on the [update](../docs/queries/update.md) /
+[delete](../docs/queries/delete.md) pages.
+
+Per the **Library policy on engine feature support** at the top of this
+file, the `OracleSqlBuilder` emits **one form on every
+`compatibilityVersion`** — the same standard `update t set … from …` /
+`delete from t using …` the other dialects produce — and does **not**
+emulate an older-Oracle rewrite (a correlated subquery / `MERGE`). The
+docs point users who target pre-23ai at writing a `MERGE` or a correlated
+subquery themselves. This is deliberately **not** a `compatibilityVersion`
+breakpoint: unlike the `Values` feature (native `VALUES` vs `SELECT … FROM
+dual UNION ALL` — two valid forms of the same result), there is no
+alternative valid form to switch to, so there is nothing to gate.
+
+**What this means for tests** — at the `oracle/oldest` cell
+(`compatibilityVersion 21_000_000`, run against `gvenzl/oracle-xe:21`
+under `--docker-version closest`) every multi-table `update.from(...)` /
+`deleteFrom.using(...)` test is commented out with `// TODO[LIMITATION]:
+see LIMITATIONS.md`. The emitted SQL is **byte-identical** to the
+`oracle/newest` cell (verified in mock at `compatibilityVersion
+21_000_000`), so the SQL builder is validated by the live `newest`
+(23ai) cell; the `oldest` cell simply cannot execute it on a real 21c
+engine.
+
+This stays `TODO[LIMITATION]` rather than `NOT-APPLICABLE` because the
+methods are callable on `OracleConnection` (no type-level narrowing) and
+23ai accepts the SQL — only the older engine rejects it. That is distinct
+from the direct `UPDATE … JOIN` / `DELETE … JOIN` grammar Oracle lacks in
+**every** version, which IS typed `never` on the Oracle update/delete
+surface and is marked `NOT-APPLICABLE` with a paired `types.negative/`
+assertion.
+
 ## Oracle: bind parameters carry no declared type, so oracledb's statement cache can re-bind them with a stale one
 
 `QueryRunner.addParam(params, value)` receives **only the value** — the

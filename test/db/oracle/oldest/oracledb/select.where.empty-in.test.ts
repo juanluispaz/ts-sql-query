@@ -1,0 +1,40 @@
+// Coverage of `.in([])` / `.notIn([])` short-circuit branches: an empty
+// array produces a constant `false` (for `in`) or `true` (for `not in`).
+
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
+import { tIssue } from '../../domain/connection.js'
+import { ctx } from './setup.js'
+
+describe(ctx.label, () => {
+    beforeAll(() => ctx.up(), ctx.timeoutMs)
+    afterAll(() => ctx.down(), ctx.timeoutMs)
+    beforeEach(() => { ctx.reset() })
+
+    test('where-in-empty-array', async () => {
+        // Oracle short-circuits an empty `in ([])` to a constant false
+        // predicate `(0=1)`, so the query runs and returns no rows.
+        const expected: Array<{ id: number }> = []
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.in([]))
+            .select({ id: tIssue.id })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue where (0=1)"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(rows).toEqual(expected)
+    })
+
+    test('where-not-in-empty-array', async () => {
+        // `not in []` short-circuits to a constant true → all rows.
+        const expected = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.notIn([]))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue where (1=1) order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(rows).toEqual(expected)
+    })
+})

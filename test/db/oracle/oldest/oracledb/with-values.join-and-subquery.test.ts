@@ -1,0 +1,360 @@
+// Source-dispatch breadth for `Values` / `View` in positions the rest of
+// the with-values / view coverage skips. The existing with-values.* and
+// view.basic / select.view-column-types tests only ever drive a Values /
+// View through `selectFrom(...)` or `leftJoin(...)`; this file closes:
+//
+//   - INNER `.innerJoin(view)`: a View as the REQUIRED side of an inner
+//        join (columns stay required / non-widened, unlike the leftJoin
+//        arm which widens them to optional).
+//   - INNER `.innerJoin(values)`: an inline `Values` as the REQUIRED
+//        side of an inner join (same required, non-widened projection).
+//   - a `Values` fed to `forUseAsInlineQueryValue()` nested inside an
+//        inner SELECT: the values view feeds an inline scalar subquery, so
+//        its `WITH name(cols) AS (values ...)` clause must bubble up
+//        (`__addWiths` / `__registerTableOrView`) to the OUTER query.
+//   - the same WITH-hoisting for a `View` fed to
+//        `forUseAsInlineQueryValue()` nested inside an inner SELECT.
+//
+// `Values` is typed on every dialect under test (the `Values.create(...)`
+// class form is constrained to all six SQL dialects), so the Values tests
+// run live everywhere just like the existing with-values.* files. The View
+// tests run on every dialect too.
+
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
+import { assertType, type Exact } from '../../../../lib/assertType.js'
+import { Values } from '../../../../../src/Values.js'
+import { DBConnection, tProject, vReleaseOverview } from '../../domain/connection.js'
+import { ctx } from './setup.js'
+
+// An inline Values that maps a project id to an external code, used as the
+// required (inner-join) side and as a nested inline-query-value source.
+class VProjectCode extends Values<DBConnection, 'projectCode'> {
+    projectId = this.column('int')
+    code      = this.column('string')
+}
+
+describe(ctx.label, () => {
+    beforeAll(() => ctx.up(), ctx.timeoutMs)
+    afterAll(() => ctx.down(), ctx.timeoutMs)
+    beforeEach(() => { ctx.reset() })
+
+    test('inner-join-view-keeps-columns-required', async () => {
+        // INNER join a base table to a VIEW. Inner join keeps the view's
+        // columns required (no optional widening). vReleaseOverview has
+        // releases 1 & 2 for project 1 and release 3 for project 2; filter
+        // to project 1 → two matched rows.
+        const expected = [
+            { projectName: 'Marketing site', version: '1.2.0' },
+            { projectName: 'Marketing site', version: '1.3.0-beta.1' },
+        ]
+        ctx.mockNext(expected)
+
+        const rows = await ctx.conn.selectFrom(tProject)
+            .innerJoin(vReleaseOverview).on(vReleaseOverview.projectId.equals(tProject.id))
+            .where(tProject.id.equals(1))
+            .select({
+                projectName: tProject.name,
+                version:     vReleaseOverview.version,
+            })
+            .orderBy('version')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.name as "projectName", release_overview.version as "version" from project inner join release_overview on release_overview.project_id = project.id where project.id = :0 order by "version""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        // Inner join → version is REQUIRED (`string`), not widened to optional.
+        assertType<Exact<typeof rows, Array<{ projectName: string; version: string }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('inner-join-values-keeps-columns-required', async () => {
+        // INNER join a base table to an inline VALUES view. Inner join keeps
+        // the values columns required. Only project 1 has a code row, so the
+        // inner join yields exactly that one project.
+        const expected = [{ name: 'Marketing site', code: 'MKTG' }]
+        ctx.mockNext(expected)
+        const codes = Values.create(VProjectCode, 'projectCode', [
+            { projectId: 1, code: 'MKTG' },
+        ])
+
+        const rows = await ctx.conn.selectFrom(tProject)
+            .innerJoin(codes).on(codes.projectId.equals(tProject.id))
+            .select({
+                name: tProject.name,
+                code: codes.code,
+            })
+            .orderBy('name')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectCode(projectId, code) as (select :0, :1 from dual) select project.name as "name", projectCode.code as "code" from project inner join projectCode on projectCode.projectId = project.id order by "name""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            "MKTG",
+          ]
+        `)
+        // Inner join → code is REQUIRED (`string`), not widened to optional.
+        assertType<Exact<typeof rows, Array<{ name: string; code: string }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('values-as-inline-query-value-hoists-with-to-outer', async () => {
+        // A `Values` feeding an inline scalar subquery nested inside an
+        // outer SELECT. The `WITH projectCode(...) AS (values ...)` clause
+        // produced by the inner subquery must bubble up to the OUTER query
+        // (`__addWiths` / `__registerTableOrView`). The subquery picks the
+        // single code row, so the inline value is 'MKTG'.
+        const expected = [{ pickedCode: 'MKTG' }]
+        ctx.mockNext(expected)
+        const codes = Values.create(VProjectCode, 'projectCode', [
+            { projectId: 1, code: 'MKTG' },
+        ])
+
+        const pickedCode = ctx.conn.selectFrom(codes)
+            .where(codes.projectId.equals(1))
+            .selectOneColumn(codes.code)
+            .forUseAsInlineQueryValue()
+
+        const rows = await ctx.conn.selectFromNoTable()
+            .select({ pickedCode })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectCode(projectId, code) as (select :0, :1 from dual) select (select code as "result" from projectCode where projectId = :2) as "pickedCode" from dual"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            "MKTG",
+            1,
+          ]
+        `)
+        // Inline subquery operand is optional-typed (the type system can't
+        // prove the values view yields exactly one row).
+        assertType<Exact<typeof rows, Array<{ pickedCode?: string }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('view-as-inline-query-value-hoists-source-to-outer', async () => {
+        // A `View` feeding an inline scalar subquery nested inside an outer
+        // SELECT — pins the View `__registerTableOrView` hoisting through the
+        // inline-query-value path. The subquery picks release 1's version.
+        const expected = [{ firstVersion: '1.2.0' }]
+        ctx.mockNext(expected)
+
+        const firstVersion = ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(1))
+            .selectOneColumn(vReleaseOverview.version)
+            .forUseAsInlineQueryValue()
+
+        const rows = await ctx.conn.selectFromNoTable()
+            .select({ firstVersion })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select version as "result" from release_overview where id = :0) as "firstVersion" from dual"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ firstVersion?: string }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('values-for-use-in-query-as-hoists-with-above-derived-table', async () => {
+        // A `Values` fed to `forUseInQueryAs('sub')` — the DERIVED-TABLE / CTE
+        // position (distinct from the scalar `forUseAsInlineQueryValue` above).
+        // The `WITH projectCode(...) AS (values ...)` clause the inline Values
+        // produces must hoist ABOVE the `sub` derived table that reads from it.
+        // The single code row survives, so the projected row is that code.
+        const expected = [{ code: 'MKTG', projectId: 1 }]
+        ctx.mockNext(expected)
+        const codes = Values.create(VProjectCode, 'projectCode', [
+            { projectId: 1, code: 'MKTG' },
+        ])
+
+        const sub = ctx.conn.selectFrom(codes)
+            .select({
+                code:      codes.code,
+                projectId: codes.projectId,
+            })
+            .forUseInQueryAs('sub')
+
+        const rows = await ctx.conn.selectFrom(sub)
+            .select({
+                code:      sub.code,
+                projectId: sub.projectId,
+            })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectCode(projectId, code) as (select :0, :1 from dual), sub as (select code as code, projectId as projectId from projectCode) select code as "code", projectId as "projectId" from sub"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            "MKTG",
+          ]
+        `)
+        // Derived-table projection keeps the columns REQUIRED (no widening).
+        assertType<Exact<typeof rows, Array<{ code: string; projectId: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('view-for-use-in-query-as-hoists-source-above-derived-table', async () => {
+        // A `View` fed to `forUseInQueryAs('sub')` — the same derived-table /
+        // CTE position with a View source (the WITH-hoist position never
+        // asserted with a View). The `sub` derived table reads from
+        // release_overview; filtering to project 1 yields releases 1 & 2.
+        const expected = [
+            { projectName: 'Marketing site', version: '1.2.0' },
+            { projectName: 'Marketing site', version: '1.3.0-beta.1' },
+        ]
+        ctx.mockNext(expected)
+
+        const sub = ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.projectId.equals(1))
+            .select({
+                projectName: vReleaseOverview.projectName,
+                version:     vReleaseOverview.version,
+            })
+            .forUseInQueryAs('sub')
+
+        const rows = await ctx.conn.selectFrom(sub)
+            .select({
+                projectName: sub.projectName,
+                version:     sub.version,
+            })
+            .orderBy('version')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with sub as (select project_name as projectName, version as version from release_overview where project_id = :0) select projectName as "projectName", version as "version" from sub order by "version""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        // Derived-table projection keeps the columns REQUIRED (no widening).
+        assertType<Exact<typeof rows, Array<{ projectName: string; version: string }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('view-direct-read-plain-localdatetime-column', async () => {
+        // Direct raw read of the REQUIRED plain localDateTime View column
+        // publishStampPlain as a `{ x: view.publishStampPlain }` projection (no
+        // fluent getter) — a required `Date` leaf. Release 1:
+        // published_stamp_plain 2024-01-16 09:00:00.
+        const expected = [{ x: new Date(Date.UTC(2024, 0, 16, 9, 0, 0)) }]
+        ctx.mockNext(expected)
+
+        const rows = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(1))
+            .select({ x: vReleaseOverview.publishStampPlain })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select published_stamp_plain as "x" from release_overview where id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ x: Date }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('view-direct-read-custom-localdatetime-column', async () => {
+        // Direct raw read of the REQUIRED custom localDateTime View column
+        // publishStamp ('PublishStamp') as a `{ x: view.publishStamp }`
+        // projection — a required `Date` leaf (the brand erases at the
+        // projection boundary). Release 1: published_stamp 2024-01-16 09:00:00.
+        const expected = [{ x: new Date(Date.UTC(2024, 0, 16, 9, 0, 0)) }]
+        ctx.mockNext(expected)
+
+        const rows = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(1))
+            .select({ x: vReleaseOverview.publishStamp })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select published_stamp as "x" from release_overview where id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ x: Date }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('values-in-where-in-subquery-hoists-with-to-outer', async () => {
+        // A `Values` feeding a WHERE `in (select …)` predicate. The code list hoists as
+        // `with projectCode(...) as (values ...)` above the outer query and the outer
+        // filter reads `id in (select projectId from projectCode)`. Codes cover projects
+        // 1 & 2, so both survive.
+        const expected = [
+            { id: 1, name: 'Marketing site' },
+            { id: 2, name: 'Internal tools' },
+        ]
+        ctx.mockNext(expected)
+        const codes = Values.create(VProjectCode, 'projectCode', [
+            { projectId: 1, code: 'MKTG' },
+            { projectId: 2, code: 'TOOLS' },
+        ])
+
+        const rows = await ctx.conn.selectFrom(tProject)
+            .where(tProject.id.in(
+                ctx.conn.selectFrom(codes).selectOneColumn(codes.projectId)
+            ))
+            .select({ id: tProject.id, name: tProject.name })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectCode(projectId, code) as (select :0, :1 from dual union all select :2, :3 from dual) select id as "id", name as "name" from project where id in (select projectId as "result" from projectCode) order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            "MKTG",
+            2,
+            "TOOLS",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; name: string }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('values-in-where-exists-hoists-with-to-outer', async () => {
+        // A `Values` inside a correlated WHERE `exists(...)` predicate. The code list
+        // hoists as `with projectCode(...) as (values ...)` above the outer query; the
+        // correlated subquery (`subSelectUsing(tProject)`) matches a project that has a
+        // code. Codes cover projects 1 & 2, so those two survive.
+        const expected = [
+            { id: 1, name: 'Marketing site' },
+            { id: 2, name: 'Internal tools' },
+        ]
+        ctx.mockNext(expected)
+        const codes = Values.create(VProjectCode, 'projectCode', [
+            { projectId: 1, code: 'MKTG' },
+            { projectId: 2, code: 'TOOLS' },
+        ])
+
+        const rows = await ctx.conn.selectFrom(tProject)
+            .where(ctx.conn.exists(
+                ctx.conn.subSelectUsing(tProject).from(codes)
+                    .where(codes.projectId.equals(tProject.id))
+                    .selectOneColumn(codes.projectId)
+            ))
+            .select({ id: tProject.id, name: tProject.name })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectCode(projectId, code) as (select :0, :1 from dual union all select :2, :3 from dual) select id as "id", name as "name" from project where exists(select projectId as "result" from projectCode where projectId = project.id) order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            "MKTG",
+            2,
+            "TOOLS",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; name: string }>>>()
+        expect(rows).toEqual(expected)
+    })
+})

@@ -177,7 +177,7 @@ describe(ctx.label, () => {
         }
     })
 
-    // NOT-APPLICABLE: this SQLite build has no `cot()` function (the rest
+    // TODO[LIMITATION]: this SQLite build has no `cot()` function (the rest
     // of the trig family — acos/asin/atan/cos/sin/tan — exists), so the
     // whole query throws "no such function: cot".
     /*
@@ -1179,7 +1179,7 @@ describe(ctx.label, () => {
         }
     })
 
-    // NOT-APPLICABLE: this SQLite build has no `cot()` function (the rest of the trig family — acos/asin/atan/cos/sin/tan — exists), so the whole query throws "no such function: cot".
+    // TODO[LIMITATION]: this SQLite build has no `cot()` function (the rest of the trig family — acos/asin/atan/cos/sin/tan — exists), so the whole query throws "no such function: cot".
     /*
     test('custom-numeric/brand-survival-customdouble-trig', async () => {
         // The 7 trig methods on a branded Money (customDouble) const keep the Money

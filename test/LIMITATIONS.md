@@ -770,3 +770,112 @@ combination (a value exactly at the cap that also ends in significant spaces).
 cannot express the default's edge. Do not add one to "fix" the default — it is a
 documented edge with an opt-out, not a regression. The opt-out's `len(x)` emission
 is snapshot-lockable on any string.
+
+## SQLite's build has no `reverse()` function
+
+`StringValueSource.reverse()` is a public method, callable on `SqliteConnection`
+with **no** `types.negative` counterpart — the type surface accepts it and the
+library emits `reverse(<x>)`. The SQLite builds this matrix uses (and the stock npm
+packages) do **not** compile in a `reverse()` SQL function, so the engine rejects
+the emitted SQL at runtime:
+
+```text
+sqlite> select reverse('abc');
+Parse error: no such function: reverse
+```
+
+The same call runs live on the other five dialects (PostgreSQL / MySQL / MariaDB /
+Oracle / SQL Server all ship `reverse` / `reverse`-equivalent). This is therefore a
+**limitation** (callable API + missing runtime function), not a permanent dialect
+frontier: it is **closeable** by registering a `reverse` user-defined function on the
+connectors that expose a UDF-registration API (better-sqlite3, node:sqlite,
+sqlite-wasm all do). Until then the `reverse()` tests on the SQLite cells are
+commented out with `TODO[LIMITATION]` (full canonical body preserved) and run live
+everywhere else.
+
+## SQLite's build has no `cot()` function
+
+`NumberValueSource.cot()` is a public method, callable on `SqliteConnection` (its
+negative-type tests reject only a wrong *column* type, not SQLite itself), and the
+base `AbstractSqlBuilder` emits `cot(<x>)`. The SQLite builds here expose the rest of
+the trig family (`acos`/`asin`/`atan`/`cos`/`sin`/`tan`) but **not** `cot`:
+
+```text
+sqlite> select cot(1.0);
+Parse error: no such function: cot
+```
+
+So this is a **limitation**, not a frontier — the trig siblings run live on SQLite,
+so the boundary is one missing function, not a dialect gap. Two independent close
+paths exist:
+
+1. **Emulate `cot(x)` as `1 / tan(x)`** — exactly what `OracleSqlBuilder._cot`
+   already does (Oracle also lacks a native `COT`). SQLite exposes `tan`, so a
+   `SqliteSqlBuilder._cot` override emitting `1 / tan(<x>)` (plus
+   `_operationsThatNeedParenthesis._cot = true`, mirroring Oracle) would make `cot`
+   work on SQLite and turn every `cot` test there live. This is the cheapest close
+   and the recommended one when someone picks this up.
+2. Register a `cot` UDF on the connectors that expose a UDF API (as for `reverse`).
+
+The emulation was **deliberately deferred** here to keep the taxonomy correction
+free of a `src/` behaviour change; the `cot` tests on the SQLite cells stay commented
+with `TODO[LIMITATION]` (full canonical body preserved) and run live on the other
+five dialects.
+
+## SQLite RETURNING can only reference the table being modified, not a FROM/JOIN-ed column
+
+An `UPDATE … FROM …` / `UPDATE … JOIN …` whose `returning(...)` /
+`returningOneColumn(...)` projects a **column of the joined relation** type-checks on
+`SqliteConnection` (full `assertType`, **no** `@ts-expect-error`) and the library
+emits e.g. `returning organization.name`. SQLite's RETURNING clause can only
+reference the row of the table being modified, so the engine rejects it:
+
+```text
+Parse error: no such column: organization.name
+```
+
+PostgreSQL's `UPDATE … FROM … RETURNING` accepts FROM-relation columns, so the same
+call runs live there. This is a **limitation** (callable API, the library emits SQL
+the engine rejects), not a permanent frontier — **closeable** if SQLite widens
+RETURNING or the library rewrites the projection (e.g. a follow-up SELECT). The
+affected tests (`update.from` / `update.join` / `update.from.variants`) are commented
+with `TODO[LIMITATION]` (full canonical body preserved) on the SQLite cells and run
+live where the dialect accepts a FROM-relation RETURNING column. Distinct from the
+`.innerJoin` / `.leftJoin`-on-UPDATE **typed-`never`** frontier (a real
+`NOT-APPLICABLE` with a `types.negative` counterpart) and from the from-join
+`returning()`-form-not-available narrowing, both of which stay `NOT-APPLICABLE`.
+
+## `replaceAllInsensitiveFunction`'s UDF cannot be registered on `bun:sqlite` / `sqlite3`
+
+`replaceAllInsensitiveFunction` lets a SQLite connection route
+`replaceAllInsensitive` through a case-folding user-defined function (`ci_replace`).
+Registering that UDF needs a driver-level user-defined-function API. **better-sqlite3**,
+**node:sqlite** and **sqlite-wasm** expose one and run the test live; **bun:sqlite**
+and the deprecated **sqlite3** do not, so the library cannot register `ci_replace`
+there. This is **within-dialect divergence** across SQLite runners, so it is a
+per-runner **limitation**, not a dialect frontier — **closeable** if those drivers add
+a UDF-registration API. The `replaceAllInsensitiveFunction` test is commented with
+`TODO[LIMITATION]` (full canonical body preserved) on `bun:sqlite` and `sqlite3` and
+runs live on the other three SQLite runners.
+
+*(Judgement note for a future maintainer: the prior `uuid_str`/`uuid_blob`
+platform-dependent case was left `NOT-APPLICABLE`; the difference here is that the
+UDF is the **library's own** and three sibling SQLite runners register it, so it
+reads as a per-runner limitation. Worth a second look if the taxonomy line moves.)*
+
+## `replaceAllInsensitive` does not honour `insensitiveCollation` on PostgreSQL / SQLite
+
+Both `replaceAllInsensitive` and the `insensitiveCollation` connection config are
+callable/typed on `PostgreSqlConnection` and `SqliteConnection`, so this is a
+**behavioural gap**, not a typed narrowing. PostgreSQL implements case-insensitive
+replace as a fixed `regexp_replace(…, 'gi')`; the `'gi'` flag folds case but takes no
+collation, so a configured `insensitiveCollation` cannot influence it. SQLite's
+UDF/`replace` fallback likewise does not read `insensitiveCollation`. The result is a
+documented limitation (the config is silently ignored on these engines), reworded away
+from `NOT-APPLICABLE` because the API is callable — closing it would mean the library
+threading the collation into a different emitted form on those engines. The affected
+`select.collation` assertions are commented with `TODO[LIMITATION]` (full canonical
+body preserved) on the PostgreSQL and SQLite cells; the collation-honouring path runs
+live on Oracle and SQL Server, whose `REPLACE` reads the forced collation. (Distinct
+from `replaceCollation`, which is a config declared only on Oracle/SQL Server and stays
+a genuine `NOT-APPLICABLE` elsewhere.)

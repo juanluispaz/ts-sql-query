@@ -666,7 +666,7 @@ describe(ctx.label, () => {
     // converts the receiver before the string function (bare text elsewhere). Values
     // are pinned against seeded issue 1 (REF1); the negative-index substr forms land
     // in the all-digit tail, so they stay case-invariant across dialects.
-    // NOT-APPLICABLE: this SQLite build has no `reverse()` function.
+    // TODO[LIMITATION]: this SQLite build has no `reverse()` function.
     /*
     test('uuid-asString-reverse', async () => {
         const expected = [...REF1].reverse().join('')

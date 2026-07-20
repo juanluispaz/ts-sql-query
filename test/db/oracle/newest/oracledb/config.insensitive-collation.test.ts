@@ -19,7 +19,7 @@
 // guard needed.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
-import { tAppUser } from '../../domain/connection.js'
+import { tAppUser, tIssue } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -248,6 +248,38 @@ describe(ctx.label, () => {
             .select({ v: conn.const('ABCabc', 'string').replaceAllInsensitive('abc', 'X') })
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select replace(:0 collate BINARY_AI, :1 collate BINARY_AI, :2) collate USING_NLS_COMP as "v" from dual"`)
+    })
+
+    test('collation: affix operators with a uuid receiver', async () => {
+        // A uuid RECEIVER (`tIssue.externalRef.asString()`) reached through the affix-insensitive
+        // operators under a SET collation, then under the empty collation. The ` collate <name>`
+        // suffix trails the whole comparison over the rendered uuid receiver; the empty-collation
+        // arm keeps the same shape with no collate suffix. The assertions pin the emitted SQL.
+        const collated = ctx.withInsensitiveCollation(ctx.exampleInsensitiveCollation)
+        await collated.selectFrom(tIssue)
+            .where(tIssue.externalRef.asString().startsWithInsensitive('0a8f'))
+            .select({ id: tIssue.id })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue where raw_to_uuid(external_ref) like (:0 || '%') collate BINARY_CI escape '\\'"`)
+
+        await collated.selectFrom(tIssue)
+            .where(tIssue.externalRef.asString().containsInsensitive('1111'))
+            .select({ id: tIssue.id })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue where raw_to_uuid(external_ref) like ('%' || :0 || '%') collate BINARY_CI escape '\\'"`)
+
+        await collated.selectFrom(tIssue)
+            .where(tIssue.externalRef.asString().endsWithInsensitive('6666'))
+            .select({ id: tIssue.id })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue where raw_to_uuid(external_ref) like ('%' || :0) collate BINARY_CI escape '\\'"`)
+
+        const empty = ctx.withInsensitiveCollation('')
+        await empty.selectFrom(tIssue)
+            .where(tIssue.externalRef.asString().containsInsensitive('1111'))
+            .select({ id: tIssue.id })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue where raw_to_uuid(external_ref) like ('%' || :0 || '%') escape '\\'"`)
     })
 
 })

@@ -9,7 +9,7 @@
 // The standard SQL trig functions `acos`/`asin`/`atan`/`cos`/`sin`/`tan`
 // are available natively here, so the runtime value is asserted with
 // `toBeCloseTo`. The one exception is `cot`, which this SQLite build does
-// NOT provide (`no such function: cot`); that block is NOT-APPLICABLE and
+// NOT provide (`no such function: cot`); that block is TODO[LIMITATION] and
 // kept commented for cross-cell symmetry.
 //
 // The scalar values pulled from `tIssue.priority` (range 1..3) are
@@ -129,7 +129,7 @@ describe(ctx.label, () => {
         `)
     })
 
-    // NOT-APPLICABLE: this SQLite build has no `cot` math function
+    // TODO[LIMITATION]: this SQLite build has no `cot` math function
     // (`no such function: cot`), unlike acos/asin/atan/cos/sin/tan which
     // it exposes natively. Kept commented for cross-cell symmetry.
     /*
@@ -213,7 +213,7 @@ describe(ctx.label, () => {
     // receiver (`estimatedHours`) and a required-double receiver
     // (`priority.asDouble()`). Operands are put in [−1, 1] via `.divide(10)` so
     // acos/asin stay in-domain. `cot` is a SEPARATE test per receiver so it can be
-    // NOT-APPLICABLE-wrapped on the SQLite cells (that build lacks `cot`), matching
+    // TODO[LIMITATION]-wrapped on the SQLite cells (that build lacks `cot`), matching
     // the required-int coverage above. Real results are floats (toBeCloseTo).
 
     test('trig-domain-safe/optional-double-receiver', async () => {
@@ -270,11 +270,11 @@ describe(ctx.label, () => {
         })
     })
 
-    // NOT-APPLICABLE: this SQLite build has no `cot` math function
+    // TODO[LIMITATION]: this SQLite build has no `cot` math function
     // (`no such function: cot`); kept commented for cross-cell symmetry.
     /*
     test('trig-cot/optional-double-receiver', async () => {
-        // `cot` on the optional-double receiver (SQLite lacks it → NOT-APPLICABLE
+        // `cot` on the optional-double receiver (SQLite lacks it → TODO[LIMITATION]
         // there). estimated_hours set to 8; divide(10) = 0.8; cot(0.8) = 1/tan(0.8).
         await ctx.withRollback(async () => {
             ctx.mockNext(1)
@@ -357,11 +357,11 @@ describe(ctx.label, () => {
         }
     })
 
-    // NOT-APPLICABLE: this SQLite build has no `cot` math function
+    // TODO[LIMITATION]: this SQLite build has no `cot` math function
     // (`no such function: cot`); kept commented for cross-cell symmetry.
     /*
     test('trig-cot/double-required-receiver', async () => {
-        // `cot` on the required-double receiver (SQLite lacks it → NOT-APPLICABLE
+        // `cot` on the required-double receiver (SQLite lacks it → TODO[LIMITATION]
         // there). priority.asDouble() = 2.0; divide(10) = 0.2; cot(0.2) = 1/tan(0.2).
         const expected = { id: 1, ct: 1 / Math.tan(0.2) }
         ctx.mockNext(expected)
@@ -391,7 +391,7 @@ describe(ctx.label, () => {
     // The 1-arg trig family on an OPTIONAL-INT receiver (`assigneeId`, = 1 for issue 1,
     // present). `divide(2)` lands the operand at 0.5 so acos/asin stay in-domain, and
     // carries the optional marker through, so every leaf is `?: number`. `cot` is a
-    // SEPARATE test so it can be NOT-APPLICABLE-wrapped on the SQLite cells (that build
+    // SEPARATE test so it can be TODO[LIMITATION]-wrapped on the SQLite cells (that build
     // lacks `cot`). Real results are floats (toBeCloseTo).
 
     test('trig-domain-safe/optional-int-receiver', async () => {
@@ -441,12 +441,12 @@ describe(ctx.label, () => {
         }
     })
 
-    // NOT-APPLICABLE: this SQLite build has no `cot` math function
+    // TODO[LIMITATION]: this SQLite build has no `cot` math function
     // (`no such function: cot`), unlike acos/asin/atan/cos/sin/tan which it
     // exposes natively. Kept commented for cross-cell symmetry.
     /*
     test('trig-cot/optional-int-receiver', async () => {
-        // `cot` on the optional-int receiver (SQLite lacks it → NOT-APPLICABLE there).
+        // `cot` on the optional-int receiver (SQLite lacks it → TODO[LIMITATION] there).
         // assigneeId(issue 1) = 1; divide(2) = 0.5; cot(0.5) = 1/tan(0.5). Optional leaf
         // `?: number`.
         const expected = { id: 1, ct: 1 / Math.tan(0.5) }

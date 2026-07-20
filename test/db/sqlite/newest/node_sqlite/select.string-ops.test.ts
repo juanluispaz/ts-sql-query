@@ -312,7 +312,7 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-    // NOT-APPLICABLE: this SQLite build has no `reverse()` function.
+    // TODO[LIMITATION]: this SQLite build has no `reverse()` function.
     /*
     test('reverse', async () => {
         const expected = [{ id: 1, t: 'tset.emca@ada' }]
@@ -712,7 +712,7 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-    // NOT-APPLICABLE: this SQLite build has no `reverse()` function.
+    // TODO[LIMITATION]: this SQLite build has no `reverse()` function.
     /*
     test('string-reverse-on-optional-receiver', async () => {
         // `.reverse()` on an OPTIONAL string receiver keeps the optional marker

@@ -153,7 +153,7 @@ describe(ctx.label, () => {
         })
     })
 
-    // NOT-APPLICABLE: SQLite RETURNING can only reference the table being modified, not a FROM/joined column; the library emits `returning app_user.full_name`, which SQLite rejects.
+    // TODO[LIMITATION]: SQLite RETURNING can only reference the table being modified, not a FROM/joined column; the library emits `returning app_user.full_name`, which SQLite rejects.
     /*
     test('update-from-table-then-left-join-returning-nullable-joined-column', async () => {
         // The `.returning({...})` projects the LEFT-joined `app_user.full_name`
@@ -194,7 +194,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // NOT-APPLICABLE: SQLite RETURNING can only reference the table being modified, not a FROM/joined column; the library emits `returning app_user.full_name`, which SQLite rejects.
+    // TODO[LIMITATION]: SQLite RETURNING can only reference the table being modified, not a FROM/joined column; the library emits `returning app_user.full_name`, which SQLite rejects.
     /*
     test('update-from-table-then-left-join-returning-left-join-optional-column-as-nullable-surfaces-present-null', async () => {
         // The same from-then-left-join UPDATE returning the LEFT-joined

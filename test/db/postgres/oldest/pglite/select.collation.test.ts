@@ -185,7 +185,7 @@ describe(ctx.label, () => {
     // PostgreSQL's `replaceAllInsensitive` is the fixed `regexp_replace(..., 'gi')`
     // case-only flag — it cannot honour a language `insensitiveCollation`. Runs on
     // the collation/regex-operand engines. Kept commented for symmetry.
-    // NOT-APPLICABLE: PostgreSQL's `'gi'` regex flag cannot honour `insensitiveCollation`.
+    // TODO[LIMITATION]: PostgreSQL's `'gi'` regex flag cannot honour `insensitiveCollation`.
     /*
     test('replaceAllInsensitive honours insensitiveCollation', async () => {
         // see the canonical body in sqlserver/newest/mssql

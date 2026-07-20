@@ -194,7 +194,7 @@ describe(ctx.label, () => {
     // SQLite's `replaceAllInsensitive` is a user-registered UDF (or a plain
     // `replace` fallback), both of which fold in JS / byte-wise and do NOT read a
     // DB `insensitiveCollation`. Runs on the collation/regex engines. Kept for symmetry.
-    // NOT-APPLICABLE: SQLite's UDF/replace fallback does not read `insensitiveCollation`.
+    // TODO[LIMITATION]: SQLite's UDF/replace fallback does not read `insensitiveCollation`.
     /*
     test('replaceAllInsensitive honours insensitiveCollation', async () => {
         // see the canonical body in sqlserver/newest/mssql

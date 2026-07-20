@@ -911,11 +911,24 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         const term = this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false)
         return fold ? "lower('%' + " + term + " + '%')" : "('%' + " + term + " + '%')"
     }
+    // The uuid receiver arm of the six affix-insensitive predicates below: a `uniqueidentifier`
+    // renders UPPERCASE and SQL Server rejects `collate` on a bare `uniqueidentifier`, so when
+    // `insensitiveCollation` is set the receiver is converted to nvarchar(36) FIRST (via
+    // `_appendSqlMaybeUuidParenthesis`) and the forced `collate` applied to the result — mirroring
+    // the four direct insensitive comparisons further down. Before this the uuid arm early-returned
+    // a bare `like` REGARDLESS of `insensitiveCollation`, so on a case-sensitive database — or when
+    // the user set `insensitiveCollation` to force folding — the config was silently dropped and the
+    // match stayed case-sensitive. The bare ('') and unset (default) cases keep today's plain `like`
+    // (correct on the default CI database, where `uniqueidentifier like <nvarchar>` implicitly
+    // converts and folds).
     override _startsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        const collation = this._connectionConfiguration.insensitiveCollation
         if (this._isUuid(valueSource)) {
+            if (collation) {
+                return this._appendSqlMaybeUuidParenthesis(valueSource, params) + ' like (' +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + " + '%') collate " + collation
+            }
             return this._appendSqlParenthesis(valueSource, params, false) + ' like (' +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + " + '%')"
         }
-        const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
             return this._appendSqlParenthesis(valueSource, params, false) + ' like (' +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + " + '%') collate " + collation
         } else if (collation === '') {
@@ -925,10 +938,13 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         }
     }
     override _notStartsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        const collation = this._connectionConfiguration.insensitiveCollation
         if (this._isUuid(valueSource)) {
+            if (collation) {
+                return this._appendSqlMaybeUuidParenthesis(valueSource, params) + ' not like (' +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + " + '%') collate " + collation
+            }
             return this._appendSqlParenthesis(valueSource, params, false) + ' not like (' +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + " + '%')"
         }
-        const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
             return this._appendSqlParenthesis(valueSource, params, false) + ' not like (' +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + " + '%') collate " + collation
         } else if (collation === '') {
@@ -938,10 +954,13 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         }
     }
     override _endsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        const collation = this._connectionConfiguration.insensitiveCollation
         if (this._isUuid(valueSource)) {
+            if (collation) {
+                return this._appendSqlMaybeUuidParenthesis(valueSource, params) + " like ('%' + " +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + ') collate ' + collation
+            }
             return this._appendSqlParenthesis(valueSource, params, false) + " like ('%' + " +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + ')'
         }
-        const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
             return this._appendSqlParenthesis(valueSource, params, false) + " like ('%' + " +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + ') collate ' + collation
         } else if (collation === '') {
@@ -951,10 +970,13 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         }
     }
     override _notEndsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        const collation = this._connectionConfiguration.insensitiveCollation
         if (this._isUuid(valueSource)) {
+            if (collation) {
+                return this._appendSqlMaybeUuidParenthesis(valueSource, params) + " not like ('%' + " +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + ') collate ' + collation
+            }
             return this._appendSqlParenthesis(valueSource, params, false) + " not like ('%' + " +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + ')'
         }
-        const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
             return this._appendSqlParenthesis(valueSource, params, false) + " not like ('%' + " +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + ') collate ' + collation
         } else if (collation === '') {
@@ -964,10 +986,13 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         }
     }
     override _containsInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        const collation = this._connectionConfiguration.insensitiveCollation
         if (this._isUuid(valueSource)) {
+            if (collation) {
+                return this._appendSqlMaybeUuidParenthesis(valueSource, params) + " like ('%' + " +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + " + '%') collate " + collation
+            }
             return this._appendSqlParenthesis(valueSource, params, false) + " like ('%' + " +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + " + '%')"
         }
-        const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
             return this._appendSqlParenthesis(valueSource, params, false) + " like ('%' + " +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + " + '%') collate " + collation
         } else if (collation === '') {
@@ -977,10 +1002,13 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         }
     }
     override _notContainsInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        const collation = this._connectionConfiguration.insensitiveCollation
         if (this._isUuid(valueSource)) {
+            if (collation) {
+                return this._appendSqlMaybeUuidParenthesis(valueSource, params) + " not like ('%' + " +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + " + '%') collate " + collation
+            }
             return this._appendSqlParenthesis(valueSource, params, false) + " not like ('%' + " +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + " + '%')"
         }
-        const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
             return this._appendSqlParenthesis(valueSource, params, false) + " not like ('%' + " +  this._escapeLikeWildcard(value, params, columnType, columnTypeName, typeAdapter, false) + " + '%') collate " + collation
         } else if (collation === '') {

@@ -346,6 +346,58 @@ real_docker_rep_cells() {
     done < <(list_cells_from_main_paths 2>/dev/null)
 }
 
+# Guardrail for `--docker-version closest`. The resolved real docker selection
+# must (a) contain at least one real docker cell and (b) select at most ONE
+# <version> folder per engine — because each engine resolves to a single image
+# under `closest`, and two versions of the same engine would start two of its
+# containers, defeating the memory bound the mode exists to respect. On success
+# echoes a `<db> / <version>` summary (stderr); the actual resolved image tag is
+# owned by test/lib/dockerImages.ts and logged by the runner / preflight.
+# Reads the same globals as real_docker_rep_cells (MAIN_PATHS + the resolved
+# DOCKER_*/WASM_*/NATIVE_* selections). Returns 0 ok, 1 engine spans >1 version,
+# 2 no real docker cell selected.
+assert_closest_docker_ok() {
+    local cell verdict ann rest db version r2 conflict="" reals=0
+    local pairs=" "   # accumulates " <db>=<version> " (first version seen per db)
+    while IFS= read -r cell; do
+        [ -n "$cell" ] || continue
+        cell="${cell%/}"
+        IFS=$'\t' read -r verdict ann < <(cell_mode "$cell")
+        [ "$verdict" = "real" ] || continue
+        case "$ann" in *'(docker'*) ;; *) continue ;; esac
+        reals=$((reals + 1))
+        rest="${cell#test/db/}"; db="${rest%%/*}"
+        r2="${rest#*/}"; version="${r2%%/*}"
+        case "$pairs" in
+            *" $db="*)
+                # Already recorded — flag a conflict if the version differs.
+                local existing="${pairs##*" $db="}"; existing="${existing%% *}"
+                if [ "$existing" != "$version" ]; then
+                    conflict="$db (versions: $existing, $version)"
+                    break
+                fi ;;
+            *) pairs="$pairs$db=$version " ;;
+        esac
+    done < <(list_cells_from_main_paths 2>/dev/null)
+
+    if [ -n "$conflict" ]; then
+        echo "Error: --docker-version closest cannot run more than one version of the same engine in a single invocation:" >&2
+        echo "  $conflict" >&2
+        echo "  Each engine resolves to ONE image under 'closest'; two versions would start two containers of the same engine." >&2
+        echo "  Run them in separate invocations, one <version> folder per engine at a time." >&2
+        return 1
+    fi
+    if [ "$reals" -eq 0 ]; then
+        echo "Error: --docker-version closest needs at least one real docker cell." >&2
+        echo "  Add --docker (optionally with a coord) so a docker cell runs real, e.g.:" >&2
+        echo "    npm run tests -- postgres/oldest/pg --docker --docker-version closest" >&2
+        return 2
+    fi
+    echo "docker-version=closest — resolving version-appropriate images for:" >&2
+    printf '%s' "$pairs" | tr ' ' '\n' | grep -E '.=.' | sed 's/^/  /; s/=/ \/ /' >&2
+    return 0
+}
+
 # Sequentially warm up the docker engines a `--docker` run will hit, after a
 # Docker resource check. REUSE MODE ONLY: a container started here survives to
 # the test workers only because reusable containers are exempt from Ryuk

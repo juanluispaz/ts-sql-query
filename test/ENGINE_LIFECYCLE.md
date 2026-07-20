@@ -20,6 +20,7 @@ mutation safety contract that runs ON TOP of this infra see
 - [Cross-invocation reuse](#cross-invocation-reuse)
 - [Docker preflight & sequential warmup](#docker-preflight--sequential-warmup)
 - [Narrowing the docker scope](#narrowing-the-docker-scope)
+- [Version-specific docker (`--docker-version closest`)](#version-specific-docker---docker-version-closest)
 - [Participation vs real/mock](#participation-vs-real-mock)
 - [Schema / seed change revalidation](#schema--seed-change-revalidation)
 - [Per-worker test databases](#per-worker-test-databases)
@@ -174,6 +175,102 @@ When mixing flags:
 | `--docker newest` | only `<db>/newest/*` docker cells real; older versions mock |
 | `--docker postgres/newest/pg` | only that cell real; every other docker cell mock |
 | `--docker newest --wasm` | newest docker cells real, WASM phase real, older docker cells mock |
+
+## Version-specific docker (`--docker-version closest`)
+
+The test matrix organises each database into version folders on disk —
+`test/db/<db>/<version>/`, where `<version>` is `newest`, `oldest`, and any
+intermediate zone. By default every cell runs against the database's `newest`
+image whatever its own folder, so a `postgres/oldest` cell emits pre-18 SQL yet
+only ever runs on postgres 18.
+
+`--docker-version closest` closes that gap. Each real docker cell runs against
+**its own version folder's image**, so you can confirm the version-specific SQL
+runs on a real engine of that version:
+
+```bash
+npm run tests -- postgres/oldest/pg --docker --docker-version closest
+# → postgres/oldest/pg runs on a real postgres:17-alpine (not 18)
+```
+
+Default is `latest` (the normal behaviour). `closest` is opt-in.
+
+### The map mirrors the file system
+
+The image map lives in [`test/lib/dockerImages.ts`](./lib/dockerImages.ts):
+`ENGINE_IMAGES[<db>][<version>]` gives the docker image the `<version>` folder
+runs against. The folder names follow
+[`PER_DATABASE_LAYOUT.md`](./PER_DATABASE_LAYOUT.md#version--compatibility-version-folders):
+`newest` (compat `+∞`), `oldest` (a value below the lowest breakpoint), and the
+literal value of each documented breakpoint (e.g. `10_005_000`). Every image tag
+is **pinned** (no floating `latest`), and may be a **different repository**
+(pre-23ai Oracle → `gvenzl/oracle-xe`, not `gvenzl/oracle-free`). No
+`compatibilityVersion` arithmetic, no "closest-below" guessing — one deliberate,
+hand-maintained image per folder.
+
+The map is **pre-populated** from the documented breakpoints of every engine
+(`docs/configuration/supported-databases/<db>.md`), so the agent that implements
+a version folder doesn't have to research its image — the folder name is the key,
+the image is already there. The entries are **unverified** until each folder + its
+tests exist and run (today only `postgres/oldest` has an actual cell). An
+engine's **highest** breakpoint has no folder: its compat emits SQL identical to
+`newest`, so `newest` covers it.
+
+A `closest` cell whose version folder has **no entry** is a **hard error** — it
+fails loud (with the exact `db/version` and how to fix) rather than silently
+running on the wrong engine. SQLite has no container, so `closest` never touches
+its cells.
+
+### Adding a version tier — the maintenance step
+
+When you create a new `test/db/<db>/<version>/` folder, its image is likely
+**already in the map** (the documented breakpoints are pre-populated) — just run
+it. If the folder is a version the map doesn't cover yet, add **one** entry to
+the matching engine map in [`test/lib/dockerImages.ts`](./lib/dockerImages.ts):
+
+```ts
+// ENGINE_IMAGES['<db>']
+'<version>': '<repo:tag>',   // e.g. oldest: 'postgres:17-alpine'
+```
+
+Pick a **pinned** image whose engine version matches the folder; it may be a
+different repo/tag. If it is a **new repository** not already matched, add its
+prefix to [`tests-stop-containers.sh`](../scripts/tests-stop-containers.sh) (the
+existing `postgres:` / `mysql:` / `mariadb` / `mcr.microsoft.com/mssql/server` /
+`gvenzl/oracle-xe` prefixes already cover their older tags). Then verify with
+`npm run tests -- <db>/<version>/<connector> --docker --docker-version closest`;
+the runner logs `[docker-version] <db>: using <image>` when the container starts.
+
+### Narrow by design (memory)
+
+The older images are SEPARATE keep-alive containers (kept per-image by
+[`createContainerRegistry`](./lib/containerLifecycle.ts) — each with its own
+reuse hash / `lockKey`). Starting them for the whole matrix at once would blow
+past the Docker memory budget the [preflight](#docker-preflight--sequential-warmup)
+guards. So `closest` is gated with two hard errors (each with a fix-it message):
+
+- it **requires focused coords** — never a full-matrix run, and
+- the selection may touch **at most one `<version>` folder per engine** (two
+  versions of one engine would need two of its containers at once).
+
+Run one version per engine per invocation. The bash guardrail prints the
+selected `<db> / <version>` up front and the runner logs
+`[docker-version] <db>: using <image>` when a non-`newest` container starts, so
+the mapping is visible without guessing.
+
+Stopping: `tests:stop-containers` matches the older-version images too — the
+`postgres:` / `mysql:` / `mariadb` / `mcr.microsoft.com/mssql/server` prefixes
+already cover their older tags, and `gvenzl/oracle-xe` was added for pre-23ai
+Oracle — so a version-specific container is cleaned up like any other.
+
+### Why it exists
+
+The tiers themselves (`oldest`, and any intermediate) are added incrementally.
+This mode is the tool that lets that happen without flying blind: an agent
+creating a new tier folder adds its one image-map entry (above) and can
+immediately run `--docker-version closest` to confirm the version-specific SQL
+executes on a real engine of that version — rather than authoring pre-N SQL that
+is only ever validated against the latest engine.
 
 ## Participation vs real/mock
 

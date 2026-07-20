@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url'
 import { isRealDbEnabled } from '../../lib/backends.js'
 import {
     BASE_WORKER_DB_NAME,
-    createContainerHandle,
+    createContainerRegistry,
     hashSqlFiles,
     memoizeSharedRunner,
     META_DB_NAME,
@@ -24,6 +24,7 @@ import {
     workerName,
     workerNameLikePattern,
 } from '../../lib/containerLifecycle.js'
+import { imageForCell, newestImage } from '../../lib/dockerImages.js'
 import { createTestContext, type TestContext } from '../../lib/testContext.js'
 import { DBConnection } from './domain/connection.js'
 
@@ -102,10 +103,6 @@ const SEED_PATH = resolve(__dirname, './domain/seed.sql')
 // only for the once-per-worker bootstrap.
 const RESET_PATH = resolve(__dirname, './domain/reset.sql')
 
-// Pin to 2025-latest to align with `all-examples`. SQL Server 2025
-// adds ANSI-compliant `LENGTH`, which the `docs.sql-fragments` test
-// relies on via a portable raw SQL fragment.
-const MSSQL_IMAGE = 'mcr.microsoft.com/mssql/server:2025-latest'
 const SA_PASSWORD = 'StrongPass1!Sqlsrv'
 
 type StartedContainer = {
@@ -122,9 +119,12 @@ type StartedContainer = {
 // `lockKey` serialises the first-acquire across worker processes so the
 // reuse-lookup-then-create dance in testcontainers (which holds only an
 // in-process lock) doesn't spawn duplicate containers under cold start.
-const container = createContainerHandle<StartedContainer>(async () => {
+const containers = createContainerRegistry<StartedContainer>(async (image) => {
+    if (image !== newestImage(DATABASE)) {
+        console.error(`[docker-version] ${DATABASE}: using ${image}`)
+    }
     const { GenericContainer, Wait } = await import('testcontainers')
-    const builder = new GenericContainer(MSSQL_IMAGE)
+    const builder = new GenericContainer(image)
         .withEnvironment({
             ACCEPT_EULA: 'Y',
             MSSQL_SA_PASSWORD: SA_PASSWORD,
@@ -134,15 +134,13 @@ const container = createContainerHandle<StartedContainer>(async () => {
         .withWaitStrategy(Wait.forLogMessage(/SQL Server is now ready for client connections/, 1))
     if (reuseEnabled()) builder.withReuse()
     const started = (await builder.start()) as unknown as StartedContainer
-    // Runs once per process. Validates the schema/seed hash against the
-    // meta DB and, when stale, drops every per-worker test DB so they
+    // Runs once per process per image. Validates the schema/seed hash against
+    // the meta DB and, when stale, drops every per-worker test DB so they
     // get rebuilt cleanly. `sp_getapplock` serialises this across
     // workers running in parallel processes.
     await validateOrResetForReuse(started.getHost(), started.getMappedPort(1433))
     return started
-}, { lockKey: MSSQL_IMAGE })
-const acquireContainer = container.acquire
-const releaseContainer = container.release
+})
 
 async function validateOrResetForReuse(host: string, port: number): Promise<void> {
     const [schemaSql, seedSql] = await Promise.all([
@@ -396,6 +394,7 @@ export function createMssqlPoolTestContext(spec: MssqlTestSpec): SqlServerTestCo
     const version = spec.label.split(' / ')[0] ?? ''
     const connector = spec.label.split(' / ')[1] ?? ''
     const realDbEnabled = isRealDbEnabled(DATABASE, /* needsDocker */ true, version, connector)
+    const image = imageForCell(DATABASE, version, realDbEnabled)
     const buildRunner = memoizeSharedRunner(async (params: { host: string; port: number; workerDb: string }) => {
         const sql = await loadMssql()
         const { MssqlPoolQueryRunner } = await import('../../../src/queryRunners/MssqlPoolQueryRunner.js')
@@ -439,7 +438,7 @@ export function createMssqlPoolTestContext(spec: MssqlTestSpec): SqlServerTestCo
         database: 'sqlServer',
         realDbEnabled,
         async createRealRunner(forceNew = false) {
-            const container = await acquireContainer()
+            const container = await containers.getFor(image).acquire()
             const host = container.getHost()
             const port = container.getMappedPort(1433)
             const workerDb = await bootstrapWorkerDbSchemaAndSeed(host, port)
@@ -455,7 +454,7 @@ export function createMssqlPoolTestContext(spec: MssqlTestSpec): SqlServerTestCo
             await applyResetAndSeedOnPool(pool)
         },
         async onDown() {
-            await releaseContainer()
+            await containers.getFor(image).release()
         },
         buildConnection(interceptor, compatibilityVersion) {
             return new DBConnection(interceptor, compatibilityVersion)

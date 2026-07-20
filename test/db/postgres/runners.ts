@@ -17,7 +17,7 @@ import { Pool } from 'pg'
 import { isRealDbEnabled } from '../../lib/backends.js'
 import {
     BASE_WORKER_DB_NAME,
-    createContainerHandle,
+    createContainerRegistry,
     hashSqlFiles,
     memoizeSharedRunner,
     META_DB_NAME,
@@ -27,6 +27,7 @@ import {
     workerName,
     workerNameLikePattern,
 } from '../../lib/containerLifecycle.js'
+import { imageForCell, newestImage } from '../../lib/dockerImages.js'
 import { createTestContext, type TestContext } from '../../lib/testContext.js'
 import { CaptureInterceptor } from '../../lib/captureInterceptor.js'
 import type { QueryRunner } from '../../../src/queryRunners/QueryRunner.js'
@@ -119,32 +120,31 @@ const SEED_PATH = resolve(__dirname, './domain/seed.sql')
 // only for the once-per-worker bootstrap.
 const RESET_PATH = resolve(__dirname, './domain/reset.sql')
 
-const POSTGRES_IMAGE = 'postgres:18-alpine'
-
 // ---- Shared testcontainers postgres -------------------------------------
 //
 // The container is started lazily on the first acquire and kept alive for
 // the entire test process — see `test/lib/containerLifecycle.ts` for why.
 // `.withReuse()` is opted into via `TESTCONTAINERS_REUSE_ENABLE=true`, which
 // also keeps the container alive across separate `bun test` invocations.
-// `lockKey` serialises the first-acquire across worker processes so the
-// reuse-lookup-then-create dance in testcontainers (which holds only an
-// in-process lock) doesn't spawn duplicate containers under cold start.
+// The registry keys keep-alive handles by image, so the default run keeps one
+// container while a `closest` run can bring up an older image as a separate
+// keep-alive container (each with its own reuse hash / `lockKey`).
 
-const container = createContainerHandle<StartedPostgreSqlContainer>(async () => {
-    const builder = new PostgreSqlContainer(POSTGRES_IMAGE)
+const containers = createContainerRegistry<StartedPostgreSqlContainer>(async (image) => {
+    if (image !== newestImage(DATABASE)) {
+        console.error(`[docker-version] ${DATABASE}: using ${image}`)
+    }
+    const builder = new PostgreSqlContainer(image)
     if (reuseEnabled()) builder.withReuse()
     const started = await builder.start()
-    // Runs once per process (the factory is memoized by
-    // `createContainerHandle`). Validates the schema/seed hash against
-    // the meta DB and, when stale, drops every per-worker test DB so
-    // they get rebuilt cleanly. The advisory lock serialises this
-    // across workers running in parallel processes.
+    // Runs once per process per image (the factory is memoized by the
+    // registry). Validates the schema/seed hash against the meta DB and,
+    // when stale, drops every per-worker test DB so they get rebuilt
+    // cleanly. The advisory lock serialises this across workers running in
+    // parallel processes.
     await validateOrResetForReuse(started.getConnectionUri())
     return started
-}, { lockKey: POSTGRES_IMAGE })
-const acquireContainer = container.acquire
-const releaseContainer = container.release
+})
 
 /** Replace the database segment of a postgres connection URI. */
 function uriForDb(uri: string, dbName: string): string {
@@ -389,6 +389,10 @@ export function createPgTestContext(spec: PgTestSpec): PostgresTestContext {
     const version = spec.label.split(' / ')[0] ?? ''
     const connector = spec.label.split(' / ')[1] ?? ''
     const realDbEnabled = isRealDbEnabled(DATABASE, /* needsDocker */ true, version, connector)
+    // The image this cell runs against: the `newest` image by default, or this
+    // cell's own version-folder image under `--docker-version closest`. Handles
+    // are keyed by image in the registry.
+    const image = imageForCell(DATABASE, version, realDbEnabled)
     let workerUri: string | null = null
     // Memoise the spec's pool/connection so it lives for the worker
     // process, not per test file. The `setup.ts` factories don't have
@@ -408,7 +412,7 @@ export function createPgTestContext(spec: PgTestSpec): PostgresTestContext {
         database: 'postgreSql',
         realDbEnabled,
         async createRealRunner(forceNew = false) {
-            const container = await acquireContainer()
+            const container = await containers.getFor(image).acquire()
             const adminUri = container.getConnectionUri()
             workerUri = await bootstrapWorkerDbSchemaAndSeed(adminUri)
             // `forceNew` rebuilds a fresh runner (clean transaction state) when
@@ -427,7 +431,7 @@ export function createPgTestContext(spec: PgTestSpec): PostgresTestContext {
             if (nestedTxShutdown) { await nestedTxShutdown(); nestedTxShutdown = null }
             nestedTxConn = null
             workerUri = null
-            await releaseContainer()
+            await containers.getFor(image).release()
         },
         buildConnection(interceptor, compatibilityVersion) {
             return new DBConnection(interceptor, compatibilityVersion)
@@ -553,6 +557,7 @@ export function createBunSqlPostgresTestContext(spec: PgTestSpec): PostgresTestC
     const version = spec.label.split(' / ')[0] ?? ''
     const connector = spec.label.split(' / ')[1] ?? ''
     const realDbEnabled = isBun && isRealDbEnabled(DATABASE, /* needsDocker */ true, version, connector)
+    const image = imageForCell(DATABASE, version, realDbEnabled)
     let workerUri: string | null = null
     const buildRunner = memoizeSharedRunner(spec.createRealRunner)
 
@@ -564,14 +569,14 @@ export function createBunSqlPostgresTestContext(spec: PgTestSpec): PostgresTestC
         realDbEnabled,
         mockRunnerClass: MockBunSqlPostgresQueryRunner,
         async createRealRunner() {
-            const container = await acquireContainer()
+            const container = await containers.getFor(image).acquire()
             workerUri = await bootstrapWorkerDbSchemaAndSeed(container.getConnectionUri())
             return await buildRunner(workerUri)
         },
         onReseed: reseedAgainstNativePostgresHandle,
         async onDown() {
             workerUri = null
-            await releaseContainer()
+            await containers.getFor(image).release()
         },
         buildConnection(interceptor, compatibilityVersion) {
             return new DBConnection(interceptor, compatibilityVersion)

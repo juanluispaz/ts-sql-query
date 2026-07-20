@@ -292,3 +292,33 @@ export function createContainerHandle<C extends { stop: () => Promise<unknown> }
         },
     }
 }
+
+/**
+ * A registry of keep-alive container handles keyed by docker image. The default
+ * `--docker-version latest` run resolves every cell of an engine to the same
+ * image, so exactly one handle is ever created and this behaves identically to
+ * a single `createContainerHandle`. Under `--docker-version closest` a cell may
+ * resolve to an older image; the registry then keeps a SEPARATE keep-alive
+ * handle per distinct image (each with its own reuse hash / `lockKey`), so the
+ * newest and the version-specific container never collide on one singleton.
+ *
+ * The narrowing guardrails in `scripts/tests.sh` ensure a single run only ever
+ * selects ONE image per engine (a run must not span two versions of the same
+ * engine), so in practice the registry holds one entry per engine; the per-image
+ * keying is defence-in-depth that also keeps the model correct if that guardrail
+ * is ever relaxed.
+ */
+export function createContainerRegistry<C extends { stop: () => Promise<unknown> }>(
+    factory: (image: string) => Promise<C>,
+): { getFor(image: string): ContainerHandle<C> } {
+    const handles = new Map<string, ContainerHandle<C>>()
+    return {
+        getFor(image: string): ContainerHandle<C> {
+            const existing = handles.get(image)
+            if (existing !== undefined) return existing
+            const handle = createContainerHandle<C>(() => factory(image), { lockKey: image })
+            handles.set(image, handle)
+            return handle
+        },
+    }
+}

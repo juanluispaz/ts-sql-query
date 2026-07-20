@@ -20,6 +20,7 @@ Usage:
                    [--native [all|none|newest|<coord>]]…
                    #   · engine / runtime controls:
                    [--docker-mode <reuse|no-reuse>]
+                   [--docker-version <latest|closest>]
                    [--use-vitest] [--ui]
                    # Reports & coverage:
                    [--report    [--report-format <name>]…]
@@ -158,6 +159,7 @@ Defaults
   --wasm             none (WASM cells run mock; bare --wasm = all)
   --native           all  (native SQLite runs real; --native none = mock)
   --docker-mode      reuse  (containers stay alive between invocations)
+  --docker-version   latest (closest = version-appropriate image per cell)
   --use-vitest       off (runtime detected from npm_config_user_agent)
   --ui               off (implies --use-vitest)
   --report           off (test-execution report)
@@ -242,6 +244,21 @@ Runner flags
         reuse:    sets TESTCONTAINERS_REUSE_ENABLE=true. Containers
                   persist across invocations — preferred for local dev.
         no-reuse: fresh containers every run. Hermetic; CI baseline.
+  --docker-version <latest|closest>       (default: latest)
+        latest:   every real docker cell runs against the engine's latest
+                  pinned image (the normal behaviour).
+        closest:  each real docker cell runs against the image whose engine
+                  version is the closest match for its compatibilityVersion —
+                  so you can confirm a cell's version-specific SQL runs on a
+                  real engine of that version (e.g. postgres/oldest on a real
+                  PostgreSQL 17 instead of 18). The mapping lives in
+                  test/lib/dockerImages.ts (indexed by the documented
+                  compatibility breakpoints — no per-cell config).
+                  NARROW BY DESIGN: requires focused coords and at most one
+                  <version> folder per engine, because the older images are
+                  separate containers that must not all start at once. Run one
+                  version per engine per invocation:
+                    npm run tests -- postgres/oldest/pg --docker --docker-version closest
   --use-vitest
         Force vitest even if invoked via `bun run`. The test process
         runs under Node; vitest's richer V8 coverage and full
@@ -506,6 +523,13 @@ EOF
 COORDS=()
 MODE=parallel
 DOCKER_MODE=reuse
+# `latest` (default): every real docker cell runs against the engine's latest
+# pinned image. `closest`: each real docker cell runs against the image whose
+# engine version is the closest match for its compatibilityVersion (resolved in
+# test/lib/dockerImages.ts). `closest` is NARROW by design — see the guardrails
+# below — because the older images are separate containers that would exceed the
+# Docker memory budget if started for the whole matrix at once.
+DOCKER_VERSION=latest
 # Axis 1 — participation post-filters on the coordinate set (what RUNS).
 RUN_VERSIONS=all      # was --run-versions
 RUN_CONNECTORS=all    # was --run-connectors
@@ -551,6 +575,8 @@ while [ $# -gt 0 ]; do
         --mode=*)               MODE="${1#--mode=}"; shift ;;
         --docker-mode)          DOCKER_MODE="$2"; shift 2 ;;
         --docker-mode=*)        DOCKER_MODE="${1#--docker-mode=}"; shift ;;
+        --docker-version)       DOCKER_VERSION="$2"; shift 2 ;;
+        --docker-version=*)     DOCKER_VERSION="${1#--docker-version=}"; shift ;;
         --run-versions)         RUN_VERSIONS="$2"; shift 2 ;;
         --run-versions=*)       RUN_VERSIONS="${1#--run-versions=}"; shift ;;
         --run-connectors)       RUN_CONNECTORS="$2"; shift 2 ;;
@@ -640,6 +666,9 @@ esac
 case "$DOCKER_MODE" in reuse|no-reuse) ;; *)
     echo "Invalid --docker-mode: $DOCKER_MODE (expected reuse|no-reuse)" >&2; exit 2 ;;
 esac
+case "$DOCKER_VERSION" in latest|closest) ;; *)
+    echo "Invalid --docker-version: $DOCKER_VERSION (expected latest|closest)" >&2; exit 2 ;;
+esac
 case "$RUN_VERSIONS" in all|newest) ;; *)
     echo "Invalid --run-versions: $RUN_VERSIONS (expected all|newest)" >&2; exit 2 ;;
 esac
@@ -712,6 +741,19 @@ resolve_kind_real wasm none "${WASM_TOKENS[@]}" || exit $?
 WASM_MODE_SEL="$REAL_MODE"; WASM_CELLS="$REAL_CELLS"
 resolve_kind_real native all "${NATIVE_TOKENS[@]}" || exit $?
 NATIVE_MODE_SEL="$REAL_MODE"; NATIVE_CELLS="$REAL_CELLS"
+
+# --docker-version closest guardrails (narrow-by-design, memory-bounded):
+#   1) requires positional coords — never a full-matrix run, and
+#   2) needs ≥1 real docker cell with at most one <version> folder per engine.
+# See test/ENGINE_LIFECYCLE.md § version-specific docker (--docker-version).
+if [ "$DOCKER_VERSION" = "closest" ]; then
+    if [ "$FOCUSED" = "off" ]; then
+        echo "Error: --docker-version closest requires focused coords (it is not for full-matrix runs)." >&2
+        echo "  e.g. npm run tests -- postgres/oldest/pg --docker --docker-version closest" >&2
+        exit 2
+    fi
+    assert_closest_docker_ok || exit 2
+fi
 
 # --list-cells: print the connector-level cells the current
 # coords/scope/connections select, one per line, then exit without
@@ -813,6 +855,9 @@ NATIVE_ENV="$(kind_env_value "$NATIVE_MODE_SEL" "$NATIVE_CELLS")"
 WASM_REAL=off; [ "$WASM_MODE_SEL" != "none" ] && WASM_REAL=on
 export TS_SQL_QUERY_DOCKER="$DOCKER_ENV"
 export TS_SQL_QUERY_NATIVE="$NATIVE_ENV"
+# latest (default) | closest — read by test/lib/dockerImages.ts to pick the
+# version-appropriate image per cell. Guardrails above already validated it.
+export TS_SQL_QUERY_DOCKER_VERSION="$DOCKER_VERSION"
 if [ "$DOCKER_MODE" = "reuse" ]; then export TESTCONTAINERS_REUSE_ENABLE=true; fi
 
 # Docker preflight + warmup (reuse mode only). Before the parallel pass kicks

@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url'
 import { isRealDbEnabled } from '../../lib/backends.js'
 import {
     BASE_ORACLE_USER,
-    createContainerHandle,
+    createContainerRegistry,
     hashSqlFiles,
     memoizeSharedRunner,
     META_DB_NAME,
@@ -25,6 +25,7 @@ import {
     workerName,
     workerNameLikePattern,
 } from '../../lib/containerLifecycle.js'
+import { imageForCell, newestImage } from '../../lib/dockerImages.js'
 import { createTestContext, type TestContext } from '../../lib/testContext.js'
 import { DBConnection } from './domain/connection.js'
 
@@ -109,7 +110,6 @@ const SEED_PATH = resolve(__dirname, './domain/seed.sql')
 // every worker user shares one instance's data dictionary.
 const RESET_PATH = resolve(__dirname, './domain/reset.sql')
 
-const ORACLE_IMAGE = 'gvenzl/oracle-free:23-slim-faststart'
 const ORACLE_PASSWORD = 'OracleTestPass1!'
 const SERVICE_NAME = 'FREEPDB1'
 // Oracle has no separate "database" concept per test — each user owns a
@@ -135,9 +135,12 @@ type StartedContainer = {
 // serialises the first-acquire across worker processes so the
 // reuse-lookup-then-create dance in testcontainers (which holds only an
 // in-process lock) doesn't spawn duplicate containers under cold start.
-const container = createContainerHandle<StartedContainer>(async () => {
+const containers = createContainerRegistry<StartedContainer>(async (image) => {
+    if (image !== newestImage(DATABASE)) {
+        console.error(`[docker-version] ${DATABASE}: using ${image}`)
+    }
     const { GenericContainer, Wait } = await import('testcontainers')
-    const builder = new GenericContainer(ORACLE_IMAGE)
+    const builder = new GenericContainer(image)
         .withEnvironment({
             ORACLE_PASSWORD,
         })
@@ -146,15 +149,13 @@ const container = createContainerHandle<StartedContainer>(async () => {
         .withStartupTimeout(300_000)
     if (reuseEnabled()) builder.withReuse()
     const started = (await builder.start()) as unknown as StartedContainer
-    // Runs once per process. Validates the schema/seed hash against the
-    // meta user and, when stale, drops every per-worker user (and the
+    // Runs once per process per image. Validates the schema/seed hash against
+    // the meta user and, when stale, drops every per-worker user (and the
     // meta user) so they get rebuilt cleanly. `DBMS_LOCK.request`
     // serialises this across workers running in parallel processes.
     await validateOrResetForReuse(started.getHost(), started.getMappedPort(1521))
     return started
-}, { lockKey: ORACLE_IMAGE })
-const acquireContainer = container.acquire
-const releaseContainer = container.release
+})
 
 async function validateOrResetForReuse(host: string, port: number): Promise<void> {
     const [schemaSql, seedSql] = await Promise.all([
@@ -424,6 +425,7 @@ export function createOracleDBPoolTestContext(spec: OracleTestSpec): OracleTestC
     const version = spec.label.split(' / ')[0] ?? ''
     const connector = spec.label.split(' / ')[1] ?? ''
     const realDbEnabled = isRealDbEnabled(DATABASE, /* needsDocker */ true, version, connector)
+    const image = imageForCell(DATABASE, version, realDbEnabled)
     const buildRunner = memoizeSharedRunner(async (params: { host: string; port: number; workerUser: string }) => {
         const oracledb = (await import('oracledb')).default
         const { OracleDBPoolQueryRunner } = await import('../../../src/queryRunners/OracleDBPoolQueryRunner.js')
@@ -485,7 +487,7 @@ export function createOracleDBPoolTestContext(spec: OracleTestSpec): OracleTestC
         realDbEnabled,
         timeoutMs: 300_000,
         async createRealRunner(forceNew = false) {
-            const container = await acquireContainer()
+            const container = await containers.getFor(image).acquire()
             const host = container.getHost()
             const port = container.getMappedPort(1521)
             const workerUser = await bootstrapWorkerUserSchemaAndSeed(host, port)
@@ -507,7 +509,7 @@ export function createOracleDBPoolTestContext(spec: OracleTestSpec): OracleTestC
             }
         },
         async onDown() {
-            await releaseContainer()
+            await containers.getFor(image).release()
         },
         buildConnection(interceptor, compatibilityVersion) {
             return new DBConnection(interceptor, compatibilityVersion)

@@ -39,6 +39,7 @@ Images matched:
   mariadb*
   mysql:*
   gvenzl/oracle-free*
+  gvenzl/oracle-xe*
   mcr.microsoft.com/mssql/server*
   testcontainers/ryuk*
 EOF
@@ -58,6 +59,7 @@ image_prefixes=(
     'mariadb'
     'mysql:'
     'gvenzl/oracle-free'
+    'gvenzl/oracle-xe'
     'mcr.microsoft.com/mssql/server'
     'testcontainers/ryuk'
 )

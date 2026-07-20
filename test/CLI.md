@@ -86,6 +86,7 @@ Orthogonal — combine freely (except for the [Forbidden combinations](#forbidde
 | `--native [all\|none\|newest\|<coord>]`… | Same vocabulary and coord rules as `--docker` (repeat the flag for several coords — see note below), for the native SQLite drivers (better-sqlite3, bun_sqlite, node_sqlite, sqlite3). `--native none` forces them to the mock — the cheap way to make a run fully mock. | `all` (real) |
 | **Engine / runtime controls (neither axis — container lifecycle and runtime, not which cells run or which are real)** | | |
 | `--docker-mode <reuse\|no-reuse>` | Container reuse policy. `reuse` sets `TESTCONTAINERS_REUSE_ENABLE=true`, keeps containers alive between invocations, and (in reuse mode only) runs a **docker preflight** before the test phases: a memory-budget check + a sequential cold-start warmup of the engines the run will hit, so they don't all start at once and OOM-kill each other on an under-provisioned host. `no-reuse` is hermetic and skips the preflight. See [`ENGINE_LIFECYCLE.md` § Docker preflight & sequential warmup](./ENGINE_LIFECYCLE.md#docker-preflight--sequential-warmup). The memory check **aborts the run** (exit 3, with how to raise the memory) when Docker is short — set `TSSQLQUERY_DOCKER_MEMORY_STRICT=0` to downgrade it to a warning and proceed. | `reuse` |
+| `--docker-version <latest\|closest>` | Which image a real docker cell runs against. `latest` (default) uses the database's `newest` image for every cell. `closest` runs each real docker cell against **its own version folder's** image (e.g. `postgres/oldest` on a real PostgreSQL 17 instead of 18), so version-specific SQL can be confirmed on a real engine of that version. The map mirrors the version folders on disk — `ENGINE_IMAGES[<db>][<version>]` in [`test/lib/dockerImages.ts`](./lib/dockerImages.ts), one hand-maintained image per folder (the image may be a different repo); a version folder with no entry is a **hard error** (fails loud), and adding a tier means adding one entry — see [`ENGINE_LIFECYCLE.md` § Adding a version tier](./ENGINE_LIFECYCLE.md#adding-a-version-tier--the-maintenance-step). **Narrow by design**: `closest` also requires focused coords and at most one `<version>` folder per engine (older images are separate containers that must not all start at once). | `latest` |
 | `--mode <parallel\|sequential>` | Parallel uses one worker per logical core (minus reserved); sequential runs everything in one worker. | `parallel` |
 | `--use-vitest` | Force vitest runtime even under `bun run`. Implied by `--ui`. | off |
 | `--ui` | Launch `@vitest/ui` (implies `--use-vitest`). | off |
@@ -181,6 +182,10 @@ npm run tests -- --docker postgres/newest/pg
 
 # Hermetic — fresh containers every run. CI baseline.
 npm run tests -- --docker --docker-mode no-reuse
+
+# Confirm a cell's version-specific SQL on a real engine of that version
+# (postgres/oldest → a real PostgreSQL 17). Focused + one version per engine.
+npm run tests -- postgres/oldest/pg --docker --docker-version closest
 
 # Fully mocked — even native SQLite routed through the mock.
 npm run tests -- --native none

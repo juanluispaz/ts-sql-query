@@ -25,12 +25,13 @@ reuses this tool's [`db.ts`](db.ts) (its read-only `openIndexDbReadonly`) and
 ## Build it
 
 ```bash
-npm run tests:index                          -- # preferred (precise, type-resolved)
+npm run tests:index:newest                   -- # preferred day-to-day: newest cells only (low RAM/fast, type-resolved)
+npm run tests:index                          -- # full index: all version tiers + domain (precise, type-resolved; heavier RAM)
 npm run tests:index -- -- --no-resolve          # name-based, low-memory / fast build
 npm run tests:index:verify                   -- # structural smoke test of the extractors (~4 s)
 # or, directly:
-bun test/lib/codeIndexer/build.ts [--out <path>] [--no-resolve]
-npx tsx test/lib/codeIndexer/build.ts [--out <path>] [--no-resolve]   # under Node
+bun test/lib/codeIndexer/build.ts [--newest] [--out <path>] [--no-resolve]
+npx tsx test/lib/codeIndexer/build.ts [--newest] [--out <path>] [--no-resolve]   # under Node
 ```
 
 **`--no-resolve`** (experimental, internal — **not** part of the searcher's documented usage) skips the

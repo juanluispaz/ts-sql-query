@@ -51,7 +51,8 @@ tests on the first wave.
    and going straight to `grep` is the pattern that recently lost
    `Table.ts` from a bug fix — the entry listed two files; `--declared
    full` would have listed the three. Refresh the index at session start:
-   `npm run tests:index`.
+   `npm run tests:index:newest` (newest cells — low RAM, the day-to-day default;
+   use the full `npm run tests:index` only when a query must reach an older tier).
 3. **[`DESIGN.md`](./DESIGN.md)** in full — the normative core. Pay
    specific attention to:
    - § Real-DB validation — the `mock-validated` vs `real-validated`
@@ -229,7 +230,8 @@ artifact. See [`CODE_SEARCH.md`](./CODE_SEARCH.md) for the full report
 shape and [`ANTIPATTERNS.md` § Hallucinated API](./ANTIPATTERNS.md#5-hallucinated-api)
 for context.
 
-If the index isn't built yet, run `npm run tests:index` first.
+If the index isn't built yet, run `npm run tests:index:newest` first (or the
+full `npm run tests:index` when you need older-tier cells).
 A bare `grep -rn "<api-symbol>\b" src/` is an acceptable fallback when
 the index is unavailable — same exit rule (no hits → hallucination).
 
@@ -565,10 +567,10 @@ Once the canonical is GREEN/YELLOW, propagate via a small `cp` script (or
 
 7. **Typecheck**:
    ```bash
-   npm run validate:tests
+   npm run validate:tests:per-db   # whole-matrix validate:tests now OOMs (>17 GB in tsgo); the per-db split is what CI gates
    npm run validate:tests:tsc
    ```
-   Both must pass. Errors often signal that the cell's connection type
+   Both must pass. (For the inner edit loop use `npm run validate:tests:newest`.) Errors often signal that the cell's connection type
    rejects an API used in the test — re-check whether the right answer is
    "this dialect doesn't support it" (block-comment with
    `// NOT-APPLICABLE: <reason>`), "the lib hasn't covered it yet"
@@ -580,7 +582,7 @@ Once the canonical is GREEN/YELLOW, propagate via a small `cp` script (or
 In order:
 
 1. `npm run tests:audit` — symmetry, must be green.
-2. `npm run validate:tests` (tsgo) — must be green.
+2. `npm run validate:tests:per-db` (tsgo) — must be green. (Whole-matrix `validate:tests` now OOMs, >17 GB; the per-db split is the RAM-safe path CI gates.)
 3. `npm run validate:tests:tsc` — must be green.
 4. `npm run tests` — full mock matrix end to end, must be green.
 5. **Report to the user** with the new vocabulary:
@@ -635,7 +637,7 @@ In order:
 ## Operational rules
 
 - **Use `npm run …` for everything** — the matrix, coverage, and the helpers
-  (`tests:index`, `tests:where-is`, `validate:tests`). One consistent runtime
+  (`tests:index`, `tests:where-is`, `validate:tests:per-db`). One consistent runtime
   avoids confusing the agent; the matrix under vitest (`isolate:false`) is faster
   incl. ~20× on `--docker` (bun rebuilds each cell's DB pool per file; see
   [`BENCHMARKS.md`](./BENCHMARKS.md)), coverage is vitest-only anyway, and for the

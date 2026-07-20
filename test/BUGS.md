@@ -26,7 +26,9 @@ skipped — internalise it before any `grep` or `Read` over `src/`:
    declarations, overload sites, type-arg blast radius, call-chain,
    neg-types, cell caveats) and when `grep` / the compiler still win
    (literal prose, byte-anchored edits, assignability decisions).
-2. **Refresh the index**: `npm run tests:index` (gitignored).
+2. **Refresh the index**: `npm run tests:index:newest` (gitignored; the newest-cells
+   index — low RAM. Use the full `npm run tests:index` only when chasing a
+   version-specific bug in an older-tier cell).
 3. **Treat the entry's `Where:` / `Reproduction:` lines as starting
    points, not ground truth.** The test author wrote them from what
    they saw; the searcher gives you every declaration site, every

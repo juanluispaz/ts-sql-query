@@ -1,0 +1,30 @@
+{
+    // Newest-only slice of the WHOLE test matrix for `validate:tests:newest`, in a
+    // SINGLE tsgo program (not the per-db split of ./tsconfig.<db>.json). It keeps
+    // the version set the agent works with day-to-day — every db's `newest/` +
+    // `types.negative/` (mirrors the runner's `--run-versions newest`), plus the
+    // shared infra (lib, templates, db/general, each db's runners.ts) and src —
+    // and drops the older version tiers (oldest/, 8_000_000/, …) and domain/.
+    //
+    // A single program over the newest set fits in far less RAM than the full
+    // whole-matrix `validate:tests` (which now peaks past 17 GB in tsgo and OOMs):
+    // the older tiers + domain are exactly the bulk that pushes it over, so newest
+    // peaks ~6 GB — comfortably in RAM. One invocation, one pass/fail: it's the
+    // fast inner typecheck loop. (Wall time is a touch slower than the 6-way
+    // `validate:tests:per-db` split, whose small per-db programs parallelise
+    // better, but the single pass is simpler and its RAM headroom is the point.)
+    // The full per-db `validate:tests:per-db` stays the pre-push / CI gate.
+    //
+    // The newest set is expressed by INCLUDE, so a newly added version-tier folder
+    // is auto-excluded here with no edit.
+    "extends": "./tsconfig.json",
+    "include": [
+        "lib/**/*.ts",
+        "templates/**/*.ts",
+        "db/general/**/*.ts",
+        "db/*/newest/**/*.ts",
+        "db/*/types.negative/**/*.ts",
+        "db/*/runners.ts",
+        "../src/**/*.ts"
+    ]
+}

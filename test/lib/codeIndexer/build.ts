@@ -50,7 +50,7 @@ const BATCH_SIZE = 250_000
  *     716 s: it is paging, and the variance swamps the effect). Re-measure on a box with
  *     real headroom before trusting it, and flip it with `--sink true` if it looks wrong.
  */
-function parseArgs(argv: string[]): { out: string, resolve: boolean, batch: number } {
+function parseArgs(argv: string[]): { out: string, resolve: boolean, batch: number, newestOnly: boolean } {
     const i = argv.indexOf('--out')
     const s = argv.indexOf('--sink')
     let sink: boolean
@@ -65,6 +65,9 @@ function parseArgs(argv: string[]): { out: string, resolve: boolean, batch: numb
         out: i >= 0 && argv[i + 1] ? argv[i + 1]! : DEFAULT_OUT,
         resolve: !argv.includes('--no-resolve'),
         batch: sink ? BATCH_SIZE : Infinity,
+        // --newest = index only the newest set (drop older version tiers + domain);
+        // lower-RAM/faster build the agent uses day-to-day. See scripts/tests-index.sh --help.
+        newestOnly: argv.includes('--newest'),
     }
 }
 
@@ -86,7 +89,7 @@ function gitInfo(): { rev: string | null, dirty: boolean } {
 }
 
 async function main(): Promise<void> {
-    const { out, resolve, batch } = parseArgs(process.argv.slice(2))
+    const { out, resolve, batch, newestOnly } = parseArgs(process.argv.slice(2))
     setResolveEnabled(resolve)   // --no-resolve → name-based, low-memory build (resolved_*_id NULL)
     const pct = (rows: Resolvable[]): string => resolve ? resolvedPct(rows) : 'name-based'
     const t0 = performance.now()
@@ -95,7 +98,9 @@ async function main(): Promise<void> {
     // ONE unified TypeScript build over src/ + test/ (test/tsconfig.json includes both).
     // Every extractor reads its complete, COMPILED source files from this Program and
     // resolves references through its checker — nothing is parsed in isolation.
-    const { program, checker } = buildProgram()
+    // --newest narrows the program to the newest set (drops older version tiers + domain),
+    // a lower-RAM/faster index; the older-tier test cells are simply absent from it.
+    const { program, checker } = buildProgram({ newestOnly })
     const tProgram = performance.now()
 
     mkdirSync(dirname(out), { recursive: true })
@@ -112,6 +117,10 @@ async function main(): Promise<void> {
         ['git_dirty', git.dirty ? '1' : '0'],
         ['resolve', resolve ? 'resolved' : 'name-based'],
         ['rows', Number.isFinite(batch) ? `streamed/${batch}` : 'buffered'],
+        // Which slice of the matrix this index covers: `full` (whole matrix) or
+        // `newest` (older version tiers + domain dropped). Lets a consumer tell a
+        // reduced index apart from a full one before trusting an absence of hits.
+        ['scope', newestOnly ? 'newest' : 'full'],
         ['tool', 'code-indexer'],
     ]
     db.insertMany(INSERTS.meta.sql, meta, ([key, value]) => INSERTS.meta.row({ key, value }))
@@ -194,7 +203,7 @@ async function main(): Promise<void> {
     const tWrite = performance.now()
 
     console.log(`code index → ${out}  [${backend}]`)
-    console.log(`  build:       ${git.rev ? git.rev.slice(0, 8) : '(no git)'}${git.dirty ? '-dirty' : ''} · ${resolve ? 'resolved' : 'name-based'} · schema v${SCHEMA_VERSION}`)
+    console.log(`  build:       ${git.rev ? git.rev.slice(0, 8) : '(no git)'}${git.dirty ? '-dirty' : ''} · ${resolve ? 'resolved' : 'name-based'} · scope: ${newestOnly ? 'newest' : 'full'} · schema v${SCHEMA_VERSION}`)
     for (const l of lines) console.log(l)
     console.log(`  program: ${(tProgram - t0).toFixed(0)} ms · extract+write: ${(tWrite - tProgram).toFixed(0)} ms · total: ${(tWrite - t0).toFixed(0)} ms`)
 }

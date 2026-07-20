@@ -25,7 +25,7 @@ and [`schema.ts`](../codeIndexer/schema.ts) (the `SCHEMA_VERSION` it gates on).
 > own/full + span, the precise chain, the `bare` preset, not-found), run against the built index and
 > **skipped** when it isn't there. Volatile line numbers are **derived from the index**, never
 > hard-coded, so unrelated edits don't break it. It is **not** a `*.test.ts`, so the `test/` matrix never
-> collects it; run it on demand. Validate types with `npm run validate:tests` (tsgo) / `:tsc`.
+> collects it; run it on demand. Validate types with `npm run validate:tests:per-db` (tsgo) / `:tsc`.
 
 > **Just want to USE it?** Read [`test/CODE_SEARCH.md`](../../CODE_SEARCH.md) instead —
 > the agent-facing usage doc. This file is the **implementation reference** (modules,

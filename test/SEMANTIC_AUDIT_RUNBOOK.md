@@ -52,7 +52,10 @@ Before launching anything:
 
 1. **[`CODE_SEARCH.md`](./CODE_SEARCH.md)** in full — the searcher is how you
    enumerate every spelling of a concept across dialects, which is lens #2 and
-   the highest-yield one. Refresh the index: `npm run tests:index`.
+   the highest-yield one. Refresh the index: `npm run tests:index` — the **full**
+   index here, NOT the lighter `tests:index:newest`: this audit enumerates every
+   spelling of a concept across all dialect/version cells, so it needs the older
+   tiers indexed too.
 2. **[`BUGS.md`](./BUGS.md)** — every open entry, and the *Coverage gaps carried
    over* section. An entry's `Where:` / `Reproduction:` lines are **starting
    points, not ground truth** — see [below](#where-the-round-before-you-was-wrong).

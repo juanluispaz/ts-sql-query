@@ -45,8 +45,8 @@ npm run codegen               # umbrella: codegen:prisma + codegen:doc-code (wha
 
 Wrapper: [`scripts/codegen-doc-code.sh`](../scripts/codegen-doc-code.sh)
 (`--help` prints the full behaviour). The generated files are type-checked by
-`npm run validate:tests` (tsgo) and `npm run validate:tests:tsc` (tsc); the
-non-v1 CI runs `codegen` before `validate:tests`.
+`npm run validate:tests:per-db` (tsgo) and `npm run validate:tests:tsc` (tsc); the
+non-v1 CI runs `codegen` before `validate:tests:per-db`.
 
 ## Run the SQL tests
 

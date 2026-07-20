@@ -210,7 +210,7 @@ re-validate" loop benefits the most. Full flag reference in
 
    ```bash
    npm run tests:audit         -- # mechanical anti-cheat gate (symmetry + ~24 rules)
-   npm run validate:tests      # typecheck ✓ (tsgo)
+   npm run validate:tests:per-db  # typecheck ✓ (tsgo; whole-matrix validate:tests now OOMs — use validate:tests:newest for the fast loop)
    npm run tests               -- # mock matrix ✓
    ```
 
@@ -252,9 +252,9 @@ test('postgres-negative-types', () => {
   from firing.
 - Each `// @ts-expect-error` MUST be paired with a one-line comment naming
   the rule it enforces.
-- `npm run validate:tests` (or `validate:tests:tsgo`) is the real
-  assertion. If a directive becomes "unused", the build fails — exactly the
-  regression signal we want.
+- `npm run validate:tests:per-db` (or `validate:tests:newest` for the fast loop)
+  is the real assertion. If a directive becomes "unused", the build fails —
+  exactly the regression signal we want.
 - The `types.negative/` folder is **not** part of the cell matrix and is
   skipped by `tests:audit`.
 
@@ -278,6 +278,22 @@ negative test is the second step of fixing a typing bug (see
 TypeScript 7 Go-based compiler) and is the **authoritative** check for the
 `test/` matrix. `npm run validate:tests:tsc` runs `tsc -p test/tsconfig.tsc.json --noEmit`
 as a sub-experience.
+
+> **RAM: don't run the whole-matrix `validate:tests`.** One tsgo program over
+> `test/tsconfig.json` + `src/` now peaks **past 17 GB in tsgo** as the suite
+> grows, so it OOMs on 16 GB CI runners and most dev boxes. Two RAM-safe paths:
+> - **Full check → `npm run validate:tests:per-db`** — one tsgo program per
+>   database (peak = the single largest slice, not the sum), which is what CI
+>   gates. Use it before pushing.
+> - **Inner edit loop → `npm run validate:tests:newest`** — a SINGLE tsgo
+>   program (`test/tsconfig.newest.json`) narrowed to every db's `newest` +
+>   `types.negative` cells (drops the older version tiers + `domain/`, mirroring
+>   `--run-versions newest`). It peaks ~6 GB and compiles `src/` once, so it fits
+>   in RAM easily. A green newest run says nothing about the older tiers, so run
+>   the full `validate:tests:per-db` before pushing.
+>
+> The newest set is expressed by INCLUDE in `test/tsconfig.newest.json`, so a
+> newly added version-tier folder is auto-excluded there with no edit.
 
 The role split applies only to tests because tests don't ship — there's no
 downstream tsc-compat obligation, so the agent's default loop gets tsgo's
@@ -645,7 +661,7 @@ behaviour was documented on.
 6. **Comment out (do not delete)** any test that does not apply to a cell,
    with a one-line reason above the `/* … */` block. The body stays
    verbatim per the [Full-canonical-body discipline](./DESIGN.md#full-canonical-body).
-7. **Verify**: `tests:audit`, `validate:tests`, `tests`.
+7. **Verify**: `tests:audit`, `validate:tests:per-db`, `tests`.
 
 ## When a test surfaces a bug in `src/`
 

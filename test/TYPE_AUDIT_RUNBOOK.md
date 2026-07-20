@@ -102,7 +102,8 @@ audit is only as good as the rules the discovery agents carry.
 5. **[`CODE_SEARCH.md`](./CODE_SEARCH.md)** § "This tool vs. textual search" —
    so you know the dividing line: **discovery never uses the searcher** (see
    §6), but coordinator *coverage-checking* and *reachability* questions do.
-   Refresh the index once at session start: `npm run tests:index`.
+   Refresh the index once at session start: `npm run tests:index` — the **full**
+   index (see the pre-flight note below), NOT the lighter `tests:index:newest`.
 6. **[`BUGS.md`](./BUGS.md)** + **[`LIMITATIONS.md`](./LIMITATIONS.md)** —
    every entry. A "missing test" that is actually a known bug or a declared
    library limitation is not a gap. A divergence this audit *finds* goes to
@@ -125,7 +126,9 @@ surface list in **this** file is a snapshot.
    today's matrix. Reference cell is still `postgres/newest/pg/` unless this
    prints otherwise.
 2. `npm run tests:index` — the semantic index, for coverage-checking
-   and reachability later. (Discovery itself is raw reading; the index is not
+   and reachability later. Use the **full** index, not `tests:index:newest`:
+   coverage-checking spans every version cell, so a newest-only index would
+   under-report older-tier coverage. (Discovery itself is raw reading; the index is not
    needed for it — so if the build fails, don't block the fan-out; grep +
    compile-repro are the authoritative §7 verifiers anyway. On a failed build,
    `scripts/tests-index.sh --help` documents the fallbacks.)
@@ -600,10 +603,11 @@ fires). The coordinator is the adjudicator.
      `assertType<Exact<typeof x, …>>()`; to disambiguate which of two rules /
      overloads fires, write *both* hypotheses as separate `assertType` lines and
      see which errors.
-   - `npm run validate:tests 2>&1 | grep <reprofile>` — no error means the
+   - `npm run validate:tests:newest 2>&1 | grep <reprofile>` — no error means the
      chain typechecks and the asserted type holds; an error reveals the actual.
-     (`validate:tests` runs **tsgo** over `test/tsconfig.json`; under `npm` it
-     needs the separator: `npm run validate:tests --`. Full command/flag
+     (`validate:tests:newest` runs **tsgo** in a single program over just the newest cells —
+     ~6 GB/fast, and your repro lives in a `newest` cell; the whole-matrix `validate:tests`
+     now OOMs, >17 GB. Full command/flag
      vocabulary — `tests <coord>`, the runner flags — is in [`CLI.md`](./CLI.md).)
    - **Delete the repro and confirm `git status --porcelain` is clean.** (This
      recipe once proved `shapedAs().set().onConflictOn(c).doUpdateDynamicSet()`
@@ -1208,7 +1212,7 @@ or does the composition remove/replace it?**
 
 ## Operational rules
 
-- **Use `npm run …` for everything** — `validate:tests`/`:tsgo`, `tests:where-is`,
+- **Use `npm run …` for everything** — `validate:tests:per-db` / `validate:tests:newest`, `tests:where-is`,
   `tests:index`, and the matrix itself. One consistent runtime avoids confusing
   the agent; for the compiler/searcher helpers the launcher is a no-op (same tsgo,
   same index), and for the matrix vitest (`isolate:false`) is faster incl. ~20× on

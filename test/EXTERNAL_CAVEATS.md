@@ -253,8 +253,8 @@ When any of these are added to the main matrix:
    one-line reason. Cross-reference the dialect notes above so you
    don't re-discover constraints already characterised in another
    cell of the same database.
-5. Run `npm run tests:audit` and `npm run validate:tests` before
-   merging.
+5. Run `npm run tests:audit` and `npm run validate:tests:per-db` before
+   merging (the whole-matrix `validate:tests` now OOMs, >17 GB in tsgo).
 
 ## Connection-subclass patterns not testable in the shared domain
 
@@ -318,8 +318,8 @@ itself; the `if (ctx.realDbEnabled)` switch already covers it.
 3. **Triage** compile errors against the dialect notes above. Cell
    that matches the new dialect on commented tests usually points to
    the same restriction.
-4. **Re-run** `npm run validate:tests:tsgo` (fast) and `bun run
-   validate:tests` (authoritative) — both must be clean before
+4. **Re-run** `npm run validate:tests:newest` (fast) and `npm run
+   validate:tests:per-db` (authoritative) — both must be clean before
    committing.
 5. **Run** `npm run tests:audit`; symmetry must be intact.
 6. **If the new connector exposes a real DB** (docker or in-process),

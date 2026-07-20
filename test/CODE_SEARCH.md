@@ -272,7 +272,8 @@ explicit `--cell-caveats` still overrides.
 the index once** before the first search and refresh it when stale:
 
 ```bash
-npm run tests:index                  -- # build / refresh the index
+npm run tests:index:newest           -- # build / refresh the index — newest cells only (low RAM, the session default)
+npm run tests:index                  -- # full index (all version tiers + domain) — heavier; only when a query must reach an older tier
 ```
 
 ## When you'd use it

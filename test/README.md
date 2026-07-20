@@ -167,7 +167,9 @@ Then, for the round-shaping presets:
 | Add a `@ts-expect-error` rule, consistent with existing locks | `--neg-types full` | [`WRITING_TESTS.md` § Negative type tests](./WRITING_TESTS.md#negative-type-tests) |
 | Browse declared caveats on cells (all three categories per cell: `NOT-APPLICABLE`, `TODO[BUG]`, `TODO[LIMITATION]`) | `--cell-caveats summary` (or `full` with `--coord`) | [`LIMITATIONS.md`](./LIMITATIONS.md), [`EXTERNAL_CAVEATS.md`](./EXTERNAL_CAVEATS.md), [`ANTIPATTERNS.md` § Blind copy](./ANTIPATTERNS.md#3-blind-copy-to-bun_sql_postgres) |
 
-`npm run tests:index` builds the underlying index (gitignored).
+`npm run tests:index:newest` builds the underlying index for the newest cells
+(gitignored, low RAM — the day-to-day default); `npm run tests:index` builds the
+full index (all version tiers + domain) when a query must reach an older tier.
 The implementation references under `lib/codeSearcher/` and
 `lib/codeIndexer/` are for the agent **modifying** the tools, not for
 the agent consuming them.
@@ -257,7 +259,7 @@ npm run tests -- postgres/newest/pg --update-snapshots
 npm run tests -- --list-cells
 
 # Pre-push sanity sweep.
-npm run tests:audit -- && npm run validate:tests && npm run tests
+npm run tests:audit -- && npm run validate:tests:per-db && npm run tests
 
 # Full real matrix (the user's confidence check).
 npm run tests -- --docker --wasm

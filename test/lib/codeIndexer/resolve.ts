@@ -21,12 +21,53 @@ export interface BuiltProgram {
     checker: ts.TypeChecker
 }
 
+export interface BuildProgramOptions {
+    /**
+     * Newest-only build: drop the older version-tier and domain cells from the
+     * program, keeping `<db>/newest/` + `<db>/types.negative/` (mirrors the
+     * runner's `--run-versions newest`), plus every shared/src file. Since the
+     * checker is ~70% of this build's peak and grows with the matrix, indexing
+     * only the newest set is the low-RAM variant the agent uses day-to-day
+     * (`tests:index:newest`). See `isOlderTierTestFile`.
+     */
+    newestOnly?: boolean
+}
+
+/**
+ * True for a test-matrix file that belongs to an older version tier (or the
+ * domain cells) — i.e. a file under `test/db/<db>/<version>/…` whose `<version>`
+ * segment is neither `newest` nor `types.negative`. Files directly under
+ * `test/db/<db>/` (e.g. `runners.ts`) and everything outside `test/db/` (src,
+ * lib, templates, db/general, docs, examples) are NOT older-tier, so they stay.
+ *
+ * Path-shape check on the fileNames tsconfig produces (absolute, forward-slash
+ * normalised on every platform ts targets). Auto-adapts to new tiers: any newly
+ * added `<db>/<version>/` folder that isn't newest/types.negative is dropped
+ * with no edit here.
+ */
+export function isOlderTierTestFile(fileName: string): boolean {
+    const norm = fileName.replace(/\\/g, '/')
+    const marker = '/test/db/'
+    const at = norm.indexOf(marker)
+    if (at < 0) return false
+    const rest = norm.slice(at + marker.length) // e.g. "postgres/oldest/pg/select.test.ts"
+    const parts = rest.split('/')
+    // Need db + version + at least one more segment for it to be a versioned cell
+    // file. `postgres/runners.ts` (2 parts) is db-level shared, never dropped.
+    if (parts.length < 3) return false
+    const version = parts[1]
+    return version !== 'newest' && version !== 'types.negative'
+}
+
 /** Build the single Program over src/ + test/ from test/tsconfig.json. */
-export function buildProgram(): BuiltProgram {
+export function buildProgram(opts: BuildProgramOptions = {}): BuiltProgram {
     const cfgPath = resolvePath('test/tsconfig.json')
     const cfg = ts.readConfigFile(cfgPath, ts.sys.readFile)
     const parsed = ts.parseJsonConfigFileContent(cfg.config, ts.sys, resolvePath('test'))
-    const program = ts.createProgram(parsed.fileNames, { ...parsed.options, skipLibCheck: true, noEmit: true })
+    const fileNames = opts.newestOnly
+        ? parsed.fileNames.filter(f => !isOlderTierTestFile(f))
+        : parsed.fileNames
+    const program = ts.createProgram(fileNames, { ...parsed.options, skipLibCheck: true, noEmit: true })
     return { program, checker: program.getTypeChecker() }
 }
 

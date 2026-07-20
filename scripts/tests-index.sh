@@ -4,8 +4,20 @@
 print_help() {
     cat <<'EOF'
 Usage:
-  tests:index [--out <path>] [--no-resolve] [--use-bun] [--sink <true|false>] [--help]
+  tests:index [--newest] [--out <path>] [--no-resolve] [--use-bun] [--sink <true|false>] [--help]
 
+  --newest     : index only the NEWEST slice of the matrix — `<db>/newest/` +
+                 `<db>/types.negative/` (mirrors the runner's `--run-versions newest`),
+                 plus all src/shared/docs/examples. The older version tiers
+                 (`<db>/oldest/`, `<db>/8_000_000/`, …) and `<db>/domain/` cells are
+                 dropped from the program. Lower RAM / faster (the checker is ~70% of the
+                 peak and grows with the matrix), and it's the slice the agent works with
+                 day-to-day, so it's exposed as its own script (`tests:index:newest`). The
+                 index records its coverage in `meta.scope` (`newest` vs `full`) so a
+                 consumer can tell a reduced index from a full one; a `--newest` build to
+                 the default --out overwrites a previous full index at that path (the index
+                 is a disposable derived artifact, rebuilt each run). Type-resolved searches
+                 still work — only the dropped cells' rows are absent.
   --no-resolve : skip type resolution → name-based, low-memory/fast build (~3.6 GB / ~15 s
                  vs ~12 GB / ~2 min). Same schema/rows; resolved_*_id FKs stay NULL, so
                  name-based searches still work and the type-resolved ones (chain,

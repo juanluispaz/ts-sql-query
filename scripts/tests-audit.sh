@@ -133,6 +133,14 @@ Checks:
   non-deterministic-input  `new Date()` (no arg) / `Date.now()` / `Math.random()`
                    used as a query input — non-deterministic params/snapshot. Use
                    a fixed value; allowed only as mock data (`mockNext`). [error]
+  manual-connection  a `new *Connection(runner)` hand-constructed in a test body —
+                   drops the 2nd `compatibilityVersion` constructor arg, so the
+                   connection silently runs at `Number.POSITIVE_INFINITY` (newest
+                   SQL) even in an older version-tier cell. Use
+                   `ctx.withConnection(...)` / `ctx.withXxx(...)`. A construction
+                   that passes the version EXPLICITLY (2nd arg present) is exempt;
+                   the `documentation` cells (public-API demos) are out of scope.
+                   [error]
 
 Suppress a content finding with a reason (eslint/oxlint syntax; reason required):
   // tests-audit-disable-next-line <rule> -- <reason>   (line above the finding)
@@ -156,7 +164,7 @@ Flags:
                 skipped-test-reason | skip-real-db | misplaced-marker |
                 tautology | no-assertion-runtime | empty-catch | weak-boolean |
                 weak-matcher | close-to | no-op-expect |
-                non-deterministic-input | symmetry)
+                non-deterministic-input | manual-connection | symmetry)
 
 A test marked `// TODO[BUG]: <reason>` is exempt from mock-only / skip-real-db
 (like `// NOT-APPLICABLE:`) AND from as-any / any-type / as-unknown-as /

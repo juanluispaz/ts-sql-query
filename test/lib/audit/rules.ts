@@ -10,7 +10,7 @@ import type { Severity } from './types.js'
 
 // Content rules a `// tests-audit-disable-next-line <rule> -- <reason>` comment
 // may target. A directive for an id NOT in this list reports `unknown-rule`.
-export const CONTENT_RULES = ['mock-only', 'mirror-image', 'one-sided-guard', 'uuid-literal', 'as-any', 'any-type', 'as-unknown-as', 'meaningless-cast', 'meaningless-type', 'type-cast', 'non-public-api', 'commented-test-reason', 'grouped-commented-tests', 'focused-test', 'empty-snapshot', 'ts-ignore', 'ts-expect-error', 'eslint-disable-type', 'eslint-disable-other', 'skipped-test-reason', 'skip-real-db', 'misplaced-marker', 'tautology', 'no-assertion-runtime', 'empty-catch', 'weak-boolean', 'weak-matcher', 'close-to', 'no-op-expect', 'non-deterministic-input'] as const
+export const CONTENT_RULES = ['mock-only', 'mirror-image', 'one-sided-guard', 'uuid-literal', 'as-any', 'any-type', 'as-unknown-as', 'meaningless-cast', 'meaningless-type', 'type-cast', 'non-public-api', 'commented-test-reason', 'grouped-commented-tests', 'focused-test', 'empty-snapshot', 'ts-ignore', 'ts-expect-error', 'eslint-disable-type', 'eslint-disable-other', 'skipped-test-reason', 'skip-real-db', 'misplaced-marker', 'tautology', 'no-assertion-runtime', 'empty-catch', 'weak-boolean', 'weak-matcher', 'close-to', 'no-op-expect', 'non-deterministic-input', 'manual-connection'] as const
 
 export const RULE_SEVERITY: Record<string, Severity> = {
     // structural — whole-matrix cell parity. Back to `error`: the cross-database
@@ -48,6 +48,7 @@ export const RULE_SEVERITY: Record<string, Severity> = {
     'close-to':               'error',   // `toBeCloseTo` outside a real-DB branch — its own (lenient) rule, kept separate from the rigid weak-matcher
     'no-op-expect':           'error',   // an `expect(...)` chain with no matcher invoked — a no-op that always passes
     'non-deterministic-input': 'error',  // `new Date()` / `Date.now()` / `Math.random()` as a query input (mock data is carved out)
+    'manual-connection':      'error',   // `new *Connection(runner)` in a test body — drops the 2nd compatibilityVersion arg (silent Infinity); an explicit 2nd arg is carved out
     // meta-rules guarding the suppression mechanism — `error` from day 1
     'disable-without-reason': 'error',
     'unknown-rule':           'error',
@@ -117,6 +118,8 @@ export const RULE_HINT: Record<string, string> = {
         'This `expect(...)` invokes no matcher — `expect(x)` / `expect(x).not` / `await expect(p).rejects` as a statement builds a matcher object and does nothing, so it asserts nothing and always passes. Call a matcher (`toEqual`, `toThrow`, `rejects.toThrow`, …) or remove it. (It slips past `no-assertion-runtime`, which counts the `expect` call as an assertion.)',
     'non-deterministic-input':
         '`new Date()` (no argument) / `Date.now()` / `Math.random()` produce a different value every run; used as a query input they make the params (and the snapshot) non-deterministic. Use a fixed value (`new Date(\'2024-01-02T03:04:05Z\')`). The constructor is allowed only as MOCK data passed to `mockNext`, simulating the database\'s own `current_date` / `current_timestamp` / `random()`.',
+    'manual-connection':
+        'A test must not hand-construct its connection: `new *Connection(runner)` drops the 2nd `compatibilityVersion` constructor arg, so the connection silently runs at `Number.POSITIVE_INFINITY` (newest-tier SQL) even in an older version-tier cell. Build the config-varied connection through the sanctioned factory — `ctx.withConnection(Subclass)`, or a per-dialect `ctx.withXxx(...)` in `test/db/<db>/runners.ts` — which threads the cell\'s compatibilityVersion (and full base config); see `test/lib/testContext.ts`. Only when a test genuinely needs a DIFFERENT compatibility version than the cell\'s (which the factory cannot express) is a manual `new DBConnection(runner, <version>)` with the 2nd arg PASSED EXPLICITLY allowed — the drop is the defect, not the construction.',
     'disable-without-reason':
         'Write `// tests-audit-disable-next-line <rule> -- <reason>` (or `tests-audit-disable-line` as a trailing comment) — the `-- <reason>` is mandatory so the suppression is visible and justified in the diff.',
     'unknown-rule':

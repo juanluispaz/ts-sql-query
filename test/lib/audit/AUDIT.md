@@ -113,7 +113,7 @@ The TypeScript compiler API is the motor.
   `ts-expect-error`, `eslint-disable-type`, `eslint-disable-other`,
   `skipped-test-reason`, `skip-real-db`, `misplaced-marker`, `tautology`,
   `no-assertion-runtime`, `empty-catch`, `weak-boolean`, `weak-matcher`,
-  `close-to`, `no-op-expect`, `non-deterministic-input`) need only
+  `close-to`, `no-op-expect`, `non-deterministic-input`, `manual-connection`) need only
   `ts.SourceFile` ASTs (or the TS scanner),
   no type checker, so they stay fast over the full ~2.5k-file matrix (~1 s).
   Even `uuid-literal` (anchored on the string's *shape*, not its static type)
@@ -172,6 +172,7 @@ export const RULE_SEVERITY = {
   'close-to':               'error',  // `toBeCloseTo` outside a real-DB branch — its own (lenient) rule, separate from the rigid weak-matcher
   'no-op-expect':           'error',  // an `expect(...)` chain with no matcher invoked — a no-op that always passes
   'non-deterministic-input': 'error', // `new Date()` / `Date.now()` / `Math.random()` as a query input (mock data carved out)
+  'manual-connection':      'error',  // `new *Connection(runner)` in a test body — drops the 2nd compatibilityVersion arg (silent Infinity); an explicit 2nd arg is carved out
   // meta-rules that protect the suppression mechanism — `error` from day 1:
   'disable-without-reason': 'error',
   'unknown-rule':           'error',
@@ -845,6 +846,43 @@ build the moment a `.only` is committed.
 [Severity model](#severity-model)), in [`checks/focusedTest.ts`](./checks/focusedTest.ts).
 Whole-matrix run: 0 findings today — a clean preventive gate.
 
+### `manual-connection` — a hand-constructed connection in a test body
+
+**Threat** (a real, shipped class of bugs): a config-varied connection must be
+built through the sanctioned factory `ctx.withConnection(Sub)` (or a per-dialect
+`ctx.withXxx(...)` in `test/db/<db>/runners.ts`), which threads the cell's
+`compatibilityVersion` — and full base config — into the connection.
+Hand-constructing it instead (`new IgnoreNullConnection(ctx.conn.queryRunner)`,
+`new DBConnection(runner)`) **drops the 2nd `compatibilityVersion` constructor
+arg**, so the connection silently defaults to `Number.POSITIVE_INFINITY`
+(newest-tier SQL) and emits the wrong SQL in an older version-tier cell — and no
+assertion catches it under the mock. See the `withConnection` docstring in
+[`test/lib/testContext.ts`](../../lib/testContext.ts).
+
+**Anchor — the SHAPE of the `new` expression, no type checker** (in
+[`checks/manualConnection.ts`](./checks/manualConnection.ts)): a `new` on an
+identifier ending in `Connection`, mirroring the `new\s+\w*Connection\s*\(`
+pattern. A property-access callee (`new ns.SomethingConnection(...)`) or a name
+that only contains `Connection` mid-word (`new ConnectionPool(...)`) is not the
+anti-pattern and not flagged.
+
+**Carve-out — an EXPLICIT `compatibilityVersion` (2nd arg)**: the defect is the
+SILENT drop of that arg, so a construction that passes it (>= 2 args) is **not**
+flagged; one that drops it (0 or 1 args) is. A test that genuinely needs a
+connection pinned to a compatibility version DIFFERENT from the cell's — which
+`ctx.withConnection` (threading the cell's own version) cannot express — passes
+it explicitly, `new DBConnection(ctx.conn.queryRunner, 16_000_000)`, exactly as
+the three `config.aggregate-as-array-json-fallback` cells do. That deliberate,
+visible choice is the opposite of the silent-Infinity bug. The `documentation`
+connector + `*.generated.test.ts` cells (public-API demos where
+`compatibilityVersion = Infinity` is correct) are out of scope via the walk (with
+a defensive `/documentation/` guard in the check).
+
+**Status**: **built** (`error` — like every content rule today). Whole-matrix
+run: 0 live findings today (the only non-documentation `new *Connection(...)`
+sites pass the version explicitly) — a clean preventive gate that fails the build
+the moment a version-dropping construction is committed to a test body.
+
 ### `empty-snapshot` — an un-baked `toMatchInlineSnapshot()` in live code
 
 **Threat**: `expect(ctx.lastSql).toMatchInlineSnapshot()` with **no argument**
@@ -1201,7 +1239,8 @@ test/lib/audit/
     ├── weakMatcher.ts ← `weak-matcher` (asymmetric matcher / `.toContain`/`.toMatch` on a value; approximate reserved for diagnostic + real-DB branch)
     ├── closeTo.ts ← `close-to` (`toBeCloseTo` outside a real-DB branch; separate, lenient float rule)
     ├── noOpExpect.ts ← `no-op-expect` (an `expect(...)` chain with no matcher invoked)
-    └── nonDeterministicInput.ts ← `non-deterministic-input` (`new Date()`/`Date.now()`/`Math.random()` as a query input; mock data carved out)
+    ├── nonDeterministicInput.ts ← `non-deterministic-input` (`new Date()`/`Date.now()`/`Math.random()` as a query input; mock data carved out)
+    └── manualConnection.ts ← `manual-connection` (`new *Connection(runner)` in a test body drops the 2nd compatibilityVersion arg; explicit 2nd arg carved out)
 ```
 
 Coordinate matching lives in the **shared** [`test/lib/coords.ts`](../coords.ts)

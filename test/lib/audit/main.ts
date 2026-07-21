@@ -14,6 +14,7 @@ import { checkMirrorImage } from './checks/mirrorImage.js'
 import { checkUuidLiterals } from './checks/uuidLiteral.js'
 import { checkAsAny, checkAnyType, checkAsUnknownAs, checkMeaninglessCast, checkMeaninglessType, checkTypeCast } from './checks/asAny.js'
 import { checkNonPublicApi } from './checks/nonPublicApi.js'
+import { checkManualConnection } from './checks/manualConnection.js'
 import { checkMarkerPlacement } from './checks/markerPlacement.js'
 import { checkCommentedTests } from './checks/commentedTest.js'
 import { checkGroupedCommentedTests } from './checks/groupedCommentedTests.js'
@@ -110,7 +111,8 @@ function runContentChecks(only: string | null, files: string[], tsIgnoreOnlyFile
     // checkNoValidation emits `no-assertion-runtime` / `empty-catch` /
     // `weak-boolean`; checkWeakMatcher emits `weak-matcher`; checkCloseTo emits
     // `close-to`; checkNoOpExpect emits `no-op-expect`; checkNonDeterministicInput
-    // emits `non-deterministic-input`.
+    // emits `non-deterministic-input`; checkManualConnection emits
+    // `manual-connection`.
     for (const file of files) {
         findings.push(...auditFile(file, only, (sf) => [
             ...checkMirrorImage(sf, file), ...checkUuidLiterals(sf, file), ...checkAsAny(sf, file),
@@ -121,6 +123,7 @@ function runContentChecks(only: string | null, files: string[], tsIgnoreOnlyFile
             ...checkRegistrationSkip(sf, file), ...checkMarkerPlacement(sf, file), ...checkTautologies(sf, file),
             ...checkNoValidation(sf, file), ...checkWeakMatcher(sf, file), ...checkCloseTo(sf, file),
             ...checkNoOpExpect(sf, file), ...checkNonDeterministicInput(sf, file),
+            ...checkManualConnection(sf, file),
         ]))
     }
 

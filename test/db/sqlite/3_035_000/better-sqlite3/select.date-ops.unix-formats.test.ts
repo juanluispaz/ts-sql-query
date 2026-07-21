@@ -70,7 +70,7 @@ describe(ctx.label, () => {
                 t:   d.getTime(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%Y', ? / 1000.0, 'unixepoch', 'subsec') as integer) as "y", cast(strftime('%m', ? / 1000.0, 'unixepoch', 'subsec') as integer) - 1 as mo, cast(strftime('%d', ? / 1000.0, 'unixepoch', 'subsec') as integer) as "d", cast(strftime('%w',? / 1000.0, 'unixepoch', 'subsec') as integer) as dow, cast(strftime('%H', ? / 1000.0, 'unixepoch', 'subsec') as integer) as "h", cast(strftime('%M', ? / 1000.0, 'unixepoch', 'subsec') as integer) as mi, cast(strftime('%S', ? / 1000.0, 'unixepoch', 'subsec') as integer) as "s", ((? % 1000) + 1000) % 1000 as ms, ? as "t""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%Y', cast(floor(? / 1000.0) as integer), 'unixepoch') as integer) as "y", cast(strftime('%m', cast(floor(? / 1000.0) as integer), 'unixepoch') as integer) - 1 as mo, cast(strftime('%d', cast(floor(? / 1000.0) as integer), 'unixepoch') as integer) as "d", cast(strftime('%w',cast(floor(? / 1000.0) as integer), 'unixepoch') as integer) as dow, cast(strftime('%H', cast(floor(? / 1000.0) as integer), 'unixepoch') as integer) as "h", cast(strftime('%M', cast(floor(? / 1000.0) as integer), 'unixepoch') as integer) as mi, cast(strftime('%S', cast(floor(? / 1000.0) as integer), 'unixepoch') as integer) as "s", ((? % 1000) + 1000) % 1000 as ms, ? as "t""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1705314645123,
@@ -107,7 +107,7 @@ describe(ctx.label, () => {
                 ms:  d.getMilliseconds(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%Y', ? / 1000.0, 'unixepoch', 'subsec') as integer) as "y", cast(strftime('%m', ? / 1000.0, 'unixepoch', 'subsec') as integer) - 1 as mo, cast(strftime('%d', ? / 1000.0, 'unixepoch', 'subsec') as integer) as "d", cast(strftime('%H', ? / 1000.0, 'unixepoch', 'subsec') as integer) as "h", cast(strftime('%M', ? / 1000.0, 'unixepoch', 'subsec') as integer) as mi, cast(strftime('%S', ? / 1000.0, 'unixepoch', 'subsec') as integer) as "s", ((? % 1000) + 1000) % 1000 as ms"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select cast(strftime('%Y', cast(floor(? / 1000.0) as integer), 'unixepoch') as integer) as "y", cast(strftime('%m', cast(floor(? / 1000.0) as integer), 'unixepoch') as integer) - 1 as mo, cast(strftime('%d', cast(floor(? / 1000.0) as integer), 'unixepoch') as integer) as "d", cast(strftime('%H', cast(floor(? / 1000.0) as integer), 'unixepoch') as integer) as "h", cast(strftime('%M', cast(floor(? / 1000.0) as integer), 'unixepoch') as integer) as mi, cast(strftime('%S', cast(floor(? / 1000.0) as integer), 'unixepoch') as integer) as "s", ((? % 1000) + 1000) % 1000 as ms"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             -1500,

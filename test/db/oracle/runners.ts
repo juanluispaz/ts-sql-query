@@ -67,6 +67,14 @@ export interface OracleTestContext extends TestContext<DBConnection> {
     withReplaceInsensitiveCollation(collation: string): DBConnection
     /** A `DBConnection` whose `uuidStrategy` is pinned to `strategy`. */
     withUuidStrategy(strategy: 'string' | 'custom-functions' | 'built-in'): DBConnection
+    /** A `DBConnection` with `allowEmptyString` enabled (empty strings kept, not mapped to null). */
+    withAllowEmptyString(): DBConnection
+    /** A `DBConnection` whose `replaceCollation` is pinned to `collation` (`''` opts out to a bare `replace(...)`). */
+    withReplaceCollation(collation: string): DBConnection
+    /** A `DBConnection` whose `concatFunction` is pinned to `functionName`. */
+    withConcatFunction(functionName: string): DBConnection
+    /** A `DBConnection` with `ignoreNullInConcat` enabled (keeps Oracle's native `||` NULL semantics). */
+    withIgnoreNullInConcat(): DBConnection
 }
 
 /**
@@ -82,19 +90,43 @@ function decorateOracleContext(base: TestContext<DBConnection>): OracleTestConte
             class C extends DBConnection {
                 protected override insensitiveCollation: string | undefined = collation
             }
-            return new C(base.conn.queryRunner)
+            return base.withConnection(C)
+        },
+        withAllowEmptyString(): DBConnection {
+            class C extends DBConnection {
+                protected override allowEmptyString = true
+            }
+            return base.withConnection(C)
+        },
+        withReplaceCollation(collation: string): DBConnection {
+            class C extends DBConnection {
+                protected override replaceCollation = collation
+            }
+            return base.withConnection(C)
+        },
+        withConcatFunction(functionName: string): DBConnection {
+            class C extends DBConnection {
+                protected override concatFunction = functionName
+            }
+            return base.withConnection(C)
+        },
+        withIgnoreNullInConcat(): DBConnection {
+            class C extends DBConnection {
+                protected override ignoreNullInConcat = true
+            }
+            return base.withConnection(C)
         },
         withReplaceInsensitiveCollation(collation: string): DBConnection {
             class C extends DBConnection {
                 protected override replaceInsensitiveCollation = collation
             }
-            return new C(base.conn.queryRunner)
+            return base.withConnection(C)
         },
         withUuidStrategy(strategy: 'string' | 'custom-functions' | 'built-in'): DBConnection {
             class C extends DBConnection {
                 protected override uuidStrategy: 'string' | 'custom-functions' | 'built-in' = strategy
             }
-            return new C(base.conn.queryRunner)
+            return base.withConnection(C)
         },
     })
 }

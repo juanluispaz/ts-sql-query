@@ -15,8 +15,6 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { TsSqlError } from '../../../../../src/TsSqlError.js'
-import type { SqliteDateTimeFormat } from '../../../../../src/connections/SqliteConfiguration.js'
-import { DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 function reasonOf(e: unknown): string | undefined {
@@ -107,12 +105,7 @@ describe(ctx.label, () => {
         // while building the SQL (client-side, before any DB call).
         // `getDateTimeFormat()` is a protected extension point; the `as any`
         // returns an out-of-union value to reach that guard.
-        class BogusFormatConnection extends DBConnection {
-            protected override getDateTimeFormat(): SqliteDateTimeFormat {
-                return 'not-a-real-format' as any
-            }
-        }
-        const conn = new BogusFormatConnection(ctx.conn.queryRunner)
+        const conn = ctx.withDateTimeFormat('not-a-real-format' as any)
 
         for (const buildCurrent of [
             () => conn.currentDate(),

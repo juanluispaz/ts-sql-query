@@ -64,6 +64,14 @@ export interface PostgresTestContext extends TestContext<DBConnection> {
     readonly exampleInsensitiveCollation: string
     /** A `DBConnection` whose `insensitiveCollation` is pinned to `collation`. */
     withInsensitiveCollation(collation: string | undefined): DBConnection
+    /** A `DBConnection` with `allowEmptyString` enabled (empty strings kept, not mapped to null). */
+    withAllowEmptyString(): DBConnection
+    /** A `DBConnection` with `ignoreNullInMinAndMaxValue` enabled (keeps native least/greatest NULL-ignoring semantics). */
+    withIgnoreNullInMinAndMaxValue(): DBConnection
+    /** A `DBConnection` whose `minValueFunction` / `maxValueFunction` are pinned to the given user functions. */
+    withMinMaxFunctions(minValueFunction: string, maxValueFunction: string): DBConnection
+    /** A `DBConnection` with `usePlatformDependentRound` enabled (bare `round(...)`, no `::numeric` cast). */
+    withUsePlatformDependentRound(): DBConnection
     /**
      * A `DBConnection` whose query runner has `allowNestedTransactions`
      * enabled — for the "nested transaction works when enabled" test. In
@@ -97,7 +105,32 @@ function decoratePostgresContext(
             class C extends DBConnection {
                 protected override insensitiveCollation: string | undefined = collation
             }
-            return new C(base.conn.queryRunner)
+            return base.withConnection(C)
+        },
+        withAllowEmptyString(): DBConnection {
+            class C extends DBConnection {
+                protected override allowEmptyString = true
+            }
+            return base.withConnection(C)
+        },
+        withIgnoreNullInMinAndMaxValue(): DBConnection {
+            class C extends DBConnection {
+                protected override ignoreNullInMinAndMaxValue = true
+            }
+            return base.withConnection(C)
+        },
+        withMinMaxFunctions(minValueFunction: string, maxValueFunction: string): DBConnection {
+            class C extends DBConnection {
+                protected override minValueFunction = minValueFunction
+                protected override maxValueFunction = maxValueFunction
+            }
+            return base.withConnection(C)
+        },
+        withUsePlatformDependentRound(): DBConnection {
+            class C extends DBConnection {
+                protected override usePlatformDependentRound = true
+            }
+            return base.withConnection(C)
         },
         nestedTransactionConn(): DBConnection {
             // The mock reports `nestedTransactionsSupported()`, so nesting

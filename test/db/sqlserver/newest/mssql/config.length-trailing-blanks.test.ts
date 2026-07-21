@@ -16,12 +16,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
-
-class ExcludeTrailingBlanksConnection extends DBConnection {
-    protected override excludeTrailingBlanksInLength = true
-}
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -31,7 +26,7 @@ describe(ctx.label, () => {
     test('exclude-trailing-blanks: emits the bare native len(x) and drops the trailing blanks', async () => {
         // With the flag on, `.length()` drops the sentinel: `'Draft  '` (7 chars,
         // two trailing blanks) reports T-SQL's native `len('Draft  ')` = 5.
-        const conn = new ExcludeTrailingBlanksConnection(ctx.conn.queryRunner)
+        const conn = ctx.withExcludeTrailingBlanksInLength()
         const expected = [{ len: 5 }]
         ctx.mockNext(expected)
         const result = await conn.selectFromNoTable()

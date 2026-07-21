@@ -14,12 +14,8 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { DBConnection, tOrganization } from '../../domain/connection.js'
+import { tOrganization } from '../../domain/connection.js'
 import { ctx } from './setup.js'
-
-class EmptyStringConnection extends DBConnection {
-    protected override allowEmptyString = true
-}
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -31,7 +27,7 @@ describe(ctx.label, () => {
         // counts as a value, so `plan` is emitted in the INSERT with the
         // empty string sent verbatim as a param (not collapsed to null).
         // Reading the column back returns `''` rather than null.
-        const conn = new EmptyStringConnection(ctx.conn.queryRunner)
+        const conn = ctx.withAllowEmptyString()
         await ctx.withRollback(async () => {
             ctx.mockNext(42)
             const id = await conn.insertInto(tOrganization)

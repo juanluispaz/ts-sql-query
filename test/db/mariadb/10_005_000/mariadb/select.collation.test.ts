@@ -8,13 +8,8 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { DBConnection, tAppUser, tIssue } from '../../domain/connection.js'
+import { tAppUser, tIssue } from '../../domain/connection.js'
 import { ctx } from './setup.js'
-
-// insensitiveCollation forces a collation on the REGEXP_REPLACE operands.
-class InsensitiveReplaceConnection extends DBConnection {
-    protected override insensitiveCollation = 'utf8mb4_bin'
-}
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -195,7 +190,7 @@ describe(ctx.label, () => {
     // insensitiveCollation forces the collation on the REGEXP_REPLACE operands;
     // a binary collation makes it case-sensitive again → 'ABCX'.
     test('replaceAllInsensitive honours insensitiveCollation', async () => {
-        const collated = new InsensitiveReplaceConnection(ctx.conn.queryRunner)
+        const collated = ctx.withInsensitiveCollation('utf8mb4_bin')
         const expected = [{ v: 'ABCX' }]
         ctx.mockNext(expected)
         const result = await collated.selectFromNoTable()

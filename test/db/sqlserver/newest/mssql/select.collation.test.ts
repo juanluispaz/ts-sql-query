@@ -7,17 +7,8 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { DBConnection, tAppUser, tIssue } from '../../domain/connection.js'
+import { tAppUser, tIssue } from '../../domain/connection.js'
 import { ctx } from './setup.js'
-
-// SQL Server has no `replaceCollation` context helper, so pin the config inline
-// (the sanctioned `EmptyStringConnection` pattern from select.string-ops).
-class ReplaceCollationOptOutConnection extends DBConnection {
-    protected override replaceCollation = ''
-}
-class InsensitiveReplaceConnection extends DBConnection {
-    protected override insensitiveCollation = 'Latin1_General_CI_AI'
-}
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -105,7 +96,7 @@ describe(ctx.label, () => {
     // follows the CI database collation and folds BOTH cases — corrupting the
     // value to 'XX'. This is exactly what the default prevents.
     test('replaceAll opt-out to native replace', async () => {
-        const opted = new ReplaceCollationOptOutConnection(ctx.conn.queryRunner)
+        const opted = ctx.withReplaceCollation('')
         const expected = [{ v: 'XX' }]
         ctx.mockNext(expected)
         const result = await opted.selectFromNoTable()
@@ -150,7 +141,7 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
     test('replaceAllInsensitive on a uuid receiver converts before collate', async () => {
-        const collated = new InsensitiveReplaceConnection(ctx.conn.queryRunner)
+        const collated = ctx.withInsensitiveCollation('Latin1_General_CI_AI')
         const s = tIssue.externalRef.asString()
         const expected = [{ id: 1, v: 'X' }]
         ctx.mockNext(expected)
@@ -216,7 +207,7 @@ describe(ctx.label, () => {
     // result reset to DATABASE_DEFAULT (a `_CI_AI` name also folds accents).
     // 'ABCabc' still folds to 'XX'; the point is the emitted `collate` clauses.
     test('replaceAllInsensitive honours insensitiveCollation', async () => {
-        const collated = new InsensitiveReplaceConnection(ctx.conn.queryRunner)
+        const collated = ctx.withInsensitiveCollation('Latin1_General_CI_AI')
         const expected = [{ v: 'XX' }]
         ctx.mockNext(expected)
         const result = await collated.selectFromNoTable()

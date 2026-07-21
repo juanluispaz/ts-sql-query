@@ -17,16 +17,8 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { DBConnection, tIssue } from '../../domain/connection.js'
+import { tIssue } from '../../domain/connection.js'
 import { ctx } from './setup.js'
-
-class IgnoreNullConnection extends DBConnection {
-    protected override ignoreNullInMinAndMaxValue = true
-}
-class MinMaxFunctionConnection extends DBConnection {
-    protected override minValueFunction = 'greatest_strict'
-    protected override maxValueFunction = 'least_strict'
-}
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -36,7 +28,7 @@ describe(ctx.label, () => {
     test('ignoreNullInMinAndMaxValue: keeps bare native least/greatest (ignores NULL)', async () => {
         // With the opt-out, the NULL row (issue 3) returns the present operand 5 instead
         // of NULL — PostgreSQL's native ignore-NULL behaviour, no poison CASE.
-        const conn = new IgnoreNullConnection(ctx.conn.queryRunner)
+        const conn = ctx.withIgnoreNullInMinAndMaxValue()
         const expected = [
             { id: 1, floored: 5, capped: 1 },
             { id: 2, floored: 5, capped: 2 },
@@ -63,7 +55,7 @@ describe(ctx.label, () => {
         // With the opt-in, the emitted SQL calls the user function once per operand (no
         // repetition), and a NULL row (issue 3) poisons to NULL — matching the default
         // CASE, without repeating the operand.
-        const conn = new MinMaxFunctionConnection(ctx.conn.queryRunner)
+        const conn = ctx.withMinMaxFunctions('greatest_strict', 'least_strict')
         const expected = [
             { id: 1, floored: 5,         capped: 1 },
             { id: 2, floored: 5,         capped: 2 },

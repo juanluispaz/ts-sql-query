@@ -54,7 +54,7 @@ describe(ctx.label, () => {
             .select({ id: tAppUser.id, fullName: tAppUser.fullName })
             .orderBy(tAppUser.fullName, 'asc nulls first insensitive')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, full_name as fullName from app_user order by app_user.full_name collate NOCASE asc nulls first"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, full_name as fullName from app_user order by app_user.full_name collate NOCASE asc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
     })
 

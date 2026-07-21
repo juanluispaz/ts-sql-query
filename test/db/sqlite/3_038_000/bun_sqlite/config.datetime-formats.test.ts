@@ -15,8 +15,6 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { TsSqlError } from '../../../../../src/TsSqlError.js'
-import type { SqliteDateTimeFormat } from '../../../../../src/connections/SqliteConfiguration.js'
-import { DBConnection } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 function reasonOf(e: unknown): string | undefined {
@@ -98,7 +96,7 @@ describe(ctx.label, () => {
         await conn.selectFromNoTable()
             .select({ d: conn.currentDate(), t: conn.currentTime(), ts: conn.currentTimestamp() })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (unixepoch(date('now')) * 1000) as "d", cast(unixepoch(strftime('1970-01-01 %H:%M:%f', 'now'), 'subsec') * 1000 as integer) as "t", cast(unixepoch('now', 'subsec') * 1000 as integer) as ts"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (unixepoch(date('now')) * 1000) as "d", cast(round((julianday(strftime('1970-01-01 %H:%M:%f', 'now')) - 2440587.5) * 86400000.0) as integer) as "t", cast(round((julianday('now') - 2440587.5) * 86400000.0) as integer) as ts"`)
     })
 
     test('invalid dateTimeFormat throws INVALID_CONFIGURATION', async () => {
@@ -107,12 +105,7 @@ describe(ctx.label, () => {
         // while building the SQL (client-side, before any DB call).
         // `getDateTimeFormat()` is a protected extension point; the `as any`
         // returns an out-of-union value to reach that guard.
-        class BogusFormatConnection extends DBConnection {
-            protected override getDateTimeFormat(): SqliteDateTimeFormat {
-                return 'not-a-real-format' as any
-            }
-        }
-        const conn = new BogusFormatConnection(ctx.conn.queryRunner)
+        const conn = ctx.withDateTimeFormat('not-a-real-format' as any)
 
         for (const buildCurrent of [
             () => conn.currentDate(),

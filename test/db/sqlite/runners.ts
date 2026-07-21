@@ -126,6 +126,8 @@ export interface SqliteTestContext extends TestContext<DBConnection> {
     withReplaceAllInsensitiveFunction(functionName: string): DBConnection
     /** A `DBConnection` whose `uuidStrategy` is pinned to `strategy`. */
     withUuidStrategy(strategy: 'string' | 'uuid-extension'): DBConnection
+    /** A `DBConnection` with `allowEmptyString` enabled (empty strings kept, not mapped to null). */
+    withAllowEmptyString(): DBConnection
     /** A `DBConnection` whose `getDateTimeFormat()` is pinned to `format`. */
     withDateTimeFormat(format: SqliteDateTimeFormat): DBConnection
     /**
@@ -178,25 +180,31 @@ function decorateSqliteContext(
             class C extends DBConnection {
                 protected override insensitiveCollation: string | undefined = collation
             }
-            return new C(base.conn.queryRunner)
+            return base.withConnection(C)
+        },
+        withAllowEmptyString(): DBConnection {
+            class C extends DBConnection {
+                protected override allowEmptyString = true
+            }
+            return base.withConnection(C)
         },
         withReplaceAllInsensitiveFunction(functionName: string): DBConnection {
             class C extends DBConnection {
                 protected override replaceAllInsensitiveFunction = functionName
             }
-            return new C(base.conn.queryRunner)
+            return base.withConnection(C)
         },
         withUuidStrategy(strategy: 'string' | 'uuid-extension'): DBConnection {
             class C extends DBConnection {
                 protected override uuidStrategy: 'string' | 'uuid-extension' = strategy
             }
-            return new C(base.conn.queryRunner)
+            return base.withConnection(C)
         },
         withDateTimeFormat(format: SqliteDateTimeFormat): DBConnection {
             class C extends DBConnection {
                 protected override getDateTimeFormat(): SqliteDateTimeFormat { return format }
             }
-            return new C(base.conn.queryRunner)
+            return base.withConnection(C)
         },
         withDateTimeFlags(format: SqliteDateTimeFormat, flags: {
             treatUnexpectedIntegerDateTimeAsJulian?: boolean
@@ -209,7 +217,7 @@ function decorateSqliteContext(
                 protected override treatUnexpectedStringDateTimeAsUTC = flags.treatUnexpectedStringDateTimeAsUTC ?? false
                 protected override unexpectedUnixDateTimeAreMilliseconds = flags.unexpectedUnixDateTimeAreMilliseconds ?? false
             }
-            return new C(base.conn.queryRunner)
+            return base.withConnection(C)
         },
     })
 }

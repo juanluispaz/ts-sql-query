@@ -60,6 +60,8 @@ export interface MariaDBTestContext extends TestContext<DBConnection> {
     withInsensitiveCollation(collation: string | undefined): DBConnection
     /** A `DBConnection` whose `uuidStrategy` is pinned to `strategy`. */
     withUuidStrategy(strategy: 'string' | 'uuid'): DBConnection
+    /** A `DBConnection` with `allowEmptyString` enabled (empty strings kept, not mapped to null). */
+    withAllowEmptyString(): DBConnection
 }
 
 /**
@@ -75,13 +77,19 @@ function decorateMariaDBContext(base: TestContext<DBConnection>): MariaDBTestCon
             class C extends DBConnection {
                 protected override insensitiveCollation: string | undefined = collation
             }
-            return new C(base.conn.queryRunner)
+            return base.withConnection(C)
         },
         withUuidStrategy(strategy: 'string' | 'uuid'): DBConnection {
             class C extends DBConnection {
                 protected override uuidStrategy: 'string' | 'uuid' = strategy
             }
-            return new C(base.conn.queryRunner)
+            return base.withConnection(C)
+        },
+        withAllowEmptyString(): DBConnection {
+            class C extends DBConnection {
+                protected override allowEmptyString = true
+            }
+            return base.withConnection(C)
         },
     })
 }

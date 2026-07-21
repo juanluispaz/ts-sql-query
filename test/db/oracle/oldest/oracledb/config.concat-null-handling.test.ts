@@ -21,15 +21,8 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { DBConnection, tIssue } from '../../domain/connection.js'
+import { tIssue } from '../../domain/connection.js'
 import { ctx } from './setup.js'
-
-class IgnoreNullConcatConnection extends DBConnection {
-    protected override ignoreNullInConcat = true
-}
-class ConcatFunctionConnection extends DBConnection {
-    protected override concatFunction = 'string_util.concat_strict'
-}
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -223,7 +216,7 @@ describe(ctx.label, () => {
     test('ignoreNullInConcat: concat keeps the bare native || (a NULL operand is ignored)', async () => {
         // The opt-out restores Oracle's own semantics: `body || :0` on the NULL row (issue 1)
         // returns '!' instead of NULL, no poison CASE.
-        const conn = new IgnoreNullConcatConnection(ctx.conn.queryRunner)
+        const conn = ctx.withIgnoreNullInConcat()
         const expected = [{ id: 1, tagged: '!' }]
         ctx.mockNext(expected)
         const rows = await conn.selectFrom(tIssue)
@@ -245,7 +238,7 @@ describe(ctx.label, () => {
         // The same query as the default affix test above, but with the opt-out: the NULL `body`
         // makes the pattern '%', so `title like '%'` matches issue 1 — the whole-table-match this
         // change exists to avoid by default.
-        const conn = new IgnoreNullConcatConnection(ctx.conn.queryRunner)
+        const conn = ctx.withIgnoreNullInConcat()
         const expected = [{ id: 1 }]
         ctx.mockNext(expected)
         const rows = await conn.selectFrom(tIssue)
@@ -267,7 +260,7 @@ describe(ctx.label, () => {
     test('concatFunction: concat on a null receiver answers null', async () => {
         // `body` is NULL on issue 1, and the result type is optional — which is what the
         // other databases answer. The function propagates NULL without repeating the operand.
-        const conn = new ConcatFunctionConnection(ctx.conn.queryRunner)
+        const conn = ctx.withConcatFunction('string_util.concat_strict')
         const expected = [{ id: 1 }]
         ctx.mockNext(expected)
         const rows = await conn.selectFrom(tIssue)
@@ -286,7 +279,7 @@ describe(ctx.label, () => {
     })
 
     test('concatFunction: concat on a present receiver is unchanged', async () => {
-        const conn = new ConcatFunctionConnection(ctx.conn.queryRunner)
+        const conn = ctx.withConcatFunction('string_util.concat_strict')
         const expected = [{ id: 2, tagged: 'Use new tokens!' }]
         ctx.mockNext(expected)
         const rows = await conn.selectFrom(tIssue)
@@ -308,7 +301,7 @@ describe(ctx.label, () => {
         // The half that silently corrupts a result set: with `||`, `title like (NULL || '%')`
         // is `title like '%'` and every issue comes back. Routing through the function makes the
         // pattern NULL, so nothing matches — which is what every other database does.
-        const conn = new ConcatFunctionConnection(ctx.conn.queryRunner)
+        const conn = ctx.withConcatFunction('string_util.concat_strict')
         const expected: Array<{ id: number }> = []
         ctx.mockNext(expected)
         const rows = await conn.selectFrom(tIssue)
@@ -323,7 +316,7 @@ describe(ctx.label, () => {
 
     test('concatFunction: an affix predicate on a present term still matches', async () => {
         // The function must not disable the predicate — only the NULL case changes.
-        const conn = new ConcatFunctionConnection(ctx.conn.queryRunner)
+        const conn = ctx.withConcatFunction('string_util.concat_strict')
         const expected = [{ id: 2 }]
         ctx.mockNext(expected)
         const rows = await conn.selectFrom(tIssue)
@@ -341,7 +334,7 @@ describe(ctx.label, () => {
     })
 
     test('concatFunction: contains glues the wildcard on both sides through the function', async () => {
-        const conn = new ConcatFunctionConnection(ctx.conn.queryRunner)
+        const conn = ctx.withConcatFunction('string_util.concat_strict')
         const expected = [{ id: 2 }]
         ctx.mockNext(expected)
         const rows = await conn.selectFrom(tIssue)
@@ -362,7 +355,7 @@ describe(ctx.label, () => {
         // `||` is an operator, so a concat embedded in a larger expression is wrapped —
         // `(title || :0) = :1`. The function is not an operator: it already stands alone,
         // and wrapping it would only add noise. A nested concat is not wrapped either.
-        const conn = new ConcatFunctionConnection(ctx.conn.queryRunner)
+        const conn = ctx.withConcatFunction('string_util.concat_strict')
         const expected = [{ id: 2 }]
         ctx.mockNext(expected)
         const rows = await conn.selectFrom(tIssue)
@@ -381,7 +374,7 @@ describe(ctx.label, () => {
     })
 
     test('concatFunction: a chained concat nests the function calls', async () => {
-        const conn = new ConcatFunctionConnection(ctx.conn.queryRunner)
+        const conn = ctx.withConcatFunction('string_util.concat_strict')
         const expected = [{ id: 2, v: 'Redesign navbarab' }]
         ctx.mockNext(expected)
         const rows = await conn.selectFrom(tIssue)

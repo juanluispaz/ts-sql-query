@@ -58,6 +58,16 @@ export interface SqlServerTestContext extends TestContext<DBConnection> {
     readonly exampleInsensitiveCollation: string
     /** A `DBConnection` whose `insensitiveCollation` is pinned to `collation`. */
     withInsensitiveCollation(collation: string | undefined): DBConnection
+    /** A `DBConnection` with `allowEmptyString` enabled (empty strings kept, not mapped to null). */
+    withAllowEmptyString(): DBConnection
+    /** A `DBConnection` with `ignoreNullInMinAndMaxValue` enabled (keeps native least/greatest NULL-ignoring semantics). */
+    withIgnoreNullInMinAndMaxValue(): DBConnection
+    /** A `DBConnection` whose `minValueFunction` / `maxValueFunction` are pinned to the given user functions. */
+    withMinMaxFunctions(minValueFunction: string, maxValueFunction: string): DBConnection
+    /** A `DBConnection` whose `replaceCollation` is pinned to `collation` (`''` opts out to a bare `replace(...)`). */
+    withReplaceCollation(collation: string): DBConnection
+    /** A `DBConnection` with `excludeTrailingBlanksInLength` enabled (bare native `len(...)`). */
+    withExcludeTrailingBlanksInLength(): DBConnection
 }
 
 /**
@@ -73,7 +83,38 @@ function decorateSqlServerContext(base: TestContext<DBConnection>): SqlServerTes
             class C extends DBConnection {
                 protected override insensitiveCollation: string | undefined = collation
             }
-            return new C(base.conn.queryRunner)
+            return base.withConnection(C)
+        },
+        withAllowEmptyString(): DBConnection {
+            class C extends DBConnection {
+                protected override allowEmptyString = true
+            }
+            return base.withConnection(C)
+        },
+        withIgnoreNullInMinAndMaxValue(): DBConnection {
+            class C extends DBConnection {
+                protected override ignoreNullInMinAndMaxValue = true
+            }
+            return base.withConnection(C)
+        },
+        withMinMaxFunctions(minValueFunction: string, maxValueFunction: string): DBConnection {
+            class C extends DBConnection {
+                protected override minValueFunction = minValueFunction
+                protected override maxValueFunction = maxValueFunction
+            }
+            return base.withConnection(C)
+        },
+        withReplaceCollation(collation: string): DBConnection {
+            class C extends DBConnection {
+                protected override replaceCollation = collation
+            }
+            return base.withConnection(C)
+        },
+        withExcludeTrailingBlanksInLength(): DBConnection {
+            class C extends DBConnection {
+                protected override excludeTrailingBlanksInLength = true
+            }
+            return base.withConnection(C)
         },
     })
 }

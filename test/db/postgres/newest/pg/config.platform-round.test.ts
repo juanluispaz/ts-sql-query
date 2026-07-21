@@ -14,12 +14,8 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { DBConnection, tIssue } from '../../domain/connection.js'
+import { tIssue } from '../../domain/connection.js'
 import { ctx } from './setup.js'
-
-class PlatformRoundConnection extends DBConnection {
-    protected override usePlatformDependentRound = true
-}
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -31,7 +27,7 @@ describe(ctx.label, () => {
         // column rounds as `round(view_count)` and the divided value (already
         // `::float`) rounds as `round(<float div>)`. Issue 1: view_count 0,
         // priority 2, so priority/2 = 1.0 -> round 1.
-        const conn = new PlatformRoundConnection(ctx.conn.queryRunner)
+        const conn = ctx.withUsePlatformDependentRound()
         const expected = [{ id: 1, vr: 0n, dr: 1 }]
         ctx.mockNext(expected)
         const rows = await conn.selectFrom(tIssue)

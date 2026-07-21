@@ -60,6 +60,8 @@ export interface MySqlTestContext extends TestContext<DBConnection> {
     withInsensitiveCollation(collation: string | undefined): DBConnection
     /** A `DBConnection` whose `uuidStrategy` is pinned to `strategy`. */
     withUuidStrategy(strategy: 'string' | 'binary'): DBConnection
+    /** A `DBConnection` with `allowEmptyString` enabled (empty strings kept, not mapped to null). */
+    withAllowEmptyString(): DBConnection
 }
 
 /**
@@ -75,13 +77,19 @@ function decorateMySqlContext(base: TestContext<DBConnection>): MySqlTestContext
             class C extends DBConnection {
                 protected override insensitiveCollation: string | undefined = collation
             }
-            return new C(base.conn.queryRunner)
+            return base.withConnection(C)
         },
         withUuidStrategy(strategy: 'string' | 'binary'): DBConnection {
             class C extends DBConnection {
                 protected override uuidStrategy: 'string' | 'binary' = strategy
             }
-            return new C(base.conn.queryRunner)
+            return base.withConnection(C)
+        },
+        withAllowEmptyString(): DBConnection {
+            class C extends DBConnection {
+                protected override allowEmptyString = true
+            }
+            return base.withConnection(C)
         },
     })
 }

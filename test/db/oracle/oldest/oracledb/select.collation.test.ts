@@ -8,15 +8,8 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { DBConnection, tAppUser, tIssue } from '../../domain/connection.js'
+import { tAppUser, tIssue } from '../../domain/connection.js'
 import { ctx } from './setup.js'
-
-class ReplaceCollationOptOutConnection extends DBConnection {
-    protected override replaceCollation = ''
-}
-class InsensitiveReplaceConnection extends DBConnection {
-    protected override insensitiveCollation = 'BINARY_AI'
-}
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -100,7 +93,7 @@ describe(ctx.label, () => {
     // default session collation is case-sensitive (BINARY), so this stays 'ABCX'
     // here — it corrupts only when the session is configured CI.
     test('replaceAll opt-out to native replace', async () => {
-        const opted = new ReplaceCollationOptOutConnection(ctx.conn.queryRunner)
+        const opted = ctx.withReplaceCollation('')
         const expected = [{ v: 'ABCX' }]
         ctx.mockNext(expected)
         const result = await opted.selectFromNoTable()
@@ -207,7 +200,7 @@ describe(ctx.label, () => {
     // With `insensitiveCollation` set, it is forced on the match operands instead
     // of BINARY_CI; a `_AI` name also folds accents. 'ABCabc' → 'XX'.
     test('replaceAllInsensitive honours insensitiveCollation', async () => {
-        const collated = new InsensitiveReplaceConnection(ctx.conn.queryRunner)
+        const collated = ctx.withInsensitiveCollation('BINARY_AI')
         const expected = [{ v: 'XX' }]
         ctx.mockNext(expected)
         const result = await collated.selectFromNoTable()

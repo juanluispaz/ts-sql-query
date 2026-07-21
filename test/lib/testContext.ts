@@ -58,6 +58,29 @@ export interface TestContext<CONN> {
     /** Queue a value the mock will return for the NEXT data query. */
     mockNext(value: unknown): void
 
+    /**
+     * Build a config-varied connection from a caller-supplied `CONN`
+     * subclass, threading BOTH the runner `ctx.conn` uses (the shared
+     * `CaptureInterceptor`) AND the cell's `compatibilityVersion` — the same
+     * two inputs `ctx.conn` itself was built from. This is the sanctioned
+     * way for a test to obtain a connection with a config override:
+     *
+     *     class IgnoreNull extends DBConnection {
+     *         protected override ignoreNullInMinAndMaxValue = true
+     *     }
+     *     const conn = ctx.withConnection(IgnoreNull)
+     *
+     * The subclass inherits every base config field (it `extends
+     * DBConnection`) AND — crucially — the cell's `compatibilityVersion`,
+     * resolved dynamically from the same place `ctx.conn` gets it, so the
+     * identical test file works in every version-tier cell. Hand-constructing
+     * `new IgnoreNull(ctx.conn.queryRunner)` instead drops the 2nd
+     * constructor arg, silently running the connection at the class-default
+     * `Number.POSITIVE_INFINITY` and emitting newest-tier SQL in an older
+     * compatibility-version cell. Must be called after `up()`.
+     */
+    withConnection<T extends CONN>(subclass: new (queryRunner: QueryRunner, compatibilityVersion?: number) => T): T
+
     up(): Promise<void>
     down(): Promise<void>
     /** Forget captured state and mock queue. Call from `beforeEach`. */
@@ -312,6 +335,16 @@ export function createTestContext<CONN>(opts: TestContextOptions<CONN>): TestCon
 
         mockNext(value) {
             mockQueue.push(value)
+        },
+
+        withConnection(subclass) {
+            // Reach for the live CaptureInterceptor (`ctx.conn.queryRunner`)
+            // and the cell's compatibilityVersion — the exact pair
+            // `buildConnection` used to build `ctx.conn` in `up()`. Reading
+            // `capture` at call time (not a captured snapshot) keeps this
+            // correct after a poisoned-connection rebuild swaps the runner.
+            if (capture === null) throw new Error(`TestContext "${opts.label}": withConnection called before up()`)
+            return new subclass(capture, opts.compatibilityVersion)
         },
 
         async up() {

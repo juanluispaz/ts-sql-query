@@ -4,14 +4,8 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { DBConnection, tAppUser, tIssue, tProjectReview, vReleaseOverview, tIssueWorklog } from '../../domain/connection.js'
+import { tAppUser, tIssue, tProjectReview, vReleaseOverview, tIssueWorklog } from '../../domain/connection.js'
 import { ctx } from './setup.js'
-
-// A connection that keeps the empty string as itself instead of mapping it to null, so a
-// slice that legitimately yields '' can be asserted as ''.
-class EmptyStringConnection extends DBConnection {
-    protected override allowEmptyString = true
-}
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -459,7 +453,7 @@ describe(ctx.label, () => {
         // as "all but the last |n| characters", which is a different string. The connection
         // opts into allowEmptyString so the '' survives the read as itself, instead of being
         // mapped to null the way the default treats every empty string.
-        const conn = new EmptyStringConnection(ctx.conn.queryRunner)
+        const conn = ctx.withAllowEmptyString()
         const s = conn.const('abcdef', 'string')
         const expected = [{ fromStart: '', fromEnd: '' }]
         ctx.mockNext(expected)

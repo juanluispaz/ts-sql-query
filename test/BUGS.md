@@ -82,28 +82,6 @@ places where a fix that landed has **no test holding it down**, so a regression
 would be silent. Kept here because the loudest lesson of the round that fixed
 them was that a defect survives exactly as long as no fixture can express it.
 
-## Nested after-commit hook that registers another hook has no test
-
-**Where**: `AbstractConnection.transaction()` — the `popTransactionStack()` runs
-in `promiseFinally` (a provider-safe `.finally`, in `utils/PromiseUtils.ts`)
-*after* the after-commit / after-rollback hooks run, with `this.onCommit` /
-`this.onRollback` held at `null` (the sentinel the `executeAfterNextCommit` /
-`executeAfterNextRollback` guards read) while they run. That ordering is what
-makes an inner transaction's after-commit hook that itself calls
-`executeAfterNextCommit`, *while the outer transaction is still active*, throw
-`NESTED_DEFERRING_IN_TRANSACTION_NOT_SUPPORTED` instead of silently pushing onto
-the outer frame's hook list.
-**Reproduction**: no test exercises it. A pop-before-the-hooks variant (restore
-the parent frame first, clobbering the null sentinel) passes the *entire* current
-suite — including `transaction.deferring-guards.test.ts`, whose after-commit
-guard case only reaches `NOT_IN_TRANSACTION` because the outer transaction has
-already closed there. The distinguishing case needs the inner hook to fire while
-an outer transaction is still open.
-**Current workaround in the suite**: none. Only reachable with nested
-transactions, which the matrix runners do not enable on a real engine, so the
-missing test would be mock-only (the `nested-transaction-*` cases in
-`transaction.deferring-guards.test.ts` are the place to add it).
-
 ## Common bug shapes (for the fixing agent)
 
 Reference for the agent picking up entries above. The test author

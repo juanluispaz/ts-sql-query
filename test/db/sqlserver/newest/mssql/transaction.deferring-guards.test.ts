@@ -16,6 +16,13 @@
 //     the outer transaction's pending hooks, runs the inner one, then
 //     restores them — so the outer after-commit hook fires after the
 //     inner one.
+//   - inside a nested transaction, an after-commit hook that runs while
+//     the OUTER transaction is still open cannot register another deferred
+//     hook: the active-transaction check passes (the outer is still open),
+//     so the `onCommit === null` guard fires (the list is nulled while
+//     draining, popped only after) and throws
+//     NESTED_DEFERRING_IN_TRANSACTION_NOT_SUPPORTED — distinct from the
+//     NOT_IN_TRANSACTION a single transaction hits once it has closed.
 //
 // The errors thrown from inside a draining hook surface wrapped as
 // ERROR_EXECUTING_DEFERRED_IN_TRANSACTION with the original reason in the
@@ -138,6 +145,46 @@ describe(ctx.label, () => {
         }
     })
 
+    // Companion to the hook-ordering test above, for the error path: an
+    // after-commit hook that runs while an OUTER transaction is still open
+    // cannot itself register another deferred hook. The inner after-commit
+    // list is nulled while draining and `popTransactionStack` runs AFTER the
+    // hooks, so `onCommit === null` and the guard throws
+    // NESTED_DEFERRING_IN_TRANSACTION_NOT_SUPPORTED — distinct from the
+    // NOT_IN_TRANSACTION a single transaction's after-commit hook hits (there
+    // the transaction has already closed, so the active check fails first).
+    test('nested-transaction-inner-after-commit-hook-cannot-register-a-hook', async () => {
+        const connection = ctx.conn
+        const events: string[] = []
+        let caught: unknown
+        await ctx.withReseed(async () => {
+            try {
+                await connection.transaction(async () => {
+                    connection.executeAfterNextCommit(() => { events.push('outer-after-commit') })
+                    await connection.transaction(async () => {
+                        connection.executeAfterNextCommit(() => {
+                            connection.executeAfterNextCommit(() => { events.push('unreachable') })
+                        })
+                    })
+                })
+            } catch (e) { caught = e }
+        })
+        if (ctx.realDbEnabled) {
+            // The matrix runner is constructed without allowNestedTransactions,
+            // so the real engine rejects the nested transaction before the inner
+            // after-commit hook can run.
+            expect(reasonsInChain(caught)).toContain('NESTED_TRANSACTION_NOT_SUPPORTED')
+        } else {
+            // The inner hook throws while the after-commit list is draining, so
+            // the error surfaces wrapped as ERROR_EXECUTING_DEFERRED_IN_TRANSACTION
+            // with NESTED_DEFERRING_IN_TRANSACTION_NOT_SUPPORTED in the chain; the
+            // aborted outer transaction never runs its own after-commit hook.
+            expect(reasonsInChain(caught)).toContain('NESTED_DEFERRING_IN_TRANSACTION_NOT_SUPPORTED')
+            expect(reasonsInChain(caught)).toContain('ERROR_EXECUTING_DEFERRED_IN_TRANSACTION')
+            expect(events).toEqual([])
+        }
+    })
+
     // This connector's query runner cannot enable nested transactions
     // on the real engine, so the nesting-works case can only be validated
     // where the runner supports it (the throw-when-not-enabled case above
@@ -147,6 +194,20 @@ describe(ctx.label, () => {
     test('nested-transaction-works-with-allow-nested-transactions-enabled', async () => {
         // Builds a flag-on connection via ctx.nestedTransactionConn() and asserts
         // inner-before-outer after-commit hook order.
+    })
+    */
+
+    // Same nesting-enabled requirement as the case above: only a runner that
+    // supports allowNestedTransactions lets the inner transaction commit and
+    // run its after-commit hook while the outer transaction is still open, so
+    // the NESTED_DEFERRING guard is only reachable on the real engine there.
+    // The ctx.conn variant above still runs on the real engine here.
+    // NOT-APPLICABLE: this connector's query runner does not support allowNestedTransactions.
+    /*
+    test('nested-transaction-inner-after-commit-hook-cannot-register-a-hook-with-allow-nested-transactions-enabled', async () => {
+        // Builds a flag-on connection via ctx.nestedTransactionConn() and asserts
+        // that registering a hook inside the inner after-commit hook throws
+        // NESTED_DEFERRING_IN_TRANSACTION_NOT_SUPPORTED.
     })
     */
 })

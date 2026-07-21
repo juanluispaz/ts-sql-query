@@ -64,7 +64,7 @@ uses.
 | Write a `docs:` snippet test | [`WRITING_TESTS.md` § Docs snippets](./WRITING_TESTS.md#docs-snippets) |
 | Hand off a `src/` bug you discovered | [`WRITING_TESTS.md` § When a test surfaces a bug in `src/`](./WRITING_TESTS.md#when-a-test-surfaces-a-bug-in-src) |
 | Write a negative type test | [`WRITING_TESTS.md` § Negative type tests](./WRITING_TESTS.md#negative-type-tests) |
-| Handle a tsgo / tsc divergence | [`WRITING_TESTS.md` § Handling tsgo / tsc divergences](./WRITING_TESTS.md#handling-tsgo--tsc-divergences) |
+| Type-check the test matrix (which command, RAM) | [`WRITING_TESTS.md` § Type-checking the test matrix](./WRITING_TESTS.md#type-checking-the-test-matrix) |
 
 ### … add a database, connector, or version
 
@@ -259,7 +259,7 @@ npm run tests -- postgres/newest/pg --update-snapshots
 npm run tests -- --list-cells
 
 # Pre-push sanity sweep.
-npm run tests:audit -- && npm run validate:tests:per-db && npm run tests
+npm run tests:audit -- && npm run validate:tests && npm run tests
 
 # Full real matrix (the user's confidence check).
 npm run tests -- --docker --wasm

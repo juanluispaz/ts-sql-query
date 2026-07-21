@@ -281,12 +281,12 @@ test('postgres-negative-types', () => {
 - Each `// @ts-expect-error` MUST be paired with a one-line comment naming
   the rule it enforces. Without the comment, the directive is rejected at
   review time.
-- `npm run validate:tests:per-db` (or `validate:tests:newest` for the fast loop)
+- `npm run validate:tests` (or `validate:tests:newest` for the fast loop)
   is the real assertion. If a directive becomes "unused", the build fails with the
   canonical message — exactly the regression signal we want.
 - The `types.negative/` folder is **not** part of the cell matrix and is
   skipped by `tests:audit`.
 
-For the tsgo / tsc divergence story (where to place directives, how to add
-files to the tsc exclude list) see
-[`WRITING_TESTS.md` § Handling tsgo / tsc divergences](./WRITING_TESTS.md#handling-tsgo--tsc-divergences).
+For which command to run and where to place `@ts-expect-error` directives (tsgo
+is the only compiler that checks tests) see
+[`WRITING_TESTS.md` § Type-checking the test matrix](./WRITING_TESTS.md#type-checking-the-test-matrix).

@@ -70,9 +70,9 @@ is paging, and the variance swamps whatever is being measured. Node's numbers ar
 under a high ceiling). So: treat the bun row and the bun `--sink false` default as REASONED,
 not measured, and re-measure on a box with real headroom before relying on either.
 
-Same root cause as `validate:tests:tsc` not being a CI gate (see CLAUDE.md): one tsc program
-over the whole matrix + `src/` exhausts V8's heap. Both grow with the suite — re-measure
-before assuming the numbers above still hold.
+Same root cause as why the test scope isn't type-checked with tsc (see CLAUDE.md): one tsc
+program over the whole matrix + `src/` exhausts V8's heap. Both grow with the suite —
+re-measure before assuming the numbers above still hold.
 
 PURPOSE: build the CODE INDEX — a queryable SQLite database that maps the whole
 project (src + tests + docs + legacy examples) so tooling can ask precise questions

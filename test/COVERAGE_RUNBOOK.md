@@ -161,7 +161,7 @@ One session runs this sequence exactly once.
        ─ fix or accept ─
    §8  Propagate        cp to every active cell, re-bake per cell, re-apply
                         per-connector caveats from EXTERNAL_CAVEATS.md
-   §9  Close            tests:audit + validate:tests + validate:tests:tsc +
+   §9  Close            tests:audit + validate:tests +
                         full mock run; report mock-validated vs
                         real-validated per test
 ```
@@ -567,10 +567,9 @@ Once the canonical is GREEN/YELLOW, propagate via a small `cp` script (or
 
 7. **Typecheck**:
    ```bash
-   npm run validate:tests:per-db   # whole-matrix validate:tests now OOMs (>17 GB in tsgo); the per-db split is what CI gates
-   npm run validate:tests:tsc
+   npm run validate:tests   # tsgo, one program per connector — CI gates this
    ```
-   Both must pass. (For the inner edit loop use `npm run validate:tests:newest`.) Errors often signal that the cell's connection type
+   Must pass. (For the inner edit loop use `npm run validate:tests:newest`.) Errors often signal that the cell's connection type
    rejects an API used in the test — re-check whether the right answer is
    "this dialect doesn't support it" (block-comment with
    `// NOT-APPLICABLE: <reason>`), "the lib hasn't covered it yet"
@@ -582,10 +581,9 @@ Once the canonical is GREEN/YELLOW, propagate via a small `cp` script (or
 In order:
 
 1. `npm run tests:audit` — symmetry, must be green.
-2. `npm run validate:tests:per-db` (tsgo) — must be green. (Whole-matrix `validate:tests` now OOMs, >17 GB; the per-db split is the RAM-safe path CI gates.)
-3. `npm run validate:tests:tsc` — must be green.
-4. `npm run tests` — full mock matrix end to end, must be green.
-5. **Report to the user** with the new vocabulary:
+2. `npm run validate:tests` (tsgo, one program per connector) — must be green.
+3. `npm run tests` — full mock matrix end to end, must be green.
+4. **Report to the user** with the new vocabulary:
 
    For every test the wave shipped, list its state:
 
@@ -637,7 +635,7 @@ In order:
 ## Operational rules
 
 - **Use `npm run …` for everything** — the matrix, coverage, and the helpers
-  (`tests:index`, `tests:where-is`, `validate:tests:per-db`). One consistent runtime
+  (`tests:index`, `tests:where-is`, `validate:tests`). One consistent runtime
   avoids confusing the agent; the matrix under vitest (`isolate:false`) is faster
   incl. ~20× on `--docker` (bun rebuilds each cell's DB pool per file; see
   [`BENCHMARKS.md`](./BENCHMARKS.md)), coverage is vitest-only anyway, and for the

@@ -606,9 +606,9 @@ fires). The coordinator is the adjudicator.
    - `npm run validate:tests:newest 2>&1 | grep <reprofile>` — no error means the
      chain typechecks and the asserted type holds; an error reveals the actual.
      (`validate:tests:newest` runs **tsgo** in a single program over just the newest cells —
-     ~6 GB/fast, and your repro lives in a `newest` cell; the whole-matrix `validate:tests`
-     now OOMs, >17 GB. Full command/flag
-     vocabulary — `tests <coord>`, the runner flags — is in [`CLI.md`](./CLI.md).)
+     ~6 GB/fast, and your repro lives in a `newest` cell; the full `validate:tests` splits
+     one tsgo program per connector because a single whole-matrix program OOMs, >17 GB. Full
+     command/flag vocabulary — `tests <coord>`, the runner flags — is in [`CLI.md`](./CLI.md).)
    - **Delete the repro and confirm `git status --porcelain` is clean.** (This
      recipe once proved `shapedAs().set().onConflictOn(c).doUpdateDynamicSet()`
      reachable on PG, overturning a prior "not reachable" verdict.)
@@ -1212,7 +1212,7 @@ or does the composition remove/replace it?**
 
 ## Operational rules
 
-- **Use `npm run …` for everything** — `validate:tests:per-db` / `validate:tests:newest`, `tests:where-is`,
+- **Use `npm run …` for everything** — `validate:tests` / `validate:tests:newest`, `tests:where-is`,
   `tests:index`, and the matrix itself. One consistent runtime avoids confusing
   the agent; for the compiler/searcher helpers the launcher is a no-op (same tsgo,
   same index), and for the matrix vitest (`isolate:false`) is faster incl. ~20× on

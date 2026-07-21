@@ -543,7 +543,7 @@ wire it into the `openIndexDb` dispatcher. Everything above `db.ts` is backend-a
   `test/tsconfig.json`), shared by every extractor — no per-file `createSourceFile`, no
   in-memory slicing. The classic `typescript` package (not tsgo, which has no programmatic
   API yet). `src/examples/prisma/` is excluded.
-- Typecheck edits with `npm run validate:tests` (tsgo) and `npm run validate:tests:tsc`.
+- Typecheck edits with `npm run validate:tests` (tsgo).
 
 ## Notes
 

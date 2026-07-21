@@ -81,7 +81,7 @@ The audit is anti-cheat enforcement and nothing else.
 | Does a symbol exist in `src/`? | The searcher's `Classification` answers it | [searcher](../../CODE_SEARCH.md) |
 | Subjective judgement ("is this assertion *good enough*?") | Requires reading and opining — not mechanical | the [quality-gate sub-agent](../../QUALITY_GATE.md) |
 | "Is this value valid for this type?" in general / assignability | The unbounded semantic question the searcher explicitly walled off (CASE_STUDIES H.2, J–L): the index *locates* types, the compiler *decides* validity. The `uuid-literal` rule stays narrow because of this | the compiler / a future type-coverage tool |
-| Coverage %, performance, security, running tests, TS errors | Other flows; `validate:tests:per-db` covers TS | coverage flow / `validate:tests:per-db` |
+| Coverage %, performance, security, running tests, TS errors | Other flows; `validate:tests` covers TS | coverage flow / `validate:tests` |
 
 ## Relationship to the quality gate
 
@@ -1066,7 +1066,7 @@ don't actually validate**. Three mechanical shapes, three rule ids
   contains NO assertion at all (`expect` / `assertType` / `expectTypeOf` /
   `toThrow`). It runs the query and checks nothing — always green. A pure
   **type-demonstration** test (no `execute*` call — it asserts by compiling, and
-  `validate:tests:per-db` gates it) is NOT flagged: the 68 no-assertion tests in the
+  `validate:tests` gates it) is NOT flagged: the 68 no-assertion tests in the
   matrix are all this legitimate kind, so requiring an `execute*` call leaves the
   rule at **anchor 0** — a clean preventive gate against the real cheat (run a
   query, assert nothing).

@@ -98,8 +98,7 @@ database has to satisfy see [`PER_DATABASE_LAYOUT.md`](./PER_DATABASE_LAYOUT.md)
    ```bash
    npm run tests:audit          -- # symmetry ✓
    npm run validate:tests:newest        # fast typecheck — single tsgo program over the newest cells (~6 GB RAM)
-   npm run validate:tests:per-db        # authoritative typecheck — CI gates this (whole-matrix validate:tests now OOMs, >17 GB in tsgo)
-   npm run validate:tests:tsc           # local-only tsc cross-check (not gated in CI)
+   npm run validate:tests               # authoritative typecheck — CI gates this (tsgo, one program per connector, ~7 GB peak)
    npm run tests                -- # no docker, fast sanity check
    npm run tests -- --docker --wasm  # full real matrix (Docker required)
    ```

@@ -9,7 +9,7 @@ shows how to apply them.
 - [Real-DB validation of one cell](#real-db-validation-of-one-cell)
 - [Adding a test](#adding-a-test)
 - [Negative type tests](#negative-type-tests)
-- [Handling tsgo / tsc divergences](#handling-tsgo--tsc-divergences)
+- [Type-checking the test matrix](#type-checking-the-test-matrix)
 - [Testing a runtime guard that is also typed at compile time](#testing-a-runtime-guard-that-is-also-typed-at-compile-time)
 - [Extending the shared domain](#extending-the-shared-domain)
 - [When the canonical cell can't compile the body](#when-the-canonical-cell-cant-compile-the-body)
@@ -209,9 +209,9 @@ re-validate" loop benefits the most. Full flag reference in
 9. **Verify**:
 
    ```bash
-   npm run tests:audit         -- # mechanical anti-cheat gate (symmetry + ~24 rules)
-   npm run validate:tests:per-db  # typecheck ✓ (tsgo; whole-matrix validate:tests now OOMs — use validate:tests:newest for the fast loop)
-   npm run tests               -- # mock matrix ✓
+   npm run tests:audit  -- # mechanical anti-cheat gate (symmetry + ~24 rules)
+   npm run validate:tests  # typecheck ✓ (tsgo, per-connector split; use validate:tests:newest for the fast loop)
+   npm run tests        -- # mock matrix ✓
    ```
 
    `tests:audit` walks `test/db/` statically and reports tests that have
@@ -252,7 +252,7 @@ test('postgres-negative-types', () => {
   from firing.
 - Each `// @ts-expect-error` MUST be paired with a one-line comment naming
   the rule it enforces.
-- `npm run validate:tests:per-db` (or `validate:tests:newest` for the fast loop)
+- `npm run validate:tests` (or `validate:tests:newest` for the fast loop)
   is the real assertion. If a directive becomes "unused", the build fails —
   exactly the regression signal we want.
 - The `types.negative/` folder is **not** part of the cell matrix and is
@@ -272,65 +272,40 @@ new lock on. The same view rides under `--for emission-bug` when the
 negative test is the second step of fixing a typing bug (see
 [`BUGS.md` § When the fix lands](./BUGS.md)).
 
-## Handling tsgo / tsc divergences
+## Type-checking the test matrix
 
-`npm run validate:tests` runs `tsgo -p test/tsconfig.json --noEmit` (the
-TypeScript 7 Go-based compiler) and is the **authoritative** check for the
-`test/` matrix. `npm run validate:tests:tsc` runs `tsc -p test/tsconfig.tsc.json --noEmit`
-as a sub-experience.
+`npm run validate:tests` runs `bash scripts/validate-tests.sh` — one tsgo
+program **per connector** (the TypeScript 7 Go-based compiler) — and is the
+**authoritative** check for the `test/` matrix. tsgo is the only compiler that
+type-checks tests: tests don't ship, so there's no downstream tsc-compat
+obligation, and the agent's default loop gets tsgo's speed and stricter span
+behaviour. CI gates on it.
 
-> **RAM: don't run the whole-matrix `validate:tests`.** One tsgo program over
-> `test/tsconfig.json` + `src/` now peaks **past 17 GB in tsgo** as the suite
-> grows, so it OOMs on 16 GB CI runners and most dev boxes. Two RAM-safe paths:
-> - **Full check → `npm run validate:tests:per-db`** — one tsgo program per
->   database (peak = the single largest slice, not the sum), which is what CI
->   gates. Use it before pushing.
+> **RAM.** A single tsgo program over `test/tsconfig.json` + `src/` peaks
+> **past 17 GB** as the suite grows, OOM-killing 16 GB CI runners and most dev
+> boxes — so there is no whole-matrix command. Two RAM-safe paths:
+> - **Full check → `npm run validate:tests`** — one tsgo program per connector
+>   (sqlite grew too large to split merely per-db, so every db is split the
+>   same way; configs generated on the fly), so peak = the single largest
+>   slice, not the sum (~7 GB), which is what CI gates. Use it before pushing.
 > - **Inner edit loop → `npm run validate:tests:newest`** — a SINGLE tsgo
 >   program (`test/tsconfig.newest.json`) narrowed to every db's `newest` +
 >   `types.negative` cells (drops the older version tiers + `domain/`, mirroring
 >   `--run-versions newest`). It peaks ~6 GB and compiles `src/` once, so it fits
 >   in RAM easily. A green newest run says nothing about the older tiers, so run
->   the full `validate:tests:per-db` before pushing.
+>   the full `validate:tests` before pushing.
 >
 > The newest set is expressed by INCLUDE in `test/tsconfig.newest.json`, so a
 > newly added version-tier folder is auto-excluded there with no edit.
 
-The role split applies only to tests because tests don't ship — there's no
-downstream tsc-compat obligation, so the agent's default loop gets tsgo's
-speed and stricter span behaviour. CI runs both.
-
-Negative type tests are written **in tsgo style** — directives placed where
-tsgo reports the error. When that placement also satisfies `tsc` (the
-common case: single-statement assertions and call-site errors), nothing
-else is needed.
-
-Occasionally the two compilers disagree on where the error span lands and a
-directive that works in tsgo looks "unused" to tsc (or vice versa). The
-TypeScript core team explicitly leaves this unspecified —
-[microsoft/typescript-go#1088](https://github.com/microsoft/typescript-go/issues/1088)
-(closed *not planned*): *"we don't provide any guarantees on error spans
-when either error is valid"*. The two spans are equally valid and neither
-compiler will rebase its choice.
-
-When a divergence makes a file fail under `validate:tests:tsc` but not
-under `validate:tests`:
-
-1. Confirm the placement tsgo wants is the one with semantic precision (the
-   narrower span — what a future tsc release is most likely to converge
-   towards).
-2. Keep the directive in that position.
-3. Add the file to the `exclude` list in
-   [`test/tsconfig.tsc.json`](./tsconfig.tsc.json) so the sub-experience
-   stops trying to validate it. The exclusion is per-file (not per-directive),
-   so add the smallest path that isolates the divergence.
-4. The file is still covered by the authoritative `validate:tests` (tsgo),
-   so the negative remains protected.
-
-When `tsc` aligns with `tsgo` in a future release — or when those
-negatives are rewritten as type-level assertions per Ryan Cavanaugh's
-recommendation — empty the `exclude` list and the two compilers cover the
-same surface again. Eventually `test/tsconfig.tsc.json` can disappear
-entirely and `validate:tests:tsc` can point back at `test/tsconfig.json`.
+Negative type tests are written **in tsgo style** — `@ts-expect-error`
+directives placed where tsgo reports the error span (the common case:
+single-statement assertions and call-site errors). tsgo is the only compiler
+that checks them, so its placement is the one that matters. Error spans are
+unspecified when either error is valid
+([microsoft/typescript-go#1088](https://github.com/microsoft/typescript-go/issues/1088),
+closed *not planned*), which is why the directive follows tsgo rather than any
+particular tsc release.
 
 ## Testing a runtime guard that is also typed at compile time
 
@@ -444,7 +419,7 @@ shared-domain extension.
    (`sqlite/newest/bun_sqlite/`) once, copy to the other cells, re-bake the
    snapshot for `extract-columns-select-all` (it lists the full select
    clause).
-5. **Re-run** `npm run tests:audit -- && npm run validate:tests:tsc &&
+5. **Re-run** `npm run tests:audit -- && npm run validate:tests &&
    npm run tests` end to end. If the new column has a
    `CustomBooleanTypeAdapter`, the select snapshot will surface as
    `(<col> = '<true-value>') as <col>` — sanity-check that, the adapter
@@ -661,7 +636,7 @@ behaviour was documented on.
 6. **Comment out (do not delete)** any test that does not apply to a cell,
    with a one-line reason above the `/* … */` block. The body stays
    verbatim per the [Full-canonical-body discipline](./DESIGN.md#full-canonical-body).
-7. **Verify**: `tests:audit`, `validate:tests:per-db`, `tests`.
+7. **Verify**: `tests:audit`, `validate:tests`, `tests`.
 
 ## When a test surfaces a bug in `src/`
 

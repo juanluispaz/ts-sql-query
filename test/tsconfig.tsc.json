@@ -1,6 +1,0 @@
-{
-    "extends": "./tsconfig.json",
-    "exclude": [
-        "db/*/types.negative/insert.test.ts"
-    ]
-}

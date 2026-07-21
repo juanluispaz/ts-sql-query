@@ -444,7 +444,15 @@ export function createBetterSqlite3TestContext(spec: SqliteTestSpec, sync = fals
                 runner: sync
                     ? new BetterSqlite3QueryRunner(conn, { promise: SynchronousPromise })
                     : new BetterSqlite3QueryRunner(conn),
-                shutdown: async () => { /* shared instance, intentional no-op */ },
+                // Close the shared db per file so no native sqlite handle is
+                // left open on an idle worker: Node 26 stalls vitest's graceful
+                // worker-stop teardown otherwise. `up()` reopens it.
+                shutdown: async () => {
+                    if (sharedBetterSqlite3Db) {
+                        sharedBetterSqlite3Db.close()
+                        sharedBetterSqlite3Db = null
+                    }
+                },
             }
         },
         async onReseed(runner) {
@@ -510,7 +518,21 @@ export function createNodeSqliteTestContext(spec: SqliteTestSpec, sync = false):
                 runner: sync
                     ? new NodeSqliteQueryRunner(conn, { promise: SynchronousPromise })
                     : new NodeSqliteQueryRunner(conn),
-                shutdown: async () => { /* shared instance, intentional no-op */ },
+                // Close the shared in-memory db at the end of each file rather
+                // than leaving it for the kernel to reclaim at process exit.
+                // Under vitest's forks pool + `isolate: false`, a native sqlite
+                // handle left open on an idle worker makes Node 26 stall
+                // vitest's graceful worker-stop for the full 60s STOP_TIMEOUT,
+                // printing "Failed to terminate worker" teardown errors on CI.
+                // The next file's `up()` reopens it via `getOrCreateNodeSqliteDb`;
+                // the reopen is cheap next to the schema + seed re-exec `up()`
+                // already does.
+                shutdown: async () => {
+                    if (sharedNodeSqliteDb) {
+                        sharedNodeSqliteDb.close()
+                        sharedNodeSqliteDb = null
+                    }
+                },
             }
         },
         async onReseed(runner) {
@@ -607,7 +629,17 @@ export function createSqlite3TestContext(spec: SqliteTestSpec): SqliteTestContex
             await sqlite3Exec(conn, seed)
             return {
                 runner: new Sqlite3QueryRunner(conn),
-                shutdown: async () => { /* shared instance, intentional no-op */ },
+                // Close the shared db per file so no native sqlite handle is
+                // left open on an idle worker: Node 26 stalls vitest's graceful
+                // worker-stop teardown otherwise. `up()` reopens it. sqlite3's
+                // `close` is async, so await it before the file resolves `down()`.
+                shutdown: async () => {
+                    const db = sharedSqlite3Db
+                    if (db) {
+                        sharedSqlite3Db = null
+                        await new Promise<void>((resolve, reject) => db.close(e => e ? reject(e) : resolve()))
+                    }
+                },
             }
         },
         async onReseed(runner) {

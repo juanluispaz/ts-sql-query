@@ -122,7 +122,8 @@ type StartedContainer = {
 // handles by image so a `--docker-version closest` run can bring up an older
 // image as a separate keep-alive container without colliding with the latest.
 const containers = createContainerRegistry<StartedContainer>(async (image) => {
-    if (image !== newestImage(DATABASE)) {
+    const isVersionSpecific = image !== newestImage(DATABASE)
+    if (isVersionSpecific) {
         console.error(`[docker-version] ${DATABASE}: using ${image}`)
     }
     const { GenericContainer, Wait } = await import('testcontainers')
@@ -132,6 +133,16 @@ const containers = createContainerRegistry<StartedContainer>(async (image) => {
         })
         .withExposedPorts(3306)
         .withWaitStrategy(Wait.forLogMessage(/ready for connections/, 2))
+    if (image.startsWith('mysql:5')) {
+        // `--docker-version closest` reaches the older images. The MySQL 5.x
+        // line (5.7, the `oldest` tier) ships a multi-arch manifest that lists
+        // amd64 WITHOUT arm64, so on Apple Silicon Docker errors instead of
+        // auto-emulating (unlike the single-arch amd64 sqlserver/oracle
+        // images). Pin the platform so it emulates under qemu. Harmless on
+        // amd64 CI. Scoped to 5.x on purpose: the 8.0 tiers are arm64-native,
+        // so pinning amd64 there would needlessly force them through qemu.
+        builder.withPlatform('linux/amd64')
+    }
     if (reuseEnabled()) builder.withReuse()
     const started = (await builder.start()) as unknown as StartedContainer
     // Runs once per process per image. Validates the schema/seed hash against
@@ -240,25 +251,57 @@ async function applyResetAndSeedOnConnection(conn: import('mysql2/promise').Conn
     for (const stmt of splitStatements(seedSql)) await conn.query(stmt)
 }
 
+// MySQL 8.0 ships built-in UUID_TO_BIN / BIN_TO_UUID; MySQL 5.7 (the `oldest`
+// tier under `--docker-version closest`) does NOT, so the shared seed's
+// `UUID_TO_BIN(...)` and the library's emitted `uuid_to_bin(...)` /
+// `bin_to_uuid(...)` (the default 'binary' uuid strategy) would fail. On 5.7
+// the runner creates these as user-defined functions in the worker DB before
+// applying schema/seed; MySQL resolves the names case-insensitively, so they
+// stand in for the missing built-ins. The bodies match the 8.0 built-ins with
+// the default swap flag (0 = natural byte order): UUID_TO_BIN packs the hex
+// as-is, BIN_TO_UUID re-inserts the dashes and lowercases to match 8.0's
+// output, so the same value assertions pass on both images. The NULL guard in
+// BIN_TO_UUID mirrors the built-in (a NULL binary reads back as NULL, not the
+// '----' an unguarded CONCAT_WS would produce). Kept out of the shared
+// schema.sql/seed.sql so `newest`/8.0 keep their real built-ins. These are the
+// same definitions documented for 5.7 users in
+// docs/configuration/supported-databases/mysql.md. One statement per line so
+// `splitStatements` (splits on `;\n`) ships each separately.
+const MYSQL_57_UUID_FUNCTIONS_SQL = `
+DROP FUNCTION IF EXISTS UUID_TO_BIN;
+CREATE FUNCTION UUID_TO_BIN(uuid CHAR(36)) RETURNS BINARY(16) DETERMINISTIC RETURN UNHEX(REPLACE(uuid, '-', ''));
+DROP FUNCTION IF EXISTS BIN_TO_UUID;
+CREATE FUNCTION BIN_TO_UUID(b BINARY(16)) RETURNS CHAR(36) DETERMINISTIC RETURN IF(b IS NULL, NULL, LOWER(CONCAT_WS('-', SUBSTR(HEX(b), 1, 8), SUBSTR(HEX(b), 9, 4), SUBSTR(HEX(b), 13, 4), SUBSTR(HEX(b), 17, 4), SUBSTR(HEX(b), 21, 12))));
+`
+
+async function applyUuidCompatFunctions(conn: import('mysql2/promise').Connection): Promise<void> {
+    for (const stmt of splitStatements(MYSQL_57_UUID_FUNCTIONS_SQL)) await conn.query(stmt)
+}
+
 // First-time setup: the runner's pool does not exist yet (the worker DB
 // must be created before the pool can authenticate against it). This path
 // opens a one-shot direct connection to bootstrap the worker DB and
 // apply schema+seed. Subsequent reseeds borrow from the runner's pool —
-// see `onReseed` below.
-async function bootstrapWorkerDbSchemaAndSeed(host: string, port: number): Promise<string> {
+// see `onReseed` below. `needsUuidCompat` (MySQL 5.7) creates the
+// user-defined UUID_TO_BIN/BIN_TO_UUID before schema/seed so both resolve.
+async function bootstrapWorkerDbSchemaAndSeed(host: string, port: number, needsUuidCompat: boolean): Promise<string> {
     const workerDb = workerName(BASE_WORKER_DB_NAME)
     const mysql2 = await import('mysql2/promise')
 
     if (!workerDbEnsured) {
         // Ensure the worker DB exists. `CREATE DATABASE IF NOT EXISTS`
         // is race-safe across workers — the first writer wins, the
-        // rest no-op.
+        // rest no-op. Pin the charset to utf8mb4 so tables inherit it
+        // regardless of the server's default: MySQL 8.0+ already defaults
+        // to utf8mb4, but 5.7 (the `oldest` tier, reached via
+        // `--docker-version closest`) still defaults to latin1, which makes
+        // the library's forced `collate utf8mb4_*` invalid.
         const adminConn = await connectWithRetry(mysql2, {
             host, port,
             user: 'root', password: ROOT_PASSWORD,
         })
         try {
-            await adminConn.query(`CREATE DATABASE IF NOT EXISTS \`${workerDb}\``)
+            await adminConn.query(`CREATE DATABASE IF NOT EXISTS \`${workerDb}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci`)
         } finally {
             await adminConn.end()
         }
@@ -272,6 +315,7 @@ async function bootstrapWorkerDbSchemaAndSeed(host: string, port: number): Promi
         multipleStatements: true,
     })
     try {
+        if (needsUuidCompat) await applyUuidCompatFunctions(conn)
         await applySchemaAndSeedOnConnection(conn)
     } finally {
         await conn.end()
@@ -306,6 +350,11 @@ export function createMySql2PoolTestContext(spec: MySqlTestSpec): MySqlTestConte
     const connector = spec.label.split(' / ')[1] ?? ''
     const realDbEnabled = isRealDbEnabled(DATABASE, /* needsDocker */ true, version, connector)
     const image = imageForCell(DATABASE, version, realDbEnabled)
+    // MySQL 5.7 (the `oldest` tier) needs two compatibility shims the 8.0+ images
+    // don't: the runner emulates the missing built-in UUID_TO_BIN/BIN_TO_UUID (so
+    // the default 'binary' uuid strategy works) and pins the connection collation
+    // to the server's utf8mb4 default (see the pool `charset` below).
+    const isMysql5 = image.startsWith('mysql:5')
     const buildRunner = memoizeSharedRunner(async (params: { host: string; port: number; workerDb: string }) => {
         // MySql2PoolQueryRunner wraps the callback-style Pool, not the
         // promise-style one — import accordingly.
@@ -315,6 +364,15 @@ export function createMySql2PoolTestContext(spec: MySqlTestSpec): MySqlTestConte
             host: params.host, port: params.port,
             user: 'root', password: ROOT_PASSWORD,
             database: params.workerDb,
+            // MySQL 5.7's utf8mb4 default collation is `utf8mb4_general_ci`, which
+            // the worker DB and the emulated BIN_TO_UUID (whose CHAR result inherits
+            // the DB default) both use. mysql2 otherwise negotiates
+            // `utf8mb4_unicode_ci` for the connection, so a literal compared against
+            // a function result would raise ER_CANT_AGGREGATE_2COLLATIONS. Pin the
+            // connection collation to the DB default so both sides agree — this is
+            // exactly what mysql2 negotiates automatically on 8.0+ (server default),
+            // so the 8.0/9 tiers don't need it.
+            ...(isMysql5 ? { charset: 'UTF8MB4_GENERAL_CI' } : {}),
             connectionLimit: 4,
             // Be patient through the parallel-pass connection storm — see the
             // mariadb runner for the full rationale. mysql2 queues acquires
@@ -340,7 +398,7 @@ export function createMySql2PoolTestContext(spec: MySqlTestSpec): MySqlTestConte
             const container = await containers.getFor(image).acquire()
             const host = container.getHost()
             const port = container.getMappedPort(3306)
-            const workerDb = await bootstrapWorkerDbSchemaAndSeed(host, port)
+            const workerDb = await bootstrapWorkerDbSchemaAndSeed(host, port, isMysql5)
             // `forceNew` rebuilds a fresh runner (clean transaction state) when
             // the harness discards a connection poisoned by a failed commit.
             return await buildRunner({ host, port, workerDb }, forceNew)

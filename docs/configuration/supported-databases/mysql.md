@@ -31,7 +31,7 @@ class DBConnection extends MySqlConnection<'DBConnection'> { }
 
 `ts-sql-query` provides different strategies to handle UUID values in MySQL. These strategies control how UUID values are represented in JavaScript and stored in the database.
 
-- `'binary'` *(default strategy)*: UUIDs are treated as strings and stored using the native `BINARY(16)` column type via the `UUID_TO_BIN` / `BIN_TO_UUID` functions. This requires MySQL version 8 or higher.
+- `'binary'` *(default strategy)*: UUIDs are treated as strings and stored using the native `BINARY(16)` column type via the `UUID_TO_BIN` / `BIN_TO_UUID` functions. These are built in from MySQL 8; on MySQL 5.7 either use the `'string'` strategy below or define them yourself (see [UUID utility functions for MySQL](#uuid-utility-functions-for-mysql)).
 - `'string'`: UUIDs are treated as strings and stored in character-based columns such as `CHAR(36)`, `VARCHAR(36)`, or `TEXT`. This option can be used with older MySQL versions or when avoiding the `BINARY` type.
 
 You can configure the strategy by overriding the `uuidStrategy` field in your connection class:
@@ -47,6 +47,23 @@ class DBConnection extends MySqlConnection<'DBConnection'> {
 !!! tip "Generating UUIDs"
 
     Prefer **UUID v7** over UUID v4. With the `'binary'` strategy on MySQL 8+, the bytes are stored in canonical order, so a UUID v7 keeps its chronological ordering on the primary-key index. MySQL has no server-side v7 generator (its built-in `UUID()` returns v1, which does not preserve sortability under the canonical byte order of the `'binary'` strategy), so v7 must be generated in the application — the only exception to the general rule of preferring database-side generation that is laid out in the [column types](../column-types.md) page.
+
+## UUID utility functions for MySQL
+
+The `'binary'` strategy relies on the `UUID_TO_BIN` / `BIN_TO_UUID` functions, which MySQL provides as built-ins from **version 8.0**. On **MySQL 5.7** they don't exist, so either use the `'string'` strategy above, or create the two functions yourself — MySQL resolves the names case-insensitively, so `ts-sql-query`'s emitted `uuid_to_bin(...)` / `bin_to_uuid(...)` resolve to them. The implementation below matches the 8.0 built-ins with the default swap flag (`0`, natural byte order), so values stored on 5.7 read back identically on 8.0+:
+
+```sql
+CREATE FUNCTION UUID_TO_BIN(uuid CHAR(36)) RETURNS BINARY(16) DETERMINISTIC
+    RETURN UNHEX(REPLACE(uuid, '-', ''));
+
+CREATE FUNCTION BIN_TO_UUID(b BINARY(16)) RETURNS CHAR(36) DETERMINISTIC
+    RETURN IF(b IS NULL, NULL,
+        LOWER(CONCAT_WS('-',
+            SUBSTR(HEX(b), 1, 8), SUBSTR(HEX(b), 9, 4), SUBSTR(HEX(b), 13, 4),
+            SUBSTR(HEX(b), 17, 4), SUBSTR(HEX(b), 21, 12))));
+```
+
+They store the 16 bytes as-is (no version-specific reordering), so they accept any UUID version — unlike MySQL's built-in swap form `UUID_TO_BIN(uuid, 1)`, which reorders the time fields of a v1 UUID. The `NULL` guard in `BIN_TO_UUID` returns `NULL` for a `NULL` input, matching the built-in (an unguarded `CONCAT_WS` would return a stray `----` string). `CHAR` results from a stored function take the database's default collation, so keep the connection collation aligned with it (on 5.7 that is `utf8mb4_general_ci`) to avoid an `Illegal mix of collations` error when a UUID string is compared against a literal.
 
 ## Compatibility version
 

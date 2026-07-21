@@ -265,7 +265,10 @@ CREATE TABLE release_draft (
     shifted_stamp DATETIME NOT NULL DEFAULT '2024-06-01 10:00:00',
     shifted_count BIGINT NOT NULL DEFAULT 5000,
     shifted_rating DOUBLE NOT NULL DEFAULT 4.5,
-    bracket_signing_key BINARY(16) NOT NULL DEFAULT (UNHEX('00000000000040008000000000000000')),
+    -- Hex-literal constant default (portable) rather than `DEFAULT (UNHEX(...))`:
+    -- expression defaults require MySQL 8.0.13+, but `0x...` is a constant accepted
+    -- on 5.7 (the `oldest` tier) through 9 and stores the identical 16 bytes.
+    bracket_signing_key BINARY(16) NOT NULL DEFAULT 0x00000000000040008000000000000000,
     shifted_release_day DATE NOT NULL DEFAULT '2025-03-01',
     shifted_cutoff TIME NOT NULL DEFAULT '09:00:00'
 );

@@ -304,15 +304,16 @@ cases in `select.compound*` are commented out with `// TODO[LIMITATION]: see
 LIMITATIONS.md` on the sub-`newest` MariaDB cells and run live on `newest`
 (12.3). Callable + accepted by 10.5+ → `TODO[LIMITATION]`, not `NOT-APPLICABLE`.
 
-## MariaDB < 10.4 rejects a `WHERE` clause without a `FROM`
+## MariaDB 10.3 / MySQL 5.7 reject a `WHERE` clause without a `FROM`
 
 `selectFromNoTable().where(...)` emits `select <cols> where <cond>` with no
-FROM clause. MySQL (every supported version) and MariaDB **10.4+** accept a bare
-`SELECT … WHERE`, but MariaDB **10.3** requires a FROM and rejects it with
-`ER_PARSE_ERROR (1064)`. Verified against real `mariadb:10.3`: `select 1 as x
-where 1 = 1` → 1064, while `select 1 as x from dual where 1 = 1` → OK; the same
-no-FROM SQL runs live on the `10_004_000` / `10_005_000` cells (real 10.4 / 10.5)
-and on every MySQL cell (identical snapshot).
+FROM clause. MySQL **8.0+** and MariaDB **10.4+** accept a bare `SELECT … WHERE`,
+but MariaDB **10.3** and MySQL **5.7** require a FROM and reject it with
+`ER_PARSE_ERROR (1064)`. Verified against real `mariadb:10.3` and real `mysql:5.7`:
+`select 1 as x where 1 = 1` → 1064 on both, while `select 1 as x from dual where 1
+= 1` → OK; the same no-FROM SQL runs live on the `10_004_000` / `10_005_000` MariaDB
+cells (real 10.4 / 10.5) and the `8_000_000` / `newest` MySQL cells (identical
+snapshot).
 
 The library emits the no-FROM form on every `compatibilityVersion` — valid on
 every other engine/version this matrix runs. It is closeable (the builder could
@@ -320,14 +321,105 @@ emit `from dual` on MariaDB/MySQL when a `selectFromNoTable` carries a WHERE) bu
 that is deliberately not gated: `from dual` is not portable to PostgreSQL /
 SQLite, so it would be a MySQL/MariaDB-specific rewrite for a degenerate query
 (a WHERE over a single constant row). Stays `TODO[LIMITATION]` rather than
-`NOT-APPLICABLE` because the API is callable and MariaDB 10.4+ accepts it.
+`NOT-APPLICABLE` because the API is callable and MariaDB 10.4+ / MySQL 8.0+ accept it.
 
 **What this means for tests** — the
 `build-fragment-with-args-if-value-emits-when-value-present` and
 `build-fragment-with-args-if-value-arity-1-emits-when-present` tests in
 `fragments.with-args` are commented out with `// TODO[LIMITATION]: see
-LIMITATIONS.md` on the `10_003_003` and `oldest` MariaDB cells (both real
-`mariadb:10.3` under `--docker-version closest`) and run live everywhere else.
+LIMITATIONS.md` on the `10_003_003` / `oldest` MariaDB cells (real `mariadb:10.3`)
+and the `oldest` MySQL cell (real `mysql:5.7`), all under `--docker-version
+closest`, and run live everywhere else.
+
+## MySQL 5.7: recursive CTEs and the `VALUES` row constructor are refused (`compatibilityVersion < 8_000_000`)
+
+At `compatibilityVersion < 8_000_000` (targeting MySQL 5.x) the builder enters "MySql
+compatibility mode": a `WITH` clause is inlined into the `FROM` rather than emitted, and
+two constructs it cannot express on that version are refused outright with a
+`TsSqlProcessingError { reason: 'UNSUPPORTED_QUERY' }` at query-build time:
+
+- **Recursive queries** (recursive `WITH`) — added in MySQL **8.0.1**; MySQL 5.7 has no
+  recursive CTE and no equivalent, so the builder throws rather than emit invalid SQL.
+- **`VALUES` row constructors** (a `Values` source used as a derived table) — the
+  `VALUES ROW(...), ...` table constructor arrived in MySQL **8.0.19**; below it the
+  builder throws.
+
+The throw is by design and documented on the MySQL configuration page. We treat it as a
+deployment limitation (the target version simply cannot run the query — the same outcome
+as the server rejecting the SQL), not `NOT-APPLICABLE`: the API is callable and every
+MySQL 8.0.1+ / 8.0.19+ engine accepts the query the newer cells emit.
+
+Verified against real `mysql:5.7`: the `cte.recursive-*`, `docs.recursive-select`,
+`with-values*` and the recursive-projection cases in `customize-query.select` /
+`select.aggregate-as-array-inline-wrapped` throw on `oldest`; all run live on `8_000_000`
+/ `newest`.
+
+**What this means for tests** — those cases are commented out with
+`// TODO[LIMITATION]: see LIMITATIONS.md` on the MySQL `oldest` cell and run live on every
+other MySQL cell (identical snapshot on 8.0+).
+
+## MySQL `EXCEPT` / `INTERSECT` compound operators require MySQL 8.0.31+
+
+MySQL added `EXCEPT` and `INTERSECT` (base and the `ALL` variants) in **8.0.31**; MySQL
+5.7 rejects every form with `ER_PARSE_ERROR (1064)`. (`minus` / `minusAll` route through
+the `EXCEPT` aliases, so they are the same gap.) The library emits the operator on every
+`compatibilityVersion` — there is no older-compatible rewrite (a `NOT IN` / `NOT EXISTS`
+emulation) it switches to. Plain `UNION [ALL]` is unaffected (5.7 supports it).
+
+Verified: `(select 1) except (select 2)` and `(select 1) intersect (select 2)` → 1064 on
+real `mysql:5.7`; the same SQL runs live on `newest`.
+
+**What this means for tests** — the `except*` / `intersect*` / `minus*` cases in
+`select.compound*` and `customize-query.compound` are commented out with
+`// TODO[LIMITATION]: see LIMITATIONS.md` on the MySQL `oldest` cell and run live on
+`newest`.
+
+## MySQL `aggregateAsArray` (JSON array projection) requires MySQL 8.0.14+
+
+`aggregateAsArray` emits `json_arrayagg(...)` over a correlated derived table (e.g.
+`(select json_arrayagg(a_1_.result) from (select … where fk = outer.id …) as a_1_)`).
+Both pieces need MySQL **8.0.14**: `json_arrayagg` was added there, and a derived table
+that references an outer column needs `LATERAL` (also 8.0.14). MySQL 5.7 rejects the query
+— the correlated reference surfaces first as `ER_BAD_FIELD_ERROR (1054)` (`Unknown column
+'…' in 'where clause'`). There is no `group_concat`-based form the builder falls back to.
+
+Verified against real `mysql:5.7`: the inline aggregate-as-array queries fail with 1054;
+they run live on `newest`.
+
+**What this means for tests** — the affected cases in
+`select.aggregate-as-array-inline-wrapped`, `docs.aggregate-as-object-array`,
+`select.compound` and `select.runtime-value-coverage` are commented out with
+`// TODO[LIMITATION]: see LIMITATIONS.md` on the MySQL `oldest` cell and run live on
+`newest`.
+
+## MySQL case-insensitive replace emits `regexp_replace`, which requires MySQL 8.0.4+
+
+`replaceAllInsensitive` (and the collation-driven replace paths) emit `regexp_replace`,
+added in MySQL **8.0.4**. MySQL 5.7 has no such function and rejects the call with
+`ER_SP_DOES_NOT_EXIST (1305)` (`FUNCTION <db>.regexp_replace does not exist`). The library
+emits it on every `compatibilityVersion`.
+
+Verified against real `mysql:5.7`: the `select.collation` and `update.set-if`
+regexp_replace cases fail with 1305; they run live on `newest`.
+
+**What this means for tests** — those cases are commented out with
+`// TODO[LIMITATION]: see LIMITATIONS.md` on the MySQL `oldest` cell and run live on
+`newest`.
+
+## MySQL window functions and the named `WINDOW` clause require MySQL 8.0.2+
+
+Window functions (`OVER (...)`) and the named `WINDOW` clause (which
+`customizeQuery.customWindow` emits as `window <name> as (…)`) arrived in MySQL **8.0.2**;
+MySQL 5.7 rejects both with `ER_PARSE_ERROR (1064)`. The library emits them on every
+`compatibilityVersion`.
+
+Verified against real `mysql:5.7`: `select count(*) over (partition by 1) from (select 1)
+t` → 1064; the `customize-query.select` / `customize-query.compound` window cases run live
+on `newest`.
+
+**What this means for tests** — those cases are commented out with
+`// TODO[LIMITATION]: see LIMITATIONS.md` on the MySQL `oldest` cell and run live on
+`newest`.
 
 ## Oracle multi-table `UPDATE … FROM` / `DELETE … USING` requires Oracle Database 23ai
 

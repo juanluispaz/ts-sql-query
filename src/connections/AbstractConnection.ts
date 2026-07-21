@@ -203,7 +203,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         return this.transactionMetadata
     }
 
-    transaction<T>(fn: () => Promise<T>, isolationLevel?: TransactionIsolationLevel): Promise<T> {
+    transaction<T>(fn: () => T | Promise<T>, isolationLevel?: TransactionIsolationLevel): Promise<T> {
         const source = new QueryExecutionSource('Transaction executed at')
         if (this.isTransactionActive() && !this.queryRunner.nestedTransactionsSupported()) {
             throw new TsSqlQueryExecutionError(source, { reason: 'NESTED_TRANSACTION_NOT_SUPPORTED' }, 'Nested transactions not supported')
@@ -214,7 +214,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             return this.queryRunner.executeInTransaction<T>(() => {
                 this.pushTransactionStack()
                 try {
-                    const result = fn()
+                    const result = this.queryRunner.createResolvedPromise(fn())
                     return result.then((fnResult) => {
                         const beforeCommit = this.beforeCommit
                         this.beforeCommit = null
@@ -254,8 +254,13 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                 const onRollback = this.onRollback
                 this.onRollback = null
                 return callDeferredFunctions<any>('after next rollback', onRollback, undefined, source, e, throwError)
-            }).finally(() => {
+            }).then((result) => {
+                // Not `.finally`: it swallows rejections on synchronous-promise (fluffynuts/synchronous-promise#53).
                 this.popTransactionStack()
+                return result
+            }, (e) => {
+                this.popTransactionStack()
+                throw e
             })
         } catch (e) {
             if (e instanceof TsSqlQueryExecutionError) {
@@ -393,8 +398,13 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                 const onRollback = this.onRollback
                 this.onRollback = null
                 return callDeferredFunctions('after next rollback', onRollback, undefined, source, e, throwError)
-            }).finally(() => {
+            }).then((result) => {
+                // Not `.finally`: it swallows rejections on synchronous-promise (fluffynuts/synchronous-promise#53).
                 this.popTransactionStack()
+                return result
+            }, (e) => {
+                this.popTransactionStack()
+                throw e
             })
         } catch (e) {
             if (e instanceof TsSqlQueryExecutionError) {

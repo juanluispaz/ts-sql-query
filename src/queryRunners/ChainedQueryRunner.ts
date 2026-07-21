@@ -123,7 +123,7 @@ export class ChainedQueryRunner<T extends QueryRunner> implements QueryRunner {
     addOutParam(params: any[], name: string): string {
         return this.queryRunner.addOutParam(params, name)
     }
-    createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
+    createResolvedPromise<RESULT>(result: RESULT | PromiseLike<RESULT>): Promise<RESULT> {
         return this.queryRunner.createResolvedPromise(result)
     }
     createRejectedPromise<RESULT = any>(error: any): Promise<RESULT> {

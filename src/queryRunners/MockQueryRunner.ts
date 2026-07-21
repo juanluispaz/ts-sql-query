@@ -549,7 +549,7 @@ export class MockQueryRunner implements QueryRunner {
         })
     }
 
-    createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
+    createResolvedPromise<RESULT>(result: RESULT | PromiseLike<RESULT>): Promise<RESULT> {
         return this.promise.resolve(result) 
     }
     createRejectedPromise<RESULT = any>(error: any): Promise<RESULT> {

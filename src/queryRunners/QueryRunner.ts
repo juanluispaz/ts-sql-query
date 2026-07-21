@@ -38,7 +38,12 @@ export interface QueryRunner {
     executeConnectionConfiguration(query: string, params?: any[]): Promise<void>
     addParam(params: any[], value: any): string
     addOutParam(params: any[], name: string): string
-    createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT>
+    // Resolves a value that may or may not already be a promise into a promise
+    // on this runner's configured provider — like `Promise.resolve`, it adopts a
+    // thenable and wraps a plain value, both yielding `Promise<RESULT>`. Keeping
+    // the result on the runner's own provider is what lets a synchronous provider
+    // (e.g. `SynchronousPromise`) drive the whole chain without deferring.
+    createResolvedPromise<RESULT>(result: RESULT | PromiseLike<RESULT>): Promise<RESULT>
     createRejectedPromise<RESULT = any>(error: any): Promise<RESULT>
     executeCombined<R1, R2>(fn1: () => Promise<R1>, fn2: () => Promise<R2>): Promise<[R1, R2]>
     isMocked(): boolean

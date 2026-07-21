@@ -1,0 +1,219 @@
+// Documentation snippets for the SQL fragments page
+// (docs/queries/sql-fragments.md).
+//
+// Fragments embed raw SQL inside a typed expression tree. The example
+// below uses `length(...)` — present in every supported dialect — as the
+// raw piece so the snippet stays portable between cells.
+
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
+import { assertType, type Exact } from '../../../../lib/assertType.js'
+import { tAppUser, tProject } from '../../domain/connection.js'
+import { ctx } from './setup.js'
+
+describe(ctx.label, () => {
+    beforeAll(() => ctx.up(), ctx.timeoutMs)
+    afterAll(() => ctx.down(), ctx.timeoutMs)
+    beforeEach(() => { ctx.reset() })
+
+    test('docs:sql-fragments/fragment-with-type', async () => {
+        const expected = [{ id: 1, idDoubled: 2 }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        // doc-start
+        const rows = await connection.selectFrom(tAppUser)
+            .where(tAppUser.email.equals('ada@acme.test'))
+            .select({
+                id:             tAppUser.id,
+                idDoubled: connection
+                    .fragmentWithType('int', 'required')
+                    .sql`abs(${tAppUser.id} + ${tAppUser.id})`,
+            })
+            .executeSelectMany()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, abs(id + id) as idDoubled from app_user where email = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "ada@acme.test",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            id:             number
+            idDoubled:      number
+        }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    /*
+     * TODO: `buildFragmentWithArgs` and `arg` are `protected` on
+     * AbstractConnection — they are meant to be called from inside a
+     * DBConnection subclass to expose typed helpers as methods/fields on
+     * the connection. We will reintroduce this test when the shared
+     * domain DBConnection grows a real helper that demonstrates the
+     * pattern. Leaving the slot here for symmetry once that lands.
+     *
+     * test('docs:sql-fragments/build-fragment-with-args', async () => { ... })
+     */
+
+    test('docs:sql-fragments/customize-query-select', async () => {
+        // Section "Customizing a select" — `customizeQuery` accepts
+        // raw-fragment hooks at well-defined extension points. Here we
+        // inject `afterSelectKeyword` and `afterQuery`.
+        const expected = { id: 1, email: 'ada@acme.test', fullName: 'Ada Lovelace' }
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        // doc-start
+        const row = await connection.selectFrom(tAppUser)
+            .where(tAppUser.id.equals(1))
+            .select({
+                id:       tAppUser.id,
+                email:    tAppUser.email,
+                fullName: tAppUser.fullName,
+            }).customizeQuery({
+                afterSelectKeyword: connection.rawFragment`/*+ some hints */`,
+                afterQuery:         connection.rawFragment`/* trailing comment */`,
+            })
+            .executeSelectOne()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select /*+ some hints */ id as id, email as email, full_name as fullName from app_user where id = @0 /* trailing comment */"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            id:       number
+            email:    string
+            fullName: string
+        }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('docs:sql-fragments/customize-query-insert', async () => {
+        // Section "Customizing an insert" — `afterInsertKeyword` and
+        // `afterQuery` extension points; the rest of the chain is just a
+        // normal insert.
+        ctx.mockNext(99)
+        const connection = ctx.conn
+
+        await ctx.withRollback(async () => {
+            // doc-start
+            const id = await connection.insertInto(tAppUser)
+                .set({
+                    email:    'new@acme.test',
+                    fullName: 'New User',
+                })
+                .returningLastInsertedId()
+                .customizeQuery({
+                    afterInsertKeyword: connection.rawFragment`/*+ some hints */`,
+                    afterQuery:         connection.rawFragment`/* trailing comment */`,
+                })
+                .executeInsert()
+            // doc-end
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert /*+ some hints */ into app_user (email, full_name) output inserted.id values (@0, @1) /* trailing comment */"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "new@acme.test",
+                "New User",
+              ]
+            `)
+            assertType<Exact<typeof id, number>>()
+        })
+    })
+
+    test('docs:sql-fragments/customize-query-update', async () => {
+        // Section "Customizing an update" — `afterUpdateKeyword` and
+        // `afterQuery` extension points on the UPDATE customizeQuery.
+        ctx.mockNext(1)
+        const connection = ctx.conn
+
+        await ctx.withRollback(async () => {
+            // doc-start
+            const affected = await connection.update(tProject)
+                .set({ name: 'Marketing site (v2)' })
+                .where(tProject.id.equals(1))
+                .customizeQuery({
+                    afterUpdateKeyword: connection.rawFragment`/*+ some hints */`,
+                    afterQuery:         connection.rawFragment`/* trailing comment */`,
+                })
+                .executeUpdate()
+            // doc-end
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update /*+ some hints */ project set name = @0 where id = @1 /* trailing comment */"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Marketing site (v2)",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+        })
+    })
+
+    test('docs:sql-fragments/customize-query-delete', async () => {
+        // Section "Customizing a delete" — `afterDeleteKeyword` and
+        // `afterQuery` extension points on the DELETE customizeQuery.
+        ctx.mockNext(0)
+        const connection = ctx.conn
+
+        await ctx.withRollback(async () => {
+            // doc-start
+            const affected = await connection.deleteFrom(tProject)
+                .where(tProject.id.equals(9999))
+                .customizeQuery({
+                    afterDeleteKeyword: connection.rawFragment`/*+ some hints */`,
+                    afterQuery:         connection.rawFragment`/* trailing comment */`,
+                })
+                .executeDelete()
+            // doc-end
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete /*+ some hints */ from project where id = @0 /* trailing comment */"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                9999,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+        })
+    })
+
+    test('docs-extra:sql-fragments/raw-fragment-as-where', async () => {
+        // `rawFragment` is the typeless escape hatch but cannot itself
+        // sit in a WHERE (which demands a boolean expression). The
+        // documented portable pattern is to wrap raw SQL in
+        // `fragmentWithType('boolean', 'required').sql\`…\`` — `rawFragment`
+        // composes naturally INSIDE that wrapper or alongside it as a
+        // customization hook.
+        ctx.mockNext({ id: 1, email: 'ada@acme.test', fullName: 'Ada Lovelace' })
+        const connection = ctx.conn
+
+        const row = await connection.selectFrom(tAppUser)
+            .where(
+                connection.fragmentWithType('boolean', 'required')
+                    .sql`${tAppUser.id} = ${connection.const(1, 'int')}`,
+            )
+            .select({
+                id:       tAppUser.id,
+                email:    tAppUser.email,
+                fullName: tAppUser.fullName,
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, email as email, full_name as fullName from app_user where id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            id:       number
+            email:    string
+            fullName: string
+        }>>()
+        expect(row.id).toBe(1)
+    })
+})

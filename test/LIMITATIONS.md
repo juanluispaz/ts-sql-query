@@ -469,6 +469,38 @@ trade: the cell measured 80.2s / 82.2s at `0` against 79.9s / 79.8s at `30`
 (two runs each, warm container), and it runs in parallel with the other cells
 inside the matrix's ~2:30.
 
+## SQL Server named `WINDOW` clause requires SQL Server 2022+
+
+The `customizeQuery` `customWindow` extension emits a named window definition —
+`… window <name> as (<spec>) …` referenced by `over <name>`. Named windows are
+standard SQL (PostgreSQL, MySQL 8+, MariaDB 10.2+); SQL Server added them in
+**2022**. SQL Server 2019 has no `WINDOW` clause and rejects the keyword with
+`Incorrect syntax near 'window'` — or, when the clause precedes an
+`ORDER BY … OFFSET … FETCH`, a cascading `Incorrect syntax near '<window name>'`
+/ `Invalid usage of the option next in the FETCH statement`. Verified against
+real `mcr.microsoft.com/mssql/server:2019-latest`.
+
+The library emits the named-window form on every `compatibilityVersion` (valid on
+SQL Server 2022+ and every other dialect with named windows). Stays
+`TODO[LIMITATION]` rather than `NOT-APPLICABLE` because `customWindow` is callable
+and SQL Server 2022+ accepts it. Affects the `customWindow` / projection-hook
+cases in `customize-query.select`, `customize-query.compound` and
+`cte.recursive-union-variants` — commented out with `// TODO[LIMITATION]: see
+LIMITATIONS.md` on the `sqlserver/oldest` cell (real 2019) and live everywhere else.
+
+## SQL Server `<<` / `>>` bit-shift operators require SQL Server 2022+
+
+SQL Server added the `<<` (left) and `>>` (right) bit-shift operators in **2022**;
+2019 has neither and rejects `a << b` with `Incorrect syntax near '<'` (verified
+against real 2019: `select 5 << 2` → syntax error). The `intLeftShift` domain
+fragment (a `buildFragmentWithArgs` template in
+`test/db/sqlserver/domain/connection.ts`) emits `<<`, so the two
+`fragments.with-args` tests that exercise it are commented out with `//
+TODO[LIMITATION]: see LIMITATIONS.md` on the `sqlserver/oldest` cell (real 2019)
+and run live on 2022 / 2025. The operator is version-specific, not a library
+defect; a portable pre-2022 form (`x * power(2, n)`) exists, but the fragment
+deliberately demonstrates the native operator.
+
 ## SQL Server rejects a bare bind parameter as an ORDER BY term (error 1008)
 
 `orderBy(<no-table value source>)` — the overload a compound query's

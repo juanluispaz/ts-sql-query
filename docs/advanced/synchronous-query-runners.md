@@ -11,7 +11,6 @@ Some query runners support executing queries synchronously if you provide a Prom
 
     - [BetterSqlite3QueryRunner](../configuration/query-runners/recommended/better-sqlite3.md)
     - [Sqlite3WasmOO1QueryRunner](../configuration/query-runners/recommended/sqlite-wasm-OO1.md)
-    - [PgLiteQueryRunner](../configuration/query-runners/recommended/pglite.md)
     - [BunSqliteQueryRunner](../configuration/query-runners/recommended/bun_sqlite.md)
     - [NodeSqliteQueryRunner](../configuration/query-runners/recommended/node_sqlite.md)
 

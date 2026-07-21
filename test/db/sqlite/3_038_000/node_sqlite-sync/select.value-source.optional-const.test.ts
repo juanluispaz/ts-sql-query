@@ -1,0 +1,335 @@
+// Per-keyword coverage of `optionalConst(value, keyword[, typeName])`. Each
+// keyword arm returns a distinct `*ValueSource<…, 'optional'>` and a distinct
+// emitted placeholder/cast. This file projects one value per arm through
+// `selectFromNoTable().select({...})` (each optional const projects as
+// `key?: T`) and pins the emitted SQL (the cast ladder is dialect-specific;
+// each cell records its own) plus the resolved leaf type. The null-arm test
+// drives the `null` input through `selectOneColumn` to reach the `T | null`
+// cardinality.
+//
+// Custom typeNames are the ones the domain connection marshals through their
+// native base (Money->double, ReleaseTag->int, SigningKey->uuid, Semver->
+// string, ReleaseDay/CutoffClock/SignOffStamp->localDate/Time/DateTime), so the
+// const values round-trip typed on every engine — except the two localDate
+// arms, whose const value round-trip is driver-specific (driven via `null` in
+// the localdate-keyword-cast-and-type test).
+
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
+import { assertType, type Exact } from '../../../../lib/assertType.js'
+import type { TypeAdapter } from '../../../../../src/TypeAdapter.js'
+import type { ReleaseChannel, WorklogActivity } from '../../domain/connection.js'
+import { ctx } from './setup.js'
+import { sync } from '../../../../../src/extras/sync.js'
+
+const UUID_V = '0a8f9c1e-1111-4222-8333-444455556666'
+
+// Trailing `adapter?: TypeAdapter` overload arg on `optionalConst(...)`. The
+// adapter wraps the read value in `[...]`, so its effect is observable in the
+// result; it defines no `transformPlaceholder`, so the emitted placeholder is
+// unchanged.
+const bracketAdapter: TypeAdapter = {
+    transformValueFromDB(value, type, next) {
+        const v = next.transformValueFromDB(value, type)
+        return typeof v === 'string' ? '[' + v + ']' : v
+    },
+    transformValueToDB(value, type, next) {
+        return next.transformValueToDB(value, type)
+    },
+}
+
+describe(ctx.label, () => {
+    beforeAll(() => ctx.up(), ctx.timeoutMs)
+    afterAll(() => ctx.down(), ctx.timeoutMs)
+    beforeEach(() => { ctx.reset() })
+
+    test('optional-const/int-double-bigint-boolean', async () => {
+        // The int/double/bigint/boolean arms of optionalConst — the emitted
+        // SQL/cast and the 'optional' leaf type.
+        const expected = { i: 7, d: 1.5, bi: 9n, b: true }
+        ctx.mockNext(expected)
+        const row = sync(ctx.conn.selectFromNoTable()
+            .select({
+                i:  ctx.conn.optionalConst(7, 'int'),
+                d:  ctx.conn.optionalConst(1.5, 'double'),
+                bi: ctx.conn.optionalConst(9n, 'bigint'),
+                b:  ctx.conn.optionalConst(true, 'boolean'),
+            })
+            .executeSelectOne())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as "i", ? as "d", ? as bi, ? as "b""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            7,
+            1.5,
+            9n,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { i?: number; d?: number; bi?: bigint; b?: boolean }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('optional-const/uuid-enum-custom-comparable', async () => {
+        // uuid (-> string), enum (-> the branded union), custom (equality, ->
+        // the branded union), customComparable (-> string). The branded leaves
+        // resolve to their underlying TS type.
+        const expected = { u: UUID_V, e: 'coding' as WorklogActivity, c: 'stable' as ReleaseChannel, cc: '1.2.0' }
+        ctx.mockNext(expected)
+        const row = sync(ctx.conn.selectFromNoTable()
+            .select({
+                u:  ctx.conn.optionalConst(UUID_V, 'uuid'),
+                e:  ctx.conn.optionalConst<WorklogActivity, 'WorklogActivity'>('coding', 'enum', 'WorklogActivity'),
+                c:  ctx.conn.optionalConst<ReleaseChannel, 'ReleaseChannel'>('stable', 'custom', 'ReleaseChannel'),
+                cc: ctx.conn.optionalConst<string, 'Semver'>('1.2.0', 'customComparable', 'Semver'),
+            })
+            .executeSelectOne())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as "u", ? as "e", ? as "c", ? as cc"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "0a8f9c1e-1111-4222-8333-444455556666",
+            "coding",
+            "stable",
+            "1.2.0",
+          ]
+        `)
+        assertType<Exact<typeof row, { u?: string; e?: WorklogActivity; c?: ReleaseChannel; cc?: string }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('optional-const/custom-numeric-and-uuid', async () => {
+        // customInt (-> number), customDouble (-> number), customUuid
+        // (-> string). Brands carry through; the leaves are the underlying type.
+        const expected = { ci: 7, cd: 1.5, cu: UUID_V }
+        ctx.mockNext(expected)
+        const row = sync(ctx.conn.selectFromNoTable()
+            .select({
+                ci: ctx.conn.optionalConst<number, 'ReleaseTag'>(7, 'customInt', 'ReleaseTag'),
+                cd: ctx.conn.optionalConst<number, 'Money'>(1.5, 'customDouble', 'Money'),
+                cu: ctx.conn.optionalConst<string, 'SigningKey'>(UUID_V, 'customUuid', 'SigningKey'),
+            })
+            .executeSelectOne())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as ci, ? as cd, ? as cu"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            7,
+            1.5,
+            "0a8f9c1e-1111-4222-8333-444455556666",
+          ]
+        `)
+        assertType<Exact<typeof row, { ci?: number; cd?: number; cu?: string }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('optional-const/temporal-time-and-datetime', async () => {
+        // localTime / localDateTime and their custom siblings customLocalTime /
+        // customLocalDateTime (-> Date), all 'optional'. These four round-trip a
+        // const value cleanly on every engine. A time-only value sits on
+        // 1970-01-01. (The localDate arms are driven via null below.)
+        const lt  = new Date(Date.UTC(1970, 0, 1, 17, 0, 0))
+        const ldt = new Date(Date.UTC(2024, 0, 14, 12, 30, 0))
+        const expected = { lt, ldt, clt: lt, cldt: ldt }
+        ctx.mockNext(expected)
+        const row = sync(ctx.conn.selectFromNoTable()
+            .select({
+                lt:   ctx.conn.optionalConst(lt, 'localTime'),
+                ldt:  ctx.conn.optionalConst(ldt, 'localDateTime'),
+                clt:  ctx.conn.optionalConst<Date, 'CutoffClock'>(lt, 'customLocalTime', 'CutoffClock'),
+                cldt: ctx.conn.optionalConst<Date, 'SignOffStamp'>(ldt, 'customLocalDateTime', 'SignOffStamp'),
+            })
+            .executeSelectOne())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as lt, ? as ldt, ? as clt, ? as cldt"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "17:00:00",
+            "2024-01-14 12:30:00",
+            "17:00:00",
+            "2024-01-14 12:30:00",
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            lt?: Date; ldt?: Date; clt?: Date; cldt?: Date
+        }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('optional-const/localdate-keyword-cast-and-type', async () => {
+        // The `localDate` / `customLocalDate` arms — the emitted placeholder
+        // cast (pg `::date` for the enumerated keyword, bare for the custom one)
+        // and the `Date | null` leaf. The value is driven with `null` because a
+        // non-null date const echoed back is not round-trippable on every driver
+        // (mariadb returns it as `2024-1-15 0:0:0`, which the localDate
+        // marshaller rejects); `null` skips the date parser, so the cast + type
+        // are validated on the real engine.
+        ctx.mockNext(null)
+        const ld = sync(ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.optionalConst(null, 'localDate'))
+            .executeSelectOne())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            null,
+          ]
+        `)
+        assertType<Exact<typeof ld, Date | null>>()
+        expect(ld).toBeNull()
+
+        ctx.mockNext(null)
+        const cld = sync(ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.optionalConst<Date, 'ReleaseDay'>(null, 'customLocalDate', 'ReleaseDay'))
+            .executeSelectOne())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            null,
+          ]
+        `)
+        assertType<Exact<typeof cld, Date | null>>()
+        expect(cld).toBeNull()
+    })
+
+    test('optional-const/null-arm-projects-as-T-or-null', async () => {
+        // The `null` input on the `optional` overload — `selectOneColumn` gives
+        // the `T | null` cardinality, and a null value comes back null.
+        ctx.mockNext(null)
+        const v = sync(ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.optionalConst(null, 'int'))
+            .executeSelectOne())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            null,
+          ]
+        `)
+        assertType<Exact<typeof v, number | null>>()
+        expect(v).toBeNull()
+    })
+
+    test('optional-const/trailing-type-adapter-transforms-read-value', async () => {
+        // The const value is sent verbatim (the adapter delegates
+        // `transformValueToDB` to `next`); the value coming back is wrapped in
+        // `[...]` by the adapter's `transformValueFromDB`. The mock is primed with
+        // the RAW value 'hello', so the bracket is the observable proof the adapter
+        // ran. `selectOneColumn` gives the `string | null` cardinality.
+        ctx.mockNext('hello')
+        const v = sync(ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.optionalConst('hello', 'string', bracketAdapter))
+            .executeSelectOne())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "hello",
+          ]
+        `)
+        assertType<Exact<typeof v, string | null>>()
+        expect(v).toBe('[hello]')
+    })
+
+
+    // optionalConst(null, kind): `null` driven through `selectOneColumn` gives a
+    // `T | null` leaf and pins the emitted placeholder cast for each keyword. A
+    // null value skips the per-kind marshaller, so it round-trips cleanly.
+
+    test('optional-const/double-null-cast', async () => {
+        ctx.mockNext(null)
+        const v = sync(ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.optionalConst(null, 'double'))
+            .executeSelectOne())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            null,
+          ]
+        `)
+        assertType<Exact<typeof v, number | null>>()
+        expect(v).toBeNull()
+    })
+
+    test('optional-const/bigint-null-cast', async () => {
+        ctx.mockNext(null)
+        const v = sync(ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.optionalConst(null, 'bigint'))
+            .executeSelectOne())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            null,
+          ]
+        `)
+        assertType<Exact<typeof v, bigint | null>>()
+        expect(v).toBeNull()
+    })
+
+    test('optional-const/boolean-null-cast', async () => {
+        ctx.mockNext(null)
+        const v = sync(ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.optionalConst(null, 'boolean'))
+            .executeSelectOne())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            null,
+          ]
+        `)
+        assertType<Exact<typeof v, boolean | null>>()
+        expect(v).toBeNull()
+    })
+
+    test('optional-const/string-null-cast', async () => {
+        ctx.mockNext(null)
+        const v = sync(ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.optionalConst(null, 'string'))
+            .executeSelectOne())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            null,
+          ]
+        `)
+        assertType<Exact<typeof v, string | null>>()
+        expect(v).toBeNull()
+    })
+
+    test('optional-const/uuid-null-cast', async () => {
+        ctx.mockNext(null)
+        const v = sync(ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.optionalConst(null, 'uuid'))
+            .executeSelectOne())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            null,
+          ]
+        `)
+        assertType<Exact<typeof v, string | null>>()
+        expect(v).toBeNull()
+    })
+
+    test('optional-const/localtime-null-cast', async () => {
+        ctx.mockNext(null)
+        const v = sync(ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.optionalConst(null, 'localTime'))
+            .executeSelectOne())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            null,
+          ]
+        `)
+        assertType<Exact<typeof v, Date | null>>()
+        expect(v).toBeNull()
+    })
+
+    test('optional-const/localdatetime-null-cast', async () => {
+        ctx.mockNext(null)
+        const v = sync(ctx.conn.selectFromNoTable()
+            .selectOneColumn(ctx.conn.optionalConst(null, 'localDateTime'))
+            .executeSelectOne())
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            null,
+          ]
+        `)
+        assertType<Exact<typeof v, Date | null>>()
+        expect(v).toBeNull()
+    })
+})

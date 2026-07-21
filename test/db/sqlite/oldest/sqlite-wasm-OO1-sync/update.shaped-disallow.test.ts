@@ -1,0 +1,654 @@
+// The `disallow*` guard family on a SHAPE-carrying UPDATE builder. Under an
+// active shape, the whole set-manipulation surface — `set`/`setIfValue`/…, the
+// `ignore*`/`keepOnly` family AND the `disallow*` guards — operates on the
+// RENAMED shape keys (`projectName` → name, `projectSlug` → slug,
+// `archived` → archivedAt), because `__sets` is keyed by the renamed key. Each
+// test stages renamed keys, then references those same renamed keys in the
+// guard. Two arcs per guard: the rule passes (the UPDATE runs untouched) and the
+// rule is violated (the guard throws before any SQL runs). Dialect-independent
+// (a plain UPDATE under the real column names).
+
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
+import { assertType, type Exact } from '../../../../lib/assertType.js'
+import { tProject } from '../../domain/connection.js'
+import { ctx } from './setup.js'
+import { sync } from '../../../../../src/extras/sync.js'
+
+describe(ctx.label, () => {
+    beforeAll(() => ctx.up(), ctx.timeoutMs)
+    afterAll(() => ctx.down(), ctx.timeoutMs)
+    beforeEach(() => { ctx.reset() })
+
+    test('shaped-disallow-guards-all-pass-update-runs', async () => {
+        // Only the renamed `projectName` (→ name) is staged. Every guard
+        // references the renamed shape keys and its condition is not met, so the
+        // chain returns the builder unchanged and the UPDATE proceeds:
+        // `disallowIfValue('projectSlug')` passes (slug absent),
+        // `disallowIfNoValue('projectName')` passes (name has a value),
+        // `disallowIfSet('projectSlug')` passes (slug absent),
+        // `disallowIfNotSet('projectName')` passes (name is set),
+        // `disallowAnyOtherSet('projectName')` passes (name is the sole staged
+        // column). The guards leave no trace.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = sync(ctx.conn.update(tProject)
+                .shapedAs({ projectName: 'name', projectSlug: 'slug' })
+                .set({ projectName: 'Renamed via shaped set' })
+                .disallowIfValue('slug must stay unset', 'projectSlug')
+                .disallowIfNoValue('name is required', 'projectName')
+                .disallowIfSet('slug cannot change here', 'projectSlug')
+                .disallowIfNotSet('name is required', 'projectName')
+                .disallowAnyOtherSet('only name may change', 'projectName')
+                .where(tProject.id.equals(1))
+                .executeUpdate())
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ? where id = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Renamed via shaped set",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(1)
+        })
+    })
+
+    test('shaped-disallow-if-set-throws-on-staged-renamed-key', () => {
+        // The renamed `projectSlug` (→ slug) is staged; `disallowIfSet(...,'projectSlug')`
+        // names the renamed shape key and throws synchronously because it IS staged.
+        expect(() => {
+            ctx.conn.update(tProject)
+                .shapedAs({ projectName: 'name', projectSlug: 'slug' })
+                .set({ projectName: 'Stays', projectSlug: 'dropped-slug' })
+                .disallowIfSet('slug is read-only on this endpoint', 'projectSlug')
+                .where(tProject.id.equals(1))
+        }).toThrow(/slug is read-only on this endpoint/)
+    })
+
+    test('shaped-disallow-if-not-set-throws-on-absent-renamed-key', () => {
+        // Only `projectName` is staged; `disallowIfNotSet(...,'projectSlug')` names
+        // the renamed key projectSlug, which is NOT staged, so the guard throws.
+        expect(() => {
+            ctx.conn.update(tProject)
+                .shapedAs({ projectName: 'name', projectSlug: 'slug' })
+                .set({ projectName: 'Renamed' })
+                .disallowIfNotSet('slug must be provided on this endpoint', 'projectSlug')
+                .where(tProject.id.equals(1))
+        }).toThrow(/slug must be provided on this endpoint/)
+    })
+
+    test('shaped-disallow-if-value-throws-when-renamed-key-has-value', () => {
+        // The renamed `projectName` (→ name) is staged with a value;
+        // `disallowIfValue(...,'projectName')` names the renamed key and throws
+        // because its staged value passes the value gate.
+        expect(() => {
+            ctx.conn.update(tProject)
+                .shapedAs({ projectName: 'name' })
+                .set({ projectName: 'New name' })
+                .disallowIfValue('name changes go through the rename endpoint', 'projectName')
+                .where(tProject.id.equals(1))
+        }).toThrow(/name changes go through the rename endpoint/)
+    })
+
+    test('shaped-disallow-if-no-value-throws-when-renamed-key-is-empty', () => {
+        // The renamed optional `archived` (→ archivedAt) is staged as null;
+        // `disallowIfNoValue(...,'archived')` names the renamed key and throws
+        // because the staged value fails the value gate.
+        expect(() => {
+            ctx.conn.update(tProject)
+                .shapedAs({ projectName: 'name', archived: 'archivedAt' })
+                .set({ projectName: 'Renamed', archived: null })
+                .disallowIfNoValue('archivedAt cannot be cleared via this path', 'archived')
+                .where(tProject.id.equals(1))
+        }).toThrow(/archivedAt cannot be cleared via this path/)
+    })
+
+    test('shaped-disallow-any-other-set-throws-on-unexpected-renamed-key', () => {
+        // Both `projectName` (→ name) and `projectSlug` (→ slug) are staged;
+        // `disallowAnyOtherSet(...,'projectName')` allows only the renamed key
+        // projectName, so the staged projectSlug trips the guard.
+        expect(() => {
+            ctx.conn.update(tProject)
+                .shapedAs({ projectName: 'name', projectSlug: 'slug' })
+                .set({ projectName: 'Stays', projectSlug: 'unexpected-slug' })
+                .disallowAnyOtherSet('this endpoint only updates name', 'projectName')
+                .where(tProject.id.equals(1))
+        }).toThrow(/this endpoint only updates name/)
+    })
+
+    // The `disallow*When` guard family on a SHAPE-carrying UPDATE builder. Each
+    // `*When` arm dispatches to its non-`When` sibling when the boolean is true
+    // (the guard fires on the renamed shape key) and is a no-op when false (the
+    // builder is returned untouched and the UPDATE runs). The false arc executes
+    // the chain; the true arc throws synchronously inside the builder. The
+    // referenced keys are the RENAMED shape keys, like the non-`When` siblings
+    // above.
+
+    test('shaped-disallow-if-set-when-dispatches-on-true', async () => {
+        // `disallowIfSetWhen(when, ..., 'projectSlug')` dispatches to
+        // `disallowIfSet` when true. The renamed `projectSlug` (→ slug) is staged,
+        // so the true arm throws; the false arm runs the UPDATE.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = sync(ctx.conn.update(tProject)
+                .shapedAs({ projectName: 'name', projectSlug: 'slug' })
+                .set({ projectName: 'Stays', projectSlug: 'maybe-rejected' })
+                .disallowIfSetWhen(false, 'slug is read-only on this endpoint', 'projectSlug')
+                .where(tProject.id.equals(1))
+                .executeUpdate())
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?, slug = ? where id = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Stays",
+                "maybe-rejected",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(1)
+
+            let caught: unknown
+            try {
+                ctx.conn.update(tProject)
+                    .shapedAs({ projectName: 'name', projectSlug: 'slug' })
+                    .set({ projectName: 'Stays', projectSlug: 'maybe-rejected' })
+                    .disallowIfSetWhen(true, 'slug is read-only on this endpoint', 'projectSlug')
+                    .where(tProject.id.equals(1))
+            } catch (e) {
+                caught = e
+            }
+            expect(String(caught)).toMatch(/slug is read-only on this endpoint|disallow/i)
+        })
+    })
+
+    test('shaped-disallow-if-not-set-when-dispatches-on-true', async () => {
+        // `disallowIfNotSetWhen(when, ..., 'projectSlug')` dispatches to
+        // `disallowIfNotSet` when true. Only `projectName` is staged, so the
+        // renamed `projectSlug` (→ slug) is absent and the true arm throws.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = sync(ctx.conn.update(tProject)
+                .shapedAs({ projectName: 'name', projectSlug: 'slug' })
+                .set({ projectName: 'Renamed' })
+                .disallowIfNotSetWhen(false, 'slug must be provided on this endpoint', 'projectSlug')
+                .where(tProject.id.equals(1))
+                .executeUpdate())
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ? where id = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Renamed",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(1)
+
+            let caught: unknown
+            try {
+                ctx.conn.update(tProject)
+                    .shapedAs({ projectName: 'name', projectSlug: 'slug' })
+                    .set({ projectName: 'Renamed' })
+                    .disallowIfNotSetWhen(true, 'slug must be provided on this endpoint', 'projectSlug')
+                    .where(tProject.id.equals(1))
+            } catch (e) {
+                caught = e
+            }
+            expect(String(caught)).toMatch(/slug must be provided on this endpoint|disallow/i)
+        })
+    })
+
+    test('shaped-disallow-if-value-when-dispatches-on-true', async () => {
+        // `disallowIfValueWhen(when, ..., 'projectName')` dispatches to
+        // `disallowIfValue` when true. The renamed `projectName` (→ name) is
+        // staged with a value that passes the value gate, so the true arm throws.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = sync(ctx.conn.update(tProject)
+                .shapedAs({ projectName: 'name' })
+                .set({ projectName: 'New name' })
+                .disallowIfValueWhen(false, 'name changes go through the rename endpoint', 'projectName')
+                .where(tProject.id.equals(1))
+                .executeUpdate())
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ? where id = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "New name",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(1)
+
+            let caught: unknown
+            try {
+                ctx.conn.update(tProject)
+                    .shapedAs({ projectName: 'name' })
+                    .set({ projectName: 'New name' })
+                    .disallowIfValueWhen(true, 'name changes go through the rename endpoint', 'projectName')
+                    .where(tProject.id.equals(1))
+            } catch (e) {
+                caught = e
+            }
+            expect(String(caught)).toMatch(/name changes go through the rename endpoint|disallow/i)
+        })
+    })
+
+    test('shaped-disallow-if-no-value-when-dispatches-on-true', async () => {
+        // `disallowIfNoValueWhen(when, ..., 'archived')` dispatches to
+        // `disallowIfNoValue` when true. The renamed optional `archived`
+        // (→ archivedAt) is staged as null, so its value fails the gate and the
+        // true arm throws.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = sync(ctx.conn.update(tProject)
+                .shapedAs({ projectName: 'name', archived: 'archivedAt' })
+                .set({ projectName: 'Renamed', archived: null })
+                .disallowIfNoValueWhen(false, 'archivedAt cannot be cleared via this path', 'archived')
+                .where(tProject.id.equals(1))
+                .executeUpdate())
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?, archived_at = ? where id = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Renamed",
+                null,
+                1,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(1)
+
+            let caught: unknown
+            try {
+                ctx.conn.update(tProject)
+                    .shapedAs({ projectName: 'name', archived: 'archivedAt' })
+                    .set({ projectName: 'Renamed', archived: null })
+                    .disallowIfNoValueWhen(true, 'archivedAt cannot be cleared via this path', 'archived')
+                    .where(tProject.id.equals(1))
+            } catch (e) {
+                caught = e
+            }
+            expect(String(caught)).toMatch(/archivedAt cannot be cleared via this path|disallow/i)
+        })
+    })
+
+    test('shaped-disallow-any-other-set-when-dispatches-on-true', async () => {
+        // `disallowAnyOtherSetWhen(when, ..., 'projectName')` dispatches to
+        // `disallowAnyOtherSet` when true: only the renamed `projectName` (→ name)
+        // is allowed, so the staged `projectSlug` (→ slug) trips the true arm.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = sync(ctx.conn.update(tProject)
+                .shapedAs({ projectName: 'name', projectSlug: 'slug' })
+                .set({ projectName: 'Stays', projectSlug: 'unexpected-slug' })
+                .disallowAnyOtherSetWhen(false, 'this endpoint only updates name', 'projectName')
+                .where(tProject.id.equals(1))
+                .executeUpdate())
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = ?, slug = ? where id = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Stays",
+                "unexpected-slug",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(1)
+
+            let caught: unknown
+            try {
+                ctx.conn.update(tProject)
+                    .shapedAs({ projectName: 'name', projectSlug: 'slug' })
+                    .set({ projectName: 'Stays', projectSlug: 'unexpected-slug' })
+                    .disallowAnyOtherSetWhen(true, 'this endpoint only updates name', 'projectName')
+                    .where(tProject.id.equals(1))
+            } catch (e) {
+                caught = e
+            }
+            expect(String(caught)).toMatch(/this endpoint only updates name|disallow/i)
+        })
+    })
+
+    test('shaped-disallow-if-value-error-instance-thrown-as-is', () => {
+        // The Error-INSTANCE overload of the disallow guards — the sibling of
+        // the string overload every other test in this file exercises. Passing
+        // an `Error` object instead of a message throws THAT SAME instance
+        // as-is: it is NOT wrapped in a DISALLOWED_BY_QUERY_RULE TsSqlError; the
+        // guard only mutates the tripped renamed shape key onto it as
+        // `disallowedProperty`. Verified for both the non-`When` guard and its
+        // `*When` sibling (which dispatches to the non-`When` form on `true`).
+        // The renamed `projectName` (→ name) is staged with a value, so
+        // `disallowIfValue` fires.
+        const sentinel = new Error('name changes go through the rename endpoint')
+        let caught: unknown
+        try {
+            ctx.conn.update(tProject)
+                .shapedAs({ projectName: 'name' })
+                .set({ projectName: 'New name' })
+                .disallowIfValue(sentinel, 'projectName')
+                .where(tProject.id.equals(1))
+        } catch (e) {
+            caught = e
+        }
+        // The exact instance is rethrown (identity), not a wrapped TsSqlError,
+        // and it carries the tripped shape key as `disallowedProperty`.
+        expect(caught).toBe(sentinel)
+        expect((caught as { disallowedProperty?: unknown }).disallowedProperty).toBe('projectName')
+
+        // The `*When` sibling dispatches to the non-`When` form on `true`, so it
+        // rethrows the same passed instance with `disallowedProperty` set.
+        const sentinelWhen = new Error('name changes go through the rename endpoint')
+        let caughtWhen: unknown
+        try {
+            ctx.conn.update(tProject)
+                .shapedAs({ projectName: 'name' })
+                .set({ projectName: 'New name' })
+                .disallowIfValueWhen(true, sentinelWhen, 'projectName')
+                .where(tProject.id.equals(1))
+        } catch (e) {
+            caughtWhen = e
+        }
+        expect(caughtWhen).toBe(sentinelWhen)
+        expect((caughtWhen as { disallowedProperty?: unknown }).disallowedProperty).toBe('projectName')
+    })
+
+    test('shaped-disallow-if-set-error-instance-thrown-as-is', () => {
+        // The Error-INSTANCE overload of `disallowIfSet` (its own declared
+        // overload, distinct from `disallowIfValue`'s). The renamed
+        // `projectSlug` (→ slug) is staged, so the guard fires; passing an
+        // `Error` object rethrows THAT SAME instance as-is — not wrapped in a
+        // DISALLOWED_BY_QUERY_RULE TsSqlError — with the tripped renamed shape
+        // key attached as `disallowedProperty`. Verified for the non-`When`
+        // guard and its `*When` sibling (which dispatches to the non-`When`
+        // form on `true`).
+        const sentinel = new Error('slug is read-only on this endpoint')
+        let caught: unknown
+        try {
+            ctx.conn.update(tProject)
+                .shapedAs({ projectName: 'name', projectSlug: 'slug' })
+                .set({ projectName: 'Stays', projectSlug: 'dropped-slug' })
+                .disallowIfSet(sentinel, 'projectSlug')
+                .where(tProject.id.equals(1))
+        } catch (e) {
+            caught = e
+        }
+        expect(caught).toBe(sentinel)
+        expect((caught as { disallowedProperty?: unknown }).disallowedProperty).toBe('projectSlug')
+
+        const sentinelWhen = new Error('slug is read-only on this endpoint')
+        let caughtWhen: unknown
+        try {
+            ctx.conn.update(tProject)
+                .shapedAs({ projectName: 'name', projectSlug: 'slug' })
+                .set({ projectName: 'Stays', projectSlug: 'dropped-slug' })
+                .disallowIfSetWhen(true, sentinelWhen, 'projectSlug')
+                .where(tProject.id.equals(1))
+        } catch (e) {
+            caughtWhen = e
+        }
+        expect(caughtWhen).toBe(sentinelWhen)
+        expect((caughtWhen as { disallowedProperty?: unknown }).disallowedProperty).toBe('projectSlug')
+    })
+
+    test('shaped-disallow-if-not-set-error-instance-thrown-as-is', () => {
+        // The Error-INSTANCE overload of `disallowIfNotSet`. Only `projectName`
+        // is staged, so the named renamed key `projectSlug` (→ slug) is absent
+        // and the guard fires; the passed `Error` instance is rethrown as-is
+        // with the tripped renamed shape key attached as `disallowedProperty`.
+        // Verified for the non-`When` guard and its `*When` sibling.
+        const sentinel = new Error('slug must be provided on this endpoint')
+        let caught: unknown
+        try {
+            ctx.conn.update(tProject)
+                .shapedAs({ projectName: 'name', projectSlug: 'slug' })
+                .set({ projectName: 'Renamed' })
+                .disallowIfNotSet(sentinel, 'projectSlug')
+                .where(tProject.id.equals(1))
+        } catch (e) {
+            caught = e
+        }
+        expect(caught).toBe(sentinel)
+        expect((caught as { disallowedProperty?: unknown }).disallowedProperty).toBe('projectSlug')
+
+        const sentinelWhen = new Error('slug must be provided on this endpoint')
+        let caughtWhen: unknown
+        try {
+            ctx.conn.update(tProject)
+                .shapedAs({ projectName: 'name', projectSlug: 'slug' })
+                .set({ projectName: 'Renamed' })
+                .disallowIfNotSetWhen(true, sentinelWhen, 'projectSlug')
+                .where(tProject.id.equals(1))
+        } catch (e) {
+            caughtWhen = e
+        }
+        expect(caughtWhen).toBe(sentinelWhen)
+        expect((caughtWhen as { disallowedProperty?: unknown }).disallowedProperty).toBe('projectSlug')
+    })
+
+    test('shaped-disallow-if-no-value-error-instance-thrown-as-is', () => {
+        // The Error-INSTANCE overload of `disallowIfNoValue`. The renamed
+        // optional `archived` (→ archivedAt) is staged as null, so its value
+        // fails the gate and the guard fires; the passed `Error` instance is
+        // rethrown as-is with the tripped renamed shape key attached as
+        // `disallowedProperty`. Verified for the non-`When` guard and its
+        // `*When` sibling.
+        const sentinel = new Error('archivedAt cannot be cleared via this path')
+        let caught: unknown
+        try {
+            ctx.conn.update(tProject)
+                .shapedAs({ projectName: 'name', archived: 'archivedAt' })
+                .set({ projectName: 'Renamed', archived: null })
+                .disallowIfNoValue(sentinel, 'archived')
+                .where(tProject.id.equals(1))
+        } catch (e) {
+            caught = e
+        }
+        expect(caught).toBe(sentinel)
+        expect((caught as { disallowedProperty?: unknown }).disallowedProperty).toBe('archived')
+
+        const sentinelWhen = new Error('archivedAt cannot be cleared via this path')
+        let caughtWhen: unknown
+        try {
+            ctx.conn.update(tProject)
+                .shapedAs({ projectName: 'name', archived: 'archivedAt' })
+                .set({ projectName: 'Renamed', archived: null })
+                .disallowIfNoValueWhen(true, sentinelWhen, 'archived')
+                .where(tProject.id.equals(1))
+        } catch (e) {
+            caughtWhen = e
+        }
+        expect(caughtWhen).toBe(sentinelWhen)
+        expect((caughtWhen as { disallowedProperty?: unknown }).disallowedProperty).toBe('archived')
+    })
+
+    test('shaped-disallow-any-other-set-error-instance-thrown-as-is', () => {
+        // The Error-INSTANCE overload of `disallowAnyOtherSet`. Both
+        // `projectName` (→ name) and `projectSlug` (→ slug) are staged but only
+        // `projectName` is allowed, so the staged `projectSlug` trips the guard;
+        // the passed `Error` instance is rethrown as-is with the tripped renamed
+        // shape key attached as `disallowedProperty`. Verified for the
+        // non-`When` guard and its `*When` sibling.
+        const sentinel = new Error('this endpoint only updates name')
+        let caught: unknown
+        try {
+            ctx.conn.update(tProject)
+                .shapedAs({ projectName: 'name', projectSlug: 'slug' })
+                .set({ projectName: 'Stays', projectSlug: 'unexpected-slug' })
+                .disallowAnyOtherSet(sentinel, 'projectName')
+                .where(tProject.id.equals(1))
+        } catch (e) {
+            caught = e
+        }
+        expect(caught).toBe(sentinel)
+        expect((caught as { disallowedProperty?: unknown }).disallowedProperty).toBe('projectSlug')
+
+        const sentinelWhen = new Error('this endpoint only updates name')
+        let caughtWhen: unknown
+        try {
+            ctx.conn.update(tProject)
+                .shapedAs({ projectName: 'name', projectSlug: 'slug' })
+                .set({ projectName: 'Stays', projectSlug: 'unexpected-slug' })
+                .disallowAnyOtherSetWhen(true, sentinelWhen, 'projectName')
+                .where(tProject.id.equals(1))
+        } catch (e) {
+            caughtWhen = e
+        }
+        expect(caughtWhen).toBe(sentinelWhen)
+        expect((caughtWhen as { disallowedProperty?: unknown }).disallowedProperty).toBe('projectSlug')
+    })
+    // (plain) UPDATE builder. Without a shape the guards operate on the REAL column
+    // names (`name` / `slug` / `archivedAt`). Passing an `Error` instead of a message
+    // rethrows THAT SAME instance as-is (not wrapped in a DISALLOWED_BY_QUERY_RULE
+    // TsSqlError), with the tripped column attached as `disallowedProperty`. Each test
+    // verifies the non-`When` guard and its `*When` sibling (which dispatches to the
+    // non-`When` form on `true`). All throw synchronously inside the builder, before
+    // any SQL runs.
+
+    test('nonshaped-disallow-if-value-error-instance-thrown-as-is', () => {
+        // `name` is staged with a value, so `disallowIfValue(error, 'name')` fires.
+        const sentinel = new Error('name changes go through the rename endpoint')
+        let caught: unknown
+        try {
+            ctx.conn.update(tProject)
+                .set({ name: 'New name' })
+                .disallowIfValue(sentinel, 'name')
+                .where(tProject.id.equals(1))
+        } catch (e) {
+            caught = e
+        }
+        expect(caught).toBe(sentinel)
+        expect((caught as { disallowedProperty?: unknown }).disallowedProperty).toBe('name')
+
+        const sentinelWhen = new Error('name changes go through the rename endpoint')
+        let caughtWhen: unknown
+        try {
+            ctx.conn.update(tProject)
+                .set({ name: 'New name' })
+                .disallowIfValueWhen(true, sentinelWhen, 'name')
+                .where(tProject.id.equals(1))
+        } catch (e) {
+            caughtWhen = e
+        }
+        expect(caughtWhen).toBe(sentinelWhen)
+        expect((caughtWhen as { disallowedProperty?: unknown }).disallowedProperty).toBe('name')
+    })
+
+    test('nonshaped-disallow-if-set-error-instance-thrown-as-is', () => {
+        // `slug` is staged, so `disallowIfSet(error, 'slug')` fires.
+        const sentinel = new Error('slug is read-only on this endpoint')
+        let caught: unknown
+        try {
+            ctx.conn.update(tProject)
+                .set({ name: 'Stays', slug: 'dropped-slug' })
+                .disallowIfSet(sentinel, 'slug')
+                .where(tProject.id.equals(1))
+        } catch (e) {
+            caught = e
+        }
+        expect(caught).toBe(sentinel)
+        expect((caught as { disallowedProperty?: unknown }).disallowedProperty).toBe('slug')
+
+        const sentinelWhen = new Error('slug is read-only on this endpoint')
+        let caughtWhen: unknown
+        try {
+            ctx.conn.update(tProject)
+                .set({ name: 'Stays', slug: 'dropped-slug' })
+                .disallowIfSetWhen(true, sentinelWhen, 'slug')
+                .where(tProject.id.equals(1))
+        } catch (e) {
+            caughtWhen = e
+        }
+        expect(caughtWhen).toBe(sentinelWhen)
+        expect((caughtWhen as { disallowedProperty?: unknown }).disallowedProperty).toBe('slug')
+    })
+
+    test('nonshaped-disallow-if-not-set-error-instance-thrown-as-is', () => {
+        // Only `name` is staged, so the named `slug` is absent and
+        // `disallowIfNotSet(error, 'slug')` fires.
+        const sentinel = new Error('slug must be provided on this endpoint')
+        let caught: unknown
+        try {
+            ctx.conn.update(tProject)
+                .set({ name: 'Renamed' })
+                .disallowIfNotSet(sentinel, 'slug')
+                .where(tProject.id.equals(1))
+        } catch (e) {
+            caught = e
+        }
+        expect(caught).toBe(sentinel)
+        expect((caught as { disallowedProperty?: unknown }).disallowedProperty).toBe('slug')
+
+        const sentinelWhen = new Error('slug must be provided on this endpoint')
+        let caughtWhen: unknown
+        try {
+            ctx.conn.update(tProject)
+                .set({ name: 'Renamed' })
+                .disallowIfNotSetWhen(true, sentinelWhen, 'slug')
+                .where(tProject.id.equals(1))
+        } catch (e) {
+            caughtWhen = e
+        }
+        expect(caughtWhen).toBe(sentinelWhen)
+        expect((caughtWhen as { disallowedProperty?: unknown }).disallowedProperty).toBe('slug')
+    })
+
+    test('nonshaped-disallow-if-no-value-error-instance-thrown-as-is', () => {
+        // The optional `archivedAt` is staged as null, so its value fails the gate
+        // and `disallowIfNoValue(error, 'archivedAt')` fires.
+        const sentinel = new Error('archivedAt cannot be cleared via this path')
+        let caught: unknown
+        try {
+            ctx.conn.update(tProject)
+                .set({ name: 'Renamed', archivedAt: null })
+                .disallowIfNoValue(sentinel, 'archivedAt')
+                .where(tProject.id.equals(1))
+        } catch (e) {
+            caught = e
+        }
+        expect(caught).toBe(sentinel)
+        expect((caught as { disallowedProperty?: unknown }).disallowedProperty).toBe('archivedAt')
+
+        const sentinelWhen = new Error('archivedAt cannot be cleared via this path')
+        let caughtWhen: unknown
+        try {
+            ctx.conn.update(tProject)
+                .set({ name: 'Renamed', archivedAt: null })
+                .disallowIfNoValueWhen(true, sentinelWhen, 'archivedAt')
+                .where(tProject.id.equals(1))
+        } catch (e) {
+            caughtWhen = e
+        }
+        expect(caughtWhen).toBe(sentinelWhen)
+        expect((caughtWhen as { disallowedProperty?: unknown }).disallowedProperty).toBe('archivedAt')
+    })
+
+    test('nonshaped-disallow-any-other-set-error-instance-thrown-as-is', () => {
+        // Both `name` and `slug` are staged but only `name` is allowed, so the
+        // staged `slug` trips `disallowAnyOtherSet(error, 'name')`.
+        const sentinel = new Error('this endpoint only updates name')
+        let caught: unknown
+        try {
+            ctx.conn.update(tProject)
+                .set({ name: 'Stays', slug: 'unexpected-slug' })
+                .disallowAnyOtherSet(sentinel, 'name')
+                .where(tProject.id.equals(1))
+        } catch (e) {
+            caught = e
+        }
+        expect(caught).toBe(sentinel)
+        expect((caught as { disallowedProperty?: unknown }).disallowedProperty).toBe('slug')
+
+        const sentinelWhen = new Error('this endpoint only updates name')
+        let caughtWhen: unknown
+        try {
+            ctx.conn.update(tProject)
+                .set({ name: 'Stays', slug: 'unexpected-slug' })
+                .disallowAnyOtherSetWhen(true, sentinelWhen, 'name')
+                .where(tProject.id.equals(1))
+        } catch (e) {
+            caughtWhen = e
+        }
+        expect(caughtWhen).toBe(sentinelWhen)
+        expect((caughtWhen as { disallowedProperty?: unknown }).disallowedProperty).toBe('slug')
+    })
+})

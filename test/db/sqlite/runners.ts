@@ -25,6 +25,7 @@ import { MockNodeSqliteQueryRunner } from '../../lib/mockRunners/MockNodeSqliteQ
 import { MockSqlite3QueryRunner } from '../../lib/mockRunners/MockSqlite3QueryRunner.js'
 import { MockSqlite3WasmOO1QueryRunner } from '../../lib/mockRunners/MockSqlite3WasmOO1QueryRunner.js'
 import { parse as uuidParse, stringify as uuidStringify, v7 as uuidv7 } from 'uuid'
+import { SynchronousPromise } from 'synchronous-promise'
 import { DBConnection } from './domain/connection.js'
 
 // SQLite's `uuid-extension` strategy emits uuid_blob / uuid_str / uuid
@@ -302,12 +303,18 @@ async function getOrCreateBunSqliteExactDb(): Promise<import('bun:sqlite').Datab
     }
     return sharedBunSqliteExactDb
 }
-async function createBunSqliteExactIntegerConnection(): Promise<DBConnection> {
+async function createBunSqliteExactIntegerConnection(sync = false): Promise<DBConnection> {
     const { BunSqliteQueryRunner } = await import('../../../src/queryRunners/BunSqliteQueryRunner.js')
-    return new DBConnection(new BunSqliteQueryRunner(await getOrCreateBunSqliteExactDb()))
+    const db = await getOrCreateBunSqliteExactDb()
+    return new DBConnection(sync
+        ? new BunSqliteQueryRunner(db, { promise: SynchronousPromise })
+        : new BunSqliteQueryRunner(db))
 }
 
-export function createBunSqliteTestContext(spec: BunSqliteTestSpec): SqliteTestContext {
+// `sync` builds the `-sync` cell variant: runner + mock resolve through
+// `SynchronousPromise` so tests drive it via `sync()`. See
+// createBetterSqlite3TestContext for the shared rationale.
+export function createBunSqliteTestContext(spec: BunSqliteTestSpec, sync = false): SqliteTestContext {
     // In-process, but the connector module itself can only load under Bun.
     // Under node+vitest we keep the mock branch and never touch bun:sqlite.
     const version = spec.label.split(' / ')[0] ?? ''
@@ -321,6 +328,7 @@ export function createBunSqliteTestContext(spec: BunSqliteTestSpec): SqliteTestC
         database: 'sqlite',
         realDbEnabled,
         mockRunnerClass: MockBunSqliteQueryRunner,
+        ...(sync ? { promiseProvider: SynchronousPromise } : {}),
         async createRealRunner() {
             const { BunSqliteQueryRunner } = await import('../../../src/queryRunners/BunSqliteQueryRunner.js')
             const conn = await getOrCreateBunSqliteDb()
@@ -328,7 +336,9 @@ export function createBunSqliteTestContext(spec: BunSqliteTestSpec): SqliteTestC
             for (const stmt of splitStatements(schema)) conn.exec(stmt)
             for (const stmt of splitStatements(seed)) conn.exec(stmt)
             return {
-                runner: new BunSqliteQueryRunner(conn),
+                runner: sync
+                    ? new BunSqliteQueryRunner(conn, { promise: SynchronousPromise })
+                    : new BunSqliteQueryRunner(conn),
                 shutdown: async () => { /* shared instance, intentional no-op */ },
             }
         },
@@ -344,7 +354,14 @@ export function createBunSqliteTestContext(spec: BunSqliteTestSpec): SqliteTestC
         buildConnection(interceptor, compatibilityVersion) {
             return new DBConnection(interceptor, compatibilityVersion)
         },
-    }), createBunSqliteExactIntegerConnection)
+    }), sync
+        ? () => createBunSqliteExactIntegerConnection(true)
+        : createBunSqliteExactIntegerConnection)
+}
+
+/** The `bun_sqlite-sync` cell: {@link createBunSqliteTestContext} in synchronous mode. */
+export function createBunSqliteSyncTestContext(spec: BunSqliteTestSpec): SqliteTestContext {
+    return createBunSqliteTestContext(spec, true)
 }
 
 // ---- better-sqlite3 (in-process, Node-only — does not load under Bun) ---
@@ -370,7 +387,7 @@ async function getOrCreateBetterSqlite3Db(): Promise<import('better-sqlite3').Da
 // per-statement `safeIntegers(true)` toggle, but it caches prepared statements
 // by SQL text, so we restore the flag in a `finally` to leave the shared cache
 // as `ctx.conn`'s default `number` reads expect it.
-async function createBetterSqlite3ExactIntegerConnection(): Promise<DBConnection> {
+async function createBetterSqlite3ExactIntegerConnection(sync = false): Promise<DBConnection> {
     const { BetterSqlite3QueryRunner } = await import('../../../src/queryRunners/BetterSqlite3QueryRunner.js')
     const db = await getOrCreateBetterSqlite3Db()
     class ExactIntegerRunner extends BetterSqlite3QueryRunner {
@@ -388,10 +405,21 @@ async function createBetterSqlite3ExactIntegerConnection(): Promise<DBConnection
             }
         }
     }
-    return new DBConnection(new ExactIntegerRunner(db))
+    // The override returns results through the inherited `this.promise` provider,
+    // exactly like the base runner. In a `-sync` cell that provider must be
+    // `SynchronousPromise` so `sync()` can unwrap the exact-integer read — the
+    // same `{ promise }` config the library takes on any runner, nothing bespoke.
+    return new DBConnection(sync
+        ? new ExactIntegerRunner(db, { promise: SynchronousPromise })
+        : new ExactIntegerRunner(db))
 }
 
-export function createBetterSqlite3TestContext(spec: SqliteTestSpec): SqliteTestContext {
+// `sync` builds the `-sync` cell variant: the real runner and the mock both
+// hand results back through `SynchronousPromise`, so test bodies unwrap them
+// with the `sync()` helper instead of `await`. Everything else — schema, seed,
+// shared in-memory db, exact-integer connection — is identical to the async
+// cell, so both share this one factory.
+export function createBetterSqlite3TestContext(spec: SqliteTestSpec, sync = false): SqliteTestContext {
     // better-sqlite3 has a native binding that fails to load under Bun's
     // Node API shim. We only fire the real branch outside Bun.
     const version = spec.label.split(' / ')[0] ?? ''
@@ -405,6 +433,7 @@ export function createBetterSqlite3TestContext(spec: SqliteTestSpec): SqliteTest
         database: 'sqlite',
         realDbEnabled,
         mockRunnerClass: MockBetterSqlite3QueryRunner,
+        ...(sync ? { promiseProvider: SynchronousPromise } : {}),
         async createRealRunner() {
             const { BetterSqlite3QueryRunner } = await import('../../../src/queryRunners/BetterSqlite3QueryRunner.js')
             const conn = await getOrCreateBetterSqlite3Db()
@@ -412,7 +441,9 @@ export function createBetterSqlite3TestContext(spec: SqliteTestSpec): SqliteTest
             conn.exec(schema)
             conn.exec(seed)
             return {
-                runner: new BetterSqlite3QueryRunner(conn),
+                runner: sync
+                    ? new BetterSqlite3QueryRunner(conn, { promise: SynchronousPromise })
+                    : new BetterSqlite3QueryRunner(conn),
                 shutdown: async () => { /* shared instance, intentional no-op */ },
             }
         },
@@ -425,12 +456,21 @@ export function createBetterSqlite3TestContext(spec: SqliteTestSpec): SqliteTest
         buildConnection(interceptor, compatibilityVersion) {
             return new DBConnection(interceptor, compatibilityVersion)
         },
-    }), createBetterSqlite3ExactIntegerConnection)
+    }), sync
+        ? () => createBetterSqlite3ExactIntegerConnection(true)
+        : createBetterSqlite3ExactIntegerConnection)
+}
+
+/** The `better-sqlite3-sync` cell: same as {@link createBetterSqlite3TestContext} but the
+ * runner + mock resolve through `SynchronousPromise` so tests drive it via `sync()`. */
+export function createBetterSqlite3SyncTestContext(spec: SqliteTestSpec): SqliteTestContext {
+    return createBetterSqlite3TestContext(spec, true)
 }
 
 // ---- node:sqlite (in-process, Node 22.5+) -------------------------------
 
-export function createNodeSqliteTestContext(spec: SqliteTestSpec): SqliteTestContext {
+// `sync` builds the `-sync` cell variant (runner + mock via SynchronousPromise).
+export function createNodeSqliteTestContext(spec: SqliteTestSpec, sync = false): SqliteTestContext {
     // `node:sqlite` is a built-in module added in Node 22.5. Under Bun the
     // shim does not expose it. We try the import lazily and fall back to
     // mock-only mode if the runtime does not have it.
@@ -459,6 +499,7 @@ export function createNodeSqliteTestContext(spec: SqliteTestSpec): SqliteTestCon
         database: 'sqlite',
         realDbEnabled,
         mockRunnerClass: MockNodeSqliteQueryRunner,
+        ...(sync ? { promiseProvider: SynchronousPromise } : {}),
         async createRealRunner() {
             const { NodeSqliteQueryRunner } = await import('../../../src/queryRunners/NodeSqliteQueryRunner.js')
             const conn = await getOrCreateNodeSqliteDb()
@@ -466,7 +507,9 @@ export function createNodeSqliteTestContext(spec: SqliteTestSpec): SqliteTestCon
             conn.exec(schema)
             conn.exec(seed)
             return {
-                runner: new NodeSqliteQueryRunner(conn),
+                runner: sync
+                    ? new NodeSqliteQueryRunner(conn, { promise: SynchronousPromise })
+                    : new NodeSqliteQueryRunner(conn),
                 shutdown: async () => { /* shared instance, intentional no-op */ },
             }
         },
@@ -479,7 +522,14 @@ export function createNodeSqliteTestContext(spec: SqliteTestSpec): SqliteTestCon
         buildConnection(interceptor, compatibilityVersion) {
             return new DBConnection(interceptor, compatibilityVersion)
         },
-    }), createNodeSqliteExactIntegerConnection)
+    }), sync
+        ? () => createNodeSqliteExactIntegerConnection(true)
+        : createNodeSqliteExactIntegerConnection)
+}
+
+/** The `node_sqlite-sync` cell: {@link createNodeSqliteTestContext} in synchronous mode. */
+export function createNodeSqliteSyncTestContext(spec: SqliteTestSpec): SqliteTestContext {
+    return createNodeSqliteTestContext(spec, true)
 }
 
 let sharedNodeSqliteDb: import('node:sqlite').DatabaseSync | null = null
@@ -499,7 +549,7 @@ async function getOrCreateNodeSqliteDb(): Promise<import('node:sqlite').Database
 // rounding, so this exact-integer path is the only way node:sqlite surfaces the
 // value at all. `prepare()` returns a fresh statement each call, so no restore
 // is needed.
-async function createNodeSqliteExactIntegerConnection(): Promise<DBConnection> {
+async function createNodeSqliteExactIntegerConnection(sync = false): Promise<DBConnection> {
     const { NodeSqliteQueryRunner } = await import('../../../src/queryRunners/NodeSqliteQueryRunner.js')
     const db = await getOrCreateNodeSqliteDb()
     class ExactIntegerRunner extends NodeSqliteQueryRunner {
@@ -513,7 +563,12 @@ async function createNodeSqliteExactIntegerConnection(): Promise<DBConnection> {
             }
         }
     }
-    return new DBConnection(new ExactIntegerRunner(db))
+    // In a `-sync` cell the inherited `this.promise` must be SynchronousPromise
+    // so `sync()` can unwrap the exact-integer read — same `{ promise }` config
+    // the library takes on any runner.
+    return new DBConnection(sync
+        ? new ExactIntegerRunner(db, { promise: SynchronousPromise })
+        : new ExactIntegerRunner(db))
 }
 
 // ---- sqlite3 (in-process, async, universal) -----------------------------
@@ -586,7 +641,8 @@ async function getOrCreateSqliteWasm(): Promise<import('@sqlite.org/sqlite-wasm'
     return sqliteWasmSharedDb
 }
 
-export function createSqliteWasmOO1TestContext(spec: SqliteTestSpec): SqliteTestContext {
+// `sync` builds the `-sync` cell variant (runner + mock via SynchronousPromise).
+export function createSqliteWasmOO1TestContext(spec: SqliteTestSpec, sync = false): SqliteTestContext {
     // sqlite-wasm-OO1 is in-process WASM — gated by `TS_SQL_QUERY_WASM`
     // so `tests` (no --wasm) can route this connector through the mock
     // without paying the per-worker WASM bootstrap cost.
@@ -602,6 +658,7 @@ export function createSqliteWasmOO1TestContext(spec: SqliteTestSpec): SqliteTest
         realDbEnabled,
         mockRunnerClass: MockSqlite3WasmOO1QueryRunner,
         timeoutMs: 30_000,
+        ...(sync ? { promiseProvider: SynchronousPromise } : {}),
         async createRealRunner() {
             const { Sqlite3WasmOO1QueryRunner } = await import('../../../src/queryRunners/Sqlite3WasmOO1QueryRunner.js')
             const conn = await getOrCreateSqliteWasm()
@@ -609,7 +666,9 @@ export function createSqliteWasmOO1TestContext(spec: SqliteTestSpec): SqliteTest
             conn.exec({ sql: schema })
             conn.exec({ sql: seed })
             return {
-                runner: new Sqlite3WasmOO1QueryRunner(conn),
+                runner: sync
+                    ? new Sqlite3WasmOO1QueryRunner(conn, { promise: SynchronousPromise })
+                    : new Sqlite3WasmOO1QueryRunner(conn),
                 // Don't close — the shared instance survives until
                 // the worker process exits.
                 shutdown: async () => { /* shared instance, intentional no-op */ },
@@ -625,4 +684,9 @@ export function createSqliteWasmOO1TestContext(spec: SqliteTestSpec): SqliteTest
             return new DBConnection(interceptor, compatibilityVersion)
         },
     }))
+}
+
+/** The `sqlite-wasm-OO1-sync` cell: {@link createSqliteWasmOO1TestContext} in synchronous mode. */
+export function createSqliteWasmOO1SyncTestContext(spec: SqliteTestSpec): SqliteTestContext {
+    return createSqliteWasmOO1TestContext(spec, true)
 }

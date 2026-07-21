@@ -14,7 +14,7 @@
 // contains, a single `expect(result).toEqual(expected)` line covers both
 // modes; SQL + params + exact type assertions need no branching.
 
-import type { DatabaseType, QueryRunner } from '../../src/queryRunners/QueryRunner.js'
+import type { DatabaseType, PromiseProvider, QueryRunner } from '../../src/queryRunners/QueryRunner.js'
 import { MockQueryRunner, type MockQueryExecutor, type MockQueryRunnerConfig } from '../../src/queryRunners/MockQueryRunner.js'
 import { CaptureInterceptor } from './captureInterceptor.js'
 
@@ -205,6 +205,15 @@ export interface TestContextOptions<CONN> {
     onDown?: (() => Promise<void>) | undefined
     /** Build the user-facing connection from the capture interceptor + compat version. */
     buildConnection(interceptor: CaptureInterceptor, compatibilityVersion: number | undefined): CONN
+    /**
+     * Promise implementation the MOCK runner hands back results through. Sync
+     * cells (`<connector>-sync`) pass `SynchronousPromise` so `ctx.conn`'s
+     * `execute*()` return synchronously-resolved promises the `sync()` helper
+     * can unwrap in the mock loop — mirroring what the sync real runner does
+     * (built with the same `{ promise }` in `createRealRunner`). Absent ⇒ the
+     * native `Promise` (the async default every other cell uses).
+     */
+    promiseProvider?: PromiseProvider | undefined
 }
 
 // Sentinel thrown by `withRollback` to roll a transaction back without
@@ -250,6 +259,11 @@ export function createTestContext<CONN>(opts: TestContextOptions<CONN>): TestCon
         return mockQueue.shift()
     }, {
         database: opts.database,
+        // Sync cells hand results back through SynchronousPromise so `sync()`
+        // can unwrap them in the mock loop; every other cell omits it (native
+        // Promise). Conditional spread because `exactOptionalPropertyTypes`
+        // forbids assigning `undefined` to the optional `promise` field.
+        ...(opts.promiseProvider ? { promise: opts.promiseProvider } : {}),
         // RollbackSignal (test-side rollback sentinel) and ApplicationError
         // (a user error thrown from a transaction body) are deliberately NOT
         // SQL errors: returning false here makes the connection propagate them

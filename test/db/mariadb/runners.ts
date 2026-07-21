@@ -244,13 +244,17 @@ async function bootstrapWorkerDbSchemaAndSeed(host: string, port: number): Promi
     if (!workerDbEnsured) {
         // Ensure the worker DB exists. `CREATE DATABASE IF NOT EXISTS`
         // is race-safe across workers — the first writer wins, the
-        // rest no-op.
+        // rest no-op. Pin the charset to utf8mb4 so tables inherit it
+        // regardless of the server's default: MariaDB 10.5+ already
+        // defaults to utf8mb4, but 10.4 (reached via `--docker-version
+        // closest` on the sub-`newest` tiers) still defaults to latin1,
+        // which makes the library's forced `collate utf8mb4_*` invalid.
         const adminConn = await connectWithRetry(mariadb, {
             host, port,
             user: 'root', password: ROOT_PASSWORD,
         })
         try {
-            await adminConn.query(`CREATE DATABASE IF NOT EXISTS \`${workerDb}\``)
+            await adminConn.query(`CREATE DATABASE IF NOT EXISTS \`${workerDb}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci`)
         } finally {
             await adminConn.end()
         }

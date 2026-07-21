@@ -186,6 +186,149 @@ library emits the SQL (no type-level narrowing) and a future MariaDB
 release could accept this shape. Re-probe against the real engine before
 reactivating.
 
+## MariaDB CTE-on-DML (a `WITH` clause prefixing `UPDATE` / `DELETE`) requires MariaDB 12.3+
+
+MariaDB accepts a `WITH … AS (…)` common-table-expression clause **in
+front of an `UPDATE` or `DELETE`** only from **MariaDB 12.3** onward.
+Every earlier release rejects the leading `WITH` at the parser with
+`ER_PARSE_ERROR (1064, SQLSTATE 42000)`, pointing at the `update …` /
+`delete …` keyword immediately after the CTE definition.
+
+Verified by running the exact SQL the library emits (`with p(id, name) as
+(values (1, 'renamed')) update project, p set project.name = p.name where
+project.id = p.id`) against real containers:
+
+| MariaDB | leading-`WITH` UPDATE / DELETE |
+|---|---|
+| 10.5 · 10.6 · 11.4 · 11.8 · 12.0 · 12.1 · 12.2 | **rejected** (`ER_PARSE_ERROR`) |
+| **12.3.2** (the matrix's `newest` image) | **accepted** |
+
+The `mariadb` SqlBuilder hoists every collected `WITH` — from a `Values`
+source, from a `.forUseInQueryAs(...)` CTE consumed by
+`update(t).from(cte)` / `deleteFrom(t).using(cte)`, or from a CTE that
+bubbles up out of a `where(… in (subquery))` — to the **top of the
+statement**, so it emits `with … update …` / `with … delete from …
+using …` on **every** `compatibilityVersion`. This is deliberately **not**
+a `compatibilityVersion` breakpoint: exactly as with the Oracle
+multi-table `UPDATE … FROM` case below, the library emits one modern form
+and does **not** emulate an older rewrite (e.g. inlining the CTE as a
+derived-table join, which pre-12.3 MariaDB does accept for a multi-table
+UPDATE / DELETE) — there is no alternative valid form it switches to.
+
+**What this means for tests** — at every sub-`newest` MariaDB cell
+(`compatibilityVersion` `10_005_000` / `10_004_000` / `10_003_003` /
+`oldest`, run against `mariadb:10.5` / `10.4` / `10.3` under
+`--docker-version closest`) the CTE-on-DML tests are commented out with
+`// TODO[LIMITATION]: see LIMITATIONS.md`. The emitted SQL is
+**byte-identical** to `newest` (verified in mock at each
+`compatibilityVersion`), so the SQL builder is validated by the live
+`newest` (12.3) cell; the older cells simply cannot execute it. Affects
+`delete.returning.execute-shapes`, `delete.using.variants`,
+`update.from.variants`, `with-values` and
+`with-values.builder-position-hoists` (7 tests).
+
+This stays `TODO[LIMITATION]` rather than `NOT-APPLICABLE` because the
+methods are callable on `MariaDBConnection` (no type-level narrowing) and
+MariaDB 12.3+ accepts the SQL — only the older engines reject it.
+
+## MariaDB `json_arrayagg` (aggregate-as-array / JSON array projection) requires MariaDB 10.5+
+
+The `aggregateAsArray` projections and every JSON-array value source compile
+to `json_arrayagg(...)` (usually `cast((select json_arrayagg(...) …) as char)`),
+which MariaDB only ships from **10.5**. Earlier releases have no such function,
+so the query fails at runtime — `ER_SP_DOES_NOT_EXIST (1305) FUNCTION
+<db>.json_arrayagg does not exist` for a bare call, or `ER_PARSE_ERROR (1064)`
+when a `DISTINCT` / `ORDER BY` sits inside the (unknown) function and the parser
+rejects it first.
+
+Verified: green on the `10_005_000` cell (real `mariadb:10.5`), rejected on
+`10_004_000` / `oldest` (real `mariadb:10.4` / `10.3`). The library emits the
+same `json_arrayagg` SQL on every `compatibilityVersion` — there is no
+older-MariaDB equivalent it could switch to (`GROUP_CONCAT` builds a delimited
+string, not a JSON array), so this is deliberately **not** a
+`compatibilityVersion` breakpoint.
+
+**What this means for tests** — the `aggregate-as-array*`,
+`aggregate-nested-object`, `docs:aggregate-as-object-array` and every
+inline-aggregated-array test is commented out with `// TODO[LIMITATION]: see
+LIMITATIONS.md` on the sub-`newest` MariaDB cells and runs live on `newest`
+(12.3) and the other dialects. Stays `TODO[LIMITATION]` rather than
+`NOT-APPLICABLE` because the API is callable on `MariaDBConnection` and MariaDB
+10.5+ accepts the SQL.
+
+## MariaDB `INSERT … RETURNING` requires MariaDB 10.5+
+
+[MariaDB added `RETURNING` on `INSERT` in 10.5.0](https://mariadb.com/kb/en/insert/);
+earlier releases reject the clause with `ER_PARSE_ERROR (1064)`. The library
+emits an explicit `.returning(...)` on an INSERT as `insert … returning …` on
+**every** `compatibilityVersion` (the `10_005_000` breakpoint only switches the
+*implicit* last-inserted-id read between `returning id` and a `last_insert_id()`
+follow-up — the user-requested explicit RETURNING is always emitted, per this
+file's engine-support policy). Verified: green on `10_005_000` (real
+`mariadb:10.5`), rejected on `10_004_000` / `oldest` (real `mariadb:10.4` /
+`10.3`).
+
+**Sequence-assigned primary keys are a special case.** At `compatibilityVersion
+< 10_005_000` the library reads an auto-generated INSERT key back through
+`last_insert_id()` instead of `RETURNING`. `last_insert_id()` only tracks
+`AUTO_INCREMENT`, not a `nextval(<seq>)`-assigned value, so a **sequence**
+primary key comes back wrong (0 / stale) on pre-10.5 MariaDB — reading it back
+correctly needs `INSERT … RETURNING` (10.5+). This surfaces as a wrong-value
+assertion, not a SQL error.
+
+**What this means for tests** — the `insert.returning`,
+`insert.execute-variants` (including the `throws-when-*` guards, which never
+reach the library check because the RETURNING SQL is rejected first),
+`insert.on-conflict.dynamic-set`, `insert.from-select.variants`,
+`insert.multi-row`, `docs:insert` RETURNING tests and the two
+`insert.autogenerated-by-sequence` sequence-PK tests are commented out with `//
+TODO[LIMITATION]: see LIMITATIONS.md` on the sub-`newest` MariaDB cells and run
+live on `newest` (12.3). Callable on `MariaDBConnection`, accepted by 10.5+, so
+`TODO[LIMITATION]` not `NOT-APPLICABLE`.
+
+## MariaDB `EXCEPT ALL` / `INTERSECT ALL` compound variants require MariaDB 10.5+
+
+MariaDB added the base `EXCEPT` / `INTERSECT` set operators in 10.3 but the
+**`ALL`** variants (`EXCEPT ALL`, `INTERSECT ALL`) only in **10.5**; earlier
+releases reject them with `ER_PARSE_ERROR (1064)`. (`minusAll` routes through the
+`EXCEPT ALL` alias, so it is the same gap.) The library emits the `ALL` form on
+every `compatibilityVersion` — there is no older-compatible rewrite it switches
+to.
+
+Verified: green on `10_005_000` (real `mariadb:10.5`), rejected on `10_004_000`
+/ `oldest` (real `mariadb:10.4` / `10.3`). Plain `UNION [ALL]`, `EXCEPT`,
+`INTERSECT` and `MINUS` all run live on 10.4.
+
+**What this means for tests** — the `exceptAll` / `intersectAll` / `minusAll`
+cases in `select.compound*` are commented out with `// TODO[LIMITATION]: see
+LIMITATIONS.md` on the sub-`newest` MariaDB cells and run live on `newest`
+(12.3). Callable + accepted by 10.5+ → `TODO[LIMITATION]`, not `NOT-APPLICABLE`.
+
+## MariaDB < 10.4 rejects a `WHERE` clause without a `FROM`
+
+`selectFromNoTable().where(...)` emits `select <cols> where <cond>` with no
+FROM clause. MySQL (every supported version) and MariaDB **10.4+** accept a bare
+`SELECT … WHERE`, but MariaDB **10.3** requires a FROM and rejects it with
+`ER_PARSE_ERROR (1064)`. Verified against real `mariadb:10.3`: `select 1 as x
+where 1 = 1` → 1064, while `select 1 as x from dual where 1 = 1` → OK; the same
+no-FROM SQL runs live on the `10_004_000` / `10_005_000` cells (real 10.4 / 10.5)
+and on every MySQL cell (identical snapshot).
+
+The library emits the no-FROM form on every `compatibilityVersion` — valid on
+every other engine/version this matrix runs. It is closeable (the builder could
+emit `from dual` on MariaDB/MySQL when a `selectFromNoTable` carries a WHERE) but
+that is deliberately not gated: `from dual` is not portable to PostgreSQL /
+SQLite, so it would be a MySQL/MariaDB-specific rewrite for a degenerate query
+(a WHERE over a single constant row). Stays `TODO[LIMITATION]` rather than
+`NOT-APPLICABLE` because the API is callable and MariaDB 10.4+ accepts it.
+
+**What this means for tests** — the
+`build-fragment-with-args-if-value-emits-when-value-present` and
+`build-fragment-with-args-if-value-arity-1-emits-when-present` tests in
+`fragments.with-args` are commented out with `// TODO[LIMITATION]: see
+LIMITATIONS.md` on the `10_003_003` and `oldest` MariaDB cells (both real
+`mariadb:10.3` under `--docker-version closest`) and run live everywhere else.
+
 ## Oracle multi-table `UPDATE … FROM` / `DELETE … USING` requires Oracle Database 23ai
 
 Oracle added the ANSI `UPDATE … FROM` and `DELETE … USING` forms in

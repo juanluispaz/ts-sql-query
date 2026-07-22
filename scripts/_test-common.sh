@@ -76,11 +76,14 @@ run_phase() {
 # Paths that hit the in-process WASM connectors. The two-phase test
 # script runs these as its dedicated sequential phase when --wasm is
 # set in full-matrix mode.
-WASM_PATHS=(
-    test/db/postgres/newest/pglite/
-    test/db/postgres/oldest/pglite/
-    test/db/sqlite/newest/sqlite-wasm-OO1/
-)
+#
+# DERIVED, not hand-listed: populated below (once WASM_CONNECTOR_NAMES and
+# the connector-walk helpers are defined) with EVERY wasm-kind connector cell
+# in EVERY version — pglite + sqlite-wasm-OO1(+sync) across all version tiers.
+# The wasm phase/group must run ALL wasm cells real (no `newest`-only subset),
+# so this can't be a fixed short list: a new wasm cell or a new version tier is
+# picked up automatically. See `list_wasm_connector_paths` below.
+WASM_PATHS=()
 
 # Connector folder names by connection type. Used by the
 # `--run-connectors` flag to filter the cell set the runner visits.
@@ -98,10 +101,14 @@ WASM_PATHS=(
 #            require updating this file.
 #
 # Keep these two lists in sync with the connector folders under
-# `test/db/<db>/<version>/`. Adding a WASM or NATIVE connector means
-# adding its folder name here too.
-WASM_CONNECTOR_NAMES=(pglite sqlite-wasm-OO1)
-NATIVE_CONNECTOR_NAMES=(better-sqlite3 bun_sqlite node_sqlite sqlite3)
+# `test/db/<db>/<version>/`, INCLUDING the `-sync` variants (the runner +
+# mock resolve through SynchronousPromise; same gating profile as the async
+# cell). Adding a WASM or NATIVE connector — or a new `-sync` twin — means
+# adding its folder name here too. `pglite` is async-only (no `-sync`).
+# !!! KEEP IN SYNC with RealDbBackend / isRealDbEnabled in
+# test/lib/backends.ts (the runtime gate). !!!
+WASM_CONNECTOR_NAMES=(pglite sqlite-wasm-OO1 sqlite-wasm-OO1-sync)
+NATIVE_CONNECTOR_NAMES=(better-sqlite3 better-sqlite3-sync bun_sqlite bun_sqlite-sync node_sqlite node_sqlite-sync sqlite3)
 
 # Internal: connector folder name matches the given type.
 # Returns 0 on match, 1 on miss. `docker` is the complement of WASM ∪
@@ -150,6 +157,97 @@ list_all_connector_paths() {
             done
         done
     done
+}
+
+# True when connector folder name <cn> is one of the following names.
+#   Args: <cn> <name…>
+_name_in_list() {
+    local cn="$1" item; shift
+    for item in "$@"; do [ "$item" = "$cn" ] && return 0; done
+    return 1
+}
+
+# Emit every wasm-kind connector cell in the project (all databases, ALL
+# version tiers) — one per line, trailing slash. This is the canonical wasm
+# path set: the wasm phase/group runs every one of these real. Derived from
+# `_connector_matches_kind … wasm` (WASM_CONNECTOR_NAMES) so a new wasm cell
+# or version tier is covered automatically — no fixed list to forget.
+list_wasm_connector_paths() {
+    local cell cn
+    while IFS= read -r cell; do
+        cn="${cell%/}"; cn="${cn##*/}"
+        _connector_matches_kind "$cn" wasm && printf '%s\n' "$cell"
+    done < <(list_all_connector_paths)
+}
+
+# Emit every `test/db/<db>/types.negative/` folder (one per line, trailing
+# slash). These siblings of the <version> folders hold compile-time negative
+# tests — the runner visits them but they register no runtime tests. They are
+# NOT connector cells (list_all_connector_paths skips them), so the shard
+# partition adds them explicitly to the `rest` shard to stay complete.
+list_types_negative_paths() {
+    local db_dir
+    for db_dir in test/db/*/; do
+        [ -d "${db_dir}types.negative" ] && printf '%s\n' "${db_dir}types.negative/"
+    done
+}
+
+# Populate WASM_PATHS from the derivation above (declared empty near the top).
+# Done here, after the connector-walk helpers exist. Nothing reads WASM_PATHS
+# during sourcing — resolve_main_paths / filter_newest_wasm_paths run later —
+# so populating it at this point in the file is safe.
+while IFS= read -r _wp; do WASM_PATHS+=("$_wp"); done < <(list_wasm_connector_paths)
+unset _wp
+
+# ---------------------------------------------------------------------------
+# Shard partition (--shard). Splits the no-docker matrix into 4 mutually-
+# exclusive groups so each fits well under the 16 GB CI runner — the single-
+# process main pass peaks ~15.9 GB on Node 26 and OOMs at the final
+# aggregation. Every test file lands in EXACTLY one shard.
+#
+#   1 · wasm     : the wasm-kind connectors (pglite, sqlite-wasm-OO1(+sync)),
+#                  ALL versions, REAL. Runs sequential — the per-worker WASM
+#                  module bootstrap is CPU-bound and murderous under parallel
+#                  workers (see getOrCreateSqliteWasm in
+#                  test/db/sqlite/runners.ts).
+#   2 · sqlite-A : better-sqlite3(+sync), node_sqlite(+sync).
+#   3 · sqlite-B : sqlite3, bun_sqlite(+sync).
+#   4 · rest     : everything else — the COMPLEMENT: every connector cell not
+#                  claimed by shards 1-3 (docker engines + documentation) PLUS
+#                  the types.negative folders, so no file is dropped.
+#
+# Groups 2/3 are hand-balanced by file count (~5.1 k / ~3.8 k) so each parallel
+# shard stays ~8 GB peak; shard 1 is ~3 k files (sequential); shard 4 ~5.1 k.
+SHARD2_CONNECTOR_NAMES=(better-sqlite3 better-sqlite3-sync node_sqlite node_sqlite-sync)
+SHARD3_CONNECTOR_NAMES=(sqlite3 bun_sqlite bun_sqlite-sync)
+
+# Echo the runner paths for shard <n> (1..4), one per line. Shards 1-3 are
+# explicit connector-cell sets; shard 4 is the complement + types.negative,
+# so the four shards partition the full matrix with no overlap and no gaps.
+shard_paths() {
+    local n="$1" cell cn
+    case "$n" in
+        1) list_wasm_connector_paths ;;
+        2)
+            while IFS= read -r cell; do
+                cn="${cell%/}"; cn="${cn##*/}"
+                _name_in_list "$cn" "${SHARD2_CONNECTOR_NAMES[@]}" && printf '%s\n' "$cell"
+            done < <(list_all_connector_paths) ;;
+        3)
+            while IFS= read -r cell; do
+                cn="${cell%/}"; cn="${cn##*/}"
+                _name_in_list "$cn" "${SHARD3_CONNECTOR_NAMES[@]}" && printf '%s\n' "$cell"
+            done < <(list_all_connector_paths) ;;
+        4)
+            while IFS= read -r cell; do
+                cn="${cell%/}"; cn="${cn##*/}"
+                _connector_matches_kind "$cn" wasm && continue
+                _name_in_list "$cn" "${SHARD2_CONNECTOR_NAMES[@]}" && continue
+                _name_in_list "$cn" "${SHARD3_CONNECTOR_NAMES[@]}" && continue
+                printf '%s\n' "$cell"
+            done < <(list_all_connector_paths)
+            list_types_negative_paths ;;
+    esac
 }
 
 # Print the connector-level cells (test/db/<db>/<version>/<connector>,

@@ -54,9 +54,22 @@ jobs:
       - name: Light tests
         run: npm run no-docker-examples
 
-      # New test suite — full matrix mocked + real WASM phase (no docker).
-      - name: New test suite
-        run: npm run test:no-docker
+      # New test suite — full matrix mocked + real WASM (no docker), split
+      # into 4 memory-bounded shards. Run as one process the matrix peaks
+      # ~15.9 GB and OOMs the 16 GB runner on Node 26 at the final aggregation;
+      # each shard is a separate runner invocation so the memory is freed
+      # between them (peak = the biggest shard, ~8 GB). Every test file runs in
+      # exactly one shard. Shard 1 (wasm) runs the WASM cells real+sequential;
+      # shards 2-4 run parallel with WASM mocked. Separate steps so each shard
+      # has its own readable log. See `scripts/tests.sh --help` (Sharding).
+      - name: New test suite — shard 1 (wasm, real)
+        run: npm run test:no-docker:shard -- 1
+      - name: New test suite — shard 2 (sqlite-A)
+        run: npm run test:no-docker:shard -- 2
+      - name: New test suite — shard 3 (sqlite-B)
+        run: npm run test:no-docker:shard -- 3
+      - name: New test suite — shard 4 (rest)
+        run: npm run test:no-docker:shard -- 4
 
   bun:
     name: bun validation
@@ -102,6 +115,14 @@ jobs:
       - name: Bun light tests
         run: bun run no-docker-examples
 
-      # New test suite — full matrix mocked + real WASM phase (no docker).
-      - name: Bun new test suite
-        run: bun run test:no-docker
+      # New test suite — full matrix mocked + real WASM (no docker), split
+      # into 4 memory-bounded shards (same partition as the node job; see the
+      # comment there). Separate steps so each shard has its own readable log.
+      - name: Bun new test suite — shard 1 (wasm, real)
+        run: bun run test:no-docker:shard 1
+      - name: Bun new test suite — shard 2 (sqlite-A)
+        run: bun run test:no-docker:shard 2
+      - name: Bun new test suite — shard 3 (sqlite-B)
+        run: bun run test:no-docker:shard 3
+      - name: Bun new test suite — shard 4 (rest)
+        run: bun run test:no-docker:shard 4

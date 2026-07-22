@@ -22,6 +22,8 @@ Usage:
                    [--docker-mode <reuse|no-reuse>]
                    [--docker-version <latest|closest>]
                    [--use-vitest] [--ui]
+                   #   · no-docker CI split (memory-bounded):
+                   [--shard [<1|2|3|4>]]
                    # Reports & coverage:
                    [--report    [--report-format <name>]…]
                    [--coverage  [--coverage-format <name>]…]
@@ -160,6 +162,7 @@ Defaults
   --native           all  (native SQLite runs real; --native none = mock)
   --docker-mode      reuse  (containers stay alive between invocations)
   --docker-version   latest (closest = version-appropriate image per cell)
+  --shard            off (bare = all 4 shards in sequence; <n> = only shard n)
   --use-vitest       off (runtime detected from npm_config_user_agent)
   --ui               off (implies --use-vitest)
   --report           off (test-execution report)
@@ -190,6 +193,31 @@ WASM semantics
 
   Focused mode (one or more coords): single pass — the --wasm selection is
   applied to that one pass directly (no split).
+
+Sharding (--shard) — the no-docker CI split
+  The full mocked matrix + real WASM is ONE logical job (`test:no-docker`).
+  Run as a single process it accumulates every file's module graph and peaks
+  ~15.9 GB — right at the 16 GB CI runner limit, where Node 26 OOMs at the
+  final aggregation. --shard partitions it into 4 memory-bounded groups, each
+  its own runner invocation, so the module graph of a group is freed when its
+  process exits and the peak is the biggest shard (~8 GB), not the sum.
+
+    --shard          run all four shards in sequence (one invocation).
+    --shard <n>      run only shard n (1..4). CI uses one step per shard.
+
+  The four shards (every test file lands in EXACTLY one — no double-run):
+    1 · wasm      pglite + sqlite-wasm-OO1(+sync), all versions, REAL.
+                  Sequential (the per-worker WASM bootstrap is CPU-bound).
+    2 · sqlite-A  better-sqlite3(+sync), node_sqlite(+sync).            parallel
+    3 · sqlite-B  sqlite3, bun_sqlite(+sync).                           parallel
+    4 · rest      everything else (docker engines mocked + documentation
+                  + types.negative).                                   parallel
+
+  Full-matrix / no-docker only: --shard rejects positional coords, --coverage,
+  --docker, --run-connectors and --run-versions (it defines its own partition
+  and covers every version). Native SQLite stays real by default; --native none
+  still routes it through the mock. Outside --shard nothing changes — the flag
+  is opt-in and the normal WASM-phase + main-pass flow is untouched.
 
 Runner flags
   --mode <parallel|sequential>
@@ -567,6 +595,12 @@ VAL_SUMMARY=
 # Empty sentinel: "user didn't pass --timeout". Resolves to the 60000ms
 # default (the value run_phase otherwise hardcodes) when left empty.
 TIMEOUT=
+# --shard: split the no-docker matrix into 4 memory-bounded groups, each its
+# own runner invocation (memory freed between shards → peak = biggest shard,
+# not the sum). SHARD_MODE=on when the flag is present; SHARD_ONLY empty means
+# "run all four in sequence", or a single 1..4 to run just that shard.
+SHARD_MODE=off
+SHARD_ONLY=
 EXTRA_ARGS=()
 
 while [ $# -gt 0 ]; do
@@ -618,6 +652,17 @@ while [ $# -gt 0 ]; do
         --bail=*)               BAIL="${1#--bail=}"; shift ;;
         --timeout)              TIMEOUT="$2"; shift 2 ;;
         --timeout=*)            TIMEOUT="${1#--timeout=}"; shift ;;
+        --shard)
+            # Optional shard number: `--shard` alone → all four in sequence;
+            # `--shard 2` consumes the next arg only when it's a bare integer
+            # (so `--shard --docker` keeps --docker as a flag). Mirrors --bail's
+            # bounded-set lookahead.
+            SHARD_MODE=on
+            case "${2:-}" in
+                ''|*[!0-9]*)    shift ;;
+                *)              SHARD_ONLY="$2"; shift 2 ;;
+            esac ;;
+        --shard=*)              SHARD_MODE=on; SHARD_ONLY="${1#--shard=}"; shift ;;
         --no-color)             NO_COLOR_FLAG=on; shift ;;
         --list-cells)           LIST_CELLS=on; shift ;;
         --list-files)           LIST_FILES=on; shift ;;
@@ -741,6 +786,35 @@ resolve_kind_real wasm none "${WASM_TOKENS[@]}" || exit $?
 WASM_MODE_SEL="$REAL_MODE"; WASM_CELLS="$REAL_CELLS"
 resolve_kind_real native all "${NATIVE_TOKENS[@]}" || exit $?
 NATIVE_MODE_SEL="$REAL_MODE"; NATIVE_CELLS="$REAL_CELLS"
+
+# --shard guardrails. Sharding is the no-docker CI split: one well-defined job
+# (the full mocked matrix + real wasm), partitioned by connector into 4
+# memory-bounded groups. It defines its OWN path/version/connector partition
+# and its own real/mock policy per shard, so the flags that would reshape those
+# are contradictions here — reject them loudly rather than silently ignoring.
+if [ "$SHARD_MODE" = "on" ]; then
+    if [ -n "$SHARD_ONLY" ]; then
+        case "$SHARD_ONLY" in
+            1|2|3|4) ;;
+            *) echo "Invalid --shard: $SHARD_ONLY (expected 1..4; bare --shard runs all four in sequence)." >&2; exit 2 ;;
+        esac
+    fi
+    if [ "$FOCUSED" = "on" ]; then
+        echo "Error: --shard runs the full no-docker matrix; it can't be combined with positional coords." >&2; exit 2
+    fi
+    if [ "$RUN_CONNECTORS" != "all" ]; then
+        echo "Error: --shard defines its own connector partition; drop --run-connectors." >&2; exit 2
+    fi
+    if [ "$RUN_VERSIONS" != "all" ]; then
+        echo "Error: --shard covers every version tier; drop --run-versions." >&2; exit 2
+    fi
+    if [ "$COVERAGE" = "on" ]; then
+        echo "Error: --shard cannot be combined with --coverage — each shard is a separate runner invocation and coverage needs a single pass." >&2; exit 2
+    fi
+    if [ "$DOCKER_MODE_SEL" != "none" ]; then
+        echo "Error: --shard is the no-docker matrix split; drop --docker (it's not for real-container runs)." >&2; exit 2
+    fi
+fi
 
 # --docker-version closest guardrails (narrow-by-design, memory-bounded):
 #   1) requires positional coords — never a full-matrix run, and
@@ -981,6 +1055,89 @@ if [ "$runtime" = "npm" ] && [ "$UI" = "on" ]; then RUNNER_TAIL+=(--ui); fi
 # Snapshot refresh / test-name filter ride along on every phase (WASM +
 # main) so a focused refresh hits whichever phase actually runs the cell.
 RUNNER_TAIL+=("${NARROWING_FLAGS[@]}")
+
+# --shard: the no-docker CI split. Each shard is an INDEPENDENT runner
+# invocation over a disjoint slice of the matrix, so the module graph a slice
+# accumulates is freed when its process exits — the peak is the biggest shard,
+# not the whole matrix. Bare --shard runs all four in sequence (stopping at the
+# first failure); --shard <n> runs just that one (CI's per-step form). Wasm
+# lives EXCLUSIVELY in shard 1 (real, sequential); the other three run parallel
+# with wasm mocked — so unlike the two-phase --wasm flow there is NO double-run
+# of the wasm cells. Full-matrix / no-docker only (guarded above); exits when
+# done, before the normal two-phase flow below.
+if [ "$SHARD_MODE" = "on" ]; then
+    # docker + native env apply to every shard (docker is `none` here — guarded
+    # above); wasm is set per-shard inside the loop.
+    export TS_SQL_QUERY_DOCKER="$DOCKER_ENV"
+    export TS_SQL_QUERY_NATIVE="$NATIVE_ENV"
+
+    if [ -n "$SHARD_ONLY" ]; then
+        SHARD_SEQUENCE=("$SHARD_ONLY")
+    else
+        SHARD_SEQUENCE=(1 2 3 4)
+    fi
+
+    shard_overall_ec=0
+    for shard_n in "${SHARD_SEQUENCE[@]}"; do
+        SHARD_RUN_PATHS=()
+        while IFS= read -r shard_p; do
+            [ -n "$shard_p" ] && SHARD_RUN_PATHS+=("$shard_p")
+        done < <(shard_paths "$shard_n")
+        if [ "${#SHARD_RUN_PATHS[@]}" -eq 0 ]; then
+            echo "Error: --shard $shard_n resolved to no paths (matrix layout changed?)." >&2
+            exit 2
+        fi
+
+        saved_node_options="${NODE_OPTIONS:-}"
+        if [ "$shard_n" = "1" ]; then
+            shard_label="Shard 1 · wasm (real, sequential)"
+            shard_mode=sequential
+            shard_wasm_env=all
+            export TS_SQL_QUERY_WASM=all
+            export TSSQLQUERY_PARALLEL_DBS=false
+            # The wasm shard is one sequential worker holding ~3 k files' module
+            # graph at once (isolate:false). Give it heap headroom over the
+            # default old-space so a big single worker never hits
+            # "FATAL … heap out of memory". Node/vitest only — bun ignores
+            # NODE_OPTIONS heap flags and manages its own memory.
+            if [ "$runtime" = "npm" ]; then
+                export NODE_OPTIONS="${NODE_OPTIONS:+$NODE_OPTIONS }--max-old-space-size=8192"
+            fi
+        else
+            shard_label="Shard $shard_n"
+            shard_mode=parallel
+            shard_wasm_env=none
+            export TS_SQL_QUERY_WASM=none
+            unset TSSQLQUERY_PARALLEL_DBS
+        fi
+
+        echo ""
+        echo "=== Running $shard_label — ${#SHARD_RUN_PATHS[@]} path group(s) ==="
+        if [ "$runtime" = "bun" ] && [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+            SHARD_LOG="$(mktemp)"
+            run_phase "$runtime" "$shard_mode" "${SHARD_RUN_PATHS[@]}" "${RUNNER_TAIL[@]}" "${EXTRA_ARGS[@]}" 2>&1 | tee "$SHARD_LOG"
+            ec=${PIPESTATUS[0]}
+            emit_bun_github_summary "$shard_label" "$SHARD_LOG"
+            rm -f "$SHARD_LOG"
+        else
+            run_phase "$runtime" "$shard_mode" "${SHARD_RUN_PATHS[@]}" "${RUNNER_TAIL[@]}" "${EXTRA_ARGS[@]}"
+            ec=$?
+        fi
+
+        # Restore NODE_OPTIONS so the wasm shard's heap bump doesn't bleed into
+        # the next shard of a bare --shard sequence.
+        if [ -n "$saved_node_options" ]; then export NODE_OPTIONS="$saved_node_options"; else unset NODE_OPTIONS; fi
+
+        emit_phase_legend "$shard_label" "$shard_mode" "$runtime" "$DOCKER_ENV" "$shard_wasm_env" "$NATIVE_ENV" "$RUN_VERSIONS" "$RUN_CONNECTORS"
+        if [ "$ec" -ne 0 ]; then
+            shard_overall_ec="$ec"
+            # Stop the all-shards sequence at the first failure — its log is the
+            # actionable one. A single-shard run already exits on the next line.
+            break
+        fi
+    done
+    exit "$shard_overall_ec"
+fi
 
 # Optional real-WASM phase (when --wasm is set). Runs FIRST so its
 # output stays close to the top of the scrollback; the parallel main

@@ -11,6 +11,7 @@ the `--docker` / `--wasm` flags drive see
 - [The scripts](#the-scripts)
 - [Test-loop discipline](#test-loop-discipline)
 - [Flags](#flags)
+- [Sharding the no-docker matrix](#sharding)
 - [Focused runs](#focused-runs)
 - [Coord patterns: literals, globs, braces, multi-coord](#coord-patterns)
 - [Narrowing inside a coordinate](#narrowing-inside-a-coordinate)
@@ -88,6 +89,7 @@ Orthogonal — combine freely (except for the [Forbidden combinations](#forbidde
 | `--docker-mode <reuse\|no-reuse>` | Container reuse policy. `reuse` sets `TESTCONTAINERS_REUSE_ENABLE=true`, keeps containers alive between invocations, and (in reuse mode only) runs a **docker preflight** before the test phases: a memory-budget check + a sequential cold-start warmup of the engines the run will hit, so they don't all start at once and OOM-kill each other on an under-provisioned host. `no-reuse` is hermetic and skips the preflight. See [`ENGINE_LIFECYCLE.md` § Docker preflight & sequential warmup](./ENGINE_LIFECYCLE.md#docker-preflight--sequential-warmup). The memory check **aborts the run** (exit 3, with how to raise the memory) when Docker is short — set `TSSQLQUERY_DOCKER_MEMORY_STRICT=0` to downgrade it to a warning and proceed. | `reuse` |
 | `--docker-version <latest\|closest>` | Which image a real docker cell runs against. `latest` (default) uses the database's `newest` image for every cell. `closest` runs each real docker cell against **its own version folder's** image (e.g. `postgres/oldest` on a real PostgreSQL 17 instead of 18), so version-specific SQL can be confirmed on a real engine of that version. The map mirrors the version folders on disk — `ENGINE_IMAGES[<db>][<version>]` in [`test/lib/dockerImages.ts`](./lib/dockerImages.ts), one hand-maintained image per folder (the image may be a different repo); a version folder with no entry is a **hard error** (fails loud), and adding a tier means adding one entry — see [`ENGINE_LIFECYCLE.md` § Adding a version tier](./ENGINE_LIFECYCLE.md#adding-a-version-tier--the-maintenance-step). **Narrow by design**: `closest` also requires focused coords and at most one `<version>` folder per engine (older images are separate containers that must not all start at once). | `latest` |
 | `--mode <parallel\|sequential>` | Parallel uses one worker per logical core (minus reserved); sequential runs everything in one worker. | `parallel` |
+| `--shard [<1\|2\|3\|4>]` | Split the no-docker matrix into 4 memory-bounded shards, each its own runner invocation (memory freed between them → peak = biggest shard, not the sum). Bare = all four in sequence; `<n>` = only that shard. Full-matrix / no-docker only — rejects coords, `--coverage`, `--docker`, `--run-connectors`, `--run-versions`. See [Sharding the no-docker matrix](#sharding). | off |
 | `--use-vitest` | Force vitest runtime even under `bun run`. Implied by `--ui`. | off |
 | `--ui` | Launch `@vitest/ui` (implies `--use-vitest`). | off |
 | **Reports & coverage** | | |
@@ -190,6 +192,49 @@ npm run tests -- postgres/oldest/pg --docker --docker-version closest
 # Fully mocked — even native SQLite routed through the mock.
 npm run tests -- --native none
 ```
+
+## Sharding
+
+The no-docker matrix (the full mocked run plus the real WASM cells — what
+`test:no-docker` covers) is **one logical CI job**, but run as a single
+process it accumulates every test file's module graph (vitest `isolate:false`)
+and peaks **~15.9 GB**. That is right at the **16 GB** CI-runner limit, where
+**Node 26 OOMs** at the final aggregation (all tests pass, then the process
+dies). `--shard` splits that one job into **4 memory-bounded groups**, each its
+own runner invocation — so a group's module graph is freed when its process
+exits and the peak is the **biggest shard (~8 GB)**, not the sum.
+
+```bash
+# All four shards in sequence, one invocation (local equivalent of the 4 CI steps).
+npm run tests -- --shard
+
+# Just one shard — CI runs one step per shard so each gets its own readable log.
+npm run tests -- --shard 1        # or the package alias: npm run test:no-docker:shard -- 1
+```
+
+Every test file lands in **exactly one** shard — the partition is complete and
+disjoint (`Σ shards = 16 972 files`, no overlap):
+
+| Shard | Connectors | Mode | ≈Files |
+|---|---|---|---|
+| **1 · wasm** | `pglite`, `sqlite-wasm-OO1`, `sqlite-wasm-OO1-sync` — all versions, **real** | **sequential** | ~3 034 |
+| **2 · sqlite-A** | `better-sqlite3(+sync)`, `node_sqlite(+sync)` | parallel | ~5 060 |
+| **3 · sqlite-B** | `sqlite3`, `bun_sqlite(+sync)` | parallel | ~3 795 |
+| **4 · rest** | everything else — docker engines (mocked) + `documentation` + `types.negative` | parallel | ~5 083 |
+
+- **Shard 1 runs `sequential`** (`--no-file-parallelism` + `TSSQLQUERY_PARALLEL_DBS=false`)
+  because the per-worker WASM module bootstrap is CPU-bound and murderous under
+  parallel workers (see `getOrCreateSqliteWasm` in [`db/sqlite/runners.ts`](./db/sqlite/runners.ts)).
+  It also gets a heap bump (`--max-old-space-size=8192`, node/vitest only) since a
+  single sequential worker holds ~3 k files' module graph at once. Unlike the
+  two-phase `--wasm` flow there is **no double-run**: the WASM cells run only in
+  shard 1 (real), never again mocked in another shard.
+- **Full-matrix / no-docker only.** `--shard` defines its own connector/version
+  partition and its own per-shard real/mock policy, so it rejects positional
+  coords, `--coverage`, `--docker`, `--run-connectors` and `--run-versions`.
+  Native SQLite stays real by default (`--native none` still forces the mock).
+- **Opt-in.** Without `--shard` nothing changes — the normal WASM-phase +
+  main-pass flow is untouched. Docker, focused, and coverage runs are unaffected.
 
 ## Focused runs
 
@@ -713,6 +758,11 @@ When `--coverage` is set, `tests --wasm` bypasses the two-phase split
 entirely and runs everything in one invocation with WASM real (sequential
 is implied). The single-pass coverage report ends up cleaner than two
 separately-collected shards would be.
+
+`--shard` is rejected (exit 2) alongside positional coords, `--coverage`,
+`--docker`, `--run-connectors` or `--run-versions`: it defines its own
+connector/version partition and per-shard real/mock policy, so those flags
+would contradict it. See [Sharding the no-docker matrix](#sharding).
 
 ## Reserved names
 

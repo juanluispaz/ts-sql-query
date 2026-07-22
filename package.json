@@ -280,6 +280,7 @@
         "tests:reopen": "bash scripts/tests-reopen.sh",
         "test:fast": "bash scripts/tests.sh",
         "test:no-docker": "bash scripts/tests.sh --wasm",
+        "test:no-docker:shard": "bash scripts/tests.sh --shard",
         "test:complete:fast": "bash scripts/tests.sh --docker",
         "test:complete:fast:newest": "bash scripts/tests.sh --docker newest",
         "test:complete": "bash scripts/tests.sh --docker --wasm",

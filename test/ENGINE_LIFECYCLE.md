@@ -114,13 +114,17 @@ in [`test/lib/dockerPreflight.ts`](./lib/dockerPreflight.ts), driven by the
 
 2. **Sequential warmup.** Bring the needed containers up **one at a time**,
    waiting for each to become healthy before the next, so the cold-start
-   memory cost is spread over time instead of stacked. The warmup drives a
-   representative cell's `ctx.up()` (then `ctx.down()`) per engine — that
-   reuses the *exact* container builder the runners use, so the reuse hash
-   matches and the workers attach to the container started here, and it
-   front-loads the once-per-container schema-hash validation too. All
-   connectors of an engine share one container, so one cell per engine is
-   enough.
+   memory cost is spread over time instead of stacked. The shell hands the
+   preflight one candidate cell per (engine × version folder); it resolves each
+   to its docker image through the hard `ENGINE_IMAGES` map and **dedups by
+   image**, then drives a representative cell's `ctx.up()` (then `ctx.down()`)
+   once per distinct image — that reuses the *exact* container builder the
+   runners use, so the reuse hash matches and the workers attach to the
+   container started here, and it front-loads the once-per-container schema-hash
+   validation too. Under the default `latest` every folder resolves to the
+   newest image, so it collapses back to one warmup per engine; the log names
+   the resolved image (e.g. `mariadb: ready (mariadb:12.3)`), never the
+   arbitrary version folder that drove it.
 
 Why reuse-only: a container started in a separate preflight process survives
 to the test workers solely because reusable containers are exempt from Ryuk
@@ -245,17 +249,23 @@ the runner logs `[docker-version] <db>: using <image>` when the container starts
 
 The older images are SEPARATE keep-alive containers (kept per-image by
 [`createContainerRegistry`](./lib/containerLifecycle.ts) — each with its own
-reuse hash / `lockKey`). Starting them for the whole matrix at once would blow
+reuse hash / `lockKey`). Starting two of them for one engine at once would blow
 past the Docker memory budget the [preflight](#docker-preflight--sequential-warmup)
 guards. So `closest` is gated with two hard errors (each with a fix-it message):
 
 - it **requires focused coords** — never a full-matrix run, and
-- the selection may touch **at most one `<version>` folder per engine** (two
-  versions of one engine would need two of its containers at once).
+- the selection may need **at most one distinct image per engine**. Two version
+  folders that resolve to **different** images (two containers) are rejected;
+  two folders that resolve to the **same** image (e.g. `mysql/8_000_000` and
+  `mysql/8_000_017` → `mysql:8.0`) are fine — the registry keys keep-alive
+  handles by image, so they share one container started once.
 
-Run one version per engine per invocation. The bash guardrail prints the
-selected `<db> / <version>` up front and the runner logs
-`[docker-version] <db>: using <image>` when a non-`newest` container starts, so
+Because "do these folders share an image?" is a fact of the hard `ENGINE_IMAGES`
+map, the check is not recomputed in bash: `assert_closest_docker_ok` hands the
+resolved real-docker cells to [`dockerVersionGuard.ts`](./lib/dockerVersionGuard.ts),
+which resolves each to its image via the map and prints the
+`<db> / <version> → <image>` summary up front (the runner also logs
+`[docker-version] <db>: using <image>` when a non-`newest` container starts), so
 the mapping is visible without guessing.
 
 Stopping: `tests:stop-containers` matches the older-version images too — the

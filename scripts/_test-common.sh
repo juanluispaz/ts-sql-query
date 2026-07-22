@@ -407,17 +407,26 @@ cell_mode() {
     esac
 }
 
-# Echo ONE representative real docker cell per engine — `<db>/<version>/<connector>`,
-# one per line, de-duplicated to the FIRST real docker cell of each engine.
+# Echo ONE representative real docker cell per (engine × version folder) —
+# `<db>/<version>/<connector>`, one per line, de-duplicated to the FIRST real
+# docker cell of each (engine, version) pair.
 #
-# All connectors of an engine share a single container, so one cell is enough
-# to warm that engine. Used by `warmup_docker_engines` to feed
-# `test/lib/dockerPreflight.ts`. Reads the same globals `cell_mode` /
-# `list_cells_from_main_paths` read (MAIN_PATHS + the resolved DOCKER_* /
-# WASM_* / NATIVE_* selections), so the result tracks exactly which engines the
-# run will hit on a real container.
+# One cell per (engine, version) — NOT per engine — because that is the level at
+# which the docker IMAGE can differ (a version folder maps to its own image
+# under `--docker-version closest`). Both consumers resolve those coords to
+# images through the hard `ENGINE_IMAGES` map and dedup by IMAGE, so this helper
+# never has to know or compute images:
+#   · `warmup_docker_engines` → `test/lib/dockerPreflight.ts` warms each distinct
+#     image once (under the default `latest` every folder → the newest image, so
+#     it collapses back to one per engine);
+#   · `assert_closest_docker_ok` → `test/lib/dockerVersionGuard.ts` rejects a
+#     selection where one engine needs two DIFFERENT images.
+# All connectors of a cell share its container, so one connector per pair is
+# enough. Reads the same globals `cell_mode` / `list_cells_from_main_paths` read
+# (MAIN_PATHS + the resolved DOCKER_* / WASM_* / NATIVE_* selections), so the
+# result tracks exactly which cells the run will hit on a real container.
 real_docker_rep_cells() {
-    local cell verdict ann rest db connector seen=" "
+    local cell verdict ann rest db version r2 connector seen=" "
     while IFS= read -r cell; do
         [ -n "$cell" ] || continue
         cell="${cell%/}"
@@ -433,67 +442,49 @@ real_docker_rep_cells() {
         #     picking one would leave the engine's real container unwarmed.
         #   · `bun_*` (e.g. bun_sql_postgres) — Bun-only drivers that import
         #     `bun:sql`; under the tsx/node warmup path the import fails.
-        # Both share their engine's container with a node-safe sibling
+        # Both share their cell's container with a node-safe sibling
         # (pg / mariadb / mysql2 / …), so skipping them as reps loses no
-        # warmup coverage — the engine is still reached through that sibling.
+        # coverage — the container is still reached through that sibling.
         case "$connector" in documentation|bun_*) continue ;; esac
         rest="${cell#test/db/}"; db="${rest%%/*}"
-        case "$seen" in *" $db "*) continue ;; esac
-        seen="$seen$db "
+        r2="${rest#*/}"; version="${r2%%/*}"
+        case "$seen" in *" $db/$version "*) continue ;; esac
+        seen="$seen$db/$version "
         printf '%s\n' "$rest"
     done < <(list_cells_from_main_paths 2>/dev/null)
 }
 
 # Guardrail for `--docker-version closest`. The resolved real docker selection
-# must (a) contain at least one real docker cell and (b) select at most ONE
-# <version> folder per engine — because each engine resolves to a single image
-# under `closest`, and two versions of the same engine would start two of its
-# containers, defeating the memory bound the mode exists to respect. On success
-# echoes a `<db> / <version>` summary (stderr); the actual resolved image tag is
-# owned by test/lib/dockerImages.ts and logged by the runner / preflight.
-# Reads the same globals as real_docker_rep_cells (MAIN_PATHS + the resolved
-# DOCKER_*/WASM_*/NATIVE_* selections). Returns 0 ok, 1 engine spans >1 version,
-# 2 no real docker cell selected.
+# must (a) contain at least one real docker cell and (b) not need two DIFFERENT
+# images for one engine — two images of one engine are two separate containers,
+# defeating the memory bound the mode exists to respect. Two version folders
+# that resolve to the SAME image (e.g. mysql/8_000_000 + mysql/8_000_017 →
+# mysql:8.0) are fine — one container, started once.
+#
+# Whether two folders share an image is a fact of the hard `ENGINE_IMAGES` map,
+# which lives in test/lib/dockerImages.ts. So we do NOT recompute it in bash:
+# we hand the resolved real-docker cells (one per engine × version, from
+# real_docker_rep_cells) to `test/lib/dockerVersionGuard.ts`, which resolves
+# each to its image through the map and returns the verdict. Runtime-agnostic
+# script (imports only the map, no `bun:` drivers), but we still dispatch the
+# active launcher for consistency with the warmup. Returns the guard's exit
+# code: 0 ok (+ summary on stderr), 1 conflict / unmapped folder, 2 no real
+# docker cell selected.
 assert_closest_docker_ok() {
-    local cell verdict ann rest db version r2 conflict="" reals=0
-    local pairs=" "   # accumulates " <db>=<version> " (first version seen per db)
-    while IFS= read -r cell; do
-        [ -n "$cell" ] || continue
-        cell="${cell%/}"
-        IFS=$'\t' read -r verdict ann < <(cell_mode "$cell")
-        [ "$verdict" = "real" ] || continue
-        case "$ann" in *'(docker'*) ;; *) continue ;; esac
-        reals=$((reals + 1))
-        rest="${cell#test/db/}"; db="${rest%%/*}"
-        r2="${rest#*/}"; version="${r2%%/*}"
-        case "$pairs" in
-            *" $db="*)
-                # Already recorded — flag a conflict if the version differs.
-                local existing="${pairs##*" $db="}"; existing="${existing%% *}"
-                if [ "$existing" != "$version" ]; then
-                    conflict="$db (versions: $existing, $version)"
-                    break
-                fi ;;
-            *) pairs="$pairs$db=$version " ;;
-        esac
-    done < <(list_cells_from_main_paths 2>/dev/null)
+    local reps=() c rt
+    while IFS= read -r c; do
+        [ -n "$c" ] && reps+=("$c")
+    done < <(real_docker_rep_cells 2>/dev/null)
 
-    if [ -n "$conflict" ]; then
-        echo "Error: --docker-version closest cannot run more than one version of the same engine in a single invocation:" >&2
-        echo "  $conflict" >&2
-        echo "  Each engine resolves to ONE image under 'closest'; two versions would start two containers of the same engine." >&2
-        echo "  Run them in separate invocations, one <version> folder per engine at a time." >&2
-        return 1
+    rt="$(detect_runtime)"
+    local guard=(tsx test/lib/dockerVersionGuard.ts)
+    [ "$rt" = "bun" ] && guard=(bun test/lib/dockerVersionGuard.ts)
+
+    if [ "${#reps[@]}" -gt 0 ]; then
+        "${guard[@]}" "${reps[@]}"
+    else
+        "${guard[@]}"   # no cells → the guard reports "needs ≥1 real docker cell"
     fi
-    if [ "$reals" -eq 0 ]; then
-        echo "Error: --docker-version closest needs at least one real docker cell." >&2
-        echo "  Add --docker (optionally with a coord) so a docker cell runs real, e.g.:" >&2
-        echo "    npm run tests -- postgres/oldest/pg --docker --docker-version closest" >&2
-        return 2
-    fi
-    echo "docker-version=closest — resolving version-appropriate images for:" >&2
-    printf '%s' "$pairs" | tr ' ' '\n' | grep -E '.=.' | sed 's/^/  /; s/=/ \/ /' >&2
-    return 0
 }
 
 # Sequentially warm up the docker engines a `--docker` run will hit, after a
@@ -511,7 +502,15 @@ assert_closest_docker_ok() {
 warmup_docker_engines() {
     local runtime="$1"; shift
     [ "$#" -eq 0 ] && return 0
-    echo "Pre-warming docker engine(s) sequentially before the run: $*" >&2
+    # Announce the ENGINES (deduped first path segment), not the raw cell coords:
+    # the coords carry an arbitrary version folder that is NOT the image warmed
+    # (dockerPreflight dedups by resolved image and logs the actual image tag).
+    local _engines="" _c _e
+    for _c in "$@"; do
+        _e="${_c%%/*}"
+        case " $_engines " in *" $_e "*) ;; *) _engines="$_engines $_e" ;; esac
+    done
+    echo "Pre-warming docker engine(s) sequentially before the run:$_engines" >&2
     if [ "$runtime" = "bun" ]; then
         bun test/lib/dockerPreflight.ts "$@"
     else

@@ -25,25 +25,33 @@
 //      block is on by default; downgrade it to a warning-and-proceed with
 //      `TSSQLQUERY_DOCKER_MEMORY_STRICT=0`.
 //
-//   2. SEQUENTIAL WARMUP — start each needed engine's container ONE AT A TIME,
-//      waiting for it to become healthy before the next. This spreads the
-//      cold-start memory cost over time instead of stacking it, so the peak
-//      stays well under the simultaneous-start peak. We drive a representative
-//      cell's `ctx.up()` (then `ctx.down()`) per engine: that reuses the exact
-//      same container builder the test runners use — so the reuse hash matches
-//      and the workers attach to THIS container — and front-loads the
+//   2. SEQUENTIAL WARMUP — start each needed container ONE AT A TIME, waiting
+//      for it to become healthy before the next. This spreads the cold-start
+//      memory cost over time instead of stacking it, so the peak stays well
+//      under the simultaneous-start peak. We dedup the candidate cells by their
+//      resolved image (see INPUT) and drive one representative cell's `ctx.up()`
+//      (then `ctx.down()`) per distinct image: that reuses the exact same
+//      container builder the test runners use — so the reuse hash matches and
+//      the workers attach to THIS container — and front-loads the
 //      once-per-container schema-hash validation too.
 //
 // INPUT
 // -----
-// argv = one real docker cell coord per engine (`<db>/<version>/<connector>`),
-// computed by `real_docker_rep_cells` in `scripts/_test-common.sh`. All
-// connectors of an engine share a single container, so one cell per engine is
-// enough to warm it. The `TS_SQL_QUERY_DOCKER` / `TESTCONTAINERS_REUSE_ENABLE`
-// env vars are already exported by `tests.sh`, so the representative cell's
-// `realDbEnabled` resolves true exactly when it would for the real run.
+// argv = one real docker cell coord per (engine × version folder)
+// (`<db>/<version>/<connector>`), computed by `real_docker_rep_cells` in
+// `scripts/_test-common.sh`. We resolve each coord to its docker image through
+// the hard `ENGINE_IMAGES` map (`imageForCell`) and dedup by IMAGE: two folders
+// that resolve to the same image (every folder → the newest image under the
+// default `latest`; two same-breakpoint folders → one image under `closest`)
+// are a single container, warmed once. All connectors of a cell share that
+// container, so one cell per image is enough. The `TS_SQL_QUERY_DOCKER` /
+// `TS_SQL_QUERY_DOCKER_VERSION` / `TESTCONTAINERS_REUSE_ENABLE` env vars are
+// already exported by `tests.sh`, so both the image resolution and the
+// representative cell's `realDbEnabled` resolve exactly as they will for the
+// real run.
 
 import { getContainerRuntimeClient } from 'testcontainers'
+import { imageForCell } from './dockerImages.js'
 
 /**
  * Conservative steady-state memory each engine's container wants, in GiB.
@@ -69,12 +77,14 @@ const OVERHEAD_GIB = 1.0
 
 const BYTES_PER_GIB = 1024 ** 3
 
-/** A representative cell handed in on argv. */
+/** A representative cell handed in on argv, plus its resolved docker image. */
 interface RepCell {
-    /** The original `<db>/<version>/<connector>` coord. */
+    /** The original `<db>/<version>/<connector>` coord that drives the warmup. */
     readonly coord: string
     /** First path segment — the engine / container owner (`postgres`, …). */
     readonly engine: string
+    /** The docker image this cell runs against, from the hard map in dockerImages.ts. */
+    readonly image: string
 }
 
 /** The slice of a cell's `TestContext` the warmup actually touches. */
@@ -86,16 +96,34 @@ interface WarmableContext {
     down(): Promise<void>
 }
 
+// Dedup by RESOLVED IMAGE, not by engine: the shell hands us one candidate per
+// (engine × version folder), and cells that resolve to the same image are one
+// container. The image comes straight from the hard `ENGINE_IMAGES` map via
+// `imageForCell` — this script never computes it.
 function parseRepCells(argv: readonly string[]): RepCell[] {
     const out: RepCell[] = []
     const seen = new Set<string>()
     for (const raw of argv) {
         const coord = raw.replace(/\/+$/, '')
         if (coord === '') continue
-        const engine = coord.split('/')[0] ?? ''
-        if (engine === '' || seen.has(engine)) continue
-        seen.add(engine)
-        out.push({ coord, engine })
+        const [engine = '', version = ''] = coord.split('/')
+        if (engine === '' || version === '') continue
+        // The shell only passes real docker cells, so realDbEnabled is true;
+        // imageForCell then honours TS_SQL_QUERY_DOCKER_VERSION (latest → the
+        // newest image, closest → the version folder's image).
+        let image: string
+        try {
+            image = imageForCell(engine, version, true)
+        } catch (err) {
+            // Only reachable under `closest` for an unmapped folder, which the
+            // closest guardrail already rejected before the run — defensive.
+            // Skip this cell rather than abort the whole warmup.
+            console.warn(`[docker-preflight] ${engine}: ${(err as Error).message}; skipping warmup for ${coord}.`)
+            continue
+        }
+        if (seen.has(image)) continue
+        seen.add(image)
+        out.push({ coord, engine, image })
     }
     return out
 }
@@ -212,7 +240,7 @@ async function warmupEngine(cell: RepCell): Promise<boolean> {
     })
     try {
         await Promise.race([ctx.up(), timeout])
-        console.error(`[docker-preflight] ${cell.engine}: ready (via ${cell.coord}).`)
+        console.error(`[docker-preflight] ${cell.engine}: ready (${cell.image}).`)
         return true
     } catch (err) {
         console.warn(`[docker-preflight] ${cell.engine}: warmup did not complete (${(err as Error).message}); the lazy path will retry during the run.`)
@@ -232,11 +260,13 @@ async function main(): Promise<number> {
         return 0
     }
 
-    const engines = reps.map(r => r.engine)
+    // One image per engine (the closest guardrail forbids two images of one
+    // engine), so distinct engines == distinct containers for the memory check.
+    const engines = [...new Set(reps.map(r => r.engine))]
     const mayProceed = await checkResources(engines)
     if (!mayProceed) return 3
 
-    console.error(`[docker-preflight] warming ${reps.length} docker engine(s) sequentially: ${engines.join(', ')}`)
+    console.error(`[docker-preflight] warming ${engines.length} docker engine(s) sequentially: ${engines.join(', ')}`)
     for (const cell of reps) {
         await warmupEngine(cell)
     }

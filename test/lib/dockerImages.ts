@@ -97,14 +97,15 @@ export function newestImage(database: string): string {
 }
 
 /**
- * The image a cell should run against: its own version folder's image under
- * `--docker-version closest` (real cells only), otherwise the `newest` image.
- *
- * Under `closest`, a REAL cell whose version folder has no entry is a HARD
- * ERROR — it fails loud rather than silently running on the wrong engine.
+ * The image a version FOLDER runs against under `--docker-version closest`: a
+ * direct lookup in the hard `ENGINE_IMAGES` map. No arithmetic, no
+ * "closest-below" guessing — an unmapped folder is a HARD ERROR (fail loud
+ * rather than silently run on the wrong engine). This is the ONE place that
+ * turns a `<db>/<version>` into its closest image; every consumer (the per-cell
+ * resolver below, the preflight warmup, and the closest guardrail) goes through
+ * it, so the map stays the single source of truth — nothing recomputes it.
  */
-export function imageForCell(database: string, version: string, realDbEnabled: boolean): string {
-    if (!closestVersionEnabled() || !realDbEnabled) return newestImage(database)
+export function closestImage(database: string, version: string): string {
     const image = ENGINE_IMAGES[database]?.[version]
     if (image === undefined) {
         throw new Error(
@@ -114,4 +115,16 @@ export function imageForCell(database: string, version: string, realDbEnabled: b
         )
     }
     return image
+}
+
+/**
+ * The image a cell should run against: its own version folder's image under
+ * `--docker-version closest` (real cells only), otherwise the `newest` image.
+ *
+ * Under `closest`, a REAL cell whose version folder has no entry is a HARD
+ * ERROR — it fails loud rather than silently running on the wrong engine.
+ */
+export function imageForCell(database: string, version: string, realDbEnabled: boolean): string {
+    if (!closestVersionEnabled() || !realDbEnabled) return newestImage(database)
+    return closestImage(database, version)
 }

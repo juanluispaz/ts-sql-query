@@ -283,9 +283,10 @@ Runner flags
                   test/lib/dockerImages.ts (indexed by the documented
                   compatibility breakpoints — no per-cell config).
                   NARROW BY DESIGN: requires focused coords and at most one
-                  <version> folder per engine, because the older images are
-                  separate containers that must not all start at once. Run one
-                  version per engine per invocation:
+                  distinct image per engine, because two different images of an
+                  engine are separate containers that must not all start at
+                  once. Two version folders that map to the SAME image are fine
+                  (one container). Run one image per engine per invocation:
                     npm run tests -- postgres/oldest/pg --docker --docker-version closest
   --use-vitest
         Force vitest even if invoked via `bun run`. The test process
@@ -818,7 +819,10 @@ fi
 
 # --docker-version closest guardrails (narrow-by-design, memory-bounded):
 #   1) requires positional coords — never a full-matrix run, and
-#   2) needs ≥1 real docker cell with at most one <version> folder per engine.
+#   2) needs ≥1 real docker cell and at most one distinct IMAGE per engine
+#      (two version folders that share an image are fine — one container).
+# The image conflict check delegates to test/lib/dockerVersionGuard.ts (the hard
+# image map lives in TS; bash never recomputes it).
 # See test/ENGINE_LIFECYCLE.md § version-specific docker (--docker-version).
 if [ "$DOCKER_VERSION" = "closest" ]; then
     if [ "$FOCUSED" = "off" ]; then

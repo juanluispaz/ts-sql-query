@@ -237,7 +237,7 @@ cells simply do not exist.
 ## TL;DR commands
 
 ```bash
-# Daily mocked loop, ~13 s under vitest (isolate:false) / ~19 s under bun.
+# Daily mocked loop, ~74 s under vitest (isolate:false) / ~68 s under bun.
 npm run tests            # or `npm run tests` — mocked is fast under both
 
 # One cell, fastest possible iteration.

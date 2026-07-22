@@ -49,8 +49,8 @@ touched** — see [Public surface only](#public-surface-only).
 ## Real-DB validation
 
 **The suite's purpose is validation against a real database.** The mock
-exists to close the feedback loop cheaply (~13 s for ~44k tests mocked under
-vitest vs ~2:30 with docker) and to act as a regression gate, not as a
+exists to close the feedback loop cheaply (~74 s for ~258k tests mocked under
+vitest vs ~7 min with docker) and to act as a regression gate, not as a
 substitute for the engine.
 An `expected` value queued onto the mock that no real engine has ever
 returned is the test author's hypothesis, not a verified contract — until at

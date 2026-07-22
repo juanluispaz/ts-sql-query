@@ -44,9 +44,9 @@ this problem.
 
 ## Test-loop discipline
 
-The suite has grown past **~44k tests across ~4.1k files**. Mocked-only
-it's ~13 s under vitest (`isolate:false`), ~19 s under bun; with `--docker`
-add real-DB cost on top — **~2:30 under vitest, but ~56 min under bun** (bun
+The suite has grown past **~258k tests across ~17k files**. Mocked-only
+it's ~74 s under vitest (`isolate:false`), ~68 s under bun; with `--docker`
+add real-DB cost on top — **~7 min under vitest, but impractical under bun (hours)** (bun
 rebuilds each cell's DB pool per file; see [`BENCHMARKS.md`](./BENCHMARKS.md)).
 Running the full matrix on every inner iteration burns minutes per hour.
 
@@ -60,12 +60,12 @@ tests …` is fine for mocked runs, but use vitest for `--docker`/`--wasm`):
 
 1. `tests <coord>` — single cell or file. Tightest loop; use while editing.
 2. `tests --run-versions newest` — change spans several databases. Skips
-   `<db>/oldest/*` (~9 s instead of ~13 s under vitest, ~3 k fewer assertions).
+   `<db>/oldest/*` (~19 s instead of ~74 s under vitest, ~190 k fewer assertions).
 3. `tests` — full mocked matrix. **Pre-push** sanity sweep.
 4. `tests --docker` / `--wasm` — only when the change touches a docker-backed
    connector / the WASM path, or as a final confidence check. **Run under
-   vitest** (`npm run tests -- --docker`) — the real-DB matrix is ~2:30 there
-   vs ~56 min under bun.
+   vitest** (`npm run tests -- --docker`) — the real-DB matrix is ~7 min there
+   vs hours under bun (impractical).
 
 Widen the scope explicitly when you have a reason: touching a
 compatibility-version branch in a `SqlBuilder`, investigating a regression
@@ -155,10 +155,10 @@ pglite / sqlite-wasm-OO1. Native SQLite is real by default (`--native all`);
 `--native none` routes it through the mock too.
 
 ```bash
-# Full matrix, mocked docker/wasm, real native. ~13 s under vitest / ~19 s under bun (~44k tests).
+# Full matrix, mocked docker/wasm, real native. ~74 s under vitest / ~68 s under bun (~258k tests).
 npm run tests
 
-# + real docker backends. ~2:30 under vitest with warm containers (~56 min under bun — use vitest).
+# + real docker backends. ~7 min under vitest with warm containers (impractical under bun — use vitest).
 npm run tests -- --docker
 
 # Smoke against real DBs but only on the newest version of each engine.
@@ -167,7 +167,7 @@ npm run tests -- --docker newest
 # Skip older-version cells entirely (participation: not run at all).
 npm run tests -- --run-versions newest
 
-# Full matrix (docker + real WASM second phase). ~2:30 under vitest (~56 min under bun — use vitest).
+# Full matrix (docker + real WASM second phase). ~9 min under vitest (impractical under bun — use vitest).
 npm run tests -- --docker --wasm
 
 # Only WASM cells run, real WASM module.

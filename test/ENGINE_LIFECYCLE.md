@@ -297,8 +297,8 @@ older-version cells are not even enumerated:
 Practical use: coverage runs. Older-version coverage is almost always a
 subset of the newest cell's coverage (same SQL builder, same expressions), so
 feeding the runner an extra ~570 file invocations only pads the report.
-`--run-versions newest` skips them — the mocked matrix drops from ~44k tests /
-~13 s (vitest) to ~34k tests / ~9 s on a typical box.
+`--run-versions newest` skips them — the mocked matrix drops from ~258k tests /
+~74 s (vitest) to ~66k tests / ~19 s on a typical box.
 
 Focused runs (`tests <coord>`) accept `--run-versions newest` too, and combine it
 with the multi-coord / glob / brace-expansion support to address arbitrary

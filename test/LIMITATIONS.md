@@ -559,7 +559,7 @@ any marker left behind starts lying. Disabling the cache removes the order
 coupling rather than documenting it. The cost is ~1.7% and does not justify the
 trade: the cell measured 80.2s / 82.2s at `0` against 79.9s / 79.8s at `30`
 (two runs each, warm container), and it runs in parallel with the other cells
-inside the matrix's ~2:30.
+inside the matrix's ~7 min.
 
 ## SQL Server named `WINDOW` clause requires SQL Server 2022+
 

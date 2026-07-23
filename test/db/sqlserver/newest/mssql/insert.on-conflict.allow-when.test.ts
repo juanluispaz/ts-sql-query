@@ -101,6 +101,31 @@ describe(ctx.label, () => {
     })
     */
 
+    // NOT-APPLICABLE: SQL Server has no INSERT…ON CONFLICT (uses MERGE); `onConflictOn` is narrowed away.
+    /*
+    test('gate-on-on-conflict-target-column-fires-on-build', async () => {
+        // `allowWhen(false, ...)` on one of the CONFLICT-TARGET columns — the
+        // `onConflictOn(...)` operand list, not the update-set or the predicate.
+        // The target list is the only walker limb that is an ARRAY of value
+        // sources rather than a single one, so it needs its own iteration: the
+        // walker must report the query disallowed here exactly as the build does.
+        const query = ctx.conn.insertInto(tProject)
+            .values({ organizationId: 1, slug: 'mktg-site', name: 'x' })
+            .onConflictOn(tProject.organizationId, tProject.slug.allowWhen(false, 'on-conflict target-column gate blocks'))
+            .doUpdateSet({ name: 'Updated' })
+
+        expect(isQueryAllowed(query)).toBe(false)
+
+        let thrown: unknown
+        try {
+            await query.executeInsert()
+        } catch (e) {
+            thrown = e
+        }
+        expect(thrown).toBeInstanceOf(Error)
+        expect((thrown as Error).message).toContain('on-conflict target-column gate blocks')
+    })
+    */
 
     // NOT-APPLICABLE: SQL Server has no INSERT…ON CONFLICT (uses MERGE); `onConflictOn` is narrowed away.
     // test('gate-on-on-conflict-on-constraint-fragment-fires-on-build', async () => {
@@ -127,7 +152,6 @@ describe(ctx.label, () => {
     //     expect(thrown).toBeInstanceOf(Error)
     //     expect((thrown as Error).message).toContain('on-conflict constraint gate blocks')
     // })
-
 
     // NOT-APPLICABLE: SQL Server has no INSERT…ON CONFLICT (uses MERGE); `onConflictOn` is narrowed away.
     // test('fully-allowed-on-conflict-insert-walks-every-limb-and-reports-allowed', async () => {

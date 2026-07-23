@@ -32,7 +32,6 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
     __idColumn?: DBColumn | undefined
     __from?: SelectData | undefined
     __withs: Array<IWithView<any>> = []
-    __withsGenerated = false
     __customization?: InsertCustomization<any, any> | undefined
     //__columns?: QueryColumns // declared at AbstractQueryBuilder
     __onConflictOnConstraint?: RawFragment<any> | undefined
@@ -45,10 +44,6 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
     __valuesForInsert?: AnyTableOrView | undefined
 
     __oneColumn?: boolean | undefined
-
-    // cache
-    __query = ''
-    __params: any[] = []
 
     constructor(sqlBuilder: SqlBuilder, table: ITable<any>) {
         super(sqlBuilder)
@@ -390,12 +385,12 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this.__toSql(sqlBuilder, params, forceTypeCast)
     }
     shapedAs(shape: any): any {
-        this.__query = ''
+        this.__invalidateQuery()
         this.__shape = shape
         return this
     }
     extendShape(extendShape: any): this {
-        this.__query = ''
+        this.__invalidateQuery()
         let shape
         if (this.__onConflictUpdateSets) {
             shape = this.__onConflictUpdateShape
@@ -417,7 +412,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
             // It will review only the properties that can be used as shape, skiiping the other one to allow more complex usages
             if (typeof value === 'string' || isColumn(value)) {
                 const currentShapeValue = shape[property]
-                if (typeof currentShapeValue === 'string' || isColumn(value)) {
+                if (typeof currentShapeValue === 'string' || isColumn(currentShapeValue)) {
                     throw new TsSqlProcessingError({ reason: 'INVALID_SHAPE_OVERRIDE', property }, 'You cannot override the previously defined shape property with name ' + property)
                 }
             }
@@ -434,7 +429,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         if (columns) {
             return this.set(columns)
         }
-        this.__query = ''
+        this.__invalidateQuery()
         return this
     }
     __getSetsForMultipleInsert(): { [property: string]: any }[] {
@@ -460,7 +455,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return result
     }
     set(columns: any): this {
-        this.__query = ''
+        this.__invalidateQuery()
         if (!columns) {
             return this
         }
@@ -488,7 +483,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this
     }
     setIfValue(columns: any): this {
-        this.__query = ''
+        this.__invalidateQuery()
         if (!columns) {
             return this
         }
@@ -519,7 +514,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this
     }
     setIfSet(columns: any): this {
-        this.__query = ''
+        this.__invalidateQuery()
         if (!columns) {
             return this
         }
@@ -550,7 +545,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this
     }
     setIfSetIfValue(columns: any): this {
-        this.__query = ''
+        this.__invalidateQuery()
         if (!columns) {
             return this
         }
@@ -584,7 +579,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this
     }
     setIfNotSet(columns: any): this {
-        this.__query = ''
+        this.__invalidateQuery()
         if (!columns) {
             return this
         }
@@ -615,7 +610,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this
     }
     setIfNotSetIfValue(columns: any): this {
-        this.__query = ''
+        this.__invalidateQuery()
         if (!columns) {
             return this
         }
@@ -649,7 +644,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this
     }
     ignoreIfSet(...columns: any[]): any {
-        this.__query = ''
+        this.__invalidateQuery()
 
         let sets
         if (this.__onConflictUpdateSets) {
@@ -674,7 +669,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this
     }
     keepOnly(...columns: any[]): any {
-        this.__query = ''
+        this.__invalidateQuery()
         let sets
         if (this.__onConflictUpdateSets) {
             sets = this.__onConflictUpdateSets
@@ -715,7 +710,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
     }
 
     setIfHasValue(columns: any): this {
-        this.__query = ''
+        this.__invalidateQuery()
         if (!columns) {
             return this
         }
@@ -746,7 +741,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this
     }
     setIfHasValueIfValue(columns: any): this {
-        this.__query = ''
+        this.__invalidateQuery()
         if (!columns) {
             return this
         }
@@ -780,7 +775,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this
     }
     setIfHasNoValue(columns: any): this {
-        this.__query = ''
+        this.__invalidateQuery()
         if (!columns) {
             return this
         }
@@ -811,7 +806,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this
     }
     setIfHasNoValueIfValue(columns: any): this {
-        this.__query = ''
+        this.__invalidateQuery()
         if (!columns) {
             return this
         }
@@ -845,7 +840,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this
     }
     ignoreIfHasValue(...columns: any[]): this {
-        this.__query = ''
+        this.__invalidateQuery()
 
         let sets
         if (this.__onConflictUpdateSets) {
@@ -876,7 +871,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this
     }
     ignoreIfHasNoValue(...columns: any[]): this {
-        this.__query = ''
+        this.__invalidateQuery()
 
         let sets
         if (this.__onConflictUpdateSets) {
@@ -907,7 +902,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this
     }
     ignoreAnySetWithNoValue(): this {
-        this.__query = ''
+        this.__invalidateQuery()
 
         let sets
         if (this.__onConflictUpdateSets) {
@@ -942,7 +937,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
 
 
     setForAll(columns: any): this {
-        this.__query = ''
+        this.__invalidateQuery()
         if (!columns) {
             return this
         }
@@ -964,7 +959,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this
     }
     setForAllIfValue(columns: any): this {
-        this.__query = ''
+        this.__invalidateQuery()
         if (!columns) {
             return this
         }
@@ -990,7 +985,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this
     }
     setForAllIfSet(columns: any): this {
-        this.__query = ''
+        this.__invalidateQuery()
         if (!columns) {
             return this
         }
@@ -1016,7 +1011,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this
     }
     setForAllIfSetIfValue(columns: any): this {
-        this.__query = ''
+        this.__invalidateQuery()
         if (!columns) {
             return this
         }
@@ -1045,7 +1040,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this
     }
     setForAllIfNotSet(columns: any): this {
-        this.__query = ''
+        this.__invalidateQuery()
         if (!columns) {
             return this
         }
@@ -1071,7 +1066,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this
     }
     setForAllIfNotSetIfValue(columns: any): this {
-        this.__query = ''
+        this.__invalidateQuery()
         if (!columns) {
             return this
         }
@@ -1101,7 +1096,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
     }
 
     setForAllIfHasValue(columns: any): this {
-        this.__query = ''
+        this.__invalidateQuery()
         if (!columns) {
             return this
         }
@@ -1127,7 +1122,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this
     }
     setForAllIfHasValueIfValue(columns: any): this {
-        this.__query = ''
+        this.__invalidateQuery()
         if (!columns) {
             return this
         }
@@ -1156,7 +1151,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this
     }
     setForAllIfHasNoValue(columns: any): this {
-        this.__query = ''
+        this.__invalidateQuery()
         if (!columns) {
             return this
         }
@@ -1182,7 +1177,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this
     }
     setForAllIfHasNoValueIfValue(columns: any): this {
-        this.__query = ''
+        this.__invalidateQuery()
         if (!columns) {
             return this
         }
@@ -1212,7 +1207,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
     }
 
     disallowIfSet(error: string | Error, ...columns: any[]): this {
-        this.__query = ''
+        this.__invalidateQuery()
 
         let sets
         if (this.__onConflictUpdateSets) {
@@ -1251,7 +1246,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this
     }
     disallowIfNotSet(error: string | Error, ...columns: any[]): this {
-        this.__query = ''
+        this.__invalidateQuery()
 
         let sets
         if (this.__onConflictUpdateSets) {
@@ -1290,7 +1285,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this
     }
     disallowIfValue(error: string | Error, ...columns: any[]): this {
-        this.__query = ''
+        this.__invalidateQuery()
 
         let sets
         if (this.__onConflictUpdateSets) {
@@ -1329,7 +1324,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this
     }
     disallowIfNoValue(error: string | Error, ...columns: any[]): this {
-        this.__query = ''
+        this.__invalidateQuery()
 
         let sets
         if (this.__onConflictUpdateSets) {
@@ -1368,7 +1363,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this
     }
     disallowAnyOtherSet(error: string | Error, ...columns: any[]): this {
-        this.__query = ''
+        this.__invalidateQuery()
         const allowed: any = {}
         for (let i = 0, length = columns.length; i < length; i++) {
             let column = columns[i]
@@ -1643,13 +1638,13 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
     }
 
     defaultValues(): this {
-        this.__query = ''
+        this.__invalidateQuery()
         this.__sets = DEFAULT_VALUES
         return this
     }
 
     returningLastInsertedId(): this {
-        this.__query = ''
+        this.__invalidateQuery()
         const table = this.__table
         for (var columnName in table) {
             const column = __getColumnOfObject(table, columnName)
@@ -1672,7 +1667,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
     }
     
     returning(columns: InsertReturningColumns<any>): this {
-        this.__query = ''
+        this.__invalidateQuery()
         this.__columns = columns as QueryColumns
         return this
     }
@@ -1682,14 +1677,14 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
     }
     
     returningOneColumn(column: AnyValueSource): this {
-        this.__query = ''
+        this.__invalidateQuery()
         this.__oneColumn = true
         this.__columns = { 'result': column }
         return this
     }
 
     onConflictDoNothing(): this {
-        this.__query = ''
+        this.__invalidateQuery()
         this.__onConflictDoNothing = true
         return this
     }
@@ -1697,7 +1692,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         if (columns) {
             return this.onConflictDoUpdateSet(columns)
         }
-        this.__query = ''
+        this.__invalidateQuery()
         if (this.__onConflictUpdateSets) {
             throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
         }
@@ -1708,7 +1703,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this
     }
     onConflictDoUpdateSet(columns: any): any {
-        this.__query = ''
+        this.__invalidateQuery()
         if (!columns) {
             return this
         }
@@ -1737,7 +1732,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this
     }
     onConflictDoUpdateSetIfValue(columns: any): any {
-        this.__query = ''
+        this.__invalidateQuery()
         if (!columns) {
             return this
         }
@@ -1769,7 +1764,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this
     }
     onConflictOn(...columns: AnyValueSource[]): this {
-        this.__query = ''
+        this.__invalidateQuery()
         if (this.__onConflictOnColumns) {
             throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
         }
@@ -1777,7 +1772,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this
     }
     onConflictOnConstraint(constraint: RawFragment<any>): this {
-        this.__query = ''
+        this.__invalidateQuery()
         if (this.__onConflictOnConstraint) {
             throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
         }
@@ -1786,7 +1781,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
     }
 
     doNothing(): this {
-        this.__query = ''
+        this.__invalidateQuery()
         this.__onConflictDoNothing = true
         return this
     }
@@ -1794,7 +1789,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         if (columns) {
             return this.doUpdateSet(columns)
         }
-        this.__query = ''
+        this.__invalidateQuery()
         if (this.__onConflictUpdateSets) {
             throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
         }
@@ -1805,7 +1800,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this
     }
     doUpdateSet(columns: any): any {
-        this.__query = ''
+        this.__invalidateQuery()
         if (!columns) {
             return this
         }
@@ -1834,7 +1829,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this
     }
     doUpdateSetIfValue(columns: any): any {
-        this.__query = ''
+        this.__invalidateQuery()
         if (!columns) {
             return this
         }
@@ -1868,11 +1863,11 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
 
 
     dynamicWhere(): this {
-        this.__query = ''
+        this.__invalidateQuery()
         return this
     }
     where(condition: IAnyBooleanValueSource<any, any>): this {
-        this.__query = ''
+        this.__invalidateQuery()
 
         if (this.__onConflictUpdateSets) {
             if (this.__onConflictUpdateWhere) {
@@ -1892,7 +1887,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this
     }
     and(condition: IAnyBooleanValueSource<any, any>): this {
-        this.__query = ''
+        this.__invalidateQuery()
         if (this.__onConflictUpdateSets) {
             if (!this.__onConflictUpdateWhere) {
                 this.__onConflictUpdateWhere = asAlwaysIfValueSource(condition)
@@ -1913,7 +1908,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this
     }
     or(condition: IAnyBooleanValueSource<any, any>): this {
-        this.__query = ''
+        this.__invalidateQuery()
         if (this.__onConflictUpdateSets) {
             if (!this.__onConflictUpdateWhere) {
                 this.__onConflictUpdateWhere = asAlwaysIfValueSource(condition)
@@ -2041,9 +2036,16 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         if (!result) {
             return false
         }
-        result = __isAllowed(this.__onConflictOnColumns, sqlBuilder)
-        if (!result) {
-            return false
+        const onConflictOnColumns = this.__onConflictOnColumns
+        if (onConflictOnColumns) {
+            // A list, not a single value source: `__isAllowed` duck-types one object, so
+            // handing it the array would always fall through to `true`. Mirrors `__addWiths`.
+            for (let i = 0, length = onConflictOnColumns.length; i < length; i++) {
+                result = __isAllowed(onConflictOnColumns[i], sqlBuilder)
+                if (!result) {
+                    return false
+                }
+            }
         }
         result = __isAllowed(this.__onConflictOnColumnsWhere, sqlBuilder)
         if (!result) {
@@ -2111,8 +2113,14 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         if (__hasAggregation(this.__onConflictOnConstraint, sqlBuilder)) {
             return true
         }
-        if (__hasAggregation(this.__onConflictOnColumns, sqlBuilder)) {
-            return true
+        const onConflictOnColumns = this.__onConflictOnColumns
+        if (onConflictOnColumns) {
+            // A list, not a single value source; see the same walk in `__isAllowed`.
+            for (let i = 0, length = onConflictOnColumns.length; i < length; i++) {
+                if (__hasAggregation(onConflictOnColumns[i], sqlBuilder)) {
+                    return true
+                }
+            }
         }
         if (__hasAggregation(this.__onConflictOnColumnsWhere, sqlBuilder)) {
             return true

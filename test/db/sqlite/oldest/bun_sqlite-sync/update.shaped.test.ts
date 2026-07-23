@@ -450,6 +450,32 @@ describe(ctx.label, () => {
         })
     })
 
+    test('shaped-extend-shape-with-a-column-object-value-executes', async () => {
+        // `extendShape` given a COLUMN OBJECT rather than a column name — an
+        // `UpdateShape` value may be either. The key is NEW (absent from the shape
+        // `shapedAs` installed), so the override guard must stay silent and the
+        // renamed key has to reach the SET list exactly as the string form does.
+        // Both seeded organizations (2) are renamed on both columns; neither `name`
+        // nor `plan` is unique, so the bulk update is admissible against the real DB.
+        ctx.mockNext(2)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.updateAllowingNoWhere(tOrganization)
+                .shapedAs({ orgName: 'name' })
+                .extendShape({ orgPlan: tOrganization.plan })
+                .set({ orgName: 'Column-shaped rename', orgPlan: 'column-shaped-plan' })
+                .executeUpdate()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update organization set name = ?, "plan" = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Column-shaped rename",
+                "column-shaped-plan",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(2)
+        })
+    })
+
     test('shaped-allowing-no-where-set-then-extend-shape-executes', async () => {
         // `updateAllowingNoWhere(t).shapedAs({...}).set({...}).extendShape({...})`
         // — the EXECUTABLE post-set `extendShape` arm (ShapedExecutableUpdateExpression):

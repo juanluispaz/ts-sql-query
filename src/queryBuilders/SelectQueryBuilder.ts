@@ -36,15 +36,11 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
     __limit?: number | INumberValueSource<any, any> | undefined
     __offset?: number | INumberValueSource<any, any> | undefined
     __withs: Array<IWithView<any>> = []
-    __withsGenerated = false
     __customization?: SelectCustomization<any, any> | undefined
 
     __oneColumn = false
     __requiredResult?: boolean | undefined
 
-    // cache
-    __query = ''
-    __params: any[] = []
 
     __recursiveInternalView?: WithViewImpl | undefined
     __recursiveView?: WithViewImpl | undefined
@@ -285,7 +281,7 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
     }
     orderBy(column: any, mode?: OrderByMode): any {
         this.__finishJoinHaving()
-        this.__query = ''
+        this.__invalidateQuery()
         if (typeof column === 'string' && !this.__getColumnFromColumnsObject(column)) {
             throw new TsSqlProcessingError({ reason: 'ORDER_BY_COLUMN_NOT_IN_SELECT', column }, 'The column "' + column + '" is not part of the select clause')
         }
@@ -301,7 +297,7 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
     }
     orderByFromString(orderBy: string): any {
         this.__finishJoinHaving()
-        this.__query = ''
+        this.__invalidateQuery()
 
         const split = orderBy.trim().toLowerCase().replace(/\s+/g, ' ').split(/\s*,\s*/)
         for (let i = 0, length = split.length; i < length; i++) {
@@ -314,13 +310,13 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
             return this.orderByFromString(orderBy)
         } else {
             this.__finishJoinHaving()
-            this.__query = ''
+            this.__invalidateQuery()
             return this
         }
     }
     orderByFromStringArray(orderBy: readonly string[]): any {
         this.__finishJoinHaving()
-        this.__query = ''
+        this.__invalidateQuery()
 
         for (let i = 0, length = orderBy.length; i < length; i++) {
             this.__addOrderByClauseFromString(orderBy[i]!.trim().toLowerCase().replace(/\s+/g, ' '))
@@ -329,7 +325,7 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
     }
     orderByFromStringArrayIfValue(orderBy: ReadonlyArray<string | null | undefined> | null | undefined): any {
         this.__finishJoinHaving()
-        this.__query = ''
+        this.__invalidateQuery()
 
         if (orderBy) {
             for (let i = 0, length = orderBy.length; i < length; i++) {
@@ -390,13 +386,13 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
     }
     orderingSiblingsOnly(): any {
         this.__finishJoinHaving()
-        this.__query = ''
+        this.__invalidateQuery()
         this.__orderingAndPagingTarget().__orderingSiblingsOnly = true
         return this
     }
     limit(limit: number | INumberValueSource<any, any>): any {
         this.__finishJoinHaving()
-        this.__query = ''
+        this.__invalidateQuery()
         this.__orderingAndPagingTarget().__limit = limit
         return this
     }
@@ -405,13 +401,13 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
             return this.limit(limit)
         } else {
             this.__finishJoinHaving()
-            this.__query = ''
+            this.__invalidateQuery()
             return this
         }
     }
     offset(offset: number | INumberValueSource<any, any>): any {
         this.__finishJoinHaving()
-        this.__query = ''
+        this.__invalidateQuery()
         this.__orderingAndPagingTarget().__offset = offset
         return this
     }
@@ -420,7 +416,7 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, IQu
             return this.offset(offset)
         } else {
             this.__finishJoinHaving()
-            this.__query = ''
+            this.__invalidateQuery()
             return this
         }
     }
@@ -920,13 +916,13 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
 
     select(columns: SelectColumns<any>): any { // any to avoid deep errors
         this.__finishJoinHaving()
-        this.__query = ''
+        this.__invalidateQuery()
         this.__columns = columns as QueryColumns
         return this
     }
     selectOneColumn(column: AnyValueSource): any {
         this.__finishJoinHaving()
-        this.__query = ''
+        this.__invalidateQuery()
         this.__oneColumn = true
         this.__columns = { 'result': column }
         return this
@@ -935,20 +931,20 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         this.__requiredResult = true
         const column = new AggregateFunctions0ValueSource('_countAll', 'int', 'int', 'required', undefined)
         this.__finishJoinHaving()
-        this.__query = ''
+        this.__invalidateQuery()
         this.__oneColumn = true
         this.__columns = { 'result': column }
         return this
     }
     from(table: AnyTableOrView): any {
         this.__finishJoinHaving()
-        this.__query = ''
+        this.__invalidateQuery()
         this.__tablesOrViews.push(table)
         return this
     }
     join(table: AnyTableOrView): any {
         this.__finishJoinHaving()
-        this.__query = ''
+        this.__invalidateQuery()
         if (this.__lastJoin) {
             throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
         }
@@ -960,7 +956,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
     }
     innerJoin(table: AnyTableOrView): any {
         this.__finishJoinHaving()
-        this.__query = ''
+        this.__invalidateQuery()
         if (this.__lastJoin) {
             throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
         }
@@ -972,7 +968,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
     }
     leftJoin(source: ForUseInLeftJoin<any>): any {
         this.__finishJoinHaving()
-        this.__query = ''
+        this.__invalidateQuery()
         if (this.__lastJoin) {
             throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
         }
@@ -984,7 +980,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
     }
     leftOuterJoin(source: ForUseInLeftJoin<any>): any {
         this.__finishJoinHaving()
-        this.__query = ''
+        this.__invalidateQuery()
         if (this.__lastJoin) {
             throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
         }
@@ -996,7 +992,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
     }
     optionalJoin(table: AnyTableOrView): any {
         this.__finishJoinHaving()
-        this.__query = ''
+        this.__invalidateQuery()
         if (this.__lastJoin) {
             throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
         }
@@ -1010,7 +1006,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
     }
     optionalInnerJoin(table: AnyTableOrView): any {
         this.__finishJoinHaving()
-        this.__query = ''
+        this.__invalidateQuery()
         if (this.__lastJoin) {
             throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
         }
@@ -1024,7 +1020,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
     }
     optionalLeftJoin(source: ForUseInLeftJoin<any>): any {
         this.__finishJoinHaving()
-        this.__query = ''
+        this.__invalidateQuery()
         if (this.__lastJoin) {
             throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
         }
@@ -1038,7 +1034,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
     }
     optionalLeftOuterJoin(source: ForUseInLeftJoin<any>): any {
         this.__finishJoinHaving()
-        this.__query = ''
+        this.__invalidateQuery()
         if (this.__lastJoin) {
             throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
         }
@@ -1051,11 +1047,11 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         return this
     }
     dynamicOn(): any {
-        this.__query = ''
+        this.__invalidateQuery()
         return this
     }
     on(condition: IAnyBooleanValueSource<any, any>): any {
-        this.__query = ''
+        this.__invalidateQuery()
         if (!this.__lastJoin) {
             throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
         }
@@ -1071,12 +1067,12 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
     }
     dynamicWhere(): any {
         this.__finishJoinHaving()
-        this.__query = ''
+        this.__invalidateQuery()
         return this
     }
     where(condition: IAnyBooleanValueSource<any, any>): any {
         this.__finishJoinHaving()
-        this.__query = ''
+        this.__invalidateQuery()
         if (this.__where) {
             throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
         }
@@ -1084,7 +1080,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         return this
     }
     and(condition: IAnyBooleanValueSource<any, any>): any {
-        this.__query = ''
+        this.__invalidateQuery()
         if (this.__lastJoin) {
             if (this.__lastJoin.__on) {
                 this.__lastJoin.__on = this.__lastJoin.__on.and(asAlwaysIfValueSource(condition))
@@ -1109,7 +1105,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         return this
     }
     or(condition: IAnyBooleanValueSource<any, any>): any {
-        this.__query = ''
+        this.__invalidateQuery()
         if (this.__lastJoin) {
             if (this.__lastJoin.__on) {
                 this.__lastJoin.__on = this.__lastJoin.__on.or(asAlwaysIfValueSource(condition))
@@ -1135,13 +1131,13 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
     }
     dynamicHaving(): any {
         this.__finishJoinHaving()
-        this.__query = ''
+        this.__invalidateQuery()
         this.__inHaving = true
         return this
     }
     having(condition: IAnyBooleanValueSource<any, any>): any {
         this.__finishJoinHaving()
-        this.__query = ''
+        this.__invalidateQuery()
         this.__inHaving = true
         if (this.__having) {
             throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
@@ -1151,7 +1147,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
     }
     groupBy(...columns: Array<string | AnyValueSource>): any {
         this.__finishJoinHaving()
-        this.__query = ''
+        this.__invalidateQuery()
         for (let i = 0, length = columns.length; i < length; i++) {
             const column = columns[i]!
             if (isValueSource(column)) {
@@ -1168,7 +1164,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
     }
     startWith(condition: IAnyBooleanValueSource<any, any>): any {
         this.__finishJoinHaving()
-        this.__query = ''
+        this.__invalidateQuery()
         if (this.__startWith) {
             throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
         }
@@ -1177,7 +1173,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
     }
     connectBy(condition: (prior: (column: AnyValueSource) => any) => IBooleanValueSource<any, any>): any {
         this.__finishJoinHaving()
-        this.__query = ''
+        this.__invalidateQuery()
         if (this.__connectBy) {
             throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
         }
@@ -1190,7 +1186,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
     }
     connectByNoCycle(condition: (prior: (column: AnyValueSource) => any) => IBooleanValueSource<any, any>): any {
         this.__finishJoinHaving()
-        this.__query = ''
+        this.__invalidateQuery()
         if (this.__connectBy) {
             throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
         }

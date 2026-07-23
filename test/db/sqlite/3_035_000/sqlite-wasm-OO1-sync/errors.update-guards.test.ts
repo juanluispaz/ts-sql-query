@@ -43,6 +43,21 @@ describe(ctx.label, () => {
         expect(reasonOf(caught)).toBe('INVALID_SHAPE_OVERRIDE')
     })
 
+    test('update-guards/extend-shape-column-valued-override-throws-invalid-shape-override', () => {
+        // The same guard, but the property being re-declared maps to a COLUMN
+        // OBJECT rather than to a column name. An `UpdateShape` value is either a
+        // name or a column, so both halves of the guard have to test the value
+        // ALREADY in the shape; testing the incoming one instead lets this
+        // collision through silently — the exact case the error exists to prevent.
+        let caught: unknown
+        try {
+            const builder = ctx.conn.update(tProject)
+                .shapedAs({ name: tProject.name }).set({ name: 'x' }) as any
+            builder.extendShape({ name: 'slug' })
+        } catch (e) { caught = e }
+        expect(reasonOf(caught)).toBe('INVALID_SHAPE_OVERRIDE')
+    })
+
     test('update-guards/no-sets-with-min-throws-minimum-rows', async () => {
         // The empty-`dynamicSet()` short-circuit runs the min/max guard against the
         // resulting count of 0: `executeUpdate(1)` with no columns set reaches its

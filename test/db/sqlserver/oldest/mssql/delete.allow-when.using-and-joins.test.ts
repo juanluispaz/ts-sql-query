@@ -184,4 +184,37 @@ describe(ctx.label, () => {
             expect(affected).toBe(0)
         })
     })
+
+    test('delete-using-join-all-gates-open-with-allowed-returning-walks-to-end', async () => {
+        // The RETURNING twin of the sibling above: the one limb it omits. With no
+        // RETURNING the projection is absent and the walk skips its check, so the
+        // "projection present AND allowed, keep walking" path has never run. The
+        // WHERE filters by an id no seed row carries, so nothing is removed and
+        // the RETURNING yields no row.
+        ctx.mockNext(undefined)
+        await ctx.withRollback(async () => {
+            const connection = ctx.conn
+            const query = connection.deleteFrom(tIssue)
+                .using(tProject)
+                .innerJoin(tOrganization).on(tOrganization.id.equals(tProject.organizationId).allowWhen(true, 'delete-join-on gate'))
+                .where(tIssue.projectId.equals(tProject.id).allowWhen(true, 'delete-where gate'))
+                    .and(tIssue.id.equals(99999))
+                .returning({
+                    id: tIssue.id.allowWhen(true, 'delete-returning gate'),
+                })
+
+            expect(isQueryAllowed(query)).toBe(true)
+
+            const row = await query.executeDeleteNoneOrOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue output deleted.id as id from project inner join organization on organization.id = project.organization_id where issue.project_id = project.id and issue.id = @0"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                99999,
+              ]
+            `)
+            assertType<Exact<typeof row, { id: number } | null>>()
+            expect(row).toBeNull()
+        })
+    })
 })

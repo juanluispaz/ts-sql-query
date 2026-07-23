@@ -1,11 +1,13 @@
-// Two paths into the INSERT emitter. Other insert.* files do call `query()` and
+// Paths into the INSERT emitter. Other insert.* files do call `query()` and
 // `params()` on a built insert, but always once each and always in that order, so
-// neither of the two behaviours below is exercised anywhere:
+// none of the behaviours below is exercised anywhere:
 //
 //   - The CACHE itself: `query()`'s second-call early return, and `params()`
 //     building on demand when nothing has been built yet. Both matter because the
-//     builder appends into ONE params array: a lost cache does not merely re-render
-//     the SQL, it re-binds every value and renumbers every placeholder.
+//     builder appends into ONE params array as it renders: a lost cache does not
+//     merely re-render the SQL, it re-binds every value.
+//   - Its INVALIDATION: a mutator after the first rendering must drop that array
+//     along with the SQL, so the re-render starts from an empty one.
 //   - The UNCACHED path taken when a BUILT insert is interpolated into a
 //     `rawFragment`. It re-runs the same four-way dispatch (INSERT … SELECT /
 //     multi-row / DEFAULT VALUES / plain) against the HOST statement's params
@@ -32,9 +34,8 @@ describe(ctx.label, () => {
 
     test('query-called-twice-returns-the-cached-sql-without-re-binding-params', () => {
         // `query()` memoises. The second call must hand back the identical string
-        // AND leave `params()` untouched: the builder appends into one array that
-        // is never cleared, so a lost cache would bind the five values a second
-        // time and renumber the placeholders of the second rendering.
+        // AND leave `params()` untouched: nothing was mutated in between, so a
+        // second rendering — which would re-bind all five values — must not happen.
         const built = ctx.conn.insertInto(tIssue)
             .values({ projectId: 1, number: 9450, title: 'Cached', status: 'open', priority: 1 })
 
@@ -74,6 +75,34 @@ describe(ctx.label, () => {
         `)
 
         expect(built.query()).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?, ?, ?, ?, ?)"`)
+    })
+
+    test('mutating-a-built-insert-drops-the-cache-and-rebinds-params-from-scratch', () => {
+        // The counterpart of the memoisation above: a mutator INVALIDATES that cache,
+        // and invalidating it has to include the params array the previous rendering
+        // filled. The builder appends into that array as it renders, so keeping it
+        // would leave the first rendering's five values sitting in front of the
+        // second's and shift every placeholder past them — the re-rendered statement
+        // would bind the wrong values. Both renderings are pinned so the second one is
+        // read as a fresh statement, not as a continuation of the first.
+        const built = ctx.conn.insertInto(tIssue)
+            .dynamicSet()
+            .set({ projectId: 1, number: 9452, title: 'Before', status: 'open', priority: 1 })
+
+        expect(built.query()).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?, ?, ?, ?, ?)"`)
+
+        built.set({ title: 'After', priority: 5 })
+
+        expect(built.query()).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?, ?, ?, ?, ?)"`)
+        expect(built.params()).toMatchInlineSnapshot(`
+          [
+            1,
+            9452,
+            "After",
+            "open",
+            5,
+          ]
+        `)
     })
 
     test('rawfragment-embeds-all-four-insert-forms', () => {

@@ -27,7 +27,6 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
     __where?: AlwaysIfValueSource<any, any> | undefined
     __allowNoWhere: boolean
     __withs: Array<IWithView<any>> = []
-    __withsGenerated = false
     __customization?: UpdateCustomization<any, any> | undefined
     //__columns?: QueryColumns // declared at AbstractQueryBuilder
     __oldValues?: AnyTableOrView | undefined
@@ -36,10 +35,6 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
 
     __oneColumn?: boolean | undefined
     __lastJoin?: JoinData | undefined
-
-    // cache
-    __params: any[] = []
-    __query = ''
 
     constructor(sqlBuilder: SqlBuilder, table: ITable<any>, allowNoWhere: boolean) {
         super(sqlBuilder)
@@ -249,13 +244,13 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
 
     shapedAs(shape: any): this {
         this.__finishJoin()
-        this.__query = ''
+        this.__invalidateQuery()
         this.__shape = shape
         return this
     }
     extendShape(shape: any): this {
         this.__finishJoin()
-        this.__query = ''
+        this.__invalidateQuery()
         if (!this.__shape) {
             this.__shape = shape
             return this
@@ -267,7 +262,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
             // It will review only the properties that can be used as shape, skiiping the other one to allow more complex usages
             if (typeof value === 'string' || isColumn(value)) {
                 const currentShapeValue = this.__shape[property]
-                if (typeof currentShapeValue === 'string' || isColumn(value)) {
+                if (typeof currentShapeValue === 'string' || isColumn(currentShapeValue)) {
                     throw new TsSqlProcessingError({ reason: 'INVALID_SHAPE_OVERRIDE', property }, 'You cannot override the previously defined shape property with name ' + property)
                 }
             }
@@ -280,12 +275,12 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
             return this.set(columns)
         }
         this.__finishJoin()
-        this.__query = ''
+        this.__invalidateQuery()
         return this
     }
     set(columns: any): this {
         this.__finishJoin()
-        this.__query = ''
+        this.__invalidateQuery()
         if (!columns) {
             return this
         }
@@ -305,7 +300,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this
     }
     setIfValue(columns: any): this {
-        this.__query = ''
+        this.__invalidateQuery()
         if (!columns) {
             return this
         }
@@ -328,7 +323,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this
     }
     setIfSet(columns: any): this {
-        this.__query = ''
+        this.__invalidateQuery()
         if (!columns) {
             return this
         }
@@ -351,7 +346,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this
     }
     setIfSetIfValue(columns: any): this {
-        this.__query = ''
+        this.__invalidateQuery()
         if (!columns) {
             return this
         }
@@ -377,7 +372,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this
     }
     setIfNotSet(columns: any): this {
-        this.__query = ''
+        this.__invalidateQuery()
         if (!columns) {
             return this
         }
@@ -400,7 +395,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this
     }
     setIfNotSetIfValue(columns: any): this {
-        this.__query = ''
+        this.__invalidateQuery()
         if (!columns) {
             return this
         }
@@ -426,7 +421,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this
     }
     ignoreIfSet(...columns: any[]): this {
-        this.__query = ''
+        this.__invalidateQuery()
         let sets = this.__sets
         for (let i = 0, length = columns.length; i < length; i++) {
             let column = columns[i]
@@ -435,7 +430,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this
     }
     keepOnly(...columns: any[]): this {
-        this.__query = ''
+        this.__invalidateQuery()
         let sets = this.__sets
         const allow: any = {}
         for (let i = 0, length = columns.length; i < length; i++) {
@@ -453,7 +448,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
     }
 
     setIfHasValue(columns: any): this {
-        this.__query = ''
+        this.__invalidateQuery()
         if (!columns) {
             return this
         }
@@ -476,7 +471,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this
     }
     setIfHasValueIfValue(columns: any): this {
-        this.__query = ''
+        this.__invalidateQuery()
         if (!columns) {
             return this
         }
@@ -502,7 +497,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this
     }
     setIfHasNoValue(columns: any): this {
-        this.__query = ''
+        this.__invalidateQuery()
         if (!columns) {
             return this
         }
@@ -525,7 +520,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this
     }
     setIfHasNoValueIfValue(columns: any): this {
-        this.__query = ''
+        this.__invalidateQuery()
         if (!columns) {
             return this
         }
@@ -551,7 +546,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this
     }
     ignoreIfHasValue(...columns: any[]): this {
-        this.__query = ''
+        this.__invalidateQuery()
         let sets = this.__sets
         for (let i = 0, length = columns.length; i < length; i++) {
             let column = columns[i]
@@ -563,7 +558,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this
     }
     ignoreIfHasNoValue(...columns: any[]): this {
-        this.__query = ''
+        this.__invalidateQuery()
         let sets = this.__sets
         for (let i = 0, length = columns.length; i < length; i++) {
             let column = columns[i]
@@ -575,7 +570,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this
     }
     ignoreAnySetWithNoValue(): this {
-        this.__query = ''
+        this.__invalidateQuery()
         let sets = this.__sets
         const properties = Object.getOwnPropertyNames(sets)
         for (let i = 0, length = properties.length; i < length; i++) {
@@ -589,7 +584,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
     }
 
     disallowIfSet(error: string | Error, ...columns: any[]): this {
-        this.__query = ''
+        this.__invalidateQuery()
         let sets = this.__sets
         for (let i = 0, length = columns.length; i < length; i++) {
             let column = columns[i]
@@ -604,7 +599,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this
     }
     disallowIfNotSet(error: string | Error, ...columns: any[]): this {
-        this.__query = ''
+        this.__invalidateQuery()
         let sets = this.__sets
         for (let i = 0, length = columns.length; i < length; i++) {
             let column = columns[i]
@@ -619,7 +614,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this
     }
     disallowIfValue(error: string | Error, ...columns: any[]): this {
-        this.__query = ''
+        this.__invalidateQuery()
         let sets = this.__sets
         for (let i = 0, length = columns.length; i < length; i++) {
             let column = columns[i]
@@ -634,7 +629,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this
     }
     disallowIfNoValue(error: string | Error, ...columns: any[]): this {
-        this.__query = ''
+        this.__invalidateQuery()
         let sets = this.__sets
         for (let i = 0, length = columns.length; i < length; i++) {
             let column = columns[i]
@@ -649,7 +644,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this
     }
     disallowAnyOtherSet(error: string | Error, ...columns: any[]): this {
-        this.__query = ''
+        this.__invalidateQuery()
         let sets = this.__sets
         const allowed: any = {}
         for (let i = 0, length = columns.length; i < length; i++) {
@@ -801,11 +796,11 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
     }
 
     dynamicWhere(): this {
-        this.__query = ''
+        this.__invalidateQuery()
         return this
     }
     where(condition: IAnyBooleanValueSource<any, any>): this {
-        this.__query = ''
+        this.__invalidateQuery()
         if (this.__where) {
             throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
         }
@@ -813,7 +808,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this
     }
     and(condition: IAnyBooleanValueSource<any, any>): this {
-        this.__query = ''
+        this.__invalidateQuery()
         if (this.__lastJoin) {
             if (this.__lastJoin.__on) {
                 this.__lastJoin.__on = this.__lastJoin.__on.and(asAlwaysIfValueSource(condition))
@@ -830,7 +825,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this
     }
     or(condition: IAnyBooleanValueSource<any, any>): this {
-        this.__query = ''
+        this.__invalidateQuery()
         if (this.__lastJoin) {
             if (this.__lastJoin.__on) {
                 this.__lastJoin.__on = this.__lastJoin.__on.or(asAlwaysIfValueSource(condition))
@@ -851,7 +846,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
 
     from(table: AnyTableOrView): any {
         this.__finishJoin()
-        this.__query = ''
+        this.__invalidateQuery()
         if (!this.__froms) {
             this.__froms = []
         }
@@ -860,7 +855,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
     }
     join(table: AnyTableOrView): any {
         this.__finishJoin()
-        this.__query = ''
+        this.__invalidateQuery()
         if (this.__lastJoin) {
             throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
         }
@@ -872,7 +867,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
     }
     innerJoin(table: AnyTableOrView): any {
         this.__finishJoin()
-        this.__query = ''
+        this.__invalidateQuery()
         if (this.__lastJoin) {
             throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
         }
@@ -884,7 +879,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
     }
     leftJoin(source: ForUseInLeftJoin<any>): any {
         this.__finishJoin()
-        this.__query = ''
+        this.__invalidateQuery()
         if (this.__lastJoin) {
             throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
         }
@@ -896,7 +891,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
     }
     leftOuterJoin(source: ForUseInLeftJoin<any>): any {
         this.__finishJoin()
-        this.__query = ''
+        this.__invalidateQuery()
         if (this.__lastJoin) {
             throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
         }
@@ -907,11 +902,11 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this
     }
     dynamicOn(): any {
-        this.__query = ''
+        this.__invalidateQuery()
         return this
     }
     on(condition: IAnyBooleanValueSource<any, any>): any {
-        this.__query = ''
+        this.__invalidateQuery()
         if (!this.__lastJoin) {
             throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
         }
@@ -939,7 +934,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
     }
 
     returning(columns: UpdateReturningColumns<any>): this {
-        this.__query = ''
+        this.__invalidateQuery()
         this.__columns = columns as QueryColumns
         this.__oldValues = this.__getOldValueOfColumns(columns as QueryColumns)
         return this
@@ -950,7 +945,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements IQueryDa
     }
     
     returningOneColumn(column: AnyValueSource): this {
-        this.__query = ''
+        this.__invalidateQuery()
         this.__oneColumn = true
         this.__columns = { 'result': column }
         const columnPrivate = __getValueSourcePrivate(column)

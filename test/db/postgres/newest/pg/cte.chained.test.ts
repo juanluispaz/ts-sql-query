@@ -122,6 +122,44 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ id: number; name: string }>>>()
     })
 
+    test('cte-introduced-after-the-first-build-is-declared-in-the-rebuilt-statement', async () => {
+        // A dynamic query can keep growing after it has already been rendered once.
+        // The rebuild has to re-collect the CTEs: the condition added below brings in
+        // a `with` view that was not in the set when the first `query()` ran, and a
+        // statement that REFERENCES the view without DECLARING it is one the engine
+        // rejects. The first `query()` is what makes this distinguishable — without
+        // it the builder renders only once and the with-clause is never at risk.
+        // Executing after the mutation is the half a real cell validates.
+        const connection = ctx.conn
+
+        const archivedProjects = connection.selectFrom(tProject)
+            .where(tProject.archivedAt.isNotNull())
+            .select({ id: tProject.id })
+            .forUseInQueryAs('archived_projects')
+
+        const query = connection.selectFrom(tProject)
+            .select({ id: tProject.id, name: tProject.name })
+            .orderBy('id')
+            .dynamicWhere()
+            .and(tProject.organizationId.equals(1))
+
+        expect(query.query()).toMatchInlineSnapshot(`"select id as id, name as name from project where organization_id = $1 order by id"`)
+
+        ctx.mockNext([{ id: 1, name: 'Marketing site' }, { id: 2, name: 'Internal tools' }])
+        const result = await query
+            .and(tProject.id.notIn(connection.selectFrom(archivedProjects).selectOneColumn(archivedProjects.id)))
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with archived_projects as (select id as id from project where archived_at is not null) select id as id, name as name from project where organization_id = $1 and id not in (select id as result from archived_projects) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; name: string }>>>()
+        expect(result).toEqual([{ id: 1, name: 'Marketing site' }, { id: 2, name: 'Internal tools' }])
+    })
+
     test('chained-ctes-bubble-both-withs-through-a-compound-arm', async () => {
         // A chained-CTE pair (`top_open` selects FROM `open_issues`) used as ONE ARM
         // of a compound (UNION): BOTH WITHs must bubble to the TOP-LEVEL compound

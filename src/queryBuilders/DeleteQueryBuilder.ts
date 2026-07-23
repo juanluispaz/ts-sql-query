@@ -23,7 +23,6 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements IQueryDa
     __where?: AlwaysIfValueSource<any, any> | undefined
     __allowNoWhere: boolean
     __withs: Array<IWithView<any>> = []
-    __withsGenerated = false
     __customization?: DeleteCustomization<any, any> | undefined
     //__columns?: QueryColumns // declared at AbstractQueryBuilder
     __using?: Array<AnyTableOrView> | undefined
@@ -31,10 +30,6 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements IQueryDa
 
     __oneColumn?: boolean | undefined
     __lastJoin?: JoinData | undefined
-
-    // cache
-    __query = ''
-    __params: any[] = []
 
     constructor(sqlBuilder: SqlBuilder, table: ITable<any>, allowNoWhere: boolean) {
         super(sqlBuilder)
@@ -222,12 +217,12 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements IQueryDa
 
     dynamicWhere(): this {
         this.__finishJoin()
-        this.__query = ''
+        this.__invalidateQuery()
         return this
     }
     where(condition: IAnyBooleanValueSource<any, any>): this {
         this.__finishJoin()
-        this.__query = ''
+        this.__invalidateQuery()
         if (this.__where) {
             throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
         }
@@ -235,7 +230,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this
     }
     and(condition: IAnyBooleanValueSource<any, any>): this {
-        this.__query = ''
+        this.__invalidateQuery()
         if (this.__lastJoin) {
             if (this.__lastJoin.__on) {
                 this.__lastJoin.__on = this.__lastJoin.__on.and(asAlwaysIfValueSource(condition))
@@ -252,7 +247,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this
     }
     or(condition: IAnyBooleanValueSource<any, any>): this {
-        this.__query = ''
+        this.__invalidateQuery()
         if (this.__lastJoin) {
             if (this.__lastJoin.__on) {
                 this.__lastJoin.__on = this.__lastJoin.__on.or(asAlwaysIfValueSource(condition))
@@ -273,7 +268,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements IQueryDa
 
     using(table: AnyTableOrView): any {
         this.__finishJoin()
-        this.__query = ''
+        this.__invalidateQuery()
         if (!this.__using) {
             this.__using = []
         }
@@ -282,7 +277,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements IQueryDa
     }
     join(table: AnyTableOrView): any {
         this.__finishJoin()
-        this.__query = ''
+        this.__invalidateQuery()
         if (this.__lastJoin) {
             throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
         }
@@ -294,7 +289,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements IQueryDa
     }
     innerJoin(table: AnyTableOrView): any {
         this.__finishJoin()
-        this.__query = ''
+        this.__invalidateQuery()
         if (this.__lastJoin) {
             throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
         }
@@ -306,7 +301,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements IQueryDa
     }
     leftJoin(source: ForUseInLeftJoin<any>): any {
         this.__finishJoin()
-        this.__query = ''
+        this.__invalidateQuery()
         if (this.__lastJoin) {
             throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
         }
@@ -318,7 +313,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements IQueryDa
     }
     leftOuterJoin(source: ForUseInLeftJoin<any>): any {
         this.__finishJoin()
-        this.__query = ''
+        this.__invalidateQuery()
         if (this.__lastJoin) {
             throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
         }
@@ -329,11 +324,11 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements IQueryDa
         return this
     }
     dynamicOn(): any {
-        this.__query = ''
+        this.__invalidateQuery()
         return this
     }
     on(condition: IAnyBooleanValueSource<any, any>): any {
-        this.__query = ''
+        this.__invalidateQuery()
         if (!this.__lastJoin) {
             throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
         }
@@ -363,7 +358,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements IQueryDa
 
     returning(columns: DeleteReturningColumns<any>): this {
         this.__finishJoin()
-        this.__query = ''
+        this.__invalidateQuery()
         this.__columns = columns as QueryColumns
         return this
     }
@@ -374,7 +369,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements IQueryDa
     
     returningOneColumn(column: AnyValueSource): this {
         this.__finishJoin()
-        this.__query = ''
+        this.__invalidateQuery()
         this.__oneColumn = true
         this.__columns = { 'result': column }
         return this

@@ -87,6 +87,29 @@ describe(ctx.label, () => {
         expect((thrown as Error).message).toContain('on-conflict partial-index where gate blocks')
     })
 
+    test('gate-on-on-conflict-target-column-fires-on-build', async () => {
+        // `allowWhen(false, ...)` on one of the CONFLICT-TARGET columns — the
+        // `onConflictOn(...)` operand list, not the update-set or the predicate.
+        // The target list is the only walker limb that is an ARRAY of value
+        // sources rather than a single one, so it needs its own iteration: the
+        // walker must report the query disallowed here exactly as the build does.
+        const query = ctx.conn.insertInto(tProject)
+            .values({ organizationId: 1, slug: 'mktg-site', name: 'x' })
+            .onConflictOn(tProject.organizationId, tProject.slug.allowWhen(false, 'on-conflict target-column gate blocks'))
+            .doUpdateSet({ name: 'Updated' })
+
+        expect(isQueryAllowed(query)).toBe(false)
+
+        let thrown: unknown
+        try {
+            await query.executeInsert()
+        } catch (e) {
+            thrown = e
+        }
+        expect(thrown).toBeInstanceOf(Error)
+        expect((thrown as Error).message).toContain('on-conflict target-column gate blocks')
+    })
+
     // NOT-APPLICABLE: SQLite has no ON CONFLICT ON CONSTRAINT.
     // test('gate-on-on-conflict-on-constraint-fragment-fires-on-build', async () => {
     //     // A closed gate inside the RawFragment that names the CONFLICT CONSTRAINT.

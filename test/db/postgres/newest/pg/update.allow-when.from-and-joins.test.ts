@@ -196,4 +196,43 @@ describe(ctx.label, () => {
             expect(affected).toBe(1)
         })
     })
+
+
+    test('update-from-join-all-gates-open-with-allowed-returning-walks-to-end', async () => {
+        // The same all-open FROM+JOIN as the sibling above, plus an OPEN-gated
+        // RETURNING column. That is the one limb the sibling omits: with no
+        // RETURNING the projection is absent and the walk skips its check
+        // entirely, so the "projection present AND allowed, keep walking" path has
+        // never run. It catches a regression that wrongly rejects an allowed
+        // RETURNING projection — which would make the introspection API refuse
+        // every legitimate RETURNING-bearing mutation.
+        const expected = { id: 1, name: 'Ada Lovelace' }
+        ctx.mockNext(expected)
+        await ctx.withRollback(async () => {
+            const connection = ctx.conn
+            const query = connection.update(tProject)
+                .from(tIssue)
+                .innerJoin(tAppUser).on(tAppUser.id.equals(tIssue.assigneeId).allowWhen(true, 'update-join-on gate'))
+                .set({ name: tAppUser.fullName.allowWhen(true, 'update-set gate') })
+                .where(tProject.id.equals(tIssue.projectId).allowWhen(true, 'update-where gate'))
+                    .and(tIssue.id.equals(1))
+                .returning({
+                    id: tProject.id,
+                    name: tProject.name.allowWhen(true, 'update-returning gate'),
+                })
+
+            expect(isQueryAllowed(query)).toBe(true)
+
+            const row = await query.executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = app_user.full_name from issue inner join app_user on app_user.id = issue.assignee_id where project.id = issue.project_id and issue.id = $1 returning project.id as id, project.name as name"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof row, { id: number, name: string }>>()
+            expect(row).toEqual(expected)
+        })
+    })
 })

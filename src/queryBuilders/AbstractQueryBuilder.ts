@@ -12,8 +12,36 @@ export class AbstractQueryBuilder {
     __columns?: QueryColumns | undefined
     __projectOptionalValuesAsNullable?: boolean | undefined
 
+    // cache
+    __query = ''
+    __params: any[] = []
+    __withsGenerated = false
+
     constructor(sqlBuilder: SqlBuilder) {
         this.__sqlBuilder = sqlBuilder
+    }
+
+    /**
+     * Drop the cached rendering of the statement, so the next `query()` builds it again.
+     * Every method that mutates the builder must call this.
+     *
+     * The whole render cache goes, not just the SQL text:
+     * - `__params` is the output of that same rendering; keeping it would append the new
+     *   render's parameters *after* the previous one's, shifting every placeholder index.
+     *   It also carries the SqlBuilder's per-render state as non-enumerable properties
+     *   (`_withGenerated` among them), so a stale array suppresses the `with` clause of
+     *   the rebuilt statement.
+     * - `__withsGenerated` latches the first time the withs are collected, and a value
+     *   staged after that first rendering can introduce a CTE that wasn't in the set back
+     *   then; keeping it latched rebuilds a statement that *references* the new CTE while
+     *   the `with` clause declaring it is missing, and the engine rejects it. Re-running
+     *   the collection is safe: every `__addWiths` implementation guards against pushing
+     *   the same view twice.
+     */
+    __invalidateQuery(): void {
+        this.__query = ''
+        this.__params = []
+        this.__withsGenerated = false
     }
 
     __isValue<T>(value: T): value is NonNullable<T> {

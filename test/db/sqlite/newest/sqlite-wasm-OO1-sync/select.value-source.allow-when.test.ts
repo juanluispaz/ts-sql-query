@@ -162,4 +162,24 @@ describe(ctx.label, () => {
         }
         expect(thrown).toBe(customError)
     })
+
+    test('disallow-when-accepts-error-object-and-rethrows-it-verbatim', async () => {
+        // The `disallowWhen` twin of the test above: the inverted gate
+        // takes the same `Error`-instance overload, stores the caller's
+        // object verbatim rather than minting a `TsSqlError`, and
+        // rethrows that exact instance.
+        const customError = new Error('app-level: title is redacted for this caller')
+        const query = ctx.conn.selectFrom(tIssue)
+            .select({ title: tIssue.title.disallowWhen(true, customError) })
+
+        expect(isQueryAllowed(query)).toBe(false)
+
+        let thrown: unknown
+        try {
+            await query.executeSelectMany()
+        } catch (e) {
+            thrown = e
+        }
+        expect(thrown).toBe(customError)
+    })
 })

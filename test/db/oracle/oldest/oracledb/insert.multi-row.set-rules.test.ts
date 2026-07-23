@@ -295,4 +295,113 @@ describe(ctx.label, () => {
         expect(err.disallowedProperty).toBe('body')
         expect(err.disallowedIndex).toBe(1)
     })
+
+    test('multi-row-disallow-set-not-set-no-value-and-any-other-set-error-instances-thrown-as-is', () => {
+        // The Error-INSTANCE overload on the MULTI-ROW branch of the four disallow
+        // guards. Each throws the caller's own instance as-is and decorates it with
+        // BOTH `disallowedProperty` and the per-row `disallowedIndex`. Every row 0
+        // is clean and every row 1 carries the violation, so `disallowedIndex` is 1
+        // in all four cases: that field is the only observable separating this
+        // branch from the single-row one.
+        const setSentinel = new Error('body must never be staged from the API')
+        let caughtSet: unknown
+        try {
+            ctx.conn.insertInto(tIssue)
+                .values([
+                    { projectId: 1, number: 9420, title: 'A', status: 'open', priority: 1 },
+                    { projectId: 1, number: 9421, title: 'B', body: 'leaked', status: 'open', priority: 1 },
+                ])
+                .disallowIfSet(setSentinel, 'body')
+        } catch (e) { caughtSet = e }
+        expect(caughtSet).toBe(setSentinel)
+        const setErr = caughtSet as DisallowError
+        expect(setErr.disallowedProperty).toBe('body')
+        expect(setErr.disallowedIndex).toBe(1)
+
+        const notSetSentinel = new Error('body is mandatory in bulk import')
+        let caughtNotSet: unknown
+        try {
+            ctx.conn.insertInto(tIssue)
+                .values([
+                    { projectId: 1, number: 9422, title: 'A', body: 'present', status: 'open', priority: 1 },
+                    { projectId: 1, number: 9423, title: 'B', status: 'open', priority: 1 },
+                ])
+                .disallowIfNotSet(notSetSentinel, 'body')
+        } catch (e) { caughtNotSet = e }
+        expect(caughtNotSet).toBe(notSetSentinel)
+        const notSetErr = caughtNotSet as DisallowError
+        expect(notSetErr.disallowedProperty).toBe('body')
+        expect(notSetErr.disallowedIndex).toBe(1)
+
+        const noValueSentinel = new Error('body is required for every row')
+        let caughtNoValue: unknown
+        try {
+            ctx.conn.insertInto(tIssue)
+                .values([
+                    { projectId: 1, number: 9424, title: 'A', body: 'present', status: 'open', priority: 1 },
+                    { projectId: 1, number: 9425, title: 'B', body: null, status: 'open', priority: 1 },
+                ])
+                .disallowIfNoValue(noValueSentinel, 'body')
+        } catch (e) { caughtNoValue = e }
+        expect(caughtNoValue).toBe(noValueSentinel)
+        const noValueErr = caughtNoValue as DisallowError
+        expect(noValueErr.disallowedProperty).toBe('body')
+        expect(noValueErr.disallowedIndex).toBe(1)
+
+        const anyOtherSentinel = new Error('only core fields may be bulk-imported')
+        let caughtAnyOther: unknown
+        try {
+            ctx.conn.insertInto(tIssue)
+                .values([
+                    { projectId: 1, number: 9426, title: 'A', status: 'open', priority: 1 },
+                    { projectId: 1, number: 9427, title: 'B', body: 'extra', status: 'open', priority: 1 },
+                ])
+                .disallowAnyOtherSet(anyOtherSentinel, 'projectId', 'number', 'title', 'status', 'priority')
+        } catch (e) { caughtAnyOther = e }
+        expect(caughtAnyOther).toBe(anyOtherSentinel)
+        const anyOtherErr = caughtAnyOther as DisallowError
+        expect(anyOtherErr.disallowedProperty).toBe('body')
+        expect(anyOtherErr.disallowedIndex).toBe(1)
+    })
+
+    test('multi-row-disallow-any-other-set-ignores-payload-keys-that-are-not-columns', async () => {
+        // The multi-row twin of the single-row escape: `disallowAnyOtherSet` skips
+        // staged properties that are not part of the table at all, per row.
+        // `values([...])` does not filter its rows, so the surplus key survives into
+        // both staged rows and reaches the guard, which must let it through. The
+        // emitter drops it from the column list independently, so the statement is
+        // a plain two-row INSERT.
+        const rows = [
+            { projectId: 1, number: 9430, title: 'Bulk A', status: 'open', priority: 1, csrfToken: 'csrf-token-from-the-request-body' },
+            { projectId: 1, number: 9431, title: 'Bulk B', status: 'open', priority: 1, csrfToken: 'csrf-token-from-the-request-body' },
+        ]
+
+        ctx.mockNext(2)
+        await ctx.withRollback(async () => {
+            const inserted = await ctx.conn.insertInto(tIssue)
+                .values(rows)
+                .disallowAnyOtherSet(
+                    'only core fields may be bulk-imported',
+                    'projectId', 'number', 'title', 'status', 'priority',
+                )
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"begin insert into issue (project_id, "number", title, status, priority) values (:0, :1, :2, :3, :4); insert into issue (project_id, "number", title, status, priority) values (:5, :6, :7, :8, :9); end;"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                9430,
+                "Bulk A",
+                "open",
+                1,
+                1,
+                9431,
+                "Bulk B",
+                "open",
+                1,
+              ]
+            `)
+            expect(inserted).toBe(2)
+        })
+    })
 })

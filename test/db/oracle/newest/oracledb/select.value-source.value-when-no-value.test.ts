@@ -302,4 +302,35 @@ describe(ctx.label, () => {
         }>>>()
         expect(rows).toEqual(expected)
     })
+
+    test('value-when-no-value-boolean-value-source-as-selected-column-fires-keeps-primary', async () => {
+        // The twin of the test above with the IfValue PRESENT. `valueWhenNoValue`
+        // has two renderers — one for a condition position and one for a value
+        // position — and the value renderer is only reached from a projection. The
+        // test above reaches it with the IfValue elided, so it lands on the
+        // fallback; here the probe is defined, so the primary comparison is what
+        // the column emits and the fallback never appears in the SQL (it would
+        // have read `false` for issue 1, whose priority is 2).
+        const expected = [{ id: 1, statusMatches: true }]
+        ctx.mockNext(expected)
+
+        const filter: string | undefined = 'open'
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                statusMatches: tIssue.status.equalsIfValue(filter).valueWhenNoValue(tIssue.priority.greaterThan(99)),
+            })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", case when status = :0 then 1 else 0 end as "statusMatches" from issue where id = :1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "open",
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number, statusMatches: boolean }>>>()
+        expect(rows).toEqual(expected)
+    })
 })

@@ -343,4 +343,37 @@ describe(ctx.label, () => {
         })
     })
     */
+
+    test('single-element-values-array-second-set-for-all-reuses-the-copied-sets', async () => {
+        // `.values([oneRow])` degenerates to the single-row set node while still
+        // exposing the MULTIPLE builder surface. The FIRST `setForAll*` copies the
+        // staged object into a one-element working batch; a SECOND `setForAll*`
+        // must reuse that copy rather than rebuild it — the path a single
+        // `setForAll` never reaches.
+        //
+        // `plan` is overridden twice on purpose: the final param is what proves the
+        // second call actually saw the row. Had the reuse handed back an empty
+        // batch, `setForAllIfValue` would have iterated nothing and `plan` would
+        // still read 'pro'.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const inserted = await ctx.conn.insertInto(tOrganization)
+                .values([
+                    { name: 'SoloArrayTwice', plan: 'free' },
+                ])
+                .setForAll({ plan: 'pro' })
+                .setForAllIfValue({ plan: 'enterprise' })
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, [plan]) values (@0, @1)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "SoloArrayTwice",
+                "enterprise",
+              ]
+            `)
+            assertType<Exact<typeof inserted, number>>()
+            expect(inserted).toBe(1)
+        })
+    })
 })

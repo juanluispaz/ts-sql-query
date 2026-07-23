@@ -647,4 +647,32 @@ describe(ctx.label, () => {
             else expect(affected).toBe(1)
         })
     })
+
+    test('delete-using-table-then-two-inner-joins-on-using-tables', async () => {
+        // Two joins after `.using(...)`: the SECOND `.on(...)` finds `__joins` already
+        // populated by the first join's `on` and takes its FALSE arm — the branch a
+        // single-join `DELETE … USING` never reaches. Both joins must appear in the
+        // emitted SQL. Filter by an issue id no seed row carries, so nothing is
+        // deleted and the affected count is a deterministic 0.
+        ctx.mockNext(0)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.deleteFrom(tIssue)
+                .using(tProject)
+                .innerJoin(tOrganization).on(tOrganization.id.equals(tProject.organizationId))
+                .innerJoin(tProjectRelease).on(tProjectRelease.projectId.equals(tProject.id))
+                .where(tIssue.projectId.equals(tProject.id))
+                    .and(tIssue.id.equals(99999))
+                .executeDelete()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using project inner join organization on organization.id = project.organization_id inner join project_release on project_release.project_id = project.id where issue.project_id = project.id and issue.id = $1"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                99999,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            if (ctx.realDbEnabled) expect(typeof affected).toBe('number')
+            else expect(affected).toBe(0)
+        })
+    })
 })

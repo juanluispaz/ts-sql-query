@@ -13,6 +13,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
+import { getQueryExecutionMetadata, getQueryExecutionName } from '../../../../../src/queryRunners/QueryRunner.js'
 import { tIssue, tProject, tProjectReview } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
@@ -1649,6 +1650,191 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof result, Array<{ id: number; score: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+
+    test('recursive-union-all-customize-query-only-before-with-query-wraps-cte-head', async () => {
+        // The `beforeWithQuery`-ONLY arm of the recursive customize split. The
+        // sibling tests always set BOTH `beforeWithQuery` and `afterWithQuery`, so
+        // the split has never built a with-customization carrying just one of the
+        // pair. Here only the head fragment is supplied: it must land between the CTE
+        // name and the opening paren, and the snapshot must show NO trailing marker
+        // after the closing paren. Every seeded issue leaves `parent_id` NULL, so the
+        // traversal from issue 1 returns exactly that one row.
+        const expected = [
+            { id: 1, title: 'Update hero copy', depth: 0 },
+        ]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        const result = await connection.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                title: tIssue.title,
+                depth: connection.const(0, 'int'),
+            })
+            .recursiveUnionAll((parent) => {
+                return connection.selectFrom(tIssue)
+                    .join(parent).on(tIssue.parentId.equals(parent.id))
+                    .select({
+                        id: tIssue.id,
+                        title: tIssue.title,
+                        depth: parent.depth.add(1),
+                    })
+            })
+            .customizeQuery({
+                beforeWithQuery: connection.rawFragment`/* warmup */`,
+            })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as /* warmup */ (select id as id, title as title, $1::int4 as depth from issue where id = $2 union all select issue.id as id, issue.title as title, recursive_select_1.depth + $3 as depth from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id) select id as id, title as title, depth as depth from recursive_select_1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            0,
+            1,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number, title: string, depth: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('recursive-union-all-customize-query-only-after-with-query-wraps-cte-tail', async () => {
+        // The mirror arm: only `afterWithQuery` is supplied. The fragment must land
+        // after the CTE's closing paren and before the outer `select`, and the
+        // snapshot must show NO head marker between the CTE name and the opening
+        // paren. Same single-row traversal as the sibling above.
+        const expected = [
+            { id: 1, title: 'Update hero copy', depth: 0 },
+        ]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        const result = await connection.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                title: tIssue.title,
+                depth: connection.const(0, 'int'),
+            })
+            .recursiveUnionAll((parent) => {
+                return connection.selectFrom(tIssue)
+                    .join(parent).on(tIssue.parentId.equals(parent.id))
+                    .select({
+                        id: tIssue.id,
+                        title: tIssue.title,
+                        depth: parent.depth.add(1),
+                    })
+            })
+            .customizeQuery({
+                afterWithQuery: connection.rawFragment`/* end-of-with */`,
+            })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, title as title, $1::int4 as depth from issue where id = $2 union all select issue.id as id, issue.title as title, recursive_select_1.depth + $3 as depth from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id) /* end-of-with */ select id as id, title as title, depth as depth from recursive_select_1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            0,
+            1,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number, title: string, depth: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('recursive-union-all-customize-query-execution-name-only', async () => {
+        // `queryExecutionName` on a RECURSIVE select. The customize split re-homes
+        // the SQL hooks onto the generated outer select but keeps the execution
+        // metadata on this builder — the one whose `execute*` reads it. No existing
+        // test sets name/metadata on a recursive select, so that branch has never
+        // run. Only the name is set here; the metadata helper must read back
+        // `undefined`, proving the split does not manufacture an empty metadata slot.
+        const expected = [
+            { id: 1, title: 'Update hero copy', depth: 0 },
+        ]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        const result = await connection.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                title: tIssue.title,
+                depth: connection.const(0, 'int'),
+            })
+            .recursiveUnionAll((parent) => {
+                return connection.selectFrom(tIssue)
+                    .join(parent).on(tIssue.parentId.equals(parent.id))
+                    .select({
+                        id: tIssue.id,
+                        title: tIssue.title,
+                        depth: parent.depth.add(1),
+                    })
+            })
+            .customizeQuery({
+                queryExecutionName: 'issue-depth-tree',
+            })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, title as title, $1::int4 as depth from issue where id = $2 union all select issue.id as id, issue.title as title, recursive_select_1.depth + $3 as depth from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id) select id as id, title as title, depth as depth from recursive_select_1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            0,
+            1,
+            1,
+          ]
+        `)
+        expect(getQueryExecutionName(ctx.lastSql, ctx.lastParams)).toBe('issue-depth-tree')
+        expect(getQueryExecutionMetadata(ctx.lastSql, ctx.lastParams)).toBeUndefined()
+        assertType<Exact<typeof result, Array<{ id: number, title: string, depth: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('recursive-union-all-customize-query-execution-metadata-only', async () => {
+        // The mirror of the name-only test: only `queryExecutionMetadata` is set on
+        // the recursive select. The metadata must ride through to the runner and read
+        // back via the public helper, while the name reads `undefined`.
+        const expected = [
+            { id: 1, title: 'Update hero copy', depth: 0 },
+        ]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        const result = await connection.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                title: tIssue.title,
+                depth: connection.const(0, 'int'),
+            })
+            .recursiveUnionAll((parent) => {
+                return connection.selectFrom(tIssue)
+                    .join(parent).on(tIssue.parentId.equals(parent.id))
+                    .select({
+                        id: tIssue.id,
+                        title: tIssue.title,
+                        depth: parent.depth.add(1),
+                    })
+            })
+            .customizeQuery({
+                queryExecutionMetadata: { tag: 'recursion' },
+            })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, title as title, $1::int4 as depth from issue where id = $2 union all select issue.id as id, issue.title as title, recursive_select_1.depth + $3 as depth from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id) select id as id, title as title, depth as depth from recursive_select_1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            0,
+            1,
+            1,
+          ]
+        `)
+        expect(getQueryExecutionMetadata(ctx.lastSql, ctx.lastParams)).toEqual({ tag: 'recursion' })
+        expect(getQueryExecutionName(ctx.lastSql, ctx.lastParams)).toBeUndefined()
+        assertType<Exact<typeof result, Array<{ id: number, title: string, depth: number }>>>()
         expect(result).toEqual(expected)
     })
 })

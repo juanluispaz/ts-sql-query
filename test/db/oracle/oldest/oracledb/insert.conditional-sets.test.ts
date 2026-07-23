@@ -872,4 +872,185 @@ describe(ctx.label, () => {
         expect((caughtWhen as { disallowedProperty?: unknown }).disallowedProperty).toBe('status')
     })
 
+    test('ignore-if-has-no-value-keeps-a-column-that-holds-a-value', async () => {
+        // The KEEP arm of `ignoreIfHasNoValue`: the guard walks each named column
+        // and deletes only the ones whose staged value fails the value gate. `body`
+        // holds a value so it survives into the column list; `assigneeId` is null
+        // and is dropped. Both are nullable, so the trimmed INSERT stays valid.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const inserted = await ctx.conn.insertInto(tIssue)
+                .set({
+                    projectId: 1,
+                    number: 9401,
+                    title: 'Triage',
+                    body: 'present',
+                    assigneeId: null,
+                    status: 'open',
+                    priority: 9,
+                })
+                .ignoreIfHasNoValue('body', 'assigneeId')
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, "number", title, "body", status, priority) values (:0, :1, :2, :3, :4, :5)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                9401,
+                "Triage",
+                "present",
+                "open",
+                9,
+              ]
+            `)
+            assertType<Exact<typeof inserted, number>>()
+            expect(inserted).toBe(1)
+        })
+    })
+
+    test('set-for-all-if-not-set-if-value-skips-a-no-value-incoming', async () => {
+        // `setForAllIfNotSetIfValue` gates on the INCOMING value before it looks at
+        // the rows. Neither row stages `body`, so the "not set" side holds for both
+        // — yet the `undefined` payload fails the value gate and the call is a
+        // complete no-op: `body` never enters the column list. The second call,
+        // with a real value for the also-unstaged `assigneeId`, is the control: it
+        // proves the method is live and that it is the value gate that dropped
+        // `body`, not an inert chain link.
+        ctx.mockNext(2)
+        await ctx.withRollback(async () => {
+            const inserted = await ctx.conn.insertInto(tIssue)
+                .values([
+                    { projectId: 1, number: 9403, title: 'A', status: 'open', priority: 1 },
+                    { projectId: 1, number: 9404, title: 'B', status: 'open', priority: 1 },
+                ])
+                .setForAllIfNotSetIfValue({ body: undefined })
+                .setForAllIfNotSetIfValue({ assigneeId: 2 })
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"begin insert into issue (project_id, "number", title, status, priority, assignee_id) values (:0, :1, :2, :3, :4, :5); insert into issue (project_id, "number", title, status, priority, assignee_id) values (:6, :7, :8, :9, :10, :11); end;"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                9403,
+                "A",
+                "open",
+                1,
+                2,
+                1,
+                9404,
+                "B",
+                "open",
+                1,
+                2,
+              ]
+            `)
+            assertType<Exact<typeof inserted, number>>()
+            expect(inserted).toBe(2)
+        })
+    })
+
+    test('disallow-set-not-set-no-value-and-any-other-set-error-instances-thrown-as-is', () => {
+        // The Error-INSTANCE overload of the four single-row disallow guards. Each
+        // one, handed an `Error` object instead of a message, throws THAT SAME
+        // instance rather than wrapping it in a library error; the only mutation is
+        // decorating the caller's own object with `disallowedProperty`. No
+        // `disallowedIndex` is set on the single-row branch — that field is the
+        // multi-row branch's signature.
+        //
+        // Nothing is inserted: every chain throws before `executeInsert`.
+        const base = { projectId: 1, title: 'X', status: 'open', priority: 1 }
+
+        // `body` IS staged -> fires.
+        const setSentinel = new Error('body must never be staged from the API')
+        let caughtSet: unknown
+        try {
+            ctx.conn.insertInto(tIssue)
+                .values({ ...base, number: 9410, body: 'leaked' })
+                .disallowIfSet(setSentinel, 'body')
+        } catch (e) { caughtSet = e }
+        expect(caughtSet).toBe(setSentinel)
+        expect((caughtSet as { disallowedProperty?: unknown }).disallowedProperty).toBe('body')
+        expect((caughtSet as { disallowedIndex?: unknown }).disallowedIndex).toBeUndefined()
+
+        // `body` is NOT staged -> fires.
+        const notSetSentinel = new Error('body is mandatory on this endpoint')
+        let caughtNotSet: unknown
+        try {
+            ctx.conn.insertInto(tIssue)
+                .values({ ...base, number: 9411 })
+                .disallowIfNotSet(notSetSentinel, 'body')
+        } catch (e) { caughtNotSet = e }
+        expect(caughtNotSet).toBe(notSetSentinel)
+        expect((caughtNotSet as { disallowedProperty?: unknown }).disallowedProperty).toBe('body')
+        expect((caughtNotSet as { disallowedIndex?: unknown }).disallowedIndex).toBeUndefined()
+
+        // `body` is staged as null, so it fails the value gate -> fires.
+        const noValueSentinel = new Error('body must carry a value')
+        let caughtNoValue: unknown
+        try {
+            ctx.conn.insertInto(tIssue)
+                .values({ ...base, number: 9412, body: null })
+                .disallowIfNoValue(noValueSentinel, 'body')
+        } catch (e) { caughtNoValue = e }
+        expect(caughtNoValue).toBe(noValueSentinel)
+        expect((caughtNoValue as { disallowedProperty?: unknown }).disallowedProperty).toBe('body')
+        expect((caughtNoValue as { disallowedIndex?: unknown }).disallowedIndex).toBeUndefined()
+
+        // `body` is a real column outside the allow-list -> fires.
+        const anyOtherSentinel = new Error('only core fields may be set here')
+        let caughtAnyOther: unknown
+        try {
+            ctx.conn.insertInto(tIssue)
+                .values({ ...base, number: 9413, body: 'extra' })
+                .disallowAnyOtherSet(anyOtherSentinel, 'projectId', 'number', 'title', 'status', 'priority')
+        } catch (e) { caughtAnyOther = e }
+        expect(caughtAnyOther).toBe(anyOtherSentinel)
+        expect((caughtAnyOther as { disallowedProperty?: unknown }).disallowedProperty).toBe('body')
+        expect((caughtAnyOther as { disallowedIndex?: unknown }).disallowedIndex).toBeUndefined()
+    })
+
+    test('disallow-any-other-set-ignores-a-payload-key-that-is-not-a-column', async () => {
+        // `disallowAnyOtherSet` deliberately skips staged properties that are not
+        // part of the table at all. An UNSHAPED `values({...})` does not filter its
+        // payload the way a shaped `set(...)` does, so a surplus key survives into
+        // the staged sets and reaches the guard — which must let it through (it can
+        // never be emitted anyway) instead of rejecting it. That is what lets a
+        // caller hand a whole request body, CSRF token and all, to an endpoint that
+        // also pins an allow-list.
+        //
+        // The surplus key needs a named `const` to survive TypeScript's
+        // excess-property check, which fires only on fresh object literals.
+        const payload = {
+            projectId: 1,
+            number: 9402,
+            title: 'From the request body',
+            status: 'open',
+            priority: 1,
+            csrfToken: 'csrf-token-from-the-request-body',
+        }
+
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const inserted = await ctx.conn.insertInto(tIssue)
+                .values(payload)
+                .disallowAnyOtherSet(
+                    'only core fields may be set here',
+                    'projectId', 'number', 'title', 'status', 'priority',
+                )
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, "number", title, status, priority) values (:0, :1, :2, :3, :4)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                9402,
+                "From the request body",
+                "open",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof inserted, number>>()
+            expect(inserted).toBe(1)
+        })
+    })
 })

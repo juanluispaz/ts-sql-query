@@ -205,4 +205,43 @@ describe(ctx.label, () => {
         expect(rows).toEqual([{ id: 1, name: 'Marketing site' }])
     })
 
+    test('select-params-before-query-builds-on-demand-and-query-cache-holds', () => {
+        // The A/B of `executable-select-query-and-params-accessors` above: same
+        // builder, same snapshots, opposite CALL ORDER. That test calls `query()`
+        // first; this one calls `params()` first, which is the untested half — with
+        // nothing built yet it has to trigger the build rather than hand back the
+        // empty array the builder starts life with.
+        //
+        // The repeated `query()` here reads an already-warm cache (the sibling covers
+        // cold-then-warm). What both snapshots pin is that the cache holds: the
+        // builder appends into ONE params array that is never cleared, so a lost
+        // cache would not merely re-render the SQL, it would re-bind the value and
+        // renumber the placeholder.
+        //
+        // Build-only: nothing is dispatched, so the emission is identical in mock and
+        // real modes.
+        const built = ctx.conn.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ id: tProject.id, name: tProject.name })
+            .orderBy('id')
+
+        expect(built.params()).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+
+        const first = built.query()
+        const second = built.query()
+        expect(second).toBe(first)
+        expect(first).toMatchInlineSnapshot(`"select id as id, name as name from project where id = @0 order by id"`)
+        assertType<Exact<typeof first, string>>()
+
+        // Still exactly one bound value: neither `query()` call re-bound it.
+        expect(built.params()).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+    })
 })

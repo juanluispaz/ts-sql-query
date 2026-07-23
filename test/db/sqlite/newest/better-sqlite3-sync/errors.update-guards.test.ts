@@ -68,4 +68,21 @@ describe(ctx.label, () => {
         } catch (e) { caught = e }
         expect(reasonOf(caught)).toBe('MINIMUM_ROWS_NOT_REACHED')
     })
+
+    test('where-called-twice-throws-illegal-state', () => {
+        // Holding a reference to the pre-WHERE stage and calling `.where(...)`
+        // twice reaches the `if (this.__where)` re-entry guard. Well-typed without
+        // `as any`: `q` keeps its pre-where type, and `where()` returns a narrowed
+        // interface rather than mutating `q`, so both calls type-check on `q`.
+        const q = ctx.conn.update(tProject).dynamicSet().set({ name: 'x' })
+        q.where(tProject.id.equals(1))
+        let caught: unknown
+        try {
+            q.where(tProject.id.equals(2))
+        } catch (e) { caught = e }
+        expect(caught).toBeInstanceOf(TsSqlError)
+        const r = caught instanceof TsSqlError ? caught.errorReason : undefined
+        expect(r?.reason).toBe('INTERNAL')
+        expect(r && r.reason === 'INTERNAL' ? r.internalErrorType : undefined).toBe('illegal state')
+    })
 })

@@ -321,4 +321,78 @@ describe(ctx.label, () => {
         })
     })
 
+    test('do-update-set-dynamic-where-first-or-seeds-the-predicate', async () => {
+        // `doUpdateSet(...).dynamicWhere().or(c1).or(c2)` — the FIRST `.or(...)`
+        // seeds an empty DO UPDATE predicate (the no-predicate-yet arm of `or()`),
+        // which the `.and()`-first dynamic sibling never reaches. Built and compared
+        // to the direct `.where(c1).or(c2)` form, then executed.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, slug: 'mktg-site', name: 'ignored' })
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doUpdateSet({ name: 'Marketing site v9' })
+                .dynamicWhere()
+                    .or(tProject.name.notEquals('Marketing site v9'))
+                    .or(tProject.published.equals(false))
+                .executeInsert()
+            const dynSql = ctx.lastSql
+            const dynParams = ctx.lastParams
+
+            const viaWhere = ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, slug: 'mktg-site', name: 'ignored' })
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doUpdateSet({ name: 'Marketing site v9' })
+                .where(tProject.name.notEquals('Marketing site v9'))
+                    .or(tProject.published.equals(false))
+            expect(viaWhere.query()).toBe(dynSql)
+            expect(viaWhere.params()).toEqual(dynParams)
+
+            expect(dynSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) do update set name = ? where project.name <> ? or (project.published = 't') = ?"`)
+            expect(dynParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "mktg-site",
+                "ignored",
+                "Marketing site v9",
+                "Marketing site v9",
+                false,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(1)
+        })
+    })
+
+    test('on-columns-dynamic-where-first-or-seeds-the-arbiter-predicate', async () => {
+        // `onConflictOn(cols).dynamicWhere().or(c1).or(c2).doUpdateSet(...)` — the
+        // FIRST `.or(...)` seeds the conflict-target (partial-index) predicate. A
+        // plain UNIQUE index satisfies any arbiter predicate, so pg + sqlite accept
+        // the OR form.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, slug: 'mktg-site', name: 'ignored' })
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .dynamicWhere()
+                    .or(tProject.published.equals(true))
+                    .or(tProject.name.equals('Marketing site'))
+                .doUpdateSet({ name: 'Marketing site v10' })
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict (organization_id, slug) where (published = 't') = ? or name = ? do update set name = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "mktg-site",
+                "ignored",
+                true,
+                "Marketing site",
+                "Marketing site v10",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(1)
+        })
+    })
 })

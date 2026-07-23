@@ -101,4 +101,75 @@ describe(ctx.label, () => {
     })
     */
 
+
+    // NOT-APPLICABLE: Oracle has no INSERT…ON CONFLICT (uses MERGE); `onConflictOn` is narrowed away.
+    // test('gate-on-on-conflict-on-constraint-fragment-fires-on-build', async () => {
+    //     // A closed gate inside the RawFragment that names the CONFLICT CONSTRAINT.
+    //     // `onConflictOnConstraint(...)` is a separate walker limb from the
+    //     // column-target opener the tests above use, and it is narrower still —
+    //     // PostgreSQL is the only dialect that types it. `project_organization_id_slug_key`
+    //     // is PostgreSQL's default name for the inline `UNIQUE (organization_id, slug)`.
+    //     // The constraint fragment is table-independent, so the gate rides on a
+    //     // constant embedded in it rather than on a column.
+    //     const query = ctx.conn.insertInto(tProject)
+    //         .values({ organizationId: 1, slug: 'mktg-site', name: 'x' })
+    //         .onConflictOnConstraint(ctx.conn.rawFragment`project_organization_id_slug_key /* ${ctx.conn.const(1, 'int').allowWhen(false, 'on-conflict constraint gate blocks')} */`)
+    //         .doUpdateSet({ name: 'Updated' })
+    //
+    //     expect(isQueryAllowed(query)).toBe(false)
+    //
+    //     let thrown: unknown
+    //     try {
+    //         await query.executeInsert()
+    //     } catch (e) {
+    //         thrown = e
+    //     }
+    //     expect(thrown).toBeInstanceOf(Error)
+    //     expect((thrown as Error).message).toContain('on-conflict constraint gate blocks')
+    // })
+
+
+    // NOT-APPLICABLE: Oracle has no INSERT…ON CONFLICT (uses MERGE); `onConflictOn` is narrowed away.
+    // test('fully-allowed-on-conflict-insert-walks-every-limb-and-reports-allowed', async () => {
+    //     // The OPEN-gate half of the gate-walk pair. Every test above closes ONE gate
+    //     // and asserts the walk bails out; none of them observes the walk running to
+    //     // the END. This populates every limb at once — the set-list, the
+    //     // conflict-target columns, the conflict update-set, the DO UPDATE predicate,
+    //     // the RETURNING projection and all three customizeQuery fragments — with an
+    //     // OPEN gate on each, and asserts the walk reaches the end and reports the
+    //     // query allowed. What the closed-gate siblings cannot detect is a limb whose
+    //     // test is inverted, or a walk that stops reporting allowed at the tail. It is
+    //     // not a bare boolean: every gated leaf carries `allowWhen(true, ...)` so the
+    //     // render must also let each through, and the SQL, params and returned row are
+    //     // all pinned. Seed (org 1, 'mktg-site') is project 1, so the conflict fires
+    //     // and RETURNING gives back id 1.
+    //     ctx.mockNext({ id: 1 })
+    //     await ctx.withRollback(async () => {
+    //         const connection = ctx.conn
+    //         const query = connection.insertInto(tProject)
+    //             .values({
+    //                 organizationId: 1,
+    //                 slug: 'mktg-site',
+    //                 name: connection.const('Gated allowed', 'string').allowWhen(true, 'insert-value gate'),
+    //             })
+    //             .onConflictOn(tProject.organizationId, tProject.slug)
+    //             .doUpdateSet({ name: tProject.name.concat(' / allowed').allowWhen(true, 'on-conflict update-set gate') })
+    //             .where(tProject.name.notEquals('never-matches').allowWhen(true, 'on-conflict where gate'))
+    //             .returning({ id: tProject.id.allowWhen(true, 'insert-returning gate') })
+    //             .customizeQuery({
+    //                 beforeQuery: connection.rawFragment`/* gated ${tProject.id.allowWhen(true, 'before-query gate')} */ `,
+    //                 afterInsertKeyword: connection.rawFragment` /* gated ${tProject.id.allowWhen(true, 'after-insert-keyword gate')} */`,
+    //                 afterQuery: connection.rawFragment` /* gated ${tProject.id.allowWhen(true, 'after-query gate')} */`,
+    //             })
+    //
+    //         expect(isQueryAllowed(query)).toBe(true)
+    //
+    //         const row = await query.executeInsertNoneOrOne()
+    //
+    //         expect(ctx.lastSql).toMatchInlineSnapshot()
+    //         expect(ctx.lastParams).toMatchInlineSnapshot()
+    //         assertType<Exact<typeof row, { id: number } | null>>()
+    //         expect(row).toEqual({ id: 1 })
+    //     })
+    // })
 })

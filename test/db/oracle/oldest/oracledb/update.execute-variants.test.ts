@@ -590,4 +590,54 @@ describe(ctx.label, () => {
         })
     })
 
+    test('update-query-called-twice-returns-the-cached-sql-without-re-binding-params', () => {
+        // The non-executing entry points into the UPDATE emitter. Other tests do call
+        // `query()` and `params()` on a built update, but always once each and always
+        // in that order, so the second-call early return never runs. It matters
+        // because the builder appends into ONE params array: a lost cache would bind
+        // the two values a second time and renumber the placeholders of the second
+        // rendering.
+        //
+        // Nothing is executed, so no row is touched and no rollback is needed.
+        const built = ctx.conn.update(tIssue)
+            .set({ title: 'Cached title', status: 'open' })
+            .where(tIssue.id.equals(1))
+
+        const first = built.query()
+        const second = built.query()
+        expect(second).toBe(first)
+
+        expect(first).toMatchInlineSnapshot(`"update issue set title = :0, status = :1 where id = :2"`)
+        assertType<Exact<typeof first, string>>()
+        expect(built.params()).toMatchInlineSnapshot(`
+          [
+            "Cached title",
+            "open",
+            1,
+          ]
+        `)
+    })
+
+    test('update-params-before-query-builds-on-demand', () => {
+        // `params()` is legal as the FIRST call on an update builder: with nothing
+        // built yet it triggers the build itself rather than handing back the empty
+        // array the builder starts life with. A later `query()` then finds the cache
+        // warm and renders the statement those params belong to. Build-only, so the
+        // seed is untouched.
+        const built = ctx.conn.update(tIssue)
+            .set({ title: 'Params first', status: 'open' })
+            .where(tIssue.id.equals(2))
+
+        expect(built.params()).toMatchInlineSnapshot(`
+          [
+            "Params first",
+            "open",
+            2,
+          ]
+        `)
+
+        const sql = built.query()
+        expect(sql).toMatchInlineSnapshot(`"update issue set title = :0, status = :1 where id = :2"`)
+        assertType<Exact<typeof sql, string>>()
+    })
 })

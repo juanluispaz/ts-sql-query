@@ -409,4 +409,86 @@ describe(ctx.label, () => {
         expect(isQueryAllowed(query)).toBe(false)
     })
 
+    test('insert-from-select-with-gated-source-column-reports-disallowed', async () => {
+        // INSERT … SELECT with the gate on a column of the SOURCE SELECT's
+        // projection, not on the INSERT's own set-list. The walk descends into the
+        // `from(select)` source before it looks at any set value, so a closed gate
+        // there must both report the query disallowed and fire the protection throw
+        // when the source select renders.
+        const connection = ctx.conn
+        let thrown: unknown
+        await ctx.withRollback(async () => {
+            const source = connection.selectFrom(tProject)
+                .where(tProject.id.equals(1))
+                .select({
+                    organizationId: tProject.organizationId,
+                    slug: tProject.slug,
+                    name: tProject.name.allowWhen(false, 'insert-from-select source gate blocks'),
+                })
+
+            const query = connection.insertInto(tProject).from(source)
+
+            expect(isQueryAllowed(query)).toBe(false)
+
+            try {
+                sync(query.executeInsert())
+            } catch (e) {
+                thrown = e
+            }
+        })
+        expect(thrown).toBeInstanceOf(Error)
+        expect((thrown as Error).message).toContain('insert-from-select source gate blocks')
+    })
+
+    test('insert-customize-before-query-with-gated-fragment-throws', async () => {
+        // The INSERT `customizeQuery` walk visits three fragment slots in order:
+        // `beforeQuery`, `afterInsertKeyword`, `afterQuery`. The `afterQuery` slot
+        // is already pinned by `insert-customize-query-with-gated-fragment-throws`;
+        // this isolates the FIRST slot, so a regression that stopped walking just
+        // that limb is visible here and nowhere else.
+        const connection = ctx.conn
+        let thrown: unknown
+        await ctx.withRollback(async () => {
+            const query = connection.insertInto(tProject)
+                .values({ organizationId: 1, name: 'x', slug: 'insert-before-query-gate' })
+                .customizeQuery({
+                    beforeQuery: connection.rawFragment`/* gated ${tProject.id.allowWhen(false, 'insert-before-query gate blocks')} */ `,
+                })
+
+            expect(isQueryAllowed(query)).toBe(false)
+
+            try {
+                sync(query.executeInsert())
+            } catch (e) {
+                thrown = e
+            }
+        })
+        expect(thrown).toBeInstanceOf(Error)
+        expect((thrown as Error).message).toContain('insert-before-query gate blocks')
+    })
+
+    test('insert-customize-after-insert-keyword-with-gated-fragment-throws', async () => {
+        // The MIDDLE fragment slot — the hint position between the INSERT keyword
+        // and the target table. Isolating each slot is what makes a per-limb
+        // regression detectable rather than masked by the other two.
+        const connection = ctx.conn
+        let thrown: unknown
+        await ctx.withRollback(async () => {
+            const query = connection.insertInto(tProject)
+                .values({ organizationId: 1, name: 'x', slug: 'insert-after-insert-keyword-gate' })
+                .customizeQuery({
+                    afterInsertKeyword: connection.rawFragment` /* gated ${tProject.id.allowWhen(false, 'insert-after-insert-keyword gate blocks')} */`,
+                })
+
+            expect(isQueryAllowed(query)).toBe(false)
+
+            try {
+                sync(query.executeInsert())
+            } catch (e) {
+                thrown = e
+            }
+        })
+        expect(thrown).toBeInstanceOf(Error)
+        expect((thrown as Error).message).toContain('insert-after-insert-keyword gate blocks')
+    })
 })

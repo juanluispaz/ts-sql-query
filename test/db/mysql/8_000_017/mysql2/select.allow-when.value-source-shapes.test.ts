@@ -706,4 +706,250 @@ describe(ctx.label, () => {
 
         if (!ctx.realDbEnabled) expect(rows).toEqual(expected)
     })
+
+    test('in-with-gated-receiver-fires-and-introspects-disallowed', async () => {
+        // The gate sits on the RECEIVER of `.in([...])`, so the walk bails out
+        // before it ever reaches the value list — the arm the array-element tests
+        // below cannot reach.
+        const connection = ctx.conn
+        const query = connection.selectFrom(tIssue)
+            .where(tIssue.id.allowWhen(false, 'in-list receiver gate blocks').in([1, 2]))
+            .select({ id: tIssue.id })
+
+        expect(isQueryAllowed(query)).toBe(false)
+
+        let thrown: unknown
+        try {
+            await query.executeSelectMany()
+        } catch (e) {
+            thrown = e
+        }
+        expect(thrown).toBeInstanceOf(Error)
+        expect((thrown as Error).message).toContain('in-list receiver gate blocks')
+    })
+
+    test('in-n-with-gated-column-in-the-value-list-fires-and-introspects-disallowed', async () => {
+        // The gate is INSIDE the operand list rather than on the receiver.
+        // `.in([...])` accepts plain values only, so the variadic `.inN(...)` is
+        // the public door that admits a value source among the members, and the
+        // walk has to iterate the list to find the gate.
+        const connection = ctx.conn
+        const query = connection.selectFrom(tIssue)
+            .where(tIssue.id.inN(tIssue.number.allowWhen(false, 'in-list operand gate blocks'), 2))
+            .select({ id: tIssue.id })
+
+        expect(isQueryAllowed(query)).toBe(false)
+
+        let thrown: unknown
+        try {
+            await query.executeSelectMany()
+        } catch (e) {
+            thrown = e
+        }
+        expect(thrown).toBeInstanceOf(Error)
+        expect((thrown as Error).message).toContain('in-list operand gate blocks')
+    })
+
+    test('in-n-with-allowed-column-in-the-value-list-passes', async () => {
+        // Favourable twin — the walk runs the whole member list to the end.
+        // `id in (number, 2)` over the seed (id, number): (1,1) and (2,2) match,
+        // (3,1) and (4,1) do not.
+        const expected = [{ id: 1 }, { id: 2 }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        const query = connection.selectFrom(tIssue)
+            .where(tIssue.id.inN(tIssue.number.allowWhen(true, 'in-list operand gate'), 2))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+
+        expect(isQueryAllowed(query)).toBe(true)
+
+        const rows = await query.executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where id in (\`number\`, ?) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('is-with-gated-column-operand-fires-and-introspects-disallowed', async () => {
+        // `colA.is(colB)` is NULL-safe equality, and the gate is on the OPERAND,
+        // so the walk has to evaluate the right-hand side to see it.
+        const connection = ctx.conn
+        const query = connection.selectFrom(tIssue)
+            .where(tIssue.assigneeId.is(tIssue.parentId.allowWhen(false, 'is-operand gate blocks')))
+            .select({ id: tIssue.id })
+
+        expect(isQueryAllowed(query)).toBe(false)
+
+        let thrown: unknown
+        try {
+            await query.executeSelectMany()
+        } catch (e) {
+            thrown = e
+        }
+        expect(thrown).toBeInstanceOf(Error)
+        expect((thrown as Error).message).toContain('is-operand gate blocks')
+    })
+
+    test('is-with-allowed-column-operand-passes', async () => {
+        // Favourable twin. Seeded assignee_id is (1, 2, NULL, 3) and parent_id is
+        // NULL on every row, so only issue 3 matches NULL against NULL.
+        const expected = [{ id: 3 }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        const query = connection.selectFrom(tIssue)
+            .where(tIssue.assigneeId.is(tIssue.parentId.allowWhen(true, 'is-operand gate')))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+
+        expect(isQueryAllowed(query)).toBe(true)
+
+        const rows = await query.executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where assignee_id <=> parent_id order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('in-if-value-with-empty-array-bypasses-the-gate-on-the-receiver', async () => {
+        // An EMPTY array counts as "no value", so the whole comparison is elided:
+        // the WHERE clause disappears and the gated receiver is never rendered,
+        // hence never fires. The walk must mirror that elision exactly and answer
+        // ALLOWED even though the receiver carries a closed gate — a walk that
+        // looked at the gate first would report the query disallowed while the
+        // builder happily emits it.
+        const expected = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        const query = connection.selectFrom(tIssue)
+            .where(tIssue.priority.allowWhen(false, 'in-if-value receiver gate is never reached').inIfValue([]))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+
+        expect(isQueryAllowed(query)).toBe(true)
+
+        const rows = await query.executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('concat-if-value-on-gated-string-fires-and-introspects-disallowed', async () => {
+        // With the argument present the concatenation is not ignored, so the
+        // closed gate on the receiver propagates.
+        const connection = ctx.conn
+        const query = connection.selectFrom(tIssue)
+            .select({
+                label: tIssue.title.allowWhen(false, 'concat-if-value gate blocks').concatIfValue(' [issue]'),
+            })
+
+        expect(isQueryAllowed(query)).toBe(false)
+
+        let thrown: unknown
+        try {
+            await query.executeSelectMany()
+        } catch (e) {
+            thrown = e
+        }
+        expect(thrown).toBeInstanceOf(Error)
+        expect((thrown as Error).message).toContain('concat-if-value gate blocks')
+    })
+
+    test('concat-if-value-on-allowed-string-passes', async () => {
+        // Favourable twin — the open gate lets the walk continue into the operand
+        // and report the whole expression allowed. Issue 1's title is
+        // 'Update hero copy'.
+        const expected = [{ label: 'Update hero copy [issue]' }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        const query = connection.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                label: tIssue.title.allowWhen(true, 'concat-if-value gate').concatIfValue(' [issue]'),
+            })
+
+        expect(isQueryAllowed(query)).toBe(true)
+
+        const rows = await query.executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select concat(title, ?) as label from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            " [issue]",
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ label: string }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('replace-all-if-value-with-gated-second-operand-fires-and-introspects-disallowed', async () => {
+        // Putting the gate on the SECOND operand forces the walk through the whole
+        // conjunction: receiver (open), operand 1 (a literal), and only then
+        // operand 2.
+        const connection = ctx.conn
+        const query = connection.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                label: tIssue.title.replaceAllIfValue(
+                    'hero',
+                    tIssue.status.allowWhen(false, 'replace-all-if-value operand gate blocks'),
+                ),
+            })
+
+        expect(isQueryAllowed(query)).toBe(false)
+
+        let thrown: unknown
+        try {
+            await query.executeSelectMany()
+        } catch (e) {
+            thrown = e
+        }
+        expect(thrown).toBeInstanceOf(Error)
+        expect((thrown as Error).message).toContain('replace-all-if-value operand gate blocks')
+    })
+
+    test('replace-all-if-value-with-allowed-second-operand-passes', async () => {
+        // Favourable twin. Issue 1: title 'Update hero copy', status 'open', so
+        // replacing 'hero' with the status yields 'Update open copy'.
+        const expected = [{ id: 1, label: 'Update open copy' }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        const query = connection.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                label: tIssue.title.replaceAllIfValue(
+                    'hero',
+                    tIssue.status.allowWhen(true, 'replace-all-if-value operand gate'),
+                ),
+            })
+
+        expect(isQueryAllowed(query)).toBe(true)
+
+        const rows = await query.executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(title, ?, \`status\`) as label from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "hero",
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number, label: string }>>>()
+        expect(rows).toEqual(expected)
+    })
 })

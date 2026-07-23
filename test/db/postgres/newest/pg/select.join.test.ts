@@ -343,4 +343,116 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { id: number; projectName: string }>>()
         expect(row).toEqual(expected)
     })
+
+
+    test('optional-join-kept-when-only-having-references-it', async () => {
+        // The required-table discovery loop runs only when a query carries an
+        // `optional*Join`, and it seeds the required set from the projection, the
+        // WHERE, the GROUP BY, the HAVING, the non-optional joins and the
+        // customization. No test in the matrix combines an optional join with a
+        // HAVING, so the HAVING seeding has never run. Here `assignee` is referenced
+        // ONLY from the HAVING: the projection and GROUP BY are pure `tIssue`, so if
+        // HAVING stopped seeding, the LEFT JOIN would be dropped from FROM while
+        // `count(app_user.id)` stayed in the HAVING (invalid SQL). Seed: issues 1, 2
+        // (project 1) are assigned; issue 3 (project 2) has a NULL assignee so its
+        // group counts 0 and is filtered; issue 4 (project 3) is assigned.
+        const expected = [
+            { projectId: 1, total: 2 },
+            { projectId: 3, total: 1 },
+        ]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+        const assignee = tAppUser.forUseInLeftJoin()
+
+        const result = await connection.selectFrom(tIssue)
+            .optionalLeftJoin(assignee).on(assignee.id.equals(tIssue.assigneeId))
+            .select({
+                projectId: tIssue.projectId,
+                total: connection.count(tIssue.id),
+            })
+            .groupBy('projectId')
+            .having(connection.count(assignee.id).greaterThan(0))
+            .orderBy('projectId')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.project_id as "projectId", count(issue.id) as total from issue left join app_user on app_user.id = issue.assignee_id group by issue.project_id having count(app_user.id) > $1 order by "projectId""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            0,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ projectId: number, total: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('optional-join-discovery-skips-a-join-with-no-on-condition', () => {
+        // The discovery loop walks the NON-optional joins to seed the required set,
+        // but a join opened with `dynamicOn()` and never given a condition leaves its
+        // `on` slot empty — the walk must skip it instead of dereferencing an absent
+        // value source. Only `optionalJoin`-carrying queries run the loop, so the
+        // ON-less join is paired with an optional left join whose column IS projected
+        // (that join must still be kept).
+        //
+        // The query is BUILT, never executed: a bare `join <table>` with no ON is a
+        // cross join that PostgreSQL / Oracle / SQL Server reject at parse time, and
+        // the subject is the discovery loop's emission decision, not the execution.
+        // Reading `query()` / `params()` captures the emission without dispatching
+        // anything. A regression that dropped the empty-`on` guard would throw here
+        // instead of returning the snapshot.
+        const connection = ctx.conn
+        const assignee = tAppUser.forUseInLeftJoin()
+
+        const built = connection.selectFrom(tIssue)
+            .join(tProject).dynamicOn()
+            .optionalLeftJoin(assignee).on(assignee.id.equals(tIssue.assigneeId))
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                assigneeName: assignee.fullName,
+            })
+
+        const sql = built.query()
+        expect(sql).toMatchInlineSnapshot(`"select issue.id as id, app_user.full_name as "assigneeName" from issue join project left join app_user on app_user.id = issue.assignee_id where issue.id = $1"`)
+        expect(built.params()).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof sql, string>>()
+    })
+
+    test('optional-join-kept-when-only-a-customize-query-fragment-references-it', async () => {
+        // The last seeding source of the discovery loop: the `customizeQuery`
+        // fragments. No test in the matrix combines an optional join with a
+        // `customizeQuery`, so that branch has never run. `assignee` is referenced
+        // ONLY from the `afterOrderByItems` fragment — the projection and WHERE are
+        // pure `tIssue` — so if the customization stopped seeding, the LEFT JOIN
+        // would be elided from FROM while `app_user.full_name` stayed in the ORDER BY.
+        // Issues 1 and 2 are both assigned, so the join adds no rows and the
+        // `orderBy('id')` primary key keeps the value deterministic.
+        const expected = [{ id: 1 }, { id: 2 }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+        const assignee = tAppUser.forUseInLeftJoin()
+
+        const result = await connection.selectFrom(tIssue)
+            .optionalLeftJoin(assignee).on(assignee.id.equals(tIssue.assigneeId))
+            .where(tIssue.id.in([1, 2]))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .customizeQuery({
+                afterOrderByItems: connection.rawFragment`${assignee.fullName} asc`,
+            })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue.id as id from issue left join app_user on app_user.id = issue.assignee_id where issue.id in ($1, $2) order by id, app_user.full_name asc"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+        expect(result).toEqual(expected)
+    })
 })

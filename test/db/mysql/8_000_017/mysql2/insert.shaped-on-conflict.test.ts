@@ -526,4 +526,158 @@ describe(ctx.label, () => {
         })
     })
     */
+
+
+    // NOT-APPLICABLE: MySQL uses the bare onConflictDoUpdateSet form (`.onConflictOn(...)` / `.onConflictOnConstraint(...)` are not typed on `MySqlConnection`; the `ON DUPLICATE KEY UPDATE` grammar takes no column list, no named-constraint target and no WHERE clause).
+    /*
+    test('shaped-on-conflict-do-update-set-skips-payload-keys-outside-the-shape', async () => {
+        // Targeted `onConflictOn(cols).doUpdateSet({...})` fed a payload wider than
+        // the shape. Only the declared `projectName` reaches the clause, so the
+        // emitted `do update set` names exactly one column. `archivedAt` is a REAL
+        // column left out of the shape — without the filter it would silently be
+        // added. Seed (org 1, 'mktg-site') exists, so the conflict fires.
+        const conflictPayload = {
+            projectName: 'Renamed via shape',
+            archivedAt: new Date(Date.UTC(2024, 5, 15, 8, 30, 0)),
+            notInShape: 'csrf-token-from-the-request-body',
+        }
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.insertInto(tProject)
+                .shapedAs({ orgId: 'organizationId', projectName: 'name', projectSlug: 'slug' })
+                .set({ orgId: 1, projectName: 'ignored', projectSlug: 'mktg-site' })
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doUpdateSet(conflictPayload)
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(1)
+        })
+    })
+    */
+
+
+    // NOT-APPLICABLE: MySQL uses the bare onConflictDoUpdateSet form (`.onConflictOn(...)` / `.onConflictOnConstraint(...)` are not typed on `MySqlConnection`; the `ON DUPLICATE KEY UPDATE` grammar takes no column list, no named-constraint target and no WHERE clause).
+    /*
+    test('shaped-on-conflict-do-update-set-if-value-skips-payload-keys-outside-the-shape', async () => {
+        // The value-gated twin. `doUpdateSetIfValue` tests the shape BEFORE it tests
+        // whether a value is present, so both surplus keys carry real values and are
+        // dropped by the shape, not the value gate. `projectName` survives both.
+        const conflictPayload = {
+            projectName: 'Renamed via shape',
+            archivedAt: new Date(Date.UTC(2024, 5, 15, 8, 30, 0)),
+            notInShape: 'csrf-token-from-the-request-body',
+        }
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.insertInto(tProject)
+                .shapedAs({ orgId: 'organizationId', projectName: 'name', projectSlug: 'slug' })
+                .set({ orgId: 1, projectName: 'ignored', projectSlug: 'mktg-site' })
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doUpdateSetIfValue(conflictPayload)
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(1)
+        })
+    })
+    */
+
+
+    // NOT-APPLICABLE: MySQL uses the bare onConflictDoUpdateSet form (`.onConflictOn(...)` / `.onConflictOnConstraint(...)` are not typed on `MySqlConnection`; the `ON DUPLICATE KEY UPDATE` grammar takes no column list, no named-constraint target and no WHERE clause).
+    /*
+    test('shaped-on-conflict-do-update-set-declaring-the-key-in-the-shape-widens-the-update-list', async () => {
+        // The control: the SAME payload, but the shape now DECLARES `archivedAt`, so
+        // the emitted `do update set` gains a second assignment. The only difference
+        // from the first test is the shape declaration, which is what makes the
+        // shrink there an observation rather than a snapshot of whatever the builder
+        // happens to do. `notInShape` is still not a column, so it stays out.
+        const conflictPayload = {
+            projectName: 'Renamed via shape',
+            archivedAt: new Date(Date.UTC(2024, 5, 15, 8, 30, 0)),
+            notInShape: 'csrf-token-from-the-request-body',
+        }
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.insertInto(tProject)
+                .shapedAs({ orgId: 'organizationId', projectName: 'name', projectSlug: 'slug', archivedAt: 'archivedAt' })
+                .set({ orgId: 1, projectName: 'ignored', projectSlug: 'mktg-site' })
+                .onConflictOn(tProject.organizationId, tProject.slug)
+                .doUpdateSet(conflictPayload)
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(1)
+        })
+    })
+    */
+
+    test('shaped-bare-on-conflict-do-update-set-skips-payload-keys-outside-the-shape', async () => {
+        // The BARE (no-target) entry point — a distinct method with its own copy of
+        // the shape filter. A FRESH slug means no conflict fires: the update-set
+        // clause is still emitted (the observable), and the affected count is a
+        // deterministic 1 on every engine.
+        const conflictPayload = {
+            projectName: 'Renamed via shape',
+            archivedAt: new Date(Date.UTC(2024, 5, 15, 8, 30, 0)),
+            notInShape: 'csrf-token-from-the-request-body',
+        }
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.insertInto(tProject)
+                .shapedAs({ orgId: 'organizationId', projectName: 'name', projectSlug: 'slug' })
+                .set({ orgId: 1, projectName: 'Shape filter fresh', projectSlug: 'shape-filter-fresh' })
+                .onConflictDoUpdateSet(conflictPayload)
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, \`name\`, slug) values (?, ?, ?) on duplicate key update \`name\` = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "Shape filter fresh",
+                "shape-filter-fresh",
+                "Renamed via shape",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(1)
+        })
+    })
+
+    test('shaped-bare-on-conflict-do-update-set-if-value-skips-payload-keys-outside-the-shape', async () => {
+        // The bare value-gated entry — the fourth copy of the shape filter. Both
+        // surplus keys carry real values, so the shape test (first) is the only
+        // thing that can drop them. Fresh slug again for the deterministic count.
+        const conflictPayload = {
+            projectName: 'Renamed via shape',
+            archivedAt: new Date(Date.UTC(2024, 5, 15, 8, 30, 0)),
+            notInShape: 'csrf-token-from-the-request-body',
+        }
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.insertInto(tProject)
+                .shapedAs({ orgId: 'organizationId', projectName: 'name', projectSlug: 'slug' })
+                .set({ orgId: 1, projectName: 'Shape filter fresh', projectSlug: 'shape-filter-fresh-if-value' })
+                .onConflictDoUpdateSetIfValue(conflictPayload)
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, \`name\`, slug) values (?, ?, ?) on duplicate key update \`name\` = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "Shape filter fresh",
+                "shape-filter-fresh-if-value",
+                "Renamed via shape",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            expect(affected).toBe(1)
+        })
+    })
 })

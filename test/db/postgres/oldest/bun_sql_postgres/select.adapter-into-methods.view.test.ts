@@ -518,4 +518,37 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { id: number; len?: number }>>()
         expect(row).toEqual(expected)
     })
+
+    test('project-name-replace-all-with-bracketed-find-string-inherits-the-operands-adapter', async () => {
+        // The mirror of every test above: here the RECEIVER carries no adapter and
+        // neither does the find-string, so the adapter arrives from the THIRD
+        // operand. The result leaf resolves its adapter by asking the receiver
+        // first, then each operand in turn, so the projection inherits the
+        // bracketing adapter from the replacement column and reads back bracketed.
+        //
+        // The inherited adapter is invisible in the SQL — it lives purely on the
+        // read path — so the VALUE is the witness. Release 1 belongs to
+        // 'Marketing site' and its version is '1.2.0', so replacing 'site' with the
+        // version genuinely rewrites the string, and the bracketing on top is what
+        // the inherited adapter adds.
+        const expected = { id: 1, rp: '[Marketing 1.2.0]' }
+        ctx.mockNext({ id: 1, rp: 'Marketing 1.2.0' })
+        const row = await ctx.conn.selectFrom(vReleaseOverview)
+            .where(vReleaseOverview.id.equals(1))
+            .select({
+                id: vReleaseOverview.id,
+                rp: vReleaseOverview.projectName.replaceAll('site', vReleaseOverview.versionBracketed),
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(project_name, $1, version_bracketed) as rp from release_overview where id = $2"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "site",
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number, rp: string }>>()
+        expect(row).toEqual(expected)
+    })
 })

@@ -436,4 +436,49 @@ describe(ctx.label, () => {
             expect(String(caught)).toMatch(/MAXIMUM_ROWS_EXCEEDED|deleted more/)
         })
     })
+
+    test('delete-query-called-twice-returns-the-cached-sql-without-re-binding-params', () => {
+        // The DELETE builder's `query()` / `params()` accessors are reached by no
+        // other test in the matrix, so neither the cache nor the build-on-demand path
+        // has ever run on this builder. `query()` must memoise: the builder appends
+        // into ONE params array, so a lost cache would bind the two ids a second time
+        // and renumber the placeholders of the second rendering.
+        //
+        // Nothing is executed — no row is deleted and no rollback is needed, which
+        // is why seeded ids are safe to name here.
+        const built = ctx.conn.deleteFrom(tIssue)
+            .where(tIssue.id.in([1, 2]))
+
+        const first = built.query()
+        const second = built.query()
+        expect(second).toBe(first)
+
+        expect(first).toMatchInlineSnapshot(`"delete from issue where id in ($1, $2)"`)
+        assertType<Exact<typeof first, string>>()
+        expect(built.params()).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+          ]
+        `)
+    })
+
+    test('delete-params-before-query-builds-on-demand', () => {
+        // `params()` as the FIRST call on a delete builder: with nothing built yet it
+        // triggers the build rather than handing back the empty array the builder
+        // starts life with. A later `query()` finds the cache warm and renders the
+        // statement those params belong to. Build-only, so the seed is untouched.
+        const built = ctx.conn.deleteFrom(tIssue)
+            .where(tIssue.id.equals(2))
+
+        expect(built.params()).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+
+        const sql = built.query()
+        expect(sql).toMatchInlineSnapshot(`"delete from issue where id = $1"`)
+        assertType<Exact<typeof sql, string>>()
+    })
 })

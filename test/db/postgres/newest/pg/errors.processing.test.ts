@@ -92,4 +92,21 @@ describe(ctx.label, () => {
         }
         expect(reasonOf(caught)).toBe('GROUP_BY_COLUMN_NOT_IN_SELECT')
     })
+
+
+    test('delete-where-called-twice-throws-illegal-state', () => {
+        // The DELETE counterpart of the UPDATE where-twice guard: holding the
+        // pre-WHERE stage and calling `.where(...)` twice reaches the
+        // `if (this.__where)` re-entry guard in DeleteQueryBuilder.
+        const q = ctx.conn.deleteFrom(tIssue)
+        q.where(tIssue.id.equals(1))
+        let caught: unknown
+        try {
+            q.where(tIssue.id.equals(2))
+        } catch (e) { caught = e }
+        expect(caught).toBeInstanceOf(TsSqlError)
+        const r = caught instanceof TsSqlError ? caught.errorReason : undefined
+        expect(r?.reason).toBe('INTERNAL')
+        expect(r && r.reason === 'INTERNAL' ? r.internalErrorType : undefined).toBe('illegal state')
+    })
 })

@@ -18,7 +18,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tAppUser, tIssue, tProject } from '../../domain/connection.js'
+import { tAppUser, tIssue, tProject, tProjectReview } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -764,4 +764,34 @@ describe(ctx.label, () => {
         })
     })
     */
+
+    test('update-from-table-then-two-inner-joins-on-from-tables', async () => {
+        // Two joins after `.from(...)`: the SECOND `.on(...)` finds `__joins` already
+        // populated by the first join's `on` and takes its FALSE arm — the branch a
+        // single-join `UPDATE … FROM` never reaches. Both joins must appear in the
+        // emitted SQL. app_user links to issue's assignee; project_review links to
+        // issue's project. Update project 1 to its issue-1 assignee's name (issue 1 →
+        // project 1, assignee 1, and project 1 has a review row → 1 row updated).
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.update(tProject)
+                .from(tIssue)
+                .innerJoin(tAppUser).on(tAppUser.id.equals(tIssue.assigneeId))
+                .innerJoin(tProjectReview).on(tProjectReview.projectId.equals(tIssue.projectId))
+                .set({ name: tAppUser.fullName })
+                .where(tProject.id.equals(tIssue.projectId))
+                    .and(tIssue.id.equals(1))
+                .executeUpdate()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project, issue inner join app_user on app_user.id = issue.assignee_id inner join project_review on project_review.project_id = issue.project_id set project.\`name\` = app_user.full_name where project.id = issue.project_id and issue.id = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            if (ctx.realDbEnabled) expect(typeof affected).toBe('number')
+            else expect(affected).toBe(1)
+        })
+    })
 })

@@ -229,14 +229,25 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                         }
                     })
                 } catch (e) {
-                    this.popTransactionStack()
+                    // A body that throws SYNCHRONOUSLY (a non-async callback) must still
+                    // leave through a REJECTED PROMISE, never through a synchronous throw:
+                    // `executeInTransaction`'s contract is `fn: () => Promise<T>` and every
+                    // query runner calls `fn()` bare, so a synchronous throw escapes past
+                    // the rollback (managed runners) or past the cleanup that clears the
+                    // driver's transaction handle (postgres.js / bun), leaving the
+                    // transaction open — the next one then fails as a nested transaction.
+                    // Rejecting instead routes this body through the very same path an
+                    // async body's rejection takes, including `popTransactionStack()` at
+                    // the tail of the chain below.
+                    let error
                     if (e instanceof TsSqlQueryExecutionError) {
-                        throw e.attachTransactionSource(e)
+                        error = e.attachTransactionSource(e)
                     } else if (this.queryRunner.isSqlError(e)) {
-                        throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e).attachTransactionSource(source)
+                        error = new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e).attachTransactionSource(source)
                     } else {
-                        throw e
+                        error = e
                     }
+                    return this.queryRunner.createRejectedPromise<T>(error)
                 }
             }, this.queryRunner, opts).then((result) => {
                 const onCommit = this.onCommit

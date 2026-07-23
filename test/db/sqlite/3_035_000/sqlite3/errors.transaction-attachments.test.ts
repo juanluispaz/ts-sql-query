@@ -247,6 +247,33 @@ describe(ctx.label, () => {
         }
     })
 
+    test('transaction-body-throwing-synchronously-leaves-no-open-transaction', async () => {
+        // What the two synchronous-body tests around this one assert is WHICH error
+        // comes back; none of them asks what the CONNECTION looks like afterwards. A
+        // non-async body throws before `transaction(...)` ever holds a promise, and
+        // that failure still has to travel the same route a rejection does: leaving as
+        // a synchronous throw skips the rollback — and the cleanup that clears the
+        // driver's transaction handle — so the transaction stays open and every later
+        // one on the connection fails as a nested transaction. Both halves are pinned:
+        // no transaction is left active, and a following transaction still runs.
+        const connection = ctx.conn
+
+        await ctx.withReseed(async () => {
+            try {
+                await connection.transaction(() => {
+                    throw bodyError('boom-sync-leaves-transaction-open')
+                })
+            } catch {
+                // Which error surfaces is the sibling tests' contract, not this one's.
+            }
+
+            expect(connection.isTransactionActive()).toBe(false)
+
+            const reused = await connection.transaction(() => 'reused')
+            expect(reused).toBe('reused')
+        })
+    })
+
     test('transaction-body-throws-application-error-synchronously-propagates-raw-unwrapped', async () => {
         // The synchronous twin of the ApplicationError case: an application
         // error thrown from a non-async body is still handed back untouched,

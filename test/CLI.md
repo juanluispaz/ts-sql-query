@@ -617,6 +617,33 @@ npm run tests -- --run-connectors wasm --wasm --coverage
 npm run tests -- --coverage
 ```
 
+### Memory: keep `--report` off a full-matrix coverage run
+
+The `coverage:*` package scripts deliberately do **not** pass `--report`.
+`--report --report-format=html` (the test-execution SPA, `@vitest/ui`)
+serialises **every** test result in one shot via `flatted.stringify`
+(a `JSON.stringify` with a replacer, backed by a `Map` of every seen
+object). At the matrix's current size (~258k tests) that single
+serialisation blows past node's ~4 GB default old-space and dies with
+`FATAL … CALL_AND_RETRY_LAST Allocation failed - JavaScript heap out of
+memory` in `JsonStringify`/`MapGrow` — after the whole run already
+passed. The coverage HTML (istanbul, one small `*.ts.html` per source
+file) is not the culprit and is all you need to see what's uncovered, so
+the coverage scripts emit that alone.
+
+The coverage pass is a single un-shardable runner invocation, so it also
+gets an automatic `--max-old-space-size=8192` bump (node/vitest only).
+Export your own `NODE_OPTIONS=--max-old-space-size=<MB>` to override it
+for the heaviest full-real `--docker --wasm` coverage runs.
+
+For **src** coverage specifically, `coverage:fast` (mock-only, parallel)
+is enough: the only source that runs differently under a real DB is
+`src/queryRunners/**`, which is **excluded** from the coverage scope (see
+"Scope" below). The `--docker` / `--wasm` coverage variants therefore add
+coverage only to out-of-scope driver code while costing far more time and
+memory — reach for them only when you specifically need a real-backend
+pass, not to see uncovered `src/`.
+
 ### Vitest is the recommended path for coverage
 
 Bun ships a minimal coverage facility — lcov/text only, line-level data

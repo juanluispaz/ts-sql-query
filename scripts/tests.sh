@@ -1016,8 +1016,27 @@ if [ "$COVERAGE" = "on" ]; then
     if [ "$runtime" = "npm" ] && [ "$UI" = "on" ]; then COV_FLAGS+=(--ui); fi
     COV_FLAGS+=("${NARROWING_FLAGS[@]}")
 
+    # In SEQUENTIAL mode the coverage pass is a single worker that holds
+    # the WHOLE selected matrix's module graph (isolate:false) plus the
+    # accumulated V8 coverage at once, then merges + writes it at the end.
+    # Give node headroom over the ~4 GB default old-space so that final
+    # merge/write never hits "FATAL … heap out of memory" — the same
+    # reason shard 1 gets a bump. NOT applied in parallel mode: there each
+    # fork holds only its 1/N slice (the default heap is plenty), and an
+    # 8 GB ceiling on EVERY fork would over-commit physical RAM and invite
+    # the OS OOM-killer. Node/vitest only (bun ignores NODE_OPTIONS heap
+    # flags and manages its own memory), and skipped when the caller
+    # already pinned a heap size in NODE_OPTIONS (their value wins — the
+    # escape hatch for the heaviest full-real `--docker --wasm` coverage
+    # runs, all of which are sequential). Restored right after so the bump
+    # doesn't leak downstream.
+    cov_saved_node_options="${NODE_OPTIONS:-}"
+    if [ "$runtime" = "npm" ] && [ "$MODE" = "sequential" ] && [[ "${NODE_OPTIONS:-}" != *max-old-space-size* ]]; then
+        export NODE_OPTIONS="${NODE_OPTIONS:+$NODE_OPTIONS }--max-old-space-size=8192"
+    fi
     run_phase "$runtime" "$MODE" "${MAIN_PATHS[@]}" --coverage "${COV_FLAGS[@]}" "${EXTRA_ARGS[@]}"
     ec=$?
+    if [ -n "$cov_saved_node_options" ]; then export NODE_OPTIONS="$cov_saved_node_options"; else unset NODE_OPTIONS; fi
     if [ "$ec" -eq 0 ]; then
         finalize_report "$runtime" "$OPEN_AFTER" "${COVERAGE_FORMAT[@]}" || true
     fi

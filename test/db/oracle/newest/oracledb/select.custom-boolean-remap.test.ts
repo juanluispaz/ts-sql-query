@@ -796,13 +796,13 @@ describe(ctx.label, () => {
     // the remaining elide branches, paren nesting, and double-remap and/or. ====
 
     // ── Group 1: isNull / isNotNull on the REQUIRED-string custom-boolean
-    // adapters (verified 'Y'/'N', published 't'/'f'). The receiver remaps to the
-    // adapter predicate, then `is [not] null` wraps THAT — `(verified = 'Y') is
-    // null`. Neither column is ever NULL in the seed, so isNull matches nothing
-    // and isNotNull matches every row.
+    // adapters (verified 'Y'/'N', published 't'/'f'). The null check reads the
+    // stored column rather than the adapter predicate the receiver remaps to —
+    // `verified is null`. Neither column is ever NULL in the seed, so isNull
+    // matches nothing and isNotNull matches every row.
 
     test('is-null-on-verified-required-custom-boolean-string-adapter', async () => {
-        // `verified.isNull()` → `(verified = 'Y') is null`. verified is required and
+        // `verified.isNull()` → `verified is null`. verified is required and
         // never NULL, so no organization matches.
         const expected: Array<{ id: number }> = []
         ctx.mockNext(expected)
@@ -811,14 +811,14 @@ describe(ctx.label, () => {
             .select({ id: tOrganization.id })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from "organization" where case when verified = 'Y' then 1 else 0 end is null order by "id""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from "organization" where verified is null order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
         expect(rows).toEqual(expected)
     })
 
     test('is-not-null-on-verified-required-custom-boolean-string-adapter', async () => {
-        // `verified.isNotNull()` → `(verified = 'Y') is not null`. Every organization
+        // `verified.isNotNull()` → `verified is not null`. Every organization
         // carries a value, so both rows match.
         const expected = [{ id: 1 }, { id: 2 }]
         ctx.mockNext(expected)
@@ -827,14 +827,14 @@ describe(ctx.label, () => {
             .select({ id: tOrganization.id })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from "organization" where case when verified = 'Y' then 1 else 0 end is not null order by "id""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from "organization" where verified is not null order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
         expect(rows).toEqual(expected)
     })
 
     test('is-null-on-published-required-custom-boolean-string-adapter', async () => {
-        // `published.isNull()` → `(published = 't') is null`. published is required and
+        // `published.isNull()` → `published is null`. published is required and
         // never NULL, so no project matches.
         const expected: Array<{ id: number }> = []
         ctx.mockNext(expected)
@@ -843,14 +843,14 @@ describe(ctx.label, () => {
             .select({ id: tProject.id })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project where case when published = 't' then 1 else 0 end is null order by "id""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project where published is null order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
         expect(rows).toEqual(expected)
     })
 
     test('is-not-null-on-published-required-custom-boolean-string-adapter', async () => {
-        // `published.isNotNull()` → `(published = 't') is not null`. Every project
+        // `published.isNotNull()` → `published is not null`. Every project
         // carries a value, so all four rows match.
         const expected = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]
         ctx.mockNext(expected)
@@ -859,7 +859,7 @@ describe(ctx.label, () => {
             .select({ id: tProject.id })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project where case when published = 't' then 1 else 0 end is not null order by "id""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from project where published is not null order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
         expect(rows).toEqual(expected)

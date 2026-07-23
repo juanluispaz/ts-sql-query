@@ -745,6 +745,9 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     }
     override _isNull(params: any[], valueSource: ToSql): string {
         if (isColumn(valueSource)) {
+            // The null state lives in the stored column, not in the 0/1 expression a
+            // CustomBooleanTypeAdapter column remaps to (which is never null for a
+            // required adapter), so the null check must read the raw column name.
             return this._appendRawColumnName(valueSource, params) + ' is null'
         } else if (isValueSource(valueSource)) {
             const valueSourcePrivate = __getValueSourcePrivate(valueSource)
@@ -767,9 +770,8 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     }
     override _isNotNull(params: any[], valueSource: ToSql): string {
         if (isColumn(valueSource)) {
-            this._appendRawColumnName(valueSource, params) + ' is not null'
-        }
-        if (isValueSource(valueSource)) {
+            return this._appendRawColumnName(valueSource, params) + ' is not null'
+        } else if (isValueSource(valueSource)) {
             const valueSourcePrivate = __getValueSourcePrivate(valueSource)
             if (valueSourcePrivate.__isBooleanForCondition) {
                 if (valueSourcePrivate.__optionalType === 'required') {

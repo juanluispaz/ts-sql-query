@@ -75,63 +75,7 @@ entry says under *Current workaround in the suite* why the matrix can't see it.
 A `none` there is not "nothing to do": it means no test would notice a
 regression either.
 
-## `isNull()` / `isNotNull()` on a custom-boolean column: three `isColumn` branches discard their result (missing `return`)
-
-**Where**: three sibling methods have an `isColumn(valueSource)` branch whose
-result is **computed and thrown away** — the `return` keyword is missing, so the
-block is a dead expression statement:
-
-- [`src/sqlBuilders/SqlServerSqlBuilder.ts`](../src/sqlBuilders/SqlServerSqlBuilder.ts) line 769–771 — `_isNotNull`
-- [`src/sqlBuilders/OracleSqlBuilder.ts`](../src/sqlBuilders/OracleSqlBuilder.ts) line ~1233 — `_isNull`
-- [`src/sqlBuilders/OracleSqlBuilder.ts`](../src/sqlBuilders/OracleSqlBuilder.ts) line ~1250 — `_isNotNull`
-
-```ts
-override _isNotNull(params: any[], valueSource: ToSql): string {
-    if (isColumn(valueSource)) {
-        this._appendRawColumnName(valueSource, params) + ' is not null'   // <-- no `return`
-    }
-```
-
-`SqlServerSqlBuilder._isNull` (line 746–748) is the correct twin — it does
-`return this._appendRawColumnName(...) + ' is null'`. The asymmetry between the
-two is what makes this a typo rather than intent.
-
-**Reproduction**: a column receiver falls through to the generic
-`this._appendSqlParenthesis(valueSource, params, false) + ' is (not) null'`,
-which routes `column.__toSql` → `AbstractSqlBuilder._appendColumnName`. For a
-**boolean column carrying a `CustomBooleanTypeAdapter`** that method does *not*
-return the raw name — it wraps it (`AbstractSqlBuilder.ts:302-304`):
-
-```ts
-return '(' + this._appendRawColumnName(column, params) + ' = ' + this._appendLiteralValue(typeAdapter.trueValue, params) + ')'
-```
-
-So on SQL Server, `tOrganization.verified` (declared with
-`CustomBooleanTypeAdapter('Y','N')`) emits asymmetrically:
-
-```ts
-connection.selectFrom(tOrganization).where(tOrganization.verified.isNull())     // verified is null
-connection.selectFrom(tOrganization).where(tOrganization.verified.isNotNull())  // (verified = 'Y') is not null   <-- extra wrapper + extra literal
-```
-
-Oracle emits the wrapped form for **both** `isNull()` and `isNotNull()`. For a
-plain (non-adapter) column the fall-through happens to produce the same text, so
-the defect is invisible there. The two forms also appear to agree semantically on
-three-valued logic; what is certainly wrong is the dead branch, the divergence
-from the intended raw-column emission, and the extra literal in the SQL. **Not
-verified against a real engine** (the campaign that found it runs mock-only) —
-worth a `--docker` probe before choosing the fix.
-
-A related asymmetry sits in the same methods: `SqlServerSqlBuilder._isNull`
-guards the value-source case with `else if (isValueSource(...))` while
-`_isNotNull` uses a bare `if (...)`.
-
-**Current workaround in the suite**: none — no test calls `.isNull()` /
-`.isNotNull()` on a custom-boolean column, which is why the matrix is green.
-Found by the branch-coverage campaign while triaging `SqlServerSqlBuilder.ts`
-(the discarded expression is why those arms never show as covered). The sibling
-arms — `isNull()` / `isNotNull()` on a **boolean-for-condition** value source —
-are unaffected and are being covered separately.
+*(none)*
 
 ## Coverage gaps carried over (not bugs — no entry to fix)
 
@@ -139,6 +83,8 @@ These are **not** defects and there is nothing in `src/` to change. They are the
 places where a fix that landed has **no test holding it down**, so a regression
 would be silent. Kept here because the loudest lesson of the round that fixed
 them was that a defect survives exactly as long as no fixture can express it.
+
+*(none)*
 
 ## Common bug shapes (for the fixing agent)
 

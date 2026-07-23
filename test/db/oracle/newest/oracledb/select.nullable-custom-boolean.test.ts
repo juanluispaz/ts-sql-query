@@ -106,7 +106,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue_worklog where case approved when 'A' then 1 when 'R' then 0 else null end is null order by "id""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue_worklog where approved is null order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
         expect(rows).toEqual(expected)
@@ -123,7 +123,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue_worklog where case approved when 'A' then 1 when 'R' then 0 else null end is not null order by "id""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue_worklog where approved is not null order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
         expect(rows).toEqual(expected)
@@ -131,6 +131,7 @@ describe(ctx.label, () => {
 
     test('is-null-on-custom-boolean-numeric-adapter-emits-numeric-remap', async () => {
         // `isNull()` on a required numeric custom-boolean receiver (invoiced, adapter 1/0).
+        // The null check reads the stored column, so no numeric remap is emitted.
         // invoiced is required and never NULL in the seed, so no row matches.
         const expected: Array<{ id: number }> = []
         ctx.mockNext(expected)
@@ -140,7 +141,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue_worklog where case when invoiced = 1 then 1 else 0 end is null order by "id""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue_worklog where invoiced is null order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
         expect(rows).toEqual(expected)
@@ -157,7 +158,7 @@ describe(ctx.label, () => {
             .orderBy('id')
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue_worklog where case when invoiced = 1 then 1 else 0 end is not null order by "id""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue_worklog where invoiced is not null order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
         expect(rows).toEqual(expected)

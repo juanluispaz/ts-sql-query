@@ -312,7 +312,8 @@ A coverage gap inside a `src/` branch may exist because the lib
 - MariaDB's UPDATE … RETURNING requires 13.0.1+ but `mariadb:latest` still
   ships 12.x.
 - Window functions not exposed through the fluent API.
-- Query introspection (`__isAllowed`) has no public API.
+- Query introspection (`__isAllowed`, `__hasAggregation`) has no public API
+  (tests reach both through the single `test/lib/queryIntrospection.ts` seam).
 
 A wave proposal that assumes one of the above is a wrong wave. Cross-check
 [`LIMITATIONS.md`](./LIMITATIONS.md) before proposing.

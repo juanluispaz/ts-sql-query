@@ -264,18 +264,19 @@ preload; check the bunfig/vitest config integration.
 
 ## `queryIntrospection.ts` — query introspection escape hatch
 
-One function, one documented exception to
+Two functions, one documented exception to
 [`DESIGN.md` § Public surface only](./DESIGN.md#public-surface-only):
 
 ```ts
-isQueryAllowed(query) // -> boolean
+isQueryAllowed(query)      // -> boolean: every allowWhen/disallowWhen gate open?
+queryHasAggregation(query) // -> boolean: does the query contain an aggregation?
 ```
 
-Hook into the lib's unfinished `__isAllowed` walker — see
-[`LIMITATIONS.md` § Query introspection (`__isAllowed`)](./LIMITATIONS.md#query-introspection-__isallowed-has-no-public-api-yet--tests-reach-internals-via-a-single-helper)
+Hooks into the lib's unfinished `__isAllowed` / `__hasAggregation` walkers —
+see [`LIMITATIONS.md` § Query introspection](./LIMITATIONS.md#query-introspection-__isallowed-__hasaggregation-has-no-public-api-yet--tests-reach-internals-via-a-single-helper)
 for the full rationale and the contract for when the public API lands.
 
-**The existence of this helper does NOT widen the licence.** Test bodies must
+**The existence of these helpers does NOT widen the licence.** Test bodies must
 not import from `src/internal/`, `src/queryBuilders/`, `src/sqlBuilders/`,
 etc. If you need a new introspection capability for a test, extend this file
 (one stable seam, one documented exception) — do not open a second escape

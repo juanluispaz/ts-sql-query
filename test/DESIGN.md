@@ -630,12 +630,12 @@ surface that is already meant for tests to consume but is not yet in the
 `exports` map (e.g. `src/experimental/types.ts`). Tests may import it
 directly.
 
-One documented exception exists: query introspection via `__isAllowed` has
-no public API yet, and the test suite reaches it through a single seam at
-[`test/lib/queryIntrospection.ts`](./lib/queryIntrospection.ts). See
-[`LIMITATIONS.md` § Query introspection](./LIMITATIONS.md#query-introspection-__isallowed-has-no-public-api-yet--tests-reach-internals-via-a-single-helper)
+One documented exception exists: query introspection via `__isAllowed` and
+`__hasAggregation` has no public API yet, and the test suite reaches both
+through a single seam at [`test/lib/queryIntrospection.ts`](./lib/queryIntrospection.ts). See
+[`LIMITATIONS.md` § Query introspection](./LIMITATIONS.md#query-introspection-__isallowed-__hasaggregation-has-no-public-api-yet--tests-reach-internals-via-a-single-helper)
 for the full justification and the contract for when the public API lands.
-The existence of this helper does NOT widen the licence for other internal
+The existence of these helpers does NOT widen the licence for other internal
 imports.
 
 ## Companion documents

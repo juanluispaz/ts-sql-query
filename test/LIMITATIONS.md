@@ -744,39 +744,49 @@ order of blast radius:
 Per this file's policy, "the lib emits SQL the server rejects" is a limitation,
 not a bug; this one is a deliberate, documented rough edge rather than a defect.
 
-## Query introspection (`__isAllowed`) has no public API yet — tests reach internals via a single helper
+## Query introspection (`__isAllowed`, `__hasAggregation`) has no public API yet — tests reach internals via a single helper
 
-ts-sql-query carries a parallel `__isAllowed` web threaded through
+ts-sql-query carries two parallel introspection webs threaded through
 every query builder, value source, table/view, CTE, fragment and
-column. It is a non-destructive walker that mirrors `__toSql` and
-can answer "is every `allowWhen` / `disallowWhen` gate in this query
-open?" without rendering SQL. It is the scaffolding for an
-unfinished **query introspection API** — the planned public surface
-(something like `query.isAllowed()` alongside a future
-`query.resultSchema()` for OpenAPI emission) is not yet exposed. No
-`execute*` / `query()` / `_build*` call invokes the walker today.
+column. Both are non-destructive walkers that mirror `__toSql` and
+answer a question about the built query without rendering SQL:
+
+- `__isAllowed` — "is every `allowWhen` / `disallowWhen` gate in this
+  query open?"
+- `__hasAggregation` — "does this query contain an aggregation?"
+
+They are the scaffolding for an unfinished **query introspection
+API** — the planned public surface (something like
+`query.isAllowed()` alongside a future `query.resultSchema()` for
+OpenAPI emission) is not yet exposed. No `execute*` / `query()` /
+`_build*` call invokes either walker today: `__hasAggregation`'s only
+non-recursive entry point, `hasAggregationQueryColumns()` in
+`src/sqlBuilders/SqlBuilder.ts`, is called exclusively from inside
+other `__hasAggregation` bodies, so the web is closed the same way
+`__isAllowed`'s is.
 
 Because the public surface does not yet exist, the only way to
-exercise the walker from tests — and verify that the scaffolding
+exercise the walkers from tests — and verify that the scaffolding
 stays correct (in sync with `__toSql` as new value-source /
 table-or-view / query-builder shapes are added) — is to read the
-underscore-prefixed method directly. That **breaks
+underscore-prefixed methods directly. That **breaks
 [`test/DESIGN.md` § Public surface only](./DESIGN.md#public-surface-only)**.
 
 **What this means for tests** — the exception is centralised in a
 single seam, [`test/lib/queryIntrospection.ts`](./lib/queryIntrospection.ts), which is
-the one and only place in the suite allowed to read `__isAllowed`
-(and the connection's `__sqlBuilder`). All `allowWhen` /
-`disallowWhen` tests must invoke `isQueryAllowed(query, connection)`
-from that helper; **no test body may reach into `__isAllowed`
+the one and only place in the suite allowed to read `__isAllowed` /
+`__hasAggregation` (and the query builder's `__sqlBuilder`). All
+`allowWhen` / `disallowWhen` tests must invoke `isQueryAllowed(query)`
+and all aggregation-introspection tests `queryHasAggregation(query)`
+from that helper; **no test body may reach into those methods
 directly** and no test may copy the casts the helper performs.
 
 Crucially, the existence of this helper does NOT widen the licence:
 it does not justify reaching into any other underscore-prefixed
 internal from a test (`__sets`, `__columns`, `__where`,
 `__sqlBuilder` outside the helper, etc.). When the public
-introspection surface lands, this helper either becomes a thin
-wrapper around it or is removed — test bodies that use it should
+introspection surface lands, these helpers either become thin
+wrappers around it or are removed — test bodies that use them should
 not need to change. If a future test needs a new introspection
 capability that the public API still does not expose, extend
 `test/lib/queryIntrospection.ts` (one stable seam, one documented exception);

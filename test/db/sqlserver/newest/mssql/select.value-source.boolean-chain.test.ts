@@ -420,4 +420,82 @@ describe(ctx.label, () => {
         `)
         expect(rightRows).toEqual(expectedRight)
     })
+
+    // `.isNull()` / `.isNotNull()` are declared on NullableValueSource, which
+    // BooleanValueSource inherits, so they are callable on the boolean a
+    // comparison produces — not just on a column. Whether the comparison can
+    // itself be null decides the shape: a comparison between two required
+    // operands never is, while one whose operand is an optional column can be.
+    // Scenario: a report that wants "we could not tell" as its own bucket.
+
+    test('is-null-on-a-comparison-between-required-operands', async () => {
+        // title is a required column, so `title = <literal>` is never null:
+        // the bucket is always empty.
+        const expected: Array<{ id: number }> = []
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.title.equals('Redesign navbar').isNull())
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where (0=1) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('is-not-null-on-a-comparison-between-required-operands', async () => {
+        // The complement of the test above: every row is decidable.
+        const expected = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.title.equals('Redesign navbar').isNotNull())
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where (1=1) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('is-null-on-a-comparison-with-an-optional-operand', async () => {
+        // assigneeId is optional and null on issue 3, so the comparison is
+        // null exactly there: the "unassigned, so undecidable" bucket.
+        const expected = [{ id: 3 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.assigneeId.equals(2).isNull())
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where (case when assignee_id = @0 then 0 when not (assignee_id = @1) then 0 else 1 end = 1) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
+
+    test('is-not-null-on-a-comparison-with-an-optional-operand', async () => {
+        const expected = [{ id: 1 }, { id: 2 }, { id: 4 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.assigneeId.equals(2).isNotNull())
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where (case when assignee_id = @0 then 1 when not (assignee_id = @1) then 1 else 0 end = 1) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number }>>>()
+        expect(rows).toEqual(expected)
+    })
 })

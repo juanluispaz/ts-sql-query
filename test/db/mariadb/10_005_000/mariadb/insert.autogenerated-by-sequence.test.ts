@@ -98,4 +98,27 @@ describe(ctx.label, () => {
             else expect(id).toBeGreaterThanOrEqual(1)
         })
     })
+
+    test('insert-multiple-rows-on-a-sequence-primary-key', async () => {
+        // Multi-row INSERT walks a different builder path from the single-row
+        // one: the sequence column has to be re-emitted per VALUES tuple
+        // rather than once. A committing transaction + reseed is used because
+        // the sequence bump is non-transactional.
+        await ctx.withCommit(async () => {
+            ctx.mockNext(2)
+            const count = await ctx.conn.insertInto(tAuditEntry)
+                .values([{ action: 'archived' }, { action: 'restored' }])
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into audit_entry (id, action) values (nextval(audit_tag_seq), ?), (nextval(audit_tag_seq), ?)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "archived",
+                "restored",
+              ]
+            `)
+            assertType<Exact<typeof count, number>>()
+            expect(count).toEqual(2)
+        })
+    })
 })

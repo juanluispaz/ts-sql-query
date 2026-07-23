@@ -219,4 +219,52 @@ describe(ctx.label, () => {
         // above for why this is not feasible here.
     })
     */
+
+    test('transaction-body-throws-synchronously-wraps-with-transaction-source', async () => {
+        // The three tests above all pass an `async` callback, so the body's
+        // failure always arrives as a rejected promise. A NON-async callback
+        // throws before `transaction(...)` ever gets a promise back, which is
+        // a separate path — the synchronous try/catch around the call rather
+        // than the promise's rejection handler. The contract is the same:
+        // a non-application error is wrapped and carries a transactionSource.
+        const connection = ctx.conn
+        let caught: unknown
+
+        await ctx.withReseed(async () => {
+            try {
+                await connection.transaction(() => {
+                    throw bodyError('boom-sync-from-body')
+                })
+            } catch (e) {
+                caught = e
+            }
+        })
+
+        expect(caught).toBeInstanceOf(Error)
+        expect((caught as Error).message).toContain('boom-sync-from-body')
+        if (caught instanceof TsSqlQueryExecutionError) {
+            expect(caught.transactionSource).toBeDefined()
+        }
+    })
+
+    test('transaction-body-throws-application-error-synchronously-propagates-raw-unwrapped', async () => {
+        // The synchronous twin of the ApplicationError case: an application
+        // error thrown from a non-async body is still handed back untouched,
+        // not wrapped.
+        const connection = ctx.conn
+        const thrown = new ApplicationError('boom-sync-plain')
+        let caught: unknown
+
+        await ctx.withReseed(async () => {
+            try {
+                await connection.transaction(() => {
+                    throw thrown
+                })
+            } catch (e) {
+                caught = e
+            }
+        })
+
+        expect(caught).toBe(thrown)
+    })
 })

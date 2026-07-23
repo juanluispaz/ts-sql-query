@@ -235,4 +235,126 @@ describe(ctx.label, () => {
         expect(reasonsInChain(caught)).toContain('ERROR_EXECUTING_DEFERRED_IN_TRANSACTION')
         expect(events).toEqual([])
     })
+
+    test('nested-transaction-three-levels-deep-unwinds-hooks-innermost-first', async () => {
+        // Two levels already exercise saving the outer hooks across ONE
+        // nesting; a third level is what pushes onto a stack that is already
+        // allocated, and pops leaving it non-empty. The hooks unwind
+        // innermost-first as each level commits.
+        const connection = ctx.nestedTransactionConn()
+        const events: string[] = []
+        await connection.transaction(async () => {
+            connection.executeAfterNextCommit(() => { events.push('l1') })
+            await connection.transaction(async () => {
+                connection.executeAfterNextCommit(() => { events.push('l2') })
+                await connection.transaction(async () => {
+                    connection.executeAfterNextCommit(() => { events.push('l3') })
+                })
+            })
+        })
+        expect(events).toEqual(['l3', 'l2', 'l1'])
+    })
+
+    test('two-before-commit-hooks-fire-in-registration-order', async () => {
+        // The second registration lands on an already-allocated list, which
+        // is a different arm from allocating it.
+        const connection = ctx.conn
+        const events: string[] = []
+        await ctx.withReseed(async () => {
+            await connection.transaction(async () => {
+                connection.executeBeforeNextCommit(() => { events.push('first') })
+                connection.executeBeforeNextCommit(() => { events.push('second') })
+            })
+        })
+        expect(events).toEqual(['first', 'second'])
+    })
+
+    test('two-after-rollback-hooks-fire-in-registration-order', async () => {
+        // Same shape on the after-rollback list: the transaction body throws
+        // so both hooks drain, in the order they were registered.
+        const connection = ctx.conn
+        const events: string[] = []
+        let caught: unknown
+        await ctx.withReseed(async () => {
+            try {
+                await connection.transaction(async () => {
+                    connection.executeAfterNextRollback(() => { events.push('first') })
+                    connection.executeAfterNextRollback(() => { events.push('second') })
+                    throw bodyError('roll it back')
+                })
+            } catch (e) { caught = e }
+        })
+        expect(events).toEqual(['first', 'second'])
+        // The load-bearing part: the BODY's error propagated, so both hooks
+        // drained cleanly. A hook that threw would surface instead as
+        // ERROR_EXECUTING_DEFERRED_IN_TRANSACTION.
+        expect(reasonsInChain(caught)).not.toContain('ERROR_EXECUTING_DEFERRED_IN_TRANSACTION')
+    })
+
+    test('nested-transaction-inner-after-rollback-hook-cannot-register-a-hook', async () => {
+        // The after-COMMIT analogue of this is covered above. Here the INNER
+        // transaction rolls back while the OUTER one is still open, so the
+        // after-rollback drain reaches the same guard: the active-transaction
+        // check passes (the outer is open) and the list-nulled-while-draining
+        // check fires — NESTED_DEFERRING, not the NOT_IN_TRANSACTION a
+        // single-level rollback would give.
+        const connection = ctx.nestedTransactionConn()
+        let caught: unknown
+        try {
+            await connection.transaction(async () => {
+                await connection.transaction(async () => {
+                    connection.executeAfterNextRollback(() => {
+                        // Never reached: registering from inside the drain is
+                        // itself what throws. Deliberately not a block comment,
+                        // so the whole test stays safe to comment out on the
+                        // cells whose runner cannot nest transactions.
+                        connection.executeAfterNextCommit(() => undefined)
+                    })
+                    throw bodyError('inner rolls back')
+                })
+            })
+        } catch (e) { caught = e }
+        expect(reasonsInChain(caught)).toContain('NESTED_DEFERRING_IN_TRANSACTION_NOT_SUPPORTED')
+    })
+
+    test('nested-transaction-inner-after-rollback-hook-cannot-register-a-before-commit-hook', async () => {
+        // Sibling of the test above with the OTHER registration API: the
+        // guard is per deferred-hook kind, so reaching it from the same
+        // after-rollback drain via executeBeforeNextCommit is a separate arm.
+        const connection = ctx.nestedTransactionConn()
+        let caught: unknown
+        try {
+            await connection.transaction(async () => {
+                await connection.transaction(async () => {
+                    connection.executeAfterNextRollback(() => {
+                        // Never reached, and deliberately not a block comment
+                        // so the whole test stays safe to comment out.
+                        connection.executeBeforeNextCommit(() => undefined)
+                    })
+                    throw bodyError('inner rolls back')
+                })
+            })
+        } catch (e) { caught = e }
+        expect(reasonsInChain(caught)).toContain('NESTED_DEFERRING_IN_TRANSACTION_NOT_SUPPORTED')
+    })
+
+    test('nested-transaction-inner-after-rollback-hook-cannot-register-another-after-rollback-hook', async () => {
+        // The third kind: re-registering an after-rollback hook from inside
+        // the after-rollback drain itself, with the outer transaction open.
+        const connection = ctx.nestedTransactionConn()
+        let caught: unknown
+        try {
+            await connection.transaction(async () => {
+                await connection.transaction(async () => {
+                    connection.executeAfterNextRollback(() => {
+                        // Never reached, and deliberately not a block comment
+                        // so the whole test stays safe to comment out.
+                        connection.executeAfterNextRollback(() => undefined)
+                    })
+                    throw bodyError('inner rolls back')
+                })
+            })
+        } catch (e) { caught = e }
+        expect(reasonsInChain(caught)).toContain('NESTED_DEFERRING_IN_TRANSACTION_NOT_SUPPORTED')
+    })
 })

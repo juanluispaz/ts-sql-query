@@ -2,7 +2,9 @@
 // (`transformValueToDB` / `transformValueFromDB`) for the bigint, double
 // and uuid value types, added to the shared `issue` domain as
 // `viewCount` (bigint), `estimatedHours` (double) and `externalRef`
-// (uuid). Each insert→select round-trip exercises both directions:
+// (uuid), plus the `localTime` sub-second encoding on
+// `tIssueWorklog.startedAt`. Each insert→select round-trip exercises both
+// directions:
 //   - INSERT params go through `transformValueToDB` (the JS value reaches
 //     the driver),
 //   - the SELECT result goes through `transformValueFromDB` (the value
@@ -22,7 +24,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue } from '../../domain/connection.js'
+import { tIssue, tIssueWorklog } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -204,6 +206,74 @@ describe(ctx.label, () => {
                 .executeSelectOne()
             assertType<Exact<typeof row, { hours?: number }>>()
             expect(row.hours).toBe(1.5e-8)
+        })
+    })
+
+    // A stopwatch-recorded clock-in carries milliseconds, and how the
+    // fractional second reaches the driver is the connection's decision:
+    // `AbstractConnection` formats a `localTime` into an `'HH:MM:SS.fff'`
+    // string itself (so the zero-padding below is the library's own
+    // arithmetic), while `SqlServerConnection` and `OracleConnection` bind the
+    // `Date` and `SqliteConnection` encodes per its configured storage format.
+    // These three pin the widths the padding has to produce — 3, 2 and 1
+    // significant digits — per cell.
+    //
+    // The row is deliberately NOT read back. The emitted param is exact
+    // everywhere, but what survives a round trip is not: MySQL/MariaDB round a
+    // `TIME(0)` to whole seconds, Oracle anchors a `TIMESTAMP` at 1970 and
+    // SQLite's stored shape follows its format setting. Asserting the param
+    // plus the affected-row count keeps one unconditional assertion valid in
+    // both modes.
+    async function clockIn(milliseconds: number) {
+        ctx.mockNext(1)
+        return await ctx.conn.update(tIssueWorklog)
+            .set({ startedAt: new Date(Date.UTC(1970, 0, 1, 9, 15, 0, milliseconds)) })
+            .where(tIssueWorklog.id.equals(1))
+            .executeUpdate()
+    }
+
+    test('marshalling/localtime-milliseconds-three-digits', async () => {
+        await ctx.withRollback(async () => {
+            const updated = await clockIn(123)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue_worklog set started_at = $1 where id = $2"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "09:15:00.123",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof updated, number>>()
+            expect(updated).toEqual(1)
+        })
+    })
+
+    test('marshalling/localtime-milliseconds-two-digits-are-left-padded', async () => {
+        await ctx.withRollback(async () => {
+            const updated = await clockIn(45)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue_worklog set started_at = $1 where id = $2"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "09:15:00.045",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof updated, number>>()
+            expect(updated).toEqual(1)
+        })
+    })
+
+    test('marshalling/localtime-milliseconds-one-digit-is-left-padded', async () => {
+        await ctx.withRollback(async () => {
+            const updated = await clockIn(7)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue_worklog set started_at = $1 where id = $2"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "09:15:00.007",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof updated, number>>()
+            expect(updated).toEqual(1)
         })
     })
 })

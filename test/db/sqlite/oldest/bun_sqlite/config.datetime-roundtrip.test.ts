@@ -481,4 +481,86 @@ describe(ctx.label, () => {
         }
         expect(reasonOf(caught)).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')
     })
+
+    // The ENCODE direction rejects an unusable `Date` before the driver is
+    // reached, so — unlike the decode guards above — these need no mock
+    // injection and run identically in both modes.
+
+    test('localDate encode: an invalid Date is rejected', async () => {
+        const conn = ctx.withDateTimeFormat('localdate as text')
+        let caught: unknown
+        try {
+            await conn.selectFromNoTable()
+                .select({ v: conn.const(new Date(NaN), 'localDate') })
+                .executeSelectOne()
+        } catch (e) {
+            caught = e
+        }
+        expect(reasonOf(caught)).toBe('INVALID_VALUE_TO_SEND_TO_DATABASE')
+    })
+
+    test('localTime encode: an invalid Date is rejected', async () => {
+        const conn = ctx.withDateTimeFormat('localdate as text')
+        let caught: unknown
+        try {
+            await conn.selectFromNoTable()
+                .select({ v: conn.const(new Date(NaN), 'localTime') })
+                .executeSelectOne()
+        } catch (e) {
+            caught = e
+        }
+        expect(reasonOf(caught)).toBe('INVALID_VALUE_TO_SEND_TO_DATABASE')
+    })
+
+    test('localDateTime encode: an invalid Date is rejected', async () => {
+        const conn = ctx.withDateTimeFormat('localdate as text')
+        let caught: unknown
+        try {
+            await conn.selectFromNoTable()
+                .select({ v: conn.const(new Date(NaN), 'localDateTime') })
+                .executeSelectOne()
+        } catch (e) {
+            caught = e
+        }
+        expect(reasonOf(caught)).toBe('INVALID_VALUE_TO_SEND_TO_DATABASE')
+    })
+
+    // The `UTC as text` format writes a localTime WITHOUT the trailing `Z`
+    // its `using Z timezone` sibling adds — a distinct encode/decode pair.
+    test('localTime roundtrip: UTC as text', async () => {
+        const conn = ctx.withDateTimeFormat('UTC as text')
+        const expected = { v: new Date(Date.UTC(1970, 0, 1, 10, 30, 45, 123)) }
+        ctx.mockNext({ v: '10:30:45.123' })
+        const row = await conn.selectFromNoTable()
+            .select({ v: conn.const(REF, 'localTime') })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as "v""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "10:30:45.123",
+          ]
+        `)
+        assertType<Exact<typeof row, { v: Date }>>()
+        expect(row).toEqual(expected)
+    })
+
+    // A millisecond component of 10–99 is the middle arm of the encoder's
+    // zero-pad ladder: it needs exactly one leading zero, where 123 needs
+    // none and 7 needs two.
+    test('localTime roundtrip: UTC as text with two-digit milliseconds', async () => {
+        const conn = ctx.withDateTimeFormat('UTC as text')
+        const expected = { v: new Date(Date.UTC(1970, 0, 1, 10, 30, 45, 45)) }
+        ctx.mockNext({ v: '10:30:45.045' })
+        const row = await conn.selectFromNoTable()
+            .select({ v: conn.const(new Date(Date.UTC(2024, 0, 15, 10, 30, 45, 45)), 'localTime') })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select ? as "v""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "10:30:45.045",
+          ]
+        `)
+        assertType<Exact<typeof row, { v: Date }>>()
+        expect(row).toEqual(expected)
+    })
 })

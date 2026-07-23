@@ -86,6 +86,18 @@ describe(ctx.label, () => {
         expect(await toDbReason(() => ctx.conn.const(5 as any, 'uuid'))).toBe('INVALID_VALUE_TO_SEND_TO_DATABASE')
     })
 
+    test('marshalling/to-db-validation/localDate-invalid-date-throws', async () => {
+        expect(await toDbReason(() => ctx.conn.const(new Date(NaN), 'localDate'))).toBe('INVALID_VALUE_TO_SEND_TO_DATABASE')
+    })
+
+    test('marshalling/to-db-validation/localTime-invalid-date-throws', async () => {
+        expect(await toDbReason(() => ctx.conn.const(new Date(NaN), 'localTime'))).toBe('INVALID_VALUE_TO_SEND_TO_DATABASE')
+    })
+
+    test('marshalling/to-db-validation/localDateTime-invalid-date-throws', async () => {
+        expect(await toDbReason(() => ctx.conn.const(new Date(NaN), 'localDateTime'))).toBe('INVALID_VALUE_TO_SEND_TO_DATABASE')
+    })
+
     test('marshalling/to-db-validation/empty-string-sent-as-null', async () => {
         // The `'' && !allowEmptyString -> null` branch: building the const
         // param transforms '' to null, so the emitted param is null. Runs

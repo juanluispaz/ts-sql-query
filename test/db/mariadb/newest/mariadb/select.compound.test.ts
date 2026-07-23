@@ -1594,4 +1594,57 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ label: string }>>>()
         expect(result).toEqual(expected)
     })
+
+    // A compound's ORDER BY can only name the SELECT aliases, so its whole
+    // ordering path is separate code from a plain query's. These two pin the
+    // shapes that path emits INLINE — i.e. without the builder having to wrap
+    // the compound in `select * from (...)` to make the ordering legal.
+
+    test('compound-insensitive-order-by-on-non-string-column-drops-modifier', async () => {
+        // `insensitive` only means something for a string ordering; on an int
+        // alias the modifier is dropped and no lower()/collate wrapper is
+        // emitted. Project ids and issue ids overlap, so UNION dedups them.
+        const expected = [{ ref: 1 }, { ref: 2 }, { ref: 3 }, { ref: 4 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tProject)
+            .select({ ref: tProject.id })
+            .union(ctx.conn.selectFrom(tIssue).select({ ref: tIssue.id }))
+            .orderBy('ref', 'insensitive')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as ref from project union select id as ref from issue order by ref"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ ref: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('compound-order-by-multiple-aliases-inline', async () => {
+        // Two ordering terms, both plain aliases, so the list is emitted
+        // inline on the compound itself. The arms cover disjoint projects,
+        // so the union is a straight concatenation and `iid` makes the
+        // ordering total.
+        const expected = [
+            { pid: 1, iid: 1 },
+            { pid: 1, iid: 2 },
+            { pid: 2, iid: 3 },
+        ]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.projectId.equals(1))
+            .select({ pid: tIssue.projectId, iid: tIssue.id })
+            .union(ctx.conn.selectFrom(tIssue)
+                .where(tIssue.projectId.equals(2))
+                .select({ pid: tIssue.projectId, iid: tIssue.id }))
+            .orderBy('pid')
+            .orderBy('iid')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project_id as pid, id as iid from issue where project_id = ? union select project_id as pid, id as iid from issue where project_id = ? order by pid, iid"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+            2,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ pid: number, iid: number }>>>()
+        expect(result).toEqual(expected)
+    })
 })

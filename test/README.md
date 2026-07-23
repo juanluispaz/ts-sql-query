@@ -209,7 +209,7 @@ test/
 │   ├── assertType.ts                     ← `Exact<A,B>`, `assertType<T extends true>`
 │   ├── audit/                            ← tests:audit: symmetry check + anti-cheat rules (AUDIT.md)
 │   ├── containerLifecycle.ts             ← container/per-worker infra
-│   ├── isAllowed.ts                      ← query introspection escape hatch
+│   ├── queryIntrospection.ts             ← query introspection escape hatch
 │   ├── setupTimezone.ts                  ← forces UTC
 │   ├── canonical-cell-review-prompt.md   ← validation sub-agent prompt asset
 │   ├── coverage/                         ← bun lcov → html / monocart

@@ -691,7 +691,7 @@ AST-only so comment links to internal files don't count):
   the `exports` map but already meant for tests to consume, so a relative reach
   into it is allowed.
 - **non-admitted `test/lib/`** — a `*.test.ts` may import only the admitted
-  helpers (`testRunner`, `assertType`, `isAllowed`); the rest of `test/lib/` is
+  helpers (`testRunner`, `assertType`, `queryIntrospection`); the rest of `test/lib/` is
   infra (the audit, searcher/indexer, backends, container lifecycle) and is
   flagged. `./setup.js` and `../../domain/…` are neither src nor test/lib, so
   they are fine.

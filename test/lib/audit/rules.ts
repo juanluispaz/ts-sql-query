@@ -83,7 +83,7 @@ export const RULE_HINT: Record<string, string> = {
     'grouped-commented-tests':
         'This `/* … */` comment groups several commented-out tests under a single reason marker, so the individual justifications are lost (one marker "covers" them all). Split it: one commented-out test per comment block, each with its OWN `// TODO[BUG]: <reason>` / `// TODO[LIMITATION]: <reason>` / `// NOT-APPLICABLE: <reason>` marker — then `commented-test-reason` enforces a distinct reason on every one. A normal `//`-per-line commented-out test is never flagged; only a block holding two or more tests.',
     'non-public-api':
-        'A *.test.ts may import only the public library API (the package.json `exports`, never the __UNSUPPORTED__ escape hatch) and the admitted test/lib helpers (testRunner, assertType, isAllowed). This relative import reaches past that. Build through the public surface; if a real gap exists it belongs in the library, not behind a relative import into internals.',
+        'A *.test.ts may import only the public library API (the package.json `exports`, never the __UNSUPPORTED__ escape hatch) and the admitted test/lib helpers (testRunner, assertType, queryIntrospection). This relative import reaches past that. Build through the public surface; if a real gap exists it belongs in the library, not behind a relative import into internals.',
     'focused-test':
         'Remove the `.only` — `test.only` / `it.only` / `describe.only` focuses the runner on that one test and silently skips every other test in the file, so the cell reports green while almost nothing ran. `.only` is a local-iteration convenience; it must never be committed.',
     'empty-snapshot':

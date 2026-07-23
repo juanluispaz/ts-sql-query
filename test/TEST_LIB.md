@@ -21,7 +21,7 @@ test cells that type-check the examples and assert their SQL via mock) see
 - [`testRunner.ts` + `testRuntime.{bun,vitest}.ts` — runtime shim](#testrunnerts--testruntimebunvitestts--runtime-shim)
 - [`assertType.ts` — compile-time type assertions](#asserttypets--compile-time-type-assertions)
 - [`setupTimezone.ts` — force UTC](#setuptimezonets--force-utc)
-- [`isAllowed.ts` — query introspection escape hatch](#isallowedts--query-introspection-escape-hatch)
+- [`queryIntrospection.ts` — query introspection escape hatch](#queryintrospectionts--query-introspection-escape-hatch)
 - [`audit/` — the symmetry audit (now its own tool)](#audit--the-symmetry-audit-now-its-own-tool)
 - [`containerLifecycle.ts` — shared container infra](#containerlifecyclets--shared-container-infra)
 - [`coverage/` — bun coverage post-processors](#coverage--bun-coverage-post-processors)
@@ -262,7 +262,7 @@ anything — UTC is forced before any test file evaluates. If you ever observe
 snapshots diverging by host timezone, this is the file that failed to
 preload; check the bunfig/vitest config integration.
 
-## `isAllowed.ts` — query introspection escape hatch
+## `queryIntrospection.ts` — query introspection escape hatch
 
 One function, one documented exception to
 [`DESIGN.md` § Public surface only](./DESIGN.md#public-surface-only):

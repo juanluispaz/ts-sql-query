@@ -11,7 +11,7 @@
 // whose connection narrows `onConflictOn` away.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
-import { isQueryAllowed } from '../../../../lib/isAllowed.js'
+import { isQueryAllowed } from '../../../../lib/queryIntrospection.js'
 import { tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 

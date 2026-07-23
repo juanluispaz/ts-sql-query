@@ -51,7 +51,7 @@ function loadPublicSrc(): Set<string> {
 
 // The few `test/lib/` files a `*.test.ts` may import (paths relative to
 // `test/lib/`). Everything else under `test/lib/` is infrastructure.
-const ADMITTED_TEST_LIB = new Set(['testRunner.js', 'assertType.js', 'isAllowed.js'])
+const ADMITTED_TEST_LIB = new Set(['testRunner.js', 'assertType.js', 'queryIntrospection.js'])
 
 export function checkNonPublicApi(sf: ts.SourceFile, file: string): Finding[] {
     const out: Finding[] = []

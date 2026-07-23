@@ -764,7 +764,7 @@ underscore-prefixed method directly. That **breaks
 [`test/DESIGN.md` § Public surface only](./DESIGN.md#public-surface-only)**.
 
 **What this means for tests** — the exception is centralised in a
-single seam, [`test/lib/isAllowed.ts`](./lib/isAllowed.ts), which is
+single seam, [`test/lib/queryIntrospection.ts`](./lib/queryIntrospection.ts), which is
 the one and only place in the suite allowed to read `__isAllowed`
 (and the connection's `__sqlBuilder`). All `allowWhen` /
 `disallowWhen` tests must invoke `isQueryAllowed(query, connection)`
@@ -779,7 +779,7 @@ introspection surface lands, this helper either becomes a thin
 wrapper around it or is removed — test bodies that use it should
 not need to change. If a future test needs a new introspection
 capability that the public API still does not expose, extend
-`test/lib/isAllowed.ts` (one stable seam, one documented exception);
+`test/lib/queryIntrospection.ts` (one stable seam, one documented exception);
 do not open a second escape route.
 
 ## Window functions are not supported through the fluent API

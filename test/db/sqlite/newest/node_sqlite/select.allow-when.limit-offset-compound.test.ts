@@ -9,13 +9,13 @@
 //
 // These pin the introspection walker (the planned `query.isAllowed()`
 // API, exercised here through the `isQueryAllowed` test seam — see
-// test/lib/isAllowed.ts) over query shapes it had no coverage for. The
+// test/lib/queryIntrospection.ts) over query shapes it had no coverage for. The
 // walker runs entirely client-side and renders no SQL, so every
 // assertion is a boolean and this file is byte-identical across all 17
 // cells (no per-dialect snapshots).
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
-import { isQueryAllowed } from '../../../../lib/isAllowed.js'
+import { isQueryAllowed } from '../../../../lib/queryIntrospection.js'
 import { tIssue, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 

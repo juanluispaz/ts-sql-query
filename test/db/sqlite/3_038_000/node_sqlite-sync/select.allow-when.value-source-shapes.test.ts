@@ -9,15 +9,15 @@
 // `WithViewImpl`, `CompoundSelectQueryBuilder`, `RawFragmentImpl`, etc.
 //
 // Background on the introspection walker, the public-API gap that makes
-// the [`isQueryAllowed(...)`](../../../../lib/isAllowed.ts) helper
+// the [`isQueryAllowed(...)`](../../../../lib/queryIntrospection.ts) helper
 // necessary, and the design contract that `__isAllowed` mirrors `__toSql`,
 // see the comment on `AllowWhenValueSource.__toSql`
 // the entry in [test/LIMITATIONS.md](../../../../LIMITATIONS.md) and
-// [test/lib/isAllowed.ts](../../../../lib/isAllowed.ts).
+// [test/lib/queryIntrospection.ts](../../../../lib/queryIntrospection.ts).
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { isQueryAllowed } from '../../../../lib/isAllowed.js'
+import { isQueryAllowed } from '../../../../lib/queryIntrospection.js'
 import { tIssue } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 import { sync } from '../../../../../src/extras/sync.js'

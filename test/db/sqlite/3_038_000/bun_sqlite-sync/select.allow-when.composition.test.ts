@@ -37,7 +37,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { isQueryAllowed } from '../../../../lib/isAllowed.js'
+import { isQueryAllowed } from '../../../../lib/queryIntrospection.js'
 import { dynamicPick } from '../../../../../src/dynamic/pick.js'
 import { tIssue, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'

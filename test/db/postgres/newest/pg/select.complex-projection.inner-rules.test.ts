@@ -11,7 +11,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tOrganization, tProject } from '../../domain/connection.js'
+import { tIssue, tIssueWorklog, tOrganization, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -3705,6 +3705,36 @@ describe(ctx.label, () => {
         }
         expect('archivedAt' in sorted[0]!.meta.projects[0]!).toBe(true)
         expect(sorted[0]!.meta.projects[0]!.archivedAt).toBeNull()
+    })
+
+    test('cte-with-nested-object-carrying-a-custom-boolean-leaf', async () => {
+        // A nested object whose leaf is a custom-boolean column (`approved`,
+        // stored 'A'/'R'). Through the CTE the custom-boolean adapter is
+        // neutralised on the intermediate column so the value is carried as a
+        // plain boolean, not re-remapped. `approved` is optional; worklog 1
+        // (issue 1) is approved ('A' → true).
+        const expected = [{ wid: 1, status: { approved: true } }]
+        ctx.mockNext(expected)
+        const wlCte = ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .select({
+                wid:    tIssueWorklog.id,
+                status: { approved: tIssueWorklog.approved },
+            })
+            .forUseInQueryAs('wl_cte')
+
+        const rows = await ctx.conn.selectFrom(wlCte)
+            .select({ wid: wlCte.wid, status: wlCte.status })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with wl_cte as (select id as wid, (approved = 'A') as "status.approved" from issue_worklog where id = $1) select wid as wid, "status.approved" as "status.approved" from wl_cte"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ wid: number; status?: { approved?: boolean } }>>>()
+        expect(rows).toEqual(expected)
     })
 
 })

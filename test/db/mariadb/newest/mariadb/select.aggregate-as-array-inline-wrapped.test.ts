@@ -1253,4 +1253,192 @@ describe(ctx.label, () => {
     })
     */
 
+    // Order-by MODES on an inline aggregate, one per remaining ordering; each
+    // mode's emitted SQL is pinned by the snapshot below. Org 1 owns 'Marketing
+    // site' and 'Internal tools' (both non-null, distinct first letters), so the
+    // nulls and insensitivity modifiers don't reorder the two elements — only
+    // asc vs desc.
+    test('inline-aggregate-order-by-asc', async () => {
+        ctx.mockNext({ id: 1, projectNames: JSON.stringify(['Internal tools', 'Marketing site']) })
+        const orgNames = ctx.conn.subSelectUsing(tOrganization).from(tProject)
+            .where(tProject.organizationId.equals(tOrganization.id))
+            .selectOneColumn(tProject.name)
+            .orderBy('result', 'asc')
+            .forUseAsInlineAggregatedArrayValue()
+
+        const row = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.id.equals(1))
+            .select({ id: tOrganization.id, projectNames: orgNames })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(name order by name asc) from project where organization_id = organization.id) as char) as projectNames from organization where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; projectNames: string[] }>>()
+        expect(row).toEqual({ id: 1, projectNames: ['Internal tools', 'Marketing site'] })
+    })
+
+    test('inline-aggregate-order-by-asc-nulls-first', async () => {
+        ctx.mockNext({ id: 1, projectNames: JSON.stringify(['Internal tools', 'Marketing site']) })
+        const orgNames = ctx.conn.subSelectUsing(tOrganization).from(tProject)
+            .where(tProject.organizationId.equals(tOrganization.id))
+            .selectOneColumn(tProject.name)
+            .orderBy('result', 'asc nulls first')
+            .forUseAsInlineAggregatedArrayValue()
+
+        const row = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.id.equals(1))
+            .select({ id: tOrganization.id, projectNames: orgNames })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(name order by name asc) from project where organization_id = organization.id) as char) as projectNames from organization where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; projectNames: string[] }>>()
+        expect(row).toEqual({ id: 1, projectNames: ['Internal tools', 'Marketing site'] })
+    })
+
+    test('inline-aggregate-order-by-desc', async () => {
+        ctx.mockNext({ id: 1, projectNames: JSON.stringify(['Marketing site', 'Internal tools']) })
+        const orgNames = ctx.conn.subSelectUsing(tOrganization).from(tProject)
+            .where(tProject.organizationId.equals(tOrganization.id))
+            .selectOneColumn(tProject.name)
+            .orderBy('result', 'desc')
+            .forUseAsInlineAggregatedArrayValue()
+
+        const row = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.id.equals(1))
+            .select({ id: tOrganization.id, projectNames: orgNames })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(name order by name desc) from project where organization_id = organization.id) as char) as projectNames from organization where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; projectNames: string[] }>>()
+        expect(row).toEqual({ id: 1, projectNames: ['Marketing site', 'Internal tools'] })
+    })
+
+    test('inline-aggregate-order-by-desc-nulls-last', async () => {
+        ctx.mockNext({ id: 1, projectNames: JSON.stringify(['Marketing site', 'Internal tools']) })
+        const orgNames = ctx.conn.subSelectUsing(tOrganization).from(tProject)
+            .where(tProject.organizationId.equals(tOrganization.id))
+            .selectOneColumn(tProject.name)
+            .orderBy('result', 'desc nulls last')
+            .forUseAsInlineAggregatedArrayValue()
+
+        const row = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.id.equals(1))
+            .select({ id: tOrganization.id, projectNames: orgNames })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(name order by name desc) from project where organization_id = organization.id) as char) as projectNames from organization where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; projectNames: string[] }>>()
+        expect(row).toEqual({ id: 1, projectNames: ['Marketing site', 'Internal tools'] })
+    })
+
+    test('inline-aggregate-order-by-insensitive', async () => {
+        ctx.mockNext({ id: 1, projectNames: JSON.stringify(['Internal tools', 'Marketing site']) })
+        const orgNames = ctx.conn.subSelectUsing(tOrganization).from(tProject)
+            .where(tProject.organizationId.equals(tOrganization.id))
+            .selectOneColumn(tProject.name)
+            .orderBy('result', 'insensitive')
+            .forUseAsInlineAggregatedArrayValue()
+
+        const row = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.id.equals(1))
+            .select({ id: tOrganization.id, projectNames: orgNames })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(name order by name) from project where organization_id = organization.id) as char) as projectNames from organization where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; projectNames: string[] }>>()
+        expect(row).toEqual({ id: 1, projectNames: ['Internal tools', 'Marketing site'] })
+    })
+
+    test('inline-aggregate-order-by-desc-insensitive', async () => {
+        ctx.mockNext({ id: 1, projectNames: JSON.stringify(['Marketing site', 'Internal tools']) })
+        const orgNames = ctx.conn.subSelectUsing(tOrganization).from(tProject)
+            .where(tProject.organizationId.equals(tOrganization.id))
+            .selectOneColumn(tProject.name)
+            .orderBy('result', 'desc insensitive')
+            .forUseAsInlineAggregatedArrayValue()
+
+        const row = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.id.equals(1))
+            .select({ id: tOrganization.id, projectNames: orgNames })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(name order by name desc) from project where organization_id = organization.id) as char) as projectNames from organization where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; projectNames: string[] }>>()
+        expect(row).toEqual({ id: 1, projectNames: ['Marketing site', 'Internal tools'] })
+    })
+
+    test('inline-aggregate-order-by-desc-nulls-last-insensitive', async () => {
+        ctx.mockNext({ id: 1, projectNames: JSON.stringify(['Marketing site', 'Internal tools']) })
+        const orgNames = ctx.conn.subSelectUsing(tOrganization).from(tProject)
+            .where(tProject.organizationId.equals(tOrganization.id))
+            .selectOneColumn(tProject.name)
+            .orderBy('result', 'desc nulls last insensitive')
+            .forUseAsInlineAggregatedArrayValue()
+
+        const row = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.id.equals(1))
+            .select({ id: tOrganization.id, projectNames: orgNames })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(name order by name desc) from project where organization_id = organization.id) as char) as projectNames from organization where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; projectNames: string[] }>>()
+        expect(row).toEqual({ id: 1, projectNames: ['Marketing site', 'Internal tools'] })
+    })
+
+    test('inline-aggregate-order-by-desc-nulls-first-insensitive', async () => {
+        ctx.mockNext({ id: 1, projectNames: JSON.stringify(['Marketing site', 'Internal tools']) })
+        const orgNames = ctx.conn.subSelectUsing(tOrganization).from(tProject)
+            .where(tProject.organizationId.equals(tOrganization.id))
+            .selectOneColumn(tProject.name)
+            .orderBy('result', 'desc nulls first insensitive')
+            .forUseAsInlineAggregatedArrayValue()
+
+        const row = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.id.equals(1))
+            .select({ id: tOrganization.id, projectNames: orgNames })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(name order by name is not null, name desc) from project where organization_id = organization.id) as char) as projectNames from organization where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; projectNames: string[] }>>()
+        expect(row).toEqual({ id: 1, projectNames: ['Marketing site', 'Internal tools'] })
+    })
 })

@@ -19,7 +19,7 @@
 // guard needed.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
-import { tAppUser, tIssue } from '../../domain/connection.js'
+import { tAppUser, tIssue, tOrganization, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -322,5 +322,40 @@ describe(ctx.label, () => {
             .select({ id: tIssue.id })
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue where raw_to_uuid(external_ref) not like ('%' || :0 || '%') escape '\\'"`)
+    })
+
+    test('collation: aggregate-array-order-by-insensitive', async () => {
+        // An inline aggregate whose inner `order by` uses an INSENSITIVE mode, on
+        // a connection with `insensitiveCollation` set. The insensitive-order-by
+        // path applies ` collate <name>` to the ordered string column; with the
+        // collation set to '' it falls back to the plain ordering (no collate).
+        // The exact per-dialect emission is pinned by the snapshot below.
+        const collated = ctx.withInsensitiveCollation(ctx.exampleInsensitiveCollation)
+        await collated.selectFrom(tOrganization)
+            .where(tOrganization.id.equals(1))
+            .select({
+                id:    tOrganization.id,
+                names: collated.subSelectUsing(tOrganization).from(tProject)
+                    .where(tProject.organizationId.equals(tOrganization.id))
+                    .selectOneColumn(tProject.name)
+                    .orderBy('result', 'asc insensitive')
+                    .forUseAsInlineAggregatedArrayValue(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", (select json_arrayagg(a_1_.result) from (select name as result from project where organization_id = "organization".id order by result collate BINARY_CI asc offset 0 rows) a_1_) as "names" from "organization" where id = :0"`)
+
+        const empty = ctx.withInsensitiveCollation('')
+        await empty.selectFrom(tOrganization)
+            .where(tOrganization.id.equals(1))
+            .select({
+                id:    tOrganization.id,
+                names: empty.subSelectUsing(tOrganization).from(tProject)
+                    .where(tProject.organizationId.equals(tOrganization.id))
+                    .selectOneColumn(tProject.name)
+                    .orderBy('result', 'asc insensitive')
+                    .forUseAsInlineAggregatedArrayValue(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", (select json_arrayagg(a_1_.result) from (select name as result from project where organization_id = "organization".id order by result asc offset 0 rows) a_1_) as "names" from "organization" where id = :0"`)
     })
 })

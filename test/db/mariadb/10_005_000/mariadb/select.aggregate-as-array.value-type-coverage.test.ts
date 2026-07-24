@@ -11,7 +11,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tIssueWorklog, tProject, tProjectReview, vReleaseOverview, type ReleaseTag } from '../../domain/connection.js'
+import { tIssue, tIssueWorklog, tProject, tProjectRelease, tProjectReview, vReleaseOverview, type ReleaseTag } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -544,5 +544,404 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{ projectId: number; ords: ReleaseTag[] }>>>()
         expect(rows).toEqual([{ projectId: 1, ords: [1001 as ReleaseTag] }])
+    })
+
+    test('aggregate-of-double-column-as-wrapped-array', async () => {
+        // WRAPPED single-column inline aggregate: the inner `order by` forces the
+        // builder to wrap the subquery as `... from (select … order by …) as a_N_`,
+        // routing the value through the WRAPPED JSON-leaf path. Only SQL Server at
+        // `compatibilityVersion < 17_000_000` emits a per-value-type `string_agg` /
+        // `convert` leaf there; every other dialect uses its native, type-agnostic
+        // JSON aggregator. Pins the `double` case (and the optional `isnull(...)`
+        // wrapper, since `estimated_hours` is optional) on the `sqlserver/16_000_000`
+        // cell after propagation; on pg the wrapped leaf is type-agnostic. Project 1
+        // owns issues 1 and 2; their `estimated_hours` is seeded NULL, so UPDATE to
+        // distinct values inside `withRollback`. The inline aggregate has no outer
+        // order guarantee, so sort the inner array in JS before comparing.
+        await ctx.withRollback(async () => {
+            ctx.mockNext(1)
+            await ctx.conn.update(tIssue).set({ estimatedHours: 4.5 }).where(tIssue.id.equals(1)).executeUpdate()
+            ctx.mockNext(1)
+            await ctx.conn.update(tIssue).set({ estimatedHours: 12.0 }).where(tIssue.id.equals(2)).executeUpdate()
+
+            const hours = ctx.conn.subSelectUsing(tProject).from(tIssue)
+                .where(tIssue.projectId.equals(tProject.id))
+                .selectOneColumn(tIssue.estimatedHours)
+                .orderBy('result')
+                .forUseAsInlineAggregatedArrayValue()
+
+            ctx.mockNext({ id: 1, hours: '[4.5, 12]' })
+            const row = await ctx.conn.selectFrom(tProject)
+                .where(tProject.id.equals(1))
+                .select({ id: tProject.id, hours })
+                .executeSelectOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(estimated_hours order by estimated_hours) from issue where project_id = project.id) as char) as hours from project where id = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof row, { id: number; hours: number[] }>>()
+            const sorted = { ...row, hours: [...row.hours].sort((a, b) => a - b) }
+            expect(sorted).toEqual({ id: 1, hours: [4.5, 12] })
+        })
+    })
+
+    test('aggregate-of-bigint-column-as-wrapped-array', async () => {
+        // WRAPPED single-column inline aggregate of a `bigint` column — pins the
+        // `bigint` case of the wrapped JSON-leaf path (SQL Server < 17M emits the
+        // quoted `convert(nvarchar, …)` leaf; other dialects native). Same wrap
+        // trigger (inner `order by`) and same correlation (project 1 → issues 1, 2).
+        // `view_count` seeds to 0, so UPDATE to distinct values inside `withRollback`.
+        await ctx.withRollback(async () => {
+            ctx.mockNext(1)
+            await ctx.conn.update(tIssue).set({ viewCount: 100n }).where(tIssue.id.equals(1)).executeUpdate()
+            ctx.mockNext(1)
+            await ctx.conn.update(tIssue).set({ viewCount: 200n }).where(tIssue.id.equals(2)).executeUpdate()
+
+            const views = ctx.conn.subSelectUsing(tProject).from(tIssue)
+                .where(tIssue.projectId.equals(tProject.id))
+                .selectOneColumn(tIssue.viewCount)
+                .orderBy('result')
+                .forUseAsInlineAggregatedArrayValue()
+
+            ctx.mockNext({ id: 1, views: '[100, 200]' })
+            const row = await ctx.conn.selectFrom(tProject)
+                .where(tProject.id.equals(1))
+                .select({ id: tProject.id, views })
+                .executeSelectOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(view_count order by view_count) from issue where project_id = project.id) as char) as views from project where id = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof row, { id: number; views: bigint[] }>>()
+            const sorted = { ...row, views: [...row.views].sort((a, b) => Number(a - b)) }
+            expect(sorted).toEqual({ id: 1, views: [100n, 200n] })
+        })
+    })
+
+    test('aggregate-of-uuid-column-as-wrapped-array', async () => {
+        // WRAPPED single-column aggregate of an optional `uuid` column — pins the
+        // `uuid` wrapped JSON-leaf case (SQL Server < 17M wraps it in
+        // `convert(nvarchar(36), …)`; other dialects native). `external_ref` is
+        // optional; UPDATE project 1's issues 1 and 2 to known distinct uuids inside
+        // `withRollback` for a deterministic assertion.
+        await ctx.withRollback(async () => {
+            ctx.mockNext(1)
+            await ctx.conn.update(tIssue).set({ externalRef: 'c733575e-b5ba-400c-8803-3d3d4bbcd52f' }).where(tIssue.id.equals(1)).executeUpdate()
+            ctx.mockNext(1)
+            await ctx.conn.update(tIssue).set({ externalRef: 'c995d12f-ced4-4e94-a341-c2da118fe64b' }).where(tIssue.id.equals(2)).executeUpdate()
+
+            const refs = ctx.conn.subSelectUsing(tProject).from(tIssue)
+                .where(tIssue.projectId.equals(tProject.id))
+                .selectOneColumn(tIssue.externalRef)
+                .orderBy('result')
+                .forUseAsInlineAggregatedArrayValue()
+
+            ctx.mockNext({ id: 1, refs: '["c733575e-b5ba-400c-8803-3d3d4bbcd52f", "c995d12f-ced4-4e94-a341-c2da118fe64b"]' })
+            const row = await ctx.conn.selectFrom(tProject)
+                .where(tProject.id.equals(1))
+                .select({ id: tProject.id, refs })
+                .executeSelectOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(external_ref order by external_ref) from issue where project_id = project.id) as char) as refs from project where id = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof row, { id: number; refs: string[] }>>()
+            const sorted = { ...row, refs: [...row.refs].sort() }
+            expect(sorted).toEqual({ id: 1, refs: ['c733575e-b5ba-400c-8803-3d3d4bbcd52f', 'c995d12f-ced4-4e94-a341-c2da118fe64b'] })
+        })
+    })
+
+    test('aggregate-of-local-date-time-column-as-wrapped-array', async () => {
+        // WRAPPED single-column aggregate of a `localDateTime` column — pins the
+        // `localDateTime` wrapped JSON-leaf case (SQL Server < 17M emits
+        // `convert(nvarchar, …, 127)`; other dialects native). Project 1 → issues
+        // 1, 2; UPDATE their `created_at` to known instants inside `withRollback`.
+        // Tests force TZ=UTC, so the ISO strings round-trip without offset.
+        await ctx.withRollback(async () => {
+            ctx.mockNext(1)
+            await ctx.conn.update(tIssue).set({ createdAt: new Date('2024-01-01T00:00:00Z') }).where(tIssue.id.equals(1)).executeUpdate()
+            ctx.mockNext(1)
+            await ctx.conn.update(tIssue).set({ createdAt: new Date('2024-01-02T00:00:00Z') }).where(tIssue.id.equals(2)).executeUpdate()
+
+            const stamps = ctx.conn.subSelectUsing(tProject).from(tIssue)
+                .where(tIssue.projectId.equals(tProject.id))
+                .selectOneColumn(tIssue.createdAt)
+                .orderBy('result')
+                .forUseAsInlineAggregatedArrayValue()
+
+            ctx.mockNext({ id: 1, stamps: '["2024-01-01T00:00:00", "2024-01-02T00:00:00"]' })
+            const row = await ctx.conn.selectFrom(tProject)
+                .where(tProject.id.equals(1))
+                .select({ id: tProject.id, stamps })
+                .executeSelectOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(created_at order by created_at) from issue where project_id = project.id) as char) as stamps from project where id = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof row, { id: number; stamps: Date[] }>>()
+            const sorted = [...row.stamps].sort((a, b) => a.getTime() - b.getTime())
+            expect(sorted.map(d => d.toISOString())).toEqual(['2024-01-01T00:00:00.000Z', '2024-01-02T00:00:00.000Z'])
+        })
+    })
+
+    test('aggregate-of-boolean-column-as-wrapped-array', async () => {
+        // WRAPPED single-column aggregate of an optional `boolean` column — pins the
+        // `boolean` wrapped JSON-leaf case (SQL Server < 17M emits `convert(nvarchar,
+        // …)` over the bit; other dialects native). Correlated over issue 1's
+        // worklogs (1 and 3); UPDATE their `billable` to known values.
+        await ctx.withRollback(async () => {
+            ctx.mockNext(1)
+            await ctx.conn.update(tIssueWorklog).set({ billable: true }).where(tIssueWorklog.id.equals(1)).executeUpdate()
+            ctx.mockNext(1)
+            await ctx.conn.update(tIssueWorklog).set({ billable: false }).where(tIssueWorklog.id.equals(3)).executeUpdate()
+
+            const flags = ctx.conn.subSelectUsing(tIssue).from(tIssueWorklog)
+                .where(tIssueWorklog.issueId.equals(tIssue.id))
+                .selectOneColumn(tIssueWorklog.billable)
+                .orderBy('result')
+                .forUseAsInlineAggregatedArrayValue()
+
+            ctx.mockNext({ id: 1, flags: '[false, true]' })
+            const row = await ctx.conn.selectFrom(tIssue)
+                .where(tIssue.id.equals(1))
+                .select({ id: tIssue.id, flags })
+                .executeSelectOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(billable order by billable) from issue_worklog where issue_id = issue.id) as char) as flags from issue where id = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof row, { id: number; flags: boolean[] }>>()
+            const sorted = { ...row, flags: [...row.flags].sort() }
+            expect(sorted).toEqual({ id: 1, flags: [false, true] })
+        })
+    })
+
+    test('aggregate-of-local-date-column-as-wrapped-array', async () => {
+        // WRAPPED single-column aggregate of a `localDate` column — pins the
+        // `localDate` wrapped JSON-leaf case (SQL Server < 17M emits
+        // `convert(nvarchar, …, 127)`; other dialects native). Correlated over issue
+        // 1's worklogs (1 and 3), whose seeded `work_date` is 2024-03-04 / 2024-03-06.
+        ctx.mockNext({ id: 1, dates: '["2024-03-04", "2024-03-06"]' })
+        const dates = ctx.conn.subSelectUsing(tIssue).from(tIssueWorklog)
+            .where(tIssueWorklog.issueId.equals(tIssue.id))
+            .selectOneColumn(tIssueWorklog.workDate)
+            .orderBy('result')
+            .forUseAsInlineAggregatedArrayValue()
+
+        const row = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({ id: tIssue.id, dates })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(work_date order by work_date) from issue_worklog where issue_id = issue.id) as char) as dates from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; dates: Date[] }>>()
+        const sorted = [...row.dates].sort((a, b) => a.getTime() - b.getTime())
+        expect(sorted.map(d => d.getUTCFullYear() + '-' + (d.getUTCMonth() + 1) + '-' + d.getUTCDate())).toEqual(['2024-3-4', '2024-3-6'])
+    })
+
+    test('aggregate-of-custom-double-column-as-wrapped-array', async () => {
+        // WRAPPED single-column aggregate of a `customDouble` (branded `Money`)
+        // column — pins the `customDouble` wrapped JSON-leaf case (quoted, lossless
+        // style-3 convert). `tIssueWorklog.customDoubleVirtual` is `billed_amount`
+        // branded Money; issue 1's worklogs 1 and 3 both have billed_amount 200.
+        const amounts = ctx.conn.subSelectUsing(tIssue).from(tIssueWorklog)
+            .where(tIssueWorklog.issueId.equals(tIssue.id))
+            .selectOneColumn(tIssueWorklog.customDoubleVirtual)
+            .orderBy('result')
+            .forUseAsInlineAggregatedArrayValue()
+
+        ctx.mockNext({ id: 1, amounts: '[200, 200]' })
+        const row = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({ id: tIssue.id, amounts })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(billed_amount order by billed_amount) from issue_worklog where issue_id = issue.id) as char) as amounts from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; amounts: number[] }>>()
+        expect(row).toEqual({ id: 1, amounts: [200, 200] })
+    })
+
+    test('aggregate-of-custom-double-column-as-array', async () => {
+        // NON-wrapped aggregate of the same `customDouble` column — pins the
+        // non-wrapped `customDouble` JSON-leaf case. Issue 1's worklogs 1 and 3.
+        ctx.mockNext([{ issueId: 1, amounts: [200, 200] }])
+        const rows = await ctx.conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.issueId.equals(1))
+            .select({
+                issueId: tIssueWorklog.issueId,
+                amounts: ctx.conn.aggregateAsArrayOfOneColumn(tIssueWorklog.customDoubleVirtual),
+            })
+            .groupBy('issueId')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select issue_id as issueId, cast(json_arrayagg(billed_amount) as char) as amounts from issue_worklog where issue_id = ? group by issue_id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ issueId: number; amounts: number[] }>>>()
+        expect(rows).toEqual([{ issueId: 1, amounts: [200, 200] }])
+    })
+
+    test('aggregate-of-local-time-column-as-wrapped-array', async () => {
+        // WRAPPED single-column aggregate of a `localTime` column — pins the
+        // `localTime` wrapped JSON-leaf case. `tIssueWorklog.startedAt` is optional
+        // localTime; issue 1's worklogs 1 and 3 seed 09:15:00 and 10:30:00. Tests
+        // force TZ=UTC, so the clock components read back stably.
+        const clocks = ctx.conn.subSelectUsing(tIssue).from(tIssueWorklog)
+            .where(tIssueWorklog.issueId.equals(tIssue.id))
+            .selectOneColumn(tIssueWorklog.startedAt)
+            .orderBy('result')
+            .forUseAsInlineAggregatedArrayValue()
+
+        ctx.mockNext({ id: 1, clocks: '["09:15:00", "10:30:00"]' })
+        const row = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({ id: tIssue.id, clocks })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(started_at order by started_at) from issue_worklog where issue_id = issue.id) as char) as clocks from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; clocks: Date[] }>>()
+        const sorted = [...row.clocks].sort((a, b) => a.getTime() - b.getTime())
+        expect(sorted.map(d => d.getUTCHours() + ':' + String(d.getUTCMinutes()).padStart(2, '0'))).toEqual(['9:15', '10:30'])
+    })
+
+    test('aggregate-of-custom-uuid-column-as-wrapped-array', async () => {
+        // WRAPPED single-column aggregate of a `customUuid` column — pins the
+        // `customUuid` wrapped JSON-leaf case (nvarchar(36) convert). Project 1 owns
+        // releases 1 and 2; release 1's `signing_key` is a uuid, release 2's is NULL,
+        // and the optional aggregate strips the null — one element remains.
+        const keys = ctx.conn.subSelectUsing(tProject).from(tProjectRelease)
+            .where(tProjectRelease.projectId.equals(tProject.id))
+            .selectOneColumn(tProjectRelease.signingKey)
+            .orderBy('result')
+            .forUseAsInlineAggregatedArrayValue()
+
+        ctx.mockNext({ id: 1, keys: '["0a8f9c1e-1111-4222-8333-444455556666", null]' })
+        const row = await ctx.conn.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ id: tProject.id, keys })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(signing_key order by signing_key) from project_release where project_id = project.id) as char) as \`keys\` from project where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; keys: string[] }>>()
+        expect(row).toEqual({ id: 1, keys: ['0a8f9c1e-1111-4222-8333-444455556666'] })
+    })
+
+    test('aggregate-of-custom-local-date-column-as-wrapped-array', async () => {
+        // WRAPPED single-column aggregate of a `customLocalDate` column — pins the
+        // `customLocalDate` wrapped JSON-leaf case. Project 1's releases 1 and 2 seed
+        // `released_on` 2024-01-15 and 2024-02-20.
+        const days = ctx.conn.subSelectUsing(tProject).from(tProjectRelease)
+            .where(tProjectRelease.projectId.equals(tProject.id))
+            .selectOneColumn(tProjectRelease.releasedOn)
+            .orderBy('result')
+            .forUseAsInlineAggregatedArrayValue()
+
+        ctx.mockNext({ id: 1, days: '["2024-01-15", "2024-02-20"]' })
+        const row = await ctx.conn.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ id: tProject.id, days })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(released_on order by released_on) from project_release where project_id = project.id) as char) as days from project where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; days: Date[] }>>()
+        const sorted = [...row.days].sort((a, b) => a.getTime() - b.getTime())
+        expect(sorted.map(d => d.getUTCFullYear() + '-' + (d.getUTCMonth() + 1) + '-' + d.getUTCDate())).toEqual(['2024-1-15', '2024-2-20'])
+    })
+
+    test('aggregate-of-custom-local-time-column-as-wrapped-array', async () => {
+        // WRAPPED single-column aggregate of a `customLocalTime` column — pins the
+        // `customLocalTime` wrapped JSON-leaf case. Project 1's releases 1 and 2 seed
+        // `cutoff_time` 17:00:00 and 18:30:00.
+        const cutoffs = ctx.conn.subSelectUsing(tProject).from(tProjectRelease)
+            .where(tProjectRelease.projectId.equals(tProject.id))
+            .selectOneColumn(tProjectRelease.cutoffTime)
+            .orderBy('result')
+            .forUseAsInlineAggregatedArrayValue()
+
+        ctx.mockNext({ id: 1, cutoffs: '["17:00:00", "18:30:00"]' })
+        const row = await ctx.conn.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ id: tProject.id, cutoffs })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(cutoff_time order by cutoff_time) from project_release where project_id = project.id) as char) as cutoffs from project where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; cutoffs: Date[] }>>()
+        const sorted = [...row.cutoffs].sort((a, b) => a.getTime() - b.getTime())
+        expect(sorted.map(d => d.getUTCHours() + ':' + String(d.getUTCMinutes()).padStart(2, '0'))).toEqual(['17:00', '18:30'])
+    })
+
+    test('aggregate-of-custom-local-date-time-column-as-wrapped-array', async () => {
+        // WRAPPED single-column aggregate of a `customLocalDateTime` column — pins
+        // the `customLocalDateTime` wrapped JSON-leaf case. Project 1's releases 1 and
+        // 2: `signed_off_at` is 2024-01-14 12:30:00 for release 1 and NULL for release
+        // 2, and the optional aggregate strips the null — one element remains.
+        const signoffs = ctx.conn.subSelectUsing(tProject).from(tProjectRelease)
+            .where(tProjectRelease.projectId.equals(tProject.id))
+            .selectOneColumn(tProjectRelease.signedOffAt)
+            .orderBy('result')
+            .forUseAsInlineAggregatedArrayValue()
+
+        ctx.mockNext({ id: 1, signoffs: '["2024-01-14T12:30:00", null]' })
+        const row = await ctx.conn.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({ id: tProject.id, signoffs })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, cast((select json_arrayagg(signed_off_at order by signed_off_at) from project_release where project_id = project.id) as char) as signoffs from project where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { id: number; signoffs: Date[] }>>()
+        expect(row.signoffs.map(d => d.toISOString())).toEqual(['2024-01-14T12:30:00.000Z'])
     })
 })

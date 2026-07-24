@@ -2447,7 +2447,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         const froms = query.__froms
         const joins = query.__joins
-        if ((!froms || froms.length < 0) && (!joins || joins.length < 0)) {
+        if ((!froms || froms.length <= 0) && (!joins || joins.length <= 0)) {
             return undefined
         }
 

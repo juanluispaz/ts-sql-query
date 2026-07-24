@@ -264,7 +264,6 @@
         "codegen:doc-code": "bash scripts/codegen-doc-code.sh",
         "all-examples": "sh ./scripts/all-examples.sh",
         "no-docker-examples": "sh ./scripts/no-docker-examples.sh",
-        "coverage": "npm_config_user_agent=npm/coverage nyc sh ./scripts/all-examples.sh",
         "validate": "tsc --noEmit",
         "validate:tsgo": "tsgo --noEmit",
         "validate:tests": "bash scripts/validate-tests.sh",
@@ -338,7 +337,6 @@
         "monocart-coverage-reports": "^2.12.11",
         "mssql": "^12.5.5",
         "mysql2": "^3.22.5",
-        "nyc": "^18.0.0",
         "oracledb": "^7.0.0",
         "pg": "^8.20.0",
         "postgres": "^3.4.9",
@@ -351,17 +349,6 @@
         "uuid": "^14.0.0",
         "vitest": "^4.1.8",
         "vitest-monocart-coverage": "^4.0.2"
-    },
-    "nyc": {
-        "exclude": [
-            "src/examples/**"
-        ],
-        "reporter": [
-            "html"
-        ],
-        "include": [
-            "src/**"
-        ]
     },
     "engines": {
         "node": ">=22"

@@ -268,4 +268,45 @@ const conn = ctx.withReplaceAllInsensitiveFunction('ci_replace')
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref like ('%' || ? || '%') escape '\\'"`)
     })
 
+    test('collation: negated affix operators with a uuid receiver', async () => {
+        // The negated twins of the affix test above: `notStartsWithInsensitive`,
+        // `notContainsInsensitive` and `notEndsWithInsensitive` over the same uuid
+        // RECEIVER, under a SET collation.
+        //
+        // That combination is the point, and it is narrower than it looks. The
+        // negated operators already have collation coverage elsewhere in this file,
+        // but over a PLAIN string column; and the uuid receiver already has affix
+        // coverage elsewhere, but with NO collation configured. Each negated
+        // operator branches on the receiver being a uuid FIRST and on the collation
+        // SECOND, so uuid-and-collated is a distinct arm from both — three arms, one
+        // per operator, that neither of those two families reaches.
+        //
+        // The empty-collation arm keeps the same shape with no collate suffix,
+        // exactly as the positive trio does.
+        const collated = ctx.withInsensitiveCollation(ctx.exampleInsensitiveCollation)
+        await collated.selectFrom(tIssue)
+            .where(tIssue.externalRef.asString().notStartsWithInsensitive('0a8f'))
+            .select({ id: tIssue.id })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref not like (? || '%') collate NOCASE escape '\\'"`)
+
+        await collated.selectFrom(tIssue)
+            .where(tIssue.externalRef.asString().notContainsInsensitive('1111'))
+            .select({ id: tIssue.id })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref not like ('%' || ? || '%') collate NOCASE escape '\\'"`)
+
+        await collated.selectFrom(tIssue)
+            .where(tIssue.externalRef.asString().notEndsWithInsensitive('6666'))
+            .select({ id: tIssue.id })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref not like ('%' || ?) collate NOCASE escape '\\'"`)
+
+        const empty = ctx.withInsensitiveCollation('')
+        await empty.selectFrom(tIssue)
+            .where(tIssue.externalRef.asString().notContainsInsensitive('1111'))
+            .select({ id: tIssue.id })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue where external_ref not like ('%' || ? || '%') escape '\\'"`)
+    })
 })

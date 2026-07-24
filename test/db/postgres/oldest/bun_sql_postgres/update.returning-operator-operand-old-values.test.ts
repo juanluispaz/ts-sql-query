@@ -337,4 +337,76 @@ describe(ctx.label, () => {
             expect(row).toEqual(expected)
         })
     })
+
+    test('returning-equals-if-value-with-old-value-receiver-and-a-present-value', async () => {
+        // The `*IfValueOrNoop` old-values arm the file's `valueWhenNoValue` test
+        // does not reach. There the `equalsIfValue` receiver has NO value, so the
+        // operator collapses to a noop and its old-values walk returns early; here
+        // the value IS present, so the noop guard falls through and the walk
+        // descends into the RECEIVER — an old-values column — which is what pulls
+        // the pre-update row into the statement. (`equalsIfValue` yields an
+        // if-value source, not directly projectable, so `valueWhenNoValue(false)`
+        // resolves it; the value being present means that fallback never fires.)
+        // Project 1's slug is 'mktg-site' and renaming the name leaves it untouched,
+        // so the pre-update slug still equals 'mktg-site': true.
+        const expected = { id: 1, wasMktgSite: true }
+        ctx.mockNext(expected)
+
+        await ctx.withRollback(async () => {
+            const oldProject = tProject.oldValues()
+            const row = await ctx.conn.update(tProject)
+                .set({ name: 'Marketing site v2' })
+                .where(tProject.id.equals(1))
+                .returning({
+                    id: tProject.id,
+                    wasMktgSite: oldProject.slug.equalsIfValue('mktg-site').valueWhenNoValue(false),
+                })
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project as _new_ set name = $1 from (select _old_.* from project as _old_ where _old_.id = $2 for no key update of _old_) as _old_ where _new_.id = _old_.id returning _new_.id as id, _old_.slug = $3 as "wasMktgSite""`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Marketing site v2",
+                1,
+                "mktg-site",
+              ]
+            `)
+            assertType<Exact<typeof row, { id: number, wasMktgSite: boolean }>>()
+            expect(row).toEqual(expected)
+        })
+    })
+
+    test('returning-concat-if-value-with-old-value-receiver', async () => {
+        // The `concatIfValue` twin — a value-present `*IfValueOrIgnore` operator
+        // whose receiver is an old-values column. `concatIfValue` yields a plain
+        // string value source (projectable directly), and with the value present it
+        // emits `old.name || $n`, its operand walk descending into the receiver.
+        // Project 1's pre-update name is 'Marketing site', so the label reads
+        // 'Marketing site (was)'.
+        const expected = { id: 1, label: 'Marketing site (was)' }
+        ctx.mockNext(expected)
+
+        await ctx.withRollback(async () => {
+            const oldProject = tProject.oldValues()
+            const row = await ctx.conn.update(tProject)
+                .set({ name: 'Marketing site v3' })
+                .where(tProject.id.equals(1))
+                .returning({
+                    id: tProject.id,
+                    label: oldProject.name.concatIfValue(' (was)'),
+                })
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project as _new_ set name = $1 from (select _old_.* from project as _old_ where _old_.id = $2 for no key update of _old_) as _old_ where _new_.id = _old_.id returning _new_.id as id, _old_.name || $3 as label"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Marketing site v3",
+                1,
+                " (was)",
+              ]
+            `)
+            assertType<Exact<typeof row, { id: number, label: string }>>()
+            expect(row).toEqual(expected)
+        })
+    })
 })

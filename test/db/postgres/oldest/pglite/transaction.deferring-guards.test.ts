@@ -381,4 +381,41 @@ describe(ctx.label, () => {
         expect(reasonsInChain(caught)).toContain('NESTED_DEFERRING_IN_TRANSACTION_NOT_SUPPORTED')
     })
     */
+
+    test('nested-transaction-inner-after-commit-hook-cannot-register-a-before-commit-hook', async () => {
+        // Companion to `nested-transaction-inner-after-commit-hook-cannot-register-a-hook`
+        // for the OTHER registration API: the guard is per deferred-hook kind, so
+        // reaching it from the same after-commit drain via `executeBeforeNextCommit`
+        // is a distinct arm. The inner after-commit list is nulled while draining
+        // and `popTransactionStack` runs after the hooks, so `onCommit === null`
+        // and `executeBeforeNextCommit` throws NESTED_DEFERRING — not the
+        // NOT_IN_TRANSACTION a single transaction's after-commit hook would hit.
+        const connection = ctx.conn
+        const events: string[] = []
+        let caught: unknown
+        await ctx.withReseed(async () => {
+            try {
+                await connection.transaction(async () => {
+                    connection.executeAfterNextCommit(() => { events.push('outer-after-commit') })
+                    await connection.transaction(async () => {
+                        connection.executeAfterNextCommit(() => {
+                            // Never reached, and deliberately not a block comment
+                            // so the whole test stays safe to comment out.
+                            connection.executeBeforeNextCommit(() => { events.push('unreachable') })
+                        })
+                    })
+                })
+            } catch (e) { caught = e }
+        })
+        if (ctx.realDbEnabled) {
+            // The matrix runner is constructed without allowNestedTransactions,
+            // so the real engine rejects the nested transaction before the inner
+            // after-commit hook can run.
+            expect(reasonsInChain(caught)).toContain('NESTED_TRANSACTION_NOT_SUPPORTED')
+        } else {
+            expect(reasonsInChain(caught)).toContain('NESTED_DEFERRING_IN_TRANSACTION_NOT_SUPPORTED')
+            expect(reasonsInChain(caught)).toContain('ERROR_EXECUTING_DEFERRED_IN_TRANSACTION')
+            expect(events).toEqual([])
+        }
+    })
 })

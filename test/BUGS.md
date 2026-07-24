@@ -75,7 +75,34 @@ entry says under *Current workaround in the suite* why the matrix can't see it.
 A `none` there is not "nothing to do": it means no test would notice a
 regression either.
 
-*(none)*
+## `_extractAdditionalRequiredTablesForUpdate` guards on `length < 0`, which is never true
+
+- **Where:** `src/sqlBuilders/AbstractSqlBuilder.ts:2450`
+- **What:** the early-out guard reads
+
+      if ((!froms || froms.length < 0) && (!joins || joins.length < 0)) {
+          return undefined
+      }
+
+  An array's `length` is never negative, so both `length < 0` tests are dead and the
+  condition collapses to `(!froms && !joins)`. The intent was plainly `length <= 0`
+  (or `.length === 0`) — "no froms and no joins, nothing extra to extract".
+- **Effect:** an UPDATE whose `__froms` / `__joins` are present but EMPTY arrays skips the
+  early return and falls through to build a `Set` that the guard was meant to avoid. The
+  method then returns an empty `Set` where it should return `undefined`. Whether a caller
+  distinguishes `undefined` from an empty `Set` decides if this is cosmetic or behavioural —
+  I did not trace the callers, per the two-minute triage rule.
+- **Scope:** reachable only when `_useUpdateOldValueInFrom()` is true AND the query uses
+  `oldValues()`. At `newest` that is dark on every dialect (PostgreSQL ≥18 uses native
+  `OLD`/`NEW`; MySQL/MariaDB/SQL Server return false; SQLite/Oracle do not type `oldValues()`),
+  so it can only bite on `postgres/oldest`.
+- **How it was found:** cycle 16 of the branch-coverage campaign. The coverage report flags
+  three arms at this line as unreachable, which is the signature of a dead comparison — the
+  arm cannot be taken because the condition cannot be true.
+- **Current workaround in the suite:** none, and no test would notice a regression here. The
+  three arms are recorded as NOT-ACTIONABLE in `test/BRANCH_COVERAGE_BLOCKED.md`; they become
+  testable only if the comparison is corrected.
+- **Not fixed here:** per project policy the campaign does not touch `src/`.
 
 ## Coverage gaps carried over (not bugs — no entry to fix)
 

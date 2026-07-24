@@ -320,4 +320,69 @@ describe(ctx.label, () => {
     })
     */
 
+    // NOT-APPLICABLE: MySQL has no RETURNING (and no OUTPUT equivalent), so `tTable.oldValues()` is typed `never` on `MySqlConnection`; audit-style pre/post reads need an explicit SELECT before the UPDATE.
+    /*
+    test('returning-equals-if-value-with-old-value-receiver-and-a-present-value', async () => {
+        // The `*IfValueOrNoop` old-values arm the file's `valueWhenNoValue` test
+        // does not reach. There the `equalsIfValue` receiver has NO value, so the
+        // operator collapses to a noop and its old-values walk returns early; here
+        // the value IS present, so the noop guard falls through and the walk
+        // descends into the RECEIVER — an old-values column — which is what pulls
+        // the pre-update row into the statement. (`equalsIfValue` yields an
+        // if-value source, not directly projectable, so `valueWhenNoValue(false)`
+        // resolves it; the value being present means that fallback never fires.)
+        // Project 1's slug is 'mktg-site' and renaming the name leaves it untouched,
+        // so the pre-update slug still equals 'mktg-site': true.
+        const expected = { id: 1, wasMktgSite: true }
+        ctx.mockNext(expected)
+
+        await ctx.withRollback(async () => {
+            const oldProject = tProject.oldValues()
+            const row = await ctx.conn.update(tProject)
+                .set({ name: 'Marketing site v2' })
+                .where(tProject.id.equals(1))
+                .returning({
+                    id: tProject.id,
+                    wasMktgSite: oldProject.slug.equalsIfValue('mktg-site').valueWhenNoValue(false),
+                })
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof row, { id: number, wasMktgSite: boolean }>>()
+            expect(row).toEqual(expected)
+        })
+    })
+    */
+
+    // NOT-APPLICABLE: MySQL has no RETURNING (and no OUTPUT equivalent), so `tTable.oldValues()` is typed `never` on `MySqlConnection`; audit-style pre/post reads need an explicit SELECT before the UPDATE.
+    /*
+    test('returning-concat-if-value-with-old-value-receiver', async () => {
+        // The `concatIfValue` twin — a value-present `*IfValueOrIgnore` operator
+        // whose receiver is an old-values column. `concatIfValue` yields a plain
+        // string value source (projectable directly), and with the value present it
+        // emits `old.name || $n`, its operand walk descending into the receiver.
+        // Project 1's pre-update name is 'Marketing site', so the label reads
+        // 'Marketing site (was)'.
+        const expected = { id: 1, label: 'Marketing site (was)' }
+        ctx.mockNext(expected)
+
+        await ctx.withRollback(async () => {
+            const oldProject = tProject.oldValues()
+            const row = await ctx.conn.update(tProject)
+                .set({ name: 'Marketing site v3' })
+                .where(tProject.id.equals(1))
+                .returning({
+                    id: tProject.id,
+                    label: oldProject.name.concatIfValue(' (was)'),
+                })
+                .executeUpdateOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof row, { id: number, label: string }>>()
+            expect(row).toEqual(expected)
+        })
+    })
+    */
 })

@@ -34,8 +34,10 @@ function internalCallDeferredFunctions<T>(stopOnFistError: boolean, name: 'befor
             try {
                 const fnResult = fn()
                 if (isPromise(fnResult)) {
-                    promise = fnResult
-                    promise.catch( (e) => {
+                    // Assign the transformed promise back so it is the one awaited at the tail below.
+                    // A bare `fnResult.catch(...)` whose result is discarded re-throws into a detached
+                    // promise nobody awaits, producing an unhandled rejection.
+                    promise = fnResult.catch( (e) => {
                         if (e instanceof TsSqlQueryExecutionError && e.errorReason.reason === 'ERROR_EXECUTING_DEFERRED_IN_TRANSACTION') {
                             throw e
                         } else {
@@ -116,7 +118,11 @@ function callDeferredFunctionAsThen(fn: () => void | Promise<void>, index: numbe
     try {
         const fnResult = fn()
         if (isPromise(fnResult)) {
-            fnResult.catch( (e) => {
+            // Return the transformed promise so the enclosing `.then` chain awaits it: the
+            // deferred hook's rejection then flows into the chain (collected by the next
+            // handler or surfaced at the tail) instead of being discarded — which both
+            // swallowed the error from the caller and leaked it as an unhandled rejection.
+            return fnResult.catch( (e) => {
                 if (e instanceof TsSqlQueryExecutionError && e.errorReason.reason === 'ERROR_EXECUTING_DEFERRED_IN_TRANSACTION') {
                     throw e
                 } else {

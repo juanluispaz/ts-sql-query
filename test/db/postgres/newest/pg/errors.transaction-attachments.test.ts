@@ -174,6 +174,69 @@ describe(ctx.label, () => {
         }
     })
 
+    test('async-after-commit-deferred-reject-surfaces-wrapped-error', async () => {
+        // The synchronous-throw hooks above all fail through the try/catch arm;
+        // a PROMISE-returning hook that rejects routes through the async arm of
+        // `callDeferredFunctions` instead. Body commits, the single after-commit
+        // hook rejects, and the transaction must reject with a wrapped
+        // `ERROR_EXECUTING_DEFERRED_IN_TRANSACTION` — without leaking an unhandled
+        // rejection (which on its own would fail the run).
+        const connection = ctx.conn
+        let caught: unknown
+
+        await ctx.withReseed(async () => {
+            try {
+                await connection.transaction(async () => {
+                    connection.executeAfterNextCommit(async () => {
+                        throw new Error('boom-from-async-after-commit-hook')
+                    })
+                })
+            } catch (e) {
+                caught = e
+            }
+        })
+
+        expect(caught).toBeInstanceOf(TsSqlQueryExecutionError)
+        if (caught instanceof TsSqlQueryExecutionError) {
+            expect(caught.errorReason.reason).toBe('ERROR_EXECUTING_DEFERRED_IN_TRANSACTION')
+        }
+    })
+
+    test('two-async-after-commit-deferred-rejects-attach-additional-error', async () => {
+        // Two PROMISE-returning after-commit hooks that both reject. The second is
+        // chained onto the first through `callDeferredFunctionAsThen`; its rejected
+        // promise must flow into the surfaced error's `additionalErrors` (and must
+        // not be dropped — swallowing it would resolve the transaction as if it
+        // succeeded and leak the rejection). The first becomes the surfaced error,
+        // the second is appended via `attachAdditionalError('after next commit')`.
+        const connection = ctx.conn
+        let caught: unknown
+
+        await ctx.withReseed(async () => {
+            try {
+                await connection.transaction(async () => {
+                    connection.executeAfterNextCommit(async () => {
+                        throw new Error('boom-from-async-after-commit-hook-1')
+                    })
+                    connection.executeAfterNextCommit(async () => {
+                        throw new Error('boom-from-async-after-commit-hook-2')
+                    })
+                })
+            } catch (e) {
+                caught = e
+            }
+        })
+
+        expect(caught).toBeInstanceOf(TsSqlQueryExecutionError)
+        if (caught instanceof TsSqlQueryExecutionError) {
+            expect(caught.errorReason.reason).toBe('ERROR_EXECUTING_DEFERRED_IN_TRANSACTION')
+            expect(caught.additionalErrors).toHaveLength(1)
+            const additional = caught.additionalErrors?.[0]
+            expect(additional).toBeInstanceOf(TsSqlQueryExecutionError)
+            expect((additional as Error).message).toContain('boom-from-async-after-commit-hook-2')
+        }
+    })
+
     test('transaction-body-throws-custom-error-class-propagates-raw-unwrapped', async () => {
         // A user error class crosses `connection.transaction(...)` unchanged —
         // the same instance is caught outside, in BOTH mock and real modes. The

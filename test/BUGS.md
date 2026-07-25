@@ -75,37 +75,6 @@ entry says under *Current workaround in the suite* why the matrix can't see it.
 A `none` there is not "nothing to do": it means no test would notice a
 regression either.
 
-## `callDeferredFunctions` leaks a floating unhandled rejection when a deferred hook returns a rejecting promise
-
-**Where**: `src/utils/PromiseUtils.ts:38` (`promise.catch(...)` in `internalCallDeferredFunctions`)
-and the analogous `src/utils/PromiseUtils.ts:119` (`fnResult.catch(...)` in `callDeferredFunctionAsThen`).
-Both attach a rejection handler that RE-THROWS (lines 40/46 and 121/127) into a promise whose return
-value is discarded — `promise` stays the raw `fnResult`, and the surfaced error is (correctly) produced
-by the SEPARATE `promise.then(onFulfil, onReject)` at line 67. So the `.catch` chain's re-thrown
-rejection is never awaited or handled → an unhandled promise rejection.
-
-**Reproduction**: register a deferred hook that returns a rejecting promise and let the transaction
-drain it:
-```ts
-await connection.transaction(async () => {
-    connection.executeAfterNextCommit(async () => { throw new Error('boom') })
-})
-```
-`transaction(...)` correctly rejects with a catchable `TsSqlQueryExecutionError` (reason
-`ERROR_EXECUTING_DEFERRED_IN_TRANSACTION`) — that half is fine — but vitest additionally reports
-**"1 error"** (`Error: boom … at internalCallDeferredFunctions PromiseUtils.ts:35`) and the run
-**exits non-zero**. Same shape for a chained (≥2nd) async-rejecting hook via `callDeferredFunctionAsThen`
-(line 119). SYNCHRONOUS-throw hooks (`() => { throw }`) do NOT leak — only async (promise-returning)
-hooks do (which is why the existing sync-throw tests in `errors.transaction-attachments.test.ts` are
-clean).
-
-**Current workaround in the suite**: none — no test registers an async-rejecting deferred hook, precisely
-because such a test fails the run with the unhandled rejection. The ~41 uncovered branch arms in
-`PromiseUtils.ts` are all async-error paths blocked by this leak (recorded in
-`BRANCH_COVERAGE_BLOCKED.md` "Fresh-triage R1"). A fix (e.g. `promise = promise.catch(...)` so the
-transformed promise is the one awaited, or drop the redundant `.catch` since line 67 already handles the
-rejection) would remove the leak AND make those arms testable.
-
 ## Coverage gaps carried over (not bugs — no entry to fix)
 
 These are **not** defects and there is nothing in `src/` to change. They are the

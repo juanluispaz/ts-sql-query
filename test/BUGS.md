@@ -75,6 +75,67 @@ entry says under *Current workaround in the suite* why the matrix can't see it.
 A `none` there is not "nothing to do": it means no test would notice a
 regression either.
 
+## `has-aggregation/update-join-on-with-an-aggregating-subquery-reports-aggregation` builds SQL no engine can execute
+
+**Not a `src/` defect — do NOT patch `src/`.** ts-sql-query emits faithfully;
+the *fixture* builds an invalid query. The fix is in the shared test template +
+a re-bake of the cells, never in `src/`.
+
+**Where**: the `update-join-on-with-an-aggregating-subquery-reports-aggregation`
+case of the shared `mutation.has-aggregation.test.ts` template — present in all
+68 cells (e.g. [db/sqlite/newest/sqlite3/mutation.has-aggregation.test.ts:918](db/sqlite/newest/sqlite3/mutation.has-aggregation.test.ts#L918),
+[db/postgres/newest/pg/mutation.has-aggregation.test.ts](db/postgres/newest/pg/mutation.has-aggregation.test.ts)).
+The fixture references the UPDATE-target column inside a FROM-clause join `ON`:
+`.innerJoin(tAppUser).on(tAppUser.id.equals(tIssue.assigneeId).and(tProject.organizationId.lessOrEqual(organizationCount)))`.
+
+**Reproduction**: `npm run tests -- sqlite/newest/sqlite3` (native SQLite runs
+real SQL even without `--docker`). Emitted SQL: `update project set name =
+app_user.full_name from issue inner join app_user on app_user.id =
+issue.assignee_id and project.organization_id <= (select count(id) as result
+from organization) where project.id = issue.project_id and issue.id = ?`.
+SQLite → `SQLITE_ERROR: no such column: project.organization_id`; PostgreSQL
+(verified via pglite) → `invalid reference to FROM-clause entry for table
+"project"`. Cause: in `UPDATE target … FROM (join) …`, the target table is in
+scope only at the top-level `WHERE`, never inside a FROM-join `ON` — verified:
+moving the same term to `WHERE` executes and updates 1 row on both engines. The
+query is invalid on **every** dialect; only native-SQLite cells catch it in a
+plain run because they are the only cells that real-execute there (docker/wasm
+cells mock, but `--docker`, `--wasm`, and the no-docker CI shard all surface it
+too).
+
+**Current workaround in the suite**: none — currently red (unmarked) in the 7
+native-SQLite cells (`sqlite3`, `better-sqlite3(+sync)`, `node_sqlite(+sync)`,
+`bun_sqlite(+sync)`). The `queryHasAggregation(query) === true` assertion (the
+real unit under test) is fine; only the `executeUpdate()` real-run + its SQL
+snapshot ride on the unexecutable shape.
+
+**Fix sketch (for later)**: move the aggregate-bearing comparison off the target
+table onto a table already in the join scope (e.g.
+`tIssue.projectId.lessOrEqual(organizationCount)`), keeping the aggregate in the
+`ON`; re-bake all 68 cells' per-dialect snapshots + `tests:audit` + real-validate.
+
+## `deleteFrom(...).returning({}).executeDeleteMany()` throws on better-sqlite3 — empty-returning mutation still runs through the data-returning driver path
+
+**Where**: the better-sqlite3 query runner + `DeleteQueryBuilder.executeDeleteMany`
+([../src/queryBuilders/DeleteQueryBuilder.ts:137](../src/queryBuilders/DeleteQueryBuilder.ts#L137),
+error thrown/wrapped at :172). Surfaces via the
+`emission-edge-cases/empty-returning-projection` case of
+[db/sqlite/newest/better-sqlite3/select.emission-edge-cases.test.ts:74](db/sqlite/newest/better-sqlite3/select.emission-edge-cases.test.ts#L74).
+
+**Reproduction**: `deleteFrom(tIssue).where(tIssue.id.equals(1)).returning({}).executeDeleteMany()`.
+The empty `returning({})` flattens to nothing, so the emitted SQL correctly has NO
+returning clause: `delete from issue where id = ?`. But the runner still dispatches
+the mutation through the data-returning path (`.all()` / `.get()`), and better-sqlite3
+strictly rejects that on a non-data statement:
+`TsSqlQueryExecutionError: SQL_INTERNAL_ERROR: This statement does not return data. Use
+run() instead` (caused by `TypeError: This statement does not return data. Use run()
+instead`). Expected `rows === []`. Fails on `better-sqlite3` and `better-sqlite3-sync`
+across all 5 SQLite version tiers (10 cells); `sqlite3` and `node_sqlite` are lenient
+and pass, so the mock cells and those runners hide it.
+
+**Current workaround in the suite**: none — currently red (unmarked) in the 10
+better-sqlite3(+sync) cells.
+
 ## Coverage gaps carried over (not bugs — no entry to fix)
 
 These are **not** defects and there is nothing in `src/` to change. They are the

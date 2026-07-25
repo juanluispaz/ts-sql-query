@@ -944,4 +944,45 @@ describe(ctx.label, () => {
         assertType<Exact<typeof row, { id: number; signoffs: Date[] }>>()
         expect(row.signoffs.map(d => d.toISOString())).toEqual(['2024-01-14T12:30:00.000Z'])
     })
+
+    // NOT-APPLICABLE: MariaDB types `forUseAsInlineAggregatedArrayValue` as `never` for an inline aggregate carrying `group by` (also `having`/`compound`/`distinct`) — MariaDB allows no outer references in an inner FROM (no LATERAL), so this correlated wrapped-object shape is forbidden by design. A MariaDB user can never build it; casting past the guard only emits SQL MariaDB rejects at execution (ER_BAD_FIELD_ERROR: Unknown column 'project.id'). Body kept (canonical shape) for cross-cell diff parity per the symmetry rule.
+    /*
+    test('aggregate-of-wrapped-object-with-uuid-column', async () => {
+        // WRAPPED-object aggregate whose object carries a uuid column, grouped so the
+        // inline aggregate takes the wrapped path (`_needAgggregateArrayWrapper` wraps
+        // unconditionally on `group by`). On MySQL under the default `binary` uuid
+        // strategy the WRAPPED object emits `bin_to_uuid(a_1_.ref)` for the uuid
+        // property (the non-wrapped object form is covered separately); other dialects
+        // bake their own per-property uuid handling. `external_ref` is optional; UPDATE
+        // project 1's issues 1,2 to distinct uuids — each groups to one issue (count 1).
+        // The inner-array order is unspecified, so sort by ref.
+        await ctx.withRollback(async () => {
+            ctx.mockNext(1)
+            await ctx.conn.update(tIssue).set({ externalRef: 'c733575e-b5ba-400c-8803-3d3d4bbcd52f' }).where(tIssue.id.equals(1)).executeUpdate()
+            ctx.mockNext(1)
+            await ctx.conn.update(tIssue).set({ externalRef: 'c995d12f-ced4-4e94-a341-c2da118fe64b' }).where(tIssue.id.equals(2)).executeUpdate()
+
+            const refs = ctx.conn.subSelectUsing(tProject).from(tIssue)
+                .where(tIssue.projectId.equals(tProject.id))
+                .select({ ref: tIssue.externalRef, cnt: ctx.conn.count(tIssue.id) })
+                .groupBy('ref')
+                .forUseAsInlineAggregatedArrayValue()
+
+            ctx.mockNext({ id: 1, refs: '[{"ref":"c733575e-b5ba-400c-8803-3d3d4bbcd52f","cnt":1},{"ref":"c995d12f-ced4-4e94-a341-c2da118fe64b","cnt":1}]' })
+            const row = await ctx.conn.selectFrom(tProject)
+                .where(tProject.id.equals(1))
+                .select({ id: tProject.id, refs })
+                .executeSelectOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof row, { id: number; refs: Array<{ ref?: string; cnt: number }> }>>()
+            const sorted = { ...row, refs: [...row.refs].sort((a, b) => (a.ref ?? '').localeCompare(b.ref ?? '')) }
+            expect(sorted).toEqual({ id: 1, refs: [
+                { ref: 'c733575e-b5ba-400c-8803-3d3d4bbcd52f', cnt: 1 },
+                { ref: 'c995d12f-ced4-4e94-a341-c2da118fe64b', cnt: 1 },
+            ] })
+        })
+    })
+    */
 })

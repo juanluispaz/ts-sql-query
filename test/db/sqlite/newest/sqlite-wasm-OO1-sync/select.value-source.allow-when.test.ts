@@ -182,4 +182,30 @@ describe(ctx.label, () => {
         }
         expect(thrown).toBe(customError)
     })
+
+    test('allow-when-false-inside-nested-object-is-disallowed-and-throws', async () => {
+        // The nested-projection analogue of the flat gate above: a disallowed
+        // `allowWhen` column inside a nested `meta` object. The introspection
+        // walker must RECURSE into the nested projection object to find the gate —
+        // the flat sibling only gates a top-level column, so the walker's
+        // nested-object recursion was never exercised on a disallowed column.
+        // `isQueryAllowed` therefore reports false (walking the nested object);
+        // building/executing then throws DISALLOWED.
+        const query = ctx.conn.selectFrom(tIssue)
+            .select({ meta: { id: tIssue.id.allowWhen(false, 'id column disabled') } })
+
+        expect(isQueryAllowed(query)).toBe(false)
+
+        let thrown: unknown
+        try {
+            sync(query.executeSelectMany())
+        } catch (e) {
+            thrown = e
+        }
+        expect(thrown).toBeInstanceOf(Error)
+        expect((thrown as Error).message).toContain('id column disabled')
+        const reason = thrown instanceof TsSqlError ? thrown.errorReason : undefined
+        expect(reason?.reason).toBe('DISALLOWED')
+        expect(reason?.reason === 'DISALLOWED' ? reason.functionName : undefined).toBe('allowWhen')
+    })
 })

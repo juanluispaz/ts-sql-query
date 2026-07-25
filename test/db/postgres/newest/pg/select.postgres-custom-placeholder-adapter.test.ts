@@ -122,4 +122,24 @@ describe(ctx.label, () => {
         assertType<Exact<typeof rows, Array<{ id: number; name: string }>>>()
         expect(rows).toEqual(expected)
     })
+
+    test('user-type-adapter-transform-placeholder-rewrites-a-rendered-null', async () => {
+        // The `_asNullValue` path: when a NULL value is RENDERED for a column that
+        // carries a `transformPlaceholder` adapter, PostgreSqlSqlBuilder routes the
+        // 'null' placeholder through the adapter. `name.onlyWhenOrNull(false)`
+        // collapses `name` to its NULL form (a `NullValueSource` carrying the
+        // castVarchar64 adapter); rendered in the SELECT list it becomes
+        // `null::varchar(64) as "n"` (the default null placeholder is a bare `null`).
+        // Were the adapter branch skipped, the emitted SQL would carry a bare `null`.
+        // The other transformPlaceholder tests only exercise the bound-value path,
+        // never the rendered-null path. `n` is the null-collapsed optional leaf, so
+        // it drops from the result under the default projector.
+        ctx.mockNext([{ id: 1, n: null }])
+        const rows = await ctx.conn.selectFrom(tProjectCustomPlaceholder)
+            .select({ id: tProjectCustomPlaceholder.id, n: tProjectCustomPlaceholder.name.onlyWhenOrNull(false) })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, null::varchar(64) as "n" from project"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        expect(rows).toEqual([{ id: 1 }])
+    })
 })

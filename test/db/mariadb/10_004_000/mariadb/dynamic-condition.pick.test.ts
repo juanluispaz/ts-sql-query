@@ -750,4 +750,37 @@ describe(ctx.label, () => {
         expect(expanded).toBe(one)
         expect(expanded).toEqual({ id: 1, title: 'Update hero copy' })
     })
+
+    test('pick/dynamic-pick-paths-without-mandatory-arg', async () => {
+        // `dynamicPickPaths` called WITHOUT the optional `mandatory` argument:
+        // only the paths named in the pick list are projected (here `title`),
+        // and every key is optional in the result type (no mandatory keys). The
+        // sibling tests all pass a mandatory array, so the no-mandatory path was
+        // never exercised.
+        const expected = [{ title: 'Update hero copy' }]
+        ctx.mockNext(expected)
+        const availableFields = {
+            id:    tIssue.id,
+            title: tIssue.title,
+            body:  tIssue.body,
+        }
+        const picked = dynamicPickPaths(availableFields, ['title'])
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select(picked)
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select title as title from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{
+            id?:    number
+            title?: string
+            body?:  string
+        }>>>()
+        expect(rows).toEqual(expected)
+    })
 })

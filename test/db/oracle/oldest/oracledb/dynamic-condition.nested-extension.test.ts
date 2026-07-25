@@ -359,4 +359,33 @@ describe(ctx.label, () => {
         expect(err.extensionResult).toBe('not-a-value-source')
         expect(err.processedValue).toBe(5)
     })
+
+    test('column-level-object-extension-function-rule-skipped-on-undefined-value', async () => {
+        // The column-scoped analogue of the documented top-level extension no-op:
+        // an object-of-rules extension whose leaf is a FUNCTION rule, given an
+        // `undefined` value, is skipped inside the recursive additional-filter
+        // walk (`processAdditionalColumnFilter`) — the leaf callback is NOT
+        // invoked and contributes nothing to the WHERE. Distinct source path from
+        // the covered present-value sibling
+        // (`column-level-object-valued-extension-rule-dispatches-nested`, value 10):
+        // that walks the guard's FALSE arm, this the TRUE (skip) arm. Were the
+        // null/undefined guard removed, the callback would run and emit `id > $1`.
+        ctx.mockNext([])
+        const connection = ctx.conn
+        const selectFields = { id: tIssue.id }
+        const extension = {
+            idRules: {
+                above: (v: number | null | undefined) => tIssue.id.greaterThan(v ?? 0),
+            },
+        }
+        const filter: DynamicCondition<{ id: 'int' }, { idRules: { above: BoolRule<number | null | undefined> } }> = { id: { idRules: { above: undefined } } }
+        await connection.selectFrom(tIssue)
+            .where(connection.dynamicConditionFor(selectFields, extension).withValues(filter))
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+    })
 })

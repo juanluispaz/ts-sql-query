@@ -183,4 +183,23 @@ describe(ctx.label, () => {
         expect(picked).toEqual({ company: { name: 'Acme' } })
     })
 
+    test('docs-extra:deep-utilities/deep-omit-two-leaves-of-one-nested-object', () => {
+        // Two dotted omit paths sharing one head (`company.id` + `company.name`):
+        // the second path finds the head's tail-list already collected and appends
+        // to it rather than starting a fresh one, so BOTH leaves are omitted.
+        // Every other deepOmit test omits at most one leaf per nested object, so
+        // the append-to-existing-head branch was unreached.
+        const customer = {
+            id: 1,
+            firstName: 'John',
+            lastName: 'Doe',
+            company: { id: 7, name: 'Acme', plan: 'pro' },
+        }
+        const trimmed = deepOmit(customer, ['company.id', 'company.name'])
+        expect(trimmed).toEqual({ id: 1, firstName: 'John', lastName: 'Doe', company: { plan: 'pro' } })
+        assertType<Extends<typeof trimmed, { id: number; firstName: string; lastName: string; company: { plan: string } }>>()
+        // The input object is not mutated.
+        expect(customer.company.id).toBe(7)
+        expect(customer.company.name).toBe('Acme')
+    })
 })

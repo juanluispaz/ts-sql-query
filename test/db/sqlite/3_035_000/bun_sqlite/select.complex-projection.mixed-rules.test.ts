@@ -1651,4 +1651,50 @@ describe(ctx.label, () => {
         expect(element.tag).toBe('rel')
         expect(rows).toEqual(expected)
     })
+
+    test('merge-optional-required-in-optional-object-fragment-gates-rule-1-drop', async () => {
+        // A custom maybe-optional fragment (`coalesce3`) whose three args are all
+        // `.asRequiredInOptionalObject()` folds — through the RUNTIME optional-type
+        // combiner `__mergeOptional` (arm: op1 is requiredInOptionalObject; op2 not
+        // 'required' → return op2, which stays requiredInOptionalObject) — to a
+        // `requiredInOptionalObject` result. That makes the fragment the rule-1 gate of
+        // the optional `grp`: when the fragment resolves NULL — a LEFT-JOIN MISS makes
+        // all three `coalesce` args null — the WHOLE `grp` object drops even though its
+        // sibling `projName` (the outer project, always present) has a value. The
+        // observable is the reshaped VALUE: a broken combiner folding the fragment to
+        // plain `optional` would instead keep `grp: { projName }`. SQL and the
+        // compile-time type are identical either way, so the `toEqual` is load-bearing.
+        // Project 4 (org 2) has NO issues → the fragment is null and `grp` drops.
+        const expected = { pid: 4 }
+        ctx.mockNext({ pid: 4, 'grp.frag': null, 'grp.projName': 'Legacy app' })
+        const tIssueLeft = tIssue.forUseInLeftJoin()
+        const row = await ctx.conn.selectFrom(tProject)
+            .leftJoin(tIssueLeft).on(tIssueLeft.projectId.equals(tProject.id))
+            .where(tProject.id.equals(4))
+            .select({
+                pid: tProject.id,
+                grp: {
+                    frag: ctx.conn.coalesce3(
+                        tIssueLeft.title.asRequiredInOptionalObject(),
+                        tIssueLeft.status.asRequiredInOptionalObject(),
+                        tIssueLeft.body.asRequiredInOptionalObject(),
+                    ),
+                    projName: tProject.name,
+                },
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as pid, coalesce(issue.title, issue.status, issue.body) as "grp.frag", project.name as "grp.projName" from project left join issue on issue.project_id = project.id where project.id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            4,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            pid:  number
+            grp?: { frag: string; projName: string }
+        }>>()
+        expect(row).toEqual(expected)
+        expect('grp' in row!).toBe(false)
+    })
 })

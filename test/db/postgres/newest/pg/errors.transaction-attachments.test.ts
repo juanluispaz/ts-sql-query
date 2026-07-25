@@ -294,4 +294,87 @@ describe(ctx.label, () => {
 
         expect(caught).toBe(thrown)
     })
+
+    // Direct-construction coverage of the public error classes' constructor and
+    // `attach*` arms that the transaction machinery never reaches (no internal
+    // caller passes an explicit `cause`, a non-string/non-Error message, a
+    // non-Error attached error, or a second additional error; and
+    // `attachRollbackError` is undrivable in this matrix — see the block comment
+    // above). These are plain unit assertions on the public surface.
+
+    test('error-ctor-explicit-cause-is-preserved', () => {
+        // The base constructor's explicit-`cause` arm: a 4th `cause` argument
+        // becomes the error's `.cause`. With a string message the message still
+        // carries the `<reason>: <message>` prefix.
+        const cause = new Error('the-underlying-cause')
+        const err = new TsSqlQueryExecutionError(new QueryExecutionSource('src'), { reason: 'UNKNOWN' }, 'boom', cause)
+        expect(err.cause).toBe(cause)
+        expect(err.message).toBe('UNKNOWN: boom')
+    })
+
+    test('error-ctor-non-string-non-error-message-uses-bare-reason', () => {
+        // The constructor's `else` arm: a message that is neither a string nor an
+        // Error (a plain object) yields a BARE `<reason>` message (no `: <message>`
+        // suffix) and stores that object as `.cause` (the inner ternary's
+        // non-string path).
+        const messageObject = { detail: 'structured' }
+        const err = new TsSqlQueryExecutionError(new QueryExecutionSource('src'), { reason: 'UNKNOWN' }, messageObject)
+        expect(err.message).toBe('UNKNOWN')
+        expect(err.cause).toBe(messageObject)
+    })
+
+    test('attach-rollback-error-stores-error-and-non-error-forms', () => {
+        // Both arms of `attachRollbackError`, reached only by direct construction.
+        // The value is stored either way; the non-Error arm stringifies it into the
+        // stack (a broken arm that read `.stack` off the string would append
+        // `undefined`).
+        const withError = new TsSqlQueryExecutionError(new QueryExecutionSource('src'), { reason: 'UNKNOWN' }, 'boom')
+        const rb = new Error('rollback-failed')
+        withError.attachRollbackError(rb)
+        expect(withError.rollbackError).toBe(rb)
+        // The Error arm appends the rollback error's FULL stack; a broken arm that
+        // stringified it would append only `Error: rollback-failed` (no frames).
+        expect(withError.stack).toContain('Rollback error: ' + rb.stack)
+
+        const withString = new TsSqlQueryExecutionError(new QueryExecutionSource('src'), { reason: 'UNKNOWN' }, 'boom')
+        withString.attachRollbackError('rollback-string')
+        expect(withString.rollbackError).toBe('rollback-string')
+        expect(withString.stack).toContain('Rollback error: rollback-string')
+    })
+
+    test('attach-transaction-error-non-error-form-stringifies-into-stack', () => {
+        // The `else` arm of `attachTransactionError`: a non-Error transaction error
+        // is stringified into the stack (the existing after-rollback test only
+        // reaches the Error arm, attaching a TsSqlQueryExecutionError).
+        const err = new TsSqlQueryExecutionError(new QueryExecutionSource('src'), { reason: 'UNKNOWN' }, 'boom')
+        err.attachTransactionError('transaction-string')
+        expect(err.transactionError).toBe('transaction-string')
+        expect(err.stack).toContain('Transaction error: transaction-string')
+    })
+
+    test('attach-additional-error-appends-a-second-error-preserving-order', () => {
+        // The `if (!additionalErrors)` FALSE arm: a SECOND `attachAdditionalError`
+        // finds the list already initialised and appends to it. The existing
+        // two-failing-hook test only ever produces ONE attach (the first hook's
+        // error becomes the surfaced error), so only the init arm was covered.
+        const err = new TsSqlQueryExecutionError(new QueryExecutionSource('src'), { reason: 'UNKNOWN' }, 'boom')
+        const first = new Error('additional-1')
+        const second = new Error('additional-2')
+        err.attachAdditionalError(first, 'after next commit')
+        err.attachAdditionalError(second, 'after next commit')
+        expect(err.additionalErrors).toHaveLength(2)
+        expect(err.additionalErrors?.[0]).toBe(first)
+        expect(err.additionalErrors?.[1]).toBe(second)
+    })
+
+    test('attach-additional-error-non-error-form-stringifies-into-stack', () => {
+        // The `else` arm of `attachAdditionalError`: a non-Error additional value
+        // is pushed as-is and stringified into the stack.
+        const err = new TsSqlQueryExecutionError(new QueryExecutionSource('src'), { reason: 'UNKNOWN' }, 'boom')
+        const additional = { note: 'not-an-error' }
+        err.attachAdditionalError(additional, 'after next rollback')
+        expect(err.additionalErrors).toHaveLength(1)
+        expect(err.additionalErrors?.[0]).toBe(additional)
+        expect(err.stack).toContain('Additional error: [object Object]')
+    })
 })

@@ -225,6 +225,22 @@ export interface InsertData extends WithQueryData {
     __onConflictUpdateShape?: { [property: string] : string } | undefined
     __onConflictUpdateSets?: { [property: string]: any } | undefined
     __onConflictUpdateWhere?: AlwaysIfValueSource<any, any> | undefined
+    // Pseudo-table tracking — twin of `UpdateData.__oldValues`. Holds the
+    // `valuesForInsert()` pseudo-table (the `excluded` / `_new_` / `VALUES()`
+    // row) when the `on conflict do update` set/where references it; populated by
+    // `InsertQueryBuilder` walking those clauses through `__getValuesForInsert`.
+    // Purpose: let the builder EXCLUDE this pseudo-table from any table listing it
+    // derives from the query, exactly as `_extractAdditionalRequiredTablesForUpdate`
+    // drops `__oldValues` from the emulated `update ... from`.
+    //
+    // WRITE-ONLY BY DESIGN (do not flag as dead): unlike UPDATE — whose
+    // `update ... from` emulation has to list the real tables involved — no INSERT
+    // build path derives such a listing yet, because the `excluded` / `_new_` /
+    // `VALUES()` pseudo-tables are implicit in each dialect's `on conflict` syntax.
+    // The reference SQL comes solely from the boolean flag on the table clone
+    // (`TableOf.__valuesForInsert` → `AbstractSqlBuilder._appendRawColumnName`), not
+    // from this field. It is kept populated for symmetry with `__oldValues` and so a
+    // future insert-side table listing can filter it out without re-deriving it.
     __valuesForInsert?: AnyTableOrView | undefined
 }
 
@@ -236,6 +252,12 @@ export interface UpdateData extends WithQueryData {
     __allowNoWhere: boolean
     __customization?: UpdateCustomization<any, any> | undefined
     __columns?: QueryColumns | undefined
+    // Pseudo-table tracking — the CONSUMED twin of `InsertData.__valuesForInsert`.
+    // Holds the `oldValues()` pseudo-table referenced by this update, so the builder
+    // can EXCLUDE it from any table listing it derives from the query. Consumed by
+    // `_extractAdditionalRequiredTablesForUpdate`, which collects the real tables the
+    // set/columns reference to add to the emulated `update ... from` and then drops
+    // both the target (`__table`) and this pseudo-table (`result.delete(query.__oldValues)`).
     __oldValues?: AnyTableOrView | undefined
     __froms?: Array<AnyTableOrView> | undefined
     __joins?: Array<JoinData> | undefined

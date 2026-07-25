@@ -41,6 +41,10 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements IQueryDa
     __onConflictUpdateShape?: { [property: string] : string } | undefined
     __onConflictUpdateSets?: { [property: string]: any } | undefined
     __onConflictUpdateWhere?: AlwaysIfValueSource<any, any> | undefined
+    // The `valuesForInsert()` pseudo-table referenced by the `on conflict do update`
+    // set/where. Write-only by design — see the doc on `InsertData.__valuesForInsert`
+    // in SqlBuilder.ts (twin of `__oldValues`; kept to filter it out of a future
+    // insert-side table listing, mirroring how UPDATE drops `__oldValues`).
     __valuesForInsert?: AnyTableOrView | undefined
 
     __oneColumn?: boolean | undefined

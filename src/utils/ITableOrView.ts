@@ -96,7 +96,7 @@ export function __isAllowed(value: any, sqlBuilder: HasIsValue): boolean {
     if (value === undefined || value === null) {
         return true
     }
-    if (typeof value === 'object' && typeof value.__getValuesForInsert === 'function') {
+    if (typeof value === 'object' && typeof value.__isAllowed === 'function') {
         return (value as IQueryDataDiscovery).__isAllowed(sqlBuilder)
     }
     return true

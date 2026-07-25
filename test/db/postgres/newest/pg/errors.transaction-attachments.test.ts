@@ -440,4 +440,153 @@ describe(ctx.label, () => {
         expect(err.additionalErrors?.[0]).toBe(additional)
         expect(err.stack).toContain('Additional error: [object Object]')
     })
+
+    // ---- deferred-hook chaining paths (the success chain, sync-throw chaining,
+    // and the "already-wrapped error re-thrown as-is" fast path) ----
+
+    test('two-before-commit-hooks-async-then-sync-both-run-and-commit', async () => {
+        // Two `executeBeforeNextCommit` hooks: the FIRST async (so the deferred
+        // chain holds a promise and the second hook is chained as a fulfilment
+        // handler), the SECOND sync-returning. before-commit is the stop-on-first-
+        // error path, so the chained handler has no rejection branch. Both hooks
+        // must run, in order, and the transaction then commits and returns its body
+        // value. A broken success-chain would skip the second hook or reject the
+        // commit.
+        const connection = ctx.conn
+        const order: string[] = []
+        let result: string | undefined
+
+        await ctx.withReseed(async () => {
+            result = await connection.transaction(async () => {
+                connection.executeBeforeNextCommit(async () => { order.push('bc1') })
+                connection.executeBeforeNextCommit(() => { order.push('bc2') })
+                return 'committed'
+            })
+        })
+
+        expect(result).toBe('committed')
+        expect(order).toEqual(['bc1', 'bc2'])
+    })
+
+    test('after-commit-async-ok-then-two-sync-throws-first-surfaces-second-attaches', async () => {
+        // Body commits. Three `executeAfterNextCommit` hooks: the first async and
+        // successful (so the chain holds a promise and the throwing hooks are
+        // chained fulfilment handlers), then two SYNCHRONOUS-throwing hooks. The
+        // first throw becomes the surfaced error; the second is appended to its
+        // `additionalErrors`. Body committed, so no `transactionError` is attached.
+        const connection = ctx.conn
+        let caught: unknown
+
+        await ctx.withReseed(async () => {
+            try {
+                await connection.transaction(async () => {
+                    connection.executeAfterNextCommit(async () => { /* resolves */ })
+                    connection.executeAfterNextCommit(() => { throw new Error('ac-sync-throw-1') })
+                    connection.executeAfterNextCommit(() => { throw new Error('ac-sync-throw-2') })
+                })
+            } catch (e) { caught = e }
+        })
+
+        expect(caught).toBeInstanceOf(TsSqlQueryExecutionError)
+        if (caught instanceof TsSqlQueryExecutionError) {
+            expect(caught.errorReason.reason).toBe('ERROR_EXECUTING_DEFERRED_IN_TRANSACTION')
+            expect(caught.additionalErrors).toHaveLength(1)
+            expect(caught.transactionError).toBeUndefined()
+        }
+    })
+
+    test('after-commit-single-async-reject-already-wrapped-is-rethrown-as-is', async () => {
+        // Body commits. A single `executeAfterNextCommit` hook rejects with an error
+        // that is ALREADY an `ERROR_EXECUTING_DEFERRED_IN_TRANSACTION` (the shape a
+        // nested deferred failure produces). The machinery re-throws the SAME
+        // instance rather than wrapping it again, so the surfaced error IS that
+        // instance (its `index: 777` marker survives — a re-wrap would replace it).
+        const connection = ctx.conn
+        // An error already of shape `ERROR_EXECUTING_DEFERRED_IN_TRANSACTION` (what
+        // a nested deferred failure produces). `index: 777` is a marker: the
+        // "already wrapped" fast path re-throws this SAME instance, so a re-wrap
+        // (which would carry the loop's own index) is detectable via `toBe`.
+        const preWrapped = new TsSqlQueryExecutionError(
+            new QueryExecutionSource('nested-deferred'),
+            { reason: 'ERROR_EXECUTING_DEFERRED_IN_TRANSACTION', fn: () => undefined, index: 777, deferredType: 'after next commit' },
+            'already-wrapped-single',
+        )
+        let caught: unknown
+
+        await ctx.withReseed(async () => {
+            try {
+                await connection.transaction(async () => {
+                    connection.executeAfterNextCommit(async () => { throw preWrapped })
+                })
+            } catch (e) { caught = e }
+        })
+
+        expect(caught).toBe(preWrapped)
+    })
+
+    test('after-commit-async-ok-then-async-reject-already-wrapped-is-rethrown-as-is', async () => {
+        // Body commits. First `executeAfterNextCommit` hook resolves (chain holds a
+        // promise), the second rejects with an ALREADY-wrapped
+        // `ERROR_EXECUTING_DEFERRED_IN_TRANSACTION` — routed through the CHAINED
+        // fulfilment handler's catch (a different arm than the single-hook path
+        // above). It too is re-thrown as the same instance.
+        const connection = ctx.conn
+        // Already-wrapped error (see the single-hook test above); here it surfaces
+        // through the CHAINED hook's catch instead of the first hook's.
+        const preWrapped = new TsSqlQueryExecutionError(
+            new QueryExecutionSource('nested-deferred'),
+            { reason: 'ERROR_EXECUTING_DEFERRED_IN_TRANSACTION', fn: () => undefined, index: 777, deferredType: 'after next commit' },
+            'already-wrapped-chained',
+        )
+        let caught: unknown
+
+        await ctx.withReseed(async () => {
+            try {
+                await connection.transaction(async () => {
+                    connection.executeAfterNextCommit(async () => { /* resolves */ })
+                    connection.executeAfterNextCommit(async () => { throw preWrapped })
+                })
+            } catch (e) { caught = e }
+        })
+
+        expect(caught).toBe(preWrapped)
+    })
+
+    test('after-rollback-three-hooks-async-async-sync-attach-additional-with-transaction-error', async () => {
+        // Body THROWS → after-rollback path (so every wrapped hook error carries the
+        // body error as its `transactionError`). Three `executeAfterNextRollback`
+        // hooks all fail: two async-rejecting, one sync-throwing. The body error is
+        // the surfaced error; each hook failure is appended to its `additionalErrors`
+        // and carries the `transactionError`.
+        const connection = ctx.conn
+        let caught: unknown
+
+        await ctx.withReseed(async () => {
+            try {
+                await connection.transaction(async () => {
+                    connection.executeAfterNextRollback(async () => { throw new Error('ar-async-1') })
+                    connection.executeAfterNextRollback(async () => { throw new Error('ar-async-2') })
+                    connection.executeAfterNextRollback(() => { throw new Error('ar-sync-3') })
+                    throw bodyError('boom-from-body')
+                })
+            } catch (e) { caught = e }
+        })
+
+        expect(caught).toBeInstanceOf(TsSqlQueryExecutionError)
+        if (caught instanceof TsSqlQueryExecutionError) {
+            expect(caught.message).toContain('boom-from-body')
+            expect(caught.additionalErrors).toHaveLength(3)
+            // ALL three hook failures must carry the body error as their
+            // transactionError — each is attached on a different code path (first
+            // hook, chained-async hook, chained-sync hook), so breaking any single
+            // attach drops this count below 3.
+            const withTxError = (caught.additionalErrors ?? []).filter(
+                (e): e is TsSqlQueryExecutionError => e instanceof TsSqlQueryExecutionError && e.transactionError !== undefined
+            )
+            expect(withTxError).toHaveLength(3)
+            for (const e of withTxError) {
+                expect((e.transactionError as Error).message).toContain('boom-from-body')
+            }
+        }
+    })
 })

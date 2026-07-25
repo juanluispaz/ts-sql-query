@@ -31,11 +31,27 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { TsSqlError } from '../../../../../src/TsSqlError.js'
 import { tIssue } from '../../domain/connection.js'
+import type { TypeAdapter } from '../../../../../src/TypeAdapter.js'
 import { ctx } from './setup.js'
 
 function reasonOf(e: unknown): string | undefined {
     if (e instanceof TsSqlError) return e.errorReason.reason
     return undefined
+}
+
+// `stringInt` / `stringDouble` are internal marshalling type names, not exposed
+// as column types. A user TypeAdapter that reroutes any const's value through
+// `next.transformValueFromDB/ToDB(value, 'stringInt'|'stringDouble')` is the
+// only public way to exercise those transforms — they exist so an integer /
+// double beyond `Number.MAX_SAFE_INTEGER` can be carried as a string. The base
+// type of the const the adapter wraps is irrelevant; the literal is hard-coded.
+const stringIntAdapter: TypeAdapter = {
+    transformValueFromDB(value, _type, next) { return next.transformValueFromDB(value, 'stringInt') },
+    transformValueToDB(value, _type, next) { return next.transformValueToDB(value, 'stringInt') },
+}
+const stringDoubleAdapter: TypeAdapter = {
+    transformValueFromDB(value, _type, next) { return next.transformValueFromDB(value, 'stringDouble') },
+    transformValueToDB(value, _type, next) { return next.transformValueToDB(value, 'stringDouble') },
 }
 
 describe(ctx.label, () => {
@@ -369,5 +385,225 @@ describe(ctx.label, () => {
             expect(reason.rowIndex).toBe(1)
             expect(reason.columnPath).toBe('title')
         }
+    })
+
+    // ---- stringInt / stringDouble marshalling, reached via a rerouting adapter
+    // on a const. from-db tests are mock-only by construction (a real driver
+    // never hands these raw shapes to the rerouted const — DESIGN.md §18 guard);
+    // to-db throws run client-side in both modes. ----
+
+    test('marshalling/from-db-validation/stringint-safe-number-passthrough', async () => {
+        if (ctx.realDbEnabled) return
+        expect(await fromDbValue(ctx.conn.const(0, 'int', stringIntAdapter), 42)).toBe(42)
+    })
+
+    test('marshalling/from-db-validation/stringint-big-numeric-string-kept-as-string', async () => {
+        if (ctx.realDbEnabled) return
+        expect(await fromDbValue(ctx.conn.const(0, 'int', stringIntAdapter), '900719925474099100')).toBe('900719925474099100')
+    })
+
+    test('marshalling/from-db-validation/stringint-trailing-dot-zero-string-normalized', async () => {
+        if (ctx.realDbEnabled) return
+        expect(await fromDbValue(ctx.conn.const(0, 'int', stringIntAdapter), '42.0')).toBe('42')
+    })
+
+    test('marshalling/from-db-validation/stringint-unsafe-bigint-kept-as-string', async () => {
+        if (ctx.realDbEnabled) return
+        expect(await fromDbValue(ctx.conn.const(0, 'int', stringIntAdapter), 9007199254740993n)).toBe('9007199254740993')
+    })
+
+    test('marshalling/from-db-validation/stringint-safe-bigint-narrowed-to-number', async () => {
+        if (ctx.realDbEnabled) return
+        expect(await fromDbValue(ctx.conn.const(0, 'int', stringIntAdapter), 42n)).toBe(42)
+    })
+
+    test('marshalling/from-db-validation/stringint-non-integer-number-throws', async () => {
+        if (ctx.realDbEnabled) return
+        expect(await fromDbReason(ctx.conn.const(0, 'int', stringIntAdapter), 1.5)).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')
+    })
+
+    test('marshalling/from-db-validation/stringint-unsafe-number-precision-lost', async () => {
+        if (ctx.realDbEnabled) return
+        expect(await fromDbReason(ctx.conn.const(0, 'int', stringIntAdapter), 9007199254740996)).toBe('PRECISION_LOST_RECEIVING_VALUE_FROM_DATABASE')
+    })
+
+    test('marshalling/from-db-validation/stringint-non-numeric-string-throws', async () => {
+        if (ctx.realDbEnabled) return
+        expect(await fromDbReason(ctx.conn.const(0, 'int', stringIntAdapter), 'abc')).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')
+    })
+
+    test('marshalling/from-db-validation/stringint-non-value-type-throws', async () => {
+        if (ctx.realDbEnabled) return
+        expect(await fromDbReason(ctx.conn.const(0, 'int', stringIntAdapter), true)).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')
+    })
+
+    test('marshalling/from-db-validation/stringdouble-number-passthrough', async () => {
+        if (ctx.realDbEnabled) return
+        expect(await fromDbValue(ctx.conn.const(0, 'double', stringDoubleAdapter), 3.14)).toBe(3.14)
+    })
+
+    test('marshalling/from-db-validation/stringdouble-exponential-string-kept-as-string', async () => {
+        if (ctx.realDbEnabled) return
+        expect(await fromDbValue(ctx.conn.const(0, 'double', stringDoubleAdapter), '1.5e300')).toBe('1.5e300')
+    })
+
+    test('marshalling/from-db-validation/stringdouble-unsafe-bigint-kept-as-string', async () => {
+        if (ctx.realDbEnabled) return
+        expect(await fromDbValue(ctx.conn.const(0, 'double', stringDoubleAdapter), 9007199254740993n)).toBe('9007199254740993')
+    })
+
+    test('marshalling/from-db-validation/stringdouble-safe-bigint-narrowed-to-number', async () => {
+        if (ctx.realDbEnabled) return
+        expect(await fromDbValue(ctx.conn.const(0, 'double', stringDoubleAdapter), 42n)).toBe(42)
+    })
+
+    test('marshalling/from-db-validation/stringdouble-non-numeric-string-throws', async () => {
+        if (ctx.realDbEnabled) return
+        expect(await fromDbReason(ctx.conn.const(0, 'double', stringDoubleAdapter), 'abc')).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')
+    })
+
+    test('marshalling/from-db-validation/stringdouble-non-value-type-throws', async () => {
+        if (ctx.realDbEnabled) return
+        expect(await fromDbReason(ctx.conn.const(0, 'double', stringDoubleAdapter), true)).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')
+    })
+
+    test('marshalling/to-db-validation/stringint-non-integer-throws', async () => {
+        expect(await toDbReason(() => ctx.conn.const(1.5, 'int', stringIntAdapter))).toBe('INVALID_VALUE_TO_SEND_TO_DATABASE')
+    })
+
+    test('marshalling/to-db-validation/stringint-non-integer-string-throws', async () => {
+        expect(await toDbReason(() => ctx.conn.const('1.5', 'string', stringIntAdapter))).toBe('INVALID_VALUE_TO_SEND_TO_DATABASE')
+    })
+
+    test('marshalling/to-db-validation/stringint-bigint-throws', async () => {
+        expect(await toDbReason(() => ctx.conn.const(5n, 'bigint', stringIntAdapter))).toBe('INVALID_VALUE_TO_SEND_TO_DATABASE')
+    })
+
+    test('marshalling/to-db-validation/stringdouble-non-numeric-string-throws', async () => {
+        expect(await toDbReason(() => ctx.conn.const('abc', 'string', stringDoubleAdapter))).toBe('INVALID_VALUE_TO_SEND_TO_DATABASE')
+    })
+
+    test('marshalling/to-db-validation/stringdouble-bigint-throws', async () => {
+        expect(await toDbReason(() => ctx.conn.const(5n, 'bigint', stringDoubleAdapter))).toBe('INVALID_VALUE_TO_SEND_TO_DATABASE')
+    })
+
+    // ---- marshalling tail: scalar decode complements, temporal datetime-prefixed
+    // decode (a localDate/localTime/localDateTime value arriving as a full
+    // datetime string, as Oracle emits inside a JSON aggregate), and the
+    // aggregatedArray reroute guard. from-db decode = mock-only by construction. ----
+
+    test('marshalling/from-db-validation/boolean-from-bigint', async () => {
+        if (ctx.realDbEnabled) return
+        expect(await fromDbValue(tIssue.priority.greaterThan(0), 5n)).toBe(true)
+        expect(await fromDbValue(tIssue.priority.greaterThan(0), 0n)).toBe(false)
+    })
+
+    test('marshalling/from-db-validation/boolean-non-primitive-throws', async () => {
+        if (ctx.realDbEnabled) return
+        expect(await fromDbReason(tIssue.priority.greaterThan(0), {})).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')
+    })
+
+    test('marshalling/from-db-validation/int-non-primitive-throws', async () => {
+        if (ctx.realDbEnabled) return
+        expect(await fromDbReason(tIssue.priority, true)).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')
+    })
+
+    test('marshalling/from-db-validation/bigint-non-integer-number-throws', async () => {
+        if (ctx.realDbEnabled) return
+        expect(await fromDbReason(tIssue.viewCount, 1.5)).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')
+    })
+
+    test('marshalling/from-db-validation/bigint-non-primitive-throws', async () => {
+        if (ctx.realDbEnabled) return
+        expect(await fromDbReason(tIssue.viewCount, true)).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')
+    })
+
+    test('marshalling/from-db-validation/double-from-bigint', async () => {
+        if (ctx.realDbEnabled) return
+        expect(await fromDbValue(tIssue.estimatedHours, 5n)).toBe(5)
+    })
+
+    test('marshalling/from-db-validation/double-non-primitive-throws', async () => {
+        if (ctx.realDbEnabled) return
+        expect(await fromDbReason(tIssue.estimatedHours, true)).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')
+    })
+
+    test('marshalling/from-db-validation/localdate-from-datetime-prefixed-string', async () => {
+        if (ctx.realDbEnabled) return
+        expect(await fromDbValue(ctx.conn.const(new Date(0), 'localDate'), '1970-01-01T09:15:00')).toEqual(new Date(Date.UTC(1970, 0, 1, 10, 0, 0)))
+    })
+
+    test('marshalling/from-db-validation/localdate-malformed-string-throws', async () => {
+        if (ctx.realDbEnabled) return
+        expect(await fromDbReason(ctx.conn.const(new Date(0), 'localDate'), 'not-a-date')).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')
+    })
+
+    test('marshalling/from-db-validation/localdate-non-primitive-throws', async () => {
+        // A non-Date/non-string/non-number value is rejected by every dialect's
+        // decoder (a number would instead be read as a timestamp by SqliteConnection).
+        if (ctx.realDbEnabled) return
+        expect(await fromDbReason(ctx.conn.const(new Date(0), 'localDate'), true)).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')
+    })
+
+    test('marshalling/from-db-validation/localtime-from-datetime-prefixed-string', async () => {
+        if (ctx.realDbEnabled) return
+        expect(await fromDbValue(ctx.conn.const(new Date(0), 'localTime'), '1970-01-01T09:15:00')).toEqual(new Date(Date.UTC(1970, 0, 1, 9, 15, 0)))
+    })
+
+    test('marshalling/from-db-validation/localtime-malformed-string-throws', async () => {
+        if (ctx.realDbEnabled) return
+        expect(await fromDbReason(ctx.conn.const(new Date(0), 'localTime'), 'not-a-time')).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')
+    })
+
+    test('marshalling/from-db-validation/localtime-non-primitive-throws', async () => {
+        if (ctx.realDbEnabled) return
+        expect(await fromDbReason(ctx.conn.const(new Date(0), 'localTime'), true)).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')
+    })
+
+    test('marshalling/from-db-validation/localdatetime-malformed-string-throws', async () => {
+        if (ctx.realDbEnabled) return
+        expect(await fromDbReason(ctx.conn.const(new Date(0), 'localDateTime'), 'not-a-datetime')).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')
+    })
+
+    test('marshalling/from-db-validation/localdatetime-non-primitive-throws', async () => {
+        if (ctx.realDbEnabled) return
+        expect(await fromDbReason(ctx.conn.const(new Date(0), 'localDateTime'), true)).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')
+    })
+
+    test('marshalling/from-db-validation/aggregated-array-type-is-rejected', async () => {
+        // `aggregatedArray` is an internal marshalling type the projector handles
+        // through a dedicated path; a value reaching `transformValueFromDB` with
+        // that type is a "this would not happen" state the decoder rejects
+        // deterministically (both modes → unguarded). Reach it via an adapter that
+        // reroutes DECODE to 'aggregatedArray' (encode stays 'string' so building
+        // the const param doesn't throw first).
+        const aggAdapter: TypeAdapter = {
+            transformValueFromDB(value, _type, next) { return next.transformValueFromDB(value, 'aggregatedArray') },
+            transformValueToDB(value, _type, next) { return next.transformValueToDB(value, 'string') },
+        }
+        expect(await fromDbReason(ctx.conn.const('x', 'string', aggAdapter), 1)).toBe('INVALID_VALUE_RECEIVED_FROM_DATABASE')
+    })
+
+    test('marshalling/to-db-validation/stringint-valid-integer-string-passthrough', async () => {
+        // stringInt ENCODE success: a valid integer string passes through unchanged
+        // as the bound param. Client-side transform (both modes), guard-free —
+        // mirrors the empty-string test. The stringIntAdapter reroutes
+        // transformValueToDB to the 'stringInt' encode, whose valid-integer-string
+        // arm returns the value verbatim.
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .select({ id: tIssue.id, x: ctx.conn.const('5', 'string', stringIntAdapter) })
+            .executeSelectMany()
+        expect(ctx.lastParams).toEqual(['5'])
+    })
+
+    test('marshalling/to-db-validation/stringdouble-valid-numeric-string-passthrough', async () => {
+        // stringDouble ENCODE success: a valid numeric string (with an exponent)
+        // passes through unchanged as the bound param.
+        ctx.mockNext([])
+        await ctx.conn.selectFrom(tIssue)
+            .select({ id: tIssue.id, x: ctx.conn.const('1.5e3', 'string', stringDoubleAdapter) })
+            .executeSelectMany()
+        expect(ctx.lastParams).toEqual(['1.5e3'])
     })
 })

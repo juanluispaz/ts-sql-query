@@ -24,6 +24,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { TsSqlError } from '../../../../../src/TsSqlError.js'
+import { tIssueWorklog } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 // 2024-01-15T10:30:45.123Z
@@ -562,5 +563,192 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof row, { v: Date }>>()
         expect(row).toEqual(expected)
+    })
+
+    // ---- localTime decode of a BARE TIME under a mismatched format, read from a
+    // REAL column (guard-free, unlike the `conn.const`+`mockNext` decode tests
+    // above which need `if (ctx.realDbEnabled) return`). `started_at` for worklog
+    // 1 is '09:15:00': a real sqlite stores it as TEXT and returns it verbatim
+    // whatever the connection's dateTimeFormat is configured to, so decoding it
+    // through a mismatched-format connection exercises the "unexpected string"
+    // fall-back identically in mock and real mode. A bare TIME (no leading sign)
+    // is NOT mistaken for a timezone, so it enters the format switch (a bare DATE
+    // would short-circuit). The plain-time fall-back yields the same Date for
+    // every numeric format; only the switch arm taken differs. ----
+
+    test('localTime decode: bare time under unix-seconds format falls back to plain time', async () => {
+        const conn = ctx.withDateTimeFlags('Unix time seconds as integer', { treatUnexpectedStringDateTimeAsUTC: false })
+        ctx.mockNext({ v: '09:15:00' })
+        const row = await conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .select({ v: tIssueWorklog.startedAt })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select started_at as "v" from issue_worklog where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { v?: Date }>>()
+        expect(row).toEqual({ v: new Date(Date.UTC(1970, 0, 1, 9, 15, 0)) })
+    })
+
+    test('localTime decode: bare time under unix-seconds format with the UTC-tolerance flag', async () => {
+        const conn = ctx.withDateTimeFlags('Unix time seconds as integer', { treatUnexpectedStringDateTimeAsUTC: true })
+        ctx.mockNext({ v: '09:15:00' })
+        const row = await conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .select({ v: tIssueWorklog.startedAt })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select started_at as "v" from issue_worklog where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { v?: Date }>>()
+        expect(row).toEqual({ v: new Date(Date.UTC(1970, 0, 1, 9, 15, 0)) })
+    })
+
+    test('localTime decode: bare time under julian format falls back to plain time', async () => {
+        const conn = ctx.withDateTimeFlags('Julian day as real number', { treatUnexpectedStringDateTimeAsUTC: false })
+        ctx.mockNext({ v: '09:15:00' })
+        const row = await conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .select({ v: tIssueWorklog.startedAt })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select started_at as "v" from issue_worklog where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { v?: Date }>>()
+        expect(row).toEqual({ v: new Date(Date.UTC(1970, 0, 1, 9, 15, 0)) })
+    })
+
+    test('localTime decode: bare time under unix-milliseconds format falls back to plain time', async () => {
+        const conn = ctx.withDateTimeFlags('Unix time milliseconds as integer', { treatUnexpectedStringDateTimeAsUTC: false })
+        ctx.mockNext({ v: '09:15:00' })
+        const row = await conn.selectFrom(tIssueWorklog)
+            .where(tIssueWorklog.id.equals(1))
+            .select({ v: tIssueWorklog.startedAt })
+            .executeSelectOne()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select started_at as "v" from issue_worklog where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { v?: Date }>>()
+        expect(row).toEqual({ v: new Date(Date.UTC(1970, 0, 1, 9, 15, 0)) })
+    })
+
+    test('localTime decode: an invalid dateTimeFormat configuration is rejected', async () => {
+        // A `getDateTimeFormat` returning an unknown format is a configuration
+        // error the decoder rejects at the `default` switch arm. Forcing the
+        // invalid format needs `as any` (the typed union excludes it); the test
+        // CATCHES the thrown error, so it deliberately exercises the guard.
+        const conn = ctx.withDateTimeFormat('an invalid format' as any)
+        ctx.mockNext({ v: '09:15:00' })
+        let caught: unknown
+        try {
+            await conn.selectFrom(tIssueWorklog)
+                .where(tIssueWorklog.id.equals(1))
+                .select({ v: tIssueWorklog.startedAt })
+                .executeSelectOne()
+        } catch (e) { caught = e }
+        expect(reasonOf(caught)).toBe('INVALID_CONFIGURATION')
+    })
+
+    // ---- sqlite temporal number-branch / auto-detect decode via GUARDED mockNext.
+    // A localDate/localTime/localDateTime `const` round-trips to a STRING in real
+    // mode, so injecting a NUMBER/bigint/numeric-string is mock-only by
+    // construction (DESIGN.md §18 guard). The number-branch applies the configured
+    // format's Julian/Unix math, or — under a TEXT format — the
+    // treatUnexpectedIntegerDateTimeAsJulian / unexpectedUnixDateTimeAreMilliseconds
+    // auto-detect. localDate normalises to the decoded UTC date at 10:00Z; localTime
+    // to the decoded UTC time-of-day on 1970-01-01. ----
+
+    async function decodeUnexpected(conn: typeof ctx.conn, type: 'localDate' | 'localTime' | 'localDateTime', raw: number | bigint | string): Promise<Date> {
+        ctx.mockNext({ v: raw })
+        const col = type === 'localDate' ? conn.const(REF, 'localDate')
+            : type === 'localTime' ? conn.const(REF, 'localTime')
+            : conn.const(REF, 'localDateTime')
+        const row = await conn.selectFromNoTable().select({ v: col }).executeSelectOne()
+        return row.v
+    }
+
+    // NOT-APPLICABLE: under a text date-format a real sqlite round-trips the const to a string, never the injected integer, so this number-branch auto-detect is only reachable via the mock.
+    test('localDate decode: integer under text format auto-detected as julian when flagged', async () => {
+        if (ctx.realDbEnabled) return
+        const conn = ctx.withDateTimeFlags('localdate as text', { treatUnexpectedIntegerDateTimeAsJulian: true })
+        expect(await decodeUnexpected(conn, 'localDate', 2460325)).toEqual(new Date(Date.UTC(2024, 0, 15, 10, 0, 0, 0)))
+    })
+
+    // NOT-APPLICABLE: under a text date-format a real sqlite round-trips the const to a string, never the injected integer, so this number-branch auto-detect is only reachable via the mock.
+    test('localDate decode: integer under text format auto-detected as unix-ms when flagged', async () => {
+        if (ctx.realDbEnabled) return
+        const conn = ctx.withDateTimeFlags('localdate as text', { unexpectedUnixDateTimeAreMilliseconds: true })
+        expect(await decodeUnexpected(conn, 'localDate', 1705320000000)).toEqual(new Date(Date.UTC(2024, 0, 15, 10, 0, 0, 0)))
+    })
+
+    // NOT-APPLICABLE: under a text date-format a real sqlite round-trips the const to a string, never the injected integer, so this number-branch auto-detect is only reachable via the mock.
+    test('localDate decode: integer under text format defaults to unix-seconds', async () => {
+        if (ctx.realDbEnabled) return
+        const conn = ctx.withDateTimeFormat('localdate as text')
+        expect(await decodeUnexpected(conn, 'localDate', 1705320000)).toEqual(new Date(Date.UTC(2024, 0, 15, 10, 0, 0, 0)))
+    })
+
+    test('localDate decode: bigint and numeric string under unix-seconds format', async () => {
+        // Guard-free: a numeric format round-trips the const to a NUMBER, so a real
+        // sqlite feeds the same number-branch and decodes to the asserted value.
+        const conn = ctx.withDateTimeFormat('Unix time seconds as integer')
+        expect(await decodeUnexpected(conn, 'localDate', 1705320000n)).toEqual(new Date(Date.UTC(2024, 0, 15, 10, 0, 0, 0)))
+        expect(await decodeUnexpected(conn, 'localDate', '1705320000')).toEqual(new Date(Date.UTC(2024, 0, 15, 10, 0, 0, 0)))
+    })
+
+    // NOT-APPLICABLE: under a text date-format a real sqlite round-trips the const to a string, never the injected number, so this number-branch auto-detect is only reachable via the mock.
+    test('localTime decode: real number under text format auto-detected as julian when flagged', async () => {
+        if (ctx.realDbEnabled) return
+        const conn = ctx.withDateTimeFlags('localdate as text', { treatUnexpectedIntegerDateTimeAsJulian: true })
+        expect(await decodeUnexpected(conn, 'localTime', 0.5)).toEqual(new Date(Date.UTC(1970, 0, 1, 12, 0, 0, 0)))
+        expect(await decodeUnexpected(conn, 'localTime', 2460324.5)).toEqual(new Date(Date.UTC(1970, 0, 1, 0, 0, 0, 0)))
+        expect(await decodeUnexpected(conn, 'localTime', -5)).toEqual(new Date(Date.UTC(1970, 0, 1, 12, 0, 0, 0)))
+    })
+
+    // NOT-APPLICABLE: under a text date-format a real sqlite round-trips the const to a string, never the injected integer, so this number-branch auto-detect is only reachable via the mock.
+    test('localTime decode: integer under text format auto-detected as unix-ms when flagged', async () => {
+        if (ctx.realDbEnabled) return
+        const conn = ctx.withDateTimeFlags('localdate as text', { unexpectedUnixDateTimeAreMilliseconds: true })
+        expect(await decodeUnexpected(conn, 'localTime', 37845123)).toEqual(new Date(Date.UTC(1970, 0, 1, 10, 30, 45, 123)))
+    })
+
+    // NOT-APPLICABLE: under a text date-format a real sqlite round-trips the const to a string, never the injected integer, so this number-branch auto-detect is only reachable via the mock.
+    test('localTime decode: integer and numeric string under text format default to unix-seconds', async () => {
+        if (ctx.realDbEnabled) return
+        const conn = ctx.withDateTimeFormat('localdate as text')
+        expect(await decodeUnexpected(conn, 'localTime', 37845)).toEqual(new Date(Date.UTC(1970, 0, 1, 10, 30, 45, 0)))
+        expect(await decodeUnexpected(conn, 'localTime', '37845')).toEqual(new Date(Date.UTC(1970, 0, 1, 10, 30, 45, 0)))
+    })
+
+    test('localTime decode: bigint under unix-seconds format', async () => {
+        // Guard-free (numeric format round-trips to a number — see the localDate twin).
+        const conn = ctx.withDateTimeFormat('Unix time seconds as integer')
+        expect(await decodeUnexpected(conn, 'localTime', 37845n)).toEqual(new Date(Date.UTC(1970, 0, 1, 10, 30, 45, 0)))
+    })
+
+    // NOT-APPLICABLE: under a text date-format a real sqlite round-trips the const to a string, never the injected integer, so this number-branch auto-detect is only reachable via the mock.
+    test('localDateTime decode: integer and numeric string under text format default to unix-seconds', async () => {
+        if (ctx.realDbEnabled) return
+        const conn = ctx.withDateTimeFormat('localdate as text')
+        expect(await decodeUnexpected(conn, 'localDateTime', 1705314645)).toEqual(new Date(Date.UTC(2024, 0, 15, 10, 30, 45, 0)))
+        expect(await decodeUnexpected(conn, 'localDateTime', '1705314645')).toEqual(new Date(Date.UTC(2024, 0, 15, 10, 30, 45, 0)))
+    })
+
+    test('localDateTime decode: bigint under unix-seconds format', async () => {
+        // Guard-free (numeric format round-trips to a number — see the localDate twin).
+        const conn = ctx.withDateTimeFormat('Unix time seconds as integer')
+        expect(await decodeUnexpected(conn, 'localDateTime', 1705314645n)).toEqual(new Date(Date.UTC(2024, 0, 15, 10, 30, 45, 0)))
     })
 })

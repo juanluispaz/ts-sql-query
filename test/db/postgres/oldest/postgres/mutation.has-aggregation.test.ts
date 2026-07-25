@@ -528,14 +528,13 @@ describe(ctx.label, () => {
         await ctx.withRollback(async () => {
             const connection = ctx.conn
 
-            const firstIssuePriority = connection.selectFrom(tIssue)
-                .where(tIssue.id.equals(1))
+            const issuePriority = connection.selectFrom(tIssue)
                 .selectOneColumn(tIssue.priority)
                 .forUseAsInlineQueryValue()
 
             const query = connection.insertInto(tAppUser)
                 .values({ email: 'ada@acme.test', fullName: 'Ada Lovelace v2' })
-                .onConflictOnConstraint(connection.rawFragment`app_user_email_key /* priority=${firstIssuePriority} */`)
+                .onConflictOnConstraint(connection.rawFragment`app_user_email_key /* priority=${issuePriority} */`)
                 .doNothing()
                 .customizeQuery({
                     beforeQuery:        connection.rawFragment`/* head */ `,
@@ -547,12 +546,11 @@ describe(ctx.label, () => {
 
             const affected = await query.executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  insert /* hint */ into app_user (email, full_name) values ($1, $2) on conflict on constraint app_user_email_key /* priority=(select priority as result from issue where id = $3) */ do nothing  /* tail */"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  insert /* hint */ into app_user (email, full_name) values ($1, $2) on conflict on constraint app_user_email_key /* priority=(select priority as result from issue) */ do nothing  /* tail */"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "ada@acme.test",
                 "Ada Lovelace v2",
-                1,
               ]
             `)
             assertType<Exact<typeof affected, number>>()
@@ -933,9 +931,9 @@ describe(ctx.label, () => {
         // keeps this honest: the same clauses, plain join condition.
         //
         // The seed holds two organizations, so the extra `on` term keeps
-        // projects whose organization id is at most 2 — which is every seeded
-        // project. Issue 1 belongs to project 1 and is assigned to user 1, so
-        // exactly one row is updated.
+        // issues whose project id is at most 2 — which includes issue 1
+        // (project 1). Issue 1 belongs to project 1 and is assigned to user 1,
+        // so exactly one row is updated.
         ctx.mockNext(1)
         await ctx.withRollback(async () => {
             const connection = ctx.conn
@@ -948,7 +946,7 @@ describe(ctx.label, () => {
                 .from(tIssue)
                 .innerJoin(tAppUser).on(
                     tAppUser.id.equals(tIssue.assigneeId)
-                        .and(tProject.organizationId.lessOrEqual(organizationCount)),
+                        .and(tIssue.projectId.lessOrEqual(organizationCount)),
                 )
                 .set({ name: tAppUser.fullName })
                 .where(tProject.id.equals(tIssue.projectId))
@@ -963,7 +961,7 @@ describe(ctx.label, () => {
 
             const affected = await query.executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  update /* hint */ project set name = app_user.full_name from issue inner join app_user on app_user.id = issue.assignee_id and project.organization_id <= (select count(id) as result from organization) where project.id = issue.project_id and issue.id = $1  /* tail */"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  update /* hint */ project set name = app_user.full_name from issue inner join app_user on app_user.id = issue.assignee_id and issue.project_id <= (select count(id) as result from organization) where project.id = issue.project_id and issue.id = $1  /* tail */"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

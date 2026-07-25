@@ -31,8 +31,9 @@ describe(ctx.label, () => {
     test('shaped-payload-of-only-out-of-shape-keys-updates-nothing', async () => {
         // The degenerate case, and the one that proves the skip is real: a payload
         // whose every key is outside the shape leaves the set list EMPTY, so the
-        // update resolves 0 without dispatching a statement — which is why the last
-        // SQL on the wire is the enclosing transaction's own, not an UPDATE. Were
+        // update resolves 0 without dispatching a statement — so no non-transaction
+        // SQL reaches the wire (lastNoTransactionSql stays empty); only the enclosing
+        // transaction's own begin/rollback does. Were
         // the surplus key to survive, `update issue set  where id = $1` would reach
         // the engine instead.
         const body = { notInShape: 'csrf-token-from-the-request-body' }
@@ -45,7 +46,7 @@ describe(ctx.label, () => {
                 .where(tIssue.id.equals(2))
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"beginTransaction"`)
+            expect(ctx.lastNoTransactionSql).toMatchInlineSnapshot(`""`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
             assertType<Exact<typeof affected, number>>()
             expect(affected).toBe(0)

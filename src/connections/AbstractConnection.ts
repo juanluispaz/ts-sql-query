@@ -1387,7 +1387,19 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                 if (value instanceof Date) {
                     result = value
                 } else if (typeof value === 'string') {
-                    result = new Date('1970-01-01 ' + value)
+                    // A localTime is time-only, but some engines serialise it WITH a date
+                    // component: Oracle's `TIME`/`TIMESTAMP` inside a JSON aggregate comes
+                    // back as "1970-01-01T09:15:00" (or space-separated), not the bare
+                    // "09:15:00" the other dialects emit. Prepending '1970-01-01 ' to the
+                    // full datetime would produce an Invalid Date, so keep only the time
+                    // part — the tail after the date/time separator. `T` or a space are
+                    // accepted as the separator, the same as the localDate case above; a
+                    // bare time has neither and is used as-is (no substring on that common
+                    // path, only a datetime pays for one).
+                    let sep = value.indexOf('T')
+                    if (sep < 0) sep = value.indexOf(' ')
+                    const timeOnly = sep < 0 ? value : value.slice(sep + 1)
+                    result = new Date('1970-01-01 ' + timeOnly)
                 } else {
                     throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid localTime value received from the db: ' + value)
                 }

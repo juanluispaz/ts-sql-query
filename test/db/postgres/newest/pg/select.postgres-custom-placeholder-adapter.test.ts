@@ -133,13 +133,14 @@ describe(ctx.label, () => {
         // Were the adapter branch skipped, the emitted SQL would carry a bare `null`.
         // The other transformPlaceholder tests only exercise the bound-value path,
         // never the rendered-null path. `n` is the null-collapsed optional leaf, so
-        // it drops from the result under the default projector.
-        ctx.mockNext([{ id: 1, n: null }])
+        // it drops from the result under the default projector. The select carries
+        // no `where`, so it returns every seeded project (ids 1-4).
+        ctx.mockNext([{ id: 1, n: null }, { id: 2, n: null }, { id: 3, n: null }, { id: 4, n: null }])
         const rows = await ctx.conn.selectFrom(tProjectCustomPlaceholder)
             .select({ id: tProjectCustomPlaceholder.id, n: tProjectCustomPlaceholder.name.onlyWhenOrNull(false) })
             .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, null::varchar(64) as "n" from project"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
-        expect(rows).toEqual([{ id: 1 }])
+        expect(rows).toEqual([{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }])
     })
 })

@@ -185,6 +185,8 @@ describe(ctx.label, () => {
         })
     })
 
+    // TODO[LIMITATION]: see LIMITATIONS.md — MariaDB rejects `RETURNING` on a multi-table `DELETE ... USING ...`; only single-table `DELETE ... RETURNING` is supported (mariadb:latest 12.x → ER_PARSE_ERROR). Snapshot pre-baked; uncomment if a MariaDB release adds it.
+    /*
     test('delete-using-join-all-gates-open-with-allowed-returning-walks-to-end', async () => {
         // The RETURNING twin of the sibling above: the one limb it omits. With no
         // RETURNING the projection is absent and the walk skips its check, so the
@@ -217,4 +219,5 @@ describe(ctx.label, () => {
             expect(row).toBeNull()
         })
     })
+    */
 })

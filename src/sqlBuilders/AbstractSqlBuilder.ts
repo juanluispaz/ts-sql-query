@@ -201,6 +201,22 @@ export class AbstractSqlBuilder implements SqlBuilder {
             configurable: true
         })
     }
+    // Read in the query runner (AbstractQueryRunner.executeMutationReturning).
+    // Set to `false` when the outermost mutation's returning projection collapses
+    // to nothing (an empty `returning({})`), so the emitted SQL has no returning
+    // clause. The runner then executes it as a plain mutation instead of pushing a
+    // no-data statement through the data-returning driver path — which strict
+    // drivers reject (better-sqlite3) and others answer with a driver result header
+    // instead of rows (mysql2, mariadb). Only set for the outermost query, whose
+    // statement is the one actually executed.
+    _setContainsMutationReturningClause(params: any[], value: boolean | undefined): void {
+        Object.defineProperty(params, '_containsMutationReturningClause', {
+            value: value,
+            writable: true,
+            enumerable: false,
+            configurable: true
+        })
+    }
     // Read in the query runner (see AbstractQueryRunner.getForcedAffectedRowCount).
     // Set when the affected-row count is known while building the query but the
     // driver can't report it at execution time (Oracle's multi-row INSERT, which
@@ -2082,6 +2098,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     _buildQueryReturning(queryColumns: QueryColumns | undefined, params: any[], isOutermostQuery: boolean): string {
         if (!queryColumns) {
+            if (isOutermostQuery) {
+                this._setContainsMutationReturningClause(params, false)
+            }
             return ''
         }
         const columns: FlatQueryColumns = {}
@@ -2098,6 +2117,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 result += ' as ' + this._appendColumnAlias(property, params)
             }
             requireComma = true
+        }
+        if (isOutermostQuery) {
+            this._setContainsMutationReturningClause(params, !!result)
         }
         if (!result) {
             return ''

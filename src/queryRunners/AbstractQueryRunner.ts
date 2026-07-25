@@ -263,6 +263,15 @@ export abstract class AbstractQueryRunner implements QueryRunner {
         return (params as any)._forcedAffectedRowCount
     }
     protected executeMutationReturning(query: string, params: any[]): Promise<any[]> {
+        if ((params as any)._containsMutationReturningClause === false) {
+            // The outermost mutation's returning projection collapsed to nothing
+            // (an empty `returning({})`), so the emitted SQL carries no returning
+            // clause and there is no data to read back. Run it as a plain mutation:
+            // routing a no-data statement through the data-returning path errors on
+            // strict drivers (better-sqlite3) and yields a driver result header
+            // instead of rows on others (mysql2, mariadb). Report no returned rows.
+            return this.executeMutation(query, params).then(() => [])
+        }
         return this.executeQueryReturning(query, params)
     }
 

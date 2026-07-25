@@ -178,8 +178,9 @@ real `mariadb:latest` (12.3.2) container:
   single-table `DELETE ... RETURNING` works on 12.x (it has shipped
   since MariaDB 10.0.5) and single-table `UPDATE ... RETURNING` works
   from 13.0.1+. The multi-table RETURNING form is not accepted on any
-  current MariaDB. Affects `update.from.variants` and
-  `delete.using.variants`.
+  current MariaDB. Affects `update.from.variants`,
+  `update.allow-when.from-and-joins`, `delete.using.variants` and
+  `delete.allow-when.using-and-joins`.
 
 This stays `TODO[LIMITATION]` rather than `NOT-APPLICABLE` because the
 library emits the SQL (no type-level narrowing) and a future MariaDB

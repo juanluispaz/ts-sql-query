@@ -636,13 +636,13 @@ gets an automatic `--max-old-space-size=8192` bump (node/vitest only).
 Export your own `NODE_OPTIONS=--max-old-space-size=<MB>` to override it
 for the heaviest full-real `--docker --wasm` coverage runs.
 
-For **src** coverage specifically, `coverage:fast` (mock-only, parallel)
-is enough: the only source that runs differently under a real DB is
-`src/queryRunners/**`, which is **excluded** from the coverage scope (see
-"Scope" below). The `--docker` / `--wasm` coverage variants therefore add
-coverage only to out-of-scope driver code while costing far more time and
-memory — reach for them only when you specifically need a real-backend
-pass, not to see uncovered `src/`.
+For **src** coverage specifically, `coverage:report` (mock-only, parallel,
+one connector per db) is enough: the only source that runs differently
+under a real DB is `src/queryRunners/**`, which is **excluded** from the
+coverage scope (see "Scope" below). Adding `--docker` / `--wasm` therefore
+adds coverage only to out-of-scope driver code while costing far more time
+and memory — reach for a real-backend pass only when you specifically need
+one, not to see uncovered `src/`.
 
 ### Vitest is the recommended path for coverage
 
@@ -750,26 +750,39 @@ Canonical (project-level):
 |---|---|
 | `tests:reopen` | Opens the previously generated report without re-running tests. Errors out clearly if neither `.test-report/index.html` nor `.test-report/coverage/index.html` exists. |
 
-User-level shortcuts (personal — feel free to adjust). The display ones wrap
-`--report --coverage --open` under vitest; the discovery one (the alias
-named `coverage:for-discover-tests`) emits machine-readable coverage
+User-level shortcuts (personal — feel free to adjust). Both families scope
+coverage to **one connector per database** (`--native none` + explicit
+per-db coords, mock-only) — coverage-identical to the full matrix, since
+the only source that runs differently per connector is `src/queryRunners/**`,
+which is out of scope. The display ones (`coverage:report*`) wrap
+`--coverage --open` under vitest and render the HTML report; the discovery
+ones (`coverage:for-discover-tests*`) emit machine-readable coverage
 artifacts only (no HTML, no auto-open) under `.test-report/coverage/` for
-the AI to read when asked to suggest additional tests from the gaps:
+the AI to read when asked to suggest additional tests from the gaps. Each
+family has an all-tiers default and a `:newest` variant narrowed to the
+`<db>/newest/*` cells:
 
 | Alias | Equivalent |
 |---|---|
-| `coverage:fast` | `tests --report --coverage --open` |
-| `coverage:no-docker` | `tests --report --wasm --coverage --mode sequential --open` |
-| `coverage:complete` | `tests --report --docker --wasm --coverage --mode sequential --open` |
-| `coverage:for-discover-tests` | `tests --use-vitest --coverage --coverage-format json --coverage-format json-summary --coverage-format text-summary --run-versions newest` |
+| `coverage:report` | `tests --use-vitest --coverage --native none --open <per-db coords>` |
+| `coverage:report:newest` | same, but `<per-db newest>` cells only |
+| `coverage:for-discover-tests` | `tests --use-vitest --coverage --coverage-format json --coverage-format json-summary --coverage-format text-summary --native none <per-db coords>` |
+| `coverage:for-discover-tests:newest` | same, but `<per-db newest>` cells only |
 | `coverage:reopen` | Same script as `tests:reopen`. |
 
+`<per-db coords>` = `mariadb/*/mariadb mysql/*/mysql2 oracle/*/oracledb
+postgres/*/pg sqlite/*/better-sqlite3 sqlserver/*/mssql` (all version
+tiers); `<per-db newest>` swaps the `*` for `newest`.
+
 <a id="coverage-for-discover-tests-alias"></a>**The discovery alias**
-(`coverage:for-discover-tests`) uses `--run-versions newest` on purpose:
-older-version cells exercise the same `SqlBuilder` code paths as the
-matching `<db>/newest/*` cell, so they would not reveal extra uncovered
-lines or branches. The tests generated from those gaps still land in the
-full matrix; only the discovery pass is narrowed. Used by
+(`coverage:for-discover-tests`) runs **one connector per database across
+all version tiers** — coverage-identical to the full matrix (query-runners
+are out of scope) at a fraction of the files. The all-tiers scope matters:
+the version-gated emulation branches in the `SqlBuilder`s only light up
+under the older tiers, so a newest-only pass leaves them dark. The
+`:newest` variant narrows to the `<db>/newest/*` cells — cheaper, but blind
+to those older-tier branches; reach for it only when older-version coverage
+is redundant with the matching newest cell. Used by
 [`COVERAGE_RUNBOOK.md`](./COVERAGE_RUNBOOK.md) as the input for
 coverage-driven test generation.
 

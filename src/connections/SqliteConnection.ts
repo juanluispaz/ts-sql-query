@@ -175,7 +175,7 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
                     throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, `Invalid localDate value received from the db: ${value} (.getTime() returns NaN)`)
                 }
                 (result as any).___type___ = 'localDate'
-                // This time fix works in almost every timezone (from -10 to +13, but not +14, -11, -12, almost uninhabited)
+                // date-stability offset (see the note on AbstractConnection's 'localDate' decode)
                 result.setUTCMinutes(600)
                 return result
             }

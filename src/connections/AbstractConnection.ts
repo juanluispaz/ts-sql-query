@@ -1354,11 +1354,17 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                 }
                 throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid uuid value received from the db: ' + value)
             case 'localDate': {
+                // A localDate has no time-of-day. If it were pinned at UTC midnight the
+                // CALENDAR DATE would shift when the value is read in another timezone
+                // (00:00Z is the previous day everywhere west of UTC), so the decoded Date is
+                // offset to 10:00 UTC (`setUTCMinutes(600)`): a buffer that preserves the
+                // intended day across every inhabited offset (UTC-10..+13; only the
+                // effectively-uninhabited +14/-11/-12 would still roll over). A future move to
+                // Temporal's plain-date type would remove the need for this offset.
                 let result: Date
                 if (value instanceof Date) {
-                    // This time fix works in almost every timezone (from -10 to +13, but not +14, -11, -12, almost uninhabited)
                     result = new Date(Date.UTC(value.getFullYear(), value.getMonth(), value.getDate()))
-                    result.setUTCMinutes(600)
+                    result.setUTCMinutes(600) // date-stability offset (see note atop this case)
                 } else if (typeof value === 'string') {
                     // A localDate is date-only, but some engines serialise it WITH a time
                     // component: Oracle's `DATE` inside a JSON aggregate comes back as
@@ -1370,9 +1376,8 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                     if (sep < 0) sep = value.indexOf(' ')
                     const dateOnly = sep < 0 ? value : value.slice(0, sep)
                     result = new Date(dateOnly + ' 00:00') // If time is omited, UTC timezone will be used instead the local one
-                    // This time fix works in almost every timezone (from -10 to +13, but not +14, -11, -12, almost uninhabited)
                     result = new Date(Date.UTC(result.getFullYear(), result.getMonth(), result.getDate()))
-                    result.setUTCMinutes(600)
+                    result.setUTCMinutes(600) // date-stability offset (see note atop this case)
                 } else {
                     throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid localDate value received from the db: ' + value)
                 }

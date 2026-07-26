@@ -10,9 +10,9 @@
 // returns a rejected promise) and a synchronous form (the driver throws before
 // returning). A healthy driver never rejects a COMMIT, so these arms are only
 // reachable by forcing the rejection — `ctx.withFaultInjection()` arms the
-// begin/commit/rollback calls to fail on demand and is honest in mock and real
-// mode alike. It also overrides `nestedTransactionsSupported()` to drive the
-// `NESTED_TRANSACTION_NOT_SUPPORTED` guards a nested transaction raises.
+// begin/commit/rollback calls to fail on demand. It also overrides
+// `nestedTransactionsSupported()` to drive the `NESTED_TRANSACTION_NOT_SUPPORTED`
+// guards a nested transaction raises.
 //
 // The injected error's CLASS selects the ladder arm:
 //   - `TsSqlQueryExecutionError`  -> arm 1 (re-thrown, same instance)   [kind 'rethrown']
@@ -21,11 +21,13 @@
 // `sync: true` throws out of the runner (the try/catch form); omitted rejects
 // the returned promise (the `.then(_, reject)` form).
 //
-// Tests that open a transaction and then fault its commit/rollback leave the
-// transaction open, so they run inside `ctx.withReseed(...)`, which discards the
-// poisoned connection afterwards (a no-op cleanup in mock mode, where the
-// per-test `ctx.reset()` clears the depth counter). A begin fault opens nothing,
-// so those tests need no reseed.
+// These are MOCK-ONLY (`if (ctx.realDbEnabled) return`): the fault is INJECTED,
+// so the classification under test is the library's and is identical in mock and
+// real mode — forcing it on a real engine validates nothing the mock doesn't
+// already prove. A faulted commit/rollback also leaves the transaction open, and
+// a real native embedded runner (e.g. better-sqlite3) cannot be cleanly recovered
+// from that. Every assertion targets the caught error, so the audit's
+// exception-validation carve-out tolerates the skip.
 
 import { afterAll, ApplicationError, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { QueryExecutionSource, TsSqlProcessingError, TsSqlQueryExecutionError } from '../../../../../src/TsSqlError.js'
@@ -59,8 +61,8 @@ describe(ctx.label, () => {
             const form = sync ? 'synchronous' : 'asynchronous'
 
             test(`begin-transaction-${form}-driver-rejection-classifies-${steer.key}`, async () => {
-                // A direct `beginTransaction()` whose driver call fails. Begin opens
-                // nothing on failure, so no reseed is needed.
+                if (ctx.realDbEnabled) { return }
+                // A direct `beginTransaction()` whose driver call fails.
                 const { conn, faults } = ctx.withFaultInjection()
                 const injected = steer.make()
                 let caught: unknown
@@ -84,21 +86,19 @@ describe(ctx.label, () => {
             })
 
             test(`commit-${form}-driver-rejection-classifies-${steer.key}`, async () => {
-                // A direct `commit()` with no before-commit hook whose driver call
-                // fails. The open transaction is left dangling -> reseed.
+                if (ctx.realDbEnabled) { return }
+                // A direct `commit()` with no before-commit hook whose driver call fails.
                 const { conn, faults } = ctx.withFaultInjection()
                 const injected = steer.make()
                 let caught: unknown
 
-                await ctx.withReseed(async () => {
-                    await conn.beginTransaction()
-                    faults.failCommit({ error: injected, sync })
-                    try {
-                        await conn.commit()
-                    } catch (e) {
-                        caught = e
-                    }
-                })
+                await conn.beginTransaction()
+                faults.failCommit({ error: injected, sync })
+                try {
+                    await conn.commit()
+                } catch (e) {
+                    caught = e
+                }
 
                 if (steer.kind === 'wrapped') {
                     expect(caught).toBeInstanceOf(TsSqlQueryExecutionError)
@@ -112,6 +112,7 @@ describe(ctx.label, () => {
             })
 
             test(`commit-after-before-commit-hook-${form}-driver-rejection-classifies-${steer.key}`, async () => {
+                if (ctx.realDbEnabled) { return }
                 // A `commit()` preceded by a before-commit hook that returns a
                 // promise, so the commit runs on the deferred-hook continuation
                 // (a separate ladder from the plain commit above). The hook itself
@@ -120,16 +121,14 @@ describe(ctx.label, () => {
                 const injected = steer.make()
                 let caught: unknown
 
-                await ctx.withReseed(async () => {
-                    await conn.beginTransaction()
-                    conn.executeBeforeNextCommit(async () => { /* resolves, then the commit faults */ })
-                    faults.failCommit({ error: injected, sync })
-                    try {
-                        await conn.commit()
-                    } catch (e) {
-                        caught = e
-                    }
-                })
+                await conn.beginTransaction()
+                conn.executeBeforeNextCommit(async () => { /* resolves, then the commit faults */ })
+                faults.failCommit({ error: injected, sync })
+                try {
+                    await conn.commit()
+                } catch (e) {
+                    caught = e
+                }
 
                 if (steer.kind === 'wrapped') {
                     expect(caught).toBeInstanceOf(TsSqlQueryExecutionError)
@@ -143,21 +142,19 @@ describe(ctx.label, () => {
             })
 
             test(`rollback-${form}-driver-rejection-classifies-${steer.key}`, async () => {
-                // A direct `rollback()` whose driver call fails. The transaction is
-                // left open (rollback never completed) -> reseed.
+                if (ctx.realDbEnabled) { return }
+                // A direct `rollback()` whose driver call fails.
                 const { conn, faults } = ctx.withFaultInjection()
                 const injected = steer.make()
                 let caught: unknown
 
-                await ctx.withReseed(async () => {
-                    await conn.beginTransaction()
-                    faults.failRollback({ error: injected, sync })
-                    try {
-                        await conn.rollback()
-                    } catch (e) {
-                        caught = e
-                    }
-                })
+                await conn.beginTransaction()
+                faults.failRollback({ error: injected, sync })
+                try {
+                    await conn.rollback()
+                } catch (e) {
+                    caught = e
+                }
 
                 if (steer.kind === 'wrapped') {
                     expect(caught).toBeInstanceOf(TsSqlQueryExecutionError)
@@ -172,9 +169,10 @@ describe(ctx.label, () => {
         }
 
         test(`transaction-block-synchronous-begin-rejection-classifies-${steer.key}`, async () => {
+            if (ctx.realDbEnabled) { return }
             // A begin fault thrown SYNCHRONOUSLY from inside `transaction(fn)` makes
             // `executeInTransaction` throw synchronously, so it is classified by the
-            // outer try/catch ladder of `transaction`. Begin opens nothing -> no reseed.
+            // outer try/catch ladder of `transaction`.
             const { conn, faults } = ctx.withFaultInjection()
             const injected = steer.make()
             let caught: unknown
@@ -199,6 +197,7 @@ describe(ctx.label, () => {
     }
 
     test('transaction-block-asynchronous-begin-rejection-wraps-sql-error', async () => {
+        if (ctx.realDbEnabled) { return }
         // A begin fault REJECTED asynchronously inside `transaction(fn)` reaches the
         // outer async classification handler (distinct from the synchronous outer
         // catch and from the direct `beginTransaction()` handler). A SQL error there
@@ -222,20 +221,19 @@ describe(ctx.label, () => {
     })
 
     test('transaction-nested-within-active-transaction-throws-nested-not-supported', async () => {
+        if (ctx.realDbEnabled) { return }
         // With nested transactions unsupported, starting a `transaction(...)` while
         // one is already open throws `NESTED_TRANSACTION_NOT_SUPPORTED` before any
-        // driver call. The outer transaction stays open -> reseed.
+        // driver call.
         const { conn } = ctx.withFaultInjection({ nestedTransactionsSupported: false })
         let caught: unknown
 
-        await ctx.withReseed(async () => {
-            await conn.beginTransaction()
-            try {
-                await conn.transaction(() => undefined)
-            } catch (e) {
-                caught = e
-            }
-        })
+        await conn.beginTransaction()
+        try {
+            await conn.transaction(() => undefined)
+        } catch (e) {
+            caught = e
+        }
 
         expect(caught).toBeInstanceOf(TsSqlQueryExecutionError)
         if (caught instanceof TsSqlQueryExecutionError) {
@@ -244,19 +242,18 @@ describe(ctx.label, () => {
     })
 
     test('begin-transaction-nested-within-active-transaction-throws-nested-not-supported', async () => {
+        if (ctx.realDbEnabled) { return }
         // The same guard on `beginTransaction()`: a second begin while a transaction
-        // is open throws `NESTED_TRANSACTION_NOT_SUPPORTED`. Outer stays open -> reseed.
+        // is open throws `NESTED_TRANSACTION_NOT_SUPPORTED`.
         const { conn } = ctx.withFaultInjection({ nestedTransactionsSupported: false })
         let caught: unknown
 
-        await ctx.withReseed(async () => {
+        await conn.beginTransaction()
+        try {
             await conn.beginTransaction()
-            try {
-                await conn.beginTransaction()
-            } catch (e) {
-                caught = e
-            }
-        })
+        } catch (e) {
+            caught = e
+        }
 
         expect(caught).toBeInstanceOf(TsSqlQueryExecutionError)
         if (caught instanceof TsSqlQueryExecutionError) {

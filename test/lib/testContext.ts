@@ -17,6 +17,7 @@
 import type { DatabaseType, PromiseProvider, QueryRunner } from '../../src/queryRunners/QueryRunner.js'
 import { MockQueryRunner, type MockQueryExecutor, type MockQueryRunnerConfig } from '../../src/queryRunners/MockQueryRunner.js'
 import { CaptureInterceptor } from './captureInterceptor.js'
+import { FaultInjectingQueryRunner, type FaultInjectingQueryRunnerOptions } from './FaultInjectingQueryRunner.js'
 
 export interface TestContext<CONN> {
     readonly label: string
@@ -80,6 +81,33 @@ export interface TestContext<CONN> {
      * compatibility-version cell. Must be called after `up()`.
      */
     withConnection<T extends CONN>(subclass: new (queryRunner: QueryRunner, compatibilityVersion?: number) => T): T
+
+    /**
+     * A connection whose transaction-lifecycle calls (`beginTransaction` /
+     * `commit` / `rollback`, including the ones `transaction(...)` runs
+     * internally) can be made to FAIL on demand — the sanctioned way to drive
+     * `AbstractConnection`'s driver-rejection error-classification ladders,
+     * and, via `{ nestedTransactionsSupported: false }`, its
+     * `NESTED_TRANSACTION_NOT_SUPPORTED` guards. Available on every cell.
+     *
+     * Returns the connection AND the `FaultInjectingQueryRunner` handle to arm
+     * faults on. The injector wraps the SAME `CaptureInterceptor` `ctx.conn`
+     * uses, so `ctx.lastSql` / `ctx.history` still observe this connection's
+     * non-faulted queries, and it threads the cell's `compatibilityVersion`
+     * exactly like `withConnection`. Must be called after `up()`.
+     *
+     *     const { conn, faults } = ctx.withFaultInjection()
+     *     await conn.beginTransaction()
+     *     faults.failCommit({ error: new Error('driver lost') })
+     *     await expect(conn.commit()).rejects.toThrow('driver lost')
+     *
+     * Honest in both modes (it wraps mock OR real). NOTE: a faulted
+     * `commit` / `rollback` in real-DB mode leaves the real transaction open —
+     * run such a test through `ctx.withReseed(...)` so the harness's
+     * poisoned-connection recovery discards it. In mock mode `ctx.reset()`
+     * (from `beforeEach`) clears the mock's transaction-depth counter.
+     */
+    withFaultInjection(options?: FaultInjectingQueryRunnerOptions): { conn: CONN; faults: FaultInjectingQueryRunner }
 
     up(): Promise<void>
     down(): Promise<void>
@@ -203,8 +231,14 @@ export interface TestContextOptions<CONN> {
     onReseed?: ((runner: QueryRunner) => Promise<void>) | undefined
     /** Tear down anything `onUp` or `createRealRunner` allocated. */
     onDown?: (() => Promise<void>) | undefined
-    /** Build the user-facing connection from the capture interceptor + compat version. */
-    buildConnection(interceptor: CaptureInterceptor, compatibilityVersion: number | undefined): CONN
+    /**
+     * Build the user-facing connection from the runner it should talk to plus
+     * the compat version. Normally the shared `CaptureInterceptor` (for
+     * `ctx.conn`); a `FaultInjectingQueryRunner` wrapping it for
+     * `withFaultInjection`. Every impl just does `new DBConnection(runner,
+     * compatibilityVersion)`, so the param is any `QueryRunner`.
+     */
+    buildConnection(interceptor: QueryRunner, compatibilityVersion: number | undefined): CONN
     /**
      * Promise implementation the MOCK runner hands back results through. Sync
      * cells (`<connector>-sync`) pass `SynchronousPromise` so `ctx.conn`'s
@@ -359,6 +393,19 @@ export function createTestContext<CONN>(opts: TestContextOptions<CONN>): TestCon
             // correct after a poisoned-connection rebuild swaps the runner.
             if (capture === null) throw new Error(`TestContext "${opts.label}": withConnection called before up()`)
             return new subclass(capture, opts.compatibilityVersion)
+        },
+
+        withFaultInjection(options = {}) {
+            // Wrap the live shared CaptureInterceptor with the injector and build
+            // a CONN on top of it: conn → injector → capture → inner(mock|real).
+            // The injector only overrides begin/commit/rollback (+
+            // nestedTransactionsSupported), so data queries still flow through
+            // `capture` and land in `ctx.lastSql`. Reading `capture` at call time
+            // keeps this correct after a poisoned-connection rebuild.
+            if (capture === null) throw new Error(`TestContext "${opts.label}": withFaultInjection called before up()`)
+            const faults = new FaultInjectingQueryRunner(capture, options)
+            const conn = opts.buildConnection(faults, opts.compatibilityVersion)
+            return { conn, faults }
         },
 
         async up() {

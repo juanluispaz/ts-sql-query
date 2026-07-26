@@ -9,6 +9,7 @@ the `--docker` / `--wasm` flags drive see
 [`ENGINE_LIFECYCLE.md`](./ENGINE_LIFECYCLE.md).
 
 - [The scripts](#the-scripts)
+- [One heavy job at a time](#one-heavy-job-at-a-time)
 - [Test-loop discipline](#test-loop-discipline)
 - [Flags](#flags)
 - [Sharding the no-docker matrix](#sharding)
@@ -41,6 +42,71 @@ to `vitest run`. Same entry under either runtime.
 config (you'll see `npm warn Unknown cli config "--flag"`). Use the `--`
 separator: `npm run tests -- --docker --run-versions newest`. Bun does not have
 this problem.
+
+## One heavy job at a time
+
+**Non-negotiable, and it applies to whoever is driving — a human at a terminal,
+the agent, or a delegated subagent.** Never have two heavy jobs in flight at
+once. The heavy set:
+
+| Job | Peak RSS |
+|---|---|
+| `npm run tests` (whole matrix; `--docker` / `--wasm` on top) | ~15.9 GB |
+| `npm run validate:tests` (per-connector tsgo split) | ~7 GB (largest slice) |
+| `npm run validate:tests:newest` (single tsgo program) | ~6 GB |
+| `npm run validate` / `validate:tsgo` / `build*` | multi-GB |
+| `npm run tests:audit`, `npm run tests:index*` | multi-GB |
+| `npm run all-examples` / `no-docker-examples` | multi-GB + containers |
+
+Any *two* of those exceed the RAM of a 16 GB box, so the OS OOM-killer takes
+one out. Start one, **wait for it to finish, then start the next**.
+Backgrounding one and launching another "while it runs" is the same violation —
+it is exactly how the OOM happens. Cheap work during the wait (reading files,
+small greps, editing tests or docs) is fine; anything competing for RAM or CPU
+is not. To watch a long run, use a blocking waiter
+(`until grep -q "Test Files" run.log; do sleep 15; done`), never a second
+workload.
+
+
+**Count the engines too.** With `--docker` the containers are a second multi-GB
+consumer of the same budget. Measured at REST immediately after a full matrix
+run (under load it is higher):
+
+| Engine | Image | Mem at rest |
+|---|---|---|
+| SQL Server | `mcr.microsoft.com/mssql/server:2025-latest` | ~3.10 GB |
+| Oracle | `gvenzl/oracle-free:23-slim-faststart` | ~2.60 GB |
+| MySQL | `mysql:9` | ~0.83 GB |
+| MariaDB | `mariadb:12.3` | ~0.36 GB |
+| PostgreSQL | `postgres:18-alpine` | ~0.32 GB |
+| | **total** | **~7.2 GB** |
+
+…all inside a Docker VM provisioned ~11.7 GB of host RAM, reserved whether or
+not the engines are busy. A `--docker` run therefore commits most of the machine
+before the first test executes — that is why the headroom for a second job is
+not merely thin, it is negative.
+
+**Container reuse holds that memory between runs.** `--docker-mode reuse` is the
+default, so the engines stay up after the run ends: a `tsgo` started "now that
+no tests are running" still competes with ~7 GB of idle containers. Run
+`npm run tests:stop-containers` before a heavy non-docker job, or when handing
+the machine back — at the cost of a cold start on the next `--docker` run. See
+[`ENGINE_LIFECYCLE.md`](./ENGINE_LIFECYCLE.md).
+
+Two failure modes make an overlap expensive to diagnose, which is why this is a
+hard rule rather than a preference:
+
+- **The victim dies with `EXIT=137`** (SIGKILL). Often after many minutes of
+  wall-time, and with no test summary printed — the log reads as truncated
+  rather than killed. Always check for the exit code before trusting a tail.
+- **The survivor emits bogus failures.** CPU starvation pushes tests past the
+  60 s per-test timeout (`--timeout`), and a contention timeout is
+  indistinguishable from a real regression in the output. A run that overlapped
+  another heavy job proves nothing: **discard its failures and re-run it
+  alone** — never interpret them.
+
+Wall-time numbers assume a machine that is otherwise idle; see
+[`BENCHMARKS.md`](./BENCHMARKS.md).
 
 ## Test-loop discipline
 

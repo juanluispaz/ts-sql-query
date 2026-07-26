@@ -635,6 +635,22 @@ In order:
 
 ## Operational rules
 
+- **ONE HEAVY JOB AT A TIME — non-negotiable.** Never have two of these in
+  flight at once: `npm run tests` (whole matrix, with or without
+  `--docker` / `--wasm`), any `tsgo` (`validate:tests`,
+  `validate:tests:newest`, `validate`, `build*`), `tests:audit`,
+  `tests:index*`, the example suites. The whole-matrix run peaks ~15.9 GB and
+  a tsgo slice ~7 GB, so two together get one OOM-killed (`EXIT=137`, usually
+  with no summary printed) and leave the survivor emitting **contention
+  timeouts that are indistinguishable from real regressions**. Run each gate
+  serially and wait; a failure from an overlapped run must be discarded and
+  re-run alone, never triaged. **Count the engines too:** with `--docker` the
+  containers hold ~7.2 GB at rest (SQL Server ~3.1, Oracle ~2.6) inside a Docker
+  VM provisioned ~11.7 GB, and `--docker-mode reuse` keeps them up between runs —
+  so a later `tsgo` competes with them unless you run
+  `npm run tests:stop-containers` first. This binds the COORDINATOR as much as any
+  delegated agent — delegated agents must not run them at all. See
+  [`CLI.md` § One heavy job at a time](./CLI.md#one-heavy-job-at-a-time).
 - **Use `npm run …` for everything** — the matrix, coverage, and the helpers
   (`tests:index`, `tests:where-is`, `validate:tests`). One consistent runtime
   avoids confusing the agent; the matrix under vitest (`isolate:false`) is faster

@@ -44,6 +44,7 @@ uses.
 
 | Want | Read |
 |---|---|
+| **Why you must never run two heavy jobs at once (non-negotiable)** | [`CLI.md` § One heavy job at a time](./CLI.md#one-heavy-job-at-a-time) |
 | Quick `tests` commands and the inner-loop discipline | [`CLI.md`](./CLI.md) |
 | Coverage runs and report formats (html, monocart, etc.) | [`CLI.md` § Coverage](./CLI.md#coverage) |
 | Wall-time numbers for each invocation, bun vs vitest | [`BENCHMARKS.md`](./BENCHMARKS.md) |
@@ -235,6 +236,15 @@ PostgreSQL 17 so it only appears under `oldest/`. Folders for invalid
 cells simply do not exist.
 
 ## TL;DR commands
+
+> **One heavy job at a time.** Never run two of these concurrently — the
+> whole matrix peaks ~15.9 GB and a tsgo slice ~7 GB, so the second one gets
+> OOM-killed (`EXIT=137`) and the survivor reports bogus contention
+> timeouts. **The engines count too**: under `--docker` the containers hold
+> ~7.2 GB at rest inside a Docker VM provisioned ~11.7 GB, and container
+> reuse keeps them up BETWEEN runs — `npm run tests:stop-containers` frees
+> them before a heavy non-docker job. Wait for each to finish. See
+> [`CLI.md` § One heavy job at a time](./CLI.md#one-heavy-job-at-a-time).
 
 ```bash
 # Daily mocked loop, ~74 s under vitest (isolate:false) / ~68 s under bun.

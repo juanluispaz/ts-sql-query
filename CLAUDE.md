@@ -34,6 +34,21 @@ The project supports both Node and Bun. **For the `test/` matrix, prefer node + 
     - `npm run tests:stop-containers` — stop the warm docker containers `--docker --docker-mode reuse` left running.
     - `npm run tests:reopen` — re-open the previously generated `--report` / `--coverage` HTML without re-running tests.
 
+**ONE HEAVY JOB AT A TIME — NON-NEGOTIABLE.** Never have two heavy jobs in flight at once. The heavy set is: `npm run tests` (whole matrix, with or without `--docker` / `--wasm`), any `tsgo` invocation (`validate`, `validate:tsgo`, `validate:tests`, `validate:tests:newest`, `build*`), `npm run tests:audit`, `npm run tests:index*`, and `npm run all-examples` / `no-docker-examples`. This project is large enough that any two of them together exceed RAM: the whole-matrix vitest run peaks ~15.9 GB on its own and the per-connector tsgo split peaks ~7 GB, so a second job means the OS OOM-killer takes one of them out.
+
+Start one, **wait for it to finish, then start the next**. Backgrounding one and launching another "while it runs" is the same violation — it is precisely how the OOM happens. Filling the wait with cheap work (reading files, small greps, editing docs/tests) is fine; anything that competes for RAM or CPU is not. To watch a long run's log, use a blocking waiter (`until grep -q … ; do sleep 15; done`), never a second workload.
+
+**The database engines are a second consumer of the same budget — count them.** When `--docker` is in play the containers are not free bystanders: measured at REST right after a full matrix run, SQL Server holds ~3.1 GB, Oracle ~2.6 GB, MySQL ~0.8 GB, MariaDB ~0.36 GB and PostgreSQL ~0.32 GB — **~7.2 GB of engines**, inside a Docker VM provisioned ~11.7 GB of host RAM whether or not the engines are busy. So a `--docker` run has already committed most of the machine before the first test executes, which is why there is no headroom left for anything else. Under load it is higher than the at-rest figures above.
+
+Worse, **container reuse holds that memory between runs.** `--docker-mode reuse` is the default, so the engines stay up after the run finishes — a `tsgo` started "now that no tests are running" still competes with ~7 GB of idle containers. Run **`npm run tests:stop-containers`** before a heavy non-docker job (or when handing the machine back), and remember the first `--docker` run after that pays the cold-start cost again.
+
+Two failure modes make this expensive to diagnose, which is why it is a hard rule and not a preference:
+
+- The victim dies with **`EXIT=137`** (SIGKILL) — often *after* many minutes of wall-time, and with no test summary printed, so the log looks truncated rather than killed.
+- The survivor emits **bogus failures**: CPU starvation pushes tests past the 60 s per-test timeout, and a contention timeout is indistinguishable from a real regression in the output. Any failure from a run that overlapped another heavy job must be **discarded and re-run alone**, never interpreted.
+
+This applies to the agent itself, not just to delegated subagents — see also [`test/BENCHMARKS.md`](test/BENCHMARKS.md) and [`test/CLI.md` § One heavy job at a time](test/CLI.md#one-heavy-job-at-a-time).
+
 **Test-loop discipline — start narrow, widen only when needed.** The full `test/` matrix has grown to ~258k tests across ~17k files; even mocked-only it takes ~74 s under vitest (~68 s under bun). Running it on every inner iteration adds up fast. The cells are heavily symmetric — for most changes the older-version cells emit the **same** snapshots as the matching newest cell (same SqlBuilder, same expressions), so re-running them is wasted feedback. Default order of preference (commands via `npm run tests -- …`):
 1. **`tests <coord>`** — when iterating on a single cell or file (the typical case while editing). Tightest loop.
 2. **`tests --run-versions newest`** — when a change spans multiple databases. Skips `<db>/oldest/*` entirely; takes ~19 s instead of ~74 s (vitest) and avoids ~190 k redundant assertions.

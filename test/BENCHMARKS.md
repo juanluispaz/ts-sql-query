@@ -169,6 +169,22 @@ bootstrap is per-worker; running it parallel is catastrophic) and gets
 
 ## Practical workflow
 
+> **Every number in this file assumes the machine is otherwise idle, and that is
+> a requirement, not a caveat.** Never run two heavy jobs at once (whole matrix,
+> any `tsgo`, `tests:audit`, `tests:index*`, the example suites): the whole-matrix
+> vitest run peaks ~15.9 GB and the per-connector tsgo split ~7 GB, so together
+> they exceed a 16 GB box and the OOM-killer takes one out (`EXIT=137`, usually
+> with no summary printed). The survivor is worse than useless — CPU starvation
+> pushes tests past the 60 s per-test timeout, and a contention timeout looks
+> exactly like a real regression. Discard and re-run alone; never interpret.
+> **The engines count against the same budget.** With `--docker`, the containers
+> hold ~7.2 GB at rest (SQL Server ~3.1, Oracle ~2.6, MySQL ~0.8, MariaDB ~0.36,
+> PostgreSQL ~0.32) inside a Docker VM provisioned ~11.7 GB of host RAM — and
+> `--docker-mode reuse` (the default) keeps them up BETWEEN runs, so they compete
+> with a later `tsgo` too. `npm run tests:stop-containers` releases them.
+>
+> Full rule: [`CLI.md` § One heavy job at a time](./CLI.md#one-heavy-job-at-a-time).
+
 **Default runner: node + vitest** (`npm run tests …`) for the `test/` matrix —
 decisive on the real docker matrix (DB pool amortised per worker, not rebuilt per
 file) and one toolchain for CI + publish; on the mocked/WASM loops it's ~tied with

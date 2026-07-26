@@ -232,9 +232,10 @@ describe(ctx.label, () => {
         // A plain single-row `returningLastInsertedId()` (no `onConflictDoNothing()`)
         // is typed non-null, so a driver returning no id violates that contract: the
         // guard must throw MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE rather than
-        // resolve `null`. Mock-only: a real INSERT always produces the generated id,
-        // so the missing id can only be forced through the mock.
-        if (ctx.realDbEnabled) return
+        // resolve `null`.
+        // MOCK-ONLY: a real INSERT always produces the generated id, so the missing id can only be
+        // forced through the mock.
+        ctx.mockOnlyConnection()
         ctx.mockNext(null)
         let caught: unknown
         try {
@@ -253,10 +254,10 @@ describe(ctx.label, () => {
         // INDIVIDUALLY, so a null element in the id array violates the non-null
         // contract: the per-row guard throws
         // MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE decorated with the offending
-        // `rowIndex` (here 1, the second row). Mock-only: a real INSERT always
-        // produces an id for every row, so a null element can only be forced
-        // through the mock.
-        if (ctx.realDbEnabled) return
+        // `rowIndex` (here 1, the second row).
+        // MOCK-ONLY: a real INSERT always produces an id for every row, so a null element can only
+        // be forced through the mock.
+        ctx.mockOnlyConnection()
         ctx.mockNext([1, null])
         let caught: unknown
         try {
@@ -283,10 +284,10 @@ describe(ctx.label, () => {
         // adapter-applied per-row guard. A null element in the id array still
         // violates the non-null contract: the guard throws
         // MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE decorated with the offending
-        // `rowIndex` (here 1, the second row). Mock-only: a real INSERT always
-        // produces an id for every row, so a null element can only be forced
-        // through the mock.
-        if (ctx.realDbEnabled) return
+        // `rowIndex` (here 1, the second row).
+        // MOCK-ONLY: a real INSERT always produces an id for every row, so a null element can only
+        // be forced through the mock.
+        ctx.mockOnlyConnection()
         ctx.mockNext([1, null])
         let caught: unknown
         try {
@@ -310,9 +311,9 @@ describe(ctx.label, () => {
         // handing back a non-integer id (1.5) violates the int contract:
         // `transformValueFromDB` rejects it with INVALID_VALUE_RECEIVED_FROM_DATABASE
         // (distinct from the MANDATORY_VALUE null-id gate) rather than resolve it.
-        // Mock-only: a real INSERT always produces a valid generated id, so the
-        // wrong-typed id can only be forced through the mock.
-        if (ctx.realDbEnabled) return
+        // MOCK-ONLY: a real INSERT always produces a valid generated id, so the wrong-typed id can
+        // only be forced through the mock.
+        ctx.mockOnlyConnection()
         ctx.mockNext(1.5)
         let caught: unknown
         try {
@@ -331,9 +332,9 @@ describe(ctx.label, () => {
         // is validated INDIVIDUALLY, so a non-integer element (1.5) violates the
         // int contract — the per-row guard throws INVALID_VALUE_RECEIVED_FROM_DATABASE
         // decorated with the offending `rowIndex` (here 1, the second row).
-        // Mock-only: a real INSERT always produces a valid id for every row, so the
-        // wrong-typed id can only be forced through the mock.
-        if (ctx.realDbEnabled) return
+        // MOCK-ONLY: a real INSERT always produces a valid id for every row, so the wrong-typed id
+        // can only be forced through the mock.
+        ctx.mockOnlyConnection()
         ctx.mockNext([1, 1.5])
         let caught: unknown
         try {
@@ -360,9 +361,9 @@ describe(ctx.label, () => {
         // adapter-applied per-row guard. A non-integer element (1.5) still violates
         // the int contract — the guard throws INVALID_VALUE_RECEIVED_FROM_DATABASE
         // decorated with the offending `rowIndex` (here 1, the second row).
-        // Mock-only: a real INSERT always produces a valid id for every row, so the
-        // wrong-typed id can only be forced through the mock.
-        if (ctx.realDbEnabled) return
+        // MOCK-ONLY: a real INSERT always produces a valid id for every row, so the wrong-typed id
+        // can only be forced through the mock.
+        ctx.mockOnlyConnection()
         ctx.mockNext([1, 1.5])
         let caught: unknown
         try {

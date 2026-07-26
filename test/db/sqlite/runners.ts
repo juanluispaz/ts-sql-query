@@ -43,7 +43,7 @@ import { DBConnection } from './domain/connection.js'
 //   - sqlite-wasm-OO1 — registered here via `db.createFunction(...)` (the OO1
 //     user-defined-function API), exactly as the connector doc shows.
 // Two connectors can't register them, so their `'uuid-extension'` tests stay
-// mock-only (guarded by `ctx.realDbEnabled`):
+// mock-only (via `ctx.mockOnlyConnection()`):
 //   - sqlite3 (npm) — has no user-defined-function API at all.
 //   - bun:sqlite — also has no user-defined-function API (only `loadExtension`).
 //     Its `uuid_str` / `uuid_blob` are present only where the underlying system

@@ -377,12 +377,12 @@ describe(ctx.label, () => {
     // the db returns does not match the configured format. A real engine
     // in the configured format never hands back the mismatched type (nor a
     // malformed value), so the branch is unreachable through a real
-    // round-trip on every connector — hence `if (ctx.realDbEnabled) return`,
-    // documented per DESIGN.md §"Mock-only smell — Skip-real form".
+    // round-trip on every connector — hence `ctx.mockOnlyConnection()`,
+    // documented per DESIGN.md §"Mock-only smell".
 
     // NOT-APPLICABLE: a real sqlite engine in the "Julian day" format returns a number, never a string, so the `treatUnexpectedStringDateTimeAsUTC` arm is only reachable via the mock.
     test('localDateTime decode: unexpected string under Julian format is read as UTC when flagged', async () => {
-        if (ctx.realDbEnabled) return
+        ctx.mockOnlyConnection()
         const conn = ctx.withDateTimeFlags('Julian day as real number', { treatUnexpectedStringDateTimeAsUTC: true })
         const expected = { v: REF }
         ctx.mockNext({ v: '2024-01-15 10:30:45.123' })
@@ -395,7 +395,7 @@ describe(ctx.label, () => {
 
     // NOT-APPLICABLE: a real sqlite engine in a text format returns a string, never an integer, so the `treatUnexpectedIntegerDateTimeAsJulian` auto-detect arm is only reachable via the mock.
     test('localDateTime decode: unexpected integer under text format is read as Julian when flagged', async () => {
-        if (ctx.realDbEnabled) return
+        ctx.mockOnlyConnection()
         const conn = ctx.withDateTimeFlags('localdate as text', { treatUnexpectedIntegerDateTimeAsJulian: true })
         const expected = { v: new Date(Date.UTC(2024, 0, 15, 12, 0, 0, 0)) }
         ctx.mockNext({ v: 2460325 })
@@ -408,7 +408,7 @@ describe(ctx.label, () => {
 
     // NOT-APPLICABLE: a real sqlite engine in a text format returns a string, never an integer, so the `unexpectedUnixDateTimeAreMilliseconds` auto-detect arm is only reachable via the mock.
     test('localDateTime decode: unexpected integer under text format is read as unix-ms when flagged', async () => {
-        if (ctx.realDbEnabled) return
+        ctx.mockOnlyConnection()
         const conn = ctx.withDateTimeFlags('localdate as text', { unexpectedUnixDateTimeAreMilliseconds: true })
         const expected = { v: REF }
         ctx.mockNext({ v: 1705314645123 })
@@ -421,7 +421,7 @@ describe(ctx.label, () => {
 
     // NOT-APPLICABLE: a real sqlite engine never returns a boolean for a localDate column, so this defensive type guard is only reachable via the mock.
     test('localDate decode: a non-date, non-string, non-number value is rejected', async () => {
-        if (ctx.realDbEnabled) return
+        ctx.mockOnlyConnection()
         const conn = ctx.withDateTimeFormat('localdate as text')
         ctx.mockNext({ v: true })
         let caught: unknown
@@ -437,7 +437,7 @@ describe(ctx.label, () => {
 
     // NOT-APPLICABLE: a real sqlite engine never returns an unparseable date string, so this defensive NaN guard is only reachable via the mock.
     test('localDate decode: an unparseable string is rejected', async () => {
-        if (ctx.realDbEnabled) return
+        ctx.mockOnlyConnection()
         const conn = ctx.withDateTimeFormat('localdate as text')
         ctx.mockNext({ v: 'not-a-date' })
         let caught: unknown
@@ -453,7 +453,7 @@ describe(ctx.label, () => {
 
     // NOT-APPLICABLE: a real sqlite engine never returns an unparseable time string, so this defensive NaN guard is only reachable via the mock.
     test('localTime decode: an unparseable string is rejected', async () => {
-        if (ctx.realDbEnabled) return
+        ctx.mockOnlyConnection()
         const conn = ctx.withDateTimeFormat('localdate as text')
         ctx.mockNext({ v: 'not-a-time' })
         let caught: unknown
@@ -469,7 +469,7 @@ describe(ctx.label, () => {
 
     // NOT-APPLICABLE: a real sqlite engine never returns a boolean for a localDateTime column, so this defensive type guard is only reachable via the mock.
     test('localDateTime decode: a non-date, non-string, non-number value is rejected', async () => {
-        if (ctx.realDbEnabled) return
+        ctx.mockOnlyConnection()
         const conn = ctx.withDateTimeFormat('localdate as text')
         ctx.mockNext({ v: true })
         let caught: unknown
@@ -566,8 +566,8 @@ describe(ctx.label, () => {
     })
 
     // ---- localTime decode of a BARE TIME under a mismatched format, read from a
-    // REAL column (guard-free, unlike the `conn.const`+`mockNext` decode tests
-    // above which need `if (ctx.realDbEnabled) return`). `started_at` for worklog
+    // REAL column (real-backed, unlike the `conn.const`+`mockNext` decode tests
+    // above which need `ctx.mockOnlyConnection()`). `started_at` for worklog
     // 1 is '09:15:00': a real sqlite stores it as TEXT and returns it verbatim
     // whatever the connection's dateTimeFormat is configured to, so decoding it
     // through a mismatched-format connection exercises the "unexpected string"
@@ -681,21 +681,21 @@ describe(ctx.label, () => {
 
     // NOT-APPLICABLE: under a text date-format a real sqlite round-trips the const to a string, never the injected integer, so this number-branch auto-detect is only reachable via the mock.
     test('localDate decode: integer under text format auto-detected as julian when flagged', async () => {
-        if (ctx.realDbEnabled) return
+        ctx.mockOnlyConnection()
         const conn = ctx.withDateTimeFlags('localdate as text', { treatUnexpectedIntegerDateTimeAsJulian: true })
         expect(await decodeUnexpected(conn, 'localDate', 2460325)).toEqual(new Date(Date.UTC(2024, 0, 15, 10, 0, 0, 0)))
     })
 
     // NOT-APPLICABLE: under a text date-format a real sqlite round-trips the const to a string, never the injected integer, so this number-branch auto-detect is only reachable via the mock.
     test('localDate decode: integer under text format auto-detected as unix-ms when flagged', async () => {
-        if (ctx.realDbEnabled) return
+        ctx.mockOnlyConnection()
         const conn = ctx.withDateTimeFlags('localdate as text', { unexpectedUnixDateTimeAreMilliseconds: true })
         expect(await decodeUnexpected(conn, 'localDate', 1705320000000)).toEqual(new Date(Date.UTC(2024, 0, 15, 10, 0, 0, 0)))
     })
 
     // NOT-APPLICABLE: under a text date-format a real sqlite round-trips the const to a string, never the injected integer, so this number-branch auto-detect is only reachable via the mock.
     test('localDate decode: integer under text format defaults to unix-seconds', async () => {
-        if (ctx.realDbEnabled) return
+        ctx.mockOnlyConnection()
         const conn = ctx.withDateTimeFormat('localdate as text')
         expect(await decodeUnexpected(conn, 'localDate', 1705320000)).toEqual(new Date(Date.UTC(2024, 0, 15, 10, 0, 0, 0)))
     })
@@ -710,7 +710,7 @@ describe(ctx.label, () => {
 
     // NOT-APPLICABLE: under a text date-format a real sqlite round-trips the const to a string, never the injected number, so this number-branch auto-detect is only reachable via the mock.
     test('localTime decode: real number under text format auto-detected as julian when flagged', async () => {
-        if (ctx.realDbEnabled) return
+        ctx.mockOnlyConnection()
         const conn = ctx.withDateTimeFlags('localdate as text', { treatUnexpectedIntegerDateTimeAsJulian: true })
         expect(await decodeUnexpected(conn, 'localTime', 0.5)).toEqual(new Date(Date.UTC(1970, 0, 1, 12, 0, 0, 0)))
         expect(await decodeUnexpected(conn, 'localTime', 2460324.5)).toEqual(new Date(Date.UTC(1970, 0, 1, 0, 0, 0, 0)))
@@ -719,14 +719,14 @@ describe(ctx.label, () => {
 
     // NOT-APPLICABLE: under a text date-format a real sqlite round-trips the const to a string, never the injected integer, so this number-branch auto-detect is only reachable via the mock.
     test('localTime decode: integer under text format auto-detected as unix-ms when flagged', async () => {
-        if (ctx.realDbEnabled) return
+        ctx.mockOnlyConnection()
         const conn = ctx.withDateTimeFlags('localdate as text', { unexpectedUnixDateTimeAreMilliseconds: true })
         expect(await decodeUnexpected(conn, 'localTime', 37845123)).toEqual(new Date(Date.UTC(1970, 0, 1, 10, 30, 45, 123)))
     })
 
     // NOT-APPLICABLE: under a text date-format a real sqlite round-trips the const to a string, never the injected integer, so this number-branch auto-detect is only reachable via the mock.
     test('localTime decode: integer and numeric string under text format default to unix-seconds', async () => {
-        if (ctx.realDbEnabled) return
+        ctx.mockOnlyConnection()
         const conn = ctx.withDateTimeFormat('localdate as text')
         expect(await decodeUnexpected(conn, 'localTime', 37845)).toEqual(new Date(Date.UTC(1970, 0, 1, 10, 30, 45, 0)))
         expect(await decodeUnexpected(conn, 'localTime', '37845')).toEqual(new Date(Date.UTC(1970, 0, 1, 10, 30, 45, 0)))
@@ -740,7 +740,7 @@ describe(ctx.label, () => {
 
     // NOT-APPLICABLE: under a text date-format a real sqlite round-trips the const to a string, never the injected integer, so this number-branch auto-detect is only reachable via the mock.
     test('localDateTime decode: integer and numeric string under text format default to unix-seconds', async () => {
-        if (ctx.realDbEnabled) return
+        ctx.mockOnlyConnection()
         const conn = ctx.withDateTimeFormat('localdate as text')
         expect(await decodeUnexpected(conn, 'localDateTime', 1705314645)).toEqual(new Date(Date.UTC(2024, 0, 15, 10, 30, 45, 0)))
         expect(await decodeUnexpected(conn, 'localDateTime', '1705314645')).toEqual(new Date(Date.UTC(2024, 0, 15, 10, 30, 45, 0)))

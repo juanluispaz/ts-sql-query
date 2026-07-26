@@ -52,6 +52,7 @@ const SECTION_SPECS = {
     '--bugs': { key: 'bugs', levels: ['none', 'summary', 'full'] },
     '--limitation': { key: 'limitation', levels: ['none', 'summary', 'full'] },
     '--not-applicable': { key: 'notApplicable', levels: ['none', 'summary', 'full'] },
+    '--mock-only': { key: 'mockOnly', levels: ['none', 'summary', 'full'] },
     '--cell-caveats': { key: 'cellCaveats', levels: ['none', 'summary', 'full'] },
     '--name-search': { key: 'nameSearch', levels: ['none', 'full'] },
 } as const satisfies Record<string, { key: keyof Sections, levels: readonly string[] }>
@@ -65,11 +66,13 @@ const REF_FAMILY = ['refReturn', 'refImplements', 'refTypeArg', 'refParam', 'ref
 const REF_LEVELS = ['none', 'summary', 'full'] as const
 
 // Intent presets — expand to a section set; explicit flags still override.
-// --bugs/--limitation/--not-applicable are NAME-scoped (markers mentioning the symbol) — useful on the
-// feature-centric intents (type-bug, version-work, emission-bug), where the agent searches the named
-// feature. The three are DISTINCT first-class categories: BUG (a src/ defect, re-enabled when fixed),
-// LIMITATION (not covered yet / env), NOT-APPLICABLE (a permanent dialect boundary — the test runs in the
-// cells whose dialect supports it; surfacing it on type-bug explains a deliberate `never`).
+// --bugs/--limitation/--not-applicable/--mock-only are NAME-scoped (markers mentioning the symbol) —
+// useful on the feature-centric intents (type-bug, version-work, emission-bug), where the agent searches
+// the named feature. The four are DISTINCT first-class categories: BUG (a src/ defect, re-enabled when
+// fixed), LIMITATION (not covered yet / env), NOT-APPLICABLE (a permanent dialect boundary — the test runs
+// in the cells whose dialect supports it; surfacing it on type-bug explains a deliberate `never`), and
+// MOCK-ONLY (the odd one out: the test is LIVE and runs everywhere, but its INPUT comes from the mock, so
+// no engine ever produced the value under test).
 // --cell-caveats is COORD-scoped (markers in the cells the --coord touches), for coverage-gap /
 // propagation, where the blocker is a caveat on the target CELL, not on the symbol (case G).
 // type-bug is the TYPE-resolution counterpart of emission-bug: the route is the SIGNATURE, never the
@@ -85,9 +88,9 @@ const ALL_OFF: Partial<Sections> = Object.fromEntries(
 const PRESETS: Record<string, Partial<Sections>> = {
     bare: ALL_OFF,
     'coverage-gap': { classification: 'full', chain: 'full', refReturn: 'summary', tests: 'gaps', examples: 'full', cellCaveats: 'summary' },
-    'type-bug': { declared: 'full', signature: 'full', refTypeArg: 'full', negTypes: 'full', bugs: 'summary', limitation: 'summary', notApplicable: 'summary', chain: 'none' },
-    'emission-bug': { chain: 'none', emittedSql: 'full', refImplements: 'full', versionGates: 'summary', bugs: 'full', limitation: 'summary', notApplicable: 'summary' },
-    'version-work': { versionGates: 'full', tests: 'summary', chain: 'none', bugs: 'summary', limitation: 'summary', notApplicable: 'summary' },
+    'type-bug': { declared: 'full', signature: 'full', refTypeArg: 'full', negTypes: 'full', bugs: 'summary', limitation: 'summary', notApplicable: 'summary', mockOnly: 'summary', chain: 'none' },
+    'emission-bug': { chain: 'none', emittedSql: 'full', refImplements: 'full', versionGates: 'summary', bugs: 'full', limitation: 'summary', notApplicable: 'summary', mockOnly: 'summary' },
+    'version-work': { versionGates: 'full', tests: 'summary', chain: 'none', bugs: 'summary', limitation: 'summary', notApplicable: 'summary', mockOnly: 'summary' },
     'post-fix-sync': { chain: 'none', emittedSql: 'full', docs: 'full', examples: 'full', tests: 'detail', bugs: 'summary' },
     'propagation': { classification: 'summary', tests: 'gaps', examples: 'summary', cellCaveats: 'summary', chain: 'none' },
 }
@@ -233,6 +236,8 @@ SECTIONS — one level each; default in (parens); "none" hides the section.
   --bugs <none|summary|full>                                 (none)    // TODO[BUG] markers naming the symbol (a src/ defect)
   --limitation <none|summary|full>                           (none)    // TODO[LIMITATION] markers naming the symbol (not covered yet / env)
   --not-applicable <none|summary|full>                       (none)    // NOT-APPLICABLE markers naming the symbol (permanent dialect boundary)
+  --mock-only <none|summary|full>                            (none)    // MOCK-ONLY markers naming the symbol (a LIVE test whose INPUT is mocked);
+                                   summary=one line per distinct reason + how many cells carry it, full=every marker
   --cell-caveats <none|summary|full>                         (none)    BUG/LIMITATION on cells (coord-scoped): summary=per-cell map, full=markers; --coord filters cells
   --name-search <none|full>                                  (none)
   --refs <none|summary|full>                                 shortcut: set the WHOLE "references by role"

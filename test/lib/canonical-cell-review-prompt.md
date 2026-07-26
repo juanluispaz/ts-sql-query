@@ -75,8 +75,11 @@ Then read the file. For every test() block in it, check:
        MIRROR-IMAGE SMELL (DESIGN § Mock-only is a smell —
        Mirror-image form). The fix is JS sorting +
        toEqual OR UPDATE-in-withRollback.
-     - "if (ctx.realDbEnabled) return" without a documented constraint
-       (mock-only).
+     - "if (ctx.realDbEnabled) return" at all — the skip form is
+       always wrong; a scenario that needs the mock uses
+       ctx.mockOnlyConnection() so the body keeps running.
+     - ctx.mockOnlyConnection() without a "// MOCK-ONLY: <reason>"
+       marker naming what the real engine cannot supply (mock-only).
      The audit will enumerate every instance across the matrix at
      round close; you only need to surface that the canonical has a
      problem so it gets fixed before the 17-cell re-bake.
@@ -134,8 +137,8 @@ Then read the file. For every test() block in it, check:
      - If any test() uses an API that has a BUGS.md entry, the
        test must follow that entry's prescribed shape (block-
        commented with TODO[BUG] for the typing-rejected case;
-       mock-only with a documented constraint for the
-       engine-rejected case). Flag deviations.
+       ctx.mockOnlyConnection() + a documented // MOCK-ONLY:
+       constraint for the engine-rejected case). Flag deviations.
      - If the file appears to have surfaced a NEW bug, flag it
        — the test author should open the BUGS.md entry and wrap
        the test before propagation.

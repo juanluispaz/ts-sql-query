@@ -14,7 +14,8 @@ contradicts text elsewhere, this file wins and the other doc is stale.
 - [Principles](#principles)
 - [Symmetry rule](#symmetry-rule)
 - [Mock-only is a smell](#mock-only-smell)
-  - [Skip-real form](#skip-real-form)
+  - [Skip form — always wrong](#skip-form--always-wrong)
+  - [Mock-only connection form](#mock-only-connection-form--the-sanctioned-escape-hatch)
   - [Mirror-image form — weakening real-DB to match strong mock](#mirror-image-form)
 - [Full-canonical-body discipline](#full-canonical-body)
 - [The `as any` runtime-guard exception](#as-any-runtime-guard)
@@ -123,9 +124,11 @@ for how the report should look.
    on real-DB cells — the very coverage that justifies running against a
    real database. SQL and type assertions are mode-agnostic by construction.
 
-   The only sanctioned `if (ctx.realDbEnabled)` branches are the **genuine
-   extreme cases** under [Mock-only is a smell](#mock-only-smell). The
-   default — and what a reviewer should expect to see — is no guard at all.
+   A test whose SCENARIO genuinely needs the mock as its input device asks
+   for it with `ctx.mockOnlyConnection()` + a `// MOCK-ONLY:` marker — see
+   the **genuine extreme cases** under [Mock-only is a
+   smell](#mock-only-smell). It never SKIPS on a real cell. The default —
+   and what a reviewer should expect to see — is no guard at all.
 
 2. **SQL and params are inline snapshots.** Every test puts the emitted SQL
    string and the emitted params behind `toMatchInlineSnapshot(...)`. Both
@@ -241,7 +244,8 @@ for how the report should look.
     coverage before `src/examples/` is retired; until then, both coexist.
 
 18. **Mock-only is a smell** — see [Mock-only is a smell](#mock-only-smell)
-    for the full rule (both the skip-real form and the mirror-image form).
+    for the full rule: the skip form (always wrong), the sanctioned
+    `ctx.mockOnlyConnection()` form, and the mirror-image form.
 
 ## Symmetry rule
 
@@ -344,25 +348,69 @@ Related discipline:
 
 ## Mock-only smell
 
-A test guarded by `if (ctx.realDbEnabled) return` (or by the inverse
-weakening pattern in [Mirror-image form](#mirror-image-form)) asserts SQL
-no real database accepts. That is almost always a sign the test exercises
-something that does not make semantic sense — a "tiebreaker" on a unique
-column, an `ORDER BY` on a one-row scalar aggregate, an aggregate predicate
-in `WHERE`, and so on. The guard is the escape hatch, not the default.
+A test whose scenario never reaches a real engine (or the inverse weakening
+pattern in [Mirror-image form](#mirror-image-form)) asserts SQL no real
+database accepts. That is almost always a sign the test exercises something
+that does not make semantic sense — a "tiebreaker" on a unique column, an
+`ORDER BY` on a one-row scalar aggregate, an aggregate predicate in `WHERE`,
+and so on. Going mock-only is the escape hatch, not the default.
 
-The same applies to per-cell guards: silencing
-`if (ctx.realDbEnabled) return` in a single dialect masks the same design
-issue and just hides it from one column of the matrix.
+The same applies per cell: silencing a single dialect that way masks the same
+design issue and just hides it from one column of the matrix.
 
-### Skip-real form
+There are two shapes, and only one of them is allowed.
+
+### Skip form — always wrong
 
 ```ts
 if (ctx.realDbEnabled) return       // ← anti-pattern
 expect(rows).toEqual(/* … */)       // only the mock ever runs this
 ```
 
-Before adding this guard:
+This SKIPS the whole test on a real cell. Everything the body would still
+have proven there — the SQL snapshot, the params, the result type — goes
+unasserted, and a genuine real-DB failure passes as green. It is never the
+right answer: when the scenario really does need the mock, the form below
+keeps the body running. `tests:audit` rejects it with no carve-outs.
+
+### Mock-only connection form — the sanctioned escape hatch
+
+```ts
+// MOCK-ONLY: a real INSERT always produces the generated id, so the missing
+// id can only be forced through the mock.
+ctx.mockOnlyConnection()
+expect(reasonOf(caught)).toBe('MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE')
+```
+
+`ctx.mockOnlyConnection()` points `ctx.conn` — and every connection derived
+from it for the rest of that test — at the `MockQueryRunner`, on every cell.
+The body still EXECUTES and asserts in every mode; what it gives up is
+narrower and explicit: the INPUT no longer comes from the engine, so nothing
+proves the engine can produce it. The switch lasts one test (`ctx.reset()`
+in `beforeEach` undoes it), and `ctx.mockNext` / `ctx.lastSql` / `ctx.history`
+/ `ctx.withConnection` / `ctx.withFaultInjection` and the per-database
+`withXxx` factories all keep working across it.
+
+Reach for it only when the mock is the scenario's INPUT DEVICE:
+
+- a value **no real driver of the connector hands back** — a numeric string
+  for an int column, a null generated id, an `undefined` function result:
+  the defensive re-typing arms of `transformValueFromDB` and the result-gates
+  that guard against a misbehaving driver;
+- an **injected fault** (`ctx.withFaultInjection()`), where the behaviour
+  under test is the library's own classification of a driver rejection and is
+  identical in both modes.
+
+Every call site carries a `// MOCK-ONLY: <reason>` marker naming what the real
+engine cannot supply; `// NOT-APPLICABLE: <reason>` (a permanent dialect
+boundary) and `// TODO[BUG]: <reason>` (a repro that stays mock-only until
+fixed) license it too. `tests:audit`'s `mock-only` rule gates that. The marker
+is deliberately NOT one of the three disabled-test markers: it describes a
+LIVE, fully-running test, and unlike NOT-APPLICABLE it does not mean "validated
+in the dialects that support it" — a MOCK-ONLY case is validated against no
+engine anywhere.
+
+Before reaching for it:
 
 1. **Check the SQL semantics.** Read the snapshot the assertion would pin.
    Would a developer write that SQL in production code? If not, the test is
@@ -372,15 +420,15 @@ Before adding this guard:
    until the emitted SQL is meaningful AND universally accepted. Real-DB
    coverage is the goal.
 3. **Document the constraint.** Only after both checks should you reach for
-   the guard, and only with a comment naming what forced the choice — a
-   driver that strips comments and mis-counts placeholders, a synthetic SQL
-   that is the test's whole point (forwarder recursion through nested
-   customize hooks, etc.), or a documented dialect-specific limitation.
-   "Mock-only because `<DB>` rejects this" without explaining *why* that SQL
-   exists is not enough.
+   `ctx.mockOnlyConnection()`, and only with a `// MOCK-ONLY:` marker naming
+   what forced the choice — a driver that strips comments and mis-counts
+   placeholders, a synthetic SQL that is the test's whole point (forwarder
+   recursion through nested customize hooks, etc.), or a documented
+   dialect-specific limitation. "Mock-only because `<DB>` rejects this"
+   without explaining *why* that SQL exists is not enough.
 
 Two real cases that surfaced in this suite. Both were initially "fixed" by
-adding a per-cell mock-only guard; both should have forced a redesign:
+making a single cell mock-only; both should have forced a redesign:
 
 - `.orderBy('id').customizeQuery({ afterOrderByItems: rawFragment`${tIssue.id} desc` })`
   — a "tiebreaker" by the same unique PK that is already the primary sort
@@ -396,8 +444,8 @@ adding a per-cell mock-only guard; both should have forced a redesign:
   tag-style annotation next to an aggregate. That hook position IS
   mock-only by design (some drivers strip comments and would mis-count
   placeholders), but the SQL the snapshot now pins is meaningful and the
-  guard documents a real constraint instead of papering over a broken
-  design.
+  `// MOCK-ONLY:` marker documents a real constraint instead of papering
+  over a broken design.
 
 ### Mirror-image form
 

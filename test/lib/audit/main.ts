@@ -11,6 +11,7 @@ import { runSymmetryCheck } from './symmetry.js'
 import { cellTestFiles, typesNegativeTestFiles } from './walk.js'
 import { scanIgnores, applyIgnores } from './ignores.js'
 import { checkMirrorImage } from './checks/mirrorImage.js'
+import { checkMockOnlyConnection } from './checks/mockOnlyConnection.js'
 import { checkUuidLiterals } from './checks/uuidLiteral.js'
 import { checkAsAny, checkAnyType, checkAsUnknownAs, checkMeaninglessCast, checkMeaninglessType, checkTypeCast } from './checks/asAny.js'
 import { checkNonPublicApi } from './checks/nonPublicApi.js'
@@ -97,6 +98,8 @@ function runContentChecks(only: string | null, files: string[], tsIgnoreOnlyFile
     const findings: Finding[] = []
 
     // checkMirrorImage emits `mock-only` / `mirror-image` / `one-sided-guard`;
+    // checkMockOnlyConnection emits `mock-only` too (the request form — an
+    // unjustified `ctx.mockOnlyConnection()`, vs mirrorImage's skip form);
     // checkUuidLiterals emits `uuid-literal`; checkAsAny emits `as-any`;
     // checkAnyType emits `any-type`; checkAsUnknownAs emits `as-unknown-as`;
     // checkMeaninglessCast emits `meaningless-cast`; checkMeaninglessType emits
@@ -115,7 +118,8 @@ function runContentChecks(only: string | null, files: string[], tsIgnoreOnlyFile
     // `manual-connection`.
     for (const file of files) {
         findings.push(...auditFile(file, only, (sf) => [
-            ...checkMirrorImage(sf, file), ...checkUuidLiterals(sf, file), ...checkAsAny(sf, file),
+            ...checkMirrorImage(sf, file), ...checkMockOnlyConnection(sf, file),
+            ...checkUuidLiterals(sf, file), ...checkAsAny(sf, file),
             ...checkAnyType(sf, file), ...checkAsUnknownAs(sf, file), ...checkMeaninglessCast(sf, file),
             ...checkMeaninglessType(sf, file), ...checkTypeCast(sf, file), ...checkNonPublicApi(sf, file), ...checkCommentedTests(sf, file),
             ...checkGroupedCommentedTests(sf, file),

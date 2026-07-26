@@ -166,7 +166,8 @@ Then, for the round-shaping presets:
 | After patching `src/`, find docs/tests/examples to refresh | `--for post-fix-sync` | [`BUGS.md` § When the fix lands](./BUGS.md) |
 | Add or extend a compatibility-version cell | `--for version-work` | [`NEW_DATABASE.md` § Adding a compatibility version](./NEW_DATABASE.md#adding-a-compatibility-version) |
 | Add a `@ts-expect-error` rule, consistent with existing locks | `--neg-types full` | [`WRITING_TESTS.md` § Negative type tests](./WRITING_TESTS.md#negative-type-tests) |
-| Browse declared caveats on cells (all three categories per cell: `NOT-APPLICABLE`, `TODO[BUG]`, `TODO[LIMITATION]`) | `--cell-caveats summary` (or `full` with `--coord`) | [`LIMITATIONS.md`](./LIMITATIONS.md), [`EXTERNAL_CAVEATS.md`](./EXTERNAL_CAVEATS.md), [`ANTIPATTERNS.md` § Blind copy](./ANTIPATTERNS.md#3-blind-copy-to-bun_sql_postgres) |
+| Browse declared caveats on cells (all three disabled-test categories per cell: `NOT-APPLICABLE`, `TODO[BUG]`, `TODO[LIMITATION]`) | `--cell-caveats summary` (or `full` with `--coord`) | [`LIMITATIONS.md`](./LIMITATIONS.md), [`EXTERNAL_CAVEATS.md`](./EXTERNAL_CAVEATS.md), [`ANTIPATTERNS.md` § Blind copy](./ANTIPATTERNS.md#3-blind-copy-to-bun_sql_postgres) |
+| See which scenarios are validated with a MOCKED input (a live test using `ctx.mockOnlyConnection()`) | `--search <symbol> --mock-only summary` | [`DESIGN.md` § Mock-only smell](./DESIGN.md#mock-only-smell) |
 
 `npm run tests:index:newest` builds the underlying index for the newest cells
 (gitignored, low RAM — the day-to-day default); `npm run tests:index` builds the

@@ -312,50 +312,51 @@ Two documented remedies therefore validate and are not weakenings:
 ### `mock-only` — the test never validates against the real engine (most severe)
 
 The worst form, and the one that "sneaks past": the query never runs (or its
-outcome is discarded) on a real DB, so a real failure passes as green. Two
-shapes:
+outcome is discarded) on a real DB, so a real failure passes as green. Three
+shapes, in two checks:
 
-- **mock-only skip** — `if (ctx.realDbEnabled) return` before a test body that
-  asserts something. The whole test runs only under the mock.
+- **skip** — `if (ctx.realDbEnabled) return` before a test body that asserts
+  something. The whole test runs only under the mock: not just the value, but
+  the SQL snapshot, the params and the result type all go unasserted on a real
+  cell. ([`checks/mirrorImage.ts`](./checks/mirrorImage.ts).)
 - **swallow** — a `catch` whose only effect is `if (!ctx.realDbEnabled) throw e`:
   it rethrows under the mock but discards the error on the real DB, so the real
-  run can't fail.
+  run can't fail. ([`checks/mirrorImage.ts`](./checks/mirrorImage.ts).)
+- **unjustified request** — a `ctx.mockOnlyConnection()` with no reason marker.
+  ([`checks/mockOnlyConnection.ts`](./checks/mockOnlyConnection.ts).)
 
-**Exception-validation carve-out** (skip form only, built in to the rule). A
-mock-only-skip test whose purpose is to pin that **the library throws** — not to
-validate a result value — is **not flagged**: forcing the throw on a real engine
-adds nothing the mock doesn't already prove. Recognised iff the skipped body has
-≥1 exception-validation assertion and **no** non-exception value/deep assertion
-(a value assertion still belongs on the real engine). An assertion validates an
-exception when it (A) uses a `toThrow`/`toThrowError` matcher or a `.rejects`
-chain, (B) targets a variable derived from a `catch` binding
-(`catch (e) { caught = e }` … `expect(String(caught)).toMatch(/…/)`), or (C)
-targets the result of a same-file helper that surfaces a caught error (a `catch`
-that `return`s an expression using the error binding — the marshalling
-`fromDbReason`/`toDbReason` helpers). The limit is sharp: in
-[`marshalling.transform-validation.test.ts`](../../db/postgres/newest/pg/marshalling.transform-validation.test.ts)
-the `*-throws` tests (assert an error reason via `fromDbReason`) are tolerated,
-while the value-coercion tests (`fromDbValue` → `expect(...).toBe(123)`) **stay
-flagged** — they must run on the real engine (`fragmentWithType` can synthesise
-the off-shape input). This applies only to the **skip** form; a **swallow**
-discards the error on real and is never exception-validation.
+**The skip form has NO carve-outs.** It used to have two — an
+exception-validation heuristic ("the test only pins that the library throws, so
+the real engine adds nothing") and a `FILE_SCOPED_MOCK_ONLY` allow-list for
+`marshalling.transform-validation.test.ts`'s `fromDbValue` helper. Both existed
+for one reason: there was no way to keep such a test RUNNING on a real cell.
+`ctx.mockOnlyConnection()` is that way, so both were removed. A scenario that
+genuinely needs the mock now says so and keeps executing everywhere; skipping is
+never the right shape.
 
-**File-scoped exceptions** (`FILE_SCOPED_MOCK_ONLY` in
-[`checks/mirrorImage.ts`](./checks/mirrorImage.ts)). A deliberate, **tiny**
-allow-list: a named helper in a specific test file whose mock-only skip is
-explicitly tolerated, each entry carrying its reason — the `tests-audit-disable`
-philosophy at the tool level (the file is symmetric across every cell, so the
-reason is identical everywhere and lives once in code rather than as N inline
-comments). The sole entry today is **`fromDbValue` in
-`marshalling.transform-validation.test.ts`**: it injects, via `mockNext`, a
-representation a real driver of that connector would never hand back (a JS
-`bigint` for an int column, …), and forcing it on a real engine via
-`fragmentWithType` is contrived and cross-connector — tolerated mock-only by
-project decision. Tolerated only when *every* `expect(...)` in the skipped body
-asserts on a `fromDbValue(...)` call; a foreign assertion (SQL snapshot, other
-helper) is not covered. This list is a hole in the rule — keep it minimal.
+**The request form is the sanctioned escape hatch, and it must be justified.**
+`ctx.mockOnlyConnection()` points the test's connection at the `MockQueryRunner`
+on every cell. The body still runs and asserts in every mode — what it gives up
+is narrower and explicit: the INPUT no longer comes from the engine, so nothing
+proves the engine can produce it. That is still worth gating, because adding one
+line is the cheapest way to make a failing `--docker` test green. So every call
+site must be licensed by a marker in the test that makes the call:
 
-**NOT-APPLICABLE / TODO[BUG] carve-out** (both forms — skip AND swallow). A
+- `// MOCK-ONLY: <reason>` — the marker for exactly this. It should name what
+  the real engine cannot supply ("a real INSERT always produces the generated
+  id"), not merely restate that the test is mock-only.
+- `// NOT-APPLICABLE: <reason>` / `// TODO[BUG]: <reason>` — the two markers that
+  already license a live mock-only test, accepted unchanged.
+
+`MOCK-ONLY` is deliberately a FOURTH marker rather than a reuse of
+`NOT-APPLICABLE` (see [`reasons.ts`](reasons.ts)): it does not describe a
+disabled test, and it is not a dialect boundary. A `NOT-APPLICABLE` case
+validates fully in the dialects that support it; a `MOCK-ONLY` case validates
+against no engine in ANY cell. Folding the two would make the searcher's
+`--not-applicable` view read a suite-wide construction as per-dialect debt.
+
+**NOT-APPLICABLE / TODO[BUG] carve-out** (the swallow form, and — alongside
+`MOCK-ONLY` — the request form; NOT the skip form, which has none). A
 **live** test marked `// NOT-APPLICABLE: <reason>` OR `// TODO[BUG]: <reason>` (in
 its body, or within 3 lines above the `test(...)` call) is allowed to be
 mock-only. Two reasons license it: `NOT-APPLICABLE` is a deliberate **dialect
@@ -375,11 +376,13 @@ touches only `mock-only` (and its registration-level twin
 so the marker does not affect them. (`TODO[BUG]` additionally exempts the
 type-bypass rules — see [`as-any`](#as-any--a-cast-to-any-that-bypasses-the-public-typed-api).)
 
-**Verified** (whole matrix): 595 findings — e.g.
+**Verified** (whole matrix): 595 findings on the original run — e.g.
 `select.value-source.trig.test.ts` (swallow; fix with `toBeCloseTo`),
 `exec.procedure-function.test.ts` / `delete.execute-variants.test.ts:97`
-(swallow). The fix is to drive the case on the real engine; a documented
-synthetic-SQL exception (DESIGN § Mock-only smell — Skip-real form) carries a
+(swallow). The fix is to drive the case on the real engine; a scenario that
+genuinely needs the mock as its input device uses `ctx.mockOnlyConnection()`
+plus a `// MOCK-ONLY:` marker (DESIGN § Mock-only smell — Mock-only connection
+form), and a residual one-off still carries a
 `// tests-audit-disable-next-line mock-only -- <reason>`.
 
 **Status**: **built** (`error`). The **first promoted to `error`** — not going
@@ -533,11 +536,12 @@ for a human, it does not bless the cast). Tolerated:
    a cheat would not assert it (project decision — a granted tolerance, not an
    endorsement).
 3. **The marshalling `fromDbValue` helper** — a `FILE_SCOPED_AS_ANY` entry
-   scoped to a single **helper** (not the whole file), the as-any twin of the
-   `fromDbValue` mock-only file-scope. `fromDbValue` casts a value-source/result
-   to drive the from-db transform and returns the VALUE, so unlike its sibling
-   error-extractors it is not covered by (1) and needs the explicit hole. The
-   rest of the file stays covered.
+   scoped to a single **helper** (not the whole file). `fromDbValue` casts a
+   value-source/result to drive the from-db transform and returns the VALUE, so
+   unlike its sibling error-extractors it is not covered by (1) and needs the
+   explicit hole. The rest of the file stays covered. (It once had a `mock-only`
+   twin hole; that one is gone — those tests now ask for
+   `ctx.mockOnlyConnection()` with a `// MOCK-ONLY:` marker instead.)
 
 **Deliberately NOT tolerated** (flagged, to rewrite — verified on the pg
 cell, the others are replicas): a `{…} as any` **dynamic payload** to
@@ -1005,9 +1009,10 @@ Whole-matrix: both 0 — clean preventive gates.
 ### `misplaced-marker` — a reason marker not at a test
 
 The three first-class markers (`// TODO[BUG]:`, `// TODO[LIMITATION]:`,
-`// NOT-APPLICABLE:`) mean something specific *about a test* — they are consumed
-by `commented-test-reason` / `skipped-test-reason` and the `mock-only` / `as-*`
-carve-outs, and the indexer surfaces them as cell caveats. A marker at file
+`// NOT-APPLICABLE:`) plus `// MOCK-ONLY:` mean something specific *about a
+test* — they are consumed by `commented-test-reason` / `skipped-test-reason`
+and the `mock-only` / `as-*` carve-outs, and the indexer surfaces the first
+three as cell caveats. A marker at file
 scope, inside a helper, or floating in prose belongs to none of those and reads
 as a phantom marking. This rule is the **inverse** of the consumers: it flags a
 marker that no test-detection window would associate with a test.
@@ -1216,14 +1221,15 @@ test/lib/audit/
 ├── main.ts           ← orchestrator + CLI entry (scripts/tests-audit.sh execs it)
 ├── rules.ts          ← RULE_SEVERITY table + the rule registry (CONTENT_RULES)
 ├── types.ts          ← Severity, Finding
-├── ast.ts            ← lineOf + isInRealBranch + markerLines / isNodeInMarkedTest (the marker→enclosing-test span check shared by the carve-outs)
-├── reasons.ts        ← the three reason-marker regexes + the derived sets (TODO_BUG, NOT_APPLICABLE_OR_BUG, DISABLED_TEST_REASON, ANY_MARKER) shared across checks
+├── ast.ts            ← lineOf + isInRealBranch + allComments / markerLines / isNodeInMarkedTest (the marker→enclosing-test span check shared by the carve-outs). `allComments` reads comments off the PARSED tree: a raw `ts.createScanner` loop goes blind past the first template literal in a file, which silently hid every marker after it
+├── reasons.ts        ← the three disabled-test marker regexes + MOCK-ONLY + the derived sets (TODO_BUG, NOT_APPLICABLE_OR_BUG, DISABLED_TEST_REASON, MOCK_ONLY_LICENSE, ANY_MARKER) shared across checks
 ├── walk.ts           ← enumerate cell .test.ts files (the audit's exclusions) + typesNegativeTestFiles (ts-ignore only)
 ├── ignores.ts        ← `tests-audit-disable-*` parsing + matching + meta-findings
 ├── report.ts         ← compiler-style output + exit-code tally
 ├── symmetry.ts       ← the whole-matrix symmetry check (runSymmetryCheck → `symmetry` Findings; config.* exempt)
 └── checks/
-    ├── mirrorImage.ts ← guard rules (mock-only / mirror-image / one-sided-guard)
+    ├── mirrorImage.ts ← guard rules (mock-only skip+swallow / mirror-image / one-sided-guard)
+    ├── mockOnlyConnection.ts ← mock-only request form (unjustified ctx.mockOnlyConnection())
     ├── uuidLiteral.ts ← `uuid-literal` (malformed-UUID-looking string literals)
     ├── asAny.ts       ← `as-any` + `any-type` + `as-unknown-as` + `meaningless-cast` + `meaningless-type` + `type-cast` (all the type-bypass / cast rules; TODO[BUG]-exempt)
     ├── markerPlacement.ts ← `misplaced-marker` (a TODO[BUG]/TODO[LIMITATION]/NOT-APPLICABLE marker not at a test)

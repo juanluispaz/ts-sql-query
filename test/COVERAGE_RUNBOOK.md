@@ -289,9 +289,10 @@ If the wave touches an API that already has a `BUGS.md` entry, that entry
   Workarounds (interpolating an irrelevant column to satisfy the typer,
   casting through `as any`) are explicitly forbidden by the entry; they
   hide the bug from the very test that surfaced it.
-- If the bug is "the lib emits SQL the engine rejects", the test is
-  mock-only with a comment naming the engine + the SQL the test pins,
-  per [`DESIGN.md` § Mock-only smell](./DESIGN.md#mock-only-smell).
+- If the bug is "the lib emits SQL the engine rejects", the test asks for
+  `ctx.mockOnlyConnection()` with a `// MOCK-ONLY:` marker naming the engine
+  + the SQL the test pins, per [`DESIGN.md` §
+  Mock-only smell](./DESIGN.md#mock-only-smell).
 
 If the wave **finds** a new bug, the test author follows
 [`WRITING_TESTS.md` § When a test surfaces a bug in `src/`](./WRITING_TESTS.md#when-a-test-surfaces-a-bug-in-src)
@@ -398,7 +399,7 @@ restate them — it lists which one to reach for and links to it.
 | Concern | Authoritative section |
 |---|---|
 | Unconditional value assertion (no mirror-image smell) | [`DESIGN.md` § Mock-only smell — Mirror-image form](./DESIGN.md#mirror-image-form) |
-| When the SQL the test pins is mock-only by design | [`DESIGN.md` § Mock-only smell — Skip-real form](./DESIGN.md#skip-real-form) |
+| When the SQL the test pins is mock-only by design | [`DESIGN.md` § Mock-only smell — Mock-only connection form](./DESIGN.md#mock-only-connection-form--the-sanctioned-escape-hatch) |
 | `as any` is forbidden except for runtime-guard tests | [`DESIGN.md` § The `as any` runtime-guard exception](./DESIGN.md#as-any-runtime-guard) |
 | Mutation safety (`withRollback` / `withCommit` / `withReseed`) | [`TEST_LIB.md` § Mutation safety contract](./TEST_LIB.md#testcontextts--mutation-safety-contract) |
 | When the canonical can't compile the body | [`WRITING_TESTS.md` § When the canonical cell can't compile the body](./WRITING_TESTS.md#when-the-canonical-cell-cant-compile-the-body) |
@@ -624,9 +625,10 @@ In order:
      a one-line "redundant").
    - Which cells got commented-out tests for which reason (cross-reference
      `EXTERNAL_CAVEATS.md` and `BUGS.md`).
-   - Which assertions ended up under `if (ctx.realDbEnabled) return` and
-     what specific constraint forced them, per
-     [`DESIGN.md` § Mock-only smell — Skip-real form](./DESIGN.md#skip-real-form).
+   - Which assertions ended up behind `ctx.mockOnlyConnection()` and what
+     specific constraint forced them (the `// MOCK-ONLY:` marker each one
+     carries), per [`DESIGN.md` § Mock-only smell — Mock-only connection
+     form](./DESIGN.md#mock-only-connection-form--the-sanctioned-escape-hatch).
      The honest answer is "none in this round" most of the time.
 
 7. **Stop**. Do not propose the next round. The user starts the next

@@ -13,11 +13,20 @@
 // Because the test always seeds the mock with the same data the real seed
 // contains, a single `expect(result).toEqual(expected)` line covers both
 // modes; SQL + params + exact type assertions need no branching.
+//
+//   ctx.mockOnlyConnection() – the escape hatch for the extreme cases where
+//                              the SCENARIO itself needs the mock as its
+//                              input device (a value no real driver returns,
+//                              an injected fault). It points `ctx.conn` at
+//                              the mock for the current test instead of
+//                              skipping the test on a real cell, so the body
+//                              still runs — and still asserts — in every mode.
 
 import type { DatabaseType, PromiseProvider, QueryRunner } from '../../src/queryRunners/QueryRunner.js'
 import { MockQueryRunner, type MockQueryExecutor, type MockQueryRunnerConfig } from '../../src/queryRunners/MockQueryRunner.js'
 import { CaptureInterceptor } from './captureInterceptor.js'
 import { FaultInjectingQueryRunner, type FaultInjectingQueryRunnerOptions } from './FaultInjectingQueryRunner.js'
+import { SwitchableQueryRunner } from './switchableRunner.js'
 
 export interface TestContext<CONN> {
     readonly label: string
@@ -81,6 +90,45 @@ export interface TestContext<CONN> {
      * compatibility-version cell. Must be called after `up()`.
      */
     withConnection<T extends CONN>(subclass: new (queryRunner: QueryRunner, compatibilityVersion?: number) => T): T
+
+    /**
+     * Request a MOCK-ONLY connection: route `ctx.conn` — and every connection
+     * derived from it for the rest of THIS test — to the `MockQueryRunner`,
+     * even on a cell whose real backend is enabled. Returns that connection,
+     * so a test reads either way:
+     *
+     *     const conn = ctx.mockOnlyConnection()   // explicit receiver
+     *     ctx.mockOnlyConnection()                // ctx.conn is now mock-backed
+     *
+     * This is the sanctioned form for the genuine extreme cases DESIGN.md
+     * §"Mock-only smell" describes: a test that drives a code path only
+     * reachable from a value NO real driver of this connector ever hands back
+     * (a numeric string for an int column, a null generated id, an
+     * `undefined` function result), or from an INJECTED fault
+     * (`withFaultInjection`). Those need the mock as their INPUT device — the
+     * scenario, not the assertions, is what the real engine cannot supply.
+     *
+     * It REPLACES the older `if (ctx.realDbEnabled) return` guard, which
+     * silently skipped the whole test under `--docker` / `--wasm` / `--native`:
+     * the SQL snapshot, the param snapshot and the type assertion were then
+     * validated in the mocked run only, and a real-DB run proved nothing. With
+     * a mock-only connection the body executes in EVERY mode and asserts the
+     * same things, so the test can never go quietly dark on a real cell.
+     *
+     * It does NOT excuse a test from real-DB validation when the engine CAN
+     * produce the case — reach for it only with a `// MOCK-ONLY: <reason>`
+     * marker naming what the real engine cannot supply (`// NOT-APPLICABLE:` /
+     * `// TODO[BUG]:` license it too); `tests:audit` gates that.
+     *
+     * Scope is the current test: the switch is undone by `ctx.reset()` (the
+     * `beforeEach` every cell registers), so the next test gets the cell's
+     * normal runner back. Everything else keeps working across the switch —
+     * `ctx.mockNext`, `ctx.lastSql` / `ctx.history`, `ctx.withConnection`,
+     * `ctx.withFaultInjection` and the per-database `withXxx` factories all
+     * observe the mock-backed queries. A no-op on a cell already running the
+     * mock. Must be called after `up()`.
+     */
+    mockOnlyConnection(): CONN
 
     /**
      * A connection whose transaction-lifecycle calls (`beginTransaction` /
@@ -311,6 +359,10 @@ export function createTestContext<CONN>(opts: TestContextOptions<CONN>): TestCon
     })
 
     let shutdownReal: (() => Promise<void>) | null = null
+    // Sits between the capture interceptor and the runner it wraps, so a
+    // single test can flip `ctx.conn` onto the mock (`mockOnlyConnection()`)
+    // without disturbing anything the test reads out of `ctx`.
+    let switchable: SwitchableQueryRunner | null = null
     // Hold the unwrapped runner so `onReseed` can borrow from its pool
     // instead of opening a fresh driver-level connection per reseed.
     let realRunner: QueryRunner | null = null
@@ -334,7 +386,8 @@ export function createTestContext<CONN>(opts: TestContextOptions<CONN>): TestCon
         const created = await opts.createRealRunner(true)
         shutdownReal = created.shutdown
         realRunner = created.runner
-        capture = new CaptureInterceptor(created.runner)
+        switchable = new SwitchableQueryRunner(created.runner, mockRunner)
+        capture = new CaptureInterceptor(switchable)
         conn = opts.buildConnection(capture, opts.compatibilityVersion)
     }
 
@@ -395,6 +448,16 @@ export function createTestContext<CONN>(opts: TestContextOptions<CONN>): TestCon
             return new subclass(capture, opts.compatibilityVersion)
         },
 
+        mockOnlyConnection() {
+            // Flip the switch UNDER the live capture interceptor, so `ctx.conn`
+            // (and anything already built on that interceptor) is redirected in
+            // place — no second connection, no second capture, nothing for the
+            // test to re-wire.
+            if (switchable === null || conn === null) throw new Error(`TestContext "${opts.label}": mockOnlyConnection called before up()`)
+            switchable.useMock()
+            return conn
+        },
+
         withFaultInjection(options = {}) {
             // Wrap the live shared CaptureInterceptor with the injector and build
             // a CONN on top of it: conn → injector → capture → inner(mock|real).
@@ -419,7 +482,8 @@ export function createTestContext<CONN>(opts: TestContextOptions<CONN>): TestCon
                 inner = mockRunner
                 realRunner = null
             }
-            capture = new CaptureInterceptor(inner)
+            switchable = new SwitchableQueryRunner(inner, mockRunner)
+            capture = new CaptureInterceptor(switchable)
             conn = opts.buildConnection(capture, opts.compatibilityVersion)
             if (opts.realDbEnabled && opts.onUp) {
                 await opts.onUp(capture)
@@ -437,12 +501,17 @@ export function createTestContext<CONN>(opts: TestContextOptions<CONN>): TestCon
             capture = null
             conn = null
             realRunner = null
+            switchable = null
         },
 
         reset() {
             mockQueue.length = 0
             mockRunner.reset()
             capture?.reset()
+            // Undo a `mockOnlyConnection()` from the previous test: the switch
+            // is scoped to the test that asked for it, so the next one starts
+            // on the cell's normal runner.
+            switchable?.useDefault()
         },
 
         async reseed() {

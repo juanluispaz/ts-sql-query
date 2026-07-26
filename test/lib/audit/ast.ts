@@ -6,20 +6,54 @@ export function lineOf(sf: ts.SourceFile, node: ts.Node): number {
     return sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1
 }
 
-// 1-based lines of every COMMENT whose text matches `marker`. Comment-scoped
-// (TS scanner), so a string or live code that merely mentions the text is never
-// matched. A multi-line comment is recorded at its start line.
-export function markerLines(sf: ts.SourceFile, marker: RegExp): Set<number> {
-    const scanner = ts.createScanner(ts.ScriptTarget.Latest, /*skipTrivia*/ false, ts.LanguageVariant.Standard, sf.text)
-    const lines = new Set<number>()
-    let tok = scanner.scan()
-    while (tok !== ts.SyntaxKind.EndOfFileToken) {
-        if (tok === ts.SyntaxKind.SingleLineCommentTrivia || tok === ts.SyntaxKind.MultiLineCommentTrivia) {
-            if (marker.test(scanner.getTokenText())) {
-                lines.add(sf.getLineAndCharacterOfPosition(scanner.getTokenPos()).line + 1)
-            }
+/**
+ * Every COMMENT in the file, in source order, deduped by position.
+ *
+ * Comment-scoped, so a string or live code that merely mentions a marker's text
+ * is never matched. Read off the PARSED tree (each token's leading/trailing
+ * trivia ranges) rather than a raw `ts.createScanner` loop: a bare scanner has
+ * no parser state, so the first TEMPLATE LITERAL it meets desynchronises it —
+ * it treats a later backtick as opening a template that runs to EOF and returns
+ * `EndOfFileToken` early, making every comment past that point invisible. That
+ * silently disabled the reason-marker carve-outs in the files that use a
+ * template-literal test name (`errors.transaction-driver-rejection`: the scan
+ * died at line 271 of 288, so all 8 of its markers were unseen).
+ *
+ * Walks `getChildren()` (not `forEachChild`) so TOKEN nodes are visited too —
+ * a comment run at the end of a block is leading trivia of the closing `}`,
+ * which `forEachChild` skips.
+ */
+export function allComments(sf: ts.SourceFile): ts.CommentRange[] {
+    const text = sf.text
+    const seen = new Set<number>()
+    const out: ts.CommentRange[] = []
+    const take = (ranges: readonly ts.CommentRange[] | undefined): void => {
+        for (const r of ranges ?? []) {
+            if (seen.has(r.pos)) continue
+            seen.add(r.pos)
+            out.push(r)
         }
-        tok = scanner.scan()
+    }
+    const visit = (n: ts.Node): void => {
+        if (n.getFullStart() !== n.getEnd() || n.kind === ts.SyntaxKind.EndOfFileToken) {
+            take(ts.getLeadingCommentRanges(text, n.getFullStart()))
+            take(ts.getTrailingCommentRanges(text, n.getEnd()))
+        }
+        for (const c of n.getChildren(sf)) visit(c)
+    }
+    visit(sf)
+    out.sort((a, b) => a.pos - b.pos)
+    return out
+}
+
+// 1-based lines of every COMMENT whose text matches `marker`. A multi-line
+// comment is recorded at its start line.
+export function markerLines(sf: ts.SourceFile, marker: RegExp): Set<number> {
+    const lines = new Set<number>()
+    for (const c of allComments(sf)) {
+        if (marker.test(sf.text.slice(c.pos, c.end))) {
+            lines.add(sf.getLineAndCharacterOfPosition(c.pos).line + 1)
+        }
     }
     return lines
 }

@@ -130,9 +130,20 @@ async function main(): Promise<void> {
     allIn('reference.resolved_symbol_id → symbol', extras.references.map(r => r.resolved_symbol_id).filter((x): x is number => x !== null), symbolIds)
     allIn('reference.resolved_member_id → member', extras.references.map(r => r.resolved_member_id).filter((x): x is number => x !== null), new Set(src.members.map(m => m.id)))
     allIn('reference.module_id → module', extras.references.map(r => r.module_id), new Set(src.modules.map(m => m.id)))
-    check('todo markers under test/', todos.every(b => b.file.startsWith('test/')))
+    // Cells only — the tooling under test/lib/ QUOTES these markers in its own comments, and
+    // indexing those quotes once made up the whole BUG population (a report of "22 known bugs"
+    // with none in the matrix). A marker is only real on a test.
+    check('todo markers under test/db/', todos.every(b => b.file.startsWith('test/db/')))
     check('todo markers ≥ 1', todos.length >= 1, `${todos.length}`)
-    check('some TODO[BUG] markers tagged', todos.some(t => t.tag === 'BUG'), `BUG: ${todos.filter(t => t.tag === 'BUG').length}`)
+    // NOT asserting BUG ≥ 1: test/BUGS.md is a working file whose entries are deleted as they
+    // are fixed, so zero open bugs is a legitimate — and desirable — state.
+    check('TODO[BUG] markers carry a reason', todos.filter(t => t.tag === 'BUG').every(t => t.text.length > 0), `BUG: ${todos.filter(t => t.tag === 'BUG').length}`)
+    // The two first-class NON-TODO markers must land under their own tag, never folded together:
+    // NOT-APPLICABLE = a permanent dialect boundary (validated in the dialects that support it);
+    // MOCK-ONLY = a live test whose INPUT is mocked (validated against no engine, in any cell).
+    check('some NOT-APPLICABLE markers tagged', todos.some(t => t.tag === 'NOT-APPLICABLE'), `NOT-APPLICABLE: ${todos.filter(t => t.tag === 'NOT-APPLICABLE').length}`)
+    check('some MOCK-ONLY markers tagged', todos.some(t => t.tag === 'MOCK-ONLY'), `MOCK-ONLY: ${todos.filter(t => t.tag === 'MOCK-ONLY').length}`)
+    check('MOCK-ONLY markers carry a reason', todos.filter(t => t.tag === 'MOCK-ONLY').every(t => t.text.length > 0))
     check('emitted sql ≥ 1000', emittedSql.length >= 1000, `${emittedSql.length}`)
     check('emitted sql sources ⊆ {test,doc}', emittedSql.every(e => e.source === 'test' || e.source === 'doc'))
     check('emitted sql looks like SQL', emittedSql.every(e => /^(select|insert|update|delete|with|create|drop|alter|truncate|begin|commit|rollback|savepoint|merge|set )/i.test(e.sql)))

@@ -258,18 +258,31 @@ The first three reuse the `extractSrc` declMap; `bug_marker` is a plain comment 
   edge** tables (one row per resolved member→type / class→base relationship, reused by the produces
   lookup and the reconcile/coverage audit). The shape follows the *use*, not the role name — they are
   deliberately not the same table.
-- **todo_marker** — one row per disabled-test marker in a test file (`file`, `line`, `tag`, `text`).
-  Two forms are recognised: a `// TODO[<TAG>]` (the bracketed modifier → `tag`: `BUG`, `LIMITATION`, … or
-  NULL for a bare `// TODO`) **and** the first-class **`// NOT-APPLICABLE: <reason>`** (stored as
-  `tag='NOT-APPLICABLE'` — it is *not* a TODO, so it gets its own tag, matching the audit's
-  `NOT_APPLICABLE_REASON`). The searcher classifies by tag into **three distinct categories**: `--bugs`
-  (`tag='BUG'` — a src/ defect; `test/BUGS.md`), `--limitation` (`tag='LIMITATION'` — not covered yet / env;
-  `test/LIMITATIONS.md`), and **`--not-applicable`** (`tag='NOT-APPLICABLE'` — a *permanent dialect boundary*,
-  the test runs in the cells whose dialect supports it). NOT-APPLICABLE is **never merged into LIMITATION**
-  (different cause, different future). `--cell-caveats` surfaces all three by cell, counted per category.
-  Extraction scans all of `test/` (markers legitimately live in `.test.ts` cells); comments that *explain*
-  a marker in tooling files match too but carry no cell, so the coord-scoped view drops them and the
-  name-scoped views need a real symbol-name match. Any other `// TODO[<tag>]` is indexed, not yet consumed.
+- **todo_marker** — one row per reason marker in a test cell (`file`, `line`, `tag`, `text`).
+  Three forms are recognised: a `// TODO[<TAG>]` (the bracketed modifier → `tag`: `BUG`, `LIMITATION`, … or
+  NULL for a bare `// TODO`) **and** the two first-class non-TODO markers, each under its own tag —
+  **`// NOT-APPLICABLE: <reason>`** and **`// MOCK-ONLY: <reason>`** (matching the audit's
+  `NOT_APPLICABLE_REASON` / `MOCK_ONLY_REASON`). The searcher classifies by tag into **four distinct
+  categories**: `--bugs` (`tag='BUG'` — a src/ defect; `test/BUGS.md`), `--limitation`
+  (`tag='LIMITATION'` — not covered yet / env; `test/LIMITATIONS.md`), **`--not-applicable`**
+  (`tag='NOT-APPLICABLE'` — a *permanent dialect boundary*, the test runs in the cells whose dialect
+  supports it) and **`--mock-only`** (`tag='MOCK-ONLY'` — a **live, fully-running** test whose INPUT is
+  mocked). None is ever merged into another (different cause, different future). `--cell-caveats`
+  surfaces the three DISABLED-test categories by cell, counted per category; MOCK-ONLY is excluded there
+  (it blocks no wave and repeats identically across every cell).
+
+    **Extraction scans `test/db/` only.** It used to scan all of `test/`, and that swept up the tooling's
+    own prose: the audit checks that DOCUMENT these markers quote them verbatim
+    (`// TODO[BUG]: <reason>`), and each quote was indexed as a marker. Not harmless — those quotes were
+    at one point the **entire** BUG population (22 of 22), so `--bugs` reported "22 known bugs" with none
+    in the matrix and listed audit source files instead of tests. A marker is only real on a test.
+
+    **A marker's `text` spans its continuation lines.** A reason rarely fits on one line, so extraction
+    keeps consuming the following `//` lines until a non-comment line or another marker. Line-scoped
+    capture truncated the reason at the first newline, which silently broke the name-scoped sections —
+    a marker whose second line read "…the only way to reach the `transformValueFromDB` arm under test."
+    was invisible to a `--mock-only` search for that symbol. Any other `// TODO[<tag>]` is indexed, not
+    yet consumed.
 - **emitted_sql** — one row per `toMatchInlineSnapshot` argument that looks like SQL, in a matrix
   cell (`source='test'`) or a generated documentation cell (`source='doc'`). NO block FK: the
   searcher recovers the owning block by `file` + line-containment (`test_block.start_line..end_line`,

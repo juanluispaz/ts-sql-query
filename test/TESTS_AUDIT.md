@@ -79,10 +79,10 @@ SQL + params + result type + result value, against both the mock and (under
 finding. Fix a finding by making the test validate honestly — never by hiding it.
 
 **Real-DB validation (the test must run and check the value in both modes)**
-- `mock-only` — the test never validates against the real engine (`if (ctx.realDbEnabled) return`, or a `catch` that only rethrows on the mock). Drive the case on the real engine; use `fragmentWithType` / `rawFragment` to synthesise an off-shape input the engine can't produce naturally; `toBeCloseTo` for float precision. **If this dialect deliberately cannot validate it on a real engine** (a permanent boundary, not a fixable gap), mark the live test `// NOT-APPLICABLE: <reason>` — it then runs mock-only here and validates in the dialects that support it (see "the three reason markers" below).
+- `mock-only` — two shapes. **(a) The skip**: `if (ctx.realDbEnabled) return`, or a `catch` that only rethrows on the mock — the test never executes against the real engine, so a real failure passes as green AND the SQL/param/type assertions are validated only in the mocked run. Never right, no carve-outs. **(b) The unjustified request**: a `ctx.mockOnlyConnection()` with no reason marker. That call is the sanctioned escape hatch (the body still runs and asserts in every mode; only its INPUT comes from the mock), but it must say why — `// MOCK-ONLY: <reason>` naming what the real engine cannot supply. Either way, first try to drive the case for real: use `fragmentWithType` / `rawFragment` to synthesise an off-shape input the engine can't produce naturally; `toBeCloseTo` for float precision. **If this dialect deliberately cannot validate it on a real engine** (a permanent boundary, not a fixable gap), mark the live test `// NOT-APPLICABLE: <reason>` — it then runs mock-only here and validates in the dialects that support it (see "the three reason markers" below).
 - `mirror-image` — a two-sided `ctx.realDbEnabled` guard where one branch checks the value and the other only checks shape (`.length`, `Array.isArray`, `typeof`). Give both branches the same value assertion (sort the unstable dimension in JS, then `toEqual`).
 - `one-sided-guard` — only one mode validates the value. Assert it unconditionally — add `ORDER BY` / JS-sort so one `toEqual` passes in both modes.
-- `skip-real-db` — `test.skipIf(ctx.realDbEnabled)` / `runIf(!ctx.realDbEnabled)`: a registration-level mock-only evasion. Let the test run in both modes — or, if it is a permanent dialect boundary, mark it `// NOT-APPLICABLE: <reason>` (same carve-out as `mock-only`).
+- `skip-real-db` — `test.skipIf(ctx.realDbEnabled)` / `runIf(!ctx.realDbEnabled)`: a registration-level mock-only evasion. Let the test run in both modes (if its scenario needs the mock as an input device, `ctx.mockOnlyConnection()` + `// MOCK-ONLY: <reason>` keeps it running) — or, if it is a permanent dialect boundary, mark it `// NOT-APPLICABLE: <reason>`.
 - `uuid-literal` — a string that looks like a UUID but isn't valid `8-4-4-4-12` hex. The mock accepts any string but a real engine's `uuid` cast rejects it, so it passes mock-only and fails under `--docker`. Fix the literal (use the shared valid test UUID).
 
 **The test must actually assert something real**
@@ -161,6 +161,16 @@ markers grant this: `// NOT-APPLICABLE:` (a permanent dialect boundary — it
 validates fully in the dialects that support it) and `// TODO[BUG]:` (a
 reproducible bug, mock-only until the fix lands). `// TODO[LIMITATION]:` does
 **not** (a pending decision, neither a boundary nor an open bug).
+
+**`MOCK-ONLY` is a FOURTH marker, and not one of the three.** It licenses one
+specific thing: a `ctx.mockOnlyConnection()` call in a LIVE, fully-running test
+whose scenario needs the mock as its INPUT DEVICE — a value no real driver of any
+connector hands back, or an injected fault. It is not a disabled-test marker (the
+test runs everywhere), and it is not a dialect boundary: unlike `NOT-APPLICABLE`,
+a `MOCK-ONLY` case validates against no engine in ANY cell, which is exactly why
+it must not borrow that category. Reason mandatory, and it should name what the
+real engine cannot supply — see [`DESIGN.md` § Mock-only
+smell](./DESIGN.md#mock-only-smell).
 
 **`TODO[BUG]` additionally licenses the type-bypass rules.** A reproducible-bug
 test often needs `as any` / `as unknown as T` / an `any` annotation just to

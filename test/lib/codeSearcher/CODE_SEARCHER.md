@@ -141,6 +141,7 @@ Defaults reproduce the classic report. The sections:
 | **Coverage** | R2 + neg_type | (`--tests <summary\|detail\|gaps>`) matrix tests by db (`newest/total`), per-test detail, or who's-missing per db; legacy examples; negative-type assertions |
 | **Known divergences** | `todo_marker` | (`--bugs`) `// TODO[BUG]` markers **naming the symbol** (case C/D/F); name-scoped |
 | **Known limitations** | `todo_marker` | (`--limitation`) `// TODO[LIMITATION]` markers **naming the symbol**; name-scoped |
+| **Mock-only scenarios** | `todo_marker` | (`--mock-only`) `// MOCK-ONLY` markers **naming the symbol**; name-scoped. The one category that is NOT a disabled test — the test runs in every mode, only its INPUT is mocked. `summary` groups by reason (the matrix is symmetric, so one scenario = N identical markers) and reports the cell count; `full` lists each |
 | **Cell caveats** | `todo_marker` | (`--cell-caveats`) BUG+LIMITATION markers in the cells `--coord` matches — **coord-scoped**, not by symbol; `caveatMarkers` filtered by `cellFromPath ∈ coord` (case G) |
 | **Search: chain (strict/broad/full)** | R5 + §9.1/§9.2 | *(search, `--chain`)* call-chain — public callers grouped by area + direct callers; `full` = the whole internal stack |
 | **Search: name** | R6 | *(search, `--name-search`)* name-based — hit count per dimension (low precision, high recall) |

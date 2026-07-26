@@ -27,8 +27,8 @@
 // SQLite already bundles the `uuid` extension (e.g. macOS) and are
 // ABSENT from Bun's bundled SQLite on Linux/CI ("no such function:
 // uuid_blob"). Like the `sqlite3` (npm) connector, this connector
-// therefore keeps the `'uuid-extension'` tests mock-only (guarded by
-// `ctx.realDbEnabled`), per
+// therefore keeps the `'uuid-extension'` tests mock-only (via
+// `ctx.mockOnlyConnection()`), per
 // [DESIGN.md §1 #18](../../../../DESIGN.md#1-principles): there the
 // assertion of interest is the SqlBuilder shape, not engine execution.
 // The connectors that DO register the functions (better-sqlite3,
@@ -65,7 +65,7 @@ describe(ctx.label, () => {
 
     // NOT-APPLICABLE: bun:sqlite has no user-defined-function API (only `loadExtension`), so the `uuid_str` / `uuid_blob` extension functions can't be registered; its built-ins are present only where the system SQLite bundles the `uuid` extension (e.g. macOS) and are absent from Bun's bundled SQLite on Linux/CI. Kept mock-only here so the SqlBuilder shape is still asserted; the connectors that register the functions run the `'uuid-extension'` path end-to-end.
     test('uuid-strategy: uuid-extension wraps asString in uuid_str', async () => {
-        if (ctx.realDbEnabled) return
+        ctx.mockOnlyConnection()
         const conn = ctx.withUuidStrategy('uuid-extension')
         ctx.mockNext(UUID_VALUE)
         sync(conn.selectFromNoTable()
@@ -87,7 +87,7 @@ describe(ctx.label, () => {
         // `_appendColumnValue` adds a `uuid_str(...)` wrapper at the
         // outermost query for any uuid value source when strategy is
         // `'uuid-extension'`.
-        if (ctx.realDbEnabled) return
+        ctx.mockOnlyConnection()
         const conn = ctx.withUuidStrategy('uuid-extension')
         ctx.mockNext(UUID_VALUE)
         sync(conn.selectFromNoTable()

@@ -17,6 +17,7 @@ test cells that type-check the examples and assert their SQL via mock) see
 - [`testContext.ts` — `ctx` API surface](#testcontextts--ctx-api-surface)
 - [`testContext.ts` — mutation safety contract](#testcontextts--mutation-safety-contract)
 - [`captureInterceptor.ts` — SQL / params recorder](#captureinterceptorts--sql--params-recorder)
+- [`switchableRunner.ts` — the mock-only seam](#switchablerunnerts--the-mock-only-seam)
 - [`backends.ts` — the real/mock gate + `RealDbBackend`](#backendsts--the-realmock-gate--realdbbackend)
 - [`testRunner.ts` + `testRuntime.{bun,vitest}.ts` — runtime shim](#testrunnerts--testruntimebunvitestts--runtime-shim)
 - [`assertType.ts` — compile-time type assertions](#asserttypets--compile-time-type-assertions)
@@ -29,9 +30,9 @@ test cells that type-check the examples and assert their SQL via mock) see
 
 ## `testContext.ts` — `ctx` API surface
 
-`ctx` (type [`TestContext<CONN>`](./lib/testContext.ts#L21)) is the single
+`ctx` (type [`TestContext<CONN>`](./lib/testContext.ts#L31)) is the single
 object every test file imports through its `setup.ts`. Construction is
-[`createTestContext<CONN>(opts)`](./lib/testContext.ts#L187); per-database
+[`createTestContext<CONN>(opts)`](./lib/testContext.ts#L327); per-database
 factories under `test/db/<db>/runners.ts` wrap it.
 
 What a test reaches via `ctx`:
@@ -48,14 +49,15 @@ What a test reaches via `ctx`:
 | `ctx.lastNoTransactionSql` (+ Params, + Type) | snapshot getters | Same triplet but skips transaction-control ops. Use after a `connection.transaction(...)` block. |
 | `ctx.history` | `ReadonlyArray<{type, sql, params}>` | Every captured op in order, including begin/commit/rollback. |
 | `ctx.lastTransactionOpts` | `readonly unknown[] \| undefined` | Most-recent `BeginTransactionOpts` passed through `transaction(fn, opts)` / `beginTransaction(opts)`. Works for connectors whose real runner manages transactions internally and never fires `executeBeginTransaction`. |
-| `ctx.mockNext(value)` | `void` | Queue a value for the NEXT data query. Ignored when real DB is on. |
+| `ctx.mockNext(value)` | `void` | Queue a value for the NEXT data query. Ignored when real DB is on — unless the test asked for `ctx.mockOnlyConnection()`. |
+| `ctx.mockOnlyConnection()` | `CONN` | Point `ctx.conn` (and everything derived from it) at the mock for the rest of THIS test, on every cell. The escape hatch for a scenario whose INPUT only the mock can supply. Needs a `// MOCK-ONLY: <reason>` marker — `tests:audit` gates it. Undone by `ctx.reset()`. |
 | `ctx.up()` / `ctx.down()` / `ctx.reset()` | lifecycle | Wire from `beforeAll` / `afterAll` / `beforeEach`. |
 | `ctx.reseed()` | `Promise<void>` | Re-apply schema + seed. No-op when real DB is off. |
 | `ctx.withRollback(fn)` | mutation primitive | Open tx, run `fn`, rollback. Default for mutating tests. |
 | `ctx.withCommit(fn)` | mutation primitive | Open tx, run `fn`, commit, then `reseed()`. For DDL on non-transactional-DDL engines, post-commit visibility, sequence-counter advance. |
 | `ctx.withReseed(fn)` | mutation primitive | No outer tx; run `fn`, then `reseed()`. For tests that manage their own `connection.transaction(...)`. |
 
-The interface ([`testContext.ts:21-119`](./lib/testContext.ts#L21-L119)) is
+The interface ([`testContext.ts:31-225`](./lib/testContext.ts#L31-L225)) is
 the contract. New primitives go through `createTestContext` (factory) +
 `TestContextOptions` (config) + the `TestContext<CONN>` interface — three
 matched additions, in that order.
@@ -145,6 +147,35 @@ captures three things every test asserts:
 
 Tests don't construct or override the interceptor — it's wired by
 `createTestContext` ([`testContext.ts:274`](./lib/testContext.ts#L274)).
+
+## `switchableRunner.ts` — the mock-only seam
+
+[`SwitchableQueryRunner`](./lib/switchableRunner.ts) is what makes
+`ctx.mockOnlyConnection()` possible. It sits BELOW the capture interceptor and
+delegates every `QueryRunner` member to whichever runner is currently selected:
+
+```
+ctx.conn  ->  CaptureInterceptor  ->  SwitchableQueryRunner  ->  real
+                                                             \-> mock
+```
+
+Because the interceptor above it never moves, flipping the switch redirects
+`ctx.conn` IN PLACE: `ctx.lastSql` / `ctx.history` observe the mock-backed
+queries exactly as they observed the real ones, and every connection built from
+the live interceptor (`ctx.withConnection`, `ctx.withFaultInjection`, the
+per-database `withXxx` factories) inherits the active target with no extra
+plumbing. On a cell that already runs the mock, both sides are the same object
+and the switch is a no-op.
+
+`ctx.mockOnlyConnection()` calls `useMock()`; `ctx.reset()` — the `beforeEach`
+every cell registers — calls `useDefault()`, which is what scopes the switch to
+a single test.
+
+It is a hand-written delegator rather than a `ChainedQueryRunner` subclass
+because that base class holds its delegate in a `readonly queryRunner`
+PROPERTY, and TypeScript forbids re-declaring a base property as an accessor —
+so there is no type-safe way to make the base's delegate swappable. Writing the
+delegation out keeps `src/` untouched and confines the mutation to one field.
 
 ## `backends.ts` — the real/mock gate + `RealDbBackend`
 

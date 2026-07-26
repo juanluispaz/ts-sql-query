@@ -18,7 +18,7 @@ export const RULE_SEVERITY: Record<string, Severity> = {
     // and the matrix is symmetric.
     'symmetry':               'error',
     // anti-cheat content rules — all `error` (the warn→error ramp is complete)
-    'mock-only':              'error',   // most severe: never executes against the real engine
+    'mock-only':              'error',   // most severe: never executes against the real engine (skip/swallow), or an unjustified ctx.mockOnlyConnection()
     'mirror-image':           'error',
     'one-sided-guard':        'error',
     'uuid-literal':           'error',   // a malformed-UUID literal mock accepts but a real engine rejects
@@ -59,7 +59,7 @@ export const RULE_HINT: Record<string, string> = {
     'symmetry':
         'EVERY cell of the WHOLE matrix (all databases × versions × connectors) must declare the same `.test.ts` files with the same test names in the same order. A test that does not apply to a dialect is COMMENTED OUT (kept for symmetry) with a `// NOT-APPLICABLE: <reason>` marker (or a `// TODO[BUG]:` / `// TODO[LIMITATION]:`), never deleted. Exempt files: `config.*` (connection-config-specific), `*.generated.test.ts`, and any whose name embeds a database name as a `.`/`-`-delimited token (e.g. `select.postgres-const-force-type-cast.test.ts`) — those are inherently dialect-specific.',
     'mock-only':
-        'The test must execute against the real engine — skipping it (`if (ctx.realDbEnabled) return`) or swallowing the real error (`catch { if (!ctx.realDbEnabled) throw e }`) lets a real failure pass as green. Drive the case on real: synthesise an off-shape input with `fragmentWithType` / `rawFragment` if the engine cannot produce it naturally; use `toBeCloseTo` for float precision. A genuinely-irreducible case (extremely rare) carries `// tests-audit-disable-next-line mock-only -- <reason>`.',
+        'The test must execute against the real engine — skipping it (`if (ctx.realDbEnabled) return`) or swallowing the real error (`catch { if (!ctx.realDbEnabled) throw e }`) lets a real failure pass as green, and drops the SQL/param/type assertions on real cells too. Drive the case on real: synthesise an off-shape input with `fragmentWithType` / `rawFragment` if the engine cannot produce it naturally; use `toBeCloseTo` for float precision. When the SCENARIO genuinely needs the mock as its input device (a value no real driver returns, an injected fault), do NOT skip: call `ctx.mockOnlyConnection()` — the body then still runs and asserts in every mode — and license it with a `// MOCK-ONLY: <reason>` marker naming what the real engine cannot supply (`// NOT-APPLICABLE:` / `// TODO[BUG]:` license it too). This rule also flags such a call with NO marker. A genuinely-irreducible case (extremely rare) carries `// tests-audit-disable-next-line mock-only -- <reason>`.',
     'mirror-image':
         'Make `expect(result).toEqual(...)` unconditional (DESIGN §1) — give the real-DB branch the same value assertion (sort the unstable dimension in JS, or UPDATE-in-withRollback). If the value is genuinely non-deterministic, justify with `// tests-audit-disable-next-line mirror-image -- <reason>` citing EXTERNAL_CAVEATS § "Could test more if real DB were on".',
     'one-sided-guard':

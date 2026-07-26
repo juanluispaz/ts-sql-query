@@ -169,6 +169,7 @@ to hide it (`--chain none`).
 | `--bugs` | **none** · summary · full | `// TODO[BUG]` markers whose text **names the searched symbol** — a **src/ defect** (the library should do this but fails; re-enabled in this cell once fixed) |
 | `--limitation` | **none** · summary · full | `// TODO[LIMITATION]` markers naming the symbol — the library **doesn't cover this yet** (by choice) or the environment can't (could re-enable here if that changes) |
 | `--not-applicable` | **none** · summary · full | `// NOT-APPLICABLE` markers naming the symbol — a **permanent dialect boundary** (this cell *never* runs the test, by design; it runs+validates in the cells whose dialect supports it). A **distinct** category, never merged into limitations: nothing pending, not actionable debt — it explains a deliberate `never` typing |
+| `--mock-only` | **none** · summary · full | `// MOCK-ONLY` markers naming the symbol — a **live, fully-running** test whose INPUT is mocked (`ctx.mockOnlyConnection()`), because no real driver produces the value under test or the fault is injected. NOT a disabled test and NOT a dialect boundary: it validates against no engine in any cell. `summary` collapses the symmetric matrix to **one line per distinct reason** + how many cells carry it; `full` lists every marker |
 | `--cell-caveats` | **none** · summary · full | **coord-scoped:** all three markers (`TODO[BUG]` / `TODO[LIMITATION]` / `NOT-APPLICABLE`) declared on cells, *not* filtered by the symbol — surfaces a caveat on the target **cell** a wave/propagation would hit late. **The level is the view:** `summary` = the per-cell **map** (each cell + counts **per category**); `full` = the **markers** (cell-prefixed + `[TAG]`). `--coord` only **filters which cells** appear |
 | `--name-search` | **none** · full | name-based discovery — every place the name appears, per dimension (high recall) |
 | `--refs` | none · summary · full | **shortcut**, not a section: sets the whole "references by role" family (every `--ref-*` above) to one level at once. An explicit per-role flag still overrides it; `--refs` itself beats a `--for` preset |
@@ -187,8 +188,9 @@ to hide it (`--chain none`).
 > `--name-search` answer "where used" too, but as a graph traversal and a flat catch-all — not a single
 > syntactic role.)
 
-> **Caveats — three first-class categories, two scopes.** A disabled test (commented-out or `.skip`) still
-> counts for symmetry, so it carries one of **three distinct markers**, by cause and *future*:
+> **Caveats — four first-class categories, two scopes.** A disabled test (commented-out or `.skip`) still
+> counts for symmetry, so it carries one of **three distinct markers**, by cause and *future* — plus a
+> fourth marker that describes a LIVE test:
 > - **`// TODO[BUG]: <reason>`** — a **src/ defect**: the library *should* do this but fails today.
 >   Re-enabled in this cell **once the bug is fixed**. (`test/BUGS.md`.)
 > - **`// TODO[LIMITATION]: <reason>`** — the library **doesn't cover this yet** (by choice) or the
@@ -199,10 +201,20 @@ to hide it (`--chain none`).
 >   dialect supports it** (usually with a `types.negative/` counterpart here). NOT a `TODO` (the word implies
 >   work); its own category, never folded into `--limitation`.
 >
-> Each is its own **name-scoped** section (`--bugs` / `--limitation` / `--not-applicable`) — *"is there a
-> known bug / limitation / dialect-boundary **about the symbol I'm calling**?"* And **`--cell-caveats`** is
-> **coord-scoped**: **every** marker (all three categories, tagged) in the **cells `--coord` selects**, named
-> or not — *"is anything declared on the **cell I'm about to write into** that blocks my wave?"*
+> - **`// MOCK-ONLY: <reason>`** — the **fourth** category, and the odd one out: it does NOT describe a
+>   disabled test. The test is **live and runs in every mode**; what it gives up is that its INPUT comes
+>   from the mock (`ctx.mockOnlyConnection()`) because no real driver of any connector produces the value
+>   under test, or the fault is injected. Never folded into NOT-APPLICABLE: a dialect boundary still
+>   validates in the dialects that support it, whereas a MOCK-ONLY case validates against **no engine in
+>   any cell**. Surfaced by `--mock-only`; **not** part of `--cell-caveats` (it blocks no wave, and the
+>   markers repeat identically across all 67 cells).
+>
+> Each of the four is its own **name-scoped** section (`--bugs` / `--limitation` / `--not-applicable` /
+> `--mock-only`) — *"is there a known bug / limitation / dialect-boundary / mocked-input **about the symbol
+> I'm calling**?"* And **`--cell-caveats`** is **coord-scoped**: **every** marker of the three
+> DISABLED-test categories, tagged, in the **cells `--coord` selects**, named or not — *"is anything
+> declared on the **cell I'm about to write into** that blocks my wave?"* `MOCK-ONLY` stays out of that
+> view by design: it blocks nothing, and being uniform across the matrix it would bury the caveats that do.
 >
 > They diverge when a caveat is about a *dialect/version*, not a method. Searching `oldValues`,
 > `--limitation` finds the markers that literally say `oldValues()`, but **misses** the "MariaDB
@@ -253,15 +265,15 @@ default. Explicit flags still override.
 |---|---|
 | `bare` | **every section `none`** — a blank report; add only the section(s) you want instead of typing a dozen `--<section> none`. Explicit flags (and `--refs`) turn things back on: `--for bare --surface own` shows only the surface |
 | `coverage-gap` | classification `full` · chain `full` · ref-return `summary` · tests `gaps` · examples `full` · cell-caveats `summary`→`full` if `--coord` |
-| `type-bug` | declared `full` · signature `full` · ref-type-arg `full` · neg-types `full` · bugs `summary` · limitation `summary` · not-applicable `summary` · chain `none` — the TYPE counterpart of `emission-bug`: a type-resolution bug lives in the **signature**, not the call-chain, so it raises every declaration site, the full signature/overloads, the alias's blast radius (where the type is a type argument), the negative type tests, and any dialect-boundary marker (a `never` is often `NOT-APPLICABLE`) |
-| `emission-bug` | emitted-sql `full` · ref-implements `full` (non-overriders) · version-gates `summary` · bugs `full` · limitation `summary` · not-applicable `summary` · chain `none` |
-| `version-work` | version-gates `full` · tests `summary` · bugs `summary` · limitation `summary` · not-applicable `summary` · chain `none` |
+| `type-bug` | declared `full` · signature `full` · ref-type-arg `full` · neg-types `full` · bugs `summary` · limitation `summary` · not-applicable `summary` · mock-only `summary` · chain `none` — the TYPE counterpart of `emission-bug`: a type-resolution bug lives in the **signature**, not the call-chain, so it raises every declaration site, the full signature/overloads, the alias's blast radius (where the type is a type argument), the negative type tests, and any dialect-boundary marker (a `never` is often `NOT-APPLICABLE`) |
+| `emission-bug` | emitted-sql `full` · ref-implements `full` (non-overriders) · version-gates `summary` · bugs `full` · limitation `summary` · not-applicable `summary` · mock-only `summary` · chain `none` |
+| `version-work` | version-gates `full` · tests `summary` · bugs `summary` · limitation `summary` · not-applicable `summary` · mock-only `summary` · chain `none` |
 | `post-fix-sync` | emitted-sql `full` · docs `full` · examples `full` · tests `detail` · bugs `summary` · chain `none` |
 | `propagation` | classification `summary` · tests `gaps` · examples `summary` · cell-caveats `summary`→`full` if `--coord` · chain `none` — the COVERAGE_RUNBOOK *Propagation* view (copy the canonical test to the sibling cells) |
 
-The caveat sections split by *scope*: `--bugs`/`--limitation`/`--not-applicable` are **name-scoped**
+The caveat sections split by *scope*: `--bugs`/`--limitation`/`--not-applicable`/`--mock-only` are **name-scoped**
 (markers naming the symbol) and ride the feature-centric presets (`type-bug`/`emission-bug`/`version-work`
-carry all three — a `never` typing is often a `NOT-APPLICABLE` boundary); `--cell-caveats` is **coord-scoped** and rides
+carry all four — a `never` typing is often a `NOT-APPLICABLE` boundary); `--cell-caveats` is **coord-scoped** and rides
 `coverage-gap` / `propagation` **coord-aware** — `summary` (the per-cell **map**) while you browse
 with no `--coord`, auto-raised to `full` (the **markers**) the moment you scope with a `--coord`. The
 level meaning is fixed (`summary`=map, `full`=markers); the preset just picks the useful one. An

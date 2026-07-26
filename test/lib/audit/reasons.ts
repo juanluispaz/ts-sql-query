@@ -38,6 +38,28 @@
 // searcher's job (`tests:index` / `tests:where-is`); the audit only checks that a
 // disabled test HAS one of the three. Keep the markers exported separately so a
 // future per-category view here would not have to re-derive them.
+//
+// A FOURTH marker, `MOCK-ONLY: <reason>`, is deliberately NOT one of the three:
+// it does not describe a DISABLED test at all. It licenses a LIVE, fully-running
+// test that asks for `ctx.mockOnlyConnection()` — the mock is that test's INPUT
+// DEVICE (a value no real driver of any connector hands back, an injected fault),
+// so the body executes and asserts in EVERY mode; what it cannot claim is that a
+// real engine produced the input. It is its own category because it is neither a
+// dialect boundary (NOT-APPLICABLE — those DO validate in the dialects that
+// support them; a MOCK-ONLY test validates against no engine anywhere), nor
+// pending work (a TODO). Keeping it separate is what stops the searcher's
+// `--not-applicable` view from reading a suite-wide construction as per-dialect
+// debt.
+
+/** `MOCK-ONLY: <reason>` — why a LIVE test needs `ctx.mockOnlyConnection()`. */
+export const MOCK_ONLY_REASON = /MOCK-ONLY\s*:\s*\S/
+
+/**
+ * The markers that license a live `ctx.mockOnlyConnection()` call: its own
+ * `MOCK-ONLY`, plus the two that already license a live mock-only test
+ * (a dialect boundary, or a bug repro that stays mock-only until fixed).
+ */
+export const MOCK_ONLY_LICENSE = /(?:MOCK-ONLY|NOT-APPLICABLE|TODO\[BUG\])\s*:\s*\S/
 
 /** `TODO[BUG]: <reason>` or `TODO[LIMITATION]: <reason>` — the two TODO markers. */
 export const TODO_REASON = /TODO\[(?:LIMITATION|BUG)\]\s*:\s*\S/
@@ -60,8 +82,9 @@ export const NOT_APPLICABLE_OR_BUG_REASON = /(?:NOT-APPLICABLE|TODO\[BUG\])\s*:\
 export const DISABLED_TEST_REASON = /(?:TODO\[(?:LIMITATION|BUG)\]|NOT-APPLICABLE)\s*:\s*\S/
 
 /**
- * Any of the three first-class markers, WITHOUT requiring a reason — used by the
- * `misplaced-marker` rule to locate every marker occurrence (a missing reason is
- * the `commented-test-reason` / `skipped-test-reason` rules' concern, not this one).
+ * Every marker, WITHOUT requiring a reason — the three first-class ones plus
+ * `MOCK-ONLY`. Used by the `misplaced-marker` rule to locate every marker
+ * occurrence (a missing reason is the `commented-test-reason` /
+ * `skipped-test-reason` / `mock-only` rules' concern, not this one).
  */
-export const ANY_MARKER = /(?:TODO\[(?:LIMITATION|BUG)\]|NOT-APPLICABLE)\s*:/
+export const ANY_MARKER = /(?:TODO\[(?:LIMITATION|BUG)\]|NOT-APPLICABLE|MOCK-ONLY)\s*:/

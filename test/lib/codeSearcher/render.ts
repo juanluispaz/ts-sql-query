@@ -43,6 +43,7 @@ export interface Sections {
     bugs: Level             // // TODO[BUG] markers naming the symbol — a src/ defect, re-enabled when fixed
     limitation: Level       // // TODO[LIMITATION] markers naming the symbol — not covered yet / env
     notApplicable: Level    // // NOT-APPLICABLE markers naming the symbol — a permanent dialect boundary
+    mockOnly: Level         // // MOCK-ONLY markers naming the symbol — a LIVE test whose scenario needs the mock as its INPUT
     cellCaveats: Level
     nameSearch: NameSearchLevel
 }
@@ -71,7 +72,7 @@ export const DEFAULT_SECTIONS: Sections = {
     classification: 'summary', declared: 'summary', signature: 'summary', chain: 'strict',
     refReturn: 'none', refImplements: 'summary', refTypeArg: 'none', refParam: 'none', refField: 'none', refNew: 'none', refProperty: 'none', refBrand: 'none', surface: 'none', versionGates: 'none', docs: 'summary',
     simplified: 'summary', emittedSql: 'none', tests: 'summary', examples: 'summary',
-    negTypes: 'summary', bugs: 'none', limitation: 'none', notApplicable: 'none', cellCaveats: 'none', nameSearch: 'none',
+    negTypes: 'summary', bugs: 'none', limitation: 'none', notApplicable: 'none', mockOnly: 'none', cellCaveats: 'none', nameSearch: 'none',
 }
 export const DEFAULT_FILTERS: Filters = {
     coord: [],
@@ -569,6 +570,40 @@ export function render(db: QueryDb, name: string, opts: SearchOptions, meta: Met
             for (const m of markers.slice(0, cap)) push(`- ${m.file}:${m.line} — ${m.text}`)
             if (markers.length > cap) push(`- …and ${markers.length - cap} more`)
             push('_(permanent — not a bug or a missing feature; the test runs in the cells whose dialect supports it.)_')
+            push()
+        }
+    }
+
+    // Mock-only tests — // MOCK-ONLY markers mentioning the name. A FOURTH category, and the only one
+    // that is not about a DISABLED test: the test is live and runs in every mode, but its INPUT comes
+    // from the mock (a value no real driver hands back, an injected fault), so nothing proves the engine
+    // can produce it. Kept apart from NOT-APPLICABLE on purpose — a dialect boundary still validates in
+    // the dialects that support it, a mock-only case validates against no engine in ANY cell.
+    if (S.mockOnly !== 'none') {
+        const markers = Q.todoMarkersMatching(db, name, 'MOCK-ONLY')
+        if (markers.length) {
+            push('## Mock-only scenarios (// MOCK-ONLY)')
+            if (S.mockOnly === 'summary') {
+                // The matrix is symmetric, so the same marker repeats across every cell. Group by
+                // REASON and report how many cells carry it — one line per distinct scenario instead
+                // of 67 identical ones.
+                const byText = new Map<string, { count: number, first: { file: string, line: number } }>()
+                for (const m of markers) {
+                    const e = byText.get(m.text)
+                    if (e) e.count++
+                    else byText.set(m.text, { count: 1, first: { file: m.file, line: m.line } })
+                }
+                const rows = [...byText.entries()].sort((a, b) => b[1].count - a[1].count)
+                const cap = 15
+                for (const [text, e] of rows.slice(0, cap)) {
+                    push(`- ${e.count === 1 ? '' : `×${e.count} cells — `}${text} _(${e.first.file}:${e.first.line})_`)
+                }
+                if (rows.length > cap) push(`- …and ${rows.length - cap} more distinct reasons`)
+                push(`_(${markers.length} marker(s) across ${rows.length} distinct scenario(s).)_`)
+            } else {
+                for (const m of markers) push(`- ${m.file}:${m.line} — ${m.text}`)
+            }
+            push('_(the test RUNS in every mode — only its input is mocked; see DESIGN.md § Mock-only smell.)_')
             push()
         }
     }

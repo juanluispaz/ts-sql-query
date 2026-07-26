@@ -21,13 +21,13 @@
 // `sync: true` throws out of the runner (the try/catch form); omitted rejects
 // the returned promise (the `.then(_, reject)` form).
 //
-// These are MOCK-ONLY (`if (ctx.realDbEnabled) return`): the fault is INJECTED,
-// so the classification under test is the library's and is identical in mock and
-// real mode — forcing it on a real engine validates nothing the mock doesn't
-// already prove. A faulted commit/rollback also leaves the transaction open, and
-// a real native embedded runner (e.g. better-sqlite3) cannot be cleanly recovered
-// from that. Every assertion targets the caught error, so the audit's
-// exception-validation carve-out tolerates the skip.
+// These run on a MOCK-ONLY connection (`ctx.mockOnlyConnection()`): the fault is
+// INJECTED, so the classification under test is the library's and is identical in
+// mock and real mode — forcing it on a real engine validates nothing the mock
+// doesn't already prove. A faulted commit/rollback also leaves the transaction
+// open, and a real native embedded runner (e.g. better-sqlite3) cannot be cleanly
+// recovered from that. Asking for the mock keeps the body EXECUTING in every mode
+// instead of skipping the test on a real cell.
 
 import { afterAll, ApplicationError, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { QueryExecutionSource, TsSqlProcessingError, TsSqlQueryExecutionError } from '../../../../../src/TsSqlError.js'
@@ -61,7 +61,10 @@ describe(ctx.label, () => {
             const form = sync ? 'synchronous' : 'asynchronous'
 
             test(`begin-transaction-${form}-driver-rejection-classifies-${steer.key}`, async () => {
-                if (ctx.realDbEnabled) { return }
+                // MOCK-ONLY: the driver rejection is INJECTED by ctx.withFaultInjection() — a healthy engine
+                // never rejects these calls, and a faulted commit/rollback on a real one would
+                // leave its transaction open.
+                ctx.mockOnlyConnection()
                 // A direct `beginTransaction()` whose driver call fails.
                 const { conn, faults } = ctx.withFaultInjection()
                 const injected = steer.make()
@@ -86,7 +89,10 @@ describe(ctx.label, () => {
             })
 
             test(`commit-${form}-driver-rejection-classifies-${steer.key}`, async () => {
-                if (ctx.realDbEnabled) { return }
+                // MOCK-ONLY: the driver rejection is INJECTED by ctx.withFaultInjection() — a healthy engine
+                // never rejects these calls, and a faulted commit/rollback on a real one would
+                // leave its transaction open.
+                ctx.mockOnlyConnection()
                 // A direct `commit()` with no before-commit hook whose driver call fails.
                 const { conn, faults } = ctx.withFaultInjection()
                 const injected = steer.make()
@@ -112,7 +118,10 @@ describe(ctx.label, () => {
             })
 
             test(`commit-after-before-commit-hook-${form}-driver-rejection-classifies-${steer.key}`, async () => {
-                if (ctx.realDbEnabled) { return }
+                // MOCK-ONLY: the driver rejection is INJECTED by ctx.withFaultInjection() — a healthy engine
+                // never rejects these calls, and a faulted commit/rollback on a real one would
+                // leave its transaction open.
+                ctx.mockOnlyConnection()
                 // A `commit()` preceded by a before-commit hook that returns a
                 // promise, so the commit runs on the deferred-hook continuation
                 // (a separate ladder from the plain commit above). The hook itself
@@ -142,7 +151,10 @@ describe(ctx.label, () => {
             })
 
             test(`rollback-${form}-driver-rejection-classifies-${steer.key}`, async () => {
-                if (ctx.realDbEnabled) { return }
+                // MOCK-ONLY: the driver rejection is INJECTED by ctx.withFaultInjection() — a healthy engine
+                // never rejects these calls, and a faulted commit/rollback on a real one would
+                // leave its transaction open.
+                ctx.mockOnlyConnection()
                 // A direct `rollback()` whose driver call fails.
                 const { conn, faults } = ctx.withFaultInjection()
                 const injected = steer.make()
@@ -169,7 +181,10 @@ describe(ctx.label, () => {
         }
 
         test(`transaction-block-synchronous-begin-rejection-classifies-${steer.key}`, async () => {
-            if (ctx.realDbEnabled) { return }
+            // MOCK-ONLY: the driver rejection is INJECTED by ctx.withFaultInjection() — a healthy engine
+            // never rejects these calls, and a faulted commit/rollback on a real one would
+            // leave its transaction open.
+            ctx.mockOnlyConnection()
             // A begin fault thrown SYNCHRONOUSLY from inside `transaction(fn)` makes
             // `executeInTransaction` throw synchronously, so it is classified by the
             // outer try/catch ladder of `transaction`.
@@ -197,7 +212,10 @@ describe(ctx.label, () => {
     }
 
     test('transaction-block-asynchronous-begin-rejection-wraps-sql-error', async () => {
-        if (ctx.realDbEnabled) { return }
+        // MOCK-ONLY: the driver rejection is INJECTED by ctx.withFaultInjection() — a healthy engine
+        // never rejects these calls, and a faulted commit/rollback on a real one would
+        // leave its transaction open.
+        ctx.mockOnlyConnection()
         // A begin fault REJECTED asynchronously inside `transaction(fn)` reaches the
         // outer async classification handler (distinct from the synchronous outer
         // catch and from the direct `beginTransaction()` handler). A SQL error there
@@ -221,7 +239,10 @@ describe(ctx.label, () => {
     })
 
     test('transaction-nested-within-active-transaction-throws-nested-not-supported', async () => {
-        if (ctx.realDbEnabled) { return }
+        // MOCK-ONLY: the driver rejection is INJECTED by ctx.withFaultInjection() — a healthy engine
+        // never rejects these calls, and a faulted commit/rollback on a real one would
+        // leave its transaction open.
+        ctx.mockOnlyConnection()
         // With nested transactions unsupported, starting a `transaction(...)` while
         // one is already open throws `NESTED_TRANSACTION_NOT_SUPPORTED` before any
         // driver call.
@@ -242,7 +263,10 @@ describe(ctx.label, () => {
     })
 
     test('begin-transaction-nested-within-active-transaction-throws-nested-not-supported', async () => {
-        if (ctx.realDbEnabled) { return }
+        // MOCK-ONLY: the driver rejection is INJECTED by ctx.withFaultInjection() — a healthy engine
+        // never rejects these calls, and a faulted commit/rollback on a real one would
+        // leave its transaction open.
+        ctx.mockOnlyConnection()
         // The same guard on `beginTransaction()`: a second begin while a transaction
         // is open throws `NESTED_TRANSACTION_NOT_SUPPORTED`.
         const { conn } = ctx.withFaultInjection({ nestedTransactionsSupported: false })

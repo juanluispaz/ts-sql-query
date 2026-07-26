@@ -27,7 +27,7 @@
 // those tests run end-to-end against the real engine. The `sqlite3` and
 // bun:sqlite connectors can't register them (no user-defined-function
 // API; bun:sqlite's built-ins aren't present on every platform), so they
-// keep these tests mock-only (guarded by `ctx.realDbEnabled`), per
+// keep these tests mock-only (via `ctx.mockOnlyConnection()`), per
 // [DESIGN.md §1 #18](../../../../DESIGN.md#1-principles): there the
 // assertion of interest is the SqlBuilder shape, not engine execution.
 

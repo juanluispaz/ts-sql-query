@@ -24,6 +24,7 @@
 
 import ts from 'typescript'
 import type { Finding } from '../types.js'
+import { allComments } from '../ast.js'
 import { ANY_MARKER } from '../reasons.js'
 
 const RUNNERS = new Set(['test', 'it', 'describe'])
@@ -56,21 +57,15 @@ function isOutermostRunnerCall(call: ts.CallExpression): boolean {
     return true
 }
 
+// Comments as (startLine, endLine, text). Sourced from `allComments` (the
+// parsed tree) rather than a raw scanner loop — see its docstring: a bare
+// scanner goes blind past the first template literal in the file.
 function scanComments(sf: ts.SourceFile): Cmt[] {
-    const scanner = ts.createScanner(ts.ScriptTarget.Latest, /*skipTrivia*/ false, ts.LanguageVariant.Standard, sf.text)
-    const out: Cmt[] = []
-    let tok = scanner.scan()
-    while (tok !== ts.SyntaxKind.EndOfFileToken) {
-        if (tok === ts.SyntaxKind.SingleLineCommentTrivia || tok === ts.SyntaxKind.MultiLineCommentTrivia) {
-            out.push({
-                startLine: lineAt(sf, scanner.getTokenPos()),
-                endLine: lineAt(sf, scanner.getTextPos()),
-                text: scanner.getTokenText(),
-            })
-        }
-        tok = scanner.scan()
-    }
-    return out
+    return allComments(sf).map(c => ({
+        startLine: lineAt(sf, c.pos),
+        endLine: lineAt(sf, c.end),
+        text: sf.text.slice(c.pos, c.end),
+    }))
 }
 
 // The set of 1-based lines where a marker is legitimately "at a test".

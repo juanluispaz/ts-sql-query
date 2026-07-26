@@ -102,9 +102,6 @@ describe(ctx.label, () => {
     test('order-by-from-string-throws-on-unknown-column', async () => {
         // Validation: a column not in the projection bubbles up as a
         // `TsSqlProcessingError` with reason `ORDER_BY_COLUMN_NOT_IN_SELECT`.
-        // Mock-only: the error is raised before any SQL reaches the
-        // runner.
-        if (ctx.realDbEnabled) return
         ctx.mockNext([])
         let caught: unknown
         try {
@@ -120,8 +117,7 @@ describe(ctx.label, () => {
 
     test('order-by-from-string-throws-on-unknown-ordering', async () => {
         // Validation: an unrecognised ordering keyword raises
-        // `INVALID_ORDER_BY_ORDERING`. Mock-only.
-        if (ctx.realDbEnabled) return
+        // `INVALID_ORDER_BY_ORDERING`.
         ctx.mockNext([])
         let caught: unknown
         try {

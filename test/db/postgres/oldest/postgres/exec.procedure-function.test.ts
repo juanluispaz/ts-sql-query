@@ -90,10 +90,10 @@ describe(ctx.label, () => {
 
     test('execute-function-required-throws-mandatory-when-driver-returns-null', async () => {
         // A required-typed function call whose driver returns null throws
-        // MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE. A real
-        // count_open_issues never returns null, so this misbehaviour is
-        // simulated via the mock (mock-only by design).
-        if (ctx.realDbEnabled) return
+        // MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE.
+        // MOCK-ONLY: a real count_open_issues never returns null, so only the mock can hand back the
+        // null that trips the required-value gate.
+        ctx.mockOnlyConnection()
         ctx.mockNext(null)
         let thrown: unknown
         try {
@@ -108,9 +108,10 @@ describe(ctx.label, () => {
 
     test('execute-function-throws-no-result-when-driver-returns-undefined', async () => {
         // A driver returning raw undefined for a function call throws
-        // NO_RESULT. No real driver returns undefined here, so it's
-        // simulated via the mock (mock-only by design).
-        if (ctx.realDbEnabled) return
+        // NO_RESULT.
+        // MOCK-ONLY: no real driver returns raw undefined for a function call, so only the mock can
+        // drive the NO_RESULT gate.
+        ctx.mockOnlyConnection()
         ctx.mockNext(undefined)
         let thrown: unknown
         try {

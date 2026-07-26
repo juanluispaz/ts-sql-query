@@ -297,9 +297,10 @@ describe(ctx.label, () => {
 
     test('execute-insert-one-throws-no-result-when-row-missing', async () => {
         // `executeInsertOne()` raises `NO_RESULT` when the engine
-        // returns no row
-        // Mock-only: real INSERT always returns the inserted row.
-        if (ctx.realDbEnabled) return
+        // returns no row.
+        // MOCK-ONLY: a real INSERT always returns the inserted row, so only the mock can produce the
+        // missing row that trips NO_RESULT.
+        ctx.mockOnlyConnection()
         ctx.mockNext(undefined)
         let caught: unknown
         try {
@@ -783,7 +784,9 @@ describe(ctx.label, () => {
         // `transformValueFromDB` rejects it with INVALID_VALUE_RECEIVED_FROM_DATABASE
         // (distinct from the NO_RESULT / MANDATORY_VALUE gates). The mock hands the
         // scalar back directly on the one-column path.
-        if (ctx.realDbEnabled) return
+        // MOCK-ONLY: a real driver never hands back a non-integer for the projected int column of a
+        // row it actually inserted, so only the mock reaches this gate.
+        ctx.mockOnlyConnection()
         ctx.mockNext(1.5)
         let caught: unknown
         try {
@@ -804,7 +807,9 @@ describe(ctx.label, () => {
         // MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE. A `null` scalar is
         // distinct from the `undefined` "no row" sentinel that fires NO_RESULT, so
         // the mock reaches the value-gate.
-        if (ctx.realDbEnabled) return
+        // MOCK-ONLY: a real driver never hands back null for the projected NOT NULL column of a row
+        // it actually inserted, so only the mock reaches this gate.
+        ctx.mockOnlyConnection()
         ctx.mockNext(null)
         let caught: unknown
         try {

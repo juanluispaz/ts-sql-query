@@ -298,7 +298,11 @@ export function extractEmittedSql(program: ts.Program, ids: Ids): EmittedSqlRow[
 
 // ── todo_marker: ALL // TODO[...] across test files (a plain comment scan) ────
 // Captures every // TODO with its bracketed modifier as `tag` (BUG, PERF, … or null for a
-// bare // TODO). --bugs filters to tag='BUG'; the rest are indexed for completeness.
+// bare // TODO), PLUS the two first-class non-TODO markers stored under their own tag:
+// 'NOT-APPLICABLE' (a permanent dialect boundary) and 'MOCK-ONLY' (a live test whose
+// scenario needs the mock as its input device). --bugs filters to tag='BUG',
+// --not-applicable / --mock-only to theirs; the remaining TODO tags are indexed for
+// completeness.
 export function extractTodoMarkers(program: ts.Program, ids: Ids): TodoMarkerRow[] {
     const out: TodoMarkerRow[] = []
     const TODO_RE = /\/\/\s*TODO(?:\s*\[([^\]]*)\])?\s*:?\s*(.*)$/
@@ -307,22 +311,64 @@ export function extractTodoMarkers(program: ts.Program, ids: Ids): TodoMarkerRow
     // exactly wrong here). Stored under tag='NOT-APPLICABLE' so the searcher classifies it separately
     // from LIMITATION (actionable debt). Matches the audit's NOT_APPLICABLE_REASON (test/lib/audit/reasons.ts).
     const NA_RE = /\/\/\s*NOT-APPLICABLE\s*:\s*(.*)$/
+    // `// MOCK-ONLY: <reason>` — why a LIVE, fully-running test asks for
+    // `ctx.mockOnlyConnection()`: its SCENARIO needs the mock as an INPUT DEVICE (a value no
+    // real driver hands back, an injected fault). A FOURTH first-class marker, stored under
+    // tag='MOCK-ONLY'. Deliberately NOT folded into NOT-APPLICABLE: a dialect boundary still
+    // validates in the dialects that support it, whereas a mock-only case validates against no
+    // engine in ANY cell — merging them would make --not-applicable read a suite-wide
+    // construction as per-dialect debt. Matches the audit's MOCK_ONLY_REASON
+    // (test/lib/audit/reasons.ts).
+    const MOCK_ONLY_RE = /\/\/\s*MOCK-ONLY\s*:\s*(.*)$/
     for (const sf of program.getSourceFiles()) {
         if (sf.fileName.endsWith('.d.ts')) continue
         const rel = relative(process.cwd(), sf.fileName)
-        if (!rel.startsWith('test/')) continue
+        // CELLS ONLY. A reason marker means something about a TEST, so it is only ever real
+        // under test/db/. Scanning all of test/ swept up the tooling's own prose — the audit
+        // checks that DOCUMENT these markers quote them verbatim (`// TODO[BUG]: <reason>`),
+        // and every one of those quotes was indexed as a marker. That noise was not harmless:
+        // it was the ENTIRE BUG population at times, so the report read as "22 known bugs"
+        // when the matrix had none, and `--bugs` / `--not-applicable` listed audit source
+        // files instead of tests.
+        if (!rel.startsWith('test/db/')) continue
         const lines = sf.text.split('\n')
+        // A reason often does not fit on one line. The marker's text therefore continues into the
+        // following `//` lines, up to the first line that is not a comment or that starts another
+        // marker — so the indexed `text` is the WHOLE reason. Line-scoped capture used to truncate
+        // it at the first newline, which silently broke the name-scoped sections: a marker reading
+        // "…the only way to reach the transformValueFromDB arm under test." on its second line was
+        // invisible to `--mock-only`/`--bugs` searching that symbol.
+        const continuationFrom = (start: number): string => {
+            const parts: string[] = []
+            for (let j = start; j < lines.length; j++) {
+                const s = lines[j]!.trim()
+                if (!s.startsWith('//')) break
+                const body = s.slice(2).trim()
+                if (TODO_RE.test(s) || NA_RE.test(s) || MOCK_ONLY_RE.test(s)) break
+                if (body) parts.push(body)
+            }
+            return parts.join(' ')
+        }
+        const joinReason = (head: string, start: number): string => {
+            const rest = continuationFrom(start)
+            return rest ? `${head.trim()} ${rest}`.trim() : head.trim()
+        }
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i]!
             const na = line.match(NA_RE)
             if (na) {
-                out.push({ id: ids.next(), file: rel, line: i + 1, tag: 'NOT-APPLICABLE', text: na[1]!.trim(), scope: null })
+                out.push({ id: ids.next(), file: rel, line: i + 1, tag: 'NOT-APPLICABLE', text: joinReason(na[1]!, i + 1), scope: null })
+                continue
+            }
+            const mo = line.match(MOCK_ONLY_RE)
+            if (mo) {
+                out.push({ id: ids.next(), file: rel, line: i + 1, tag: 'MOCK-ONLY', text: joinReason(mo[1]!, i + 1), scope: null })
                 continue
             }
             const m = line.match(TODO_RE)
             if (!m) continue
             const tag = m[1] !== undefined ? m[1].trim() : null
-            out.push({ id: ids.next(), file: rel, line: i + 1, tag: tag || null, text: m[2]!.trim(), scope: null })
+            out.push({ id: ids.next(), file: rel, line: i + 1, tag: tag || null, text: joinReason(m[2]!, i + 1), scope: null })
         }
     }
     return out

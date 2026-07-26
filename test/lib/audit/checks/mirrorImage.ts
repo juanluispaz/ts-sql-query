@@ -66,15 +66,22 @@
 // A flagged case that is a genuine divergence carries
 // `// tests-audit-disable-next-line mirror-image -- <reason>`.
 //
-// NOT-APPLICABLE / TODO[BUG] carve-out (mock-only only): a LIVE test marked
+// NOT-APPLICABLE / TODO[BUG] carve-out — SWALLOW form only: a LIVE test marked
 // `// NOT-APPLICABLE: <reason>` or `// TODO[BUG]: <reason>` (within its body or 3
-// lines above) is allowed to be mock-only — either the dialect deliberately
+// lines above) may swallow the real-DB error — either the dialect deliberately
 // cannot validate it against the real engine (a dialect boundary; the test runs
 // in the dialects that DO support it), or it reproduces a known bug and stays
 // mock-only until the bug is fixed. Keyed on NOT-APPLICABLE/TODO[BUG] (NOT
-// TODO[LIMITATION]): see `isNodeInMarkedTest` in ast.ts. It carves out only the
-// `mock-only` forms (skip + swallow); `mirror-image` and `one-sided-guard`
-// describe a test that DOES run in both modes, so they are not affected.
+// TODO[LIMITATION]): see `isNodeInMarkedTest` in ast.ts.
+//
+// The SKIP form has NO carve-out. It used to have two (an exception-validation
+// heuristic and a file-scoped allow-list for `marshalling`'s `fromDbValue`),
+// both of which existed because there was no way to keep such a test running on
+// a real cell. `ctx.mockOnlyConnection()` is that way — the body executes and
+// asserts in every mode — so a skip is now always the wrong shape and the
+// justified cases are gated by checks/mockOnlyConnection.ts instead.
+// `mirror-image` and `one-sided-guard` describe a test that DOES run in both
+// modes, so no carve-out affects them.
 
 import ts from 'typescript'
 import type { Finding } from '../types.js'
@@ -101,10 +108,9 @@ interface Counts { deep: number, value: number, weak: number }
 
 export function checkMirrorImage(sf: ts.SourceFile, file: string): Finding[] {
     const out: Finding[] = []
-    const throwHelpers = collectThrowHelpers(sf)
     const naLines = markerLines(sf, NOT_APPLICABLE_OR_BUG_REASON)
     const visit = (n: ts.Node): void => {
-        if (ts.isIfStatement(n)) inspectIf(n, sf, file, out, throwHelpers, naLines)
+        if (ts.isIfStatement(n)) inspectIf(n, sf, file, out)
         if (ts.isCatchClause(n)) inspectCatch(n, sf, file, out, naLines)
         ts.forEachChild(n, visit)
     }
@@ -135,7 +141,7 @@ function inspectCatch(cc: ts.CatchClause, sf: ts.SourceFile, file: string, out: 
     })
 }
 
-function inspectIf(ifStmt: ts.IfStatement, sf: ts.SourceFile, file: string, out: Finding[], throwHelpers: Set<string>, naLines: Set<number>): void {
+function inspectIf(ifStmt: ts.IfStatement, sf: ts.SourceFile, file: string, out: Finding[]): void {
     const guard = classify(ifStmt.expression)
     if (!guard) return
 
@@ -182,12 +188,13 @@ function inspectIf(ifStmt: ts.IfStatement, sf: ts.SourceFile, file: string, out:
         const fall = followingSiblings(ifStmt)
         if (guard === 'whenTrue') {
             // `if (ctx.realDbEnabled) return` — the test NEVER executes against the
-            // real engine. The most severe form: nothing is validated on a real DB.
-            // Exception-validation carve-out: a skip whose assertions are all about
-            // an EXCEPTION (the lib throwing), not a result value, is tolerated
-            // mock-only (see `validatesOnlyExceptions`).
-            if (hasAnyAssertion(fall) && !validatesOnlyExceptions(fall, throwHelpers) && !isFileScopedMockOnly(fall, file) && !isNodeInMarkedTest(ifStmt, sf, naLines)) {
-                out.push({ rule: 'mock-only', file, line, message: '`if (ctx.realDbEnabled) return` makes the test mock-only — it never executes against the real engine, so a real failure passes as green. Drive it on real (synthesise an off-shape input with fragmentWithType / rawFragment if the engine cannot produce it naturally) — DESIGN § Real-DB validation. If this dialect deliberately cannot validate it on a real engine, mark the test `// NOT-APPLICABLE: <reason>` (it runs in the dialects that support it); if it is a known reproducible bug, mark it `// TODO[BUG]: <reason>`' })
+            // real engine. The most severe form: nothing is validated on a real DB,
+            // not even the SQL/param snapshots the body would still have asserted.
+            // NO carve-outs: a scenario that genuinely needs the mock asks for
+            // `ctx.mockOnlyConnection()` (checks/mockOnlyConnection.ts) and keeps
+            // running, so skipping is never the right shape.
+            if (hasAnyAssertion(fall)) {
+                out.push({ rule: 'mock-only', file, line, message: '`if (ctx.realDbEnabled) return` makes the test mock-only — it never executes against the real engine, so a real failure passes as green and the SQL/param/type assertions are validated only in the mocked run. Drive it on real (synthesise an off-shape input with fragmentWithType / rawFragment if the engine cannot produce it naturally) — DESIGN § Real-DB validation. If the scenario genuinely needs the mock as its INPUT (a value no real driver returns, an injected fault), do NOT skip: call `ctx.mockOnlyConnection()` so the body still runs and asserts in every mode, and license it with `// MOCK-ONLY: <reason>`' })
             }
         } else {
             // `if (!ctx.realDbEnabled) return` — real-only; the mock never validates.
@@ -367,61 +374,6 @@ function isOnlyIdColumn(arg: ts.Expression | undefined): boolean {
     if (!arg || !ts.isObjectLiteralExpression(arg) || arg.properties.length !== 1) return false
     const p = arg.properties[0]!
     return ts.isPropertyAssignment(p) && isIdColumnRef(p.initializer)
-}
-
-// Exception-validation carve-out for the mock-only-skip form. A test whose
-// purpose is to pin that the LIBRARY THROWS (not to validate a result value) is
-// tolerated mock-only — forcing the throw on a real engine adds nothing the
-// mock doesn't already prove. Tolerated iff the skipped body has ≥1
-// exception-validation assertion and NO non-exception value/deep assertion (a
-// value assertion still belongs on the real engine). An assertion validates an
-// exception when it (A) uses a `toThrow`/`toThrowError` matcher or a `.rejects`
-// chain, (B) targets a variable derived from a `catch` binding, or (C) targets
-// the result of a same-file helper that surfaces a caught error
-// (`fromDbReason`/`toDbReason` in the marshalling pattern).
-// Deliberate, narrow, file-scoped mock-only exceptions: a named helper in a
-// specific test file whose `if (ctx.realDbEnabled) return` skip is explicitly
-// allowed. Each entry carries its reason (the suppression-comment philosophy
-// at the tool level, since the file is symmetric across every cell and the
-// reason is the same everywhere). Keep this list TINY — it is a hole in the
-// rule. Documented in AUDIT.md § mock-only.
-const FILE_SCOPED_MOCK_ONLY: ReadonlyArray<{ file: string, helper: string, reason: string }> = [
-    {
-        file: 'marshalling.transform-validation.test.ts',
-        helper: 'fromDbValue',
-        // `fromDbValue` injects (via mockNext) a representation a real driver of
-        // this connector would never hand back (a JS bigint for an int column,
-        // …); forcing it on a real engine via fragmentWithType is contrived and
-        // cross-connector. Tolerated mock-only by project decision.
-        reason: 'mock injects a driver representation the real connector never returns',
-    },
-]
-
-// Every `expect(...)` in `fall` asserts on a call to the file's listed helper —
-// the deliberate file-scoped exception above. Skips with a foreign assertion
-// (an SQL snapshot, a different helper) are NOT covered.
-function isFileScopedMockOnly(fall: ts.Node[], file: string): boolean {
-    const entry = FILE_SCOPED_MOCK_ONLY.find((e) => file.endsWith('/' + e.file) || file === e.file)
-    if (!entry) return false
-    let count = 0
-    let allMatch = true
-    const visit = (n: ts.Node): void => {
-        if (ts.isCallExpression(n) && ts.isIdentifier(n.expression) && n.expression.text === 'expect') {
-            count++
-            const arg = n.arguments[0]
-            if (!arg || !callsNamedFn(arg, entry.helper)) allMatch = false
-        }
-        ts.forEachChild(n, visit)
-    }
-    for (const node of fall) visit(node)
-    return count >= 1 && allMatch
-}
-
-// Unwrap `await` / parens and check the call's callee is exactly `name`.
-function callsNamedFn(arg: ts.Expression, name: string): boolean {
-    let cur: ts.Expression = arg
-    while (ts.isAwaitExpression(cur) || ts.isParenthesizedExpression(cur)) cur = cur.expression
-    return ts.isCallExpression(cur) && ts.isIdentifier(cur.expression) && cur.expression.text === name
 }
 
 // `random()` yields a non-deterministic but BOUNDED value: real can't assert

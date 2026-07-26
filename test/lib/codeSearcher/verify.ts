@@ -97,6 +97,14 @@ check('--not-applicable summary parses',         parseArgs(['--search', 'x', '--
 check('bare --not-applicable → summary',         parseArgs(['--search', 'x', '--not-applicable']).sectionOverrides.notApplicable === 'summary')
 check('preset type-bug raises not-applicable',   tyb.sections.notApplicable === 'summary')
 check('not-applicable is NOT the same as limitation', (() => { const s = buildOptions(parseArgs(['--search', 'x', '--not-applicable', 'full', '--limitation', 'none'])).sections; return s.notApplicable === 'full' && s.limitation === 'none' })())
+// MOCK-ONLY is the FOURTH first-class marker — a LIVE test whose input is mocked, never folded
+// into NOT-APPLICABLE (which means "validated in the dialects that support it").
+check('--mock-only summary parses',              parseArgs(['--search', 'x', '--mock-only', 'summary']).sectionOverrides.mockOnly === 'summary')
+check('bare --mock-only → summary',              parseArgs(['--search', 'x', '--mock-only']).sectionOverrides.mockOnly === 'summary')
+check('--mock-only defaults to none',            buildOptions(parseArgs(['--search', 'x'])).sections.mockOnly === 'none')
+check('preset type-bug raises mock-only',        tyb.sections.mockOnly === 'summary')
+check('mock-only is NOT the same as not-applicable', (() => { const s = buildOptions(parseArgs(['--search', 'x', '--mock-only', 'full', '--not-applicable', 'none'])).sections; return s.mockOnly === 'full' && s.notApplicable === 'none' })())
+check('--for bare silences mock-only',           buildOptions(parseArgs(['--search', 'x', '--for', 'bare'])).sections.mockOnly === 'none')
 const override = buildOptions(parseArgs(['--search', 'x', '--for', 'coverage-gap', '--chain', 'none']))
 check('explicit flag overrides the preset',      override.sections.chain === 'none')
 check('explicit flag overrides type-bug',        buildOptions(parseArgs(['--search', 'x', '--for', 'type-bug', '--ref-type-arg', 'none'])).sections.refTypeArg === 'none')

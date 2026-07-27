@@ -4,7 +4,7 @@ search:
 ---
 # Change Log
 
-## v2.0.0-beta.2 (Unreleased)
+## v2.0.0-beta.2
 
 **Testing and quality**:
 
